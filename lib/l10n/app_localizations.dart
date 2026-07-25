@@ -2066,6 +2066,12 @@ abstract class AppLocalizations {
   /// **'Cash on delivery'**
   String get orderPaymentCod;
 
+  /// No description provided for @orderPaymentCodNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on delivery — collected when the order arrives'**
+  String get orderPaymentCodNote;
+
   /// No description provided for @orderPayPartial.
   ///
   /// In en, this message translates to:
@@ -2077,6 +2083,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paid'**
   String get orderPayPaid;
+
+  /// No description provided for @orderAwaitingPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting payment'**
+  String get orderAwaitingPayment;
+
+  /// No description provided for @orderMarkAsPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as paid'**
+  String get orderMarkAsPaid;
+
+  /// No description provided for @orderMarkAsUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unpaid'**
+  String get orderMarkAsUnpaid;
 
   /// No description provided for @orderSave.
   ///

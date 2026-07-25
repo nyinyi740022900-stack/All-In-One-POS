@@ -57,6 +57,27 @@ void main() {
     expect((await orders.getOrder(id)).status, 'packed');
   });
 
+  test('setPaymentStatus updates and enqueues the order for sync', () async {
+    final id = await orders.saveOrder(
+      customerName: 'Nan Nan',
+      channel: 'facebook',
+      lines: const [OrderDraftLine(name: 'Bag', price: 20000, qty: 1)],
+    );
+    expect((await orders.getOrder(id)).paymentStatus, 'unpaid');
+
+    await orders.setPaymentStatus(id, 'paid');
+    expect((await orders.getOrder(id)).paymentStatus, 'paid');
+
+    // Reversible — staff can undo a mistaken "mark as paid".
+    await orders.setPaymentStatus(id, 'unpaid');
+    expect((await orders.getOrder(id)).paymentStatus, 'unpaid');
+
+    final outbox = (await db.select(db.outbox).get())
+        .where((o) => o.entityTable == 'orders' && o.rowId == id)
+        .toList();
+    expect(outbox.length, greaterThanOrEqualTo(3)); // save + 2 status updates
+  });
+
   test('editing replaces the item set and recomputes the total', () async {
     final id = await orders.saveOrder(
       customerName: 'Su',
