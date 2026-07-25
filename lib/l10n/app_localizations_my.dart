@@ -1061,10 +1061,23 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderPaymentCod => 'အိမ်ရောက်ငွေချေ';
 
   @override
+  String get orderPaymentCodNote =>
+      'အိမ်ရောက်ငွေချေ — ပစ္စည်းရောက်မှ ငွေကောက်ခံမည်';
+
+  @override
   String get orderPayPartial => 'တစ်စိတ်တစ်ပိုင်း';
 
   @override
   String get orderPayPaid => 'ပေးပြီး';
+
+  @override
+  String get orderAwaitingPayment => 'ငွေမရရှိသေးပါ';
+
+  @override
+  String get orderMarkAsPaid => 'ငွေရရှိပြီဟု မှတ်သားရန်';
+
+  @override
+  String get orderMarkAsUnpaid => 'ငွေမရရှိသေးဟု ပြန်ပြင်ရန်';
 
   @override
   String get orderSave => 'အော်ဒါ သိမ်း';

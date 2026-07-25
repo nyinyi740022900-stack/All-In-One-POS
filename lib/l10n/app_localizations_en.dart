@@ -1067,10 +1067,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderPaymentCod => 'Cash on delivery';
 
   @override
+  String get orderPaymentCodNote =>
+      'Cash on delivery — collected when the order arrives';
+
+  @override
   String get orderPayPartial => 'Partial';
 
   @override
   String get orderPayPaid => 'Paid';
+
+  @override
+  String get orderAwaitingPayment => 'Awaiting payment';
+
+  @override
+  String get orderMarkAsPaid => 'Mark as paid';
+
+  @override
+  String get orderMarkAsUnpaid => 'Mark as unpaid';
 
   @override
   String get orderSave => 'Save order';

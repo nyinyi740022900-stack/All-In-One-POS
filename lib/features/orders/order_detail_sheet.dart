@@ -152,24 +152,7 @@ class OrderDetailSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Text('${l.orderPayment}: '),
-                Text(orderPaymentLabel(l, o.paymentStatus)),
-                if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  _PaymentMethodChip(method: o.paymentMethod!),
-                ],
-              ],
-            ),
-            if (o.paymentProofPath != null &&
-                o.paymentProofPath!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(l.orderPaymentProof,
-                  style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 6),
-              _PaymentProof(path: o.paymentProofPath!),
-            ],
+            _PaymentSection(order: o),
             // Delivery info is only relevant once an order is actually being
             // shipped — hidden for new/confirmed/packed so the common
             // "just move this order along" flow doesn't scroll past a form
@@ -418,6 +401,116 @@ class _PaymentProofState extends State<_PaymentProof> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Payment section: COD orders never need a "paid?" status before delivery
+/// (the cash is collected at the door, so it's always unpaid until then) —
+/// showing "Unpaid" there just reads as an alarm with nothing to do about
+/// it, so COD gets one plain descriptive line instead. Transfer orders (or
+/// orders with no method set) get the real status plus a way to confirm
+/// payment after reviewing the screenshot — `Order.paymentStatus` only ever
+/// flips to 'paid' automatically when converted to a sale otherwise, with no
+/// way to acknowledge "I saw the screenshot, payment is confirmed" before
+/// that (fulfillment and payment confirmation are separate steps).
+class _PaymentSection extends ConsumerWidget {
+  const _PaymentSection({required this.order});
+  final Order order;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final o = order;
+
+    if (o.paymentMethod == 'cod') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.local_shipping_outlined,
+                size: 18, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l.orderPaymentCodNote)),
+          ],
+        ),
+      );
+    }
+
+    final isPaid = o.paymentStatus == 'paid';
+    // Once converted to a sale, the sale itself is the source of truth for
+    // what was actually paid — toggling this afterward would be cosmetic at
+    // best and misleading at worst, so the control disappears and the badge
+    // just reflects the (already 'paid') status convertToSale set.
+    final canToggle = o.saleId == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty) ...[
+              _PaymentMethodChip(method: o.paymentMethod!),
+              const SizedBox(width: 8),
+            ],
+            _PaymentStatusBadge(
+              paid: isPaid,
+              label: isPaid ? l.orderPayPaid : l.orderAwaitingPayment,
+            ),
+          ],
+        ),
+        if (o.paymentProofPath != null &&
+            o.paymentProofPath!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(l.orderPaymentProof,
+              style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 6),
+          _PaymentProof(path: o.paymentProofPath!),
+        ],
+        if (canToggle) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: isPaid
+                ? TextButton.icon(
+                    onPressed: () => ref
+                        .read(ordersRepositoryProvider)
+                        .setPaymentStatus(o.id, 'unpaid'),
+                    icon: const Icon(Icons.undo, size: 16),
+                    label: Text(l.orderMarkAsUnpaid),
+                  )
+                : FilledButton.tonalIcon(
+                    onPressed: () => ref
+                        .read(ordersRepositoryProvider)
+                        .setPaymentStatus(o.id, 'paid'),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: Text(l.orderMarkAsPaid),
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PaymentStatusBadge extends StatelessWidget {
+  const _PaymentStatusBadge({required this.paid, required this.label});
+  final bool paid;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = paid ? Colors.green : Colors.orange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
