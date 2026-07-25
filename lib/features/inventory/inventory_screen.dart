@@ -5,13 +5,25 @@ import '../../core/money.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/demo_seed.dart';
+import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
+import '../printing/label_data.dart';
+import '../printing/label_print_dialog.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'categories_screen.dart';
 import 'inventory_providers.dart';
 import 'product_edit_screen.dart';
+
+/// Barcode value to print/scan for a product — its own barcode if set,
+/// falling back to the SKU, then the internal id, so every product can get
+/// a printable label even if the shop never entered a real barcode.
+String labelBarcodeFor(Product p) {
+  if ((p.barcode ?? '').trim().isNotEmpty) return p.barcode!.trim();
+  if ((p.sku ?? '').trim().isNotEmpty) return p.sku!.trim();
+  return p.id;
+}
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -125,10 +137,30 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       title: Text(p.product.name),
                       subtitle: Text(
                           Money(p.product.salePrice).withSymbol(currency)),
-                      trailing: trackStock
-                          ? _StockBadge(
-                              quantity: p.quantity, low: p.isLowStock)
-                          : null,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.qr_code_2),
+                            tooltip: l.inventoryPrintLabel,
+                            onPressed: () => showLabelPrintDialog(
+                              context,
+                              ref,
+                              data: LabelData(
+                                name: p.product.name,
+                                // Always the ASCII 'Ks' so it prints cleanly
+                                // via native (non-raster) text commands.
+                                priceText:
+                                    Money(p.product.salePrice).withSymbol('Ks'),
+                                barcode: labelBarcodeFor(p.product),
+                              ),
+                            ),
+                          ),
+                          if (trackStock)
+                            _StockBadge(
+                                quantity: p.quantity, low: p.isLowStock),
+                        ],
+                      ),
                       onTap: canEdit ? () => _openEditor(p) : null,
                     );
                   },

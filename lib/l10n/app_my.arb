@@ -10,6 +10,7 @@
 
   "commonSave": "သိမ်းမည်",
   "commonCancel": "မလုပ်တော့ပါ",
+  "commonOk": "အိုကေ",
   "commonDelete": "ဖျက်မည်",
   "commonEdit": "ပြင်မည်",
   "commonAdd": "ထည့်မည်",
@@ -155,6 +156,19 @@
   "receiptThankYou": "ဝယ်ယူအားပေးမှုအတွက် ကျေးဇူးတင်ပါသည်။",
   "paper58": "၅၈ မီလီမီတာ",
   "paper80": "၈၀ မီလီမီတာ",
+
+  "settingsLabelPrinter": "Label ပရင်တာ",
+  "labelPrinterSettings": "Label ပရင်တာ ဆက်တင်",
+  "labelPrinterSize": "Label အရွယ်အစား",
+  "labelSize40x30": "၄၀ x ၃၀ မီလီမီတာ",
+  "labelSize50x30": "၅၀ x ၃၀ မီလီမီတာ",
+  "labelSize50x40": "၅၀ x ၄၀ မီလီမီတာ",
+  "inventoryPrintLabel": "Label ပရင့်ထုတ်ရန်",
+  "labelPrintDialogTitle": "Label ပရင့်ထုတ်ရန်",
+  "labelCopies": "အရေအတွက်",
+  "labelPrintTargetStrip": "ပြေစာပရင်တာပေါ်မှာ strip အနေနဲ့ ထုတ်ပါမည်",
+  "labelPrintTargetDedicated": "Label ပရင်တာပေါ်မှာ ထုတ်ပါမည်",
+  "labelPrintNoTarget": "ပရင်တာ ချိတ်ဆက်မထားပါ။ Settings ထဲမှာ ပရင်တာတစ်ခု ဦးစွာ ချိတ်ဆက်ပါ။",
 
   "categoriesTitle": "အမျိုးအစားများ",
   "manageCategories": "အမျိုးအစား စီမံ",

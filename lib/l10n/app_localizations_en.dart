@@ -33,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonOk => 'OK';
+
+  @override
   String get commonDelete => 'Delete';
 
   @override
@@ -448,6 +451,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paper80 => '80 mm';
+
+  @override
+  String get settingsLabelPrinter => 'Label printer';
+
+  @override
+  String get labelPrinterSettings => 'Label printer settings';
+
+  @override
+  String get labelPrinterSize => 'Label size';
+
+  @override
+  String get labelSize40x30 => '40 x 30 mm';
+
+  @override
+  String get labelSize50x30 => '50 x 30 mm';
+
+  @override
+  String get labelSize50x40 => '50 x 40 mm';
+
+  @override
+  String get inventoryPrintLabel => 'Print label';
+
+  @override
+  String get labelPrintDialogTitle => 'Print label';
+
+  @override
+  String get labelCopies => 'Copies';
+
+  @override
+  String get labelPrintTargetStrip =>
+      'Prints as a strip on the receipt printer';
+
+  @override
+  String get labelPrintTargetDedicated => 'Prints on the label printer';
+
+  @override
+  String get labelPrintNoTarget =>
+      'No printer connected. Set one up in Settings.';
 
   @override
   String get categoriesTitle => 'Categories';

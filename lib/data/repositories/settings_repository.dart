@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../features/invoices/receipt_data.dart';
+import '../../features/printing/label_data.dart';
 import '../local/database.dart';
 
 /// Device-scoped key/value settings (not synced). Backs printer config,
@@ -17,6 +18,9 @@ class SettingsRepository {
   static const _kPaperSize = 'printer.paper_size';
   static const _kPrinterMac = 'printer.mac';
   static const _kPrinterName = 'printer.name';
+  static const _kLabelSize = 'label_printer.size';
+  static const _kLabelMac = 'label_printer.mac';
+  static const _kLabelName = 'label_printer.name';
   static const _kShopName = 'shop.name';
   static const _kShopAddress = 'shop.address';
   static const _kShopPhone = 'shop.phone';
@@ -66,6 +70,40 @@ class SettingsRepository {
   Future<void> setPrinter(String mac, String name) async {
     await _set(_kPrinterMac, mac);
     await _set(_kPrinterName, name);
+  }
+
+  // ---- Dedicated label printer (TSPL, separate device from the receipt
+  // printer above) --------------------------------------------------------
+
+  LabelSize _labelSizeFromKey(String? key) => LabelSize.values.firstWhere(
+        (s) => s.name == key,
+        orElse: () => LabelSize.mm40x30,
+      );
+
+  Stream<LabelPrinterConfig> watchLabelPrinterConfig() {
+    return _db.select(_db.appSettings).watch().map((rows) {
+      final map = {for (final r in rows) r.key: r.value};
+      return LabelPrinterConfig(
+        size: _labelSizeFromKey(map[_kLabelSize]),
+        mac: map[_kLabelMac],
+        name: map[_kLabelName],
+      );
+    });
+  }
+
+  Future<LabelPrinterConfig> labelPrinterConfig() async {
+    return LabelPrinterConfig(
+      size: _labelSizeFromKey(await _get(_kLabelSize)),
+      mac: await _get(_kLabelMac),
+      name: await _get(_kLabelName),
+    );
+  }
+
+  Future<void> setLabelSize(LabelSize size) => _set(_kLabelSize, size.name);
+
+  Future<void> setLabelPrinter(String mac, String name) async {
+    await _set(_kLabelMac, mac);
+    await _set(_kLabelName, name);
   }
 
   // ---- License cache + device identity ------------------------------------
@@ -215,6 +253,15 @@ class PrinterConfig {
   final String? mac;
   final String? name;
   const PrinterConfig({required this.paper, this.mac, this.name});
+
+  bool get hasPrinter => mac != null && mac!.isNotEmpty;
+}
+
+class LabelPrinterConfig {
+  final LabelSize size;
+  final String? mac;
+  final String? name;
+  const LabelPrinterConfig({required this.size, this.mac, this.name});
 
   bool get hasPrinter => mac != null && mac!.isNotEmpty;
 }

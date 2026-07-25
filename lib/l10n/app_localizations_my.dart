@@ -33,6 +33,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonCancel => 'မလုပ်တော့ပါ';
 
   @override
+  String get commonOk => 'အိုကေ';
+
+  @override
   String get commonDelete => 'ဖျက်မည်';
 
   @override
@@ -442,6 +445,44 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get paper80 => '၈၀ မီလီမီတာ';
+
+  @override
+  String get settingsLabelPrinter => 'Label ပရင်တာ';
+
+  @override
+  String get labelPrinterSettings => 'Label ပရင်တာ ဆက်တင်';
+
+  @override
+  String get labelPrinterSize => 'Label အရွယ်အစား';
+
+  @override
+  String get labelSize40x30 => '၄၀ x ၃၀ မီလီမီတာ';
+
+  @override
+  String get labelSize50x30 => '၅၀ x ၃၀ မီလီမီတာ';
+
+  @override
+  String get labelSize50x40 => '၅၀ x ၄၀ မီလီမီတာ';
+
+  @override
+  String get inventoryPrintLabel => 'Label ပရင့်ထုတ်ရန်';
+
+  @override
+  String get labelPrintDialogTitle => 'Label ပရင့်ထုတ်ရန်';
+
+  @override
+  String get labelCopies => 'အရေအတွက်';
+
+  @override
+  String get labelPrintTargetStrip =>
+      'ပြေစာပရင်တာပေါ်မှာ strip အနေနဲ့ ထုတ်ပါမည်';
+
+  @override
+  String get labelPrintTargetDedicated => 'Label ပရင်တာပေါ်မှာ ထုတ်ပါမည်';
+
+  @override
+  String get labelPrintNoTarget =>
+      'ပရင်တာ ချိတ်ဆက်မထားပါ။ Settings ထဲမှာ ပရင်တာတစ်ခု ဦးစွာ ချိတ်ဆက်ပါ။';
 
   @override
   String get categoriesTitle => 'အမျိုးအစားများ';

@@ -18,6 +18,10 @@ final printerConfigProvider = StreamProvider<PrinterConfig>((ref) {
   return ref.watch(settingsRepositoryProvider).watchPrinterConfig();
 });
 
+final labelPrinterConfigProvider = StreamProvider<LabelPrinterConfig>((ref) {
+  return ref.watch(settingsRepositoryProvider).watchLabelPrinterConfig();
+});
+
 final shopProfileProvider = FutureProvider<ShopProfile>((ref) {
   return ref.watch(settingsRepositoryProvider).shopProfile();
 });

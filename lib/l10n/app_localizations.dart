@@ -146,6 +146,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// No description provided for @commonOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
+
   /// No description provided for @commonDelete.
   ///
   /// In en, this message translates to:
@@ -925,6 +931,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'80 mm'**
   String get paper80;
+
+  /// No description provided for @settingsLabelPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get settingsLabelPrinter;
+
+  /// No description provided for @labelPrinterSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer settings'**
+  String get labelPrinterSettings;
+
+  /// No description provided for @labelPrinterSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Label size'**
+  String get labelPrinterSize;
+
+  /// No description provided for @labelSize40x30.
+  ///
+  /// In en, this message translates to:
+  /// **'40 x 30 mm'**
+  String get labelSize40x30;
+
+  /// No description provided for @labelSize50x30.
+  ///
+  /// In en, this message translates to:
+  /// **'50 x 30 mm'**
+  String get labelSize50x30;
+
+  /// No description provided for @labelSize50x40.
+  ///
+  /// In en, this message translates to:
+  /// **'50 x 40 mm'**
+  String get labelSize50x40;
+
+  /// No description provided for @inventoryPrintLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Print label'**
+  String get inventoryPrintLabel;
+
+  /// No description provided for @labelPrintDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print label'**
+  String get labelPrintDialogTitle;
+
+  /// No description provided for @labelCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get labelCopies;
+
+  /// No description provided for @labelPrintTargetStrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints as a strip on the receipt printer'**
+  String get labelPrintTargetStrip;
+
+  /// No description provided for @labelPrintTargetDedicated.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints on the label printer'**
+  String get labelPrintTargetDedicated;
+
+  /// No description provided for @labelPrintNoTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer connected. Set one up in Settings.'**
+  String get labelPrintNoTarget;
 
   /// No description provided for @categoriesTitle.
   ///
