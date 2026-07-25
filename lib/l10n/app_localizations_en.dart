@@ -263,6 +263,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productUnit => 'Unit';
 
   @override
+  String get inventoryUpdateStock => 'Update stock';
+
+  @override
+  String get stockAdjustTitle => 'Update stock';
+
+  @override
+  String get stockAdjustModeRestock => 'Restock';
+
+  @override
+  String get stockAdjustModeAdjust => 'Adjust';
+
+  @override
+  String get stockAdjustQuantity => 'Quantity';
+
+  @override
+  String get stockAdjustQuantityHintRestock => 'Units received';
+
+  @override
+  String get stockAdjustQuantityHintAdjust => '+ to increase, − to decrease';
+
+  @override
+  String get stockAdjustReason => 'Reason';
+
+  @override
+  String get stockAdjustNote => 'Note (optional)';
+
+  @override
+  String get stockAdjustSave => 'Save';
+
+  @override
+  String get stockAdjustInvalid => 'Enter a valid quantity';
+
+  @override
+  String stockAdjustCurrentStock(int quantity) {
+    return 'Current stock: $quantity';
+  }
+
+  @override
+  String get stockReasonDamaged => 'Damaged';
+
+  @override
+  String get stockReasonLost => 'Lost / stolen';
+
+  @override
+  String get stockReasonCount => 'Stock count correction';
+
+  @override
+  String get stockReasonOther => 'Other';
+
+  @override
+  String get stockHistoryTitle => 'Stock history';
+
+  @override
+  String get stockHistoryEmpty => 'No stock movements yet.';
+
+  @override
+  String get stockMovementOpening => 'Opening balance';
+
+  @override
+  String get stockMovementSale => 'Sale';
+
+  @override
+  String get stockMovementReturn => 'Refund return';
+
+  @override
+  String get stockMovementPurchase => 'Restock';
+
+  @override
+  String get stockMovementAdjustment => 'Adjustment';
+
+  @override
+  String get productViewStockHistory => 'View stock history';
+
+  @override
   String get validationRequired => 'Required';
 
   @override

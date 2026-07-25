@@ -12,6 +12,7 @@ import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
 import 'inventory_providers.dart';
+import 'stock_history_screen.dart';
 
 /// Add or edit a product. Pass [existing] to edit; null to create.
 class ProductEditScreen extends ConsumerStatefulWidget {
@@ -153,6 +154,19 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
               _gap,
               _field(_reorder, l.productReorderLevel, number: true),
               _gap,
+              if (isEdit) ...[
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => StockHistoryScreen(
+                      productId: widget.existing!.product.id,
+                      productName: widget.existing!.product.name,
+                    ),
+                  )),
+                  icon: const Icon(Icons.history),
+                  label: Text(l.productViewStockHistory),
+                ),
+                _gap,
+              ],
             ],
             _field(_barcode, l.productBarcode,
                 number: true,

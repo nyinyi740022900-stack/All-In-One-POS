@@ -572,6 +572,150 @@ abstract class AppLocalizations {
   /// **'Unit'**
   String get productUnit;
 
+  /// No description provided for @inventoryUpdateStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Update stock'**
+  String get inventoryUpdateStock;
+
+  /// No description provided for @stockAdjustTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update stock'**
+  String get stockAdjustTitle;
+
+  /// No description provided for @stockAdjustModeRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock'**
+  String get stockAdjustModeRestock;
+
+  /// No description provided for @stockAdjustModeAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust'**
+  String get stockAdjustModeAdjust;
+
+  /// No description provided for @stockAdjustQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get stockAdjustQuantity;
+
+  /// No description provided for @stockAdjustQuantityHintRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Units received'**
+  String get stockAdjustQuantityHintRestock;
+
+  /// No description provided for @stockAdjustQuantityHintAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'+ to increase, − to decrease'**
+  String get stockAdjustQuantityHintAdjust;
+
+  /// No description provided for @stockAdjustReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get stockAdjustReason;
+
+  /// No description provided for @stockAdjustNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get stockAdjustNote;
+
+  /// No description provided for @stockAdjustSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get stockAdjustSave;
+
+  /// No description provided for @stockAdjustInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid quantity'**
+  String get stockAdjustInvalid;
+
+  /// No description provided for @stockAdjustCurrentStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Current stock: {quantity}'**
+  String stockAdjustCurrentStock(int quantity);
+
+  /// No description provided for @stockReasonDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'Damaged'**
+  String get stockReasonDamaged;
+
+  /// No description provided for @stockReasonLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost / stolen'**
+  String get stockReasonLost;
+
+  /// No description provided for @stockReasonCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock count correction'**
+  String get stockReasonCount;
+
+  /// No description provided for @stockReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get stockReasonOther;
+
+  /// No description provided for @stockHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock history'**
+  String get stockHistoryTitle;
+
+  /// No description provided for @stockHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No stock movements yet.'**
+  String get stockHistoryEmpty;
+
+  /// No description provided for @stockMovementOpening.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening balance'**
+  String get stockMovementOpening;
+
+  /// No description provided for @stockMovementSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale'**
+  String get stockMovementSale;
+
+  /// No description provided for @stockMovementReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund return'**
+  String get stockMovementReturn;
+
+  /// No description provided for @stockMovementPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock'**
+  String get stockMovementPurchase;
+
+  /// No description provided for @stockMovementAdjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment'**
+  String get stockMovementAdjustment;
+
+  /// No description provided for @productViewStockHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'View stock history'**
+  String get productViewStockHistory;
+
   /// No description provided for @validationRequired.
   ///
   /// In en, this message translates to:

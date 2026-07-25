@@ -53,6 +53,27 @@ class InventoryRepository {
         .watch();
   }
 
+  /// Newest-first stock movement ledger for one product (restocks,
+  /// adjustments, sales, returns, opening balance) — read-only history.
+  ///
+  /// Orders by SQLite's implicit `rowid` rather than `createdAt`: drift
+  /// stores `DateTime` as a unix timestamp with **second** precision, so two
+  /// movements written within the same second (routine for back-to-back
+  /// restock/adjust taps) would otherwise tie and sort arbitrarily. `rowid`
+  /// always increases with insertion order, so it's a free, exact
+  /// chronological tiebreaker with no schema change needed.
+  Stream<List<StockMovement>> watchStockMovements(String productId) {
+    return (_db.select(_db.stockMovements)
+          ..where((m) =>
+              m.productId.equals(productId) & m.shopId.equals(_shopId))
+          ..orderBy([
+            (_) => OrderingTerm(
+                expression: const CustomExpression<int>('rowid'),
+                mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
   // ---- Writes ------------------------------------------------------------
 
   /// Creates or updates a product and (optionally) its stock level.
@@ -101,6 +122,64 @@ class InventoryRepository {
     });
 
     return productId;
+  }
+
+  /// Records a stock change as a proper ledger entry (restock or a manual
+  /// correction), unlike [upsertProduct]'s `quantity` param which silently
+  /// sets an absolute value with no reason captured. [type] is `'purchase'`
+  /// for a restock or `'adjustment'` for a correction; [delta] is signed
+  /// (positive = increase, negative = decrease) and must be non-zero.
+  Future<void> adjustStock({
+    required String productId,
+    required int delta,
+    required String type,
+    String? note,
+  }) async {
+    if (delta == 0) throw ArgumentError('delta must be non-zero');
+    final now = DateTime.now();
+
+    await _db.transaction(() async {
+      final existing = await (_db.select(_db.stockLevels)
+            ..where((s) => s.productId.equals(productId)))
+          .getSingleOrNull();
+      final rowId = existing?.id ?? _uuid.v4();
+      final newQuantity = (existing?.quantity ?? 0) + delta;
+
+      final moveId = _uuid.v4();
+      await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
+            id: moveId,
+            shopId: _shopId,
+            productId: productId,
+            type: type,
+            qtyDelta: delta,
+            note: Value(note),
+            // Explicit microsecond-precision timestamp — the column default
+            // (SQL CURRENT_TIMESTAMP) only has second accuracy, which makes
+            // same-second movements sort inconsistently in the history view.
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ));
+      await _enqueue('stock_movements', moveId, 'upsert', jsonEncode(
+          (await (_db.select(_db.stockMovements)
+                    ..where((m) => m.id.equals(moveId)))
+                  .getSingle())
+              .toJson()));
+
+      await _db.into(_db.stockLevels).insertOnConflictUpdate(StockLevelsCompanion(
+            id: Value(rowId),
+            shopId: Value(_shopId),
+            productId: Value(productId),
+            quantity: Value(newQuantity),
+            reorderLevel: Value(existing?.reorderLevel ?? 0),
+            updatedAt: Value(now),
+            dirty: const Value(true),
+          ));
+      final row = await (_db.select(_db.stockLevels)
+            ..where((s) => s.id.equals(rowId)))
+          .getSingle();
+      await _enqueue(
+          'stock_levels', rowId, 'upsert', jsonEncode(row.toJson()));
+    });
   }
 
   Future<void> deleteProduct(String productId) async {
@@ -176,6 +255,9 @@ class InventoryRepository {
             type: existing == null ? 'opening' : 'adjustment',
             qtyDelta: delta,
             note: const Value('manual stock set'),
+            // See the same note in adjustStock: an explicit timestamp avoids
+            // SQL CURRENT_TIMESTAMP's second-level tie-breaking in history.
+            createdAt: Value(now),
             updatedAt: Value(now),
           ));
       await _enqueue('stock_movements', moveId, 'upsert', jsonEncode(

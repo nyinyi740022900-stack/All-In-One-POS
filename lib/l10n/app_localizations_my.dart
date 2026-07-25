@@ -256,6 +256,81 @@ class AppLocalizationsMy extends AppLocalizations {
   String get productUnit => 'ယူနစ်';
 
   @override
+  String get inventoryUpdateStock => 'လက်ကျန် ပြင်ဆင်ရန်';
+
+  @override
+  String get stockAdjustTitle => 'လက်ကျန် ပြင်ဆင်ရန်';
+
+  @override
+  String get stockAdjustModeRestock => 'ပစ္စည်းအသစ်ထည့်';
+
+  @override
+  String get stockAdjustModeAdjust => 'ချိန်ညှိရန်';
+
+  @override
+  String get stockAdjustQuantity => 'အရေအတွက်';
+
+  @override
+  String get stockAdjustQuantityHintRestock => 'ရရှိလိုက်တဲ့ အရေအတွက်';
+
+  @override
+  String get stockAdjustQuantityHintAdjust =>
+      'တိုးရန် + ၊ လျှော့ရန် − ရိုက်ထည့်ပါ';
+
+  @override
+  String get stockAdjustReason => 'အကြောင်းရင်း';
+
+  @override
+  String get stockAdjustNote => 'မှတ်ချက် (ရွေးချယ်ခွင့်)';
+
+  @override
+  String get stockAdjustSave => 'သိမ်းမည်';
+
+  @override
+  String get stockAdjustInvalid => 'မှန်ကန်သော အရေအတွက် ရိုက်ထည့်ပါ';
+
+  @override
+  String stockAdjustCurrentStock(int quantity) {
+    return 'လက်ရှိလက်ကျန်: $quantity';
+  }
+
+  @override
+  String get stockReasonDamaged => 'ပျက်စီး';
+
+  @override
+  String get stockReasonLost => 'ပျောက်ဆုံး/ခိုးမှု';
+
+  @override
+  String get stockReasonCount => 'ရေတွက်မှား ပြင်ဆင်ခြင်း';
+
+  @override
+  String get stockReasonOther => 'အခြား';
+
+  @override
+  String get stockHistoryTitle => 'လက်ကျန်မှတ်တမ်း';
+
+  @override
+  String get stockHistoryEmpty => 'လက်ကျန်ပြောင်းလဲမှု မရှိသေးပါ။';
+
+  @override
+  String get stockMovementOpening => 'အစပိုင်း လက်ကျန်';
+
+  @override
+  String get stockMovementSale => 'ရောင်းချမှု';
+
+  @override
+  String get stockMovementReturn => 'ပြန်အမ်းငွေ';
+
+  @override
+  String get stockMovementPurchase => 'ပစ္စည်းအသစ်ထည့်ခြင်း';
+
+  @override
+  String get stockMovementAdjustment => 'ချိန်ညှိမှု';
+
+  @override
+  String get productViewStockHistory => 'လက်ကျန်မှတ်တမ်း ကြည့်ရန်';
+
+  @override
   String get validationRequired => 'ဖြည့်ရန်လိုအပ်သည်';
 
   @override
