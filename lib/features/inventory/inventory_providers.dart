@@ -47,3 +47,8 @@ final lowStockCountProvider = Provider<int>((ref) {
 final categoriesStreamProvider = StreamProvider<List<Category>>((ref) {
   return ref.watch(inventoryRepositoryProvider).watchCategories();
 });
+
+final stockMovementsProvider =
+    StreamProvider.family<List<StockMovement>, String>((ref, productId) {
+  return ref.watch(inventoryRepositoryProvider).watchStockMovements(productId);
+});

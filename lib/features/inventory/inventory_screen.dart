@@ -15,6 +15,7 @@ import '../staff/staff_providers.dart';
 import 'categories_screen.dart';
 import 'inventory_providers.dart';
 import 'product_edit_screen.dart';
+import 'stock_adjust_dialog.dart';
 
 /// Barcode value to print/scan for a product — its own barcode if set,
 /// falling back to the SKU, then the internal id, so every product can get
@@ -156,6 +157,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                               ),
                             ),
                           ),
+                          if (trackStock && canEdit)
+                            IconButton(
+                              icon: const Icon(Icons.add_box_outlined),
+                              tooltip: l.inventoryUpdateStock,
+                              onPressed: () => showStockAdjustDialog(
+                                context,
+                                ref,
+                                productId: p.product.id,
+                                productName: p.product.name,
+                                currentQuantity: p.quantity,
+                              ),
+                            ),
                           if (trackStock)
                             _StockBadge(
                                 quantity: p.quantity, low: p.isLowStock),

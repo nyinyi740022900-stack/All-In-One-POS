@@ -122,4 +122,59 @@ void main() {
     final p = (await repo.watchProducts().first).single;
     expect(p.product.categoryId, catId);
   });
+
+  group('adjustStock', () {
+    test('a restock increases the cached level and records a purchase move',
+        () async {
+      final id = await repo.upsertProduct(name: 'Rice', quantity: 10);
+      await repo.adjustStock(
+          productId: id, delta: 25, type: 'purchase', note: 'from supplier');
+
+      final p = (await repo.watchProducts().first).single;
+      expect(p.quantity, 35);
+
+      final move = (await repo.watchStockMovements(id).first).firstWhere(
+          (m) => m.type == 'purchase');
+      expect(move.qtyDelta, 25);
+      expect(move.note, 'from supplier');
+    });
+
+    test('a negative adjustment decreases the cached level', () async {
+      final id = await repo.upsertProduct(name: 'Soap', quantity: 20);
+      await repo.adjustStock(
+          productId: id, delta: -3, type: 'adjustment', note: 'Damaged');
+
+      final p = (await repo.watchProducts().first).single;
+      expect(p.quantity, 17);
+
+      final move = (await repo.watchStockMovements(id).first)
+          .firstWhere((m) => m.type == 'adjustment');
+      expect(move.qtyDelta, -3);
+    });
+
+    test('zero delta is rejected', () async {
+      final id = await repo.upsertProduct(name: 'Water', quantity: 5);
+      expect(
+        () => repo.adjustStock(productId: id, delta: 0, type: 'adjustment'),
+        throwsArgumentError,
+      );
+    });
+
+    test('watchStockMovements is newest-first and enqueues outbox rows',
+        () async {
+      final id = await repo.upsertProduct(name: 'Match', quantity: 5);
+      await repo.adjustStock(productId: id, delta: 10, type: 'purchase');
+      await repo.adjustStock(productId: id, delta: -2, type: 'adjustment');
+
+      final moves = await repo.watchStockMovements(id).first;
+      // Newest first: adjustment(-2), purchase(+10), opening(+5).
+      expect(moves.map((m) => m.type).toList(),
+          ['adjustment', 'purchase', 'opening']);
+
+      final tables = (await db.select(db.outbox).get())
+          .map((o) => o.entityTable)
+          .toSet();
+      expect(tables, containsAll(<String>{'stock_movements', 'stock_levels'}));
+    });
+  });
 }
