@@ -29,7 +29,7 @@ Future<img.Image> renderReceiptImage(
   const pad = 10.0;
   const logoDisplaySize = 96.0;
 
-  final namePara = _paragraph(data.shopName, width,
+  final namePara = paragraph(data.shopName, width,
       fontSize: nameFontSize, bold: true, align: ui.TextAlign.center);
 
   final contactLines = [
@@ -38,10 +38,10 @@ Future<img.Image> renderReceiptImage(
   ];
   final contactPara = contactLines.isEmpty
       ? null
-      : _paragraph(contactLines.join('\n'), width,
+      : paragraph(contactLines.join('\n'), width,
           fontSize: smallFontSize, align: ui.TextAlign.center);
 
-  final bodyPara = _paragraph(bodyLines.join('\n'), width,
+  final bodyPara = paragraph(bodyLines.join('\n'), width,
       fontSize: fontSize, monospace: true, align: ui.TextAlign.left);
 
   final recorder = ui.PictureRecorder();
@@ -101,7 +101,10 @@ Future<img.Image> renderReceiptImage(
   );
 }
 
-ui.Paragraph _paragraph(
+/// Lays out a single block of text at a fixed pixel [width]. Shared by every
+/// raster renderer (receipt, label) that needs Myanmar-safe text — see the
+/// WHY note above on why raw ESC/POS text mode can't be used for this.
+ui.Paragraph paragraph(
   String text,
   int width, {
   required double fontSize,

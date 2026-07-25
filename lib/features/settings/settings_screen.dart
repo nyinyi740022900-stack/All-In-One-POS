@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
 import '../license/license_status.dart';
+import '../printing/label_printer_settings_screen.dart';
 import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
 import '../referral/referral_screen.dart';
@@ -86,6 +87,14 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const PrinterSettingsScreen(),
             )),
           ),
+          ListTile(
+            leading: const Icon(Icons.sell),
+            title: Text(l.settingsLabelPrinter),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const LabelPrinterSettingsScreen(),
+            )),
+          ),
           _SyncTile(),
 
           _SectionHeader(l.settingsSectionHelp),
@@ -131,13 +140,36 @@ class _TrackStockTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final tracking = ref.watch(trackStockProvider).valueOrNull ?? true;
-    return SwitchListTile(
-      secondary: const Icon(Icons.inventory),
+    return ListTile(
+      leading: const Icon(Icons.inventory),
       title: Text(l.settingsTrackStock),
-      subtitle: Text(l.settingsTrackStockHint),
-      value: tracking,
-      onChanged: (v) =>
-          ref.read(settingsRepositoryProvider).setTrackStock(v),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, size: 20),
+            tooltip: l.settingsTrackStockHint,
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: Text(l.settingsTrackStock),
+                content: Text(l.settingsTrackStockHint),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l.commonOk),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Switch(
+            value: tracking,
+            onChanged: (v) =>
+                ref.read(settingsRepositoryProvider).setTrackStock(v),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -217,8 +249,6 @@ class _StorefrontTile extends ConsumerWidget {
     return ListTile(
       leading: const Icon(Icons.storefront),
       title: Text(l.storefrontTitle),
-      subtitle: Text(l.storefrontDesc,
-          maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => const StorefrontScreen(),
@@ -242,7 +272,6 @@ class _ReferralTile extends ConsumerWidget {
     return ListTile(
       leading: const Icon(Icons.card_giftcard),
       title: Text(l.referralTitle),
-      subtitle: Text(l.referralSubtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => const ReferralScreen(),

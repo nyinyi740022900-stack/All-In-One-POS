@@ -11,6 +11,7 @@
 
   "commonSave": "Save",
   "commonCancel": "Cancel",
+  "commonOk": "OK",
   "commonDelete": "Delete",
   "commonEdit": "Edit",
   "commonAdd": "Add",
@@ -156,6 +157,19 @@
   "receiptThankYou": "Thank you for your patronage!",
   "paper58": "58 mm",
   "paper80": "80 mm",
+
+  "settingsLabelPrinter": "Label printer",
+  "labelPrinterSettings": "Label printer settings",
+  "labelPrinterSize": "Label size",
+  "labelSize40x30": "40 x 30 mm",
+  "labelSize50x30": "50 x 30 mm",
+  "labelSize50x40": "50 x 40 mm",
+  "inventoryPrintLabel": "Print label",
+  "labelPrintDialogTitle": "Print label",
+  "labelCopies": "Copies",
+  "labelPrintTargetStrip": "Prints as a strip on the receipt printer",
+  "labelPrintTargetDedicated": "Prints on the label printer",
+  "labelPrintNoTarget": "No printer connected. Set one up in Settings.",
 
   "categoriesTitle": "Categories",
   "manageCategories": "Manage categories",
