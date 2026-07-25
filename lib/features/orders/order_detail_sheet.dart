@@ -423,7 +423,15 @@ class _PaymentSection extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final o = order;
 
-    if (o.paymentMethod == 'cod') {
+    final isPaid = o.paymentStatus == 'paid';
+    // COD's "not paid yet" is the expected default before the courier
+    // collects cash at the door — showing a status word for it just reads as
+    // an alarm with nothing to act on, so it gets one plain sentence instead
+    // (see orderPaymentCodNote below). But COD that's ALREADY paid (a
+    // customer transferred early despite being tagged COD) is real,
+    // actionable information — that case falls through to the same
+    // badge/toggle UI as a transfer order, not the plain note.
+    if (o.paymentMethod == 'cod' && !isPaid) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
@@ -433,12 +441,18 @@ class _PaymentSection extends ConsumerWidget {
                 size: 18, color: Theme.of(context).colorScheme.outline),
             const SizedBox(width: 8),
             Expanded(child: Text(l.orderPaymentCodNote)),
+            if (o.saleId == null)
+              TextButton(
+                onPressed: () => ref
+                    .read(ordersRepositoryProvider)
+                    .setPaymentStatus(o.id, 'paid'),
+                child: Text(l.orderMarkAsPaid),
+              ),
           ],
         ),
       );
     }
 
-    final isPaid = o.paymentStatus == 'paid';
     // Once converted to a sale, the sale itself is the source of truth for
     // what was actually paid — toggling this afterward would be cosmetic at
     // best and misleading at worst, so the control disappears and the badge
