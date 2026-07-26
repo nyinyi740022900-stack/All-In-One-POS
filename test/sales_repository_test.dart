@@ -89,6 +89,20 @@ void main() {
     expect(await db.select(db.payments).get(), hasLength(1));
   });
 
+  test('finalizeSale stamps the staffId that rang up the sale', () async {
+    final p = await seedProduct(name: 'Gum', price: 500, qty: 5);
+    final result = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+      paymentMethod: 'cash',
+      paid: 500,
+      staffId: 'staff-123',
+    );
+    final sale = await (db.select(db.sales)
+          ..where((s) => s.id.equals(result.saleId)))
+        .getSingle();
+    expect(sale.staffId, 'staff-123');
+  });
+
   test('discount is applied to the total', () async {
     final p = await seedProduct(name: 'Water', price: 400, qty: 5);
     final cart = CartState(

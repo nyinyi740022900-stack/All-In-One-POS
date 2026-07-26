@@ -2558,6 +2558,90 @@ abstract class AppLocalizations {
   /// **'Staff mode'**
   String get staffBadge;
 
+  /// No description provided for @staffManageMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage staff'**
+  String get staffManageMembers;
+
+  /// No description provided for @staffMembersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff members'**
+  String get staffMembersTitle;
+
+  /// No description provided for @staffMembersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No staff members yet. Add one so sales can be attributed to whoever rang them up.'**
+  String get staffMembersEmpty;
+
+  /// No description provided for @staffAddMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Add staff'**
+  String get staffAddMember;
+
+  /// No description provided for @staffEditMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit staff'**
+  String get staffEditMember;
+
+  /// No description provided for @staffMemberName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get staffMemberName;
+
+  /// No description provided for @staffMemberPin.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN (4–6 digits)'**
+  String get staffMemberPin;
+
+  /// No description provided for @staffMemberSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff member saved'**
+  String get staffMemberSaved;
+
+  /// No description provided for @staffRemoveMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get staffRemoveMember;
+
+  /// No description provided for @staffRemoveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this staff member?'**
+  String get staffRemoveConfirmTitle;
+
+  /// No description provided for @staffRemoveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer appear when switching to Staff mode. Past sales still show their name.'**
+  String staffRemoveConfirmBody(String name);
+
+  /// No description provided for @staffMemberRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff member removed'**
+  String get staffMemberRemoved;
+
+  /// No description provided for @staffWhoAreYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s using this device?'**
+  String get staffWhoAreYou;
+
+  /// No description provided for @staffNoNamedStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'No name — just Staff mode'**
+  String get staffNoNamedStaff;
+
   /// No description provided for @storefrontTitle.
   ///
   /// In en, this message translates to:

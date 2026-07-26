@@ -1329,6 +1329,51 @@ class AppLocalizationsMy extends AppLocalizations {
   String get staffBadge => 'ဝန်ထမ်း mode';
 
   @override
+  String get staffManageMembers => 'ဝန်ထမ်းများ စီမံရန်';
+
+  @override
+  String get staffMembersTitle => 'ဝန်ထမ်းများ';
+
+  @override
+  String get staffMembersEmpty =>
+      'ဝန်ထမ်း မထည့်ရသေးပါ။ ရောင်းချမှုတိုင်းကို ဘယ်ဝန်ထမ်းလုပ်လဲ သိရအောင် ထည့်ပါ။';
+
+  @override
+  String get staffAddMember => 'ဝန်ထမ်းထည့်ရန်';
+
+  @override
+  String get staffEditMember => 'ဝန်ထမ်းပြင်ရန်';
+
+  @override
+  String get staffMemberName => 'အမည်';
+
+  @override
+  String get staffMemberPin => 'PIN (ဂဏန်း ၄–၆ လုံး)';
+
+  @override
+  String get staffMemberSaved => 'ဝန်ထမ်းအချက်အလက် သိမ်းပြီး';
+
+  @override
+  String get staffRemoveMember => 'ဖယ်ရှားရန်';
+
+  @override
+  String get staffRemoveConfirmTitle => 'ဒီဝန်ထမ်းကို ဖယ်ရှားမှာလား?';
+
+  @override
+  String staffRemoveConfirmBody(String name) {
+    return '$name ကို Staff mode ပြောင်းတဲ့အခါ နောက်ထပ် မမြင်ရတော့ပါ။ ယခင်ရောင်းချမှုတွေမှာတော့ နာမည် ဆက်ပြနေပါမည်။';
+  }
+
+  @override
+  String get staffMemberRemoved => 'ဝန်ထမ်း ဖယ်ရှားပြီး';
+
+  @override
+  String get staffWhoAreYou => 'ဒီ device ကို ဘယ်သူသုံးနေလဲ?';
+
+  @override
+  String get staffNoNamedStaff => 'အမည်မထည့်ဘဲ — Staff mode ပဲသုံးမည်';
+
+  @override
   String get storefrontTitle => 'ကျွန်ုပ်၏ Web ဆိုင်';
 
   @override

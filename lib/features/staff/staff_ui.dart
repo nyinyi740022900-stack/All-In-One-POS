@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import 'staff_members_screen.dart';
 import 'staff_providers.dart';
 
 String staffRoleLabel(AppLocalizations l, String role) {
@@ -47,6 +49,7 @@ class StaffBadge extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (ref.watch(isOwnerProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
+    final name = ref.watch(activeStaffNameProvider);
     return Container(
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -59,7 +62,8 @@ class StaffBadge extends ConsumerWidget {
         children: [
           const Icon(Icons.badge_outlined, size: 14),
           const SizedBox(width: 4),
-          Text(l.staffBadge, style: Theme.of(context).textTheme.labelSmall),
+          Text(name ?? l.staffBadge,
+              style: Theme.of(context).textTheme.labelSmall),
         ],
       ),
     );
@@ -112,6 +116,32 @@ class StaffModeCard extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final ctrl = ref.read(staffControllerProvider);
 
+    // Switching to Staff with a named roster set up: ask who's using the
+    // device (each name has its own PIN) instead of a single shared PIN.
+    if (target == 'staff') {
+      final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
+      if (members.isNotEmpty) {
+        final pickedId = await _pickStaffMemberId(context, members);
+        if (pickedId == null || !context.mounted) return; // cancelled
+        if (pickedId == _skipNamedStaff) {
+          final ok = await ctrl.switchRole('staff');
+          if (!ok && context.mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+          }
+          return;
+        }
+        final pin = await promptPin(context, l.staffEnterPin);
+        if (pin == null || !context.mounted) return;
+        final ok = await ctrl.switchToStaffMember(pickedId, pin);
+        if (!ok && context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+        }
+        return;
+      }
+    }
+
     String? pin;
     if (target == 'owner') {
       pin = await promptPin(context, l.staffEnterPin);
@@ -123,6 +153,46 @@ class StaffModeCard extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
     }
+  }
+
+  static const _skipNamedStaff = '__skip__';
+
+  /// Lets the owner pick which roster member is about to use the device, or
+  /// fall back to plain (unnamed) Staff mode. Returns the member id, the
+  /// [_skipNamedStaff] sentinel, or null if dismissed without a choice.
+  Future<String?> _pickStaffMemberId(
+      BuildContext context, List<StaffMember> members) {
+    final l = AppLocalizations.of(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(l.staffWhoAreYou,
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            const SizedBox(height: 8),
+            for (final m in members)
+              ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: Text(m.name),
+                onTap: () => Navigator.of(ctx).pop(m.id),
+              ),
+            ListTile(
+              leading: const Icon(Icons.person_off_outlined),
+              title: Text(l.staffNoNamedStaff),
+              onTap: () => Navigator.of(ctx).pop(_skipNamedStaff),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -161,6 +231,15 @@ class StaffModeCard extends ConsumerWidget {
                     .showSnackBar(SnackBar(content: Text(l.staffPinSaved)));
               }
             },
+          ),
+        if (isOwner)
+          ListTile(
+            leading: const Icon(Icons.groups_outlined),
+            title: Text(l.staffManageMembers),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const StaffMembersScreen(),
+            )),
           ),
       ],
     );

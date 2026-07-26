@@ -245,6 +245,20 @@ class OrderItems extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A named staff profile the owner sets up so a sale can be attributed to
+/// whoever rang it up (`Sales.staffId`) instead of just a shared device PIN.
+/// Deliberately lightweight — a name + a PIN, not a real login account (see
+/// PROJECT_SPEC §12 for why): no server-side enforcement, just an identity
+/// tag. Synced so every device under the shop shows the same staff roster.
+class StaffMembers extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get pin => text()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Simple local key/value store for device-scoped app settings (printer MAC,
 /// paper size, selected language, etc.). Not synced.
 class AppSettings extends Table {
