@@ -81,18 +81,72 @@ Deno.serve(async (req) => {
   if (action === "submit_order") {
     const name = (body.customer_name ?? "").trim();
     // deno-lint-ignore no-explicit-any
-    const lines = (body.lines ?? []) as any[];
-    if (!name || lines.length === 0) return json({ error: "bad_request" }, 400);
+    const rawLines = (body.lines ?? []) as any[];
+    if (!name || rawLines.length === 0) {
+      return json({ error: "bad_request" }, 400);
+    }
     // 'transfer' (KPay/Wave, usually with a screenshot) or 'cod' (cash on
     // delivery) — anything else collapses to null (unspecified).
     const rawMethod = `${body.payment_method ?? ""}`.trim();
     const paymentMethod =
       rawMethod === "transfer" || rawMethod === "cod" ? rawMethod : null;
 
-    const itemsTotal = lines.reduce(
-      (s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 0),
-      0,
-    );
+    // Security: every line must name a real, active product belonging to
+    // THIS shop, with a sane positive quantity. Price/name are never taken
+    // from the client — a browser console can send anything — they're always
+    // re-read from the product row so a submitted order can't under-price or
+    // free-ride an item. (There's no free-text/custom-item path on the
+    // storefront cart — every OrderLine the app builds already carries a
+    // real catalog product_id.)
+    const MAX_QTY = 999;
+    const productIds = [
+      ...new Set(
+        rawLines
+          .map((l) => `${l.product_id ?? ""}`.trim())
+          .filter((id) => id.length > 0),
+      ),
+    ];
+    if (productIds.length === 0) {
+      return json({ error: "bad_request" }, 400);
+    }
+    for (const l of rawLines) {
+      const qty = Number(l.qty);
+      if (!Number.isInteger(qty) || qty <= 0 || qty > MAX_QTY) {
+        return json({ error: "invalid_quantity" }, 400);
+      }
+    }
+
+    const { data: products, error: pErr } = await admin
+      .from("products")
+      .select("id, name, sale_price")
+      .eq("shop_id", sf.shop_id)
+      .eq("is_active", true)
+      .eq("is_deleted", false)
+      .in("id", productIds);
+    if (pErr) return json({ error: "server_error" }, 500);
+    const byId = new Map((products ?? []).map((p) => [p.id, p]));
+
+    const lines = rawLines.map((l) => {
+      const product = byId.get(`${l.product_id ?? ""}`.trim());
+      if (!product) return null;
+      return {
+        productId: product.id as string,
+        name: product.name as string,
+        price: product.sale_price as number,
+        qty: Number(l.qty),
+      };
+    });
+    if (lines.some((l) => l === null)) {
+      return json({ error: "invalid_product" }, 400);
+    }
+    const validLines = lines as {
+      productId: string;
+      name: string;
+      price: number;
+      qty: number;
+    }[];
+
+    const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
     const orderNo = "WEB-" + Date.now().toString().slice(-8);
@@ -117,15 +171,15 @@ Deno.serve(async (req) => {
     });
     if (oErr) return json({ error: "server_error", detail: oErr.message }, 500);
 
-    const items = lines.map((l) => ({
+    const items = validLines.map((l) => ({
       id: crypto.randomUUID(),
       shop_id: sf.shop_id,
       order_id: orderId,
-      product_id: l.product_id ?? null,
-      name_snapshot: `${l.name ?? ""}`,
-      price_snapshot: Number(l.price) || 0,
-      qty: Number(l.qty) || 0,
-      line_total: (Number(l.price) || 0) * (Number(l.qty) || 0),
+      product_id: l.productId,
+      name_snapshot: l.name,
+      price_snapshot: l.price,
+      qty: l.qty,
+      line_total: l.price * l.qty,
       created_at: now,
       updated_at: now,
     }));
