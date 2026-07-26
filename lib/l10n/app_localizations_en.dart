@@ -1053,6 +1053,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncRealtimeOn => 'Live updates on';
+
+  @override
   String get navOrders => 'Orders';
 
   @override

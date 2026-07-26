@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
     plan: license.plan,
     status,
     expires_at: license.expires_at,
+    realtime_enabled: license.realtime_enabled === true,
     activated_at: license.activated_at ?? now.toISOString(),
   }, 200);
 });

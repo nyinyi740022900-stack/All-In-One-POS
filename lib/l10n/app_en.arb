@@ -362,6 +362,7 @@
   "syncNever": "Never synced",
   "syncLastSynced": "Last synced: {time}",
   "@syncLastSynced": { "placeholders": { "time": { "type": "String" } } },
+  "syncRealtimeOn": "Live updates on",
 
   "navOrders": "Orders",
   "ordersTitle": "Social Orders",

@@ -303,9 +303,15 @@ class _SyncTile extends ConsumerWidget {
       SyncPhase.error => (sync.error ?? l.syncError, Icons.error_outline),
     };
 
-    final subtitle = sync.lastSyncedAt != null
+    final lastSynced = sync.lastSyncedAt != null
         ? l.syncLastSynced(DateFormat('HH:mm').format(sync.lastSyncedAt!))
         : (sync.phase == SyncPhase.disabled ? '' : l.syncNever);
+    final realtimeOn =
+        ref.watch(licenseControllerProvider).license?.realtimeEnabled ?? false;
+    final subtitle = [
+      if (lastSynced.isNotEmpty) lastSynced,
+      if (realtimeOn) l.syncRealtimeOn,
+    ].join(' · ');
 
     return ListTile(
       leading: Icon(icon),

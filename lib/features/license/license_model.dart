@@ -22,6 +22,12 @@ class CachedLicense {
   final DateTime lastVerifiedAt;
   final String deviceId;
 
+  /// Admin-granted premium flag (no automated billing gateway exists, same
+  /// precedent as the multi-device fee) — when true, `RealtimeSyncController`
+  /// subscribes to Supabase Realtime so other devices under the shop see a
+  /// change within seconds instead of waiting for the 5-minute poll.
+  final bool realtimeEnabled;
+
   const CachedLicense({
     required this.key,
     required this.shopId,
@@ -30,6 +36,7 @@ class CachedLicense {
     required this.activatedAt,
     required this.lastVerifiedAt,
     required this.deviceId,
+    this.realtimeEnabled = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -40,6 +47,7 @@ class CachedLicense {
         'activated_at': activatedAt.toIso8601String(),
         'last_verified_at': lastVerifiedAt.toIso8601String(),
         'device_id': deviceId,
+        'realtime_enabled': realtimeEnabled,
       };
 
   factory CachedLicense.fromJson(Map<String, dynamic> j) => CachedLicense(
@@ -51,9 +59,14 @@ class CachedLicense {
         lastVerifiedAt: DateTime.parse(
             (j['last_verified_at'] ?? j['activated_at']) as String),
         deviceId: j['device_id'] as String? ?? '',
+        realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
       );
 
-  CachedLicense copyWith({DateTime? lastVerifiedAt, DateTime? expiresAt}) =>
+  CachedLicense copyWith({
+    DateTime? lastVerifiedAt,
+    DateTime? expiresAt,
+    bool? realtimeEnabled,
+  }) =>
       CachedLicense(
         key: key,
         shopId: shopId,
@@ -62,6 +75,7 @@ class CachedLicense {
         activatedAt: activatedAt,
         lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
         deviceId: deviceId,
+        realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
       );
 }
 
