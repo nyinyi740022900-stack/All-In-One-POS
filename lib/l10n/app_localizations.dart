@@ -1550,6 +1550,108 @@ abstract class AppLocalizations {
   /// **'After paying (KPay/WavePay) and recording it, ask the admin to approve, then tap Check for renewal.'**
   String get licenseRenewHint;
 
+  /// No description provided for @deviceSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get deviceSectionTitle;
+
+  /// No description provided for @deviceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{used}/{free} free devices used'**
+  String deviceCount(int used, int free);
+
+  /// No description provided for @deviceThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get deviceThisDevice;
+
+  /// No description provided for @deviceLastActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Last active {when}'**
+  String deviceLastActive(String when);
+
+  /// No description provided for @deviceNeverVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet activated'**
+  String get deviceNeverVerified;
+
+  /// No description provided for @deviceAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a device'**
+  String get deviceAdd;
+
+  /// No description provided for @deviceRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Release'**
+  String get deviceRelease;
+
+  /// No description provided for @deviceReleaseConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release this device?'**
+  String get deviceReleaseConfirmTitle;
+
+  /// No description provided for @deviceReleaseConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The device will lose access to this shop next time it checks its license. You can add a new device in its place afterward.'**
+  String get deviceReleaseConfirmBody;
+
+  /// No description provided for @deviceReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Device released'**
+  String get deviceReleased;
+
+  /// No description provided for @deviceKeyReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New device is ready'**
+  String get deviceKeyReadyTitle;
+
+  /// No description provided for @deviceKeyReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this QR code on the new device\'s activation screen, or type the key below.'**
+  String get deviceKeyReadyHint;
+
+  /// No description provided for @deviceKeyCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Key copied'**
+  String get deviceKeyCopied;
+
+  /// No description provided for @devicePaymentRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device fee required'**
+  String get devicePaymentRequiredTitle;
+
+  /// No description provided for @devicePaymentRequiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop already uses its {free} free devices. Adding another costs {fee} (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.'**
+  String devicePaymentRequiredBody(int free, String fee);
+
+  /// No description provided for @deviceOnlyOnPaidPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a device once you have an active subscription (not available during the free trial).'**
+  String get deviceOnlyOnPaidPlan;
+
+  /// No description provided for @deviceRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add a device — try again.'**
+  String get deviceRequestFailed;
+
   /// No description provided for @referralTitle.
   ///
   /// In en, this message translates to:

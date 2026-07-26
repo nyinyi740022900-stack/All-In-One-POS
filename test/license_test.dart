@@ -106,5 +106,13 @@ void main() {
       expect(a, equals(b));
       expect(a, isNotEmpty);
     });
+
+    test('multi-device actions are no-ops with no backend', () async {
+      expect(await repo.listDevices(), isEmpty);
+      final slot = await repo.requestDeviceSlot();
+      expect(slot.ok, isFalse);
+      expect(slot.errorCode, 'no_backend');
+      expect(await repo.releaseDevice('some-device'), isFalse);
+    });
   });
 }

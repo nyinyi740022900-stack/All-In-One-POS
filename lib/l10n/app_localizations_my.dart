@@ -776,6 +776,66 @@ class AppLocalizationsMy extends AppLocalizations {
       'KPay/WavePay နဲ့ ပေးချေပြီး မှတ်တမ်းတင်ပြီးရင်၊ admin ကို approve ခိုင်းပါ။ ပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ။';
 
   @override
+  String get deviceSectionTitle => 'Device များ';
+
+  @override
+  String deviceCount(int used, int free) {
+    return 'အခမဲ့ device $used/$free သုံးထားပြီး';
+  }
+
+  @override
+  String get deviceThisDevice => 'ဒီ device';
+
+  @override
+  String deviceLastActive(String when) {
+    return 'နောက်ဆုံးအသုံးပြုခဲ့သည် $when';
+  }
+
+  @override
+  String get deviceNeverVerified => 'မ activate လုပ်ရသေးပါ';
+
+  @override
+  String get deviceAdd => 'Device အသစ်ထည့်ရန်';
+
+  @override
+  String get deviceRelease => 'ဖြုတ်ရန်';
+
+  @override
+  String get deviceReleaseConfirmTitle => 'ဒီ device ကို ဖြုတ်မှာလား?';
+
+  @override
+  String get deviceReleaseConfirmBody =>
+      'ဒီ device က နောက်တစ်ကြိမ် license စစ်ဆေးချိန်မှာ ဒီဆိုင်ကို ဝင်ရောက်ခွင့် ဆုံးရှုံးသွားပါမည်။ နောက်ပိုင်း အဲဒီနေရာမှာ device အသစ် ထပ်ထည့်နိုင်ပါသည်။';
+
+  @override
+  String get deviceReleased => 'Device ကို ဖြုတ်ပြီးပါပြီ';
+
+  @override
+  String get deviceKeyReadyTitle => 'Device အသစ် အသင့်ဖြစ်ပါပြီ';
+
+  @override
+  String get deviceKeyReadyHint =>
+      'Device အသစ်ရဲ့ activate screen မှာ ဒီ QR code ကို scan ဖတ်ပါ၊ ဒါမှမဟုတ် အောက်က key ကို ရိုက်ထည့်ပါ။';
+
+  @override
+  String get deviceKeyCopied => 'Key ကို ကူးယူပြီးပါပြီ';
+
+  @override
+  String get devicePaymentRequiredTitle => 'Device fee ပေးချေရန် လိုအပ်သည်';
+
+  @override
+  String devicePaymentRequiredBody(int free, String fee) {
+    return 'ဒီဆိုင်က အခမဲ့ device $free လုံးကို အသုံးပြုပြီးဖြစ်ပါသည်။ ထပ်ထည့်ရန် $fee (တစ်ကြိမ်တည်း) ကျသင့်ပါမည် — ပေးချေပြီးရင် သင့် App Reference ID နဲ့ support ကို ဆက်သွယ်ပြီး device အသစ်ရဲ့ key ကို ရယူပါ။';
+  }
+
+  @override
+  String get deviceOnlyOnPaidPlan =>
+      'Subscription active ဖြစ်မှသာ device ထပ်ထည့်နိုင်ပါသည် (free trial အတွင်း မရနိုင်ပါ)။';
+
+  @override
+  String get deviceRequestFailed => 'Device ထပ်ထည့်လို့ မရပါ — ထပ်စမ်းကြည့်ပါ။';
+
+  @override
   String get referralTitle => 'မိတ်ဆွေမျှ၍ ဝင်ငွေရ';
 
   @override

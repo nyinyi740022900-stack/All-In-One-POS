@@ -1,6 +1,15 @@
-// Edge Function: activate a license key and bind it to the calling device.
+// Edge Function: activate a license key and bind it to the calling device,
+// plus self-service multi-device actions for an already-activated shop.
 //
-// Flow:
+// Actions (POST body { action, ... }, action defaults to "activate" for
+// backward compatibility with existing clients that never sent one):
+//   activate (default) { key, device_id } -> bind a key to this device
+//   request_device_slot {}                -> claim a key for a NEW device
+//                                             under the caller's own shop
+//   release_device { device_id }          -> free up a device slot so it
+//                                             can be reused by a new device
+//
+// activate flow:
 //  1. Authenticate the caller (anonymous or otherwise) from the JWT.
 //  2. Look up the license by key using the service role (bypasses RLS).
 //  3. Validate: exists, device not bound to a different device, not past grace.
@@ -35,19 +44,32 @@ Deno.serve(async (req) => {
   }
   const userId = userData.user.id;
 
-  let body: { key?: string; device_id?: string };
+  let body: {
+    action?: string;
+    key?: string;
+    device_id?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return json({ ok: false, error: "bad_request" }, 400);
   }
+
+  const admin = createClient(supabaseUrl, serviceKey);
+  const action = body.action ?? "activate";
+
+  if (action === "request_device_slot") {
+    return handleRequestDeviceSlot(admin, userData.user);
+  }
+  if (action === "release_device") {
+    return handleReleaseDevice(admin, userData.user, body.device_id ?? "");
+  }
+
   const key = (body.key ?? "").trim();
   const deviceId = (body.device_id ?? "").trim();
   if (!key || !deviceId) {
     return json({ ok: false, error: "bad_request" }, 400);
   }
-
-  const admin = createClient(supabaseUrl, serviceKey);
 
   const { data: license, error: licErr } = await admin
     .from("licenses")
@@ -100,6 +122,72 @@ Deno.serve(async (req) => {
     activated_at: license.activated_at ?? now.toISOString(),
   }, 200);
 });
+
+// deno-lint-ignore no-explicit-any
+type SupabaseUser = any;
+// deno-lint-ignore no-explicit-any
+type AdminClient = any;
+
+function shopIdOf(user: SupabaseUser): string | null {
+  const meta = user.app_metadata as Record<string, unknown> | null;
+  const shopId = meta?.shop_id;
+  return typeof shopId === "string" && shopId.length > 0 ? shopId : null;
+}
+
+// Claims a device slot for the caller's own shop: reuses a released
+// (device_id null) key if one exists, mints a new one if the shop is under
+// its free-device limit, or reports that a device fee is owed. The actual
+// binding to a physical device still happens through the normal `activate`
+// action once the owner types (or scans) the returned key on the new phone.
+async function handleRequestDeviceSlot(
+  admin: AdminClient,
+  user: SupabaseUser,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+
+  const { data: key, error } = await admin.rpc("claim_device_slot", {
+    p_shop_id: shopId,
+  });
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+
+  if (key) {
+    return json({ ok: true, key }, 200);
+  }
+
+  const { data: feeRow } = await admin
+    .from("app_config")
+    .select("value")
+    .eq("key", "device.extra_fee")
+    .maybeSingle();
+  const fee = Number(feeRow?.value ?? "0") || 0;
+  return json({ ok: false, error: "payment_required", fee }, 200);
+}
+
+// Self-service: releases one of the CALLER'S OWN shop's devices so its key
+// can be reused for a new device. Scoped by shop_id so a shop can never
+// release a device belonging to another shop.
+async function handleReleaseDevice(
+  admin: AdminClient,
+  user: SupabaseUser,
+  deviceId: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (!deviceId) return json({ ok: false, error: "bad_request" }, 400);
+
+  const { data, error } = await admin
+    .from("licenses")
+    .update({ device_id: null, updated_at: new Date().toISOString() })
+    .eq("device_id", deviceId)
+    .eq("shop_id", shopId)
+    .select("key");
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+  if (!data || data.length === 0) {
+    return json({ ok: false, error: "not_found" }, 200);
+  }
+  return json({ ok: true }, 200);
+}
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {

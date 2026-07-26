@@ -74,3 +74,47 @@ class ActivationResult {
   const ActivationResult.success(this.license) : ok = true, errorCode = null;
   const ActivationResult.failure(this.errorCode) : ok = false, license = null;
 }
+
+/// One device slot under the shop's license (a row in `licenses`). [deviceId]
+/// is null for a released/unclaimed slot waiting to be picked up by a new
+/// device.
+class ShopDevice {
+  final String key;
+  final String? deviceId;
+  final String status;
+  final DateTime? lastVerifiedAt;
+
+  const ShopDevice({
+    required this.key,
+    required this.deviceId,
+    required this.status,
+    required this.lastVerifiedAt,
+  });
+
+  bool get isBound => deviceId != null && deviceId!.isNotEmpty;
+
+  factory ShopDevice.fromJson(Map<String, dynamic> j) => ShopDevice(
+        key: j['key'] as String,
+        deviceId: j['device_id'] as String?,
+        status: j['status'] as String? ?? 'active',
+        lastVerifiedAt: j['last_verified_at'] == null
+            ? null
+            : DateTime.parse(j['last_verified_at'] as String),
+      );
+}
+
+/// Outcome of requesting a new device slot: either a key ready to activate on
+/// the new device, or a one-time fee the shop must pay first.
+class DeviceSlotResult {
+  final bool ok;
+  final String? key;
+  final int? fee;
+  final String? errorCode;
+
+  const DeviceSlotResult.granted(this.key)
+      : ok = true, fee = null, errorCode = null;
+  const DeviceSlotResult.paymentRequired(this.fee)
+      : ok = false, key = null, errorCode = 'payment_required';
+  const DeviceSlotResult.failure(this.errorCode)
+      : ok = false, key = null, fee = null;
+}

@@ -91,6 +91,215 @@ class _PayToCard extends StatelessWidget {
   }
 }
 
+/// Lists the shop's device slots and lets the owner add or release one.
+/// Devices are meaningless offline/on a trial — the caller only shows this
+/// once the shop has a real paid key (see build() in license_screen.dart).
+class _DevicesSection extends ConsumerWidget {
+  const _DevicesSection();
+
+  Future<void> _addDevice(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final result =
+        await ref.read(licenseRepositoryProvider).requestDeviceSlot();
+    if (!context.mounted) return;
+
+    if (result.ok) {
+      ref.invalidate(shopDevicesProvider);
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _NewDeviceKeyDialog(deviceKey: result.key!),
+      );
+      return;
+    }
+    if (result.errorCode == 'payment_required') {
+      final cfg = await ref.read(vendorConfigProvider.future);
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _DevicePaymentRequiredDialog(
+          fee: result.fee ?? cfg.deviceExtraFee,
+          freeLimit: cfg.deviceFreeLimit,
+          viber: cfg.supportViber,
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
+  }
+
+  Future<void> _confirmRelease(
+      BuildContext context, WidgetRef ref, ShopDevice d) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.deviceReleaseConfirmTitle),
+        content: Text(l.deviceReleaseConfirmBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.deviceRelease)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final released =
+        await ref.read(licenseRepositoryProvider).releaseDevice(d.deviceId!);
+    if (released) {
+      ref.invalidate(shopDevicesProvider);
+      messenger.showSnackBar(SnackBar(content: Text(l.deviceReleased)));
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final devices = ref.watch(shopDevicesProvider);
+    final cfg = ref.watch(vendorConfigProvider).valueOrNull;
+    final myDeviceId = ref.watch(deviceIdProvider).valueOrNull;
+    final freeLimit = cfg?.deviceFreeLimit ?? 2;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.deviceSectionTitle,
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppTheme.space1),
+        devices.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppTheme.space2),
+            child: LinearProgressIndicator(),
+          ),
+          error: (e, _) => Text('$e'),
+          data: (list) {
+            final used = list.where((d) => d.isBound).length;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.deviceCount(used, freeLimit),
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: AppTheme.space2),
+                for (final d in list.where((d) => d.isBound))
+                  Card(
+                    margin: const EdgeInsets.only(bottom: AppTheme.space2),
+                    child: ListTile(
+                      leading: const Icon(Icons.smartphone),
+                      title: Text(
+                        d.deviceId == myDeviceId
+                            ? l.deviceThisDevice
+                            : '${d.deviceId!.substring(0, 8)}…',
+                        style: const TextStyle(fontFamily: 'monospace'),
+                      ),
+                      subtitle: Text(d.lastVerifiedAt == null
+                          ? l.deviceNeverVerified
+                          : l.deviceLastActive(
+                              DateFormat('yyyy-MM-dd HH:mm')
+                                  .format(d.lastVerifiedAt!))),
+                      trailing: TextButton(
+                        onPressed: () => _confirmRelease(context, ref, d),
+                        child: Text(l.deviceRelease),
+                      ),
+                    ),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: () => _addDevice(context, ref),
+                  icon: const Icon(Icons.add),
+                  label: Text(l.deviceAdd),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _NewDeviceKeyDialog extends StatelessWidget {
+  const _NewDeviceKeyDialog({required this.deviceKey});
+  final String deviceKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.deviceKeyReadyTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(l.deviceKeyReadyHint, textAlign: TextAlign.center),
+          const SizedBox(height: AppTheme.space4),
+          BarcodeWidget(
+            barcode: Barcode.qrCode(),
+            data: deviceKey,
+            width: 180,
+            height: 180,
+          ),
+          const SizedBox(height: AppTheme.space3),
+          SelectableText(deviceKey,
+              style: const TextStyle(
+                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+        ],
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: deviceKey));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(l.deviceKeyCopied)));
+            }
+          },
+          icon: const Icon(Icons.copy),
+          label: Text(l.commonCopy),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonYes),
+        ),
+      ],
+    );
+  }
+}
+
+class _DevicePaymentRequiredDialog extends StatelessWidget {
+  const _DevicePaymentRequiredDialog({
+    required this.fee,
+    required this.freeLimit,
+    required this.viber,
+  });
+  final int fee;
+  final int freeLimit;
+  final String viber;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final feeText = Money(fee).withSymbol(l.currencySymbol);
+    return AlertDialog(
+      title: Text(l.devicePaymentRequiredTitle),
+      content: Text(
+        l.devicePaymentRequiredBody(freeLimit, feeText) +
+            (viber.isEmpty ? '' : '\n\nViber: $viber'),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonYes),
+        ),
+      ],
+    );
+  }
+}
+
 class _StatusCard extends StatelessWidget {
   const _StatusCard({required this.status});
 
