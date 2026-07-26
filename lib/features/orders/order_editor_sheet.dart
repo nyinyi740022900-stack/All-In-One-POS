@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
+import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import 'order_labels.dart';
 import 'orders_providers.dart';
@@ -166,11 +167,16 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
     }
 
     setState(() => _saving = true);
+    final phone = _phone.text.trim();
+    final customerId = await ref
+        .read(customerRepositoryProvider)
+        .resolveOrCreate(_name.text.trim(),
+            phone: phone.isEmpty ? null : phone);
     await ref.read(ordersRepositoryProvider).saveOrder(
           id: widget.order?.id,
           customerName: _name.text.trim(),
-          customerPhone:
-              _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          customerPhone: phone.isEmpty ? null : phone,
+          customerId: customerId,
           channel: _channel,
           deliveryAddress:
               _address.text.trim().isEmpty ? null : _address.text.trim(),

@@ -208,6 +208,41 @@ class AppLocalizationsMy extends AppLocalizations {
   String get creditRepaymentSaved => 'ပြန်ဆပ်ငွေ မှတ်တမ်းတင်ပြီး';
 
   @override
+  String get customersTitle => 'ဖောက်သည်များ';
+
+  @override
+  String get customersEmpty => 'ဖောက်သည် မထည့်ရသေးပါ။ ပထမဆုံး ဖောက်သည်ထည့်ပါ။';
+
+  @override
+  String get customersSearchHint => 'အမည် သို့မဟုတ် ဖုန်းနံပါတ် ရှာပါ';
+
+  @override
+  String get customerAdd => 'ဖောက်သည်ထည့်ရန်';
+
+  @override
+  String get customerEdit => 'ဖောက်သည်ပြင်ရန်';
+
+  @override
+  String get customerNameLabel => 'အမည်';
+
+  @override
+  String get customerAddress => 'လိပ်စာ';
+
+  @override
+  String get customerSaved => 'ဖောက်သည်အချက်အလက် သိမ်းပြီး';
+
+  @override
+  String get customerDeleteConfirmTitle => 'ဒီဖောက်သည်ကို ဖယ်ရှားမှာလား?';
+
+  @override
+  String customerDeleteConfirmBody(String name) {
+    return '$name ကို checkout မှာ suggestion အဖြစ် နောက်ထပ် မမြင်ရတော့ပါ။ ယခင် invoice တွေမှာတော့ နာမည် ဆက်ပြနေပါမည်။';
+  }
+
+  @override
+  String get customerDeleted => 'ဖောက်သည် ဖယ်ရှားပြီး';
+
+  @override
   String get inventoryTitle => 'ကုန်ပစ္စည်း';
 
   @override

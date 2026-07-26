@@ -476,6 +476,72 @@ abstract class AppLocalizations {
   /// **'Repayment recorded'**
   String get creditRepaymentSaved;
 
+  /// No description provided for @customersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTitle;
+
+  /// No description provided for @customersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers yet. Add your first customer.'**
+  String get customersEmpty;
+
+  /// No description provided for @customersSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name or phone'**
+  String get customersSearchHint;
+
+  /// No description provided for @customerAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add customer'**
+  String get customerAdd;
+
+  /// No description provided for @customerEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit customer'**
+  String get customerEdit;
+
+  /// No description provided for @customerNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get customerNameLabel;
+
+  /// No description provided for @customerAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get customerAddress;
+
+  /// No description provided for @customerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer saved'**
+  String get customerSaved;
+
+  /// No description provided for @customerDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this customer?'**
+  String get customerDeleteConfirmTitle;
+
+  /// No description provided for @customerDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer appear as a suggestion at checkout. Past invoices still show their name.'**
+  String customerDeleteConfirmBody(String name);
+
+  /// No description provided for @customerDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer removed'**
+  String get customerDeleted;
+
   /// No description provided for @inventoryTitle.
   ///
   /// In en, this message translates to:
