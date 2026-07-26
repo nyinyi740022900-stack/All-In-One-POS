@@ -361,6 +361,7 @@
   "syncNever": "sync မလုပ်ရသေးပါ",
   "syncLastSynced": "နောက်ဆုံး sync: {time}",
   "@syncLastSynced": { "placeholders": { "time": { "type": "String" } } },
+  "syncRealtimeOn": "Live update ဖွင့်ထားသည်",
 
   "navOrders": "အော်ဒါ",
   "ordersTitle": "Social အော်ဒါများ",

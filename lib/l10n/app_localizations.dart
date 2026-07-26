@@ -2018,6 +2018,12 @@ abstract class AppLocalizations {
   /// **'Last synced: {time}'**
   String syncLastSynced(String time);
 
+  /// No description provided for @syncRealtimeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Live updates on'**
+  String get syncRealtimeOn;
+
   /// No description provided for @navOrders.
   ///
   /// In en, this message translates to:

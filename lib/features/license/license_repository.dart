@@ -79,6 +79,7 @@ class LicenseRepository {
                 as String),
         lastVerifiedAt: now,
         deviceId: deviceId,
+        realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
       );
       // Refresh the session so the new shop_id claim lands in the JWT.
       try {

@@ -2,10 +2,40 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/features/license/license_model.dart';
 import 'package:mm_pos/features/license/license_repository.dart';
 import 'package:mm_pos/features/license/license_status.dart';
 
 void main() {
+  group('CachedLicense JSON round-trip', () {
+    test('realtimeEnabled survives toJson/fromJson', () {
+      final lic = CachedLicense(
+        key: 'MMPOS-TEST',
+        shopId: 'shop-1',
+        plan: LicensePlan.yearly,
+        expiresAt: DateTime(2027, 1, 1),
+        activatedAt: DateTime(2026, 1, 1),
+        lastVerifiedAt: DateTime(2026, 6, 1),
+        deviceId: 'device-1',
+        realtimeEnabled: true,
+      );
+      final restored = CachedLicense.fromJson(lic.toJson());
+      expect(restored.realtimeEnabled, isTrue);
+    });
+
+    test('defaults to false for older cached JSON with no such field', () {
+      final restored = CachedLicense.fromJson({
+        'key': 'MMPOS-OLD',
+        'shop_id': 'shop-1',
+        'plan': 'monthly',
+        'expires_at': DateTime(2027, 1, 1).toIso8601String(),
+        'activated_at': DateTime(2026, 1, 1).toIso8601String(),
+        'device_id': 'device-1',
+      });
+      expect(restored.realtimeEnabled, isFalse);
+    });
+  });
+
   group('computeLicenseStatus', () {
     final now = DateTime(2026, 7, 10, 12);
 

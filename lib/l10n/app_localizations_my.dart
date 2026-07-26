@@ -1048,6 +1048,9 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get syncRealtimeOn => 'Live update ဖွင့်ထားသည်';
+
+  @override
   String get navOrders => 'အော်ဒါ';
 
   @override
