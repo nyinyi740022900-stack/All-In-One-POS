@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
+import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'staff_repository.dart';
 
@@ -55,6 +56,21 @@ final isOwnerProvider = Provider<bool>((ref) {
 /// Alias kept for call-site clarity in the Inventory screen — Inventory
 /// add/edit is owner-only, same gate as everything else non-Sell/Orders.
 final canEditInventoryProvider = Provider<bool>((ref) => ref.watch(isOwnerProvider));
+
+/// Staff/Owner mode only matters once there's a second device to hand off to
+/// someone else — for a shop running just one device, switching that one
+/// phone into Staff mode has no real benefit and is just confusing extra
+/// settings. Hidden in that case, EXCEPT when the device is already in Staff
+/// mode (e.g. a shop released devices back down to one after using Staff
+/// mode) — then it stays visible so there's always a way back to Owner.
+final showStaffModeSectionProvider = Provider<bool>((ref) {
+  final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
+  if (role != 'owner') return true;
+  final deviceCount = ref.watch(shopDevicesProvider).valueOrNull
+          ?.where((d) => d.isBound).length ??
+      1;
+  return deviceCount > 1;
+});
 
 /// Switches the device's staff role and manages the owner PIN. Switching to
 /// 'staff' is always free (an owner locking the device down for a cashier);

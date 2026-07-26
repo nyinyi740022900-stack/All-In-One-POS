@@ -112,9 +112,13 @@ class SettingsScreen extends ConsumerWidget {
           // Kept well away from the everyday settings above — this is where
           // an owner locks the device into Staff mode (or switches back with
           // the PIN), not something staff should stumble across while
-          // browsing Settings.
-          _SectionHeader(l.settingsSectionOwnerTools),
-          const StaffModeCard(),
+          // browsing Settings. Hidden entirely for a single-device shop (see
+          // showStaffModeSectionProvider) — Staff/Owner mode only matters
+          // once there's a second device to hand off to someone else.
+          if (ref.watch(showStaffModeSectionProvider)) ...[
+            _SectionHeader(l.settingsSectionOwnerTools),
+            const StaffModeCard(),
+          ],
         ],
       ),
     );
