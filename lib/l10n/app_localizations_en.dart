@@ -781,6 +781,66 @@ class AppLocalizationsEn extends AppLocalizations {
       'After paying (KPay/WavePay) and recording it, ask the admin to approve, then tap Check for renewal.';
 
   @override
+  String get deviceSectionTitle => 'Devices';
+
+  @override
+  String deviceCount(int used, int free) {
+    return '$used/$free free devices used';
+  }
+
+  @override
+  String get deviceThisDevice => 'This device';
+
+  @override
+  String deviceLastActive(String when) {
+    return 'Last active $when';
+  }
+
+  @override
+  String get deviceNeverVerified => 'Not yet activated';
+
+  @override
+  String get deviceAdd => 'Add a device';
+
+  @override
+  String get deviceRelease => 'Release';
+
+  @override
+  String get deviceReleaseConfirmTitle => 'Release this device?';
+
+  @override
+  String get deviceReleaseConfirmBody =>
+      'The device will lose access to this shop next time it checks its license. You can add a new device in its place afterward.';
+
+  @override
+  String get deviceReleased => 'Device released';
+
+  @override
+  String get deviceKeyReadyTitle => 'New device is ready';
+
+  @override
+  String get deviceKeyReadyHint =>
+      'Scan this QR code on the new device\'s activation screen, or type the key below.';
+
+  @override
+  String get deviceKeyCopied => 'Key copied';
+
+  @override
+  String get devicePaymentRequiredTitle => 'Device fee required';
+
+  @override
+  String devicePaymentRequiredBody(int free, String fee) {
+    return 'This shop already uses its $free free devices. Adding another costs $fee (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.';
+  }
+
+  @override
+  String get deviceOnlyOnPaidPlan =>
+      'Add a device once you have an active subscription (not available during the free trial).';
+
+  @override
+  String get deviceRequestFailed => 'Couldn\'t add a device — try again.';
+
+  @override
   String get referralTitle => 'Refer & earn';
 
   @override

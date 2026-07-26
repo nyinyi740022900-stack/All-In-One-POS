@@ -1,3 +1,4 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,9 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
+import 'license_model.dart';
 import 'license_request.dart';
+import '../sell/barcode_scanner_screen.dart';
 import '../sell/payment_labels.dart';
 import '../support/support_providers.dart';
 import '../support/vendor_config.dart';
@@ -53,6 +56,16 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Scans a device key shown as a QR code on an already-activated device
+  /// (see `_DevicesSection`'s "Add a device" flow) instead of typing it.
+  Future<void> _scanKey() async {
+    final code = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+    if (code != null && code.isNotEmpty && mounted) {
+      setState(() => _key.text = code);
     }
   }
 
@@ -155,6 +168,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               icon: const Icon(Icons.link_off),
               label: Text(l.licenseDeactivate),
             ),
+            // A trial's shop_id is derived from this one device's id, so
+            // "another device under the same shop" isn't a coherent idea
+            // until the shop is on a real paid key.
+            if (state.license?.plan != LicensePlan.trial) ...[
+              const SizedBox(height: AppTheme.space4),
+              const Divider(),
+              const SizedBox(height: AppTheme.space2),
+              const _DevicesSection(),
+            ],
           ] else ...[
             Text(l.licenseActivateTitle,
                 style: Theme.of(context).textTheme.titleMedium),
@@ -165,7 +187,14 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             TextField(
               controller: _key,
               textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(labelText: l.licenseKeyLabel),
+              decoration: InputDecoration(
+                labelText: l.licenseKeyLabel,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  tooltip: l.scanBarcode,
+                  onPressed: _scanKey,
+                ),
+              ),
             ),
             const SizedBox(height: AppTheme.space3),
             FilledButton.icon(

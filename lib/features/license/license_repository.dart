@@ -154,6 +154,63 @@ class LicenseRepository {
   }
 
   Future<void> deactivate() => _settings.clearLicense();
+
+  // ---- Multi-device (Phase 3) --------------------------------------------
+
+  /// The shop's device slots (one row per license key under this shop_id).
+  /// Requires an active backend session — devices are meaningless offline.
+  Future<List<ShopDevice>> listDevices() async {
+    if (!Env.hasBackend) return const [];
+    final rows = await Supabase.instance.client
+        .from('licenses')
+        .select('key, device_id, status, last_verified_at')
+        .order('created_at', ascending: true);
+    return (rows as List)
+        .map((r) => ShopDevice.fromJson(Map<String, dynamic>.from(r as Map)))
+        .toList();
+  }
+
+  /// Claims a slot for a NEW device under this shop: a free slot if the shop
+  /// is under its device limit, or a fee to pay first. The returned key still
+  /// needs to be activated (via [activate]) on the new physical device.
+  Future<DeviceSlotResult> requestDeviceSlot() async {
+    if (!Env.hasBackend) {
+      return const DeviceSlotResult.failure('no_backend');
+    }
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'request_device_slot'},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] == true) {
+        return DeviceSlotResult.granted(data['key'] as String);
+      }
+      if (data['error'] == 'payment_required') {
+        return DeviceSlotResult.paymentRequired(data['fee'] as int? ?? 0);
+      }
+      return DeviceSlotResult.failure(data['error'] as String?);
+    } catch (_) {
+      return const DeviceSlotResult.failure('network_error');
+    }
+  }
+
+  /// Releases one of the shop's own devices (frees its slot for reuse by a
+  /// new device) — the released device itself loses access on its next
+  /// license re-verify.
+  Future<bool> releaseDevice(String deviceId) async {
+    if (!Env.hasBackend) return false;
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'release_device', 'device_id': deviceId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      return data['ok'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 LicensePlan _planFrom(String s) => switch (s) {

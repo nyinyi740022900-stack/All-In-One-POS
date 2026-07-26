@@ -13,6 +13,13 @@ final licenseRepositoryProvider = Provider<LicenseRepository>((ref) {
   return LicenseRepository(ref.watch(settingsRepositoryProvider));
 });
 
+/// The shop's device slots. Re-fetch with `ref.invalidate` after adding or
+/// releasing a device (no realtime/stream backing this — it's a plain
+/// on-demand read of the `licenses` table).
+final shopDevicesProvider = FutureProvider.autoDispose<List<ShopDevice>>((ref) {
+  return ref.watch(licenseRepositoryProvider).listDevices();
+});
+
 class LicenseState {
   final bool loading;
   final CachedLicense? license;

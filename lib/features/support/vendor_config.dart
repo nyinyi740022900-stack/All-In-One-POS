@@ -16,6 +16,8 @@ class VendorConfig {
   final String supportViber;
   final int priceMonthly;
   final int priceYearly;
+  final int deviceFreeLimit;
+  final int deviceExtraFee;
 
   const VendorConfig({
     this.kbzName = '',
@@ -25,6 +27,8 @@ class VendorConfig {
     this.supportViber = '',
     this.priceMonthly = 0,
     this.priceYearly = 0,
+    this.deviceFreeLimit = 2,
+    this.deviceExtraFee = 0,
   });
 
   bool get hasKbz => kbzNumber.isNotEmpty;
@@ -41,6 +45,8 @@ class VendorConfig {
         supportViber: m['support.viber'] ?? '',
         priceMonthly: int.tryParse(m['price.monthly'] ?? '') ?? 0,
         priceYearly: int.tryParse(m['price.yearly'] ?? '') ?? 0,
+        deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 2,
+        deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
       );
 
   Map<String, String> toMap() => {
@@ -51,6 +57,8 @@ class VendorConfig {
         'support.viber': supportViber,
         'price.monthly': '$priceMonthly',
         'price.yearly': '$priceYearly',
+        'device.free_limit': '$deviceFreeLimit',
+        'device.extra_fee': '$deviceExtraFee',
       };
 
   static const empty = VendorConfig();
