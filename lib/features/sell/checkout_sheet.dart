@@ -9,6 +9,7 @@ import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
+import '../staff/staff_providers.dart';
 import 'cart.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
@@ -80,6 +81,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         paid: paid,
         customerName: name.isEmpty ? null : name,
         customerPhone: phone.isEmpty ? null : phone,
+        staffId: ref.read(activeStaffIdProvider).valueOrNull,
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );
 

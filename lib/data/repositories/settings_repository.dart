@@ -157,6 +157,26 @@ class SettingsRepository {
   Future<String?> staffPin() => _get(_kStaffPin);
   Future<void> setStaffPin(String pin) => _set(_kStaffPin, pin);
 
+  /// Which staff-roster member (see `StaffMembers`) is currently "using" this
+  /// device — device-local, not synced (the roster itself is shared across
+  /// devices; who's holding this particular phone right now is per-device).
+  /// Empty/null = no named staff selected (plain staff mode, pre-roster).
+  static const _kActiveStaffId = 'staff.active_id';
+  Future<String?> activeStaffId() async {
+    final v = await _get(_kActiveStaffId);
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  Future<void> setActiveStaffId(String id) => _set(_kActiveStaffId, id);
+  Stream<String?> watchActiveStaffId() {
+    return _db.select(_db.appSettings).watch().map((rows) {
+      for (final r in rows) {
+        if (r.key == _kActiveStaffId) return r.value.isEmpty ? null : r.value;
+      }
+      return null;
+    });
+  }
+
   Future<String?> licenseJson() => _get(_kLicense);
   Future<void> setLicenseJson(String json) => _set(_kLicense, json);
 

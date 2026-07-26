@@ -24,6 +24,7 @@ part 'database.g.dart';
     CreditPayments,
     Orders,
     OrderItems,
+    StaffMembers,
     AppSettings,
     Outbox,
   ],
@@ -35,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +83,11 @@ class AppDatabase extends _$AppDatabase {
           // pointing back at the sale it reverses.
           if (from < 10) {
             await m.addColumn(sales, sales.refundOfSaleId);
+          }
+          // v11: named staff profiles (so a sale can be attributed to whoever
+          // rang it up, not just a shared device PIN).
+          if (from < 11) {
+            await m.createTable(staffMembers);
           }
         },
       );

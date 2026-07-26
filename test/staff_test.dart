@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
@@ -16,6 +17,8 @@ void main() {
     settings = SettingsRepository(db);
     container = ProviderContainer(overrides: [
       settingsRepositoryProvider.overrideWithValue(settings),
+      databaseProvider.overrideWithValue(db),
+      shopIdProvider.overrideWith((ref) => 'shop-1'),
     ]);
   });
 
@@ -55,5 +58,43 @@ void main() {
     await ctrl().setPin('1234');
     expect(await ctrl().switchRole('staff'), isTrue);
     expect(await settings.staffRole(), 'staff');
+  });
+
+  test('switching to a named staff member with the right PIN stamps their id',
+      () async {
+    final staffRepo = container.read(staffRepositoryProvider);
+    final id = await staffRepo.upsertMember(name: 'Mi Mi', pin: '1111');
+
+    expect(await ctrl().switchToStaffMember(id, '1111'), isTrue);
+    expect(await settings.staffRole(), 'staff');
+    expect(await settings.activeStaffId(), id);
+  });
+
+  test('switching to a named staff member with the wrong PIN fails', () async {
+    final staffRepo = container.read(staffRepositoryProvider);
+    final id = await staffRepo.upsertMember(name: 'Ko Ko', pin: '2222');
+
+    expect(await ctrl().switchToStaffMember(id, '0000'), isFalse);
+    expect(await settings.staffRole(), 'owner'); // unchanged
+  });
+
+  test('switching to owner clears the active staff id', () async {
+    final staffRepo = container.read(staffRepositoryProvider);
+    final id = await staffRepo.upsertMember(name: 'Mi Mi', pin: '1111');
+    await ctrl().switchToStaffMember(id, '1111');
+    expect(await settings.activeStaffId(), id);
+
+    await ctrl().switchRole('owner', pin: '');
+    expect(await settings.activeStaffId(), isNull);
+  });
+
+  test('deactivating a staff member removes them from the active roster',
+      () async {
+    final staffRepo = container.read(staffRepositoryProvider);
+    final id = await staffRepo.upsertMember(name: 'Su Su', pin: '3333');
+    expect(await staffRepo.watchActiveMembers().first, hasLength(1));
+
+    await staffRepo.deactivateMember(id);
+    expect(await staffRepo.watchActiveMembers().first, isEmpty);
   });
 }

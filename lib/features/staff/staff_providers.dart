@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers.dart';
+import '../../data/local/database.dart';
 import '../printing/printing_providers.dart';
+import 'staff_repository.dart';
 
 /// Two device-local operating modes, not synced — set by the owner before
 /// handing the phone to staff. Kept deliberately simple: 'staff' (Sell +
@@ -11,6 +14,34 @@ const staffRoles = <String>['staff', 'owner'];
 
 final staffRoleProvider = StreamProvider<String>((ref) {
   return ref.watch(settingsRepositoryProvider).watchStaffRole();
+});
+
+final staffRepositoryProvider = Provider<StaffRepository>((ref) {
+  return StaffRepository(ref.watch(databaseProvider), ref.watch(shopIdProvider));
+});
+
+/// The shop's named staff roster (name + PIN profiles), shared across every
+/// device under the shop.
+final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
+  return ref.watch(staffRepositoryProvider).watchActiveMembers();
+});
+
+/// Which roster member is "using" this device right now — device-local, not
+/// synced. Null if no named staff is selected (plain staff mode).
+final activeStaffIdProvider = StreamProvider<String?>((ref) {
+  return ref.watch(settingsRepositoryProvider).watchActiveStaffId();
+});
+
+/// The active staff member's display name, for the Sell app bar badge —
+/// null if none selected (falls back to the generic "Staff" badge).
+final activeStaffNameProvider = Provider<String?>((ref) {
+  final id = ref.watch(activeStaffIdProvider).valueOrNull;
+  if (id == null) return null;
+  final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
+  for (final m in members) {
+    if (m.id == id) return m.name;
+  }
+  return null;
 });
 
 /// True when the current device mode is owner (or still loading, so the UI
@@ -41,6 +72,8 @@ class StaffController {
 
   /// Attempts to switch to [targetRole]. [pin] is required only when
   /// switching to 'owner'. Returns false on a wrong PIN (role unchanged).
+  /// Switching to 'owner' always clears the active staff identity — no named
+  /// staff is "using" the device while it's in owner mode.
   Future<bool> switchRole(String targetRole, {String? pin}) async {
     final repo = _ref.read(settingsRepositoryProvider);
     if (targetRole == 'owner') {
@@ -48,8 +81,22 @@ class StaffController {
       if (saved != null && saved.isNotEmpty && saved != (pin ?? '')) {
         return false;
       }
+      await repo.setActiveStaffId('');
     }
     await repo.setStaffRole(targetRole);
+    return true;
+  }
+
+  /// Switches to Staff mode AS a specific named roster member — verifies
+  /// that member's own PIN (not the shared owner PIN). Returns false on a
+  /// wrong PIN.
+  Future<bool> switchToStaffMember(String memberId, String pin) async {
+    final staff = _ref.read(staffRepositoryProvider);
+    final member = await staff.verifyPin(memberId, pin);
+    if (member == null) return false;
+    final repo = _ref.read(settingsRepositoryProvider);
+    await repo.setActiveStaffId(member.id);
+    await repo.setStaffRole('staff');
     return true;
   }
 }

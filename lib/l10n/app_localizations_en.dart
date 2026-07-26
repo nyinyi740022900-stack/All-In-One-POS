@@ -1335,6 +1335,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffBadge => 'Staff mode';
 
   @override
+  String get staffManageMembers => 'Manage staff';
+
+  @override
+  String get staffMembersTitle => 'Staff members';
+
+  @override
+  String get staffMembersEmpty =>
+      'No staff members yet. Add one so sales can be attributed to whoever rang them up.';
+
+  @override
+  String get staffAddMember => 'Add staff';
+
+  @override
+  String get staffEditMember => 'Edit staff';
+
+  @override
+  String get staffMemberName => 'Name';
+
+  @override
+  String get staffMemberPin => 'PIN (4–6 digits)';
+
+  @override
+  String get staffMemberSaved => 'Staff member saved';
+
+  @override
+  String get staffRemoveMember => 'Remove';
+
+  @override
+  String get staffRemoveConfirmTitle => 'Remove this staff member?';
+
+  @override
+  String staffRemoveConfirmBody(String name) {
+    return '$name will no longer appear when switching to Staff mode. Past sales still show their name.';
+  }
+
+  @override
+  String get staffMemberRemoved => 'Staff member removed';
+
+  @override
+  String get staffWhoAreYou => 'Who\'s using this device?';
+
+  @override
+  String get staffNoNamedStaff => 'No name — just Staff mode';
+
+  @override
   String get storefrontTitle => 'My web storefront';
 
   @override
