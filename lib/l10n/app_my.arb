@@ -300,6 +300,10 @@
   "@devicePaymentRequiredBody": { "placeholders": { "free": { "type": "int" }, "fee": { "type": "String" } } },
   "deviceOnlyOnPaidPlan": "Subscription active ဖြစ်မှသာ device ထပ်ထည့်နိုင်ပါသည် (free trial အတွင်း မရနိုင်ပါ)။",
   "deviceRequestFailed": "Device ထပ်ထည့်လို့ မရပါ — ထပ်စမ်းကြည့်ပါ။",
+  "deviceRoleTitle": "ဒီ device ကို ဘယ်သူ့အတွက် ထည့်မှာလဲ?",
+  "deviceRoleHint": "အခုပဲ ရွေးထားလိုက်ရင် — device အသစ် activate ဖြစ်တာနဲ့ ချက်ချင်း မှန်ကန်စွာ ပြင်ဆင်ပြီးသားဖြစ်နေပါမယ် — device အသစ်ပေါ်မှာ ထပ်ပြင်စရာ မလိုတော့ပါ။",
+  "deviceRoleStaffMember": "ဝန်ထမ်း (ရွေးချယ်ခွင့်)",
+  "deviceRoleAppliesOnScan": "ဒီ QR ကို scan ဖတ်ပြီး activate လုပ်တဲ့အခါ Staff mode ကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။",
 
   "referralTitle": "မိတ်ဆွေမျှ၍ ဝင်ငွေရ",
   "referralSubtitle": "သင့်ကုဒ်ကို မျှဝေပါ။ သင်စပ်ပေးထားတဲ့ ဆိုင်က လတိုင်း ကြေးပေးတိုင်း သင် commission ရပြီး license သက်တမ်းထဲ တိုက်ရိုက် ပေါင်းသွားပါမယ်။",

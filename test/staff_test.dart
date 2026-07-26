@@ -72,6 +72,27 @@ void main() {
     expect(await settings.activeStaffId(), id);
   });
 
+  group('applyProvisionedRole', () {
+    test('sets staff role + member id with no PIN check (owner already '
+        'authorized this when generating the device QR)', () async {
+      await ctrl().applyProvisionedRole('staff', staffMemberId: 'staff-9');
+      expect(await settings.staffRole(), 'staff');
+      expect(await settings.activeStaffId(), 'staff-9');
+    });
+
+    test('sets staff role with no member id when none was picked', () async {
+      await ctrl().applyProvisionedRole('staff');
+      expect(await settings.staffRole(), 'staff');
+      expect(await settings.activeStaffId(), isNull);
+    });
+
+    test('is a no-op for an owner-role provisioning (the device default)',
+        () async {
+      await ctrl().applyProvisionedRole('owner');
+      expect(await settings.staffRole(), 'owner');
+    });
+  });
+
   test('switching to a named staff member with the wrong PIN fails', () async {
     final staffRepo = container.read(staffRepositoryProvider);
     final id = await staffRepo.upsertMember(name: 'Ko Ko', pin: '2222');

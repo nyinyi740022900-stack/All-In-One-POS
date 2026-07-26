@@ -4,9 +4,45 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/license/license_model.dart';
 import 'package:mm_pos/features/license/license_repository.dart';
+import 'package:mm_pos/features/license/license_screen.dart';
 import 'package:mm_pos/features/license/license_status.dart';
 
 void main() {
+  group('DeviceProvisioning', () {
+    test('an owner-role device encodes as a plain key (backward compatible '
+        'with manual entry / older scanners)', () {
+      const p = DeviceProvisioning(key: 'MMPOS-AAAA-BBBB-CCCC');
+      expect(p.encode(), 'MMPOS-AAAA-BBBB-CCCC');
+    });
+
+    test('a staff-role device round-trips key + role + staffMemberId '
+        'through a QR-safe JSON encoding', () {
+      const p = DeviceProvisioning(
+        key: 'MMPOS-AAAA-BBBB-CCCC',
+        role: 'staff',
+        staffMemberId: 'staff-1',
+      );
+      final decoded = DeviceProvisioning.decode(p.encode());
+      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
+      expect(decoded.role, 'staff');
+      expect(decoded.staffMemberId, 'staff-1');
+    });
+
+    test('decoding a plain (non-JSON) key falls back to owner role', () {
+      final decoded = DeviceProvisioning.decode('MMPOS-AAAA-BBBB-CCCC');
+      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
+      expect(decoded.role, 'owner');
+      expect(decoded.staffMemberId, isNull);
+    });
+
+    test('decoding garbage JSON with no key field falls back to treating '
+        'the whole input as the key', () {
+      final decoded = DeviceProvisioning.decode('{"foo":"bar"}');
+      expect(decoded.key, '{"foo":"bar"}');
+      expect(decoded.role, 'owner');
+    });
+  });
+
   group('CachedLicense JSON round-trip', () {
     test('realtimeEnabled survives toJson/fromJson', () {
       final lic = CachedLicense(

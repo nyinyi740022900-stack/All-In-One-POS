@@ -1718,6 +1718,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t add a device — try again.'**
   String get deviceRequestFailed;
 
+  /// No description provided for @deviceRoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is this device for?'**
+  String get deviceRoleTitle;
+
+  /// No description provided for @deviceRoleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked now, so the new phone is already set up correctly the moment it activates — no separate step needed on it.'**
+  String get deviceRoleHint;
+
+  /// No description provided for @deviceRoleStaffMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff member (optional)'**
+  String get deviceRoleStaffMember;
+
+  /// No description provided for @deviceRoleAppliesOnScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff mode will be applied automatically when this QR is scanned to activate.'**
+  String get deviceRoleAppliesOnScan;
+
   /// No description provided for @referralTitle.
   ///
   /// In en, this message translates to:

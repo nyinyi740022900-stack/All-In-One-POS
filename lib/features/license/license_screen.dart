@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,12 +15,56 @@ import 'license_model.dart';
 import 'license_request.dart';
 import '../sell/barcode_scanner_screen.dart';
 import '../sell/payment_labels.dart';
+import '../staff/staff_providers.dart';
 import '../support/support_providers.dart';
 import '../support/vendor_config.dart';
 import 'license_providers.dart';
 import 'license_status.dart';
 
 part 'license_widgets.dart';
+
+/// A device-add QR can carry more than a bare license key: the owner may
+/// have picked "this new device is for Staff" (optionally naming which
+/// roster member) at the moment they generated it, so activation can apply
+/// that role immediately instead of needing a second manual step on the new
+/// phone. Encodes as a plain key string for the common Owner case (keeps a
+/// typed/manually-entered key working exactly as before); only becomes a
+/// JSON blob when a role needs to travel with it.
+class DeviceProvisioning {
+  final String key;
+  final String role;
+  final String? staffMemberId;
+
+  const DeviceProvisioning({
+    required this.key,
+    this.role = 'owner',
+    this.staffMemberId,
+  });
+
+  String encode() {
+    if (role != 'staff') return key;
+    return jsonEncode({
+      'key': key,
+      'role': role,
+      if (staffMemberId != null) 'staff_id': staffMemberId,
+    });
+  }
+
+  factory DeviceProvisioning.decode(String scanned) {
+    try {
+      final m = jsonDecode(scanned) as Map<String, dynamic>;
+      final key = m['key'] as String?;
+      if (key == null || key.isEmpty) return DeviceProvisioning(key: scanned);
+      return DeviceProvisioning(
+        key: key,
+        role: m['role'] as String? ?? 'owner',
+        staffMemberId: m['staff_id'] as String?,
+      );
+    } catch (_) {
+      return DeviceProvisioning(key: scanned);
+    }
+  }
+}
 
 class LicenseScreen extends ConsumerStatefulWidget {
   const LicenseScreen({super.key});
@@ -30,6 +76,10 @@ class LicenseScreen extends ConsumerStatefulWidget {
 class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   final _key = TextEditingController();
   bool _busy = false;
+  // Set when the scanned/entered key carried a role (see DeviceProvisioning)
+  // — applied once, right after a successful activation.
+  String? _pendingRole;
+  String? _pendingStaffMemberId;
 
   @override
   void dispose() {
@@ -51,6 +101,17 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             : l.licenseActivateFailed;
         messenger.showSnackBar(SnackBar(content: Text(msg)));
       } else {
+        // Apply the role the owner picked when generating this device's QR
+        // (see DeviceProvisioning) — a no-op if this was a plain key (typed
+        // manually, or an older QR with no role attached).
+        if (_pendingRole != null) {
+          await ref.read(staffControllerProvider).applyProvisionedRole(
+                _pendingRole!,
+                staffMemberId: _pendingStaffMemberId,
+              );
+          _pendingRole = null;
+          _pendingStaffMemberId = null;
+        }
         messenger.showSnackBar(SnackBar(content: Text(l.licenseActivated)));
         _key.clear();
       }
@@ -60,12 +121,19 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   }
 
   /// Scans a device key shown as a QR code on an already-activated device
-  /// (see `_DevicesSection`'s "Add a device" flow) instead of typing it.
+  /// (see `_DevicesSection`'s "Add a device" flow) instead of typing it. The
+  /// QR may carry a role alongside the key (DeviceProvisioning) — remembered
+  /// here and applied once activation succeeds.
   Future<void> _scanKey() async {
     final code = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
     if (code != null && code.isNotEmpty && mounted) {
-      setState(() => _key.text = code);
+      final provisioning = DeviceProvisioning.decode(code);
+      setState(() {
+        _key.text = provisioning.key;
+        _pendingRole = provisioning.role;
+        _pendingStaffMemberId = provisioning.staffMemberId;
+      });
     }
   }
 

@@ -876,6 +876,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceRequestFailed => 'Couldn\'t add a device — try again.';
 
   @override
+  String get deviceRoleTitle => 'Who is this device for?';
+
+  @override
+  String get deviceRoleHint =>
+      'Picked now, so the new phone is already set up correctly the moment it activates — no separate step needed on it.';
+
+  @override
+  String get deviceRoleStaffMember => 'Staff member (optional)';
+
+  @override
+  String get deviceRoleAppliesOnScan =>
+      'Staff mode will be applied automatically when this QR is scanned to activate.';
+
+  @override
   String get referralTitle => 'Refer & earn';
 
   @override

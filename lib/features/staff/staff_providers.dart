@@ -115,6 +115,23 @@ class StaffController {
     await repo.setStaffRole('staff');
     return true;
   }
+
+  /// Applies a role the OWNER already chose when generating this device's
+  /// activation QR (see `_DevicesSection`'s "Add a device" flow) — no PIN
+  /// check, since switching a device to plain Staff mode has never required
+  /// one (it's a device-lockdown action the owner takes, not an identity
+  /// claim), and the owner already deliberately picked this device's
+  /// intended staff member at generation time. Called once, right after a
+  /// successful activation that came from a role-carrying QR; a no-op for a
+  /// plain key with no role attached.
+  Future<void> applyProvisionedRole(String role, {String? staffMemberId}) async {
+    if (role != 'staff') return;
+    final repo = _ref.read(settingsRepositoryProvider);
+    if (staffMemberId != null && staffMemberId.isNotEmpty) {
+      await repo.setActiveStaffId(staffMemberId);
+    }
+    await repo.setStaffRole('staff');
+  }
 }
 
 final staffControllerProvider =

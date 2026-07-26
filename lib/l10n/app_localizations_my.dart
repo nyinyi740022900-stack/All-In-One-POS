@@ -871,6 +871,20 @@ class AppLocalizationsMy extends AppLocalizations {
   String get deviceRequestFailed => 'Device ထပ်ထည့်လို့ မရပါ — ထပ်စမ်းကြည့်ပါ။';
 
   @override
+  String get deviceRoleTitle => 'ဒီ device ကို ဘယ်သူ့အတွက် ထည့်မှာလဲ?';
+
+  @override
+  String get deviceRoleHint =>
+      'အခုပဲ ရွေးထားလိုက်ရင် — device အသစ် activate ဖြစ်တာနဲ့ ချက်ချင်း မှန်ကန်စွာ ပြင်ဆင်ပြီးသားဖြစ်နေပါမယ် — device အသစ်ပေါ်မှာ ထပ်ပြင်စရာ မလိုတော့ပါ။';
+
+  @override
+  String get deviceRoleStaffMember => 'ဝန်ထမ်း (ရွေးချယ်ခွင့်)';
+
+  @override
+  String get deviceRoleAppliesOnScan =>
+      'ဒီ QR ကို scan ဖတ်ပြီး activate လုပ်တဲ့အခါ Staff mode ကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။';
+
+  @override
   String get referralTitle => 'မိတ်ဆွေမျှ၍ ဝင်ငွေရ';
 
   @override

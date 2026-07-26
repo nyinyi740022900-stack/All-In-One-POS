@@ -99,6 +99,13 @@ class _DevicesSection extends ConsumerWidget {
 
   Future<void> _addDevice(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    // Pick the new device's intended role FIRST — so it can be baked into
+    // the QR and applied automatically on activation, instead of needing a
+    // second manual "switch to Staff" step on the new phone (easy to forget,
+    // which would leave it in full Owner mode).
+    final picked = await _pickDeviceRole(context, ref);
+    if (picked == null || !context.mounted) return;
+
     final messenger = ScaffoldMessenger.of(context);
     final result =
         await ref.read(licenseRepositoryProvider).requestDeviceSlot();
@@ -108,7 +115,13 @@ class _DevicesSection extends ConsumerWidget {
       ref.invalidate(shopDevicesProvider);
       await showDialog<void>(
         context: context,
-        builder: (_) => _NewDeviceKeyDialog(deviceKey: result.key!),
+        builder: (_) => _NewDeviceKeyDialog(
+          provisioning: DeviceProvisioning(
+            key: result.key!,
+            role: picked.role,
+            staffMemberId: picked.staffMemberId,
+          ),
+        ),
       );
       return;
     }
@@ -126,6 +139,72 @@ class _DevicesSection extends ConsumerWidget {
       return;
     }
     messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
+  }
+
+  /// Lets the owner choose the new device's intended role (and, for Staff,
+  /// which roster member) before a slot is even claimed. Null = cancelled.
+  Future<({String role, String? staffMemberId})?> _pickDeviceRole(
+      BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
+    var role = 'owner';
+    String? staffMemberId;
+
+    return showDialog<({String role, String? staffMemberId})>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text(l.deviceRoleTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.deviceRoleHint,
+                  style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: AppTheme.space3),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(value: 'owner', label: Text(l.staffRoleOwner)),
+                  ButtonSegment(value: 'staff', label: Text(l.staffRoleStaff)),
+                ],
+                selected: {role},
+                onSelectionChanged: (s) => setLocal(() {
+                  role = s.first;
+                  if (role == 'owner') staffMemberId = null;
+                }),
+              ),
+              if (role == 'staff' && members.isNotEmpty) ...[
+                const SizedBox(height: AppTheme.space3),
+                DropdownButtonFormField<String?>(
+                  initialValue: staffMemberId,
+                  decoration:
+                      InputDecoration(labelText: l.deviceRoleStaffMember),
+                  items: [
+                    DropdownMenuItem<String?>(
+                        value: null, child: Text(l.staffNoNamedStaff)),
+                    for (final m in members)
+                      DropdownMenuItem<String?>(
+                          value: m.id, child: Text(m.name)),
+                  ],
+                  onChanged: (v) => setLocal(() => staffMemberId = v),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx)
+                  .pop((role: role, staffMemberId: staffMemberId)),
+              child: Text(l.commonYes),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmRelease(
@@ -224,8 +303,8 @@ class _DevicesSection extends ConsumerWidget {
 }
 
 class _NewDeviceKeyDialog extends StatelessWidget {
-  const _NewDeviceKeyDialog({required this.deviceKey});
-  final String deviceKey;
+  const _NewDeviceKeyDialog({required this.provisioning});
+  final DeviceProvisioning provisioning;
 
   @override
   Widget build(BuildContext context) {
@@ -239,20 +318,26 @@ class _NewDeviceKeyDialog extends StatelessWidget {
           const SizedBox(height: AppTheme.space4),
           BarcodeWidget(
             barcode: Barcode.qrCode(),
-            data: deviceKey,
+            data: provisioning.encode(),
             width: 180,
             height: 180,
           ),
           const SizedBox(height: AppTheme.space3),
-          SelectableText(deviceKey,
+          SelectableText(provisioning.key,
               style: const TextStyle(
                   fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+          if (provisioning.role == 'staff') ...[
+            const SizedBox(height: AppTheme.space2),
+            Text(l.deviceRoleAppliesOnScan,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall),
+          ],
         ],
       ),
       actions: [
         TextButton.icon(
           onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: deviceKey));
+            await Clipboard.setData(ClipboardData(text: provisioning.key));
             if (context.mounted) {
               ScaffoldMessenger.of(context)
                   .showSnackBar(SnackBar(content: Text(l.deviceKeyCopied)));
