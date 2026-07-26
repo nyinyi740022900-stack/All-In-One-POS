@@ -47,42 +47,61 @@ class CustomersScreen extends ConsumerWidget {
     final name = TextEditingController(text: existing?.name ?? '');
     final phone = TextEditingController(text: existing?.phone ?? '');
     final address = TextEditingController(text: existing?.address ?? '');
+    var tier = existing?.tier ?? 'retail';
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing == null ? l.customerAdd : l.customerEdit),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: l.customerNameLabel),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: l.customerPhone),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: address,
-                decoration: InputDecoration(labelText: l.customerAddress),
-              ),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing == null ? l.customerAdd : l.customerEdit),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(labelText: l.customerNameLabel),
+                ),
+                const SizedBox(height: AppTheme.space2),
+                TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(labelText: l.customerPhone),
+                ),
+                const SizedBox(height: AppTheme.space2),
+                TextField(
+                  controller: address,
+                  decoration: InputDecoration(labelText: l.customerAddress),
+                ),
+                const SizedBox(height: AppTheme.space2),
+                DropdownButtonFormField<String>(
+                  initialValue: tier,
+                  decoration: InputDecoration(labelText: l.customerTierLabel),
+                  items: [
+                    DropdownMenuItem(
+                        value: 'retail', child: Text(l.customerTierRetail)),
+                    DropdownMenuItem(
+                        value: 'wholesale',
+                        child: Text(l.customerTierWholesale)),
+                    DropdownMenuItem(
+                        value: 'vip', child: Text(l.customerTierVip)),
+                  ],
+                  onChanged: (v) =>
+                      setDialogState(() => tier = v ?? 'retail'),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.commonSave)),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonSave)),
-        ],
       ),
     );
     if (saved != true || name.text.trim().isEmpty) return;
@@ -92,6 +111,7 @@ class CustomersScreen extends ConsumerWidget {
           name: name.text.trim(),
           phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
           address: address.text.trim().isEmpty ? null : address.text.trim(),
+          tier: tier,
         );
     if (context.mounted) {
       ScaffoldMessenger.of(context)
@@ -145,10 +165,21 @@ class CustomersScreen extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final c = customers[i];
                     final owed = owedById[c.id] ?? 0;
+                    final tierLabel = switch (c.tier) {
+                      'wholesale' => l.customerTierWholesale,
+                      'vip' => l.customerTierVip,
+                      _ => null,
+                    };
+                    final subtitleParts = [
+                      if ((c.phone ?? '').isNotEmpty) c.phone!,
+                      ?tierLabel,
+                    ];
                     return ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.person)),
                       title: Text(c.name),
-                      subtitle: (c.phone ?? '').isEmpty ? null : Text(c.phone!),
+                      subtitle: subtitleParts.isEmpty
+                          ? null
+                          : Text(subtitleParts.join(' · ')),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

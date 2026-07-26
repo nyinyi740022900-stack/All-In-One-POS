@@ -33,6 +33,7 @@ class CustomerRepository {
     String? phone,
     String? address,
     String? township,
+    String tier = 'retail',
   }) async {
     final customerId = id ?? _uuid.v4();
     final now = DateTime.now();
@@ -45,6 +46,7 @@ class CustomerRepository {
             phone: Value(phone),
             address: Value(address),
             township: Value(township),
+            tier: Value(tier),
             updatedAt: Value(now),
             dirty: const Value(true),
           ));

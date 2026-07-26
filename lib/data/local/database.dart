@@ -16,6 +16,7 @@ part 'database.g.dart';
     Categories,
     Products,
     StockLevels,
+    StockLots,
     StockMovements,
     Sales,
     SaleItems,
@@ -37,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +98,20 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(sales, sales.customerId);
             await m.addColumn(orders, orders.customerId);
             await m.addColumn(creditPayments, creditPayments.customerId);
+          }
+          // v13: tiered pricing — a customer's retail/wholesale/vip tier
+          // picks which Products price column the Sell screen applies.
+          if (from < 13) {
+            await m.addColumn(customers, customers.tier);
+            await m.addColumn(products, products.wholesalePrice);
+            await m.addColumn(products, products.vipPrice);
+          }
+          // v14: FIFO cost basis. StockLots is local-only (see its doc
+          // comment) so it's created fresh here, never migrated from synced
+          // data. costSnapshot is null on every pre-existing sale item.
+          if (from < 14) {
+            await m.createTable(stockLots);
+            await m.addColumn(saleItems, saleItems.costSnapshot);
           }
         },
       );

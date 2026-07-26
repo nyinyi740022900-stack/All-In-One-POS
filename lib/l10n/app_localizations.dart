@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'Add customer'**
   String get checkoutAddCustomer;
 
+  /// No description provided for @checkoutTierPricingApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'{tier} pricing applied to this sale'**
+  String checkoutTierPricingApplied(String tier);
+
   /// No description provided for @creditCustomerRequired.
   ///
   /// In en, this message translates to:
@@ -518,6 +524,30 @@ abstract class AppLocalizations {
   /// **'Address'**
   String get customerAddress;
 
+  /// No description provided for @customerTierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pricing tier'**
+  String get customerTierLabel;
+
+  /// No description provided for @customerTierRetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Retail'**
+  String get customerTierRetail;
+
+  /// No description provided for @customerTierWholesale.
+  ///
+  /// In en, this message translates to:
+  /// **'Wholesale'**
+  String get customerTierWholesale;
+
+  /// No description provided for @customerTierVip.
+  ///
+  /// In en, this message translates to:
+  /// **'VIP'**
+  String get customerTierVip;
+
   /// No description provided for @customerSaved.
   ///
   /// In en, this message translates to:
@@ -601,6 +631,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cost price'**
   String get productCost;
+
+  /// No description provided for @productTierPricesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — leave blank to use the sale price for that tier.'**
+  String get productTierPricesHint;
+
+  /// No description provided for @productWholesalePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Wholesale price'**
+  String get productWholesalePrice;
+
+  /// No description provided for @productVipPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'VIP price'**
+  String get productVipPrice;
 
   /// No description provided for @productBarcode.
   ///
@@ -2791,6 +2839,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share this link with customers on Facebook, Viber, etc.'**
   String get storefrontShare;
+
+  /// No description provided for @storefrontPaymentInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment accounts'**
+  String get storefrontPaymentInfoTitle;
+
+  /// No description provided for @storefrontPaymentInfoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown to customers at checkout so they know who to transfer to.'**
+  String get storefrontPaymentInfoHint;
+
+  /// No description provided for @storefrontPayKpayName.
+  ///
+  /// In en, this message translates to:
+  /// **'KBZPay account name'**
+  String get storefrontPayKpayName;
+
+  /// No description provided for @storefrontPayKpayNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'KBZPay number'**
+  String get storefrontPayKpayNumber;
+
+  /// No description provided for @storefrontPayWaveName.
+  ///
+  /// In en, this message translates to:
+  /// **'WavePay account name'**
+  String get storefrontPayWaveName;
+
+  /// No description provided for @storefrontPayWaveNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'WavePay number'**
+  String get storefrontPayWaveNumber;
+
+  /// No description provided for @storefrontNumberCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Number copied'**
+  String get storefrontNumberCopied;
 
   /// No description provided for @onboardWelcomeTitle.
   ///

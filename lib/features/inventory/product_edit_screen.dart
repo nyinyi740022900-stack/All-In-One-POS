@@ -31,6 +31,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   late final TextEditingController _barcode;
   late final TextEditingController _salePrice;
   late final TextEditingController _costPrice;
+  late final TextEditingController _wholesalePrice;
+  late final TextEditingController _vipPrice;
   late final TextEditingController _quantity;
   late final TextEditingController _reorder;
   String? _categoryId;
@@ -51,6 +53,12 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
         TextEditingController(text: e == null ? '' : '${e.product.salePrice}');
     _costPrice =
         TextEditingController(text: e == null ? '' : '${e.product.costPrice}');
+    _wholesalePrice = TextEditingController(
+        text: e?.product.wholesalePrice == null
+            ? ''
+            : '${e!.product.wholesalePrice}');
+    _vipPrice = TextEditingController(
+        text: e?.product.vipPrice == null ? '' : '${e!.product.vipPrice}');
     _quantity = TextEditingController(text: e == null ? '' : '${e.quantity}');
     _reorder = TextEditingController(text: e == null ? '' : '${e.reorderLevel}');
   }
@@ -63,6 +71,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       _barcode,
       _salePrice,
       _costPrice,
+      _wholesalePrice,
+      _vipPrice,
       _quantity,
       _reorder
     ]) {
@@ -72,6 +82,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   }
 
   int _int(TextEditingController c) => int.tryParse(c.text.trim()) ?? 0;
+  int? _intOrNull(TextEditingController c) =>
+      c.text.trim().isEmpty ? null : int.tryParse(c.text.trim());
 
   Future<void> _pickImage() async {
     final res = await FilePicker.platform.pickFiles(
@@ -113,6 +125,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             categoryId: _categoryId,
             salePrice: _int(_salePrice),
             costPrice: _int(_costPrice),
+            wholesalePrice: _intOrNull(_wholesalePrice),
+            vipPrice: _intOrNull(_vipPrice),
             quantity: _int(_quantity),
             reorderLevel: _int(_reorder),
             imageUrl: _imageUrl,
@@ -148,6 +162,13 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             _field(_salePrice, l.productPrice, number: true),
             _gap,
             _field(_costPrice, l.productCost, number: true),
+            _gap,
+            Text(l.productTierPricesHint,
+                style: Theme.of(context).textTheme.bodySmall),
+            _gap,
+            _field(_wholesalePrice, l.productWholesalePrice, number: true),
+            _gap,
+            _field(_vipPrice, l.productVipPrice, number: true),
             _gap,
             if (trackStock) ...[
               _field(_quantity, l.productQuantity, number: true),

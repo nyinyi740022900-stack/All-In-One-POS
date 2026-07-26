@@ -159,6 +159,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkoutAddCustomer => 'Add customer';
 
   @override
+  String checkoutTierPricingApplied(String tier) {
+    return '$tier pricing applied to this sale';
+  }
+
+  @override
   String get creditCustomerRequired =>
       'Enter a customer name for a credit sale.';
 
@@ -236,6 +241,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customerAddress => 'Address';
 
   @override
+  String get customerTierLabel => 'Pricing tier';
+
+  @override
+  String get customerTierRetail => 'Retail';
+
+  @override
+  String get customerTierWholesale => 'Wholesale';
+
+  @override
+  String get customerTierVip => 'VIP';
+
+  @override
   String get customerSaved => 'Customer saved';
 
   @override
@@ -278,6 +295,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productCost => 'Cost price';
+
+  @override
+  String get productTierPricesHint =>
+      'Optional — leave blank to use the sale price for that tier.';
+
+  @override
+  String get productWholesalePrice => 'Wholesale price';
+
+  @override
+  String get productVipPrice => 'VIP price';
 
   @override
   String get productBarcode => 'Barcode';
@@ -1459,6 +1486,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontShare =>
       'Share this link with customers on Facebook, Viber, etc.';
+
+  @override
+  String get storefrontPaymentInfoTitle => 'Payment accounts';
+
+  @override
+  String get storefrontPaymentInfoHint =>
+      'Shown to customers at checkout so they know who to transfer to.';
+
+  @override
+  String get storefrontPayKpayName => 'KBZPay account name';
+
+  @override
+  String get storefrontPayKpayNumber => 'KBZPay number';
+
+  @override
+  String get storefrontPayWaveName => 'WavePay account name';
+
+  @override
+  String get storefrontPayWaveNumber => 'WavePay number';
+
+  @override
+  String get storefrontNumberCopied => 'Number copied';
 
   @override
   String get onboardWelcomeTitle => 'Welcome to GoldPOSMM';

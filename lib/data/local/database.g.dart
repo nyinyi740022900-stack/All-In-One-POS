@@ -642,6 +642,28 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _wholesalePriceMeta = const VerificationMeta(
+    'wholesalePrice',
+  );
+  @override
+  late final GeneratedColumn<int> wholesalePrice = GeneratedColumn<int>(
+    'wholesale_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _vipPriceMeta = const VerificationMeta(
+    'vipPrice',
+  );
+  @override
+  late final GeneratedColumn<int> vipPrice = GeneratedColumn<int>(
+    'vip_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _unitMeta = const VerificationMeta('unit');
   @override
   late final GeneratedColumn<String> unit = GeneratedColumn<String>(
@@ -703,6 +725,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     categoryId,
     costPrice,
     salePrice,
+    wholesalePrice,
+    vipPrice,
     unit,
     imagePath,
     imageUrl,
@@ -795,6 +819,21 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         salePrice.isAcceptableOrUnknown(data['sale_price']!, _salePriceMeta),
       );
     }
+    if (data.containsKey('wholesale_price')) {
+      context.handle(
+        _wholesalePriceMeta,
+        wholesalePrice.isAcceptableOrUnknown(
+          data['wholesale_price']!,
+          _wholesalePriceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vip_price')) {
+      context.handle(
+        _vipPriceMeta,
+        vipPrice.isAcceptableOrUnknown(data['vip_price']!, _vipPriceMeta),
+      );
+    }
     if (data.containsKey('unit')) {
       context.handle(
         _unitMeta,
@@ -876,6 +915,14 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.int,
         data['${effectivePrefix}sale_price'],
       )!,
+      wholesalePrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}wholesale_price'],
+      ),
+      vipPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}vip_price'],
+      ),
       unit: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}unit'],
@@ -914,6 +961,11 @@ class Product extends DataClass implements Insertable<Product> {
   final String? categoryId;
   final int costPrice;
   final int salePrice;
+
+  /// Per-tier override prices. Null means "use [salePrice]" — a shop that
+  /// never sets these keeps ordinary single pricing with no behavior change.
+  final int? wholesalePrice;
+  final int? vipPrice;
   final String unit;
   final String? imagePath;
 
@@ -933,6 +985,8 @@ class Product extends DataClass implements Insertable<Product> {
     this.categoryId,
     required this.costPrice,
     required this.salePrice,
+    this.wholesalePrice,
+    this.vipPrice,
     required this.unit,
     this.imagePath,
     this.imageUrl,
@@ -959,6 +1013,12 @@ class Product extends DataClass implements Insertable<Product> {
     }
     map['cost_price'] = Variable<int>(costPrice);
     map['sale_price'] = Variable<int>(salePrice);
+    if (!nullToAbsent || wholesalePrice != null) {
+      map['wholesale_price'] = Variable<int>(wholesalePrice);
+    }
+    if (!nullToAbsent || vipPrice != null) {
+      map['vip_price'] = Variable<int>(vipPrice);
+    }
     map['unit'] = Variable<String>(unit);
     if (!nullToAbsent || imagePath != null) {
       map['image_path'] = Variable<String>(imagePath);
@@ -988,6 +1048,12 @@ class Product extends DataClass implements Insertable<Product> {
           : Value(categoryId),
       costPrice: Value(costPrice),
       salePrice: Value(salePrice),
+      wholesalePrice: wholesalePrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(wholesalePrice),
+      vipPrice: vipPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(vipPrice),
       unit: Value(unit),
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
@@ -1017,6 +1083,8 @@ class Product extends DataClass implements Insertable<Product> {
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       costPrice: serializer.fromJson<int>(json['costPrice']),
       salePrice: serializer.fromJson<int>(json['salePrice']),
+      wholesalePrice: serializer.fromJson<int?>(json['wholesalePrice']),
+      vipPrice: serializer.fromJson<int?>(json['vipPrice']),
       unit: serializer.fromJson<String>(json['unit']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
@@ -1039,6 +1107,8 @@ class Product extends DataClass implements Insertable<Product> {
       'categoryId': serializer.toJson<String?>(categoryId),
       'costPrice': serializer.toJson<int>(costPrice),
       'salePrice': serializer.toJson<int>(salePrice),
+      'wholesalePrice': serializer.toJson<int?>(wholesalePrice),
+      'vipPrice': serializer.toJson<int?>(vipPrice),
       'unit': serializer.toJson<String>(unit),
       'imagePath': serializer.toJson<String?>(imagePath),
       'imageUrl': serializer.toJson<String?>(imageUrl),
@@ -1059,6 +1129,8 @@ class Product extends DataClass implements Insertable<Product> {
     Value<String?> categoryId = const Value.absent(),
     int? costPrice,
     int? salePrice,
+    Value<int?> wholesalePrice = const Value.absent(),
+    Value<int?> vipPrice = const Value.absent(),
     String? unit,
     Value<String?> imagePath = const Value.absent(),
     Value<String?> imageUrl = const Value.absent(),
@@ -1076,6 +1148,10 @@ class Product extends DataClass implements Insertable<Product> {
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     costPrice: costPrice ?? this.costPrice,
     salePrice: salePrice ?? this.salePrice,
+    wholesalePrice: wholesalePrice.present
+        ? wholesalePrice.value
+        : this.wholesalePrice,
+    vipPrice: vipPrice.present ? vipPrice.value : this.vipPrice,
     unit: unit ?? this.unit,
     imagePath: imagePath.present ? imagePath.value : this.imagePath,
     imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
@@ -1097,6 +1173,10 @@ class Product extends DataClass implements Insertable<Product> {
           : this.categoryId,
       costPrice: data.costPrice.present ? data.costPrice.value : this.costPrice,
       salePrice: data.salePrice.present ? data.salePrice.value : this.salePrice,
+      wholesalePrice: data.wholesalePrice.present
+          ? data.wholesalePrice.value
+          : this.wholesalePrice,
+      vipPrice: data.vipPrice.present ? data.vipPrice.value : this.vipPrice,
       unit: data.unit.present ? data.unit.value : this.unit,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
@@ -1119,6 +1199,8 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('categoryId: $categoryId, ')
           ..write('costPrice: $costPrice, ')
           ..write('salePrice: $salePrice, ')
+          ..write('wholesalePrice: $wholesalePrice, ')
+          ..write('vipPrice: $vipPrice, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -1141,6 +1223,8 @@ class Product extends DataClass implements Insertable<Product> {
     categoryId,
     costPrice,
     salePrice,
+    wholesalePrice,
+    vipPrice,
     unit,
     imagePath,
     imageUrl,
@@ -1162,6 +1246,8 @@ class Product extends DataClass implements Insertable<Product> {
           other.categoryId == this.categoryId &&
           other.costPrice == this.costPrice &&
           other.salePrice == this.salePrice &&
+          other.wholesalePrice == this.wholesalePrice &&
+          other.vipPrice == this.vipPrice &&
           other.unit == this.unit &&
           other.imagePath == this.imagePath &&
           other.imageUrl == this.imageUrl &&
@@ -1181,6 +1267,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String?> categoryId;
   final Value<int> costPrice;
   final Value<int> salePrice;
+  final Value<int?> wholesalePrice;
+  final Value<int?> vipPrice;
   final Value<String> unit;
   final Value<String?> imagePath;
   final Value<String?> imageUrl;
@@ -1199,6 +1287,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.categoryId = const Value.absent(),
     this.costPrice = const Value.absent(),
     this.salePrice = const Value.absent(),
+    this.wholesalePrice = const Value.absent(),
+    this.vipPrice = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1218,6 +1308,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.categoryId = const Value.absent(),
     this.costPrice = const Value.absent(),
     this.salePrice = const Value.absent(),
+    this.wholesalePrice = const Value.absent(),
+    this.vipPrice = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1239,6 +1331,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? categoryId,
     Expression<int>? costPrice,
     Expression<int>? salePrice,
+    Expression<int>? wholesalePrice,
+    Expression<int>? vipPrice,
     Expression<String>? unit,
     Expression<String>? imagePath,
     Expression<String>? imageUrl,
@@ -1258,6 +1352,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (categoryId != null) 'category_id': categoryId,
       if (costPrice != null) 'cost_price': costPrice,
       if (salePrice != null) 'sale_price': salePrice,
+      if (wholesalePrice != null) 'wholesale_price': wholesalePrice,
+      if (vipPrice != null) 'vip_price': vipPrice,
       if (unit != null) 'unit': unit,
       if (imagePath != null) 'image_path': imagePath,
       if (imageUrl != null) 'image_url': imageUrl,
@@ -1279,6 +1375,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<String?>? categoryId,
     Value<int>? costPrice,
     Value<int>? salePrice,
+    Value<int?>? wholesalePrice,
+    Value<int?>? vipPrice,
     Value<String>? unit,
     Value<String?>? imagePath,
     Value<String?>? imageUrl,
@@ -1298,6 +1396,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       categoryId: categoryId ?? this.categoryId,
       costPrice: costPrice ?? this.costPrice,
       salePrice: salePrice ?? this.salePrice,
+      wholesalePrice: wholesalePrice ?? this.wholesalePrice,
+      vipPrice: vipPrice ?? this.vipPrice,
       unit: unit ?? this.unit,
       imagePath: imagePath ?? this.imagePath,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -1345,6 +1445,12 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (salePrice.present) {
       map['sale_price'] = Variable<int>(salePrice.value);
     }
+    if (wholesalePrice.present) {
+      map['wholesale_price'] = Variable<int>(wholesalePrice.value);
+    }
+    if (vipPrice.present) {
+      map['vip_price'] = Variable<int>(vipPrice.value);
+    }
     if (unit.present) {
       map['unit'] = Variable<String>(unit.value);
     }
@@ -1378,6 +1484,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('categoryId: $categoryId, ')
           ..write('costPrice: $costPrice, ')
           ..write('salePrice: $salePrice, ')
+          ..write('wholesalePrice: $wholesalePrice, ')
+          ..write('vipPrice: $vipPrice, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -9241,6 +9349,16 @@ class $CustomersTable extends Customers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tierMeta = const VerificationMeta('tier');
+  @override
+  late final GeneratedColumn<String> tier = GeneratedColumn<String>(
+    'tier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('retail'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9253,6 +9371,7 @@ class $CustomersTable extends Customers
     phone,
     address,
     township,
+    tier,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9329,6 +9448,12 @@ class $CustomersTable extends Customers
         township.isAcceptableOrUnknown(data['township']!, _townshipMeta),
       );
     }
+    if (data.containsKey('tier')) {
+      context.handle(
+        _tierMeta,
+        tier.isAcceptableOrUnknown(data['tier']!, _tierMeta),
+      );
+    }
     return context;
   }
 
@@ -9378,6 +9503,10 @@ class $CustomersTable extends Customers
         DriftSqlType.string,
         data['${effectivePrefix}township'],
       ),
+      tier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tier'],
+      )!,
     );
   }
 
@@ -9398,6 +9527,10 @@ class Customer extends DataClass implements Insertable<Customer> {
   final String? phone;
   final String? address;
   final String? township;
+
+  /// retail | wholesale | vip — drives which [Products] price column the
+  /// Sell screen applies when this customer is attached to a sale.
+  final String tier;
   const Customer({
     required this.id,
     required this.shopId,
@@ -9409,6 +9542,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     this.phone,
     this.address,
     this.township,
+    required this.tier,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9429,6 +9563,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     if (!nullToAbsent || township != null) {
       map['township'] = Variable<String>(township);
     }
+    map['tier'] = Variable<String>(tier);
     return map;
   }
 
@@ -9450,6 +9585,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       township: township == null && nullToAbsent
           ? const Value.absent()
           : Value(township),
+      tier: Value(tier),
     );
   }
 
@@ -9469,6 +9605,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       phone: serializer.fromJson<String?>(json['phone']),
       address: serializer.fromJson<String?>(json['address']),
       township: serializer.fromJson<String?>(json['township']),
+      tier: serializer.fromJson<String>(json['tier']),
     );
   }
   @override
@@ -9485,6 +9622,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       'phone': serializer.toJson<String?>(phone),
       'address': serializer.toJson<String?>(address),
       'township': serializer.toJson<String?>(township),
+      'tier': serializer.toJson<String>(tier),
     };
   }
 
@@ -9499,6 +9637,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     Value<String?> phone = const Value.absent(),
     Value<String?> address = const Value.absent(),
     Value<String?> township = const Value.absent(),
+    String? tier,
   }) => Customer(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -9510,6 +9649,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     phone: phone.present ? phone.value : this.phone,
     address: address.present ? address.value : this.address,
     township: township.present ? township.value : this.township,
+    tier: tier ?? this.tier,
   );
   Customer copyWithCompanion(CustomersCompanion data) {
     return Customer(
@@ -9523,6 +9663,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
       township: data.township.present ? data.township.value : this.township,
+      tier: data.tier.present ? data.tier.value : this.tier,
     );
   }
 
@@ -9538,7 +9679,8 @@ class Customer extends DataClass implements Insertable<Customer> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
-          ..write('township: $township')
+          ..write('township: $township, ')
+          ..write('tier: $tier')
           ..write(')'))
         .toString();
   }
@@ -9555,6 +9697,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     phone,
     address,
     township,
+    tier,
   );
   @override
   bool operator ==(Object other) =>
@@ -9569,7 +9712,8 @@ class Customer extends DataClass implements Insertable<Customer> {
           other.name == this.name &&
           other.phone == this.phone &&
           other.address == this.address &&
-          other.township == this.township);
+          other.township == this.township &&
+          other.tier == this.tier);
 }
 
 class CustomersCompanion extends UpdateCompanion<Customer> {
@@ -9583,6 +9727,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
   final Value<String?> phone;
   final Value<String?> address;
   final Value<String?> township;
+  final Value<String> tier;
   final Value<int> rowid;
   const CustomersCompanion({
     this.id = const Value.absent(),
@@ -9595,6 +9740,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
     this.township = const Value.absent(),
+    this.tier = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CustomersCompanion.insert({
@@ -9608,6 +9754,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
     this.township = const Value.absent(),
+    this.tier = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -9623,6 +9770,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Expression<String>? phone,
     Expression<String>? address,
     Expression<String>? township,
+    Expression<String>? tier,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9636,6 +9784,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
       if (township != null) 'township': township,
+      if (tier != null) 'tier': tier,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9651,6 +9800,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Value<String?>? phone,
     Value<String?>? address,
     Value<String?>? township,
+    Value<String>? tier,
     Value<int>? rowid,
   }) {
     return CustomersCompanion(
@@ -9664,6 +9814,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       phone: phone ?? this.phone,
       address: address ?? this.address,
       township: township ?? this.township,
+      tier: tier ?? this.tier,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9701,6 +9852,9 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     if (township.present) {
       map['township'] = Variable<String>(township.value);
     }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -9720,6 +9874,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
           ..write('phone: $phone, ')
           ..write('address: $address, ')
           ..write('township: $township, ')
+          ..write('tier: $tier, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10691,6 +10846,8 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<String?> categoryId,
       Value<int> costPrice,
       Value<int> salePrice,
+      Value<int?> wholesalePrice,
+      Value<int?> vipPrice,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -10711,6 +10868,8 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String?> categoryId,
       Value<int> costPrice,
       Value<int> salePrice,
+      Value<int?> wholesalePrice,
+      Value<int?> vipPrice,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -10784,6 +10943,16 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<int> get salePrice => $composableBuilder(
     column: $table.salePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get wholesalePrice => $composableBuilder(
+    column: $table.wholesalePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get vipPrice => $composableBuilder(
+    column: $table.vipPrice,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10877,6 +11046,16 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get wholesalePrice => $composableBuilder(
+    column: $table.wholesalePrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get vipPrice => $composableBuilder(
+    column: $table.vipPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get unit => $composableBuilder(
     column: $table.unit,
     builder: (column) => ColumnOrderings(column),
@@ -10945,6 +11124,14 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<int> get salePrice =>
       $composableBuilder(column: $table.salePrice, builder: (column) => column);
 
+  GeneratedColumn<int> get wholesalePrice => $composableBuilder(
+    column: $table.wholesalePrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get vipPrice =>
+      $composableBuilder(column: $table.vipPrice, builder: (column) => column);
+
   GeneratedColumn<String> get unit =>
       $composableBuilder(column: $table.unit, builder: (column) => column);
 
@@ -10998,6 +11185,8 @@ class $$ProductsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<int> costPrice = const Value.absent(),
                 Value<int> salePrice = const Value.absent(),
+                Value<int?> wholesalePrice = const Value.absent(),
+                Value<int?> vipPrice = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -11016,6 +11205,8 @@ class $$ProductsTableTableManager
                 categoryId: categoryId,
                 costPrice: costPrice,
                 salePrice: salePrice,
+                wholesalePrice: wholesalePrice,
+                vipPrice: vipPrice,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,
@@ -11036,6 +11227,8 @@ class $$ProductsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<int> costPrice = const Value.absent(),
                 Value<int> salePrice = const Value.absent(),
+                Value<int?> wholesalePrice = const Value.absent(),
+                Value<int?> vipPrice = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -11054,6 +11247,8 @@ class $$ProductsTableTableManager
                 categoryId: categoryId,
                 costPrice: costPrice,
                 salePrice: salePrice,
+                wholesalePrice: wholesalePrice,
+                vipPrice: vipPrice,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,
@@ -14707,6 +14902,7 @@ typedef $$CustomersTableCreateCompanionBuilder =
       Value<String?> phone,
       Value<String?> address,
       Value<String?> township,
+      Value<String> tier,
       Value<int> rowid,
     });
 typedef $$CustomersTableUpdateCompanionBuilder =
@@ -14721,6 +14917,7 @@ typedef $$CustomersTableUpdateCompanionBuilder =
       Value<String?> phone,
       Value<String?> address,
       Value<String?> township,
+      Value<String> tier,
       Value<int> rowid,
     });
 
@@ -14780,6 +14977,11 @@ class $$CustomersTableFilterComposer
 
   ColumnFilters<String> get township => $composableBuilder(
     column: $table.township,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tier => $composableBuilder(
+    column: $table.tier,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -14842,6 +15044,11 @@ class $$CustomersTableOrderingComposer
     column: $table.township,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CustomersTableAnnotationComposer
@@ -14882,6 +15089,9 @@ class $$CustomersTableAnnotationComposer
 
   GeneratedColumn<String> get township =>
       $composableBuilder(column: $table.township, builder: (column) => column);
+
+  GeneratedColumn<String> get tier =>
+      $composableBuilder(column: $table.tier, builder: (column) => column);
 }
 
 class $$CustomersTableTableManager
@@ -14922,6 +15132,7 @@ class $$CustomersTableTableManager
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
                 Value<String?> township = const Value.absent(),
+                Value<String> tier = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CustomersCompanion(
                 id: id,
@@ -14934,6 +15145,7 @@ class $$CustomersTableTableManager
                 phone: phone,
                 address: address,
                 township: township,
+                tier: tier,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14948,6 +15160,7 @@ class $$CustomersTableTableManager
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
                 Value<String?> township = const Value.absent(),
+                Value<String> tier = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CustomersCompanion.insert(
                 id: id,
@@ -14960,6 +15173,7 @@ class $$CustomersTableTableManager
                 phone: phone,
                 address: address,
                 township: township,
+                tier: tier,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

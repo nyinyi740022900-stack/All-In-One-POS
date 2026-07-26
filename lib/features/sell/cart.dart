@@ -4,6 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
 
+/// Resolves the unit price for [product] under [tier] (`null`/`'retail'` or
+/// any tier with no override on the product all fall back to [Product.salePrice]).
+int resolveUnitPrice(Product product, String? tier) {
+  return switch (tier) {
+    'wholesale' => product.wholesalePrice ?? product.salePrice,
+    'vip' => product.vipPrice ?? product.salePrice,
+    _ => product.salePrice,
+  };
+}
+
 /// One line in the current sale.
 class CartLine {
   final Product product;
@@ -11,32 +21,47 @@ class CartLine {
 
   const CartLine({required this.product, required this.qty});
 
-  Money get unitPrice => Money(product.salePrice);
-  Money get lineTotal => unitPrice * qty;
-
   CartLine copyWith({int? qty}) =>
       CartLine(product: product, qty: qty ?? this.qty);
 }
 
 /// The in-progress sale: line items + an order-level discount (in kyat).
+/// [customerTier] is set once a directory customer is attached at checkout —
+/// it decides which [Product] price column each line resolves against, so
+/// line/subtotal/total all react to it without the lines themselves changing.
 class CartState {
   final List<CartLine> lines;
   final int discount;
+  final String? customerTier;
 
-  const CartState({this.lines = const [], this.discount = 0});
+  const CartState({this.lines = const [], this.discount = 0, this.customerTier});
 
   bool get isEmpty => lines.isEmpty;
   int get itemCount => lines.fold(0, (s, l) => s + l.qty);
 
+  Money unitPriceFor(CartLine line) =>
+      Money(resolveUnitPrice(line.product, customerTier));
+  Money lineTotalFor(CartLine line) => unitPriceFor(line) * line.qty;
+
   Money get subtotal =>
-      lines.fold(Money.zero, (s, l) => s + l.lineTotal);
+      lines.fold(Money.zero, (s, l) => s + lineTotalFor(l));
   Money get total {
     final t = subtotal - Money(discount);
     return t.isNegative ? Money.zero : t;
   }
 
-  CartState copyWith({List<CartLine>? lines, int? discount}) =>
-      CartState(lines: lines ?? this.lines, discount: discount ?? this.discount);
+  CartState copyWith({
+    List<CartLine>? lines,
+    int? discount,
+    String? customerTier,
+    bool clearCustomerTier = false,
+  }) =>
+      CartState(
+        lines: lines ?? this.lines,
+        discount: discount ?? this.discount,
+        customerTier:
+            clearCustomerTier ? null : (customerTier ?? this.customerTier),
+      );
 }
 
 class CartNotifier extends StateNotifier<CartState> {
@@ -93,6 +118,12 @@ class CartNotifier extends StateNotifier<CartState> {
 
   void setDiscount(int discount) =>
       state = state.copyWith(discount: discount < 0 ? 0 : discount);
+
+  /// Sets (or clears, when [tier] is null) the tier prices resolve against.
+  void setCustomerTier(String? tier) => state = state.copyWith(
+        customerTier: tier,
+        clearCustomerTier: tier == null,
+      );
 
   void clear() => state = const CartState();
 }

@@ -15,6 +15,10 @@ class StorefrontRow {
   final String? phone;
   final String? address;
   final String? logoUrl;
+  final String? payKpay;
+  final String? payKpayName;
+  final String? payWave;
+  final String? payWaveName;
   final bool enabled;
   const StorefrontRow({
     required this.slug,
@@ -22,6 +26,10 @@ class StorefrontRow {
     this.phone,
     this.address,
     this.logoUrl,
+    this.payKpay,
+    this.payKpayName,
+    this.payWave,
+    this.payWaveName,
     this.enabled = true,
   });
 
@@ -45,6 +53,10 @@ class StorefrontRepository {
       phone: m['phone'] as String?,
       address: m['address'] as String?,
       logoUrl: m['logo_url'] as String?,
+      payKpay: m['pay_kpay'] as String?,
+      payKpayName: m['pay_kpay_name'] as String?,
+      payWave: m['pay_wave'] as String?,
+      payWaveName: m['pay_wave_name'] as String?,
       enabled: m['enabled'] as bool? ?? true,
     );
   }
@@ -87,19 +99,29 @@ class StorefrontRepository {
   }
 
   /// Updates display fields on an existing storefront (name/phone/address
-  /// shown to customers, and the logo). Pass only what changed; omitted
-  /// fields are left as-is.
+  /// shown to customers, the logo, and the KBZPay/WavePay name+number shown
+  /// at checkout). Pass only what changed; omitted fields are left as-is.
+  /// Pass an empty string (not null) to clear a payment field the owner
+  /// removed.
   Future<void> updateProfile({
     String? displayName,
     String? phone,
     String? address,
     String? logoUrl,
+    String? payKpay,
+    String? payKpayName,
+    String? payWave,
+    String? payWaveName,
   }) async {
     final patch = <String, dynamic>{
       'display_name': ?displayName,
       'phone': ?phone,
       'address': ?address,
       'logo_url': ?logoUrl,
+      'pay_kpay': ?payKpay,
+      'pay_kpay_name': ?payKpayName,
+      'pay_wave': ?payWave,
+      'pay_wave_name': ?payWaveName,
     };
     if (patch.isEmpty) return;
     await _c.from('storefronts').update(patch).eq('shop_id', _shopId);

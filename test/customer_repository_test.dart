@@ -19,9 +19,16 @@ void main() {
     final c = await repo.getCustomer(id);
     expect(c!.name, 'Daw Mya');
     expect(c.phone, '09123');
+    expect(c.tier, 'retail'); // default when not specified
 
     final outbox = await db.select(db.outbox).get();
     expect(outbox.any((o) => o.entityTable == 'customers'), isTrue);
+  });
+
+  test('upsertCustomer persists a wholesale/vip tier', () async {
+    final id = await repo.upsertCustomer(name: 'Big Shop', tier: 'wholesale');
+    final c = await repo.getCustomer(id);
+    expect(c!.tier, 'wholesale');
   });
 
   test('watchCustomers excludes deleted rows', () async {

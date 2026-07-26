@@ -33,6 +33,11 @@ class Products extends Table with SyncColumns {
   TextColumn get categoryId => text().nullable()();
   IntColumn get costPrice => integer().withDefault(const Constant(0))();
   IntColumn get salePrice => integer().withDefault(const Constant(0))();
+
+  /// Per-tier override prices. Null means "use [salePrice]" — a shop that
+  /// never sets these keeps ordinary single pricing with no behavior change.
+  IntColumn get wholesalePrice => integer().nullable()();
+  IntColumn get vipPrice => integer().nullable()();
   TextColumn get unit => text().withDefault(const Constant('pcs'))();
   TextColumn get imagePath => text().nullable()();
   /// Public storage URL of the product photo (shown on the web storefront).
@@ -52,6 +57,26 @@ class StockLevels extends Table with SyncColumns {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// A local-only, per-device cache of open FIFO purchase lots — never synced.
+/// Fully derivable by replaying [StockMovements] (the synced source of
+/// truth): each purchase/opening/positive-adjustment movement pushes a lot,
+/// each sale/return/negative-adjustment consumes oldest-first. Kept as its
+/// own table (rather than replayed on every sale) so `finalizeSale` doesn't
+/// have to walk a product's entire movement history on every checkout.
+///
+/// Deliberately NOT a [SyncColumns] table: syncing an absolute per-lot
+/// quantity via last-write-wins would repeat the exact anti-pattern
+/// [StockLevels] already carries (see its own doc comment) — two devices
+/// consuming the same lot concurrently offline would silently lose one
+/// side's consumption. Each device instead derives its own lot state from
+/// its local copy of the (append-only, conflict-safe) movement ledger.
+class StockLots extends Table {
+  IntColumn get seq => integer().autoIncrement()();
+  TextColumn get productId => text()();
+  IntColumn get remainingQty => integer()();
+  IntColumn get unitCost => integer()();
 }
 
 class StockMovements extends Table with SyncColumns {
@@ -116,6 +141,14 @@ class SaleItems extends Table with SyncColumns {
   IntColumn get qty => integer()();
   IntColumn get lineTotal => integer()();
 
+  /// Total cost of goods sold for this line, FIFO-consumed from
+  /// [StockLots] at sale time — mirrors [lineTotal] (a total, not a
+  /// per-unit price like [priceSnapshot]) so `lineTotal - costSnapshot` is
+  /// the line's exact profit with no rounding. Null on sales predating this
+  /// feature, or an invoice-only shop that doesn't track stock — Analytics
+  /// falls back to the product's flat cost price for those.
+  IntColumn get costSnapshot => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -163,6 +196,10 @@ class Customers extends Table with SyncColumns {
   TextColumn get phone => text().nullable()();
   TextColumn get address => text().nullable()();
   TextColumn get township => text().nullable()();
+
+  /// retail | wholesale | vip — drives which [Products] price column the
+  /// Sell screen applies when this customer is attached to a sale.
+  TextColumn get tier => text().withDefault(const Constant('retail'))();
 
   @override
   Set<Column> get primaryKey => {id};

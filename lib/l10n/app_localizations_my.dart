@@ -159,6 +159,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get checkoutAddCustomer => 'ဝယ်သူ ထည့်';
 
   @override
+  String checkoutTierPricingApplied(String tier) {
+    return 'ဒီအရောင်းအတွက် $tier ဈေးနှုန်း သုံးထားသည်';
+  }
+
+  @override
   String get creditCustomerRequired => 'အကြွေးရောင်းရန် ဝယ်သူအမည် ထည့်ပါ။';
 
   @override
@@ -229,6 +234,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get customerAddress => 'လိပ်စာ';
 
   @override
+  String get customerTierLabel => 'ဈေးနှုန်းအဆင့်';
+
+  @override
+  String get customerTierRetail => 'လက်လီ';
+
+  @override
+  String get customerTierWholesale => 'လက်ကား';
+
+  @override
+  String get customerTierVip => 'VIP';
+
+  @override
   String get customerSaved => 'ဖောက်သည်အချက်အလက် သိမ်းပြီး';
 
   @override
@@ -271,6 +288,16 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get productCost => 'အရင်းဈေး';
+
+  @override
+  String get productTierPricesHint =>
+      'မထည့်လည်းရပါတယ် — ကွက်လပ်ထားရင် ရောင်းဈေးကို အဲဒီအဆင့်အတွက် သုံးပါမည်။';
+
+  @override
+  String get productWholesalePrice => 'လက်ကားဈေး';
+
+  @override
+  String get productVipPrice => 'VIP ဈေး';
 
   @override
   String get productBarcode => 'ဘားကုဒ်';
@@ -1453,6 +1480,28 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontShare =>
       'ဒီ link ကို Facebook, Viber စသည်တွင် ဖောက်သည်များထံ မျှဝေပါ။';
+
+  @override
+  String get storefrontPaymentInfoTitle => 'ငွေပေးချေမှု အကောင့်များ';
+
+  @override
+  String get storefrontPaymentInfoHint =>
+      'ဖောက်သည်က checkout မှာ ဘယ်သူ့ဆီ လွှဲရမလဲ သိရအောင် ပြပေးပါမည်။';
+
+  @override
+  String get storefrontPayKpayName => 'KBZPay အကောင့်နာမည်';
+
+  @override
+  String get storefrontPayKpayNumber => 'KBZPay နံပါတ်';
+
+  @override
+  String get storefrontPayWaveName => 'WavePay အကောင့်နာမည်';
+
+  @override
+  String get storefrontPayWaveNumber => 'WavePay နံပါတ်';
+
+  @override
+  String get storefrontNumberCopied => 'နံပါတ် ကူးယူပြီး';
 
   @override
   String get onboardWelcomeTitle => 'GoldPOSMM မှ ကြိုဆိုပါတယ်';

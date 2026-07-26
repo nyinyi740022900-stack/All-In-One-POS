@@ -19,9 +19,15 @@ void main() {
   tearDown(() async => db.close());
 
   Future<Product> seedProduct(
-      {required String name, required int price, required int qty}) async {
+      {required String name,
+      required int price,
+      required int qty,
+      int? wholesalePrice}) async {
     final id = await inventory.upsertProduct(
-        name: name, salePrice: price, quantity: qty);
+        name: name,
+        salePrice: price,
+        wholesalePrice: wholesalePrice,
+        quantity: qty);
     return (await inventory.watchProducts().first)
         .firstWhere((p) => p.product.id == id)
         .product;
@@ -117,6 +123,29 @@ void main() {
     expect(sale.subtotal, 800);
     expect(sale.discount, 100);
     expect(sale.total, 700);
+  });
+
+  test('finalizeSale prices at the cart\'s customerTier, not salePrice',
+      () async {
+    final p = await seedProduct(
+        name: 'Rice bag', price: 1000, wholesalePrice: 800, qty: 20);
+    final cart = CartState(
+      lines: [CartLine(product: p, qty: 3)],
+      customerTier: 'wholesale',
+    );
+    final r = await sales.finalizeSale(
+        cart: cart, paymentMethod: 'cash', paid: 2400);
+
+    final sale =
+        await (db.select(db.sales)..where((s) => s.id.equals(r.saleId)))
+            .getSingle();
+    expect(sale.subtotal, 2400); // 3 x 800, not 3 x 1000
+
+    final item = await (db.select(db.saleItems)
+          ..where((i) => i.saleId.equals(r.saleId)))
+        .getSingle();
+    expect(item.priceSnapshot, 800);
+    expect(item.lineTotal, 2400);
   });
 
   test('invoice numbers increment within the same day', () async {

@@ -28,6 +28,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
+  final _kpayName = TextEditingController();
+  final _kpayNumber = TextEditingController();
+  final _waveName = TextEditingController();
+  final _waveNumber = TextEditingController();
   bool _busy = false;
   bool _uploadingLogo = false;
   String? _logoUrl;
@@ -38,6 +42,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     _name.dispose();
     _phone.dispose();
     _address.dispose();
+    _kpayName.dispose();
+    _kpayNumber.dispose();
+    _waveName.dispose();
+    _waveNumber.dispose();
     super.dispose();
   }
 
@@ -48,6 +56,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     _phone.text = row.phone ?? '';
     _address.text = row.address ?? '';
     _logoUrl = row.logoUrl;
+    _kpayName.text = row.payKpayName ?? '';
+    _kpayNumber.text = row.payKpay ?? '';
+    _waveName.text = row.payWaveName ?? '';
+    _waveNumber.text = row.payWave ?? '';
   }
 
   Future<void> _publish() async {
@@ -84,6 +96,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             phone: _phone.text.trim(),
             address: _address.text.trim(),
             logoUrl: _logoUrl,
+            payKpayName: _kpayName.text.trim(),
+            payKpay: _kpayNumber.text.trim(),
+            payWaveName: _waveName.text.trim(),
+            payWave: _waveNumber.text.trim(),
           );
       ref.invalidate(myStorefrontProvider);
       if (mounted) {
@@ -240,6 +256,40 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           controller: _address,
           maxLines: 2,
           decoration: const InputDecoration(labelText: 'Address'),
+        ),
+        const Divider(height: 32),
+        Text(l.storefrontPaymentInfoTitle,
+            style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(l.storefrontPaymentInfoHint,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _kpayName,
+          textCapitalization: TextCapitalization.words,
+          decoration:
+              InputDecoration(labelText: l.storefrontPayKpayName),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _kpayNumber,
+          keyboardType: TextInputType.phone,
+          decoration:
+              InputDecoration(labelText: l.storefrontPayKpayNumber),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _waveName,
+          textCapitalization: TextCapitalization.words,
+          decoration:
+              InputDecoration(labelText: l.storefrontPayWaveName),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _waveNumber,
+          keyboardType: TextInputType.phone,
+          decoration:
+              InputDecoration(labelText: l.storefrontPayWaveNumber),
         ),
         const SizedBox(height: 12),
         FilledButton.icon(

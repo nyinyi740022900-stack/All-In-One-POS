@@ -37,6 +37,22 @@ void main() {
     expect(outbox.every((o) => o.op == 'upsert'), isTrue);
   });
 
+  test('upsertProduct persists optional wholesale/vip prices, defaulting to '
+      'null (use salePrice)', () async {
+    final plain = await repo.upsertProduct(name: 'Plain', salePrice: 500);
+    final tiered = await repo.upsertProduct(
+        name: 'Tiered', salePrice: 500, wholesalePrice: 400, vipPrice: 450);
+
+    final products = await repo.watchProducts().first;
+    final plainProduct = products.firstWhere((p) => p.product.id == plain);
+    final tieredProduct = products.firstWhere((p) => p.product.id == tiered);
+
+    expect(plainProduct.product.wholesalePrice, isNull);
+    expect(plainProduct.product.vipPrice, isNull);
+    expect(tieredProduct.product.wholesalePrice, 400);
+    expect(tieredProduct.product.vipPrice, 450);
+  });
+
   test('stock changes are recorded as ledger movements (opening/adjustment)',
       () async {
     final id = await repo.upsertProduct(

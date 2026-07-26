@@ -35,9 +35,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   // whenever the name is edited by hand so a stale id never gets attached to
   // the wrong typed name.
   String? _selectedCustomerId;
+  // True once `_confirm` has cleared the cart on a successful sale — guards
+  // `dispose` so a cancelled/dismissed sheet reverts any tier it applied.
+  bool _confirmed = false;
 
   @override
   void dispose() {
+    // Cancelled/dismissed without confirming — don't leave a picked
+    // customer's tier pricing applied to the cart for whatever happens next.
+    if (!_confirmed) {
+      ref.read(cartProvider.notifier).setCustomerTier(null);
+    }
     _paid.dispose();
     _customer.dispose();
     _phone.dispose();
@@ -114,6 +122,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         }
       }
 
+      _confirmed = true;
       ref.read(cartProvider.notifier).clear();
       if (mounted) Navigator.of(context).pop();
       messenger.showSnackBar(SnackBar(content: Text(l.sellCompleted)));
@@ -159,6 +168,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             // Cart lines with qty steppers.
             ...cart.lines.map((line) => _CartLineTile(
                   line: line,
+                  lineTotal: cart.lineTotalFor(line),
                   currency: currency,
                   onInc: () {
                     final ok = ref.read(cartProvider.notifier).increment(
@@ -246,8 +256,14 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                   _selectedCustomerId = c.id;
                   _customer.text = c.name;
                   _phone.text = c.phone ?? '';
+                  ref
+                      .read(cartProvider.notifier)
+                      .setCustomerTier(c.tier == 'retail' ? null : c.tier);
                 }),
-                onEditedByHand: () => _selectedCustomerId = null,
+                onEditedByHand: () {
+                  _selectedCustomerId = null;
+                  ref.read(cartProvider.notifier).setCustomerTier(null);
+                },
               ),
               const SizedBox(height: AppTheme.space2),
               TextField(
@@ -255,6 +271,15 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(labelText: l.customerPhone),
               ),
+              if (cart.customerTier != null) ...[
+                const SizedBox(height: AppTheme.space2),
+                Text(
+                  l.checkoutTierPricingApplied(_tierLabel(l, cart.customerTier!)),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12),
+                ),
+              ],
             ],
 
             const SizedBox(height: AppTheme.space4),
@@ -274,6 +299,12 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       ),
     );
   }
+
+  String _tierLabel(AppLocalizations l, String tier) => switch (tier) {
+        'wholesale' => l.customerTierWholesale,
+        'vip' => l.customerTierVip,
+        _ => l.customerTierRetail,
+      };
 
   Widget _row(String label, String value, {bool bold = false}) {
     final style = bold
@@ -373,12 +404,14 @@ class _CustomerAutocomplete extends ConsumerWidget {
 class _CartLineTile extends StatelessWidget {
   const _CartLineTile({
     required this.line,
+    required this.lineTotal,
     required this.currency,
     required this.onInc,
     required this.onDec,
   });
 
   final CartLine line;
+  final Money lineTotal;
   final String currency;
   final VoidCallback onInc;
   final VoidCallback onDec;
@@ -404,7 +437,7 @@ class _CartLineTile extends StatelessWidget {
           SizedBox(
             width: 90,
             child: Text(
-              line.lineTotal.withSymbol(currency),
+              lineTotal.withSymbol(currency),
               textAlign: TextAlign.right,
             ),
           ),

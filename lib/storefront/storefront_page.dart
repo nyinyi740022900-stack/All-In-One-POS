@@ -490,10 +490,19 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                       children: [
                         const Text('Pay to:',
                             style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
                         if ((widget.info.payKpay ?? '').isNotEmpty)
-                          Text('KBZPay: ${widget.info.payKpay}'),
+                          _PayAccountRow(
+                            method: 'KBZPay',
+                            name: widget.info.payKpayName,
+                            number: widget.info.payKpay!,
+                          ),
                         if ((widget.info.payWave ?? '').isNotEmpty)
-                          Text('WavePay: ${widget.info.payWave}'),
+                          _PayAccountRow(
+                            method: 'WavePay',
+                            name: widget.info.payWaveName,
+                            number: widget.info.payWave!,
+                          ),
                       ],
                     ),
                   ),
@@ -605,9 +614,17 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               const Text('Transfer and send the screenshot to the shop:'),
               const SizedBox(height: 8),
               if ((widget.info.payKpay ?? '').isNotEmpty)
-                Text('KBZPay: ${widget.info.payKpay}'),
+                _PayAccountRow(
+                  method: 'KBZPay',
+                  name: widget.info.payKpayName,
+                  number: widget.info.payKpay!,
+                ),
               if ((widget.info.payWave ?? '').isNotEmpty)
-                Text('WavePay: ${widget.info.payWave}'),
+                _PayAccountRow(
+                  method: 'WavePay',
+                  name: widget.info.payWaveName,
+                  number: widget.info.payWave!,
+                ),
               const SizedBox(height: 16),
             ] else if (_paymentMethod == 'cod') ...[
               const Text("You'll pay cash to the courier on delivery."),
@@ -639,6 +656,39 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One payment account line ("KBZPay: Name · 09xxxxxxxx") with a copy button
+/// for the number, so the customer doesn't have to retype it by hand into
+/// their banking app.
+class _PayAccountRow extends StatelessWidget {
+  const _PayAccountRow({required this.method, this.name, required this.number});
+  final String method;
+  final String? name;
+  final String number;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = (name ?? '').isEmpty ? number : '$name · $number';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(child: Text('$method: $label')),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 16),
+            tooltip: 'Copy number',
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: number));
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('Number copied')));
+            },
+          ),
+        ],
       ),
     );
   }

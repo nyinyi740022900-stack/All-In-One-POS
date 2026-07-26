@@ -85,6 +85,8 @@ class InventoryRepository {
     String? categoryId,
     int costPrice = 0,
     int salePrice = 0,
+    int? wholesalePrice,
+    int? vipPrice,
     String unit = 'pcs',
     int? quantity,
     int reorderLevel = 0,
@@ -103,6 +105,8 @@ class InventoryRepository {
         categoryId: Value(categoryId),
         costPrice: Value(costPrice),
         salePrice: Value(salePrice),
+        wholesalePrice: Value(wholesalePrice),
+        vipPrice: Value(vipPrice),
         unit: Value(unit),
         // Only overwrite the photo URL when one is supplied (keep existing).
         imageUrl: imageUrl == null ? const Value.absent() : Value(imageUrl),

@@ -212,9 +212,9 @@ class SalesRepository {
               saleId: saleId,
               productId: line.product.id,
               nameSnapshot: line.product.name,
-              priceSnapshot: line.unitPrice.kyat,
+              priceSnapshot: cart.unitPriceFor(line).kyat,
               qty: line.qty,
-              lineTotal: line.lineTotal.kyat,
+              lineTotal: cart.lineTotalFor(line).kyat,
               updatedAt: Value(now),
             ));
         await _enqueue('sale_items', itemId, jsonEncode(
