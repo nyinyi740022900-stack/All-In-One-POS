@@ -6,9 +6,15 @@ import 'package:uuid/uuid.dart';
 import '../../data/local/database.dart';
 
 /// A customer's outstanding credit, aggregated from their credit sales minus
-/// repayments. Customers are keyed by [name] (free-text, matching
-/// `Sales.customerName`).
+/// repayments. Grouped by [customerId] when the sale/repayment was linked to
+/// the customer directory, falling back to a case-insensitive name match for
+/// older rows (or one-off sales where no directory entry was picked) — see
+/// [creditKeyFor]. [key] is the stable grouping key either way; use it (not
+/// [name]) for navigation/lookups so a directory customer's rename doesn't
+/// orphan their history.
 class CreditCustomer {
+  final String key;
+  final String? customerId;
   final String name;
   final String? phone;
   final int billed; // Σ total of credit sales
@@ -16,6 +22,8 @@ class CreditCustomer {
   final int openInvoices;
 
   const CreditCustomer({
+    required this.key,
+    this.customerId,
     required this.name,
     this.phone,
     required this.billed,
@@ -27,6 +35,16 @@ class CreditCustomer {
     final o = billed - paid;
     return o < 0 ? 0 : o;
   }
+}
+
+/// The stable grouping key for a customer within the credit book: their
+/// directory id if linked, otherwise a normalized form of their typed name.
+/// Public (not just used internally) so UI code can match a [Sale]/
+/// [CreditPayment] against a [CreditCustomer.key] without duplicating this
+/// logic — see `CreditCustomerScreen`.
+String creditKeyFor(String? customerId, String name) {
+  if (customerId != null && customerId.isNotEmpty) return 'id:$customerId';
+  return 'name:${name.trim().toLowerCase()}';
 }
 
 /// Reads/writes the credit book. Credit sales themselves live in [Sales]
@@ -68,32 +86,42 @@ class CreditRepository {
     final paid = <String, int>{};
     final openInvoices = <String, int>{};
     final phone = <String, String>{};
+    final name = <String, String>{};
+    final customerId = <String, String>{};
 
     for (final s in creditSales) {
-      final name = (s.customerName ?? '').trim();
-      if (name.isEmpty) continue;
-      billed[name] = (billed[name] ?? 0) + s.total;
-      paid[name] = (paid[name] ?? 0) + s.paid;
+      final n = (s.customerName ?? '').trim();
+      if (n.isEmpty) continue;
+      final key = creditKeyFor(s.customerId, n);
+      billed[key] = (billed[key] ?? 0) + s.total;
+      paid[key] = (paid[key] ?? 0) + s.paid;
       if (s.total - s.paid > 0) {
-        openInvoices[name] = (openInvoices[name] ?? 0) + 1;
+        openInvoices[key] = (openInvoices[key] ?? 0) + 1;
       }
+      name[key] = n;
+      if (s.customerId != null) customerId[key] = s.customerId!;
       final ph = (s.customerPhone ?? '').trim();
-      if (ph.isNotEmpty) phone[name] = ph;
+      if (ph.isNotEmpty) phone[key] = ph;
     }
     for (final r in repayments) {
-      final name = r.customerName.trim();
-      if (name.isEmpty) continue;
-      paid[name] = (paid[name] ?? 0) + r.amount;
+      final n = r.customerName.trim();
+      if (n.isEmpty) continue;
+      final key = creditKeyFor(r.customerId, n);
+      paid[key] = (paid[key] ?? 0) + r.amount;
+      name.putIfAbsent(key, () => n);
+      if (r.customerId != null) customerId.putIfAbsent(key, () => r.customerId!);
     }
 
     final customers = <CreditCustomer>[];
-    for (final name in billed.keys) {
+    for (final key in billed.keys) {
       final c = CreditCustomer(
-        name: name,
-        phone: phone[name],
-        billed: billed[name] ?? 0,
-        paid: paid[name] ?? 0,
-        openInvoices: openInvoices[name] ?? 0,
+        key: key,
+        customerId: customerId[key],
+        name: name[key] ?? '',
+        phone: phone[key],
+        billed: billed[key] ?? 0,
+        paid: paid[key] ?? 0,
+        openInvoices: openInvoices[key] ?? 0,
       );
       if (c.outstanding > 0) customers.add(c);
     }
@@ -111,18 +139,19 @@ class CreditRepository {
   ) {
     final byCustomer = <String, List<Sale>>{};
     for (final s in creditSales) {
-      byCustomer.putIfAbsent((s.customerName ?? '').trim(), () => []).add(s);
+      final key = creditKeyFor(s.customerId, (s.customerName ?? '').trim());
+      byCustomer.putIfAbsent(key, () => []).add(s);
     }
     final pool = <String, int>{};
     for (final r in repayments) {
-      final n = r.customerName.trim();
-      pool[n] = (pool[n] ?? 0) + r.amount;
+      final key = creditKeyFor(r.customerId, r.customerName.trim());
+      pool[key] = (pool[key] ?? 0) + r.amount;
     }
     final result = <String, int>{};
-    byCustomer.forEach((name, sales) {
+    byCustomer.forEach((key, sales) {
       final sorted = [...sales]
         ..sort((a, b) => a.finalizedAt.compareTo(b.finalizedAt));
-      var remaining = pool[name] ?? 0;
+      var remaining = pool[key] ?? 0;
       for (final s in sorted) {
         final owed = s.total - s.paid;
         if (owed <= 0) {
@@ -141,6 +170,7 @@ class CreditRepository {
   /// for sync.
   Future<void> recordRepayment({
     required String customerName,
+    String? customerId,
     required int amount,
     String method = 'cash',
     String? note,
@@ -151,6 +181,7 @@ class CreditRepository {
           id: id,
           shopId: _shopId,
           customerName: customerName.trim(),
+          customerId: Value(customerId),
           amount: amount,
           method: Value(method),
           note: Value(note),

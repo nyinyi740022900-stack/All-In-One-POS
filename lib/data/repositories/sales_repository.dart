@@ -84,6 +84,7 @@ class SalesRepository {
         paymentMethod: Value(original.paymentMethod),
         customerName: Value(original.customerName),
         customerPhone: Value(original.customerPhone),
+        customerId: Value(original.customerId),
         note: Value('Refund of ${original.invoiceNo}'),
         refundOfSaleId: Value(saleId),
         finalizedAt: Value(now),
@@ -144,6 +145,7 @@ class SalesRepository {
               id: repayId,
               shopId: _shopId,
               customerName: original.customerName!.trim(),
+              customerId: Value(original.customerId),
               amount: owed,
               note: Value('Refund closure for ${original.invoiceNo}'),
               updatedAt: Value(now),
@@ -164,6 +166,7 @@ class SalesRepository {
     required int paid,
     String? customerName,
     String? customerPhone,
+    String? customerId,
     String? staffId,
     bool trackStock = true,
   }) async {
@@ -193,6 +196,7 @@ class SalesRepository {
         paymentMethod: Value(paymentMethod),
         customerName: Value(customerName),
         customerPhone: Value(customerPhone),
+        customerId: Value(customerId),
         finalizedAt: Value(now),
         updatedAt: Value(now),
       );

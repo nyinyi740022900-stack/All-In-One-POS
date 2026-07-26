@@ -66,8 +66,8 @@ class CreditScreen extends ConsumerWidget {
                         ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                CreditCustomerScreen(customerName: c.name),
+                            builder: (_) => CreditCustomerScreen(
+                                customerKey: c.key, customerName: c.name),
                           ),
                         ),
                       );
@@ -83,8 +83,13 @@ class CreditScreen extends ConsumerWidget {
 /// One customer's credit detail: outstanding, their credit invoices, and a
 /// button to record a repayment.
 class CreditCustomerScreen extends ConsumerWidget {
-  const CreditCustomerScreen({super.key, required this.customerName});
+  const CreditCustomerScreen(
+      {super.key, required this.customerKey, required this.customerName});
 
+  /// The stable grouping key (see [creditKeyFor]) — used to match sales and
+  /// repayments so a directory customer's rename doesn't orphan their
+  /// history the way matching on the raw display name would.
+  final String customerKey;
   final String customerName;
 
   @override
@@ -92,17 +97,25 @@ class CreditCustomerScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final currency = l.currencySymbol;
     final customer = ref.watch(creditCustomersProvider).firstWhere(
-          (c) => c.name == customerName,
+          (c) => c.key == customerKey,
           orElse: () => CreditCustomer(
-              name: customerName, billed: 0, paid: 0, openInvoices: 0),
+              key: customerKey,
+              name: customerName,
+              billed: 0,
+              paid: 0,
+              openInvoices: 0),
         );
     final owedBySale = ref.watch(creditOwedBySaleProvider);
     final sales = (ref.watch(creditSalesProvider).valueOrNull ?? const <Sale>[])
-        .where((s) => (s.customerName ?? '').trim() == customerName)
+        .where((s) =>
+            creditKeyFor(s.customerId, (s.customerName ?? '').trim()) ==
+            customerKey)
         .toList();
     final repayments =
         (ref.watch(repaymentsProvider).valueOrNull ?? const <CreditPayment>[])
-            .where((p) => p.customerName.trim() == customerName)
+            .where((p) =>
+                creditKeyFor(p.customerId, p.customerName.trim()) ==
+                customerKey)
             .toList();
     final df = DateFormat('yyyy-MM-dd HH:mm');
 
@@ -222,6 +235,7 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
     try {
       await ref.read(creditRepositoryProvider).recordRepayment(
             customerName: widget.customer.name,
+            customerId: widget.customer.customerId,
             amount: amount,
             method: _method,
           );

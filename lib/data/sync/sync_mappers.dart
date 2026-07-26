@@ -42,6 +42,7 @@ final syncTables = <SyncTableDef>[
   _orders,
   _orderItems,
   _staffMembers,
+  _customers,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -113,6 +114,47 @@ final _staffMembers = SyncTableDef(
           name: Value(m['name'] as String),
           pin: Value(m['pin'] as String),
           active: Value(_bool(m['active'])),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- customers ---------------------------------------------------------------
+final _customers = SyncTableDef(
+  name: 'customers',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.customers)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'name': r.name,
+      'phone': r.phone,
+      'address': r.address,
+      'township': r.township,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.customers)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.customers).insertOnConflictUpdate(CustomersCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          name: Value(m['name'] as String),
+          phone: Value(m['phone'] as String?),
+          address: Value(m['address'] as String?),
+          township: Value(m['township'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),
@@ -279,6 +321,7 @@ final _sales = SyncTableDef(
       'payment_method': r.paymentMethod,
       'customer_name': r.customerName,
       'customer_phone': r.customerPhone,
+      'customer_id': r.customerId,
       'note': r.note,
       'refund_of_sale_id': r.refundOfSaleId,
       'finalized_at': _iso(r.finalizedAt),
@@ -307,6 +350,7 @@ final _sales = SyncTableDef(
           paymentMethod: Value((m['payment_method'] as String?) ?? 'cash'),
           customerName: Value(m['customer_name'] as String?),
           customerPhone: Value(m['customer_phone'] as String?),
+          customerId: Value(m['customer_id'] as String?),
           note: Value(m['note'] as String?),
           refundOfSaleId: Value(m['refund_of_sale_id'] as String?),
           finalizedAt: Value(_dt(m['finalized_at'])),
@@ -422,6 +466,7 @@ final _creditPayments = SyncTableDef(
       'id': r.id,
       'shop_id': r.shopId,
       'customer_name': r.customerName,
+      'customer_id': r.customerId,
       'method': r.method,
       'amount': r.amount,
       'note': r.note,
@@ -443,6 +488,7 @@ final _creditPayments = SyncTableDef(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
           customerName: Value(m['customer_name'] as String),
+          customerId: Value(m['customer_id'] as String?),
           method: Value((m['method'] as String?) ?? 'cash'),
           amount: Value(_int(m['amount'])),
           note: Value(m['note'] as String?),
@@ -481,6 +527,7 @@ final _orders = SyncTableDef(
       'delivery_carrier': r.deliveryCarrier,
       'tracking_number': r.trackingNumber,
       'delivery_status': r.deliveryStatus,
+      'customer_id': r.customerId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'is_deleted': r.isDeleted,
@@ -512,6 +559,7 @@ final _orders = SyncTableDef(
           deliveryCarrier: Value(m['delivery_carrier'] as String?),
           trackingNumber: Value(m['tracking_number'] as String?),
           deliveryStatus: Value(m['delivery_status'] as String?),
+          customerId: Value(m['customer_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),

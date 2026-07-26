@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/local/database.dart';
+import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/print_action.dart';
@@ -29,6 +31,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   bool _submitting = false;
   // Seller-controlled, per-sale: reveal the optional customer name/phone fields.
   bool _addCustomer = false;
+  // Set when a directory customer was picked from the autocomplete; cleared
+  // whenever the name is edited by hand so a stale id never gets attached to
+  // the wrong typed name.
+  String? _selectedCustomerId;
 
   @override
   void dispose() {
@@ -75,12 +81,24 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     try {
       final salesRepo = ref.read(salesRepositoryProvider);
       final phone = _phone.text.trim();
+      // Prefer the directory entry the seller picked from the autocomplete;
+      // otherwise resolve (or create) one by the typed name so repeat
+      // customers still link to one directory entry over time even if the
+      // seller never bothers with the dropdown.
+      final customerId = name.isEmpty
+          ? null
+          : _selectedCustomerId ??
+              await ref.read(customerRepositoryProvider).resolveOrCreate(
+                    name,
+                    phone: phone.isEmpty ? null : phone,
+                  );
       final result = await salesRepo.finalizeSale(
         cart: cart,
         paymentMethod: _method,
         paid: paid,
         customerName: name.isEmpty ? null : name,
         customerPhone: phone.isEmpty ? null : phone,
+        customerId: customerId,
         staffId: ref.read(activeStaffIdProvider).valueOrNull,
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );
@@ -217,16 +235,19 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             ),
 
             if (showCustomer) ...[
-              TextField(
+              _CustomerAutocomplete(
                 controller: _customer,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: forced
-                      ? '${l.creditCustomerName} *'
-                      : l.creditCustomerName,
-                  helperText: forced ? l.creditCustomerRequired : null,
-                ),
-                onChanged: (_) => setState(() {}),
+                labelText: forced
+                    ? '${l.creditCustomerName} *'
+                    : l.creditCustomerName,
+                helperText: forced ? l.creditCustomerRequired : null,
+                onChanged: () => setState(() {}),
+                onSelected: (c) => setState(() {
+                  _selectedCustomerId = c.id;
+                  _customer.text = c.name;
+                  _phone.text = c.phone ?? '';
+                }),
+                onEditedByHand: () => _selectedCustomerId = null,
               ),
               const SizedBox(height: AppTheme.space2),
               TextField(
@@ -264,6 +285,87 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(label, style: style), Text(value, style: style)],
       ),
+    );
+  }
+}
+
+/// Customer name field with directory suggestions: typing filters the
+/// shop's saved customers by name/phone; picking one fills phone too.
+/// Typing without picking anything still works exactly like a plain text
+/// field (the checkout flow resolves/creates a directory entry by name at
+/// finalize time either way — see `_confirm`).
+class _CustomerAutocomplete extends ConsumerWidget {
+  const _CustomerAutocomplete({
+    required this.controller,
+    required this.labelText,
+    required this.onChanged,
+    required this.onSelected,
+    required this.onEditedByHand,
+    this.helperText,
+  });
+
+  final TextEditingController controller;
+  final String labelText;
+  final String? helperText;
+  final VoidCallback onChanged;
+  final ValueChanged<Customer> onSelected;
+  final VoidCallback onEditedByHand;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customers = ref.watch(customersStreamProvider).valueOrNull ?? const [];
+    return RawAutocomplete<Customer>(
+      textEditingController: controller,
+      focusNode: FocusNode(),
+      optionsBuilder: (value) {
+        final q = value.text.trim().toLowerCase();
+        if (q.isEmpty) return const Iterable<Customer>.empty();
+        return customers.where((c) =>
+            c.name.toLowerCase().contains(q) ||
+            (c.phone?.contains(q) ?? false));
+      },
+      displayStringForOption: (c) => c.name,
+      onSelected: onSelected,
+      fieldViewBuilder: (context, textController, focusNode, onSubmit) {
+        return TextField(
+          controller: textController,
+          focusNode: focusNode,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            labelText: labelText,
+            helperText: helperText,
+          ),
+          onChanged: (_) {
+            onEditedByHand();
+            onChanged();
+          },
+        );
+      },
+      optionsViewBuilder: (context, onSelectedOption, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final c in options)
+                    ListTile(
+                      dense: true,
+                      title: Text(c.name),
+                      subtitle: (c.phone ?? '').isEmpty ? null : Text(c.phone!),
+                      onTap: () => onSelectedOption(c),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

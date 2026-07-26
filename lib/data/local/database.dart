@@ -25,6 +25,7 @@ part 'database.g.dart';
     Orders,
     OrderItems,
     StaffMembers,
+    Customers,
     AppSettings,
     Outbox,
   ],
@@ -36,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +89,14 @@ class AppDatabase extends _$AppDatabase {
           // rang it up, not just a shared device PIN).
           if (from < 11) {
             await m.createTable(staffMembers);
+          }
+          // v12: customer directory — enter a name/phone/address once and
+          // reuse it, instead of retyping free text on every invoice/order.
+          if (from < 12) {
+            await m.createTable(customers);
+            await m.addColumn(sales, sales.customerId);
+            await m.addColumn(orders, orders.customerId);
+            await m.addColumn(creditPayments, creditPayments.customerId);
           }
         },
       );

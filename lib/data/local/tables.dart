@@ -94,6 +94,13 @@ class Sales extends Table with SyncColumns {
   /// original sale is never mutated. Null on every ordinary sale.
   TextColumn get refundOfSaleId => text().nullable()();
 
+  /// Links to a [Customers] row when the buyer was picked from (or resolved
+  /// to) the customer directory. Null on sales predating that directory, or
+  /// where the seller just typed a one-off name — `customerName`/`Phone`
+  /// above remain the source of truth for what actually printed on the
+  /// receipt either way (this is purely an additional lookup key).
+  TextColumn get customerId => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -145,6 +152,22 @@ class LicensePayments extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A customer directory entry — enter a name/phone/address once and reuse it
+/// on every future invoice/order instead of retyping. Synced so the same
+/// directory shows on every device under the shop. `Sales`/`Orders`/
+/// `CreditPayments` link here via a nullable `customerId`, but keep their own
+/// `customerName`/`Phone` snapshot too — a directory-entry rename never
+/// retroactively changes what already printed on an old receipt.
+class Customers extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+  TextColumn get township => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// A repayment a customer made against their outstanding credit (အကြွေး).
 /// Customers are keyed by [customerName] (the same free-text field carried on
 /// [Sales]); a credit sale is a sale with `paymentMethod = 'credit'` where
@@ -157,6 +180,10 @@ class CreditPayments extends Table with SyncColumns {
   TextColumn get method => text().withDefault(const Constant('cash'))();
   IntColumn get amount => integer()();
   TextColumn get note => text().nullable()();
+
+  /// Links to a [Customers] row — see the same field on [Sales] for why this
+  /// is additional, not a replacement for [customerName].
+  TextColumn get customerId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -224,6 +251,10 @@ class Orders extends Table with SyncColumns {
   /// Separate from [status] (the Kanban stage) — this tracks the delivery leg
   /// specifically, which can keep moving after the order itself is "shipped".
   TextColumn get deliveryStatus => text().nullable()();
+
+  /// Links to a [Customers] row — see the same field on [Sales] for why this
+  /// is additional, not a replacement for [customerName].
+  TextColumn get customerId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

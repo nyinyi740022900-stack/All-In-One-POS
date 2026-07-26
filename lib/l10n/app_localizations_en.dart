@@ -215,6 +215,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creditRepaymentSaved => 'Repayment recorded';
 
   @override
+  String get customersTitle => 'Customers';
+
+  @override
+  String get customersEmpty => 'No customers yet. Add your first customer.';
+
+  @override
+  String get customersSearchHint => 'Search name or phone';
+
+  @override
+  String get customerAdd => 'Add customer';
+
+  @override
+  String get customerEdit => 'Edit customer';
+
+  @override
+  String get customerNameLabel => 'Name';
+
+  @override
+  String get customerAddress => 'Address';
+
+  @override
+  String get customerSaved => 'Customer saved';
+
+  @override
+  String get customerDeleteConfirmTitle => 'Remove this customer?';
+
+  @override
+  String customerDeleteConfirmBody(String name) {
+    return '$name will no longer appear as a suggestion at checkout. Past invoices still show their name.';
+  }
+
+  @override
+  String get customerDeleted => 'Customer removed';
+
+  @override
   String get inventoryTitle => 'Inventory';
 
   @override

@@ -19,6 +19,7 @@ import '../../core/money.dart';
 import '../backup/backup_screen.dart';
 import '../credit/credit_providers.dart';
 import '../credit/credit_screen.dart';
+import '../customers/customers_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
@@ -47,6 +48,14 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _TrackStockTile(),
           _CreditTile(),
+          ListTile(
+            leading: const Icon(Icons.people_outline),
+            title: Text(l.customersTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const CustomersScreen(),
+            )),
+          ),
           if (ref.watch(isOwnerProvider)) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),

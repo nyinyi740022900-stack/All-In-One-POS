@@ -121,6 +121,72 @@ void main() {
       expect(owed['s1'], 0);
       expect(owed['s2'], 0);
     });
+
+    Sale creditSaleWithId(String customerId, String name, int total, int paid) =>
+        Sale(
+          id: 'sale-$customerId-$total-$paid',
+          shopId: 'shop-1',
+          invoiceNo: 'INV-1',
+          subtotal: total,
+          discount: 0,
+          tax: 0,
+          total: total,
+          paid: paid,
+          changeDue: 0,
+          paymentMethod: 'credit',
+          customerName: name,
+          customerId: customerId,
+          finalizedAt: DateTime(2026, 7, 1),
+          createdAt: DateTime(2026, 7, 1),
+          updatedAt: DateTime(2026, 7, 1),
+          isDeleted: false,
+          dirty: false,
+        );
+
+    test('two sales with the same customerId group together even if the '
+        'typed name changed (e.g. a directory rename)', () {
+      final result = CreditRepository.aggregate(
+        [
+          creditSaleWithId('cust-1', 'Daw Mya', 3000, 0),
+          creditSaleWithId('cust-1', 'Daw Mya (renamed)', 2000, 0),
+        ],
+        const [],
+      );
+      expect(result, hasLength(1));
+      expect(result.single.outstanding, 5000);
+      expect(result.single.customerId, 'cust-1');
+    });
+
+    test('a repayment linked by customerId settles a sale under a '
+        'differently-typed name for the same customer', () {
+      final sale = creditSaleWithId('cust-2', 'Ko Ko', 5000, 0);
+      final payment = CreditPayment(
+        id: 'pay-1',
+        shopId: 'shop-1',
+        customerName: 'Ko Ko Naing', // typo/variant of the same person
+        customerId: 'cust-2',
+        method: 'cash',
+        amount: 5000,
+        createdAt: DateTime(2026, 7, 2),
+        updatedAt: DateTime(2026, 7, 2),
+        isDeleted: false,
+        dirty: false,
+      );
+      final result = CreditRepository.aggregate([sale], [payment]);
+      expect(result, isEmpty); // fully settled despite the name mismatch
+    });
+
+    test('two sales with the SAME typed name but no customerId still group '
+        'by name (legacy behavior preserved)', () {
+      final result = CreditRepository.aggregate(
+        [creditSale('Legacy Customer', 1000, 0),
+         creditSale('Legacy Customer', 2000, 0)],
+        const [],
+      );
+      expect(result, hasLength(1));
+      expect(result.single.outstanding, 3000);
+      expect(result.single.customerId, isNull);
+    });
   });
 
   group('CreditRepository with DB', () {
