@@ -54,3 +54,6 @@ env.local.json
 # Supabase CLI local state (linked project ref, pooler connection url, etc.)
 supabase/.temp/
 supabase/.branches/
+
+# FVM Version Cache
+.fvm/
