@@ -352,12 +352,59 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
 class _BlockedCustomersScreen extends ConsumerWidget {
   const _BlockedCustomersScreen();
 
+  Future<void> _addBlock(
+      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    final phone = TextEditingController();
+    final reason = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.storefrontAddBlocked),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              autofocus: true,
+              decoration: InputDecoration(labelText: l.customerPhone),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reason,
+              decoration:
+                  InputDecoration(labelText: l.storefrontBlockReasonOptional),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l.orderBlockCustomer)),
+        ],
+      ),
+    );
+    if (ok != true || phone.text.trim().isEmpty) return;
+    await ref.read(storefrontRepositoryProvider).block(
+          phone.text.trim(),
+          reason: reason.text.trim().isEmpty ? null : reason.text.trim(),
+        );
+    ref.invalidate(blockedCustomersProvider);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(blockedCustomersProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l.storefrontBlockedCustomers)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addBlock(context, ref, l),
+        child: const Icon(Icons.add),
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),

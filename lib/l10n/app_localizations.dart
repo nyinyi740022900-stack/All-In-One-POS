@@ -2996,6 +2996,18 @@ abstract class AppLocalizations {
   /// **'Unblock'**
   String get storefrontUnblock;
 
+  /// No description provided for @storefrontAddBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Block a phone number'**
+  String get storefrontAddBlocked;
+
+  /// No description provided for @storefrontBlockReasonOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (optional)'**
+  String get storefrontBlockReasonOptional;
+
   /// No description provided for @storefrontPaymentInfoTitle.
   ///
   /// In en, this message translates to:

@@ -1572,6 +1572,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontUnblock => 'ပိတ်ပင်ချက် ဖြေလိုက်ပါ';
 
   @override
+  String get storefrontAddBlocked => 'ဖုန်းနံပါတ် ပိတ်ပင်မည်';
+
+  @override
+  String get storefrontBlockReasonOptional => 'အကြောင်းရင်း (ရွေးချယ်ခွင့်)';
+
+  @override
   String get storefrontPaymentInfoTitle => 'ငွေပေးချေမှု အကောင့်များ';
 
   @override

@@ -1578,6 +1578,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontUnblock => 'Unblock';
 
   @override
+  String get storefrontAddBlocked => 'Block a phone number';
+
+  @override
+  String get storefrontBlockReasonOptional => 'Reason (optional)';
+
+  @override
   String get storefrontPaymentInfoTitle => 'Payment accounts';
 
   @override

@@ -539,6 +539,8 @@
   "storefrontBlockedCustomers": "Blocked customers",
   "storefrontNoBlockedCustomers": "No one is blocked.",
   "storefrontUnblock": "Unblock",
+  "storefrontAddBlocked": "Block a phone number",
+  "storefrontBlockReasonOptional": "Reason (optional)",
   "storefrontPaymentInfoTitle": "Payment accounts",
   "storefrontPaymentInfoHint": "Shown to customers at checkout so they know who to transfer to.",
   "storefrontPayKpayName": "KBZPay account name",

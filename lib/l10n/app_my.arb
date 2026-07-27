@@ -538,6 +538,8 @@
   "storefrontBlockedCustomers": "ပိတ်ပင်ထားသော ဝယ်သူများ",
   "storefrontNoBlockedCustomers": "ဘယ်သူမှ ပိတ်ပင်မထားပါ။",
   "storefrontUnblock": "ပိတ်ပင်ချက် ဖြေလိုက်ပါ",
+  "storefrontAddBlocked": "ဖုန်းနံပါတ် ပိတ်ပင်မည်",
+  "storefrontBlockReasonOptional": "အကြောင်းရင်း (ရွေးချယ်ခွင့်)",
   "storefrontPaymentInfoTitle": "ငွေပေးချေမှု အကောင့်များ",
   "storefrontPaymentInfoHint": "ဖောက်သည်က checkout မှာ ဘယ်သူ့ဆီ လွှဲရမလဲ သိရအောင် ပြပေးပါမည်။",
   "storefrontPayKpayName": "KBZPay အကောင့်နာမည်",
