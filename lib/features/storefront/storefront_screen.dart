@@ -358,7 +358,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
     final reason = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l.storefrontAddBlocked),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -366,7 +366,6 @@ class _BlockedCustomersScreen extends ConsumerWidget {
             TextField(
               controller: phone,
               keyboardType: TextInputType.phone,
-              autofocus: true,
               decoration: InputDecoration(labelText: l.customerPhone),
             ),
             const SizedBox(height: 8),
@@ -379,10 +378,10 @@ class _BlockedCustomersScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(l.commonCancel)),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: Text(l.orderBlockCustomer)),
         ],
       ),
