@@ -11,13 +11,16 @@
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no }
 //
-// Anti-abuse on submit_order (all silent to a genuine customer, none of them
-// block a legitimate order): a hidden honeypot field (`hp`) catches
+// Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
 // blind-filling bots; at most 5 attempts per (shop, IP) per 10 minutes
 // (`storefront_order_attempts`); a phone on the owner's block-list
-// (`storefront_blocklist`) is rejected outright; a line that asks for more
-// than the shop's recorded stock is still accepted but flagged on
-// `order_items.low_stock_at_order` for the owner to notice before packing.
+// (`storefront_blocklist`) is rejected outright (403 `blocked`). Two
+// different stock checks: a line over the shop's real recorded stock is
+// still accepted, just flagged on `order_items.low_stock_at_order` for the
+// owner to notice before packing (real stock can lag synced reality); a line
+// over a product's owner-set `online_stock_limit` (a deliberate cap,
+// independent of real stock, e.g. reserving only some units for online) IS
+// hard-rejected (409 `out_of_stock`) — see `sumOrderedByProduct`.
 //
 // Deploy: supabase functions deploy storefront
 
@@ -35,6 +38,43 @@ function json(body: any, status = 200): Response {
       "Access-Control-Allow-Methods": "POST, OPTIONS",
     },
   });
+}
+
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
+/// For products that have an `online_stock_limit` set, sums how many units
+/// are already spoken for by this shop's existing, non-cancelled storefront
+/// orders — so the caller can compute what's left of the owner-set cap.
+/// order_items has no DB-level FK to orders (plain text columns, see 0015),
+/// so this can't use a single embedded-join query; it's two queries instead.
+async function sumOrderedByProduct(
+  admin: Admin,
+  shopId: string,
+  productIds: string[],
+): Promise<Map<string, number>> {
+  const ordered = new Map<string, number>();
+  if (productIds.length === 0) return ordered;
+  const { data: activeOrders } = await admin
+    .from("orders")
+    .select("id")
+    .eq("shop_id", shopId)
+    .eq("channel", "storefront")
+    .eq("is_deleted", false)
+    .neq("status", "cancelled");
+  const orderIds = (activeOrders ?? []).map((o: { id: string }) => o.id);
+  if (orderIds.length === 0) return ordered;
+  const { data: orderedRows } = await admin
+    .from("order_items")
+    .select("product_id, qty")
+    .in("product_id", productIds)
+    .in("order_id", orderIds)
+    .eq("is_deleted", false);
+  for (const row of orderedRows ?? []) {
+    const pid = row.product_id as string;
+    ordered.set(pid, (ordered.get(pid) ?? 0) + (row.qty as number));
+  }
+  return ordered;
 }
 
 Deno.serve(async (req) => {
@@ -67,12 +107,26 @@ Deno.serve(async (req) => {
   if (action === "catalog") {
     const { data: products, error } = await admin
       .from("products")
-      .select("id, name, sale_price, unit, image_url")
+      .select("id, name, sale_price, unit, image_url, online_stock_limit")
       .eq("shop_id", sf.shop_id)
       .eq("is_active", true)
       .eq("is_deleted", false)
       .order("name");
     if (error) return json({ error: "server_error" }, 500);
+
+    const cappedIds = (products ?? [])
+      .filter((p) => p.online_stock_limit != null)
+      .map((p) => p.id as string);
+    const ordered = await sumOrderedByProduct(admin, sf.shop_id, cappedIds);
+    const productsOut = (products ?? []).map((p) => {
+      if (p.online_stock_limit == null) return p;
+      const available = Math.max(
+        0,
+        (p.online_stock_limit as number) - (ordered.get(p.id) ?? 0),
+      );
+      return { ...p, online_available: available };
+    });
+
     return json({
       storefront: {
         display_name: sf.display_name,
@@ -84,7 +138,7 @@ Deno.serve(async (req) => {
         pay_wave_name: sf.pay_wave_name,
         logo_url: sf.logo_url,
       },
-      products,
+      products: productsOut,
     });
   }
 
@@ -170,7 +224,7 @@ Deno.serve(async (req) => {
 
     const { data: products, error: pErr } = await admin
       .from("products")
-      .select("id, name, sale_price")
+      .select("id, name, sale_price, online_stock_limit")
       .eq("shop_id", sf.shop_id)
       .eq("is_active", true)
       .eq("is_deleted", false)
@@ -191,11 +245,29 @@ Deno.serve(async (req) => {
       (stockRows ?? []).map((s) => [s.product_id, s.quantity as number]),
     );
 
+    // Online stock cap: unlike the real-stock check above, this IS a hard
+    // block — it's a number the owner deliberately set aside for online
+    // sales, not a value that can be stale from sync lag.
+    const cappedIds = (products ?? [])
+      .filter((p) => p.online_stock_limit != null)
+      .map((p) => p.id as string);
+    const orderedByProduct = await sumOrderedByProduct(
+      admin,
+      sf.shop_id,
+      cappedIds,
+    );
+
+    let outOfStockProductId: string | null = null;
     const lines = rawLines.map((l) => {
       const product = byId.get(`${l.product_id ?? ""}`.trim());
       if (!product) return null;
       const qty = Number(l.qty);
       const available = stockById.get(product.id) ?? 0;
+      if (product.online_stock_limit != null) {
+        const remaining = (product.online_stock_limit as number) -
+          (orderedByProduct.get(product.id) ?? 0);
+        if (qty > remaining) outOfStockProductId = product.id;
+      }
       return {
         productId: product.id as string,
         name: product.name as string,
@@ -206,6 +278,9 @@ Deno.serve(async (req) => {
     });
     if (lines.some((l) => l === null)) {
       return json({ error: "invalid_product" }, 400);
+    }
+    if (outOfStockProductId) {
+      return json({ error: "out_of_stock", product_id: outOfStockProductId }, 409);
     }
     const validLines = lines as {
       productId: string;

@@ -300,6 +300,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get productVipPrice => 'VIP ဈေး';
 
   @override
+  String get productOnlineStockLimitHint =>
+      'ရွေးချယ်ခွင့် — ဒီပစ္စည်းကို Web storefront ကနေ ဘယ်နှစ်ခုအထိပဲ ရောင်းချမလဲ ဆိုတာ ဆိုင်ထဲက အစစ်လက်ကျန်နဲ့ သီးခြား ကန့်သတ်ပါ။ ကွက်လပ်ထားရင် ကန့်သတ်ချက် မရှိပါ။';
+
+  @override
+  String get productOnlineStockLimit => 'Online ရောင်းမည့် အများဆုံးအရေအတွက်';
+
+  @override
   String get productBarcode => 'ဘားကုဒ်';
 
   @override
@@ -1593,6 +1600,18 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontBlocked =>
       'ဒီဆိုင်က ဒီဖုန်းနံပါတ်ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။';
+
+  @override
+  String get storefrontOutOfStock =>
+      'စိတ်မကောင်းပါဘူး၊ Cart ထဲက ပစ္စည်းတစ်ခု Online မှာ ကုန်သွားပါပြီ။ Cart ကို ပြင်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String storefrontOnlineLeft(int count) {
+    return 'Online ကျန် $count ခု';
+  }
+
+  @override
+  String get storefrontSoldOut => 'Online မှာ ကုန်သွားပါပြီ';
 
   @override
   String storefrontCheckoutBar(int count, String total) {

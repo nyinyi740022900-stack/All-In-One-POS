@@ -80,7 +80,11 @@ class _StorefrontPageState extends State<StorefrontPage> {
       .fold(0, (s, e) => s + (_byId[e.key]?.price ?? 0) * e.value);
   int get _count => _cart.values.fold(0, (s, q) => s + q);
 
-  void _add(StoreProduct p) => setState(() => _cart[p.id] = (_cart[p.id] ?? 0) + 1);
+  void _add(StoreProduct p) => setState(() {
+        final next = (_cart[p.id] ?? 0) + 1;
+        if (p.onlineAvailable != null && next > p.onlineAvailable!) return;
+        _cart[p.id] = next;
+      });
   void _sub(StoreProduct p) => setState(() {
         final q = (_cart[p.id] ?? 0) - 1;
         if (q <= 0) {
@@ -301,6 +305,9 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final soldOut = product.onlineAvailable == 0;
+    final atCap =
+        product.onlineAvailable != null && qty >= product.onlineAvailable!;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -330,6 +337,19 @@ class _ProductCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (product.onlineAvailable != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    soldOut
+                        ? l.storefrontSoldOut
+                        : l.storefrontOnlineLeft(product.onlineAvailable!),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: soldOut
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.outline),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -340,7 +360,7 @@ class _ProductCard extends StatelessWidget {
                     const Spacer(),
                     if (qty == 0)
                       FilledButton.tonal(
-                        onPressed: onAdd,
+                        onPressed: soldOut ? null : onAdd,
                         child: Text(l.storefrontAdd),
                       )
                     else
@@ -357,7 +377,7 @@ class _ProductCard extends StatelessWidget {
                                     fontWeight: FontWeight.bold)),
                           ),
                           IconButton.filledTonal(
-                              onPressed: onAdd,
+                              onPressed: atCap ? null : onAdd,
                               icon: const Icon(Icons.add, size: 18)),
                         ],
                       ),
@@ -463,7 +483,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             ? l.storefrontRateLimited
             : '$e'.contains('blocked')
                 ? l.storefrontBlocked
-                : '$e';
+                : '$e'.contains('out_of_stock')
+                    ? l.storefrontOutOfStock
+                    : '$e';
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
       }

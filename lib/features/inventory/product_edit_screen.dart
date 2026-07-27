@@ -33,6 +33,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   late final TextEditingController _costPrice;
   late final TextEditingController _wholesalePrice;
   late final TextEditingController _vipPrice;
+  late final TextEditingController _onlineStockLimit;
   late final TextEditingController _quantity;
   late final TextEditingController _reorder;
   String? _categoryId;
@@ -59,6 +60,10 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             : '${e!.product.wholesalePrice}');
     _vipPrice = TextEditingController(
         text: e?.product.vipPrice == null ? '' : '${e!.product.vipPrice}');
+    _onlineStockLimit = TextEditingController(
+        text: e?.product.onlineStockLimit == null
+            ? ''
+            : '${e!.product.onlineStockLimit}');
     _quantity = TextEditingController(text: e == null ? '' : '${e.quantity}');
     _reorder = TextEditingController(text: e == null ? '' : '${e.reorderLevel}');
   }
@@ -73,6 +78,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       _costPrice,
       _wholesalePrice,
       _vipPrice,
+      _onlineStockLimit,
       _quantity,
       _reorder
     ]) {
@@ -127,6 +133,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             costPrice: _int(_costPrice),
             wholesalePrice: _intOrNull(_wholesalePrice),
             vipPrice: _intOrNull(_vipPrice),
+            onlineStockLimit: _intOrNull(_onlineStockLimit),
             quantity: _int(_quantity),
             reorderLevel: _int(_reorder),
             imageUrl: _imageUrl,
@@ -169,6 +176,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             _field(_wholesalePrice, l.productWholesalePrice, number: true),
             _gap,
             _field(_vipPrice, l.productVipPrice, number: true),
+            _gap,
+            Text(l.productOnlineStockLimitHint,
+                style: Theme.of(context).textTheme.bodySmall),
+            _gap,
+            _field(_onlineStockLimit, l.productOnlineStockLimit, number: true),
             _gap,
             if (trackStock) ...[
               _field(_quantity, l.productQuantity, number: true),

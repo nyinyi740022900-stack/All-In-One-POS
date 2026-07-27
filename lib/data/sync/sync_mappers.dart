@@ -183,6 +183,7 @@ final _products = SyncTableDef(
       'sale_price': r.salePrice,
       'wholesale_price': r.wholesalePrice,
       'vip_price': r.vipPrice,
+      'online_stock_limit': r.onlineStockLimit,
       'unit': r.unit,
       'image_path': r.imagePath,
       'image_url': r.imageUrl,
@@ -211,6 +212,9 @@ final _products = SyncTableDef(
               m['wholesale_price'] == null ? null : _int(m['wholesale_price'])),
           vipPrice:
               Value(m['vip_price'] == null ? null : _int(m['vip_price'])),
+          onlineStockLimit: Value(m['online_stock_limit'] == null
+              ? null
+              : _int(m['online_stock_limit'])),
           unit: Value((m['unit'] as String?) ?? 'pcs'),
           imagePath: Value(m['image_path'] as String?),
           imageUrl: Value(m['image_url'] as String?),

@@ -307,6 +307,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productVipPrice => 'VIP price';
 
   @override
+  String get productOnlineStockLimitHint =>
+      'Optional — cap how many of this product your web storefront may sell, separate from your real in-store stock. Leave blank for no cap.';
+
+  @override
+  String get productOnlineStockLimit => 'Online stock limit';
+
+  @override
   String get productBarcode => 'Barcode';
 
   @override
@@ -1599,6 +1606,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontBlocked =>
       'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.';
+
+  @override
+  String get storefrontOutOfStock =>
+      'Sorry, one of your items just sold out online. Please adjust your cart and try again.';
+
+  @override
+  String storefrontOnlineLeft(int count) {
+    return '$count left online';
+  }
+
+  @override
+  String get storefrontSoldOut => 'Sold out online';
 
   @override
   String storefrontCheckoutBar(int count, String total) {

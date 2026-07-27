@@ -664,6 +664,17 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _onlineStockLimitMeta = const VerificationMeta(
+    'onlineStockLimit',
+  );
+  @override
+  late final GeneratedColumn<int> onlineStockLimit = GeneratedColumn<int>(
+    'online_stock_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _unitMeta = const VerificationMeta('unit');
   @override
   late final GeneratedColumn<String> unit = GeneratedColumn<String>(
@@ -727,6 +738,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     salePrice,
     wholesalePrice,
     vipPrice,
+    onlineStockLimit,
     unit,
     imagePath,
     imageUrl,
@@ -834,6 +846,15 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         vipPrice.isAcceptableOrUnknown(data['vip_price']!, _vipPriceMeta),
       );
     }
+    if (data.containsKey('online_stock_limit')) {
+      context.handle(
+        _onlineStockLimitMeta,
+        onlineStockLimit.isAcceptableOrUnknown(
+          data['online_stock_limit']!,
+          _onlineStockLimitMeta,
+        ),
+      );
+    }
     if (data.containsKey('unit')) {
       context.handle(
         _unitMeta,
@@ -923,6 +944,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.int,
         data['${effectivePrefix}vip_price'],
       ),
+      onlineStockLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}online_stock_limit'],
+      ),
       unit: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}unit'],
@@ -966,6 +991,15 @@ class Product extends DataClass implements Insertable<Product> {
   /// never sets these keeps ordinary single pricing with no behavior change.
   final int? wholesalePrice;
   final int? vipPrice;
+
+  /// Caps how many units of this product the public web storefront will
+  /// sell, independent of the shop's real [StockLevels] quantity — e.g. a
+  /// shop with 20 in-store may want to reserve only 5 for online, keeping
+  /// the rest for walk-in customers. Null means "no cap" (storefront just
+  /// warns on the real stock count instead, see `low_stock_at_order`).
+  /// Unlike the real-stock warning, this cap is hard-enforced: it's a number
+  /// the owner set on purpose, not a value that can be stale from sync lag.
+  final int? onlineStockLimit;
   final String unit;
   final String? imagePath;
 
@@ -987,6 +1021,7 @@ class Product extends DataClass implements Insertable<Product> {
     required this.salePrice,
     this.wholesalePrice,
     this.vipPrice,
+    this.onlineStockLimit,
     required this.unit,
     this.imagePath,
     this.imageUrl,
@@ -1018,6 +1053,9 @@ class Product extends DataClass implements Insertable<Product> {
     }
     if (!nullToAbsent || vipPrice != null) {
       map['vip_price'] = Variable<int>(vipPrice);
+    }
+    if (!nullToAbsent || onlineStockLimit != null) {
+      map['online_stock_limit'] = Variable<int>(onlineStockLimit);
     }
     map['unit'] = Variable<String>(unit);
     if (!nullToAbsent || imagePath != null) {
@@ -1054,6 +1092,9 @@ class Product extends DataClass implements Insertable<Product> {
       vipPrice: vipPrice == null && nullToAbsent
           ? const Value.absent()
           : Value(vipPrice),
+      onlineStockLimit: onlineStockLimit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(onlineStockLimit),
       unit: Value(unit),
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
@@ -1085,6 +1126,7 @@ class Product extends DataClass implements Insertable<Product> {
       salePrice: serializer.fromJson<int>(json['salePrice']),
       wholesalePrice: serializer.fromJson<int?>(json['wholesalePrice']),
       vipPrice: serializer.fromJson<int?>(json['vipPrice']),
+      onlineStockLimit: serializer.fromJson<int?>(json['onlineStockLimit']),
       unit: serializer.fromJson<String>(json['unit']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
@@ -1109,6 +1151,7 @@ class Product extends DataClass implements Insertable<Product> {
       'salePrice': serializer.toJson<int>(salePrice),
       'wholesalePrice': serializer.toJson<int?>(wholesalePrice),
       'vipPrice': serializer.toJson<int?>(vipPrice),
+      'onlineStockLimit': serializer.toJson<int?>(onlineStockLimit),
       'unit': serializer.toJson<String>(unit),
       'imagePath': serializer.toJson<String?>(imagePath),
       'imageUrl': serializer.toJson<String?>(imageUrl),
@@ -1131,6 +1174,7 @@ class Product extends DataClass implements Insertable<Product> {
     int? salePrice,
     Value<int?> wholesalePrice = const Value.absent(),
     Value<int?> vipPrice = const Value.absent(),
+    Value<int?> onlineStockLimit = const Value.absent(),
     String? unit,
     Value<String?> imagePath = const Value.absent(),
     Value<String?> imageUrl = const Value.absent(),
@@ -1152,6 +1196,9 @@ class Product extends DataClass implements Insertable<Product> {
         ? wholesalePrice.value
         : this.wholesalePrice,
     vipPrice: vipPrice.present ? vipPrice.value : this.vipPrice,
+    onlineStockLimit: onlineStockLimit.present
+        ? onlineStockLimit.value
+        : this.onlineStockLimit,
     unit: unit ?? this.unit,
     imagePath: imagePath.present ? imagePath.value : this.imagePath,
     imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
@@ -1177,6 +1224,9 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.wholesalePrice.value
           : this.wholesalePrice,
       vipPrice: data.vipPrice.present ? data.vipPrice.value : this.vipPrice,
+      onlineStockLimit: data.onlineStockLimit.present
+          ? data.onlineStockLimit.value
+          : this.onlineStockLimit,
       unit: data.unit.present ? data.unit.value : this.unit,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
@@ -1201,6 +1251,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('salePrice: $salePrice, ')
           ..write('wholesalePrice: $wholesalePrice, ')
           ..write('vipPrice: $vipPrice, ')
+          ..write('onlineStockLimit: $onlineStockLimit, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -1225,6 +1276,7 @@ class Product extends DataClass implements Insertable<Product> {
     salePrice,
     wholesalePrice,
     vipPrice,
+    onlineStockLimit,
     unit,
     imagePath,
     imageUrl,
@@ -1248,6 +1300,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.salePrice == this.salePrice &&
           other.wholesalePrice == this.wholesalePrice &&
           other.vipPrice == this.vipPrice &&
+          other.onlineStockLimit == this.onlineStockLimit &&
           other.unit == this.unit &&
           other.imagePath == this.imagePath &&
           other.imageUrl == this.imageUrl &&
@@ -1269,6 +1322,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<int> salePrice;
   final Value<int?> wholesalePrice;
   final Value<int?> vipPrice;
+  final Value<int?> onlineStockLimit;
   final Value<String> unit;
   final Value<String?> imagePath;
   final Value<String?> imageUrl;
@@ -1289,6 +1343,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.salePrice = const Value.absent(),
     this.wholesalePrice = const Value.absent(),
     this.vipPrice = const Value.absent(),
+    this.onlineStockLimit = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1310,6 +1365,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.salePrice = const Value.absent(),
     this.wholesalePrice = const Value.absent(),
     this.vipPrice = const Value.absent(),
+    this.onlineStockLimit = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1333,6 +1389,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<int>? salePrice,
     Expression<int>? wholesalePrice,
     Expression<int>? vipPrice,
+    Expression<int>? onlineStockLimit,
     Expression<String>? unit,
     Expression<String>? imagePath,
     Expression<String>? imageUrl,
@@ -1354,6 +1411,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (salePrice != null) 'sale_price': salePrice,
       if (wholesalePrice != null) 'wholesale_price': wholesalePrice,
       if (vipPrice != null) 'vip_price': vipPrice,
+      if (onlineStockLimit != null) 'online_stock_limit': onlineStockLimit,
       if (unit != null) 'unit': unit,
       if (imagePath != null) 'image_path': imagePath,
       if (imageUrl != null) 'image_url': imageUrl,
@@ -1377,6 +1435,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<int>? salePrice,
     Value<int?>? wholesalePrice,
     Value<int?>? vipPrice,
+    Value<int?>? onlineStockLimit,
     Value<String>? unit,
     Value<String?>? imagePath,
     Value<String?>? imageUrl,
@@ -1398,6 +1457,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       salePrice: salePrice ?? this.salePrice,
       wholesalePrice: wholesalePrice ?? this.wholesalePrice,
       vipPrice: vipPrice ?? this.vipPrice,
+      onlineStockLimit: onlineStockLimit ?? this.onlineStockLimit,
       unit: unit ?? this.unit,
       imagePath: imagePath ?? this.imagePath,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -1451,6 +1511,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (vipPrice.present) {
       map['vip_price'] = Variable<int>(vipPrice.value);
     }
+    if (onlineStockLimit.present) {
+      map['online_stock_limit'] = Variable<int>(onlineStockLimit.value);
+    }
     if (unit.present) {
       map['unit'] = Variable<String>(unit.value);
     }
@@ -1486,6 +1549,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('salePrice: $salePrice, ')
           ..write('wholesalePrice: $wholesalePrice, ')
           ..write('vipPrice: $vipPrice, ')
+          ..write('onlineStockLimit: $onlineStockLimit, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -11283,6 +11347,7 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<int> salePrice,
       Value<int?> wholesalePrice,
       Value<int?> vipPrice,
+      Value<int?> onlineStockLimit,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -11305,6 +11370,7 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<int> salePrice,
       Value<int?> wholesalePrice,
       Value<int?> vipPrice,
+      Value<int?> onlineStockLimit,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -11388,6 +11454,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<int> get vipPrice => $composableBuilder(
     column: $table.vipPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get onlineStockLimit => $composableBuilder(
+    column: $table.onlineStockLimit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11491,6 +11562,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get onlineStockLimit => $composableBuilder(
+    column: $table.onlineStockLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get unit => $composableBuilder(
     column: $table.unit,
     builder: (column) => ColumnOrderings(column),
@@ -11567,6 +11643,11 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<int> get vipPrice =>
       $composableBuilder(column: $table.vipPrice, builder: (column) => column);
 
+  GeneratedColumn<int> get onlineStockLimit => $composableBuilder(
+    column: $table.onlineStockLimit,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get unit =>
       $composableBuilder(column: $table.unit, builder: (column) => column);
 
@@ -11622,6 +11703,7 @@ class $$ProductsTableTableManager
                 Value<int> salePrice = const Value.absent(),
                 Value<int?> wholesalePrice = const Value.absent(),
                 Value<int?> vipPrice = const Value.absent(),
+                Value<int?> onlineStockLimit = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -11642,6 +11724,7 @@ class $$ProductsTableTableManager
                 salePrice: salePrice,
                 wholesalePrice: wholesalePrice,
                 vipPrice: vipPrice,
+                onlineStockLimit: onlineStockLimit,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,
@@ -11664,6 +11747,7 @@ class $$ProductsTableTableManager
                 Value<int> salePrice = const Value.absent(),
                 Value<int?> wholesalePrice = const Value.absent(),
                 Value<int?> vipPrice = const Value.absent(),
+                Value<int?> onlineStockLimit = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -11684,6 +11768,7 @@ class $$ProductsTableTableManager
                 salePrice: salePrice,
                 wholesalePrice: wholesalePrice,
                 vipPrice: vipPrice,
+                onlineStockLimit: onlineStockLimit,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,

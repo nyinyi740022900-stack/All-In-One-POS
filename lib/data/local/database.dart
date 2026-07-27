@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +117,11 @@ class AppDatabase extends _$AppDatabase {
           // stock, so the owner notices before packing it.
           if (from < 15) {
             await m.addColumn(orderItems, orderItems.lowStockAtOrder);
+          }
+          // v16: owner-set cap on how many units of a product the web
+          // storefront may sell, independent of real in-store stock.
+          if (from < 16) {
+            await m.addColumn(products, products.onlineStockLimit);
           }
         },
       );

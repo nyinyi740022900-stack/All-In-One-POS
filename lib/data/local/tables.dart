@@ -38,6 +38,15 @@ class Products extends Table with SyncColumns {
   /// never sets these keeps ordinary single pricing with no behavior change.
   IntColumn get wholesalePrice => integer().nullable()();
   IntColumn get vipPrice => integer().nullable()();
+
+  /// Caps how many units of this product the public web storefront will
+  /// sell, independent of the shop's real [StockLevels] quantity — e.g. a
+  /// shop with 20 in-store may want to reserve only 5 for online, keeping
+  /// the rest for walk-in customers. Null means "no cap" (storefront just
+  /// warns on the real stock count instead, see `low_stock_at_order`).
+  /// Unlike the real-stock warning, this cap is hard-enforced: it's a number
+  /// the owner set on purpose, not a value that can be stale from sync lag.
+  IntColumn get onlineStockLimit => integer().nullable()();
   TextColumn get unit => text().withDefault(const Constant('pcs'))();
   TextColumn get imagePath => text().nullable()();
   /// Public storage URL of the product photo (shown on the web storefront).

@@ -650,6 +650,18 @@ abstract class AppLocalizations {
   /// **'VIP price'**
   String get productVipPrice;
 
+  /// No description provided for @productOnlineStockLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — cap how many of this product your web storefront may sell, separate from your real in-store stock. Leave blank for no cap.'**
+  String get productOnlineStockLimitHint;
+
+  /// No description provided for @productOnlineStockLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Online stock limit'**
+  String get productOnlineStockLimit;
+
   /// No description provided for @productBarcode.
   ///
   /// In en, this message translates to:
@@ -3037,6 +3049,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.'**
   String get storefrontBlocked;
+
+  /// No description provided for @storefrontOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, one of your items just sold out online. Please adjust your cart and try again.'**
+  String get storefrontOutOfStock;
+
+  /// No description provided for @storefrontOnlineLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left online'**
+  String storefrontOnlineLeft(int count);
+
+  /// No description provided for @storefrontSoldOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold out online'**
+  String get storefrontSoldOut;
 
   /// No description provided for @storefrontCheckoutBar.
   ///
