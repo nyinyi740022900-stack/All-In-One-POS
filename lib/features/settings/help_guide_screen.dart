@@ -44,7 +44,7 @@ class HelpGuideScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(body),
+                    child: Text(body, style: const TextStyle(height: 1.5)),
                   ),
                 ),
               ],
