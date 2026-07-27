@@ -2051,6 +2051,319 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
   }
 }
 
+class $StockLotsTable extends StockLots
+    with TableInfo<$StockLotsTable, StockLot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StockLotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _seqMeta = const VerificationMeta('seq');
+  @override
+  late final GeneratedColumn<int> seq = GeneratedColumn<int>(
+    'seq',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remainingQtyMeta = const VerificationMeta(
+    'remainingQty',
+  );
+  @override
+  late final GeneratedColumn<int> remainingQty = GeneratedColumn<int>(
+    'remaining_qty',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unitCostMeta = const VerificationMeta(
+    'unitCost',
+  );
+  @override
+  late final GeneratedColumn<int> unitCost = GeneratedColumn<int>(
+    'unit_cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    seq,
+    productId,
+    remainingQty,
+    unitCost,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stock_lots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StockLot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('seq')) {
+      context.handle(
+        _seqMeta,
+        seq.isAcceptableOrUnknown(data['seq']!, _seqMeta),
+      );
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('remaining_qty')) {
+      context.handle(
+        _remainingQtyMeta,
+        remainingQty.isAcceptableOrUnknown(
+          data['remaining_qty']!,
+          _remainingQtyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_remainingQtyMeta);
+    }
+    if (data.containsKey('unit_cost')) {
+      context.handle(
+        _unitCostMeta,
+        unitCost.isAcceptableOrUnknown(data['unit_cost']!, _unitCostMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_unitCostMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {seq};
+  @override
+  StockLot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StockLot(
+      seq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seq'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      )!,
+      remainingQty: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remaining_qty'],
+      )!,
+      unitCost: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}unit_cost'],
+      )!,
+    );
+  }
+
+  @override
+  $StockLotsTable createAlias(String alias) {
+    return $StockLotsTable(attachedDatabase, alias);
+  }
+}
+
+class StockLot extends DataClass implements Insertable<StockLot> {
+  final int seq;
+  final String productId;
+  final int remainingQty;
+  final int unitCost;
+  const StockLot({
+    required this.seq,
+    required this.productId,
+    required this.remainingQty,
+    required this.unitCost,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['seq'] = Variable<int>(seq);
+    map['product_id'] = Variable<String>(productId);
+    map['remaining_qty'] = Variable<int>(remainingQty);
+    map['unit_cost'] = Variable<int>(unitCost);
+    return map;
+  }
+
+  StockLotsCompanion toCompanion(bool nullToAbsent) {
+    return StockLotsCompanion(
+      seq: Value(seq),
+      productId: Value(productId),
+      remainingQty: Value(remainingQty),
+      unitCost: Value(unitCost),
+    );
+  }
+
+  factory StockLot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StockLot(
+      seq: serializer.fromJson<int>(json['seq']),
+      productId: serializer.fromJson<String>(json['productId']),
+      remainingQty: serializer.fromJson<int>(json['remainingQty']),
+      unitCost: serializer.fromJson<int>(json['unitCost']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'seq': serializer.toJson<int>(seq),
+      'productId': serializer.toJson<String>(productId),
+      'remainingQty': serializer.toJson<int>(remainingQty),
+      'unitCost': serializer.toJson<int>(unitCost),
+    };
+  }
+
+  StockLot copyWith({
+    int? seq,
+    String? productId,
+    int? remainingQty,
+    int? unitCost,
+  }) => StockLot(
+    seq: seq ?? this.seq,
+    productId: productId ?? this.productId,
+    remainingQty: remainingQty ?? this.remainingQty,
+    unitCost: unitCost ?? this.unitCost,
+  );
+  StockLot copyWithCompanion(StockLotsCompanion data) {
+    return StockLot(
+      seq: data.seq.present ? data.seq.value : this.seq,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      remainingQty: data.remainingQty.present
+          ? data.remainingQty.value
+          : this.remainingQty,
+      unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockLot(')
+          ..write('seq: $seq, ')
+          ..write('productId: $productId, ')
+          ..write('remainingQty: $remainingQty, ')
+          ..write('unitCost: $unitCost')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(seq, productId, remainingQty, unitCost);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StockLot &&
+          other.seq == this.seq &&
+          other.productId == this.productId &&
+          other.remainingQty == this.remainingQty &&
+          other.unitCost == this.unitCost);
+}
+
+class StockLotsCompanion extends UpdateCompanion<StockLot> {
+  final Value<int> seq;
+  final Value<String> productId;
+  final Value<int> remainingQty;
+  final Value<int> unitCost;
+  const StockLotsCompanion({
+    this.seq = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.remainingQty = const Value.absent(),
+    this.unitCost = const Value.absent(),
+  });
+  StockLotsCompanion.insert({
+    this.seq = const Value.absent(),
+    required String productId,
+    required int remainingQty,
+    required int unitCost,
+  }) : productId = Value(productId),
+       remainingQty = Value(remainingQty),
+       unitCost = Value(unitCost);
+  static Insertable<StockLot> custom({
+    Expression<int>? seq,
+    Expression<String>? productId,
+    Expression<int>? remainingQty,
+    Expression<int>? unitCost,
+  }) {
+    return RawValuesInsertable({
+      if (seq != null) 'seq': seq,
+      if (productId != null) 'product_id': productId,
+      if (remainingQty != null) 'remaining_qty': remainingQty,
+      if (unitCost != null) 'unit_cost': unitCost,
+    });
+  }
+
+  StockLotsCompanion copyWith({
+    Value<int>? seq,
+    Value<String>? productId,
+    Value<int>? remainingQty,
+    Value<int>? unitCost,
+  }) {
+    return StockLotsCompanion(
+      seq: seq ?? this.seq,
+      productId: productId ?? this.productId,
+      remainingQty: remainingQty ?? this.remainingQty,
+      unitCost: unitCost ?? this.unitCost,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (seq.present) {
+      map['seq'] = Variable<int>(seq.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (remainingQty.present) {
+      map['remaining_qty'] = Variable<int>(remainingQty.value);
+    }
+    if (unitCost.present) {
+      map['unit_cost'] = Variable<int>(unitCost.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockLotsCompanion(')
+          ..write('seq: $seq, ')
+          ..write('productId: $productId, ')
+          ..write('remainingQty: $remainingQty, ')
+          ..write('unitCost: $unitCost')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $StockMovementsTable extends StockMovements
     with TableInfo<$StockMovementsTable, StockMovement> {
   @override
@@ -4034,6 +4347,17 @@ class $SaleItemsTable extends SaleItems
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _costSnapshotMeta = const VerificationMeta(
+    'costSnapshot',
+  );
+  @override
+  late final GeneratedColumn<int> costSnapshot = GeneratedColumn<int>(
+    'cost_snapshot',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4048,6 +4372,7 @@ class $SaleItemsTable extends SaleItems
     priceSnapshot,
     qty,
     lineTotal,
+    costSnapshot,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4152,6 +4477,15 @@ class $SaleItemsTable extends SaleItems
     } else if (isInserting) {
       context.missing(_lineTotalMeta);
     }
+    if (data.containsKey('cost_snapshot')) {
+      context.handle(
+        _costSnapshotMeta,
+        costSnapshot.isAcceptableOrUnknown(
+          data['cost_snapshot']!,
+          _costSnapshotMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4209,6 +4543,10 @@ class $SaleItemsTable extends SaleItems
         DriftSqlType.int,
         data['${effectivePrefix}line_total'],
       )!,
+      costSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cost_snapshot'],
+      ),
     );
   }
 
@@ -4234,6 +4572,14 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   final int priceSnapshot;
   final int qty;
   final int lineTotal;
+
+  /// Total cost of goods sold for this line, FIFO-consumed from
+  /// [StockLots] at sale time — mirrors [lineTotal] (a total, not a
+  /// per-unit price like [priceSnapshot]) so `lineTotal - costSnapshot` is
+  /// the line's exact profit with no rounding. Null on sales predating this
+  /// feature, or an invoice-only shop that doesn't track stock — Analytics
+  /// falls back to the product's flat cost price for those.
+  final int? costSnapshot;
   const SaleItem({
     required this.id,
     required this.shopId,
@@ -4247,6 +4593,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     required this.priceSnapshot,
     required this.qty,
     required this.lineTotal,
+    this.costSnapshot,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4263,6 +4610,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     map['price_snapshot'] = Variable<int>(priceSnapshot);
     map['qty'] = Variable<int>(qty);
     map['line_total'] = Variable<int>(lineTotal);
+    if (!nullToAbsent || costSnapshot != null) {
+      map['cost_snapshot'] = Variable<int>(costSnapshot);
+    }
     return map;
   }
 
@@ -4280,6 +4630,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       priceSnapshot: Value(priceSnapshot),
       qty: Value(qty),
       lineTotal: Value(lineTotal),
+      costSnapshot: costSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costSnapshot),
     );
   }
 
@@ -4301,6 +4654,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       priceSnapshot: serializer.fromJson<int>(json['priceSnapshot']),
       qty: serializer.fromJson<int>(json['qty']),
       lineTotal: serializer.fromJson<int>(json['lineTotal']),
+      costSnapshot: serializer.fromJson<int?>(json['costSnapshot']),
     );
   }
   @override
@@ -4319,6 +4673,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       'priceSnapshot': serializer.toJson<int>(priceSnapshot),
       'qty': serializer.toJson<int>(qty),
       'lineTotal': serializer.toJson<int>(lineTotal),
+      'costSnapshot': serializer.toJson<int?>(costSnapshot),
     };
   }
 
@@ -4335,6 +4690,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     int? priceSnapshot,
     int? qty,
     int? lineTotal,
+    Value<int?> costSnapshot = const Value.absent(),
   }) => SaleItem(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -4348,6 +4704,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     priceSnapshot: priceSnapshot ?? this.priceSnapshot,
     qty: qty ?? this.qty,
     lineTotal: lineTotal ?? this.lineTotal,
+    costSnapshot: costSnapshot.present ? costSnapshot.value : this.costSnapshot,
   );
   SaleItem copyWithCompanion(SaleItemsCompanion data) {
     return SaleItem(
@@ -4367,6 +4724,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           : this.priceSnapshot,
       qty: data.qty.present ? data.qty.value : this.qty,
       lineTotal: data.lineTotal.present ? data.lineTotal.value : this.lineTotal,
+      costSnapshot: data.costSnapshot.present
+          ? data.costSnapshot.value
+          : this.costSnapshot,
     );
   }
 
@@ -4384,7 +4744,8 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ..write('nameSnapshot: $nameSnapshot, ')
           ..write('priceSnapshot: $priceSnapshot, ')
           ..write('qty: $qty, ')
-          ..write('lineTotal: $lineTotal')
+          ..write('lineTotal: $lineTotal, ')
+          ..write('costSnapshot: $costSnapshot')
           ..write(')'))
         .toString();
   }
@@ -4403,6 +4764,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     priceSnapshot,
     qty,
     lineTotal,
+    costSnapshot,
   );
   @override
   bool operator ==(Object other) =>
@@ -4419,7 +4781,8 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           other.nameSnapshot == this.nameSnapshot &&
           other.priceSnapshot == this.priceSnapshot &&
           other.qty == this.qty &&
-          other.lineTotal == this.lineTotal);
+          other.lineTotal == this.lineTotal &&
+          other.costSnapshot == this.costSnapshot);
 }
 
 class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
@@ -4435,6 +4798,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   final Value<int> priceSnapshot;
   final Value<int> qty;
   final Value<int> lineTotal;
+  final Value<int?> costSnapshot;
   final Value<int> rowid;
   const SaleItemsCompanion({
     this.id = const Value.absent(),
@@ -4449,6 +4813,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.priceSnapshot = const Value.absent(),
     this.qty = const Value.absent(),
     this.lineTotal = const Value.absent(),
+    this.costSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SaleItemsCompanion.insert({
@@ -4464,6 +4829,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     required int priceSnapshot,
     required int qty,
     required int lineTotal,
+    this.costSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -4486,6 +4852,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Expression<int>? priceSnapshot,
     Expression<int>? qty,
     Expression<int>? lineTotal,
+    Expression<int>? costSnapshot,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4501,6 +4868,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       if (priceSnapshot != null) 'price_snapshot': priceSnapshot,
       if (qty != null) 'qty': qty,
       if (lineTotal != null) 'line_total': lineTotal,
+      if (costSnapshot != null) 'cost_snapshot': costSnapshot,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4518,6 +4886,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Value<int>? priceSnapshot,
     Value<int>? qty,
     Value<int>? lineTotal,
+    Value<int?>? costSnapshot,
     Value<int>? rowid,
   }) {
     return SaleItemsCompanion(
@@ -4533,6 +4902,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       priceSnapshot: priceSnapshot ?? this.priceSnapshot,
       qty: qty ?? this.qty,
       lineTotal: lineTotal ?? this.lineTotal,
+      costSnapshot: costSnapshot ?? this.costSnapshot,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4576,6 +4946,9 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     if (lineTotal.present) {
       map['line_total'] = Variable<int>(lineTotal.value);
     }
+    if (costSnapshot.present) {
+      map['cost_snapshot'] = Variable<int>(costSnapshot.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4597,6 +4970,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
           ..write('priceSnapshot: $priceSnapshot, ')
           ..write('qty: $qty, ')
           ..write('lineTotal: $lineTotal, ')
+          ..write('costSnapshot: $costSnapshot, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10544,6 +10918,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $ProductsTable products = $ProductsTable(this);
   late final $StockLevelsTable stockLevels = $StockLevelsTable(this);
+  late final $StockLotsTable stockLots = $StockLotsTable(this);
   late final $StockMovementsTable stockMovements = $StockMovementsTable(this);
   late final $SalesTable sales = $SalesTable(this);
   late final $SaleItemsTable saleItems = $SaleItemsTable(this);
@@ -10566,6 +10941,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     categories,
     products,
     stockLevels,
+    stockLots,
     stockMovements,
     sales,
     saleItems,
@@ -11555,6 +11931,177 @@ typedef $$StockLevelsTableProcessedTableManager =
       StockLevel,
       PrefetchHooks Function()
     >;
+typedef $$StockLotsTableCreateCompanionBuilder =
+    StockLotsCompanion Function({
+      Value<int> seq,
+      required String productId,
+      required int remainingQty,
+      required int unitCost,
+    });
+typedef $$StockLotsTableUpdateCompanionBuilder =
+    StockLotsCompanion Function({
+      Value<int> seq,
+      Value<String> productId,
+      Value<int> remainingQty,
+      Value<int> unitCost,
+    });
+
+class $$StockLotsTableFilterComposer
+    extends Composer<_$AppDatabase, $StockLotsTable> {
+  $$StockLotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get seq => $composableBuilder(
+    column: $table.seq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remainingQty => $composableBuilder(
+    column: $table.remainingQty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get unitCost => $composableBuilder(
+    column: $table.unitCost,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StockLotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StockLotsTable> {
+  $$StockLotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get seq => $composableBuilder(
+    column: $table.seq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get remainingQty => $composableBuilder(
+    column: $table.remainingQty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get unitCost => $composableBuilder(
+    column: $table.unitCost,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StockLotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StockLotsTable> {
+  $$StockLotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get seq =>
+      $composableBuilder(column: $table.seq, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<int> get remainingQty => $composableBuilder(
+    column: $table.remainingQty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get unitCost =>
+      $composableBuilder(column: $table.unitCost, builder: (column) => column);
+}
+
+class $$StockLotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StockLotsTable,
+          StockLot,
+          $$StockLotsTableFilterComposer,
+          $$StockLotsTableOrderingComposer,
+          $$StockLotsTableAnnotationComposer,
+          $$StockLotsTableCreateCompanionBuilder,
+          $$StockLotsTableUpdateCompanionBuilder,
+          (StockLot, BaseReferences<_$AppDatabase, $StockLotsTable, StockLot>),
+          StockLot,
+          PrefetchHooks Function()
+        > {
+  $$StockLotsTableTableManager(_$AppDatabase db, $StockLotsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StockLotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StockLotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StockLotsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> seq = const Value.absent(),
+                Value<String> productId = const Value.absent(),
+                Value<int> remainingQty = const Value.absent(),
+                Value<int> unitCost = const Value.absent(),
+              }) => StockLotsCompanion(
+                seq: seq,
+                productId: productId,
+                remainingQty: remainingQty,
+                unitCost: unitCost,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> seq = const Value.absent(),
+                required String productId,
+                required int remainingQty,
+                required int unitCost,
+              }) => StockLotsCompanion.insert(
+                seq: seq,
+                productId: productId,
+                remainingQty: remainingQty,
+                unitCost: unitCost,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StockLotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StockLotsTable,
+      StockLot,
+      $$StockLotsTableFilterComposer,
+      $$StockLotsTableOrderingComposer,
+      $$StockLotsTableAnnotationComposer,
+      $$StockLotsTableCreateCompanionBuilder,
+      $$StockLotsTableUpdateCompanionBuilder,
+      (StockLot, BaseReferences<_$AppDatabase, $StockLotsTable, StockLot>),
+      StockLot,
+      PrefetchHooks Function()
+    >;
 typedef $$StockMovementsTableCreateCompanionBuilder =
     StockMovementsCompanion Function({
       required String id,
@@ -12413,6 +12960,7 @@ typedef $$SaleItemsTableCreateCompanionBuilder =
       required int priceSnapshot,
       required int qty,
       required int lineTotal,
+      Value<int?> costSnapshot,
       Value<int> rowid,
     });
 typedef $$SaleItemsTableUpdateCompanionBuilder =
@@ -12429,6 +12977,7 @@ typedef $$SaleItemsTableUpdateCompanionBuilder =
       Value<int> priceSnapshot,
       Value<int> qty,
       Value<int> lineTotal,
+      Value<int?> costSnapshot,
       Value<int> rowid,
     });
 
@@ -12498,6 +13047,11 @@ class $$SaleItemsTableFilterComposer
 
   ColumnFilters<int> get lineTotal => $composableBuilder(
     column: $table.lineTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get costSnapshot => $composableBuilder(
+    column: $table.costSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12570,6 +13124,11 @@ class $$SaleItemsTableOrderingComposer
     column: $table.lineTotal,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get costSnapshot => $composableBuilder(
+    column: $table.costSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SaleItemsTableAnnotationComposer
@@ -12620,6 +13179,11 @@ class $$SaleItemsTableAnnotationComposer
 
   GeneratedColumn<int> get lineTotal =>
       $composableBuilder(column: $table.lineTotal, builder: (column) => column);
+
+  GeneratedColumn<int> get costSnapshot => $composableBuilder(
+    column: $table.costSnapshot,
+    builder: (column) => column,
+  );
 }
 
 class $$SaleItemsTableTableManager
@@ -12662,6 +13226,7 @@ class $$SaleItemsTableTableManager
                 Value<int> priceSnapshot = const Value.absent(),
                 Value<int> qty = const Value.absent(),
                 Value<int> lineTotal = const Value.absent(),
+                Value<int?> costSnapshot = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SaleItemsCompanion(
                 id: id,
@@ -12676,6 +13241,7 @@ class $$SaleItemsTableTableManager
                 priceSnapshot: priceSnapshot,
                 qty: qty,
                 lineTotal: lineTotal,
+                costSnapshot: costSnapshot,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -12692,6 +13258,7 @@ class $$SaleItemsTableTableManager
                 required int priceSnapshot,
                 required int qty,
                 required int lineTotal,
+                Value<int?> costSnapshot = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SaleItemsCompanion.insert(
                 id: id,
@@ -12706,6 +13273,7 @@ class $$SaleItemsTableTableManager
                 priceSnapshot: priceSnapshot,
                 qty: qty,
                 lineTotal: lineTotal,
+                costSnapshot: costSnapshot,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -15577,6 +16145,8 @@ class $AppDatabaseManager {
       $$ProductsTableTableManager(_db, _db.products);
   $$StockLevelsTableTableManager get stockLevels =>
       $$StockLevelsTableTableManager(_db, _db.stockLevels);
+  $$StockLotsTableTableManager get stockLots =>
+      $$StockLotsTableTableManager(_db, _db.stockLots);
   $$StockMovementsTableTableManager get stockMovements =>
       $$StockMovementsTableTableManager(_db, _db.stockMovements);
   $$SalesTableTableManager get sales =>

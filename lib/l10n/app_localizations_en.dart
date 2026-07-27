@@ -346,6 +346,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockAdjustQuantityHintAdjust => '+ to increase, − to decrease';
 
   @override
+  String get stockAdjustUnitCost => 'Unit cost (optional)';
+
+  @override
+  String get stockAdjustUnitCostHint =>
+      'Leave blank to use the product\'s cost price';
+
+  @override
   String get stockAdjustReason => 'Reason';
 
   @override
@@ -439,6 +446,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSupport => 'Support';
+
+  @override
+  String get settingsAppGuide => 'App Guide';
+
+  @override
+  String get helpGuideTitle => 'App Guide';
+
+  @override
+  String get helpGuideIntro =>
+      'A quick tour of what each screen does. Tap a section to expand it.';
+
+  @override
+  String get helpGuideSellTitle => 'Sell';
+
+  @override
+  String get helpGuideSellBody =>
+      '• Tap a product to add it to the cart; tap again to increase the quantity.\n• Tap a cart item to change its quantity or remove it.\n• Choose a payment method and confirm to complete the sale — a receipt prints automatically if a printer is connected.';
+
+  @override
+  String get helpGuideInventoryTitle => 'Inventory';
+
+  @override
+  String get helpGuideInventoryBody =>
+      '• Add or edit products, prices, and stock quantities.\n• Use \"Restock\" to add purchased stock, or \"Adjust\" to correct a count with a reason (damaged, lost, etc.).\n• Low-stock products are flagged so you know what to reorder.';
+
+  @override
+  String get helpGuideOrdersTitle => 'Orders';
+
+  @override
+  String get helpGuideOrdersBody =>
+      '• Track customer orders from request through delivery.\n• Update an order\'s status as it moves through your workflow.\n• Orders placed on your online storefront also appear here.';
+
+  @override
+  String get helpGuideInvoicesTitle => 'Invoices';
+
+  @override
+  String get helpGuideInvoicesBody =>
+      '• Create and share invoices for credit sales or bulk purchases.\n• Record partial or full payments against an invoice.\n• Overdue invoices are highlighted.';
+
+  @override
+  String get helpGuideAnalyticsTitle => 'Analytics';
+
+  @override
+  String get helpGuideAnalyticsBody =>
+      '• View daily, weekly, and monthly sales totals, profit, and best-selling products.\n• Compare performance across date ranges.\n• Use the reports to guide restocking and pricing decisions.';
+
+  @override
+  String get helpGuideSettingsTitle => 'Settings';
+
+  @override
+  String get helpGuideSettingsBody =>
+      '• Manage your shop profile, printers, staff devices, and license.\n• Switch between English and Myanmar at any time.\n• Use \"Owner Tools\" to hand a device to staff, and \"Sync\" to check your connection to the cloud.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -1508,6 +1567,91 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontNumberCopied => 'Number copied';
+
+  @override
+  String storefrontCheckoutBar(int count, String total) {
+    return 'Checkout · $count item(s) · $total';
+  }
+
+  @override
+  String get storefrontShopFallbackName => 'Shop';
+
+  @override
+  String get storefrontPhoneCopied => 'Phone number copied';
+
+  @override
+  String get storefrontAdd => 'Add';
+
+  @override
+  String get storefrontYourDetails => 'Your details';
+
+  @override
+  String get storefrontNameRequired => 'Name *';
+
+  @override
+  String get storefrontPayment => 'Payment';
+
+  @override
+  String get storefrontBankTransfer => 'Bank transfer';
+
+  @override
+  String get storefrontCashOnDelivery => 'Cash on delivery';
+
+  @override
+  String get storefrontPayTo => 'Pay to:';
+
+  @override
+  String get storefrontAttachProof => 'Attach payment screenshot';
+
+  @override
+  String storefrontProofAttached(String name) {
+    return 'Screenshot: $name';
+  }
+
+  @override
+  String get storefrontCodNoticeBeforeOrder =>
+      'You\'ll pay cash to the courier when your order arrives.';
+
+  @override
+  String storefrontTotal(String amount) {
+    return 'Total: $amount';
+  }
+
+  @override
+  String get storefrontPlaceOrder => 'Place order';
+
+  @override
+  String get storefrontOrderPlaced => 'Order placed!';
+
+  @override
+  String storefrontOrderNo(String orderNo) {
+    return 'Order no: $orderNo';
+  }
+
+  @override
+  String get storefrontTransferInstructions =>
+      'Transfer and send the screenshot to the shop:';
+
+  @override
+  String get storefrontCodNoticeAfterOrder =>
+      'You\'ll pay cash to the courier on delivery.';
+
+  @override
+  String get storefrontSaveToPhotos => 'Save to Photos';
+
+  @override
+  String get storefrontDone => 'Done';
+
+  @override
+  String get storefrontCopyNumber => 'Copy number';
+
+  @override
+  String storefrontNotFound(String slug) {
+    return 'Shop \"$slug\" not found or not published.';
+  }
+
+  @override
+  String get storefrontOpenShopLink => 'Open a shop link, e.g. /your-shop-slug';
 
   @override
   String get onboardWelcomeTitle => 'Welcome to GoldPOSMM';

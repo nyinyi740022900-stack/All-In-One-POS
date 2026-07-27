@@ -40,11 +40,17 @@ void main() {
     expect(s.discount, 100);
   });
 
-  test('profit = revenue - cost of goods sold', () {
+  test('profit = revenue - cost of goods sold (flat cost fallback)', () {
     final s = computeAnalytics(
       sales: [sale(2100, at: d1)],
       items: [
-        (productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100),
+        (
+          productId: 'p1',
+          name: 'Coke',
+          qty: 3,
+          lineTotal: 2100,
+          costSnapshot: null,
+        ),
       ],
       productCost: {'p1': 550},
       stockValue: 0,
@@ -53,6 +59,28 @@ void main() {
     );
     expect(s.cost, 1650); // 3 * 550
     expect(s.profit, 450); // 2100 - 1650
+  });
+
+  test('costSnapshot (FIFO) overrides the flat productCost fallback', () {
+    final s = computeAnalytics(
+      sales: [sale(2100, at: d1)],
+      items: [
+        // Bought this batch at 600/unit, not the product's current 550.
+        (
+          productId: 'p1',
+          name: 'Coke',
+          qty: 3,
+          lineTotal: 2100,
+          costSnapshot: 1800,
+        ),
+      ],
+      productCost: {'p1': 550},
+      stockValue: 0,
+      start: start,
+      end: end,
+    );
+    expect(s.cost, 1800); // FIFO snapshot, not 3 * 550
+    expect(s.profit, 300); // 2100 - 1800
   });
 
   test('daily series is zero-filled across the whole range', () {
@@ -77,9 +105,9 @@ void main() {
     final s = computeAnalytics(
       sales: const [],
       items: [
-        (productId: 'a', name: 'A', qty: 1, lineTotal: 100),
-        (productId: 'b', name: 'B', qty: 5, lineTotal: 900),
-        (productId: 'a', name: 'A', qty: 2, lineTotal: 200),
+        (productId: 'a', name: 'A', qty: 1, lineTotal: 100, costSnapshot: null),
+        (productId: 'b', name: 'B', qty: 5, lineTotal: 900, costSnapshot: null),
+        (productId: 'a', name: 'A', qty: 2, lineTotal: 200, costSnapshot: null),
       ],
       productCost: const {},
       stockValue: 0,

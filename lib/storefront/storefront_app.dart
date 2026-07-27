@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../l10n/app_localizations.dart';
 import 'storefront_page.dart';
 
 /// Public storefront web app. The shop is chosen by the URL:
 ///   `https://host/slug`         (path)   e.g. /aungset-3f9a
 ///   `https://host/?shop=slug`   (query)  fallback for local dev
-class StorefrontApp extends StatelessWidget {
+class StorefrontApp extends StatefulWidget {
   const StorefrontApp({super.key});
+
+  @override
+  State<StorefrontApp> createState() => _StorefrontAppState();
+}
+
+class _StorefrontAppState extends State<StorefrontApp> {
+  // Myanmar-first, matching the main app's default and this page's audience.
+  // Anonymous customers have no account/settings to persist a choice in, so
+  // this is plain in-memory state threaded down via a toggle button — see
+  // StorefrontLocaleBar.
+  Locale _locale = const Locale('my');
 
   String get _slug {
     final uri = Uri.base;
@@ -15,6 +28,11 @@ class StorefrontApp extends StatelessWidget {
     }
     return uri.queryParameters['shop'] ?? '';
   }
+
+  void _toggleLocale() => setState(() {
+        _locale =
+            _locale.languageCode == 'my' ? const Locale('en') : const Locale('my');
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -26,26 +44,39 @@ class StorefrontApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF6C4AB6),
         useMaterial3: true,
       ),
+      locale: _locale,
+      // Force the chosen locale — never fall back to the visitor's browser
+      // locale (same rule the main app follows).
+      localeResolutionCallback: (_, _) => _locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: slug.isEmpty
-          ? const _NoSlug()
-          : StorefrontPage(slug: slug),
+          ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
+          : StorefrontPage(
+              slug: slug, locale: _locale, onToggleLocale: _toggleLocale),
     );
   }
 }
 
 class _NoSlug extends StatelessWidget {
-  const _NoSlug();
+  const _NoSlug({required this.locale, required this.onToggleLocale});
+  final Locale locale;
+  final VoidCallback onToggleLocale;
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: StorefrontLocaleBar(locale: locale, onToggle: onToggleLocale),
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Open a shop link, e.g. /your-shop-slug',
-            textAlign: TextAlign.center,
-          ),
+          padding: const EdgeInsets.all(24),
+          child: Text(l.storefrontOpenShopLink, textAlign: TextAlign.center),
         ),
       ),
     );

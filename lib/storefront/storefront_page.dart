@@ -7,17 +7,58 @@ import '../core/image_util.dart';
 import '../features/invoices/invoice_capture.dart';
 import '../features/invoices/invoice_view.dart';
 import '../features/orders/myanmar_townships.dart';
+import '../l10n/app_localizations.dart';
 import 'storefront_api.dart';
 import 'storefront_download.dart';
 
 final _money = NumberFormat('#,##0', 'en_US');
-String _ks(int v) => '${_money.format(v)} Ks';
+String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
+
+/// Slim transparent app bar with just a language toggle — the storefront has
+/// no user account/settings to persist a language choice, so it's plain
+/// in-memory state on [StorefrontApp], threaded down to whichever screen is
+/// showing. Shows the *other* language's own name (matches the main app's
+/// `languageEnglish`/`languageMyanmar` convention) so it reads correctly
+/// regardless of which language the visitor currently has active.
+class StorefrontLocaleBar extends StatelessWidget implements PreferredSizeWidget {
+  const StorefrontLocaleBar({super.key, required this.locale, required this.onToggle});
+  final Locale locale;
+  final VoidCallback onToggle;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(40);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      toolbarHeight: 40,
+      automaticallyImplyLeading: false,
+      actions: [
+        TextButton.icon(
+          onPressed: onToggle,
+          icon: const Icon(Icons.language, size: 16),
+          label: Text(locale.languageCode == 'my' ? l.languageEnglish : l.languageMyanmar),
+        ),
+      ],
+    );
+  }
+}
 
 /// The public storefront for one shop, addressed by [slug]. Shows the catalog,
 /// a cart, and a guest-checkout form that submits an order (no account needed).
 class StorefrontPage extends StatefulWidget {
-  const StorefrontPage({super.key, required this.slug});
+  const StorefrontPage({
+    super.key,
+    required this.slug,
+    required this.locale,
+    required this.onToggleLocale,
+  });
   final String slug;
+  final Locale locale;
+  final VoidCallback onToggleLocale;
 
   @override
   State<StorefrontPage> createState() => _StorefrontPageState();
@@ -72,7 +113,10 @@ class _StorefrontPageState extends State<StorefrontPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
+      appBar: StorefrontLocaleBar(
+          locale: widget.locale, onToggle: widget.onToggleLocale),
       body: FutureBuilder<Catalog>(
         future: _future,
         builder: (context, snap) {
@@ -124,7 +168,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
                   onPressed: () => _future.then((c) => _checkout(c)),
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Text('Checkout · $_count item(s) · ${_ks(_total)}'),
+                    child: Text(l.storefrontCheckoutBar(_count, _ks(l, _total))),
                   ),
                 ),
               ),
@@ -140,6 +184,7 @@ class _ShopBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
@@ -183,7 +228,7 @@ class _ShopBanner extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  info.displayName ?? 'Shop',
+                  info.displayName ?? l.storefrontShopFallbackName,
                   style: Theme.of(context)
                       .textTheme
                       .headlineSmall
@@ -204,10 +249,9 @@ class _ShopBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: info.phone!));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Phone number copied'),
-                                duration: Duration(seconds: 1)));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(l.storefrontPhoneCopied),
+                            duration: const Duration(seconds: 1)));
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -256,6 +300,7 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -288,7 +333,7 @@ class _ProductCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text(_ks(product.price),
+                    Text(_ks(l, product.price),
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold)),
@@ -296,7 +341,7 @@ class _ProductCard extends StatelessWidget {
                     if (qty == 0)
                       FilledButton.tonal(
                         onPressed: onAdd,
-                        child: const Text('Add'),
+                        child: Text(l.storefrontAdd),
                       )
                     else
                       Row(
@@ -418,8 +463,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    if (_orderNo != null) return _confirmation(context);
+    if (_orderNo != null) return _confirmation(context, l);
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottom + 16),
       child: SingleChildScrollView(
@@ -427,28 +473,29 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Your details',
+            Text(l.storefrontYourDetails,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'Name *')),
+                decoration:
+                    InputDecoration(labelText: l.storefrontNameRequired)),
             const SizedBox(height: 8),
             TextField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone')),
+                decoration: InputDecoration(labelText: l.shopPhone)),
             const SizedBox(height: 8),
             TextField(
                 controller: _address,
                 maxLines: 2,
                 decoration:
-                    const InputDecoration(labelText: 'Delivery address')),
+                    InputDecoration(labelText: l.orderDeliveryAddress)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _township,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Township'),
+              decoration: InputDecoration(labelText: l.deliveryTownship),
               items: [
                 for (final t in myanmarTownships)
                   DropdownMenuItem(value: t, child: Text(t)),
@@ -458,20 +505,21 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             const SizedBox(height: 8),
             TextField(
                 controller: _note,
-                decoration: const InputDecoration(labelText: 'Note')),
+                decoration: InputDecoration(labelText: l.orderNote)),
             const SizedBox(height: 16),
-            const Text('Payment', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l.storefrontPayment,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SegmentedButton<String>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                     value: 'transfer',
-                    label: Text('Bank transfer'),
-                    icon: Icon(Icons.account_balance_outlined)),
+                    label: Text(l.storefrontBankTransfer),
+                    icon: const Icon(Icons.account_balance_outlined)),
                 ButtonSegment(
                     value: 'cod',
-                    label: Text('Cash on delivery'),
-                    icon: Icon(Icons.local_shipping_outlined)),
+                    label: Text(l.storefrontCashOnDelivery),
+                    icon: const Icon(Icons.local_shipping_outlined)),
               ],
               selected: {_paymentMethod},
               onSelectionChanged: (s) =>
@@ -488,8 +536,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Pay to:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(l.storefrontPayTo,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         if ((widget.info.payKpay ?? '').isNotEmpty)
                           _PayAccountRow(
@@ -513,27 +562,26 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 onPressed: _pickProof,
                 icon: const Icon(Icons.upload_file),
                 label: Text(_proofName == null
-                    ? 'Attach payment screenshot'
-                    : 'Screenshot: $_proofName'),
+                    ? l.storefrontAttachProof
+                    : l.storefrontProofAttached(_proofName!)),
               ),
             ] else
               Card(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline, size: 18),
+                      const SizedBox(width: 8),
                       Expanded(
-                          child: Text(
-                              "You'll pay cash to the courier when your order arrives.")),
+                          child: Text(l.storefrontCodNoticeBeforeOrder)),
                     ],
                   ),
                 ),
               ),
             const SizedBox(height: 16),
-            Text('Total: ${_ks(widget.total)}',
+            Text(l.storefrontTotal(_ks(l, widget.total)),
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             FilledButton(
@@ -545,7 +593,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Place order'),
+                    : Text(l.storefrontPlaceOrder),
               ),
             ),
           ],
@@ -554,8 +602,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     );
   }
 
-  InvoiceData get _invoiceData => InvoiceData(
-        shopName: widget.info.displayName ?? 'Shop',
+  InvoiceData _invoiceData(AppLocalizations l) => InvoiceData(
+        shopName: widget.info.displayName ?? l.storefrontShopFallbackName,
         shopLogoUrl: widget.info.logoUrl,
         shopPhone: widget.info.phone,
         shopAddress: widget.info.address,
@@ -568,16 +616,16 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             _address.text.trim().isEmpty ? null : _address.text.trim(),
         township: _township,
         items: [
-          for (final l in widget.lines)
+          for (final line in widget.lines)
             InvoiceItemData(
-                name: l.name, qty: l.qty, lineTotal: l.price * l.qty),
+                name: line.name, qty: line.qty, lineTotal: line.price * line.qty),
         ],
       );
 
-  Future<void> _saveInvoiceToPhotos(BuildContext context) async {
+  Future<void> _saveInvoiceToPhotos(BuildContext context, AppLocalizations l) async {
     setState(() => _downloading = true);
     try {
-      final invoice = _invoiceData;
+      final invoice = _invoiceData(l);
       if ((invoice.shopLogoUrl ?? '').isNotEmpty) {
         try {
           await precacheImage(NetworkImage(invoice.shopLogoUrl!), context);
@@ -592,7 +640,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     }
   }
 
-  Widget _confirmation(BuildContext context) {
+  Widget _confirmation(BuildContext context, AppLocalizations l) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -601,17 +649,17 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 48),
             const SizedBox(height: 8),
-            Text('Order placed!',
+            Text(l.storefrontOrderPlaced,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text('Order no: $_orderNo'),
+            Text(l.storefrontOrderNo(_orderNo!)),
             const SizedBox(height: 16),
-            InvoiceView(data: _invoiceData),
+            InvoiceView(data: _invoiceData(l)),
             const SizedBox(height: 12),
             if (_paymentMethod == 'transfer' &&
                 ((widget.info.payKpay ?? '').isNotEmpty ||
                     (widget.info.payWave ?? '').isNotEmpty)) ...[
-              const Text('Transfer and send the screenshot to the shop:'),
+              Text(l.storefrontTransferInstructions),
               const SizedBox(height: 8),
               if ((widget.info.payKpay ?? '').isNotEmpty)
                 _PayAccountRow(
@@ -627,29 +675,30 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 ),
               const SizedBox(height: 16),
             ] else if (_paymentMethod == 'cod') ...[
-              const Text("You'll pay cash to the courier on delivery."),
+              Text(l.storefrontCodNoticeAfterOrder),
               const SizedBox(height: 16),
             ],
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed:
-                        _downloading ? null : () => _saveInvoiceToPhotos(context),
+                    onPressed: _downloading
+                        ? null
+                        : () => _saveInvoiceToPhotos(context, l),
                     icon: _downloading
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.photo_library_outlined),
-                    label: const Text('Save to Photos'),
+                    label: Text(l.storefrontSaveToPhotos),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.of(context).pop('done'),
-                    child: const Text('Done'),
+                    child: Text(l.storefrontDone),
                   ),
                 ),
               ],
@@ -672,6 +721,7 @@ class _PayAccountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final label = (name ?? '').isEmpty ? number : '$name · $number';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -680,12 +730,12 @@ class _PayAccountRow extends StatelessWidget {
           Expanded(child: Text('$method: $label')),
           IconButton(
             icon: const Icon(Icons.copy, size: 16),
-            tooltip: 'Copy number',
+            tooltip: l.storefrontCopyNumber,
             visualDensity: VisualDensity.compact,
             onPressed: () {
               Clipboard.setData(ClipboardData(text: number));
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('Number copied')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.storefrontNumberCopied)));
             },
           ),
         ],
@@ -700,13 +750,14 @@ class _NotFound extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.storefront_outlined, size: 56),
           const SizedBox(height: 12),
-          Text('Shop "$slug" not found or not published.'),
+          Text(l.storefrontNotFound(slug)),
         ],
       ),
     );

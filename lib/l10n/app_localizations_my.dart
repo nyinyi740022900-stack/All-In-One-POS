@@ -340,6 +340,13 @@ class AppLocalizationsMy extends AppLocalizations {
       'တိုးရန် + ၊ လျှော့ရန် − ရိုက်ထည့်ပါ';
 
   @override
+  String get stockAdjustUnitCost => 'ယူနစ်တစ်ခုချင်း အရင်းဈေး (မဖြည့်လည်းရ)';
+
+  @override
+  String get stockAdjustUnitCostHint =>
+      'မဖြည့်ရင် ပစ္စည်းရဲ့ အရင်းဈေးကို သုံးပါမည်';
+
+  @override
   String get stockAdjustReason => 'အကြောင်းရင်း';
 
   @override
@@ -433,6 +440,58 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get settingsSupport => 'အကူအညီ (Support)';
+
+  @override
+  String get settingsAppGuide => 'App အသုံးပြုပုံ လမ်းညွှန်';
+
+  @override
+  String get helpGuideTitle => 'App အသုံးပြုပုံ လမ်းညွှန်';
+
+  @override
+  String get helpGuideIntro =>
+      'Screen တစ်ခုချင်းစီ ဘာလုပ်တာလဲ အကျဉ်းချုပ်။ အပိုင်းတစ်ခုကို နှိပ်ပြီး ကြည့်ပါ။';
+
+  @override
+  String get helpGuideSellTitle => 'ရောင်းရန်';
+
+  @override
+  String get helpGuideSellBody =>
+      '• ကုန်ပစ္စည်းကို tap နှိပ်ပြီး cart ထဲ ထည့်ပါ၊ ထပ်နှိပ်ရင် အရေအတွက် တိုးပါမယ်။\n• Cart ထဲက item ကို အရေအတွက်ပြောင်းချင်ရင် (သို့) ဖျက်ချင်ရင် item ကို နှိပ်ပါ။\n• ငွေပေးချေမှု နည်းလမ်း ရွေးပြီး အတည်ပြုလိုက်ရင် အရောင်းပြီးဆုံးပါမယ် — Printer ချိတ်ထားရင် ပြေစာ အလိုအလျောက် print ထွက်ပါမယ်။';
+
+  @override
+  String get helpGuideInventoryTitle => 'ကုန်ပစ္စည်းစီမံခန့်ခွဲမှု';
+
+  @override
+  String get helpGuideInventoryBody =>
+      '• ကုန်ပစ္စည်း၊ ဈေးနှုန်း၊ ပမာဏတွေကို ထည့်/ပြင်နိုင်ပါတယ်။\n• ဝယ်ယူထည့်သွင်းတဲ့ ပစ္စည်းအတွက် \"Restock\" ကို၊ ပျက်စီး/ပျောက်ဆုံး စသည့် အကြောင်းရင်းနဲ့ အရေအတွက် ပြင်ဖို့ \"Adjust\" ကို သုံးပါ။\n• ပစ္စည်းနည်းလာရင် (Low-stock) အသိပေးမှာ ဖြစ်လို့ ပြန်မှာသင့်တာကို သိနိုင်ပါတယ်။';
+
+  @override
+  String get helpGuideOrdersTitle => 'Orders';
+
+  @override
+  String get helpGuideOrdersBody =>
+      '• Customer order တွေကို တောင်းဆိုချိန်ကနေ ပို့ဆောင်ပြီးချိန်အထိ လိုက်စစ်နိုင်ပါတယ်။\n• Order ရဲ့ status ကို အဆင့်ဆင့် update လုပ်ပါ။\n• Online storefront ကနေ ဝင်လာတဲ့ order တွေလည်း ဒီမှာ ပြပါလိမ့်မယ်။';
+
+  @override
+  String get helpGuideInvoicesTitle => 'Invoices';
+
+  @override
+  String get helpGuideInvoicesBody =>
+      '• အကြွေးရောင်းချမှု (credit sale) (သို့) အစုလိုက် ဝယ်ယူမှုများအတွက် Invoice ဖန်တီး၍ ဝေမျှနိုင်ပါတယ်။\n• Invoice အတွက် တစ်စိတ်တစ်ပိုင်း (သို့) အပြည့်အဝ ငွေပေးချေမှုကို မှတ်တမ်းတင်နိုင်ပါတယ်။\n• သတ်မှတ်ရက် လွန်နေတဲ့ Invoice များကို အထူးပြထားပါလိမ့်မယ်။';
+
+  @override
+  String get helpGuideAnalyticsTitle => 'Analytics';
+
+  @override
+  String get helpGuideAnalyticsBody =>
+      '• နေ့စဉ်/အပတ်စဉ်/လစဉ် အရောင်းစုစုပေါင်း၊ အမြတ်၊ အရောင်းရဆုံးပစ္စည်းများကို ကြည့်ရှုနိုင်ပါတယ်။\n• ရက်စွဲကာလများကို နှိုင်းယှဉ်ကြည့်ရှုနိုင်ပါတယ်။\n• ပစ္စည်းပြန်မှာခြင်း၊ ဈေးနှုန်းသတ်မှတ်ခြင်း ဆုံးဖြတ်ရန် report များကို ပြန်လည်သုံးသပ်နိုင်ပါတယ်။';
+
+  @override
+  String get helpGuideSettingsTitle => 'Settings';
+
+  @override
+  String get helpGuideSettingsBody =>
+      '• ဆိုင်ပရိုဖိုင်၊ Printer၊ Staff device များ၊ License ကို ဒီနေရာမှာ စီမံနိုင်ပါတယ်။\n• မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။\n• \"Owner Tools\" ဖြင့် device ကို staff ထံ လွှဲပေးနိုင်ပြီး \"Sync\" ဖြင့် cloud နှင့် ချိတ်ဆက်မှုကို စစ်ဆေးနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1502,6 +1561,92 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontNumberCopied => 'နံပါတ် ကူးယူပြီး';
+
+  @override
+  String storefrontCheckoutBar(int count, String total) {
+    return 'ငွေရှင်း · $count item(s) · $total';
+  }
+
+  @override
+  String get storefrontShopFallbackName => 'ဆိုင်';
+
+  @override
+  String get storefrontPhoneCopied => 'ဖုန်းနံပါတ် ကူးယူပြီး';
+
+  @override
+  String get storefrontAdd => 'ထည့်မည်';
+
+  @override
+  String get storefrontYourDetails => 'သင့်အချက်အလက်';
+
+  @override
+  String get storefrontNameRequired => 'အမည် *';
+
+  @override
+  String get storefrontPayment => 'ငွေပေးချေမှု';
+
+  @override
+  String get storefrontBankTransfer => 'ဘဏ်လွှဲ';
+
+  @override
+  String get storefrontCashOnDelivery => 'ပစ္စည်းရောက်မှ ငွေချေမည်';
+
+  @override
+  String get storefrontPayTo => 'ငွေလွှဲရန်:';
+
+  @override
+  String get storefrontAttachProof => 'ငွေလွှဲ screenshot ပူးတွဲပါ';
+
+  @override
+  String storefrontProofAttached(String name) {
+    return 'Screenshot: $name';
+  }
+
+  @override
+  String get storefrontCodNoticeBeforeOrder =>
+      'အော်ဒါ ရောက်ရှိချိန်မှာ courier ကို ငွေသားပေးချေရပါမည်။';
+
+  @override
+  String storefrontTotal(String amount) {
+    return 'စုစုပေါင်း: $amount';
+  }
+
+  @override
+  String get storefrontPlaceOrder => 'အော်ဒါတင်မည်';
+
+  @override
+  String get storefrontOrderPlaced => 'အော်ဒါတင်ပြီးပါပြီ!';
+
+  @override
+  String storefrontOrderNo(String orderNo) {
+    return 'အော်ဒါနံပါတ်: $orderNo';
+  }
+
+  @override
+  String get storefrontTransferInstructions =>
+      'ငွေလွှဲပြီး screenshot ကို ဆိုင်ဆီ ပို့ပါ:';
+
+  @override
+  String get storefrontCodNoticeAfterOrder =>
+      'ပစ္စည်းရောက်ရှိချိန် courier ကို ငွေသားပေးချေရပါမည်။';
+
+  @override
+  String get storefrontSaveToPhotos => 'Photos ထဲ သိမ်းမည်';
+
+  @override
+  String get storefrontDone => 'ပြီးပါပြီ';
+
+  @override
+  String get storefrontCopyNumber => 'နံပါတ် ကူးယူရန်';
+
+  @override
+  String storefrontNotFound(String slug) {
+    return '\"$slug\" ဆိုင်ကို ရှာမတွေ့ပါ သို့မဟုတ် မထုတ်ပြန်ရသေးပါ။';
+  }
+
+  @override
+  String get storefrontOpenShopLink =>
+      'ဆိုင်လင့်ခ်ကို ဖွင့်ပါ၊ ဥပမာ - /your-shop-slug';
 
   @override
   String get onboardWelcomeTitle => 'GoldPOSMM မှ ကြိုဆိုပါတယ်';

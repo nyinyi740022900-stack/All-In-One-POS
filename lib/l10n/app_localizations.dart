@@ -728,6 +728,18 @@ abstract class AppLocalizations {
   /// **'+ to increase, − to decrease'**
   String get stockAdjustQuantityHintAdjust;
 
+  /// No description provided for @stockAdjustUnitCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit cost (optional)'**
+  String get stockAdjustUnitCost;
+
+  /// No description provided for @stockAdjustUnitCostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to use the product\'s cost price'**
+  String get stockAdjustUnitCostHint;
+
   /// No description provided for @stockAdjustReason.
   ///
   /// In en, this message translates to:
@@ -913,6 +925,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Support'**
   String get settingsSupport;
+
+  /// No description provided for @settingsAppGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'App Guide'**
+  String get settingsAppGuide;
+
+  /// No description provided for @helpGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App Guide'**
+  String get helpGuideTitle;
+
+  /// No description provided for @helpGuideIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A quick tour of what each screen does. Tap a section to expand it.'**
+  String get helpGuideIntro;
+
+  /// No description provided for @helpGuideSellTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell'**
+  String get helpGuideSellTitle;
+
+  /// No description provided for @helpGuideSellBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• Tap a product to add it to the cart; tap again to increase the quantity.\n• Tap a cart item to change its quantity or remove it.\n• Choose a payment method and confirm to complete the sale — a receipt prints automatically if a printer is connected.'**
+  String get helpGuideSellBody;
+
+  /// No description provided for @helpGuideInventoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory'**
+  String get helpGuideInventoryTitle;
+
+  /// No description provided for @helpGuideInventoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• Add or edit products, prices, and stock quantities.\n• Use \"Restock\" to add purchased stock, or \"Adjust\" to correct a count with a reason (damaged, lost, etc.).\n• Low-stock products are flagged so you know what to reorder.'**
+  String get helpGuideInventoryBody;
+
+  /// No description provided for @helpGuideOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get helpGuideOrdersTitle;
+
+  /// No description provided for @helpGuideOrdersBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• Track customer orders from request through delivery.\n• Update an order\'s status as it moves through your workflow.\n• Orders placed on your online storefront also appear here.'**
+  String get helpGuideOrdersBody;
+
+  /// No description provided for @helpGuideInvoicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoices'**
+  String get helpGuideInvoicesTitle;
+
+  /// No description provided for @helpGuideInvoicesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• Create and share invoices for credit sales or bulk purchases.\n• Record partial or full payments against an invoice.\n• Overdue invoices are highlighted.'**
+  String get helpGuideInvoicesBody;
+
+  /// No description provided for @helpGuideAnalyticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get helpGuideAnalyticsTitle;
+
+  /// No description provided for @helpGuideAnalyticsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• View daily, weekly, and monthly sales totals, profit, and best-selling products.\n• Compare performance across date ranges.\n• Use the reports to guide restocking and pricing decisions.'**
+  String get helpGuideAnalyticsBody;
+
+  /// No description provided for @helpGuideSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get helpGuideSettingsTitle;
+
+  /// No description provided for @helpGuideSettingsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'• Manage your shop profile, printers, staff devices, and license.\n• Switch between English and Myanmar at any time.\n• Use \"Owner Tools\" to hand a device to staff, and \"Sync\" to check your connection to the cloud.'**
+  String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
   ///
@@ -2881,6 +2983,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Number copied'**
   String get storefrontNumberCopied;
+
+  /// No description provided for @storefrontCheckoutBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkout · {count} item(s) · {total}'**
+  String storefrontCheckoutBar(int count, String total);
+
+  /// No description provided for @storefrontShopFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get storefrontShopFallbackName;
+
+  /// No description provided for @storefrontPhoneCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number copied'**
+  String get storefrontPhoneCopied;
+
+  /// No description provided for @storefrontAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get storefrontAdd;
+
+  /// No description provided for @storefrontYourDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Your details'**
+  String get storefrontYourDetails;
+
+  /// No description provided for @storefrontNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name *'**
+  String get storefrontNameRequired;
+
+  /// No description provided for @storefrontPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get storefrontPayment;
+
+  /// No description provided for @storefrontBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer'**
+  String get storefrontBankTransfer;
+
+  /// No description provided for @storefrontCashOnDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on delivery'**
+  String get storefrontCashOnDelivery;
+
+  /// No description provided for @storefrontPayTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay to:'**
+  String get storefrontPayTo;
+
+  /// No description provided for @storefrontAttachProof.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach payment screenshot'**
+  String get storefrontAttachProof;
+
+  /// No description provided for @storefrontProofAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot: {name}'**
+  String storefrontProofAttached(String name);
+
+  /// No description provided for @storefrontCodNoticeBeforeOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll pay cash to the courier when your order arrives.'**
+  String get storefrontCodNoticeBeforeOrder;
+
+  /// No description provided for @storefrontTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {amount}'**
+  String storefrontTotal(String amount);
+
+  /// No description provided for @storefrontPlaceOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Place order'**
+  String get storefrontPlaceOrder;
+
+  /// No description provided for @storefrontOrderPlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Order placed!'**
+  String get storefrontOrderPlaced;
+
+  /// No description provided for @storefrontOrderNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Order no: {orderNo}'**
+  String storefrontOrderNo(String orderNo);
+
+  /// No description provided for @storefrontTransferInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer and send the screenshot to the shop:'**
+  String get storefrontTransferInstructions;
+
+  /// No description provided for @storefrontCodNoticeAfterOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll pay cash to the courier on delivery.'**
+  String get storefrontCodNoticeAfterOrder;
+
+  /// No description provided for @storefrontSaveToPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get storefrontSaveToPhotos;
+
+  /// No description provided for @storefrontDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get storefrontDone;
+
+  /// No description provided for @storefrontCopyNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy number'**
+  String get storefrontCopyNumber;
+
+  /// No description provided for @storefrontNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop \"{slug}\" not found or not published.'**
+  String storefrontNotFound(String slug);
+
+  /// No description provided for @storefrontOpenShopLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a shop link, e.g. /your-shop-slug'**
+  String get storefrontOpenShopLink;
 
   /// No description provided for @onboardWelcomeTitle.
   ///

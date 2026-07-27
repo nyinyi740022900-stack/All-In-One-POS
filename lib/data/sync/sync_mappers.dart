@@ -386,6 +386,7 @@ final _saleItems = SyncTableDef(
       'price_snapshot': r.priceSnapshot,
       'qty': r.qty,
       'line_total': r.lineTotal,
+      'cost_snapshot': r.costSnapshot,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'is_deleted': r.isDeleted,
@@ -406,6 +407,8 @@ final _saleItems = SyncTableDef(
           priceSnapshot: Value(_int(m['price_snapshot'])),
           qty: Value(_int(m['qty'])),
           lineTotal: Value(_int(m['line_total'])),
+          costSnapshot: Value(
+              m['cost_snapshot'] == null ? null : _int(m['cost_snapshot'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),

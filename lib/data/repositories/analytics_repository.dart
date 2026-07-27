@@ -44,6 +44,7 @@ class AnalyticsRepository {
               name: i.nameSnapshot,
               qty: i.qty,
               lineTotal: i.lineTotal,
+              costSnapshot: i.costSnapshot,
             ))
         .toList();
 

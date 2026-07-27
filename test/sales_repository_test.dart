@@ -307,4 +307,126 @@ void main() {
           }));
     });
   });
+
+  group('FIFO cost basis', () {
+    test('a sale consumes lots oldest-first and snapshots the exact total',
+        () async {
+      final id = await inventory.upsertProduct(
+          name: 'Rice', salePrice: 2000, costPrice: 1000, quantity: 0);
+      // Two restocks at different costs — FIFO should drain the first
+      // before touching the second.
+      await inventory.adjustStock(
+          productId: id, delta: 5, type: 'purchase', unitCost: 800);
+      await inventory.adjustStock(
+          productId: id, delta: 10, type: 'purchase', unitCost: 1200);
+      final product =
+          (await inventory.watchProducts().first).firstWhere((p) => p.product.id == id).product;
+
+      final cart = CartState(lines: [CartLine(product: product, qty: 8)]);
+      final result =
+          await sales.finalizeSale(cart: cart, paymentMethod: 'cash', paid: 16000);
+
+      final item = await (db.select(db.saleItems)
+            ..where((i) => i.saleId.equals(result.saleId)))
+          .getSingle();
+      // 5 units @ 800 (first lot, fully drained) + 3 units @ 1200 (spills
+      // into the second lot) — not 8 * the product's flat cost_price (1000).
+      expect(item.costSnapshot, 5 * 800 + 3 * 1200);
+
+      // Second lot has 7 left (10 - 3); first lot is gone.
+      final lots = await (db.select(db.stockLots)
+            ..where((t) => t.productId.equals(id)))
+          .get();
+      expect(lots.single.remainingQty, 7);
+      expect(lots.single.unitCost, 1200);
+    });
+
+    test('oversell beyond tracked lots falls back to the flat cost price',
+        () async {
+      final id = await inventory.upsertProduct(
+          name: 'Sugar', salePrice: 1500, costPrice: 900, quantity: 0);
+      await inventory.adjustStock(
+          productId: id, delta: 2, type: 'purchase', unitCost: 700);
+      final product =
+          (await inventory.watchProducts().first).firstWhere((p) => p.product.id == id).product;
+
+      // Sell 5 with only 2 tracked — 3 units fall back to costPrice (900).
+      final cart = CartState(lines: [CartLine(product: product, qty: 5)]);
+      final result =
+          await sales.finalizeSale(cart: cart, paymentMethod: 'cash', paid: 7500);
+
+      final item = await (db.select(db.saleItems)
+            ..where((i) => i.saleId.equals(result.saleId)))
+          .getSingle();
+      expect(item.costSnapshot, 2 * 700 + 3 * 900);
+    });
+
+    test('a product with no restock at all costs entirely at the flat price',
+        () async {
+      final id = await inventory.upsertProduct(
+          name: 'Legacy item', salePrice: 1000, costPrice: 600, quantity: 20);
+      // seeded via the opening-balance path (quantity on create), not an
+      // explicit restock — still pushes an opening lot at costPrice, so
+      // this should price straight from that lot, matching costPrice.
+      final product =
+          (await inventory.watchProducts().first).firstWhere((p) => p.product.id == id).product;
+
+      final cart = CartState(lines: [CartLine(product: product, qty: 4)]);
+      final result =
+          await sales.finalizeSale(cart: cart, paymentMethod: 'cash', paid: 4000);
+
+      final item = await (db.select(db.saleItems)
+            ..where((i) => i.saleId.equals(result.saleId)))
+          .getSingle();
+      expect(item.costSnapshot, 4 * 600);
+    });
+
+    test('refunding restores a lot at the original cost, not today\'s price',
+        () async {
+      final id = await inventory.upsertProduct(
+          name: 'Oil', salePrice: 3000, costPrice: 1500, quantity: 0);
+      await inventory.adjustStock(
+          productId: id, delta: 5, type: 'purchase', unitCost: 1500);
+      var product =
+          (await inventory.watchProducts().first).firstWhere((p) => p.product.id == id).product;
+
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 5)]),
+        paymentMethod: 'cash',
+        paid: 15000,
+      );
+      // All 5 units sold — no lots left.
+      expect(
+          await (db.select(db.stockLots)..where((t) => t.productId.equals(id)))
+              .get(),
+          isEmpty);
+
+      await sales.refundSale(sold.saleId);
+      // Refund restored a lot at the original 1500 cost, even though the
+      // product's flat cost price later changes below.
+      final restoredLots = await (db.select(db.stockLots)
+            ..where((t) => t.productId.equals(id)))
+          .get();
+      expect(restoredLots.single.remainingQty, 5);
+      expect(restoredLots.single.unitCost, 1500);
+
+      // Bump the product's flat cost price to prove the next sale still
+      // prices off the restored lot (1500), not the new flat price (5000).
+      await inventory.upsertProduct(
+          id: id, name: 'Oil', salePrice: 3000, costPrice: 5000);
+      product = (await inventory.watchProducts().first)
+          .firstWhere((p) => p.product.id == id)
+          .product;
+
+      final resold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 5)]),
+        paymentMethod: 'cash',
+        paid: 15000,
+      );
+      final item = await (db.select(db.saleItems)
+            ..where((i) => i.saleId.equals(resold.saleId)))
+          .getSingle();
+      expect(item.costSnapshot, 5 * 1500);
+    });
+  });
 }

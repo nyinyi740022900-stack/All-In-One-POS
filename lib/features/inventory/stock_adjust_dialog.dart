@@ -56,6 +56,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
   _Mode _mode = _Mode.restock;
   _Reason _reason = _Reason.damaged;
   final _qtyController = TextEditingController();
+  final _unitCostController = TextEditingController();
   final _noteController = TextEditingController();
   String? _error;
   bool _saving = false;
@@ -63,6 +64,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
   @override
   void dispose() {
     _qtyController.dispose();
+    _unitCostController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -90,12 +92,17 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
           : '${_reasonLabel(l, _reason)} — ${_noteController.text.trim()}',
     };
 
+    final unitCost = _mode == _Mode.restock
+        ? int.tryParse(_unitCostController.text.trim())
+        : null;
+
     final navigator = Navigator.of(context);
     await ref.read(inventoryRepositoryProvider).adjustStock(
           productId: widget.productId,
           delta: delta,
           type: _mode == _Mode.restock ? 'purchase' : 'adjustment',
           note: note,
+          unitCost: unitCost,
         );
     navigator.pop();
   }
@@ -139,6 +146,17 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
                 errorText: _error,
               ),
             ),
+            if (_mode == _Mode.restock) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _unitCostController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: l.stockAdjustUnitCost,
+                  hintText: l.stockAdjustUnitCostHint,
+                ),
+              ),
+            ],
             if (_mode == _Mode.adjust) ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<_Reason>(

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/product_with_stock.dart';
 import '../local/database.dart';
+import 'stock_lots.dart';
 
 /// Offline-first inventory repository.
 ///
@@ -121,7 +122,7 @@ class InventoryRepository {
           (await _productJson(productId)));
 
       if (quantity != null) {
-        await _setStockLevel(productId, quantity, reorderLevel, now);
+        await _setStockLevel(productId, quantity, reorderLevel, now, costPrice);
       }
     });
 
@@ -133,11 +134,17 @@ class InventoryRepository {
   /// sets an absolute value with no reason captured. [type] is `'purchase'`
   /// for a restock or `'adjustment'` for a correction; [delta] is signed
   /// (positive = increase, negative = decrease) and must be non-zero.
+  ///
+  /// [unitCost] is the cost basis for a positive delta (what this batch was
+  /// bought/found at) — defaults to the product's current [Product.costPrice]
+  /// when not given. A negative delta instead consumes existing FIFO lots
+  /// (oldest first), keeping the lot ledger in step with the cached quantity.
   Future<void> adjustStock({
     required String productId,
     required int delta,
     required String type,
     String? note,
+    int? unitCost,
   }) async {
     if (delta == 0) throw ArgumentError('delta must be non-zero');
     final now = DateTime.now();
@@ -149,6 +156,21 @@ class InventoryRepository {
       final rowId = existing?.id ?? _uuid.v4();
       final newQuantity = (existing?.quantity ?? 0) + delta;
 
+      final product =
+          await (_db.select(_db.products)..where((p) => p.id.equals(productId)))
+              .getSingle();
+      if (delta > 0) {
+        await pushStockLot(_db,
+            productId: productId,
+            qty: delta,
+            unitCost: unitCost ?? product.costPrice);
+      } else {
+        await consumeStockLots(_db,
+            productId: productId,
+            qty: -delta,
+            fallbackUnitCost: product.costPrice);
+      }
+
       final moveId = _uuid.v4();
       await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
             id: moveId,
@@ -156,6 +178,7 @@ class InventoryRepository {
             productId: productId,
             type: type,
             qtyDelta: delta,
+            unitCost: Value(delta > 0 ? (unitCost ?? product.costPrice) : 0),
             note: Value(note),
             // Explicit microsecond-precision timestamp — the column default
             // (SQL CURRENT_TIMESTAMP) only has second accuracy, which makes
@@ -237,8 +260,8 @@ class InventoryRepository {
 
   // ---- Internals ---------------------------------------------------------
 
-  Future<void> _setStockLevel(
-      String productId, int quantity, int reorderLevel, DateTime now) async {
+  Future<void> _setStockLevel(String productId, int quantity, int reorderLevel,
+      DateTime now, int costPrice) async {
     final existing = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
         .getSingleOrNull();
@@ -251,6 +274,14 @@ class InventoryRepository {
     // storefront) exists. The cached level below is a fast-read denormalization.
     final delta = quantity - (existing?.quantity ?? 0);
     if (delta != 0) {
+      if (delta > 0) {
+        await pushStockLot(_db,
+            productId: productId, qty: delta, unitCost: costPrice);
+      } else {
+        await consumeStockLots(_db,
+            productId: productId, qty: -delta, fallbackUnitCost: costPrice);
+      }
+
       final moveId = _uuid.v4();
       await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
             id: moveId,
@@ -258,6 +289,7 @@ class InventoryRepository {
             productId: productId,
             type: existing == null ? 'opening' : 'adjustment',
             qtyDelta: delta,
+            unitCost: Value(delta > 0 ? costPrice : 0),
             note: const Value('manual stock set'),
             // See the same note in adjustStock: an explicit timestamp avoids
             // SQL CURRENT_TIMESTAMP's second-level tie-breaking in history.

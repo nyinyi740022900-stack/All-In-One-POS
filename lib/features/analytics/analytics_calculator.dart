@@ -9,7 +9,13 @@ typedef SaleRow = ({
   DateTime finalizedAt,
   bool isRefund,
 });
-typedef ItemRow = ({String productId, String name, int qty, int lineTotal});
+typedef ItemRow = ({
+  String productId,
+  String name,
+  int qty,
+  int lineTotal,
+  int? costSnapshot,
+});
 
 class DailyRevenue {
   final DateTime day;
@@ -60,8 +66,9 @@ class AnalyticsSummary {
   /// Cash actually collected = billed revenue − outstanding credit.
   int get collected => revenue - creditOutstanding;
 
-  /// Gross profit = net revenue − cost of goods sold. Cost uses the product's
-  /// current cost price (v1 does not snapshot cost at sale time).
+  /// Gross profit = net revenue − cost of goods sold. Cost is the FIFO
+  /// cost snapshotted at sale time where available (see [ItemRow.costSnapshot]),
+  /// falling back to the product's current cost price for older sales.
   int get profit => revenue - cost;
 
   static const empty = AnalyticsSummary(
@@ -112,7 +119,7 @@ AnalyticsSummary computeAnalytics({
   final revByProduct = <String, int>{};
   final nameByProduct = <String, String>{};
   for (final it in items) {
-    cost += it.qty * (productCost[it.productId] ?? 0);
+    cost += it.costSnapshot ?? it.qty * (productCost[it.productId] ?? 0);
     qtyByProduct[it.productId] = (qtyByProduct[it.productId] ?? 0) + it.qty;
     revByProduct[it.productId] =
         (revByProduct[it.productId] ?? 0) + it.lineTotal;

@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../features/sell/cart.dart';
 import '../local/database.dart';
+import 'stock_lots.dart';
 
 /// Result of finalizing a sale.
 class SaleResult {
@@ -105,13 +106,24 @@ class SalesRepository {
               priceSnapshot: item.priceSnapshot,
               qty: -item.qty,
               lineTotal: -item.lineTotal,
+              costSnapshot: Value(
+                  item.costSnapshot == null ? null : -item.costSnapshot!),
               updatedAt: Value(now),
             ));
         await _enqueue('sale_items', itemId, jsonEncode(
             (await _one(_db.saleItems, (t) => t.id.equals(itemId))).toJson()));
 
         if (trackStock) {
-          await _recordStockReturn(item.productId, item.qty, refundId, now);
+          // Restore the original cost basis, not whatever it costs today —
+          // this is the same physical stock coming back. Per-unit average
+          // when we know the line's exact COGS; null (no lot pushed) for a
+          // pre-FIFO sale with no costSnapshot, since there's nothing to
+          // restore it at.
+          final unitCost = item.costSnapshot == null || item.qty == 0
+              ? null
+              : (item.costSnapshot! / item.qty).round();
+          await _recordStockReturn(
+              item.productId, item.qty, refundId, now, unitCost);
         }
       }
 
@@ -205,6 +217,14 @@ class SalesRepository {
           (await _one(_db.sales, (t) => t.id.equals(saleId))).toJson()));
 
       for (final line in cart.lines) {
+        // Stock movement (ledger) + decrement the cached level + FIFO cost
+        // of goods sold. Skipped for invoice-only shops that don't track
+        // inventory — costSnapshot then stays null (Analytics falls back to
+        // the product's flat cost price for those lines).
+        final costSnapshot = trackStock
+            ? await _recordStockOut(line.product.id, line.qty, saleId, now)
+            : null;
+
         final itemId = _uuid.v4();
         await _db.into(_db.saleItems).insert(SaleItemsCompanion.insert(
               id: itemId,
@@ -215,16 +235,11 @@ class SalesRepository {
               priceSnapshot: cart.unitPriceFor(line).kyat,
               qty: line.qty,
               lineTotal: cart.lineTotalFor(line).kyat,
+              costSnapshot: Value(costSnapshot),
               updatedAt: Value(now),
             ));
         await _enqueue('sale_items', itemId, jsonEncode(
             (await _one(_db.saleItems, (t) => t.id.equals(itemId))).toJson()));
-
-        // Stock movement (ledger) + decrement the cached level. Skipped for
-        // invoice-only shops that don't track inventory.
-        if (trackStock) {
-          await _recordStockOut(line.product.id, line.qty, saleId, now);
-        }
       }
 
       // Tender actually collected. For cash/digital this equals the total
@@ -251,8 +266,16 @@ class SalesRepository {
 
   // ---- internals ---------------------------------------------------------
 
-  Future<void> _recordStockOut(
+  /// Records the sale's stock movement + FIFO cost of goods sold, returning
+  /// the total cost consumed (for [SaleItems.costSnapshot]).
+  Future<int> _recordStockOut(
       String productId, int qty, String saleId, DateTime now) async {
+    final product =
+        await (_db.select(_db.products)..where((p) => p.id.equals(productId)))
+            .getSingle();
+    final cost = await consumeStockLots(_db,
+        productId: productId, qty: qty, fallbackUnitCost: product.costPrice);
+
     final moveId = _uuid.v4();
     await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
           id: moveId,
@@ -260,6 +283,10 @@ class SalesRepository {
           productId: productId,
           type: 'sale',
           qtyDelta: -qty,
+          // Weighted per-unit average, for the ledger's own display — the
+          // exact total (no rounding) lives on SaleItems.costSnapshot, which
+          // is what Analytics actually sums for profit.
+          unitCost: Value(qty > 0 ? (cost / qty).round() : 0),
           refId: Value(saleId),
           updatedAt: Value(now),
         ));
@@ -280,6 +307,8 @@ class SalesRepository {
       await _enqueue('stock_levels', level.id, jsonEncode(
           (await _one(_db.stockLevels, (t) => t.id.equals(level.id))).toJson()));
     }
+
+    return cost;
   }
 
   /// Per-shop, per-day sequential invoice number: `INV-yyyyMMdd-NNN`.
@@ -310,8 +339,15 @@ class SalesRepository {
   }
 
   /// Restores stock for a refunded item — the inverse of [_recordStockOut].
-  Future<void> _recordStockReturn(
-      String productId, int qty, String refundSaleId, DateTime now) async {
+  /// [unitCost] (the original sale's per-unit COGS) reopens a lot at that
+  /// cost so the next sale of this product still costs correctly; null skips
+  /// the lot (nothing to restore it at — a pre-FIFO sale).
+  Future<void> _recordStockReturn(String productId, int qty,
+      String refundSaleId, DateTime now, int? unitCost) async {
+    if (unitCost != null) {
+      await pushStockLot(_db, productId: productId, qty: qty, unitCost: unitCost);
+    }
+
     final moveId = _uuid.v4();
     await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
           id: moveId,
@@ -319,6 +355,7 @@ class SalesRepository {
           productId: productId,
           type: 'return',
           qtyDelta: qty,
+          unitCost: Value(unitCost ?? 0),
           refId: Value(refundSaleId),
           updatedAt: Value(now),
         ));

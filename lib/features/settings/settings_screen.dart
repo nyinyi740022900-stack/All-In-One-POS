@@ -24,6 +24,7 @@ import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
+import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -107,6 +108,14 @@ class SettingsScreen extends ConsumerWidget {
           _SyncTile(),
 
           _SectionHeader(l.settingsSectionHelp),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: Text(l.settingsAppGuide),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const HelpGuideScreen(),
+            )),
+          ),
           _SupportTile(),
 
           // Kept well away from the everyday settings above — this is where
