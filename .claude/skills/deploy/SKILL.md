@@ -60,6 +60,31 @@ Stable URL: https://goldposmm-invoices.vercel.app. No backend changes ship with
 this one — it activates via the existing `activate` function and reads
 `sales`/`sale_items`/`storefronts` directly, so redeploying it is web-build-only.
 
+## 3d. Desktop (macOS/Windows) — Phase 2, slice 1, in progress
+The *real* POS (Sell/Inventory/Orders, not just Invoices) as a native desktop
+app — `macos/`/`windows/` platform folders scaffolded via
+`flutter create --platforms=macos,windows .`, same `lib/main.dart` entry point
+as mobile, no Drift/wasm needed (native `NativeDatabase` already works on
+desktop). Run/build:
+```bash
+flutter run -d macos --release --dart-define-from-file=env.local.json
+```
+⚠️ In **debug** mode you may see a `RenderBox was not laid out` /
+`mouse_tracker.dart` assertion loop right at launch — this is a known
+debug-only Flutter-desktop artifact (stripped in `--release`), not a real bug;
+verify with `--release` before concluding something is broken.
+
+Windows: `flutter build windows` **refuses to run on a non-Windows host** —
+there is no way to build, let alone test, the Windows target from a Mac. It
+needs an actual Windows machine or a CI runner (e.g. GitHub Actions
+`windows-latest`) — not yet set up.
+
+No GUI-automation/screenshot tool exists for native desktop windows in this
+harness — verification here is necessarily code-level (`flutter analyze` +
+`flutter test` + process-stability from logs), not visual/interactive. Actual
+onboarding → license activation → feature walkthrough needs a human at a
+real, display-attached machine.
+
 ## 4. App → iPhone (wireless)
 ```bash
 flutter run --release -d 00008150-001A44C41E08401C --dart-define-from-file=env.local.json
