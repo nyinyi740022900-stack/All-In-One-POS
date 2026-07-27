@@ -983,6 +983,53 @@ class AppLocalizationsEn extends AppLocalizations {
       'Staff mode will be applied automatically when this QR is scanned to activate.';
 
   @override
+  String get invWebActivateTitle => 'Activate this computer';
+
+  @override
+  String get invWebActivateHint =>
+      'On your phone: Settings → License → Add device, then paste the key here.';
+
+  @override
+  String get invWebKeyLabel => 'Device key';
+
+  @override
+  String get invWebActivateButton => 'Activate';
+
+  @override
+  String get invWebErrorEmptyKey => 'Enter a device key';
+
+  @override
+  String get invWebErrorInvalidKey => 'That key isn\'t valid or has expired';
+
+  @override
+  String get invWebErrorDeviceMismatch =>
+      'This key is already bound to a different device';
+
+  @override
+  String get invWebErrorPaymentRequired =>
+      'Adding this computer needs an extra-device fee — contact support to pay, then try again';
+
+  @override
+  String get invWebErrorActivationFailed =>
+      'Couldn\'t activate — check the key and try again';
+
+  @override
+  String get invWebErrorNetwork =>
+      'Network error — check your connection and try again';
+
+  @override
+  String get invWebSignOut => 'Sign out this computer';
+
+  @override
+  String get invWebDownloadPdf => 'Download PDF';
+
+  @override
+  String get invWebSearchHint => 'Search invoice #, customer, or phone';
+
+  @override
+  String get invWebNoResults => 'No invoices match your search.';
+
+  @override
   String get referralTitle => 'Refer & earn';
 
   @override

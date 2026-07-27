@@ -1,3 +1,4 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -97,6 +98,8 @@ class InvoiceView extends StatelessWidget {
           const Divider(height: 1, color: _line),
           const SizedBox(height: 10),
           _totals(),
+          const SizedBox(height: 16),
+          _barcode(),
           if ((data.footer ?? '').isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(data.footer!,
@@ -207,44 +210,52 @@ class InvoiceView extends StatelessWidget {
       TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _muted);
   static const _itemStyle = TextStyle(fontSize: 13, color: Colors.black);
 
+  /// A real ruled grid (outer frame + column/row lines), not just soft
+  /// dividers between sections — the standard look a printed business
+  /// invoice is expected to have, especially once printed full-size from a
+  /// computer rather than viewed as a phone screenshot.
   Widget _itemsTable() {
-    return Column(
+    const cellPad = EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+    return Table(
+      border: TableBorder.all(color: _line),
+      columnWidths: const {
+        0: FlexColumnWidth(5),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(3),
+      },
       children: [
-        const Row(
+        const TableRow(
+          decoration: BoxDecoration(color: Color(0xFFF7F5FB)),
           children: [
-            Expanded(flex: 5, child: Text('Item', style: _headStyle)),
-            Expanded(
-                flex: 2,
+            Padding(padding: cellPad, child: Text('Item', style: _headStyle)),
+            Padding(
+                padding: cellPad,
                 child: Text('Qty',
                     textAlign: TextAlign.center, style: _headStyle)),
-            Expanded(
-                flex: 3,
+            Padding(
+                padding: cellPad,
                 child: Text('Total',
                     textAlign: TextAlign.right, style: _headStyle)),
           ],
         ),
-        const SizedBox(height: 6),
         for (final it in data.items)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              children: [
-                Expanded(
-                    flex: 5,
-                    child: Text(it.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: _itemStyle)),
-                Expanded(
-                    flex: 2,
-                    child: Text('${it.qty}',
-                        textAlign: TextAlign.center, style: _itemStyle)),
-                Expanded(
-                    flex: 3,
-                    child: Text(_amt(it.lineTotal),
-                        textAlign: TextAlign.right, style: _itemStyle)),
-              ],
-            ),
+          TableRow(
+            children: [
+              Padding(
+                  padding: cellPad,
+                  child: Text(it.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _itemStyle)),
+              Padding(
+                  padding: cellPad,
+                  child: Text('${it.qty}',
+                      textAlign: TextAlign.center, style: _itemStyle)),
+              Padding(
+                  padding: cellPad,
+                  child: Text(_amt(it.lineTotal),
+                      textAlign: TextAlign.right, style: _itemStyle)),
+            ],
           ),
       ],
     );
@@ -293,6 +304,23 @@ class InvoiceView extends StatelessWidget {
           Text(value,
               style: const TextStyle(fontSize: 13, color: Colors.black)),
         ],
+      ),
+    );
+  }
+
+  /// Matches the same Code128-of-the-invoice-number convention already used
+  /// on the in-app invoice detail screen and the thermal-printer receipt —
+  /// so a paper/screenshot copy of this document can be scanned straight
+  /// back to its record in Invoices, not just read by eye.
+  Widget _barcode() {
+    return Center(
+      child: BarcodeWidget(
+        barcode: Barcode.code128(),
+        data: data.invoiceNo,
+        width: 200,
+        height: 56,
+        drawText: true,
+        style: const TextStyle(fontSize: 11, color: Colors.black),
       ),
     );
   }

@@ -978,6 +978,55 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ QR ကို scan ဖတ်ပြီး activate လုပ်တဲ့အခါ Staff mode ကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။';
 
   @override
+  String get invWebActivateTitle => 'ဒီ Computer ကို Activate လုပ်ပါ';
+
+  @override
+  String get invWebActivateHint =>
+      'ဖုန်းပေါ်မှာ: Settings → License → Add device ကနေ key ရယူပြီး ဒီနေရာမှာ ကူးထည့်ပါ။';
+
+  @override
+  String get invWebKeyLabel => 'Device key';
+
+  @override
+  String get invWebActivateButton => 'Activate';
+
+  @override
+  String get invWebErrorEmptyKey => 'Device key ထည့်ပါ';
+
+  @override
+  String get invWebErrorInvalidKey =>
+      'ဒီ key က မမှန်ကန် (သို့) သက်တမ်းကုန်သွားပါပြီ';
+
+  @override
+  String get invWebErrorDeviceMismatch =>
+      'ဒီ key က တခြား device တစ်ခုနဲ့ချိတ်ဆက်ပြီးသားပါ';
+
+  @override
+  String get invWebErrorPaymentRequired =>
+      'ဒီ computer ထပ်ထည့်ဖို့ device fee ပေးရပါမယ် — support ကို ဆက်သွယ်ပြီး ငွေပေးချေပါ၊ ပြီးမှ ထပ်ကြိုးစားပါ';
+
+  @override
+  String get invWebErrorActivationFailed =>
+      'Activate မလုပ်နိုင်ပါ — key ကို ပြန်စစ်ပြီး ထပ်ကြိုးစားပါ';
+
+  @override
+  String get invWebErrorNetwork =>
+      'Network error — connection ကို စစ်ပြီး ထပ်ကြိုးစားပါ';
+
+  @override
+  String get invWebSignOut => 'ဒီ computer ကို sign out လုပ်မည်';
+
+  @override
+  String get invWebDownloadPdf => 'PDF ဒေါင်းလုဒ်';
+
+  @override
+  String get invWebSearchHint =>
+      'Invoice နံပါတ်၊ ဝယ်သူအမည်၊ (သို့) ဖုန်းနံပါတ်ဖြင့် ရှာပါ';
+
+  @override
+  String get invWebNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသော invoice မရှိပါ။';
+
+  @override
   String get referralTitle => 'မိတ်ဆွေမျှ၍ ဝင်ငွေရ';
 
   @override

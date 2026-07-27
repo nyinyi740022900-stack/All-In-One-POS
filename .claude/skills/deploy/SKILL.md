@@ -39,6 +39,27 @@ cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 Stable URL: https://goldposmm-admin.vercel.app (use this; the per-deployment URL
 is SSO-gated).
 
+## 3b. Storefront web → Vercel
+Same build/deploy shape as above, different target + project:
+```bash
+flutter build web -t lib/storefront/storefront_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
+cd build/web && vercel link --yes --project goldposmm-shop --scope nyi-nyi-s-projects1
+vercel deploy --prod --yes --scope nyi-nyi-s-projects1
+```
+Stable URL: https://goldposmm-shop.vercel.app.
+
+## 3c. Invoices Web companion → Vercel
+Read-only "view & print own invoices" companion for a shop's computer (Phase 1
+of computer/tablet support — see PROJECT_SPEC §12). Same shape again:
+```bash
+flutter build web -t lib/invoices_web/invoices_web_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
+cd build/web && vercel link --yes --project goldposmm-invoices --scope nyi-nyi-s-projects1
+vercel deploy --prod --yes --scope nyi-nyi-s-projects1
+```
+Stable URL: https://goldposmm-invoices.vercel.app. No backend changes ship with
+this one — it activates via the existing `activate` function and reads
+`sales`/`sale_items`/`storefronts` directly, so redeploying it is web-build-only.
+
 ## 4. App → iPhone (wireless)
 ```bash
 flutter run --release -d 00008150-001A44C41E08401C --dart-define-from-file=env.local.json

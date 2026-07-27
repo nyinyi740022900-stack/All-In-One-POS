@@ -1904,6 +1904,90 @@ abstract class AppLocalizations {
   /// **'Staff mode will be applied automatically when this QR is scanned to activate.'**
   String get deviceRoleAppliesOnScan;
 
+  /// No description provided for @invWebActivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate this computer'**
+  String get invWebActivateTitle;
+
+  /// No description provided for @invWebActivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On your phone: Settings → License → Add device, then paste the key here.'**
+  String get invWebActivateHint;
+
+  /// No description provided for @invWebKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device key'**
+  String get invWebKeyLabel;
+
+  /// No description provided for @invWebActivateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get invWebActivateButton;
+
+  /// No description provided for @invWebErrorEmptyKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a device key'**
+  String get invWebErrorEmptyKey;
+
+  /// No description provided for @invWebErrorInvalidKey.
+  ///
+  /// In en, this message translates to:
+  /// **'That key isn\'t valid or has expired'**
+  String get invWebErrorInvalidKey;
+
+  /// No description provided for @invWebErrorDeviceMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'This key is already bound to a different device'**
+  String get invWebErrorDeviceMismatch;
+
+  /// No description provided for @invWebErrorPaymentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding this computer needs an extra-device fee — contact support to pay, then try again'**
+  String get invWebErrorPaymentRequired;
+
+  /// No description provided for @invWebErrorActivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t activate — check the key and try again'**
+  String get invWebErrorActivationFailed;
+
+  /// No description provided for @invWebErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error — check your connection and try again'**
+  String get invWebErrorNetwork;
+
+  /// No description provided for @invWebSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out this computer'**
+  String get invWebSignOut;
+
+  /// No description provided for @invWebDownloadPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Download PDF'**
+  String get invWebDownloadPdf;
+
+  /// No description provided for @invWebSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search invoice #, customer, or phone'**
+  String get invWebSearchHint;
+
+  /// No description provided for @invWebNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No invoices match your search.'**
+  String get invWebNoResults;
+
   /// No description provided for @referralTitle.
   ///
   /// In en, this message translates to:
