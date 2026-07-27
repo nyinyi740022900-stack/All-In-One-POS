@@ -8487,6 +8487,21 @@ class $OrderItemsTable extends OrderItems
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _lowStockAtOrderMeta = const VerificationMeta(
+    'lowStockAtOrder',
+  );
+  @override
+  late final GeneratedColumn<bool> lowStockAtOrder = GeneratedColumn<bool>(
+    'low_stock_at_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("low_stock_at_order" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -8501,6 +8516,7 @@ class $OrderItemsTable extends OrderItems
     priceSnapshot,
     qty,
     lineTotal,
+    lowStockAtOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -8603,6 +8619,15 @@ class $OrderItemsTable extends OrderItems
     } else if (isInserting) {
       context.missing(_lineTotalMeta);
     }
+    if (data.containsKey('low_stock_at_order')) {
+      context.handle(
+        _lowStockAtOrderMeta,
+        lowStockAtOrder.isAcceptableOrUnknown(
+          data['low_stock_at_order']!,
+          _lowStockAtOrderMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -8660,6 +8685,10 @@ class $OrderItemsTable extends OrderItems
         DriftSqlType.int,
         data['${effectivePrefix}line_total'],
       )!,
+      lowStockAtOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}low_stock_at_order'],
+      )!,
     );
   }
 
@@ -8686,6 +8715,12 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
   final int priceSnapshot;
   final int qty;
   final int lineTotal;
+
+  /// True if, at the moment a storefront guest placed this order, [qty]
+  /// exceeded the shop's recorded stock for this product. Orders are never
+  /// blocked for this (stock synced to the storefront can lag reality) — it
+  /// just flags the line so the owner notices before packing/shipping it.
+  final bool lowStockAtOrder;
   const OrderItem({
     required this.id,
     required this.shopId,
@@ -8699,6 +8734,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     required this.priceSnapshot,
     required this.qty,
     required this.lineTotal,
+    required this.lowStockAtOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -8717,6 +8753,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     map['price_snapshot'] = Variable<int>(priceSnapshot);
     map['qty'] = Variable<int>(qty);
     map['line_total'] = Variable<int>(lineTotal);
+    map['low_stock_at_order'] = Variable<bool>(lowStockAtOrder);
     return map;
   }
 
@@ -8736,6 +8773,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       priceSnapshot: Value(priceSnapshot),
       qty: Value(qty),
       lineTotal: Value(lineTotal),
+      lowStockAtOrder: Value(lowStockAtOrder),
     );
   }
 
@@ -8757,6 +8795,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       priceSnapshot: serializer.fromJson<int>(json['priceSnapshot']),
       qty: serializer.fromJson<int>(json['qty']),
       lineTotal: serializer.fromJson<int>(json['lineTotal']),
+      lowStockAtOrder: serializer.fromJson<bool>(json['lowStockAtOrder']),
     );
   }
   @override
@@ -8775,6 +8814,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       'priceSnapshot': serializer.toJson<int>(priceSnapshot),
       'qty': serializer.toJson<int>(qty),
       'lineTotal': serializer.toJson<int>(lineTotal),
+      'lowStockAtOrder': serializer.toJson<bool>(lowStockAtOrder),
     };
   }
 
@@ -8791,6 +8831,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     int? priceSnapshot,
     int? qty,
     int? lineTotal,
+    bool? lowStockAtOrder,
   }) => OrderItem(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -8804,6 +8845,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     priceSnapshot: priceSnapshot ?? this.priceSnapshot,
     qty: qty ?? this.qty,
     lineTotal: lineTotal ?? this.lineTotal,
+    lowStockAtOrder: lowStockAtOrder ?? this.lowStockAtOrder,
   );
   OrderItem copyWithCompanion(OrderItemsCompanion data) {
     return OrderItem(
@@ -8823,6 +8865,9 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           : this.priceSnapshot,
       qty: data.qty.present ? data.qty.value : this.qty,
       lineTotal: data.lineTotal.present ? data.lineTotal.value : this.lineTotal,
+      lowStockAtOrder: data.lowStockAtOrder.present
+          ? data.lowStockAtOrder.value
+          : this.lowStockAtOrder,
     );
   }
 
@@ -8840,7 +8885,8 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           ..write('nameSnapshot: $nameSnapshot, ')
           ..write('priceSnapshot: $priceSnapshot, ')
           ..write('qty: $qty, ')
-          ..write('lineTotal: $lineTotal')
+          ..write('lineTotal: $lineTotal, ')
+          ..write('lowStockAtOrder: $lowStockAtOrder')
           ..write(')'))
         .toString();
   }
@@ -8859,6 +8905,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     priceSnapshot,
     qty,
     lineTotal,
+    lowStockAtOrder,
   );
   @override
   bool operator ==(Object other) =>
@@ -8875,7 +8922,8 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           other.nameSnapshot == this.nameSnapshot &&
           other.priceSnapshot == this.priceSnapshot &&
           other.qty == this.qty &&
-          other.lineTotal == this.lineTotal);
+          other.lineTotal == this.lineTotal &&
+          other.lowStockAtOrder == this.lowStockAtOrder);
 }
 
 class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
@@ -8891,6 +8939,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
   final Value<int> priceSnapshot;
   final Value<int> qty;
   final Value<int> lineTotal;
+  final Value<bool> lowStockAtOrder;
   final Value<int> rowid;
   const OrderItemsCompanion({
     this.id = const Value.absent(),
@@ -8905,6 +8954,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     this.priceSnapshot = const Value.absent(),
     this.qty = const Value.absent(),
     this.lineTotal = const Value.absent(),
+    this.lowStockAtOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OrderItemsCompanion.insert({
@@ -8920,6 +8970,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     required int priceSnapshot,
     required int qty,
     required int lineTotal,
+    this.lowStockAtOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -8941,6 +8992,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Expression<int>? priceSnapshot,
     Expression<int>? qty,
     Expression<int>? lineTotal,
+    Expression<bool>? lowStockAtOrder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -8956,6 +9008,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       if (priceSnapshot != null) 'price_snapshot': priceSnapshot,
       if (qty != null) 'qty': qty,
       if (lineTotal != null) 'line_total': lineTotal,
+      if (lowStockAtOrder != null) 'low_stock_at_order': lowStockAtOrder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -8973,6 +9026,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Value<int>? priceSnapshot,
     Value<int>? qty,
     Value<int>? lineTotal,
+    Value<bool>? lowStockAtOrder,
     Value<int>? rowid,
   }) {
     return OrderItemsCompanion(
@@ -8988,6 +9042,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       priceSnapshot: priceSnapshot ?? this.priceSnapshot,
       qty: qty ?? this.qty,
       lineTotal: lineTotal ?? this.lineTotal,
+      lowStockAtOrder: lowStockAtOrder ?? this.lowStockAtOrder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9031,6 +9086,9 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     if (lineTotal.present) {
       map['line_total'] = Variable<int>(lineTotal.value);
     }
+    if (lowStockAtOrder.present) {
+      map['low_stock_at_order'] = Variable<bool>(lowStockAtOrder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -9052,6 +9110,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
           ..write('priceSnapshot: $priceSnapshot, ')
           ..write('qty: $qty, ')
           ..write('lineTotal: $lineTotal, ')
+          ..write('lowStockAtOrder: $lowStockAtOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -14862,6 +14921,7 @@ typedef $$OrderItemsTableCreateCompanionBuilder =
       required int priceSnapshot,
       required int qty,
       required int lineTotal,
+      Value<bool> lowStockAtOrder,
       Value<int> rowid,
     });
 typedef $$OrderItemsTableUpdateCompanionBuilder =
@@ -14878,6 +14938,7 @@ typedef $$OrderItemsTableUpdateCompanionBuilder =
       Value<int> priceSnapshot,
       Value<int> qty,
       Value<int> lineTotal,
+      Value<bool> lowStockAtOrder,
       Value<int> rowid,
     });
 
@@ -14947,6 +15008,11 @@ class $$OrderItemsTableFilterComposer
 
   ColumnFilters<int> get lineTotal => $composableBuilder(
     column: $table.lineTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get lowStockAtOrder => $composableBuilder(
+    column: $table.lowStockAtOrder,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -15019,6 +15085,11 @@ class $$OrderItemsTableOrderingComposer
     column: $table.lineTotal,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get lowStockAtOrder => $composableBuilder(
+    column: $table.lowStockAtOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OrderItemsTableAnnotationComposer
@@ -15069,6 +15140,11 @@ class $$OrderItemsTableAnnotationComposer
 
   GeneratedColumn<int> get lineTotal =>
       $composableBuilder(column: $table.lineTotal, builder: (column) => column);
+
+  GeneratedColumn<bool> get lowStockAtOrder => $composableBuilder(
+    column: $table.lowStockAtOrder,
+    builder: (column) => column,
+  );
 }
 
 class $$OrderItemsTableTableManager
@@ -15114,6 +15190,7 @@ class $$OrderItemsTableTableManager
                 Value<int> priceSnapshot = const Value.absent(),
                 Value<int> qty = const Value.absent(),
                 Value<int> lineTotal = const Value.absent(),
+                Value<bool> lowStockAtOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderItemsCompanion(
                 id: id,
@@ -15128,6 +15205,7 @@ class $$OrderItemsTableTableManager
                 priceSnapshot: priceSnapshot,
                 qty: qty,
                 lineTotal: lineTotal,
+                lowStockAtOrder: lowStockAtOrder,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -15144,6 +15222,7 @@ class $$OrderItemsTableTableManager
                 required int priceSnapshot,
                 required int qty,
                 required int lineTotal,
+                Value<bool> lowStockAtOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderItemsCompanion.insert(
                 id: id,
@@ -15158,6 +15237,7 @@ class $$OrderItemsTableTableManager
                 priceSnapshot: priceSnapshot,
                 qty: qty,
                 lineTotal: lineTotal,
+                lowStockAtOrder: lowStockAtOrder,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

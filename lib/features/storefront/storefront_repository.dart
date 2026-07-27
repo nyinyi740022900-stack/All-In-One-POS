@@ -36,6 +36,14 @@ class StorefrontRow {
   String get url => '$storefrontBaseUrl/$slug';
 }
 
+/// A phone number the owner has blocked from placing new storefront orders,
+/// usually after a scam/spam order.
+class BlockedCustomer {
+  final String phone;
+  final String? reason;
+  const BlockedCustomer(this.phone, this.reason);
+}
+
 /// Manages the signed-in shop's storefront row. All access is RLS-scoped to the
 /// caller's own `shop_id` (policy `storefront_owner`). Online-only.
 class StorefrontRepository {
@@ -137,5 +145,36 @@ class StorefrontRepository {
     await storage.uploadBinary(path, c.bytes,
         fileOptions: const FileOptions(upsert: true));
     return storage.getPublicUrl(path);
+  }
+
+  Future<List<BlockedCustomer>> listBlocked() async {
+    final rows = await _c
+        .from('storefront_blocklist')
+        .select()
+        .eq('shop_id', _shopId)
+        .order('created_at', ascending: false) as List;
+    return rows
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .map((m) => BlockedCustomer(m['phone'] as String, m['reason'] as String?))
+        .toList();
+  }
+
+  /// Blocks [phone] from placing new storefront orders on this shop. Blocking
+  /// the same number twice is a no-op (upsert on the shop_id+phone unique
+  /// index) rather than an error.
+  Future<void> block(String phone, {String? reason}) async {
+    await _c.from('storefront_blocklist').upsert({
+      'shop_id': _shopId,
+      'phone': phone,
+      'reason': reason,
+    }, onConflict: 'shop_id,phone');
+  }
+
+  Future<void> unblock(String phone) async {
+    await _c
+        .from('storefront_blocklist')
+        .delete()
+        .eq('shop_id', _shopId)
+        .eq('phone', phone);
   }
 }

@@ -113,6 +113,7 @@ class StorefrontApi {
     required String paymentMethod,
     String? paymentProofPath,
     required List<OrderLine> lines,
+    String? hp,
   }) async {
     final res = await _c.functions.invoke('storefront', body: {
       'action': 'submit_order',
@@ -124,6 +125,7 @@ class StorefrontApi {
       'note': note,
       'payment_method': paymentMethod,
       'payment_proof_path': paymentProofPath,
+      'hp': hp,
       'lines': [
         for (final l in lines)
           {

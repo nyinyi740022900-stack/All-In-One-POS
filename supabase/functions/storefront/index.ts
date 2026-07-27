@@ -9,7 +9,15 @@
 //   catalog       { slug }  -> { storefront, products }
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
-//                    lines[] } -> { ok, order_no }
+//                    lines[], hp } -> { ok, order_no }
+//
+// Anti-abuse on submit_order (all silent to a genuine customer, none of them
+// block a legitimate order): a hidden honeypot field (`hp`) catches
+// blind-filling bots; at most 5 attempts per (shop, IP) per 10 minutes
+// (`storefront_order_attempts`); a phone on the owner's block-list
+// (`storefront_blocklist`) is rejected outright; a line that asks for more
+// than the shop's recorded stock is still accepted but flagged on
+// `order_items.low_stock_at_order` for the owner to notice before packing.
 //
 // Deploy: supabase functions deploy storefront
 
@@ -81,12 +89,54 @@ Deno.serve(async (req) => {
   }
 
   if (action === "submit_order") {
+    // Honeypot: a hidden field real customers never see or fill; only a
+    // scripted form-filler touches it. Pretend success without writing
+    // anything, so the bot gets no signal it was caught.
+    if (`${body.hp ?? ""}`.trim().length > 0) {
+      return json({ ok: true, order_no: "WEB-00000000" });
+    }
+
+    // Rate limit: at most 5 submit_order calls per (shop, IP) per 10
+    // minutes — counted before validation, so rapid junk requests can't
+    // dodge the limit just by being individually invalid.
+    const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
+      .split(",")[0]
+      .trim();
+    const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("storefront_order_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", sf.shop_id)
+      .eq("ip", ip)
+      .gte("created_at", windowStart);
+    if ((count ?? 0) >= 5) {
+      return json({ error: "rate_limited" }, 429);
+    }
+    await admin
+      .from("storefront_order_attempts")
+      .insert({ shop_id: sf.shop_id, ip });
+
     const name = (body.customer_name ?? "").trim();
+    const phone = (body.phone ?? "").trim();
     // deno-lint-ignore no-explicit-any
     const rawLines = (body.lines ?? []) as any[];
     if (!name || rawLines.length === 0) {
       return json({ error: "bad_request" }, 400);
     }
+
+    // Block-list: a phone the owner has blocked (usually after a scam/spam
+    // order) can't place a new one. No phone at all means nothing to check —
+    // an unidentifiable order isn't blockable by this mechanism.
+    if (phone) {
+      const { data: blocked } = await admin
+        .from("storefront_blocklist")
+        .select("phone")
+        .eq("shop_id", sf.shop_id)
+        .eq("phone", phone)
+        .maybeSingle();
+      if (blocked) return json({ error: "blocked" }, 403);
+    }
+
     // 'transfer' (KPay/Wave, usually with a screenshot) or 'cod' (cash on
     // delivery) — anything else collapses to null (unspecified).
     const rawMethod = `${body.payment_method ?? ""}`.trim();
@@ -128,14 +178,30 @@ Deno.serve(async (req) => {
     if (pErr) return json({ error: "server_error" }, 500);
     const byId = new Map((products ?? []).map((p) => [p.id, p]));
 
+    // Stock check: never blocks the order (the storefront's cached stock can
+    // lag the device's synced reality) — just flags a line for the owner to
+    // notice before packing it, on `order_items.low_stock_at_order`.
+    const { data: stockRows } = await admin
+      .from("stock_levels")
+      .select("product_id, quantity")
+      .eq("shop_id", sf.shop_id)
+      .eq("is_deleted", false)
+      .in("product_id", productIds);
+    const stockById = new Map(
+      (stockRows ?? []).map((s) => [s.product_id, s.quantity as number]),
+    );
+
     const lines = rawLines.map((l) => {
       const product = byId.get(`${l.product_id ?? ""}`.trim());
       if (!product) return null;
+      const qty = Number(l.qty);
+      const available = stockById.get(product.id) ?? 0;
       return {
         productId: product.id as string,
         name: product.name as string,
         price: product.sale_price as number,
-        qty: Number(l.qty),
+        qty,
+        lowStock: qty > available,
       };
     });
     if (lines.some((l) => l === null)) {
@@ -146,6 +212,7 @@ Deno.serve(async (req) => {
       name: string;
       price: number;
       qty: number;
+      lowStock: boolean;
     }[];
 
     const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
@@ -160,7 +227,7 @@ Deno.serve(async (req) => {
       channel: "storefront",
       status: "new",
       customer_name: name,
-      customer_phone: (body.phone ?? "").trim() || null,
+      customer_phone: phone || null,
       delivery_address: (body.address ?? "").trim() || null,
       township: (body.township ?? "").trim() || null,
       items_total: itemsTotal,
@@ -182,6 +249,7 @@ Deno.serve(async (req) => {
       price_snapshot: l.price,
       qty: l.qty,
       line_total: l.price * l.qty,
+      low_stock_at_order: l.lowStock,
       created_at: now,
       updated_at: now,
     }));

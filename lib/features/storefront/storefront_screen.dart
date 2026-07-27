@@ -15,6 +15,10 @@ final myStorefrontProvider = FutureProvider<StorefrontRow?>((ref) {
   return ref.watch(storefrontRepositoryProvider).mine();
 });
 
+final blockedCustomersProvider = FutureProvider<List<BlockedCustomer>>((ref) {
+  return ref.watch(storefrontRepositoryProvider).listBlocked();
+});
+
 /// Owner screen to publish/manage the shop's public web storefront: name,
 /// phone, address, logo, and the enabled toggle + shareable link.
 class StorefrontScreen extends ConsumerStatefulWidget {
@@ -327,7 +331,63 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         const SizedBox(height: 8),
         Text(l.storefrontShare,
             style: Theme.of(context).textTheme.bodySmall),
+        const Divider(height: 32),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.block),
+          title: Text(l.storefrontBlockedCustomers),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const _BlockedCustomersScreen(),
+          )),
+        ),
       ],
+    );
+  }
+}
+
+/// Lists phone numbers the owner has blocked from placing new storefront
+/// orders (see [OrderDetailSheet]'s "Block this customer" action), with an
+/// unblock action for each.
+class _BlockedCustomersScreen extends ConsumerWidget {
+  const _BlockedCustomersScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final async = ref.watch(blockedCustomersProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(l.storefrontBlockedCustomers)),
+      body: async.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('$e')),
+        data: (rows) {
+          if (rows.isEmpty) {
+            return Center(child: Text(l.storefrontNoBlockedCustomers));
+          }
+          return ListView.separated(
+            itemCount: rows.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, i) {
+              final b = rows[i];
+              return ListTile(
+                leading: const Icon(Icons.phone_disabled),
+                title: Text(b.phone),
+                subtitle: (b.reason ?? '').isEmpty ? null : Text(b.reason!),
+                trailing: TextButton(
+                  onPressed: () async {
+                    await ref
+                        .read(storefrontRepositoryProvider)
+                        .unblock(b.phone);
+                    ref.invalidate(blockedCustomersProvider);
+                  },
+                  child: Text(l.storefrontUnblock),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

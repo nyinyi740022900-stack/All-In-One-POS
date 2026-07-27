@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -112,6 +112,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 14) {
             await m.createTable(stockLots);
             await m.addColumn(saleItems, saleItems.costSnapshot);
+          }
+          // v15: flag a storefront order line placed against insufficient
+          // stock, so the owner notices before packing it.
+          if (from < 15) {
+            await m.addColumn(orderItems, orderItems.lowStockAtOrder);
           }
         },
       );

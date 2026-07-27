@@ -7,6 +7,7 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
+import '../storefront/storefront_screen.dart' show storefrontRepositoryProvider;
 import 'myanmar_townships.dart';
 import 'order_invoice.dart';
 import 'order_editor_sheet.dart';
@@ -112,7 +113,20 @@ class OrderDetailSheet extends ConsumerWidget {
             const Divider(height: 20),
             _kv(context, Icons.person_outline, o.customerName),
             if (o.customerPhone != null && o.customerPhone!.isNotEmpty)
-              _kv(context, Icons.phone_outlined, o.customerPhone!),
+              Row(
+                children: [
+                  Expanded(
+                      child: _kv(
+                          context, Icons.phone_outlined, o.customerPhone!)),
+                  IconButton(
+                    tooltip: l.orderBlockCustomer,
+                    icon: const Icon(Icons.block, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () =>
+                        _blockCustomer(context, ref, l, o.customerPhone!),
+                  ),
+                ],
+              ),
             if (o.deliveryAddress != null && o.deliveryAddress!.isNotEmpty)
               _kv(context, Icons.location_on_outlined, o.deliveryAddress!),
             if (o.township != null && o.township!.isNotEmpty)
@@ -125,6 +139,14 @@ class OrderDetailSheet extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
                   children: [
+                    if (it.lowStockAtOrder) ...[
+                      Tooltip(
+                        message: l.orderLowStockAtOrder,
+                        child: Icon(Icons.warning_amber_rounded,
+                            size: 16, color: Theme.of(context).colorScheme.error),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     Expanded(child: Text('${it.nameSnapshot}  ×${it.qty}')),
                     Text(Money(it.lineTotal).withSymbol(sym)),
                   ],
@@ -354,6 +376,29 @@ class OrderDetailSheet extends ConsumerWidget {
     final nav = Navigator.of(context);
     await ref.read(ordersRepositoryProvider).deleteOrder(orderId);
     if (context.mounted) nav.pop();
+  }
+
+  Future<void> _blockCustomer(BuildContext context, WidgetRef ref,
+      AppLocalizations l, String phone) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.orderBlockCustomer),
+        content: Text(l.orderBlockCustomerConfirm(phone)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l.orderBlockCustomer)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(storefrontRepositoryProvider).block(phone);
+    messenger.showSnackBar(SnackBar(content: Text(l.orderCustomerBlocked)));
   }
 }
 

@@ -1296,6 +1296,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderDeleteConfirm => 'Delete this order? This cannot be undone.';
 
   @override
+  String get orderBlockCustomer => 'Block this customer';
+
+  @override
+  String orderBlockCustomerConfirm(String phone) {
+    return 'Block $phone from placing new orders on your storefront?';
+  }
+
+  @override
+  String get orderCustomerBlocked => 'Customer blocked';
+
+  @override
+  String get orderLowStockAtOrder =>
+      'Requested more than the recorded stock at the time of this order';
+
+  @override
   String get orderMoveTo => 'Move to';
 
   @override
@@ -1547,6 +1562,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Share this link with customers on Facebook, Viber, etc.';
 
   @override
+  String get storefrontBlockedCustomers => 'Blocked customers';
+
+  @override
+  String get storefrontNoBlockedCustomers => 'No one is blocked.';
+
+  @override
+  String get storefrontUnblock => 'Unblock';
+
+  @override
   String get storefrontPaymentInfoTitle => 'Payment accounts';
 
   @override
@@ -1567,6 +1591,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontNumberCopied => 'Number copied';
+
+  @override
+  String get storefrontRateLimited =>
+      'Too many orders submitted recently — please wait a few minutes and try again.';
+
+  @override
+  String get storefrontBlocked =>
+      'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.';
 
   @override
   String storefrontCheckoutBar(int count, String total) {

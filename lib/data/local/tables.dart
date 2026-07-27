@@ -309,6 +309,13 @@ class OrderItems extends Table with SyncColumns {
   IntColumn get qty => integer()();
   IntColumn get lineTotal => integer()();
 
+  /// True if, at the moment a storefront guest placed this order, [qty]
+  /// exceeded the shop's recorded stock for this product. Orders are never
+  /// blocked for this (stock synced to the storefront can lag reality) — it
+  /// just flags the line so the owner notices before packing/shipping it.
+  BoolColumn get lowStockAtOrder =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

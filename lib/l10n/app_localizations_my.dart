@@ -1290,6 +1290,21 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderDeleteConfirm => 'ဒီအော်ဒါ ဖျက်မလား? ပြန်ဖျက်၍ မရပါ။';
 
   @override
+  String get orderBlockCustomer => 'ဒီဝယ်သူကို ပိတ်ပင်မည်';
+
+  @override
+  String orderBlockCustomerConfirm(String phone) {
+    return '$phone ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?';
+  }
+
+  @override
+  String get orderCustomerBlocked => 'ဝယ်သူ ပိတ်ပင်ပြီး';
+
+  @override
+  String get orderLowStockAtOrder =>
+      'ဒီ order တင်တဲ့အချိန်မှာ မှတ်တမ်းတင်ထားတဲ့ လက်ကျန်ထက် ပိုတောင်းထားပါတယ်';
+
+  @override
   String get orderMoveTo => 'ရွှေ့မယ်';
 
   @override
@@ -1541,6 +1556,15 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ link ကို Facebook, Viber စသည်တွင် ဖောက်သည်များထံ မျှဝေပါ။';
 
   @override
+  String get storefrontBlockedCustomers => 'ပိတ်ပင်ထားသော ဝယ်သူများ';
+
+  @override
+  String get storefrontNoBlockedCustomers => 'ဘယ်သူမှ ပိတ်ပင်မထားပါ။';
+
+  @override
+  String get storefrontUnblock => 'ပိတ်ပင်ချက် ဖြေလိုက်ပါ';
+
+  @override
   String get storefrontPaymentInfoTitle => 'ငွေပေးချေမှု အကောင့်များ';
 
   @override
@@ -1561,6 +1585,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontNumberCopied => 'နံပါတ် ကူးယူပြီး';
+
+  @override
+  String get storefrontRateLimited =>
+      'မကြာသေးမီက order များစွာ တင်ထားပါတယ် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get storefrontBlocked =>
+      'ဒီဆိုင်က ဒီဖုန်းနံပါတ်ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။';
 
   @override
   String storefrontCheckoutBar(int count, String total) {

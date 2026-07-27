@@ -2474,6 +2474,30 @@ abstract class AppLocalizations {
   /// **'Delete this order? This cannot be undone.'**
   String get orderDeleteConfirm;
 
+  /// No description provided for @orderBlockCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Block this customer'**
+  String get orderBlockCustomer;
+
+  /// No description provided for @orderBlockCustomerConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Block {phone} from placing new orders on your storefront?'**
+  String orderBlockCustomerConfirm(String phone);
+
+  /// No description provided for @orderCustomerBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer blocked'**
+  String get orderCustomerBlocked;
+
+  /// No description provided for @orderLowStockAtOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested more than the recorded stock at the time of this order'**
+  String get orderLowStockAtOrder;
+
   /// No description provided for @orderMoveTo.
   ///
   /// In en, this message translates to:
@@ -2942,6 +2966,24 @@ abstract class AppLocalizations {
   /// **'Share this link with customers on Facebook, Viber, etc.'**
   String get storefrontShare;
 
+  /// No description provided for @storefrontBlockedCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked customers'**
+  String get storefrontBlockedCustomers;
+
+  /// No description provided for @storefrontNoBlockedCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'No one is blocked.'**
+  String get storefrontNoBlockedCustomers;
+
+  /// No description provided for @storefrontUnblock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get storefrontUnblock;
+
   /// No description provided for @storefrontPaymentInfoTitle.
   ///
   /// In en, this message translates to:
@@ -2983,6 +3025,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Number copied'**
   String get storefrontNumberCopied;
+
+  /// No description provided for @storefrontRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many orders submitted recently — please wait a few minutes and try again.'**
+  String get storefrontRateLimited;
+
+  /// No description provided for @storefrontBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.'**
+  String get storefrontBlocked;
 
   /// No description provided for @storefrontCheckoutBar.
   ///

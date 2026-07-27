@@ -395,6 +395,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _note = TextEditingController();
+  // Honeypot: real customers never see or fill this field; a scripted bot
+  // that blindly fills every input on the form will. Checked server-side.
+  final _hp = TextEditingController();
   String? _township;
   String _paymentMethod = 'transfer';
   bool _submitting = false;
@@ -410,6 +413,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     _phone.dispose();
     _address.dispose();
     _note.dispose();
+    _hp.dispose();
     super.dispose();
   }
 
@@ -449,12 +453,19 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         paymentMethod: _paymentMethod,
         paymentProofPath: _paymentMethod == 'transfer' ? proofPath : null,
         lines: widget.lines,
+        hp: _hp.text,
       );
       if (mounted) setState(() => _orderNo = no);
     } catch (e) {
       if (mounted) {
+        final l = AppLocalizations.of(context);
+        final message = '$e'.contains('rate_limited')
+            ? l.storefrontRateLimited
+            : '$e'.contains('blocked')
+                ? l.storefrontBlocked
+                : '$e';
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -476,6 +487,11 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             Text(l.storefrontYourDetails,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
+            // Honeypot — kept out of the visible layout entirely (zero size,
+            // not just hidden) so no real customer can tab/scroll into it.
+            Offstage(
+              child: TextField(controller: _hp, autofocus: false),
+            ),
             TextField(
                 controller: _name,
                 decoration:
