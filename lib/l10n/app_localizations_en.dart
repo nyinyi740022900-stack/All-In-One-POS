@@ -159,6 +159,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkoutAddCustomer => 'Add customer';
 
   @override
+  String get checkoutPickCustomer => 'Pick from customers';
+
+  @override
   String checkoutTierPricingApplied(String tier) {
     return '$tier pricing applied to this sale';
   }

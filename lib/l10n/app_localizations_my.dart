@@ -159,6 +159,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get checkoutAddCustomer => 'ဝယ်သူ ထည့်';
 
   @override
+  String get checkoutPickCustomer => 'Customer list ကနေ ရွေးရန်';
+
+  @override
   String checkoutTierPricingApplied(String tier) {
     return 'ဒီအရောင်းအတွက် $tier ဈေးနှုန်း သုံးထားသည်';
   }

@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'Add customer'**
   String get checkoutAddCustomer;
 
+  /// No description provided for @checkoutPickCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick from customers'**
+  String get checkoutPickCustomer;
+
   /// No description provided for @checkoutTierPricingApplied.
   ///
   /// In en, this message translates to:

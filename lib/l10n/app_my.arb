@@ -55,6 +55,7 @@
   "creditCustomerName": "ဝယ်သူအမည်",
   "customerPhone": "ဖုန်း (မဖြည့်လည်းရ)",
   "checkoutAddCustomer": "ဝယ်သူ ထည့်",
+  "checkoutPickCustomer": "Customer list ကနေ ရွေးရန်",
   "checkoutTierPricingApplied": "ဒီအရောင်းအတွက် {tier} ဈေးနှုန်း သုံးထားသည်",
   "@checkoutTierPricingApplied": { "placeholders": { "tier": { "type": "String" } } },
   "creditCustomerRequired": "အကြွေးရောင်းရန် ဝယ်သူအမည် ထည့်ပါ။",

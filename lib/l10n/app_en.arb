@@ -56,6 +56,7 @@
   "creditCustomerName": "Customer name",
   "customerPhone": "Phone (optional)",
   "checkoutAddCustomer": "Add customer",
+  "checkoutPickCustomer": "Pick from customers",
   "checkoutTierPricingApplied": "{tier} pricing applied to this sale",
   "@checkoutTierPricingApplied": { "placeholders": { "tier": { "type": "String" } } },
   "creditCustomerRequired": "Enter a customer name for a credit sale.",

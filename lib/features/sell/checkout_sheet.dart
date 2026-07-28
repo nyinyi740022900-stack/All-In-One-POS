@@ -358,6 +358,7 @@ class _CustomerAutocomplete extends ConsumerWidget {
       displayStringForOption: (c) => c.name,
       onSelected: onSelected,
       fieldViewBuilder: (context, textController, focusNode, onSubmit) {
+        final l = AppLocalizations.of(context);
         return TextField(
           controller: textController,
           focusNode: focusNode,
@@ -365,6 +366,18 @@ class _CustomerAutocomplete extends ConsumerWidget {
           decoration: InputDecoration(
             labelText: labelText,
             helperText: helperText,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.contacts_outlined),
+              tooltip: l.checkoutPickCustomer,
+              onPressed: () async {
+                final picked = await showModalBottomSheet<Customer>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => _CustomerPickerSheet(customers: customers),
+                );
+                if (picked != null) onSelected(picked);
+              },
+            ),
           ),
           onChanged: (_) {
             onEditedByHand();
@@ -397,6 +410,86 @@ class _CustomerAutocomplete extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Browse-and-pick alternative to typing: a searchable, A–Z sorted list of
+/// every directory customer, for a cashier who recognizes a name on sight
+/// but doesn't want to (or can't easily) type it.
+class _CustomerPickerSheet extends StatefulWidget {
+  const _CustomerPickerSheet({required this.customers});
+  final List<Customer> customers;
+
+  @override
+  State<_CustomerPickerSheet> createState() => _CustomerPickerSheetState();
+}
+
+class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final q = _search.text.trim().toLowerCase();
+    final filtered = widget.customers
+        .where((c) =>
+            q.isEmpty ||
+            c.name.toLowerCase().contains(q) ||
+            (c.phone?.contains(q) ?? false))
+        .toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppTheme.space4, AppTheme.space4, AppTheme.space4, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.customersTitle, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _search,
+              autofocus: true,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: l.customersSearchHint,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(child: Text(l.customersEmpty))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) {
+                        final c = filtered[i];
+                        return ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          title: Text(c.name),
+                          subtitle:
+                              (c.phone ?? '').isEmpty ? null : Text(c.phone!),
+                          onTap: () => Navigator.of(context).pop(c),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
