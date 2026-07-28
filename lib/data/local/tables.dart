@@ -135,6 +135,12 @@ class Sales extends Table with SyncColumns {
   /// receipt either way (this is purely an additional lookup key).
   TextColumn get customerId => text().nullable()();
 
+  /// The physical device (`SettingsRepository.deviceId()`) that rang this
+  /// sale up — same stable id already used for license activation. Null on
+  /// sales predating this column. A raw UUID means nothing to an owner on
+  /// its own; see [DeviceLabels] for the friendly name shown on invoices.
+  TextColumn get deviceId => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -361,6 +367,20 @@ class Expenses extends Table with SyncColumns {
   DateTimeColumn get date => dateTime()();
   TextColumn get note => text().nullable()();
   TextColumn get receiptPhotoPath => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// An owner-set friendly name for one of the shop's devices (e.g. "Counter
+/// A", "Owner's phone"), so a raw device UUID on a [Sales] row can show as
+/// something meaningful on an invoice regardless of which device is doing
+/// the viewing. Synced (unlike the device id itself, which lives only in
+/// this device's own secure storage) — every device needs to see every
+/// other device's label, not just its own.
+class DeviceLabels extends Table with SyncColumns {
+  TextColumn get deviceId => text()();
+  TextColumn get label => text()();
 
   @override
   Set<Column> get primaryKey => {id};

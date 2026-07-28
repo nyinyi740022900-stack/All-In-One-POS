@@ -28,6 +28,7 @@ part 'database.g.dart';
     StaffMembers,
     Customers,
     Expenses,
+    DeviceLabels,
     AppSettings,
     Outbox,
   ],
@@ -39,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -129,6 +130,13 @@ class AppDatabase extends _$AppDatabase {
           // never double-counts it against cost-of-goods-sold.
           if (from < 17) {
             await m.createTable(expenses);
+          }
+          // v18: which physical device rang a sale up, plus owner-editable
+          // friendly device names so a raw device UUID can show as
+          // something meaningful regardless of which device is viewing it.
+          if (from < 18) {
+            await m.addColumn(sales, sales.deviceId);
+            await m.createTable(deviceLabels);
           }
         },
       );

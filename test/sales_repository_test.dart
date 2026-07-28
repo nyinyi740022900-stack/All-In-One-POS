@@ -70,6 +70,33 @@ void main() {
     expect(saleMoves.single.qtyDelta, -3);
   });
 
+  test('finalizeSale records which device rang the sale up', () async {
+    final coke = await seedProduct(name: 'Coke', price: 700, qty: 10);
+    final result = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: coke, qty: 1)]),
+      paymentMethod: 'cash',
+      paid: 700,
+      deviceId: 'device-abc',
+    );
+    final sale = await (db.select(db.sales)
+          ..where((s) => s.id.equals(result.saleId)))
+        .getSingle();
+    expect(sale.deviceId, 'device-abc');
+  });
+
+  test('finalizeSale leaves deviceId null when not provided', () async {
+    final coke = await seedProduct(name: 'Coke', price: 700, qty: 10);
+    final result = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: coke, qty: 1)]),
+      paymentMethod: 'cash',
+      paid: 700,
+    );
+    final sale = await (db.select(db.sales)
+          ..where((s) => s.id.equals(result.saleId)))
+        .getSingle();
+    expect(sale.deviceId, isNull);
+  });
+
   test('trackStock:false skips stock movement + decrement (invoice only)',
       () async {
     final p = await seedProduct(name: 'Service', price: 5000, qty: 10);

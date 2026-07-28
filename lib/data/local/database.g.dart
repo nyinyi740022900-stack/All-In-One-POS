@@ -3360,6 +3360,17 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3383,6 +3394,7 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     finalizedAt,
     refundOfSaleId,
     customerId,
+    deviceId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3540,6 +3552,12 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         customerId.isAcceptableOrUnknown(data['customer_id']!, _customerIdMeta),
       );
     }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3633,6 +3651,10 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         DriftSqlType.string,
         data['${effectivePrefix}customer_id'],
       ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
     );
   }
 
@@ -3677,6 +3699,12 @@ class Sale extends DataClass implements Insertable<Sale> {
   /// above remain the source of truth for what actually printed on the
   /// receipt either way (this is purely an additional lookup key).
   final String? customerId;
+
+  /// The physical device (`SettingsRepository.deviceId()`) that rang this
+  /// sale up — same stable id already used for license activation. Null on
+  /// sales predating this column. A raw UUID means nothing to an owner on
+  /// its own; see [DeviceLabels] for the friendly name shown on invoices.
+  final String? deviceId;
   const Sale({
     required this.id,
     required this.shopId,
@@ -3699,6 +3727,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     required this.finalizedAt,
     this.refundOfSaleId,
     this.customerId,
+    this.deviceId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3736,6 +3765,9 @@ class Sale extends DataClass implements Insertable<Sale> {
     if (!nullToAbsent || customerId != null) {
       map['customer_id'] = Variable<String>(customerId);
     }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
     return map;
   }
 
@@ -3772,6 +3804,9 @@ class Sale extends DataClass implements Insertable<Sale> {
       customerId: customerId == null && nullToAbsent
           ? const Value.absent()
           : Value(customerId),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
     );
   }
 
@@ -3802,6 +3837,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       finalizedAt: serializer.fromJson<DateTime>(json['finalizedAt']),
       refundOfSaleId: serializer.fromJson<String?>(json['refundOfSaleId']),
       customerId: serializer.fromJson<String?>(json['customerId']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
     );
   }
   @override
@@ -3829,6 +3865,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       'finalizedAt': serializer.toJson<DateTime>(finalizedAt),
       'refundOfSaleId': serializer.toJson<String?>(refundOfSaleId),
       'customerId': serializer.toJson<String?>(customerId),
+      'deviceId': serializer.toJson<String?>(deviceId),
     };
   }
 
@@ -3854,6 +3891,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     DateTime? finalizedAt,
     Value<String?> refundOfSaleId = const Value.absent(),
     Value<String?> customerId = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
   }) => Sale(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -3880,6 +3918,7 @@ class Sale extends DataClass implements Insertable<Sale> {
         ? refundOfSaleId.value
         : this.refundOfSaleId,
     customerId: customerId.present ? customerId.value : this.customerId,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
   );
   Sale copyWithCompanion(SalesCompanion data) {
     return Sale(
@@ -3916,6 +3955,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       customerId: data.customerId.present
           ? data.customerId.value
           : this.customerId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
     );
   }
 
@@ -3942,7 +3982,8 @@ class Sale extends DataClass implements Insertable<Sale> {
           ..write('note: $note, ')
           ..write('finalizedAt: $finalizedAt, ')
           ..write('refundOfSaleId: $refundOfSaleId, ')
-          ..write('customerId: $customerId')
+          ..write('customerId: $customerId, ')
+          ..write('deviceId: $deviceId')
           ..write(')'))
         .toString();
   }
@@ -3970,6 +4011,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     finalizedAt,
     refundOfSaleId,
     customerId,
+    deviceId,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -3995,7 +4037,8 @@ class Sale extends DataClass implements Insertable<Sale> {
           other.note == this.note &&
           other.finalizedAt == this.finalizedAt &&
           other.refundOfSaleId == this.refundOfSaleId &&
-          other.customerId == this.customerId);
+          other.customerId == this.customerId &&
+          other.deviceId == this.deviceId);
 }
 
 class SalesCompanion extends UpdateCompanion<Sale> {
@@ -4020,6 +4063,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
   final Value<DateTime> finalizedAt;
   final Value<String?> refundOfSaleId;
   final Value<String?> customerId;
+  final Value<String?> deviceId;
   final Value<int> rowid;
   const SalesCompanion({
     this.id = const Value.absent(),
@@ -4043,6 +4087,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.finalizedAt = const Value.absent(),
     this.refundOfSaleId = const Value.absent(),
     this.customerId = const Value.absent(),
+    this.deviceId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesCompanion.insert({
@@ -4067,6 +4112,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.finalizedAt = const Value.absent(),
     this.refundOfSaleId = const Value.absent(),
     this.customerId = const Value.absent(),
+    this.deviceId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -4093,6 +4139,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Expression<DateTime>? finalizedAt,
     Expression<String>? refundOfSaleId,
     Expression<String>? customerId,
+    Expression<String>? deviceId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4117,6 +4164,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       if (finalizedAt != null) 'finalized_at': finalizedAt,
       if (refundOfSaleId != null) 'refund_of_sale_id': refundOfSaleId,
       if (customerId != null) 'customer_id': customerId,
+      if (deviceId != null) 'device_id': deviceId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4143,6 +4191,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Value<DateTime>? finalizedAt,
     Value<String?>? refundOfSaleId,
     Value<String?>? customerId,
+    Value<String?>? deviceId,
     Value<int>? rowid,
   }) {
     return SalesCompanion(
@@ -4167,6 +4216,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       finalizedAt: finalizedAt ?? this.finalizedAt,
       refundOfSaleId: refundOfSaleId ?? this.refundOfSaleId,
       customerId: customerId ?? this.customerId,
+      deviceId: deviceId ?? this.deviceId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4237,6 +4287,9 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     if (customerId.present) {
       map['customer_id'] = Variable<String>(customerId.value);
     }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4267,6 +4320,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
           ..write('finalizedAt: $finalizedAt, ')
           ..write('refundOfSaleId: $refundOfSaleId, ')
           ..write('customerId: $customerId, ')
+          ..write('deviceId: $deviceId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11030,6 +11084,510 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   }
 }
 
+class $DeviceLabelsTable extends DeviceLabels
+    with TableInfo<$DeviceLabelsTable, DeviceLabel> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeviceLabelsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shopIdMeta = const VerificationMeta('shopId');
+  @override
+  late final GeneratedColumn<String> shopId = GeneratedColumn<String>(
+    'shop_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    deviceId,
+    label,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'device_labels';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeviceLabel> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('shop_id')) {
+      context.handle(
+        _shopIdMeta,
+        shopId.isAcceptableOrUnknown(data['shop_id']!, _shopIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_shopIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeviceLabel map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeviceLabel(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      shopId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shop_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+    );
+  }
+
+  @override
+  $DeviceLabelsTable createAlias(String alias) {
+    return $DeviceLabelsTable(attachedDatabase, alias);
+  }
+}
+
+class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
+  final String id;
+  final String shopId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool dirty;
+  final String deviceId;
+  final String label;
+  const DeviceLabel({
+    required this.id,
+    required this.shopId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.dirty,
+    required this.deviceId,
+    required this.label,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['shop_id'] = Variable<String>(shopId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['dirty'] = Variable<bool>(dirty);
+    map['device_id'] = Variable<String>(deviceId);
+    map['label'] = Variable<String>(label);
+    return map;
+  }
+
+  DeviceLabelsCompanion toCompanion(bool nullToAbsent) {
+    return DeviceLabelsCompanion(
+      id: Value(id),
+      shopId: Value(shopId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      dirty: Value(dirty),
+      deviceId: Value(deviceId),
+      label: Value(label),
+    );
+  }
+
+  factory DeviceLabel.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeviceLabel(
+      id: serializer.fromJson<String>(json['id']),
+      shopId: serializer.fromJson<String>(json['shopId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      label: serializer.fromJson<String>(json['label']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'shopId': serializer.toJson<String>(shopId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'label': serializer.toJson<String>(label),
+    };
+  }
+
+  DeviceLabel copyWith({
+    String? id,
+    String? shopId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? dirty,
+    String? deviceId,
+    String? label,
+  }) => DeviceLabel(
+    id: id ?? this.id,
+    shopId: shopId ?? this.shopId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    dirty: dirty ?? this.dirty,
+    deviceId: deviceId ?? this.deviceId,
+    label: label ?? this.label,
+  );
+  DeviceLabel copyWithCompanion(DeviceLabelsCompanion data) {
+    return DeviceLabel(
+      id: data.id.present ? data.id.value : this.id,
+      shopId: data.shopId.present ? data.shopId.value : this.shopId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      label: data.label.present ? data.label.value : this.label,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceLabel(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('label: $label')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    deviceId,
+    label,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeviceLabel &&
+          other.id == this.id &&
+          other.shopId == this.shopId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.dirty == this.dirty &&
+          other.deviceId == this.deviceId &&
+          other.label == this.label);
+}
+
+class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
+  final Value<String> id;
+  final Value<String> shopId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> dirty;
+  final Value<String> deviceId;
+  final Value<String> label;
+  final Value<int> rowid;
+  const DeviceLabelsCompanion({
+    this.id = const Value.absent(),
+    this.shopId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.label = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeviceLabelsCompanion.insert({
+    required String id,
+    required String shopId,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    required String deviceId,
+    required String label,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       shopId = Value(shopId),
+       deviceId = Value(deviceId),
+       label = Value(label);
+  static Insertable<DeviceLabel> custom({
+    Expression<String>? id,
+    Expression<String>? shopId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? dirty,
+    Expression<String>? deviceId,
+    Expression<String>? label,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (shopId != null) 'shop_id': shopId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (dirty != null) 'dirty': dirty,
+      if (deviceId != null) 'device_id': deviceId,
+      if (label != null) 'label': label,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeviceLabelsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? shopId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? dirty,
+    Value<String>? deviceId,
+    Value<String>? label,
+    Value<int>? rowid,
+  }) {
+    return DeviceLabelsCompanion(
+      id: id ?? this.id,
+      shopId: shopId ?? this.shopId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      dirty: dirty ?? this.dirty,
+      deviceId: deviceId ?? this.deviceId,
+      label: label ?? this.label,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (shopId.present) {
+      map['shop_id'] = Variable<String>(shopId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceLabelsCompanion(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('label: $label, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AppSettingsTable extends AppSettings
     with TableInfo<$AppSettingsTable, AppSetting> {
   @override
@@ -11707,6 +12265,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $StaffMembersTable staffMembers = $StaffMembersTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
+  late final $DeviceLabelsTable deviceLabels = $DeviceLabelsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   @override
@@ -11729,6 +12288,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     staffMembers,
     customers,
     expenses,
+    deviceLabels,
     appSettings,
     outbox,
   ];
@@ -13258,6 +13818,7 @@ typedef $$SalesTableCreateCompanionBuilder =
       Value<DateTime> finalizedAt,
       Value<String?> refundOfSaleId,
       Value<String?> customerId,
+      Value<String?> deviceId,
       Value<int> rowid,
     });
 typedef $$SalesTableUpdateCompanionBuilder =
@@ -13283,6 +13844,7 @@ typedef $$SalesTableUpdateCompanionBuilder =
       Value<DateTime> finalizedAt,
       Value<String?> refundOfSaleId,
       Value<String?> customerId,
+      Value<String?> deviceId,
       Value<int> rowid,
     });
 
@@ -13396,6 +13958,11 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<String> get customerId => $composableBuilder(
     column: $table.customerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -13513,6 +14080,11 @@ class $$SalesTableOrderingComposer
     column: $table.customerId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SalesTableAnnotationComposer
@@ -13598,6 +14170,9 @@ class $$SalesTableAnnotationComposer
     column: $table.customerId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
 }
 
 class $$SalesTableTableManager
@@ -13649,6 +14224,7 @@ class $$SalesTableTableManager
                 Value<DateTime> finalizedAt = const Value.absent(),
                 Value<String?> refundOfSaleId = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesCompanion(
                 id: id,
@@ -13672,6 +14248,7 @@ class $$SalesTableTableManager
                 finalizedAt: finalizedAt,
                 refundOfSaleId: refundOfSaleId,
                 customerId: customerId,
+                deviceId: deviceId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -13697,6 +14274,7 @@ class $$SalesTableTableManager
                 Value<DateTime> finalizedAt = const Value.absent(),
                 Value<String?> refundOfSaleId = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesCompanion.insert(
                 id: id,
@@ -13720,6 +14298,7 @@ class $$SalesTableTableManager
                 finalizedAt: finalizedAt,
                 refundOfSaleId: refundOfSaleId,
                 customerId: customerId,
+                deviceId: deviceId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -16895,6 +17474,263 @@ typedef $$ExpensesTableProcessedTableManager =
       Expense,
       PrefetchHooks Function()
     >;
+typedef $$DeviceLabelsTableCreateCompanionBuilder =
+    DeviceLabelsCompanion Function({
+      required String id,
+      required String shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      required String deviceId,
+      required String label,
+      Value<int> rowid,
+    });
+typedef $$DeviceLabelsTableUpdateCompanionBuilder =
+    DeviceLabelsCompanion Function({
+      Value<String> id,
+      Value<String> shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      Value<String> deviceId,
+      Value<String> label,
+      Value<int> rowid,
+    });
+
+class $$DeviceLabelsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeviceLabelsTable> {
+  $$DeviceLabelsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DeviceLabelsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeviceLabelsTable> {
+  $$DeviceLabelsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DeviceLabelsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeviceLabelsTable> {
+  $$DeviceLabelsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get shopId =>
+      $composableBuilder(column: $table.shopId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+}
+
+class $$DeviceLabelsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeviceLabelsTable,
+          DeviceLabel,
+          $$DeviceLabelsTableFilterComposer,
+          $$DeviceLabelsTableOrderingComposer,
+          $$DeviceLabelsTableAnnotationComposer,
+          $$DeviceLabelsTableCreateCompanionBuilder,
+          $$DeviceLabelsTableUpdateCompanionBuilder,
+          (
+            DeviceLabel,
+            BaseReferences<_$AppDatabase, $DeviceLabelsTable, DeviceLabel>,
+          ),
+          DeviceLabel,
+          PrefetchHooks Function()
+        > {
+  $$DeviceLabelsTableTableManager(_$AppDatabase db, $DeviceLabelsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeviceLabelsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeviceLabelsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeviceLabelsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> shopId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceLabelsCompanion(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                deviceId: deviceId,
+                label: label,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String shopId,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                required String deviceId,
+                required String label,
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceLabelsCompanion.insert(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                deviceId: deviceId,
+                label: label,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DeviceLabelsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeviceLabelsTable,
+      DeviceLabel,
+      $$DeviceLabelsTableFilterComposer,
+      $$DeviceLabelsTableOrderingComposer,
+      $$DeviceLabelsTableAnnotationComposer,
+      $$DeviceLabelsTableCreateCompanionBuilder,
+      $$DeviceLabelsTableUpdateCompanionBuilder,
+      (
+        DeviceLabel,
+        BaseReferences<_$AppDatabase, $DeviceLabelsTable, DeviceLabel>,
+      ),
+      DeviceLabel,
+      PrefetchHooks Function()
+    >;
 typedef $$AppSettingsTableCreateCompanionBuilder =
     AppSettingsCompanion Function({
       required String key,
@@ -17298,6 +18134,8 @@ class $AppDatabaseManager {
       $$CustomersTableTableManager(_db, _db.customers);
   $$ExpensesTableTableManager get expenses =>
       $$ExpensesTableTableManager(_db, _db.expenses);
+  $$DeviceLabelsTableTableManager get deviceLabels =>
+      $$DeviceLabelsTableTableManager(_db, _db.deviceLabels);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$OutboxTableTableManager get outbox =>

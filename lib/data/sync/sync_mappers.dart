@@ -44,6 +44,7 @@ final syncTables = <SyncTableDef>[
   _staffMembers,
   _customers,
   _expenses,
+  _deviceLabels,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -337,6 +338,7 @@ final _sales = SyncTableDef(
       'customer_id': r.customerId,
       'note': r.note,
       'refund_of_sale_id': r.refundOfSaleId,
+      'device_id': r.deviceId,
       'finalized_at': _iso(r.finalizedAt),
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
@@ -366,6 +368,7 @@ final _sales = SyncTableDef(
           customerId: Value(m['customer_id'] as String?),
           note: Value(m['note'] as String?),
           refundOfSaleId: Value(m['refund_of_sale_id'] as String?),
+          deviceId: Value(m['device_id'] as String?),
           finalizedAt: Value(_dt(m['finalized_at'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
@@ -705,6 +708,43 @@ final _expenses = SyncTableDef(
           amount: Value(_int(m['amount'])),
           date: Value(_dt(m['date'])),
           note: Value(m['note'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- device_labels -----------------------------------------------------
+final _deviceLabels = SyncTableDef(
+  name: 'device_labels',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.deviceLabels)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'device_id': r.deviceId,
+      'label': r.label,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.deviceLabels)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.deviceLabels).insertOnConflictUpdate(DeviceLabelsCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          deviceId: Value(m['device_id'] as String),
+          label: Value(m['label'] as String),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),

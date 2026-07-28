@@ -68,5 +68,21 @@ void main() {
       final c = await repo.getCustomer(id);
       expect(c!.phone, '09222'); // unchanged
     });
+
+    test('backfills an address onto an existing customer that had none',
+        () async {
+      final id = await repo.resolveOrCreate('Thida');
+      await repo.resolveOrCreate('Thida', address: '123 Pyay Road');
+      final c = await repo.getCustomer(id);
+      expect(c!.address, '123 Pyay Road');
+    });
+
+    test('never overwrites an address already on file', () async {
+      final id =
+          await repo.resolveOrCreate('Kyaw Kyaw', address: 'Yangon');
+      await repo.resolveOrCreate('Kyaw Kyaw', address: 'Mandalay');
+      final c = await repo.getCustomer(id);
+      expect(c!.address, 'Yangon'); // unchanged
+    });
   });
 }

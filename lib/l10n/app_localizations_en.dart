@@ -177,6 +177,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creditOwed => 'Owed';
 
   @override
+  String get creditDeposit => 'Deposit';
+
+  @override
+  String get creditBalanceDue => 'Balance due';
+
+  @override
   String get creditTotalOutstanding => 'Total outstanding';
 
   @override
@@ -583,6 +589,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceRefund => 'Refund';
 
   @override
+  String get invoiceDevice => 'Device';
+
+  @override
+  String get invoiceDeviceUnnamed => 'Unnamed device';
+
+  @override
   String get invoiceRefunded => 'Refunded';
 
   @override
@@ -659,6 +671,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLabelPrinter => 'Label printer';
+
+  @override
+  String get settingsDeviceName => 'Device name';
+
+  @override
+  String get settingsDeviceNameUnset => 'Not set — tap to name this device';
+
+  @override
+  String get settingsDeviceNameHint => 'e.g. Counter A, Owner\'s phone';
 
   @override
   String get labelPrinterSettings => 'Label printer settings';

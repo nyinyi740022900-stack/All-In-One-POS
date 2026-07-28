@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../printing/print_action.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
+import '../settings/device_label_providers.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   const InvoiceDetailScreen({super.key, required this.saleId});
@@ -116,6 +117,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   bold: true),
               _row(context, l.sellPaymentMethod,
                   paymentLabel(l, s.paymentMethod)),
+              if (s.deviceId != null)
+                _row(context, l.invoiceDevice,
+                    ref.watch(deviceLabelMapProvider)[s.deviceId] ??
+                        l.invoiceDeviceUnnamed),
               const SizedBox(height: AppTheme.space5),
               Center(
                 child: BarcodeWidget(

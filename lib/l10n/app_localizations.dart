@@ -416,6 +416,18 @@ abstract class AppLocalizations {
   /// **'Owed'**
   String get creditOwed;
 
+  /// No description provided for @creditDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit'**
+  String get creditDeposit;
+
+  /// No description provided for @creditBalanceDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance due'**
+  String get creditBalanceDue;
+
   /// No description provided for @creditTotalOutstanding.
   ///
   /// In en, this message translates to:
@@ -1172,6 +1184,18 @@ abstract class AppLocalizations {
   /// **'Refund'**
   String get invoiceRefund;
 
+  /// No description provided for @invoiceDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get invoiceDevice;
+
+  /// No description provided for @invoiceDeviceUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed device'**
+  String get invoiceDeviceUnnamed;
+
   /// No description provided for @invoiceRefunded.
   ///
   /// In en, this message translates to:
@@ -1315,6 +1339,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Label printer'**
   String get settingsLabelPrinter;
+
+  /// No description provided for @settingsDeviceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Device name'**
+  String get settingsDeviceName;
+
+  /// No description provided for @settingsDeviceNameUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set — tap to name this device'**
+  String get settingsDeviceNameUnset;
+
+  /// No description provided for @settingsDeviceNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Counter A, Owner\'s phone'**
+  String get settingsDeviceNameHint;
 
   /// No description provided for @labelPrinterSettings.
   ///

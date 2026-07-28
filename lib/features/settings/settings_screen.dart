@@ -24,6 +24,7 @@ import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
+import 'device_label_providers.dart';
 import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
 
@@ -105,6 +106,7 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const LabelPrinterSettingsScreen(),
             )),
           ),
+          _DeviceLabelTile(),
           _SyncTile(),
 
           _SectionHeader(l.settingsSectionHelp),
@@ -344,5 +346,61 @@ class _SyncTile extends ConsumerWidget {
                       ref.read(syncControllerProvider.notifier).sync(),
                 )),
     );
+  }
+}
+
+/// Lets the owner give *this* device a friendly name (e.g. "Counter A"),
+/// synced so every other device can show it too — see the doc comment on
+/// `DeviceLabels` in tables.dart for why this can't be a local setting.
+class _DeviceLabelTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final label = ref.watch(myDeviceLabelProvider);
+    return ListTile(
+      leading: const Icon(Icons.devices_outlined),
+      title: Text(l.settingsDeviceName),
+      subtitle: Text(label ?? l.settingsDeviceNameUnset),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _editLabel(context, ref, label),
+    );
+  }
+
+  Future<void> _editLabel(
+      BuildContext context, WidgetRef ref, String? current) async {
+    final l = AppLocalizations.of(context);
+    final controller = TextEditingController(text: current ?? '');
+    final saved = await showDialog<bool>(
+      context: context,
+      // Use the dialog's own context (not the outer Settings-screen one) to
+      // pop — showDialog pushes onto the root navigator by default, but the
+      // outer context here belongs to a go_router shell branch's own nested
+      // navigator, which only ever holds this one page; popping *that* one
+      // instead crashes the whole shell branch ("no pages left to show").
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.settingsDeviceName),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l.settingsDeviceNameHint),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.commonSave),
+          ),
+        ],
+      ),
+    );
+    if (saved != true) return;
+    final deviceId = await ref.read(deviceIdProvider.future);
+    await ref
+        .read(deviceLabelRepositoryProvider)
+        .setLabel(deviceId, controller.text.trim());
+    controller.dispose();
   }
 }

@@ -28,6 +28,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   final _paid = TextEditingController();
   final _customer = TextEditingController();
   final _phone = TextEditingController();
+  final _address = TextEditingController();
   bool _submitting = false;
   // Seller-controlled, per-sale: reveal the optional customer name/phone fields.
   bool _addCustomer = false;
@@ -49,6 +50,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     _paid.dispose();
     _customer.dispose();
     _phone.dispose();
+    _address.dispose();
     super.dispose();
   }
 
@@ -89,6 +91,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     try {
       final salesRepo = ref.read(salesRepositoryProvider);
       final phone = _phone.text.trim();
+      final address = _address.text.trim();
       // Prefer the directory entry the seller picked from the autocomplete;
       // otherwise resolve (or create) one by the typed name so repeat
       // customers still link to one directory entry over time even if the
@@ -99,6 +102,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
               await ref.read(customerRepositoryProvider).resolveOrCreate(
                     name,
                     phone: phone.isEmpty ? null : phone,
+                    address: address.isEmpty ? null : address,
                   );
       final result = await salesRepo.finalizeSale(
         cart: cart,
@@ -108,6 +112,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         customerPhone: phone.isEmpty ? null : phone,
         customerId: customerId,
         staffId: ref.read(activeStaffIdProvider).valueOrNull,
+        deviceId: ref.read(deviceIdProvider).valueOrNull,
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );
 
@@ -228,7 +233,16 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: AppTheme.space2),
-            if (owed > 0)
+            // Credit sales get an explicit deposit/balance-due breakdown
+            // rather than the generic Owed-or-Change row every other method
+            // shares, so a down payment always reads clearly as "this much
+            // now, this much still owed" instead of being conflated with an
+            // accidental cash-sale shortfall.
+            if (_method == 'credit') ...[
+              _row(l.creditDeposit, Money(paid).withSymbol(currency)),
+              _row(l.creditBalanceDue, Money(owed).withSymbol(currency),
+                  bold: true),
+            ] else if (owed > 0)
               _row(l.creditOwed, Money(owed).withSymbol(currency), bold: true)
             else
               _row(l.sellChange, Money(change).withSymbol(currency)),
@@ -240,8 +254,22 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
               dense: true,
               title: Text(l.checkoutAddCustomer),
               value: showCustomer,
-              onChanged:
-                  forced ? null : (v) => setState(() => _addCustomer = v),
+              onChanged: forced
+                  ? null
+                  : (v) => setState(() {
+                        _addCustomer = v;
+                        // Turning the switch off hides these fields — clear
+                        // them too, so leftover typed text can't silently
+                        // still get attached to the sale/directory at
+                        // confirm time even though the fields are gone.
+                        if (!v) {
+                          _customer.clear();
+                          _phone.clear();
+                          _address.clear();
+                          _selectedCustomerId = null;
+                          ref.read(cartProvider.notifier).setCustomerTier(null);
+                        }
+                      }),
             ),
 
             if (showCustomer) ...[
@@ -256,6 +284,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                   _selectedCustomerId = c.id;
                   _customer.text = c.name;
                   _phone.text = c.phone ?? '';
+                  _address.text = c.address ?? '';
                   ref
                       .read(cartProvider.notifier)
                       .setCustomerTier(c.tier == 'retail' ? null : c.tier);
@@ -270,6 +299,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(labelText: l.customerPhone),
+              ),
+              const SizedBox(height: AppTheme.space2),
+              TextField(
+                controller: _address,
+                decoration: InputDecoration(labelText: l.customerAddress),
               ),
               if (cart.customerTier != null) ...[
                 const SizedBox(height: AppTheme.space2),

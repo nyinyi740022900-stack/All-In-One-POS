@@ -72,9 +72,10 @@ class CustomerRepository {
   /// customer with the exact same name (case-insensitive) if one exists —
   /// so a seller who always types the same name for a regular still gets
   /// them linked to one directory entry — otherwise creates a new one.
-  /// [phone] backfills the directory entry's phone only if it didn't have
-  /// one already (never overwrites a phone number already on file).
-  Future<String> resolveOrCreate(String name, {String? phone}) async {
+  /// [phone]/[address] backfill the directory entry only where it didn't
+  /// already have a value (never overwrites one already on file).
+  Future<String> resolveOrCreate(String name,
+      {String? phone, String? address}) async {
     final trimmed = name.trim();
     final existing = await (_db.select(_db.customers)
           ..where((t) =>
@@ -83,15 +84,22 @@ class CustomerRepository {
               t.name.lower().equals(trimmed.toLowerCase())))
         .getSingleOrNull();
     if (existing != null) {
-      if ((existing.phone ?? '').isEmpty &&
-          phone != null &&
-          phone.isNotEmpty) {
+      final needsPhone =
+          (existing.phone ?? '').isEmpty && (phone ?? '').isNotEmpty;
+      final needsAddress =
+          (existing.address ?? '').isEmpty && (address ?? '').isNotEmpty;
+      if (needsPhone || needsAddress) {
         await upsertCustomer(
-            id: existing.id, name: existing.name, phone: phone);
+          id: existing.id,
+          name: existing.name,
+          phone: needsPhone ? phone : existing.phone,
+          address: needsAddress ? address : existing.address,
+          tier: existing.tier,
+        );
       }
       return existing.id;
     }
-    return upsertCustomer(name: trimmed, phone: phone);
+    return upsertCustomer(name: trimmed, phone: phone, address: address);
   }
 
   Future<void> _enqueue(String id) async {

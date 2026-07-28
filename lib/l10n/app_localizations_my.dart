@@ -176,6 +176,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get creditOwed => 'ကျန်ငွေ';
 
   @override
+  String get creditDeposit => 'စရံ';
+
+  @override
+  String get creditBalanceDue => 'ကျန်ငွေ (ပေးရမည်)';
+
+  @override
   String get creditTotalOutstanding => 'စုစုပေါင်း ကျန်ရှိငွေ';
 
   @override
@@ -578,6 +584,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invoiceRefund => 'ပြန်အမ်းငွေ';
 
   @override
+  String get invoiceDevice => 'စက်ပစ္စည်း';
+
+  @override
+  String get invoiceDeviceUnnamed => 'နာမည်မပေးရသေးသော စက်';
+
+  @override
   String get invoiceRefunded => 'ပြန်အမ်းပြီး';
 
   @override
@@ -654,6 +666,16 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get settingsLabelPrinter => 'Label ပရင်တာ';
+
+  @override
+  String get settingsDeviceName => 'စက်ပစ္စည်းအမည်';
+
+  @override
+  String get settingsDeviceNameUnset =>
+      'မသတ်မှတ်ရသေးပါ — ဒီစက်ကို နာမည်ပေးရန် နှိပ်ပါ';
+
+  @override
+  String get settingsDeviceNameHint => 'ဥပမာ - Counter A, Owner ဖုန်း';
 
   @override
   String get labelPrinterSettings => 'Label ပရင်တာ ဆက်တင်';

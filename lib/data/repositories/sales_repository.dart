@@ -180,6 +180,7 @@ class SalesRepository {
     String? customerPhone,
     String? customerId,
     String? staffId,
+    String? deviceId,
     bool trackStock = true,
   }) async {
     if (cart.isEmpty) {
@@ -209,6 +210,7 @@ class SalesRepository {
         customerName: Value(customerName),
         customerPhone: Value(customerPhone),
         customerId: Value(customerId),
+        deviceId: Value(deviceId),
         finalizedAt: Value(now),
         updatedAt: Value(now),
       );
