@@ -223,9 +223,29 @@ Manual review of the current codebase. Status: no high-severity issues in app co
 - Anon key kept out of source (`env.local.json` gitignored).
 
 **Action items before production (tracked):**
-1. **At-rest DB encryption** — swap `sqlite3_flutter_libs` for
-   `sqlcipher_flutter_libs` + a keystore-backed passphrase (deferred; documented).
-   Still open — no encryption code exists in `lib/` as of 2026-07-28.
+1. **At-rest DB encryption — blocked on Flutter/sqlite3 tooling, not app code.**
+   Investigated 2026-07-28: the plan this doc previously described
+   (`sqlite3_flutter_libs` → `sqlcipher_flutter_libs`) is no longer viable —
+   `sqlcipher_flutter_libs` is now published as EOL (`0.7.0+eol`, pub.dev
+   description: *"Not used anymore, update to version 3.x of package:sqlite3
+   instead"*). The maintainer-recommended replacement requires:
+   - Bumping `sqlite3` to 3.x and opting into Dart's **native-assets**
+     build system via a new `hooks:` section in `pubspec.yaml`
+     (`hooks.user_defines.sqlite3.source: sqlcipher`).
+   - Enabling `flutter config --enable-native-assets` — a **machine-wide**
+     toggle (not scoped to this project), and still an opt-in/experimental
+     feature on the stable channel as of Flutter 3.44.8, not default-on.
+   - Runtime key-setting (`PRAGMA key` equivalent) isn't clearly documented
+     for the new hook-based build — would need to be worked out empirically.
+   - SQLCipher links OpenSSL on Android/Windows/Linux — extra build surface
+     and its own license, on top of SQLCipher's own.
+   Given the parallel to the still-open macOS desktop rendering issue (also
+   bleeding-edge-tooling-shaped), deliberately **not** pursuing this now —
+   revisit once native-assets/hooks are default-on and the SQLCipher runtime
+   API is documented, or reconsider a lower-risk fallback (application-level
+   field encryption for the most sensitive columns only, using the
+   `cryptography` package already in `pubspec.yaml`, instead of whole-file
+   encryption) if this becomes a hard production requirement sooner.
 
 Resolved (corrected here — this list had gone stale; each of these was
 actually already done in an earlier phase but never checked off):
