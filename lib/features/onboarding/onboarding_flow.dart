@@ -91,11 +91,27 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                       ),
                     ),
                   const Spacer(),
-                  FilledButton(
-                    onPressed: _next,
-                    child: Text(_page == _pageCount - 1
-                        ? l.onboardGetStarted
-                        : l.onboardNext),
+                  // A Row's non-flex children (this button) are always given
+                  // an *unbounded* width to report their own natural size —
+                  // completely normal Flex behavior. On this app's very
+                  // first-ever frame in some environments (seen on both iOS
+                  // and Android emulators, not on a real device), the
+                  // button's internal Text/tap-target sizing has computed an
+                  // infinite intrinsic width instead of falling back to its
+                  // content width, crashing this whole screen permanently
+                  // (the exception aborts the frame and nothing schedules a
+                  // repaint afterwards). Capping the button's own max width
+                  // gives it a concrete, finite constraint no matter what its
+                  // internals compute, without changing how it looks in the
+                  // normal case (its natural width is far below this cap).
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: FilledButton(
+                      onPressed: _next,
+                      child: Text(_page == _pageCount - 1
+                          ? l.onboardGetStarted
+                          : l.onboardNext),
+                    ),
                   ),
                 ],
               ),
