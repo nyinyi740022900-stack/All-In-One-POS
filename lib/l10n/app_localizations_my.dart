@@ -803,7 +803,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get expenseReceiptPhotoAdd => 'ဘောင်ချာပုံ ပူးတွဲရန်';
 
   @override
-  String get expenseReceiptPhotoReplace => 'ဘောင်ချာပုံ အစားထိုးရန်';
+  String get expenseReceiptPhotoReplace => 'ပုံ အစားထိုးရန်';
+
+  @override
+  String get expenseReceiptPhotoView => 'ပုံ ကြည့်ရန်';
+
+  @override
+  String get expenseReceiptPhotoSave => 'မိတ္တူ သိမ်းရန်';
 
   @override
   String get expenseReceiptPhotoHint =>

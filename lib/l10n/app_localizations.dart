@@ -1607,8 +1607,20 @@ abstract class AppLocalizations {
   /// No description provided for @expenseReceiptPhotoReplace.
   ///
   /// In en, this message translates to:
-  /// **'Replace receipt photo'**
+  /// **'Replace photo'**
   String get expenseReceiptPhotoReplace;
+
+  /// No description provided for @expenseReceiptPhotoView.
+  ///
+  /// In en, this message translates to:
+  /// **'View photo'**
+  String get expenseReceiptPhotoView;
+
+  /// No description provided for @expenseReceiptPhotoSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a copy'**
+  String get expenseReceiptPhotoSave;
 
   /// No description provided for @expenseReceiptPhotoHint.
   ///

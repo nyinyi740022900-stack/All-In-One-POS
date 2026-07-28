@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/image_util.dart';
 import '../../core/money.dart';
@@ -13,6 +14,55 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
+
+String _photoMimeType(String path) {
+  final ext = path.split('.').last.toLowerCase();
+  return switch (ext) {
+    'png' => 'image/png',
+    'jpg' || 'jpeg' => 'image/jpeg',
+    _ => 'image/jpeg',
+  };
+}
+
+/// Full-screen view of a receipt photo, with a share/save action so the
+/// owner can move a copy off this device (e.g. before switching phones —
+/// see the local-only note on the attach button).
+class ReceiptPhotoViewer extends StatelessWidget {
+  const ReceiptPhotoViewer({super.key, required this.path});
+  final String path;
+
+  Future<void> _save(BuildContext context) async {
+    await SharePlus.instance.share(
+      ShareParams(files: [XFile(path, mimeType: _photoMimeType(path))]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: l.expenseReceiptPhotoSave,
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => _save(context),
+          ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4,
+          child: Image.file(File(path)),
+        ),
+      ),
+    );
+  }
+}
 
 IconData _categoryIcon(String category) {
   switch (category) {
@@ -287,13 +337,64 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
               decoration: InputDecoration(labelText: l.expenseNote),
             ),
             const SizedBox(height: AppTheme.space3),
-            OutlinedButton.icon(
-              onPressed: _pickReceiptPhoto,
-              icon: const Icon(Icons.camera_alt_outlined, size: 18),
-              label: Text(photoExists
-                  ? l.expenseReceiptPhotoReplace
-                  : l.expenseReceiptPhotoAdd),
-            ),
+            if (photoExists) ...[
+              Row(
+                children: [
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) =>
+                            ReceiptPhotoViewer(path: _receiptPhotoPath!))),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(_receiptPhotoPath!),
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.space3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => ReceiptPhotoViewer(
+                                      path: _receiptPhotoPath!))),
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              alignment: Alignment.centerLeft),
+                          child: Text(l.expenseReceiptPhotoView),
+                        ),
+                        TextButton(
+                          onPressed: _pickReceiptPhoto,
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              alignment: Alignment.centerLeft),
+                          child: Text(l.expenseReceiptPhotoReplace),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              OutlinedButton.icon(
+                onPressed: _pickReceiptPhoto,
+                icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                label: Text(l.expenseReceiptPhotoAdd),
+              ),
             if (_receiptPhotoPath != null && !photoExists)
               Padding(
                 padding: const EdgeInsets.only(top: 4),

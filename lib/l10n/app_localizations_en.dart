@@ -807,7 +807,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expenseReceiptPhotoAdd => 'Attach receipt photo';
 
   @override
-  String get expenseReceiptPhotoReplace => 'Replace receipt photo';
+  String get expenseReceiptPhotoReplace => 'Replace photo';
+
+  @override
+  String get expenseReceiptPhotoView => 'View photo';
+
+  @override
+  String get expenseReceiptPhotoSave => 'Save a copy';
 
   @override
   String get expenseReceiptPhotoHint =>
