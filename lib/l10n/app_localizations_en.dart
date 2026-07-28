@@ -801,6 +801,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Activation failed. Check your connection.';
 
   @override
+  String get licenseRateLimited =>
+      'Too many attempts — please wait a few minutes and try again.';
+
+  @override
   String get licenseActivated => 'License activated';
 
   @override
@@ -1562,6 +1566,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get staffMemberPin => 'PIN (4–6 digits)';
+
+  @override
+  String get staffMemberPinKeepHint => 'Leave blank to keep the current PIN';
 
   @override
   String get staffMemberSaved => 'Staff member saved';

@@ -98,7 +98,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         final msg = result.errorCode == 'invalid_key' ||
                 result.errorCode == 'device_mismatch'
             ? l.licenseInvalidKey
-            : l.licenseActivateFailed;
+            : result.errorCode == 'rate_limited'
+                ? l.licenseRateLimited
+                : l.licenseActivateFailed;
         messenger.showSnackBar(SnackBar(content: Text(msg)));
       } else {
         // Apply the role the owner picked when generating this device's QR
@@ -186,6 +188,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       } else if (result.errorCode == 'invalid_key' ||
           result.errorCode == 'device_mismatch') {
         msg = l.licenseInvalidKey;
+      } else if (result.errorCode == 'rate_limited') {
+        msg = l.licenseRateLimited;
       } else {
         msg = l.licenseActivateFailed; // network / auth
       }

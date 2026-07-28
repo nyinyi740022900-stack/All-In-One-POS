@@ -795,6 +795,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseActivateFailed => 'အသက်သွင်း၍ မရပါ။ အင်တာနက် စစ်ဆေးပါ။';
 
   @override
+  String get licenseRateLimited =>
+      'ကြိုးစားမှု အကြိမ်ကြိမ် များနေပါတယ် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
   String get licenseActivated => 'လိုင်စင် အသက်သွင်းပြီးပါပြီ';
 
   @override
@@ -1558,6 +1562,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get staffMemberPin => 'PIN (ဂဏန်း ၄–၆ လုံး)';
+
+  @override
+  String get staffMemberPinKeepHint =>
+      'လက်ရှိ PIN ကို ဆက်ထားချင်ရင် ကွက်လပ်ထားပါ';
 
   @override
   String get staffMemberSaved => 'ဝန်ထမ်းအချက်အလက် သိမ်းပြီး';

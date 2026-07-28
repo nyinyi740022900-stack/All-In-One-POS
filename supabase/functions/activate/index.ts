@@ -71,6 +71,27 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "bad_request" }, 400);
   }
 
+  // Rate limit: the `activate` action accepts an arbitrary key string and
+  // reports back whether it was valid — exactly the surface a brute-force
+  // script would target. At most 10 attempts per IP per 15 minutes; counted
+  // before the lookup so rapid guesses can't dodge the limit.
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
+    .split(",")[0]
+    .trim();
+  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("activate_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if ((count ?? 0) >= 10) {
+    // 200, not 429 — every other soft/business-logic error this action
+    // returns (invalid_key, device_mismatch) uses 200 so the client's
+    // `res.data` parsing path (not its exception path) handles it.
+    return json({ ok: false, error: "rate_limited" }, 200);
+  }
+  await admin.from("activate_attempts").insert({ ip });
+
   const { data: license, error: licErr } = await admin
     .from("licenses")
     .select("*")

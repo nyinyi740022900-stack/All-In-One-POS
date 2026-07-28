@@ -41,7 +41,10 @@ class StaffMembersScreen extends ConsumerWidget {
       [StaffMember? existing]) async {
     final l = AppLocalizations.of(context);
     final name = TextEditingController(text: existing?.name ?? '');
-    final pin = TextEditingController(text: existing?.pin ?? '');
+    // Never pre-filled with the existing PIN — it's stored hashed now, not
+    // in a form that could be redisplayed. Blank means "keep the current
+    // PIN" when editing (see the hint text below); required when adding.
+    final pin = TextEditingController();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -63,7 +66,10 @@ class StaffMembersScreen extends ConsumerWidget {
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(6),
               ],
-              decoration: InputDecoration(labelText: l.staffMemberPin),
+              decoration: InputDecoration(
+                labelText: l.staffMemberPin,
+                hintText: existing == null ? null : l.staffMemberPinKeepHint,
+              ),
             ),
           ],
         ),
@@ -78,12 +84,15 @@ class StaffMembersScreen extends ConsumerWidget {
       ),
     );
     if (saved != true) return;
-    if (name.text.trim().isEmpty || pin.text.trim().isEmpty) return;
+    if (name.text.trim().isEmpty) return;
+    // Adding a member always needs a PIN; editing may leave it blank to keep
+    // the current one.
+    if (existing == null && pin.text.trim().isEmpty) return;
 
     await ref.read(staffRepositoryProvider).upsertMember(
           id: existing?.id,
           name: name.text.trim(),
-          pin: pin.text.trim(),
+          pin: pin.text.trim().isEmpty ? null : pin.text.trim(),
         );
     if (context.mounted) {
       ScaffoldMessenger.of(context)

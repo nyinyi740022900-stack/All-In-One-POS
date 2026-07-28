@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -119,6 +120,41 @@ void main() {
 
     await staffRepo.deactivateMember(id);
     expect(await staffRepo.watchActiveMembers().first, isEmpty);
+  });
+
+  group('PIN hashing', () {
+    test('upsertMember never stores the PIN in the clear', () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Aye Aye', pin: '4444');
+      final stored = await staffRepo.watchActiveMembers().first;
+      final member = stored.firstWhere((m) => m.id == id);
+      expect(member.pin, isNot('4444'));
+      expect(member.pin, startsWith('v1:'));
+    });
+
+    test('editing a member with a blank PIN keeps their existing PIN',
+        () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Aye Aye', pin: '4444');
+      await staffRepo.upsertMember(id: id, name: 'Aye Aye (edited)', pin: null);
+
+      expect(await staffRepo.verifyPin(id, '4444'), isNotNull);
+    });
+
+    test('a legacy plaintext PIN still verifies and is upgraded in place',
+        () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      // Simulate a row written before hashing existed.
+      final id = await staffRepo.upsertMember(name: 'Legacy', pin: '5555');
+      await (db.update(db.staffMembers)..where((t) => t.id.equals(id)))
+          .write(const StaffMembersCompanion(pin: Value('5555')));
+
+      final ok = await staffRepo.verifyPin(id, '5555');
+      expect(ok, isNotNull);
+
+      final upgraded = await staffRepo.watchActiveMembers().first;
+      expect(upgraded.firstWhere((m) => m.id == id).pin, startsWith('v1:'));
+    });
   });
 
   group('showStaffModeSectionProvider', () {

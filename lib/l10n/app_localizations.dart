@@ -1580,6 +1580,12 @@ abstract class AppLocalizations {
   /// **'Activation failed. Check your connection.'**
   String get licenseActivateFailed;
 
+  /// No description provided for @licenseRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts — please wait a few minutes and try again.'**
+  String get licenseRateLimited;
+
   /// No description provided for @licenseActivated.
   ///
   /// In en, this message translates to:
@@ -2965,6 +2971,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PIN (4–6 digits)'**
   String get staffMemberPin;
+
+  /// No description provided for @staffMemberPinKeepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to keep the current PIN'**
+  String get staffMemberPinKeepHint;
 
   /// No description provided for @staffMemberSaved.
   ///
