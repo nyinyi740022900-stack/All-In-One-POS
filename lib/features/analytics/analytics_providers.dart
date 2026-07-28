@@ -1,6 +1,8 @@
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../data/local/database.dart';
 import '../../data/repositories/analytics_repository.dart';
 import '../sell/sales_providers.dart';
 import 'analytics_calculator.dart';
@@ -32,9 +34,21 @@ final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
   };
 }
 
+/// Just enough to trigger `analyticsSummaryProvider` to recompute when an
+/// expense is added/edited/deleted — the actual figures are read fresh from
+/// the repository, not from this stream's rows.
+final _expenseChangesProvider = StreamProvider<List<Expense>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.expenses)
+        ..where((e) => e.shopId.equals(shopId) & e.isDeleted.equals(false)))
+      .watch();
+});
+
 final analyticsSummaryProvider = FutureProvider<AnalyticsSummary>((ref) async {
-  // Recompute whenever sales change so the dashboard stays live.
+  // Recompute whenever sales or expenses change so the dashboard stays live.
   ref.watch(salesStreamProvider);
+  ref.watch(_expenseChangesProvider);
   final range = ref.watch(analyticsRangeProvider);
   final bounds = rangeBounds(range, DateTime.now());
   return ref

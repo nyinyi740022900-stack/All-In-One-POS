@@ -41,6 +41,7 @@ class AnalyticsSummary {
   final int discount;
   final int cost;
   final int stockValue;
+  final int expenses;
 
   /// Number of credit sales in the range, and the still-unpaid portion of
   /// them (total − paid). `revenue` counts the full billed amount (accrual);
@@ -57,6 +58,7 @@ class AnalyticsSummary {
     required this.discount,
     required this.cost,
     required this.stockValue,
+    required this.expenses,
     required this.creditSales,
     required this.creditOutstanding,
     required this.daily,
@@ -68,8 +70,15 @@ class AnalyticsSummary {
 
   /// Gross profit = net revenue − cost of goods sold. Cost is the FIFO
   /// cost snapshotted at sale time where available (see [ItemRow.costSnapshot]),
-  /// falling back to the product's current cost price for older sales.
+  /// falling back to the product's current cost price for older sales. Does
+  /// **not** account for rent/utilities/wages/etc — see [netProfit] for that.
   int get profit => revenue - cost;
+
+  /// Gross profit minus non-inventory operating expenses (rent, utilities,
+  /// wages, transport, packaging — see the `Expenses` table). This is the
+  /// actual bottom line; [profit] alone overstates it by whatever the shop
+  /// spent running the business beyond restocking.
+  int get netProfit => profit - expenses;
 
   static const empty = AnalyticsSummary(
     revenue: 0,
@@ -77,6 +86,7 @@ class AnalyticsSummary {
     discount: 0,
     cost: 0,
     stockValue: 0,
+    expenses: 0,
     creditSales: 0,
     creditOutstanding: 0,
     daily: [],
@@ -93,6 +103,7 @@ AnalyticsSummary computeAnalytics({
   required int stockValue,
   required DateTime start,
   required DateTime end,
+  int expenses = 0,
   int topN = 5,
 }) {
   var revenue = 0;
@@ -150,6 +161,7 @@ AnalyticsSummary computeAnalytics({
     discount: discount,
     cost: cost,
     stockValue: stockValue,
+    expenses: expenses,
     creditSales: creditSales,
     creditOutstanding: creditOutstanding,
     daily: daily,

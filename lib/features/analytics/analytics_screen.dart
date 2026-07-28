@@ -7,6 +7,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
+import '../expenses/expense_screen.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
@@ -101,6 +102,20 @@ class _Dashboard extends StatelessWidget {
                 value: Money(summary.profit).withSymbol(cur),
                 icon: Icons.trending_up,
                 color: Colors.green),
+            _KpiCard(
+                label: l.analyticsExpenses,
+                value: Money(summary.expenses).withSymbol(cur),
+                icon: Icons.receipt_long,
+                color: Colors.deepOrange,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ExpenseScreen()))),
+            _KpiCard(
+                label: l.analyticsNetProfit,
+                value: Money(summary.netProfit).withSymbol(cur),
+                icon: Icons.savings_outlined,
+                color: summary.netProfit >= 0 ? Colors.green : Colors.red,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ExpenseScreen()))),
             _KpiCard(
                 label: l.analyticsSalesCount,
                 value: '${summary.salesCount}',

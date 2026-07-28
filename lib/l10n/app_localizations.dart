@@ -1439,8 +1439,20 @@ abstract class AppLocalizations {
   /// No description provided for @analyticsProfit.
   ///
   /// In en, this message translates to:
-  /// **'Profit'**
+  /// **'Gross profit'**
   String get analyticsProfit;
+
+  /// No description provided for @analyticsExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Total expenses'**
+  String get analyticsExpenses;
+
+  /// No description provided for @analyticsNetProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Net profit'**
+  String get analyticsNetProfit;
 
   /// No description provided for @analyticsSalesCount.
   ///
@@ -1507,6 +1519,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credit outstanding'**
   String get analyticsCreditOutstanding;
+
+  /// No description provided for @expensesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses'**
+  String get expensesTitle;
+
+  /// No description provided for @expensesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses logged for this period.'**
+  String get expensesEmpty;
+
+  /// No description provided for @expensesTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total expenses'**
+  String get expensesTotal;
+
+  /// No description provided for @expenseAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add expense'**
+  String get expenseAdd;
+
+  /// No description provided for @expenseEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit expense'**
+  String get expenseEdit;
+
+  /// No description provided for @expenseAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get expenseAmount;
+
+  /// No description provided for @expenseNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get expenseNote;
+
+  /// No description provided for @expenseCategoryRent.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent'**
+  String get expenseCategoryRent;
+
+  /// No description provided for @expenseCategoryUtilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Utilities'**
+  String get expenseCategoryUtilities;
+
+  /// No description provided for @expenseCategoryWages.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff wages'**
+  String get expenseCategoryWages;
+
+  /// No description provided for @expenseCategoryTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get expenseCategoryTransport;
+
+  /// No description provided for @expenseCategoryPackaging.
+  ///
+  /// In en, this message translates to:
+  /// **'Packaging'**
+  String get expenseCategoryPackaging;
+
+  /// No description provided for @expenseCategoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get expenseCategoryOther;
+
+  /// No description provided for @expenseReceiptPhotoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach receipt photo'**
+  String get expenseReceiptPhotoAdd;
+
+  /// No description provided for @expenseReceiptPhotoReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace receipt photo'**
+  String get expenseReceiptPhotoReplace;
+
+  /// No description provided for @expenseReceiptPhotoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept on this device only, not backed up. Before switching phones, share a copy of it to yourself first.'**
+  String get expenseReceiptPhotoHint;
+
+  /// No description provided for @expenseReceiptPhotoMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This receipt photo isn\'t on this device.'**
+  String get expenseReceiptPhotoMissing;
+
+  /// No description provided for @expenseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense saved'**
+  String get expenseSaved;
+
+  /// No description provided for @expenseDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this expense?'**
+  String get expenseDeleteConfirmTitle;
+
+  /// No description provided for @expenseDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense deleted'**
+  String get expenseDeleted;
 
   /// No description provided for @licenseActivateTitle.
   ///

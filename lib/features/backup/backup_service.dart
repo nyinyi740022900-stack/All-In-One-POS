@@ -46,6 +46,11 @@ class BackupService {
       'license_payments': (await _db.select(_db.licensePayments).get())
           .map((r) => r.toJson())
           .toList(),
+      // Receipt photos themselves are local files, not included here (see
+      // Expenses' doc comment in tables.dart) — only the expense record
+      // (amount/category/date/note) round-trips through a backup.
+      'expenses':
+          (await _db.select(_db.expenses).get()).map((r) => r.toJson()).toList(),
     };
   }
 
@@ -104,6 +109,7 @@ class BackupService {
       await _db.delete(_db.categories).go();
       await _db.delete(_db.creditPayments).go();
       await _db.delete(_db.licensePayments).go();
+      await _db.delete(_db.expenses).go();
 
       for (final m in rows('categories')) {
         await _db.into(_db.categories).insert(Category.fromJson(m));
@@ -139,6 +145,10 @@ class BackupService {
       }
       for (final m in rows('license_payments')) {
         await _db.into(_db.licensePayments).insert(LicensePayment.fromJson(m));
+        written++;
+      }
+      for (final m in rows('expenses')) {
+        await _db.into(_db.expenses).insert(Expense.fromJson(m));
         written++;
       }
     });

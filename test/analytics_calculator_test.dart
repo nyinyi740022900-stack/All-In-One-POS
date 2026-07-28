@@ -152,6 +152,36 @@ void main() {
     expect(s.collected, 6000); // 9000 − 3000
   });
 
+  test('netProfit = gross profit - expenses, expenses defaults to 0', () {
+    final noExpenses = computeAnalytics(
+      sales: [sale(2100, at: d1)],
+      items: [
+        (productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
+      ],
+      productCost: const {},
+      stockValue: 0,
+      start: start,
+      end: end,
+    );
+    expect(noExpenses.profit, 300);
+    expect(noExpenses.expenses, 0);
+    expect(noExpenses.netProfit, 300); // unaffected when nothing passed in
+
+    final withExpenses = computeAnalytics(
+      sales: [sale(2100, at: d1)],
+      items: [
+        (productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
+      ],
+      productCost: const {},
+      stockValue: 0,
+      start: start,
+      end: end,
+      expenses: 200,
+    );
+    expect(withExpenses.profit, 300); // gross profit untouched by expenses
+    expect(withExpenses.netProfit, 100); // 300 - 200
+  });
+
   test('a refund row nets out revenue but is excluded from salesCount', () {
     final s = computeAnalytics(
       sales: [

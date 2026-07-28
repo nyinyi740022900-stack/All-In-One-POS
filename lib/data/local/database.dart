@@ -27,6 +27,7 @@ part 'database.g.dart';
     OrderItems,
     StaffMembers,
     Customers,
+    Expenses,
     AppSettings,
     Outbox,
   ],
@@ -38,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -122,6 +123,12 @@ class AppDatabase extends _$AppDatabase {
           // storefront may sell, independent of real in-store stock.
           if (from < 16) {
             await m.addColumn(products, products.onlineStockLimit);
+          }
+          // v17: non-inventory operating expenses (rent, utilities, wages,
+          // transport, packaging) — separate from restock cost so Analytics
+          // never double-counts it against cost-of-goods-sold.
+          if (from < 17) {
+            await m.createTable(expenses);
           }
         },
       );

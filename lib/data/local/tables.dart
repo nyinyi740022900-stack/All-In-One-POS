@@ -343,6 +343,29 @@ class StaffMembers extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A shop's non-inventory operating expense (rent, utilities, staff wages,
+/// transport, packaging, …). Deliberately separate from restocking cost,
+/// which already flows into Analytics as cost-of-goods-sold via
+/// [Products.costPrice]/[StockLots] — recording a restock here too would
+/// double-count it against gross profit.
+///
+/// [receiptPhotoPath] is a **local file path only** — never uploaded to
+/// Supabase Storage (kept off the ongoing sync/data-cost path on purpose), so
+/// it syncs as null to every other device and only ever resolves on the
+/// device the photo was taken on. The remote `expenses` table has no column
+/// for it at all; see `sync_mappers.dart`.
+class Expenses extends Table with SyncColumns {
+  /// rent | utilities | wages | transport | packaging | other
+  TextColumn get category => text()();
+  IntColumn get amount => integer()();
+  DateTimeColumn get date => dateTime()();
+  TextColumn get note => text().nullable()();
+  TextColumn get receiptPhotoPath => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Simple local key/value store for device-scoped app settings (printer MAC,
 /// paper size, selected language, etc.). Not synced.
 class AppSettings extends Table {

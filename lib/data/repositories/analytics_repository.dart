@@ -61,6 +61,15 @@ class AnalyticsRepository {
       stockValue += lvl.quantity * (productCost[lvl.productId] ?? 0);
     }
 
+    final expenseRows = await (_db.select(_db.expenses)
+          ..where((e) =>
+              e.shopId.equals(_shopId) &
+              e.isDeleted.equals(false) &
+              e.date.isBiggerOrEqualValue(start) &
+              e.date.isSmallerThanValue(end)))
+        .get();
+    final expenses = expenseRows.fold<int>(0, (sum, e) => sum + e.amount);
+
     return computeAnalytics(
       sales: saleRows,
       items: itemRows,
@@ -68,6 +77,7 @@ class AnalyticsRepository {
       stockValue: stockValue,
       start: start,
       end: end,
+      expenses: expenses,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/sales_repository.dart';
 import 'package:mm_pos/features/backup/backup_service.dart';
+import 'package:mm_pos/features/expenses/expense_repository.dart';
 import 'package:mm_pos/features/sell/cart.dart';
 
 void main() {
@@ -11,12 +12,14 @@ void main() {
   late BackupService backup;
   late InventoryRepository inventory;
   late SalesRepository sales;
+  late ExpenseRepository expenses;
 
   setUp(() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     backup = BackupService(db);
     inventory = InventoryRepository(db, 'shop-1');
     sales = SalesRepository(db, 'shop-1');
+    expenses = ExpenseRepository(db, 'shop-1');
   });
 
   tearDown(() async => db.close());
@@ -53,6 +56,25 @@ void main() {
     // The sale + its item came back too.
     expect(await db.select(db.sales).get(), hasLength(1));
     expect(await db.select(db.saleItems).get(), hasLength(1));
+  });
+
+  test('expenses round-trip through export/import', () async {
+    await expenses.upsertExpense(
+      category: 'rent',
+      amount: 150000,
+      date: DateTime(2026, 7, 1),
+      note: 'July rent',
+    );
+    final snapshot = await backup.exportJson();
+
+    await db.delete(db.expenses).go();
+    expect(await db.select(db.expenses).get(), isEmpty);
+
+    await backup.importReplaceAll(snapshot);
+    final restored = await db.select(db.expenses).get();
+    expect(restored, hasLength(1));
+    expect(restored.single.category, 'rent');
+    expect(restored.single.amount, 150000);
   });
 
   test('device-local tables are not touched by import', () async {

@@ -718,7 +718,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get analyticsRevenue => 'ရောင်းရငွေ';
 
   @override
-  String get analyticsProfit => 'အမြတ်';
+  String get analyticsProfit => 'စုစုပေါင်းအမြတ်';
+
+  @override
+  String get analyticsExpenses => 'ကုန်ကျစရိတ် စုစုပေါင်း';
+
+  @override
+  String get analyticsNetProfit => 'အသားတင်အမြတ်';
 
   @override
   String get analyticsSalesCount => 'အရောင်း';
@@ -752,6 +758,69 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsCreditOutstanding => 'အကြွေးကျန်';
+
+  @override
+  String get expensesTitle => 'ကုန်ကျစရိတ်များ';
+
+  @override
+  String get expensesEmpty =>
+      'ဤကာလအတွင်း ကုန်ကျစရိတ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။';
+
+  @override
+  String get expensesTotal => 'ကုန်ကျစရိတ် စုစုပေါင်း';
+
+  @override
+  String get expenseAdd => 'ကုန်ကျစရိတ် ထည့်ရန်';
+
+  @override
+  String get expenseEdit => 'ကုန်ကျစရိတ် ပြင်ရန်';
+
+  @override
+  String get expenseAmount => 'ပမာဏ';
+
+  @override
+  String get expenseNote => 'မှတ်ချက် (ရွေးချယ်ခွင့်)';
+
+  @override
+  String get expenseCategoryRent => 'ဆိုင်ငှားခ';
+
+  @override
+  String get expenseCategoryUtilities => 'လျှပ်စစ်/ရေခ';
+
+  @override
+  String get expenseCategoryWages => 'ဝန်ထမ်းလစာ';
+
+  @override
+  String get expenseCategoryTransport => 'ပို့ဆောင်ခ';
+
+  @override
+  String get expenseCategoryPackaging => 'ထုပ်ပိုးစရိတ်';
+
+  @override
+  String get expenseCategoryOther => 'အခြား';
+
+  @override
+  String get expenseReceiptPhotoAdd => 'ဘောင်ချာပုံ ပူးတွဲရန်';
+
+  @override
+  String get expenseReceiptPhotoReplace => 'ဘောင်ချာပုံ အစားထိုးရန်';
+
+  @override
+  String get expenseReceiptPhotoHint =>
+      'ဒီဖုန်းပေါ်မှာပဲ သိမ်းထားမှာဖြစ်ပြီး backup ထဲ ပါမည် မဟုတ်ပါ။ ဖုန်းအစားထိုးမလုပ်မီ ကိုယ်တိုင် တစ်နေရာရာသို့ မျှဝေထားပါ။';
+
+  @override
+  String get expenseReceiptPhotoMissing =>
+      'ဒီဘောင်ချာပုံက ဒီဖုန်းပေါ်မှာ မရှိပါ။';
+
+  @override
+  String get expenseSaved => 'ကုန်ကျစရိတ် သိမ်းဆည်းပြီးပါပြီ';
+
+  @override
+  String get expenseDeleteConfirmTitle => 'ဒီကုန်ကျစရိတ်ကို ဖျက်မလား?';
+
+  @override
+  String get expenseDeleted => 'ကုန်ကျစရိတ် ဖျက်ပြီးပါပြီ';
 
   @override
   String get licenseActivateTitle => 'လိုင်စင် အသက်သွင်း';

@@ -723,7 +723,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analyticsRevenue => 'Revenue';
 
   @override
-  String get analyticsProfit => 'Profit';
+  String get analyticsProfit => 'Gross profit';
+
+  @override
+  String get analyticsExpenses => 'Total expenses';
+
+  @override
+  String get analyticsNetProfit => 'Net profit';
 
   @override
   String get analyticsSalesCount => 'Sales';
@@ -757,6 +763,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsCreditOutstanding => 'Credit outstanding';
+
+  @override
+  String get expensesTitle => 'Expenses';
+
+  @override
+  String get expensesEmpty => 'No expenses logged for this period.';
+
+  @override
+  String get expensesTotal => 'Total expenses';
+
+  @override
+  String get expenseAdd => 'Add expense';
+
+  @override
+  String get expenseEdit => 'Edit expense';
+
+  @override
+  String get expenseAmount => 'Amount';
+
+  @override
+  String get expenseNote => 'Note (optional)';
+
+  @override
+  String get expenseCategoryRent => 'Rent';
+
+  @override
+  String get expenseCategoryUtilities => 'Utilities';
+
+  @override
+  String get expenseCategoryWages => 'Staff wages';
+
+  @override
+  String get expenseCategoryTransport => 'Transport';
+
+  @override
+  String get expenseCategoryPackaging => 'Packaging';
+
+  @override
+  String get expenseCategoryOther => 'Other';
+
+  @override
+  String get expenseReceiptPhotoAdd => 'Attach receipt photo';
+
+  @override
+  String get expenseReceiptPhotoReplace => 'Replace receipt photo';
+
+  @override
+  String get expenseReceiptPhotoHint =>
+      'Kept on this device only, not backed up. Before switching phones, share a copy of it to yourself first.';
+
+  @override
+  String get expenseReceiptPhotoMissing =>
+      'This receipt photo isn\'t on this device.';
+
+  @override
+  String get expenseSaved => 'Expense saved';
+
+  @override
+  String get expenseDeleteConfirmTitle => 'Delete this expense?';
+
+  @override
+  String get expenseDeleted => 'Expense deleted';
 
   @override
   String get licenseActivateTitle => 'Activate license';

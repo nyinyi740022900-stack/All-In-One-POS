@@ -43,6 +43,7 @@ final syncTables = <SyncTableDef>[
   _orderItems,
   _staffMembers,
   _customers,
+  _expenses,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -661,6 +662,49 @@ final _payments = SyncTableDef(
           method: Value(m['method'] as String),
           amount: Value(_int(m['amount'])),
           refNo: Value(m['ref_no'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- expenses ----------------------------------------------------------
+// receiptPhotoPath is deliberately absent from both directions: it's a local
+// file path, never uploaded, so the remote row and every other device simply
+// never have one — see the doc comment on Expenses in tables.dart.
+final _expenses = SyncTableDef(
+  name: 'expenses',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.expenses)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'category': r.category,
+      'amount': r.amount,
+      'date': _iso(r.date),
+      'note': r.note,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.expenses)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.expenses).insertOnConflictUpdate(ExpensesCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          category: Value(m['category'] as String),
+          amount: Value(_int(m['amount'])),
+          date: Value(_dt(m['date'])),
+          note: Value(m['note'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),
