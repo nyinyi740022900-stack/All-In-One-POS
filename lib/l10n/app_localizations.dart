@@ -860,6 +860,18 @@ abstract class AppLocalizations {
   /// **'No stock movements yet.'**
   String get stockHistoryEmpty;
 
+  /// No description provided for @stockHistoryPickDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick date range'**
+  String get stockHistoryPickDateRange;
+
+  /// No description provided for @stockHistoryClearDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date range'**
+  String get stockHistoryClearDateRange;
+
   /// No description provided for @stockMovementOpening.
   ///
   /// In en, this message translates to:

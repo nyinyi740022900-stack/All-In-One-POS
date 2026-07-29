@@ -410,6 +410,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get stockHistoryEmpty => 'လက်ကျန်ပြောင်းလဲမှု မရှိသေးပါ။';
 
   @override
+  String get stockHistoryPickDateRange => 'ရက်စွဲအပိုင်းအခြား ရွေးရန်';
+
+  @override
+  String get stockHistoryClearDateRange => 'ရက်စွဲအပိုင်းအခြား ရှင်းရန်';
+
+  @override
   String get stockMovementOpening => 'အစပိုင်း လက်ကျန်';
 
   @override

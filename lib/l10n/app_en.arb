@@ -141,6 +141,8 @@
   "stockReasonOther": "Other",
   "stockHistoryTitle": "Stock history",
   "stockHistoryEmpty": "No stock movements yet.",
+  "stockHistoryPickDateRange": "Pick date range",
+  "stockHistoryClearDateRange": "Clear date range",
   "stockMovementOpening": "Opening balance",
   "stockMovementSale": "Sale",
   "stockMovementReturn": "Refund return",

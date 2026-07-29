@@ -193,4 +193,40 @@ void main() {
       expect(tables, containsAll(<String>{'stock_movements', 'stock_levels'}));
     });
   });
+
+  group('watchAllMovements', () {
+    test('spans every product, newest first', () async {
+      final a = await repo.upsertProduct(name: 'A', quantity: 5);
+      final b = await repo.upsertProduct(name: 'B', quantity: 5);
+      await repo.adjustStock(productId: a, delta: 2, type: 'purchase');
+      await repo.adjustStock(productId: b, delta: -1, type: 'adjustment');
+
+      final moves = await repo.watchAllMovements().first;
+      // Newest first: adjustment(B), purchase(A), opening(B), opening(A).
+      expect(moves.map((m) => m.productId).toList(), [b, a, b, a]);
+    });
+
+    test('filters to [start, end) by createdAt', () async {
+      final id = await repo.upsertProduct(name: 'C', quantity: 5);
+      final all = await repo.watchAllMovements().first;
+      final openingTime = all.single.createdAt;
+
+      final before = openingTime.subtract(const Duration(days: 1));
+      final after = openingTime.add(const Duration(days: 1));
+
+      expect(await repo.watchAllMovements(start: before, end: after).first,
+          hasLength(1));
+      expect(await repo.watchAllMovements(start: after).first, isEmpty);
+      expect(await repo.watchAllMovements(end: before).first, isEmpty);
+      // id unused beyond generating the movement above.
+      expect(id, isNotEmpty);
+    });
+
+    test('is scoped by shop', () async {
+      await repo.upsertProduct(name: 'D', quantity: 1);
+      final otherShop = InventoryRepository(db, 'shop-2');
+      expect(await otherShop.watchAllMovements().first, isEmpty);
+      expect(await repo.watchAllMovements().first, hasLength(1));
+    });
+  });
 }

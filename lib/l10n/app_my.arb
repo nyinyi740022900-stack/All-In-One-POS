@@ -140,6 +140,8 @@
   "stockReasonOther": "အခြား",
   "stockHistoryTitle": "လက်ကျန်မှတ်တမ်း",
   "stockHistoryEmpty": "လက်ကျန်ပြောင်းလဲမှု မရှိသေးပါ။",
+  "stockHistoryPickDateRange": "ရက်စွဲအပိုင်းအခြား ရွေးရန်",
+  "stockHistoryClearDateRange": "ရက်စွဲအပိုင်းအခြား ရှင်းရန်",
   "stockMovementOpening": "အစပိုင်း လက်ကျန်",
   "stockMovementSale": "ရောင်းချမှု",
   "stockMovementReturn": "ပြန်အမ်းငွေ",

@@ -16,6 +16,7 @@ import 'categories_screen.dart';
 import 'inventory_providers.dart';
 import 'product_edit_screen.dart';
 import 'stock_adjust_dialog.dart';
+import 'stock_movements_screen.dart';
 
 /// Barcode value to print/scan for a product — its own barcode if set,
 /// falling back to the SKU, then the internal id, so every product can get
@@ -66,6 +67,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       appBar: AppBar(
         title: Text(l.inventoryTitle),
         actions: [
+          IconButton(
+            tooltip: l.stockHistoryTitle,
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const StockMovementsScreen(),
+            )),
+          ),
           IconButton(
             tooltip: l.manageCategories,
             icon: const Icon(Icons.label),

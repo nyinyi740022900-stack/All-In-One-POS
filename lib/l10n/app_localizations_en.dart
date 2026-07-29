@@ -416,6 +416,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockHistoryEmpty => 'No stock movements yet.';
 
   @override
+  String get stockHistoryPickDateRange => 'Pick date range';
+
+  @override
+  String get stockHistoryClearDateRange => 'Clear date range';
+
+  @override
   String get stockMovementOpening => 'Opening balance';
 
   @override

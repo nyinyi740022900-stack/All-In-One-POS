@@ -75,6 +75,33 @@ class InventoryRepository {
         .watch();
   }
 
+  /// Newest-first stock movement ledger across *every* product (shop-wide),
+  /// optionally bounded to `[start, end)` — the Inventory tab's "Stock
+  /// history" screen. See [watchStockMovements] for why this orders by
+  /// `rowid` rather than `createdAt`.
+  Stream<List<StockMovement>> watchAllMovements({
+    DateTime? start,
+    DateTime? end,
+  }) {
+    return (_db.select(_db.stockMovements)
+          ..where((m) {
+            var pred = m.shopId.equals(_shopId);
+            if (start != null) {
+              pred = pred & m.createdAt.isBiggerOrEqualValue(start);
+            }
+            if (end != null) {
+              pred = pred & m.createdAt.isSmallerThanValue(end);
+            }
+            return pred;
+          })
+          ..orderBy([
+            (_) => OrderingTerm(
+                expression: const CustomExpression<int>('rowid'),
+                mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
   // ---- Writes ------------------------------------------------------------
 
   /// Creates or updates a product and (optionally) its stock level.

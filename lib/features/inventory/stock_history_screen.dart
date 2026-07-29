@@ -15,7 +15,7 @@ String stockMovementTypeLabel(AppLocalizations l, String type) => switch (type) 
       _ => type,
     };
 
-IconData _iconFor(String type) => switch (type) {
+IconData stockMovementTypeIcon(String type) => switch (type) {
       'opening' => Icons.play_circle_outline,
       'sale' => Icons.point_of_sale,
       'return' => Icons.undo,
@@ -66,7 +66,7 @@ class StockHistoryScreen extends ConsumerWidget {
               final positive = m.qtyDelta > 0;
               final color = positive ? Colors.green : Theme.of(context).colorScheme.error;
               return ListTile(
-                leading: Icon(_iconFor(m.type)),
+                leading: Icon(stockMovementTypeIcon(m.type)),
                 title: Text(stockMovementTypeLabel(l, m.type)),
                 subtitle: Text(
                   [

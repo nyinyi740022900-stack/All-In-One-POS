@@ -52,3 +52,49 @@ final stockMovementsProvider =
     StreamProvider.family<List<StockMovement>, String>((ref, productId) {
   return ref.watch(inventoryRepositoryProvider).watchStockMovements(productId);
 });
+
+// --- Shop-wide "Stock history" screen (Inventory tab) -----------------------
+
+/// Inclusive lower bound for the shop-wide stock history filter — null means
+/// no lower bound (all time).
+final movementStartDateProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Exclusive upper bound (the day *after* the inclusive end day the owner
+/// picked) — null means no upper bound.
+final movementEndDateProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Which movement types to show — defaults to restocks + adjustments only,
+/// since sales/returns are already visible via Invoices.
+final movementTypeFilterProvider =
+    StateProvider<Set<String>>((ref) => {'purchase', 'adjustment'});
+
+final allMovementsProvider = StreamProvider<List<StockMovement>>((ref) {
+  final start = ref.watch(movementStartDateProvider);
+  final end = ref.watch(movementEndDateProvider);
+  return ref
+      .watch(inventoryRepositoryProvider)
+      .watchAllMovements(start: start, end: end);
+});
+
+/// A movement paired with its product's name, for a list that spans every
+/// product (StockMovements itself only carries the product id).
+class MovementWithProduct {
+  const MovementWithProduct(
+      {required this.movement, required this.productName});
+  final StockMovement movement;
+  final String productName;
+}
+
+final filteredMovementsProvider = Provider<List<MovementWithProduct>>((ref) {
+  final movements = ref.watch(allMovementsProvider).valueOrNull ?? const [];
+  final types = ref.watch(movementTypeFilterProvider);
+  final products = ref.watch(productsStreamProvider).valueOrNull ?? const [];
+  final nameById = {for (final p in products) p.product.id: p.product.name};
+  return movements
+      .where((m) => types.isEmpty || types.contains(m.type))
+      .map((m) => MovementWithProduct(
+            movement: m,
+            productName: nameById[m.productId] ?? m.productId,
+          ))
+      .toList();
+});
