@@ -175,12 +175,16 @@ class _TrackStockTile extends ConsumerWidget {
             tooltip: l.settingsTrackStockHint,
             onPressed: () => showDialog<void>(
               context: context,
-              builder: (_) => AlertDialog(
+              // Pop via the dialog's own context — showDialog defaults to the
+              // root navigator while this screen's own context belongs to
+              // go_router's nested shell-branch navigator; popping via the
+              // outer context pops the wrong navigator.
+              builder: (dialogContext) => AlertDialog(
                 title: Text(l.settingsTrackStock),
                 content: Text(l.settingsTrackStockHint),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: Text(l.commonOk),
                   ),
                 ],

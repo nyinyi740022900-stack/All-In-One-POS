@@ -271,15 +271,19 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     final navigator = Navigator.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      // Pop via the dialog's own context — showDialog defaults to the root
+      // navigator while this screen's own context belongs to go_router's
+      // nested shell-branch navigator; popping via the outer context pops
+      // the wrong navigator.
+      builder: (dialogContext) => AlertDialog(
         title: Text(l.expenseDeleteConfirmTitle),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l.commonCancel),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l.commonDelete),
           ),
         ],

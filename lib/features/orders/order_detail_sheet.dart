@@ -331,14 +331,19 @@ class OrderDetailSheet extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      // showDialog defaults to the ROOT navigator, while this sheet's own
+      // `context` belongs to go_router's nested shell-branch navigator —
+      // popping via the outer context pops the wrong (branch) navigator,
+      // dismissing the sheet underneath while leaving the dialog stuck open.
+      // Use the dialog's own builder context instead.
+      builder: (dialogContext) => AlertDialog(
         content: Text(l.orderDeleteConfirm),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(l.commonCancel)),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: Text(l.orderDelete)),
         ],
       ),
@@ -353,15 +358,16 @@ class OrderDetailSheet extends ConsumerWidget {
       AppLocalizations l, String phone) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      // See _confirmDelete's comment: must pop via the dialog's own context.
+      builder: (dialogContext) => AlertDialog(
         title: Text(l.orderBlockCustomer),
         content: Text(l.orderBlockCustomerConfirm(phone)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(l.commonCancel)),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: Text(l.orderBlockCustomer)),
         ],
       ),
