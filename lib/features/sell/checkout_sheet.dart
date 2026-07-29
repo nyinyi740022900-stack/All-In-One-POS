@@ -27,6 +27,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   String _method = 'cash';
   final _paid = TextEditingController();
   final _customer = TextEditingController();
+  final _customerFocus = FocusNode();
   final _phone = TextEditingController();
   final _address = TextEditingController();
   bool _submitting = false;
@@ -49,6 +50,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     }
     _paid.dispose();
     _customer.dispose();
+    _customerFocus.dispose();
     _phone.dispose();
     _address.dispose();
     super.dispose();
@@ -275,6 +277,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             if (showCustomer) ...[
               _CustomerAutocomplete(
                 controller: _customer,
+                focusNode: _customerFocus,
                 labelText: forced
                     ? '${l.creditCustomerName} *'
                     : l.creditCustomerName,
@@ -362,6 +365,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 class _CustomerAutocomplete extends ConsumerWidget {
   const _CustomerAutocomplete({
     required this.controller,
+    required this.focusNode,
     required this.labelText,
     required this.onChanged,
     required this.onSelected,
@@ -370,6 +374,13 @@ class _CustomerAutocomplete extends ConsumerWidget {
   });
 
   final TextEditingController controller;
+  // Owned by the parent (CheckoutSheet's State), not created here — this
+  // widget rebuilds on every keystroke (onChanged triggers a parent
+  // setState) and whenever the customer directory changes, so a FocusNode
+  // instantiated inline in build() would get a new identity on every one of
+  // those rebuilds, resetting the text input connection mid-typing (visible
+  // as the soft keyboard briefly flipping to the wrong type).
+  final FocusNode focusNode;
   final String labelText;
   final String? helperText;
   final VoidCallback onChanged;
@@ -381,7 +392,7 @@ class _CustomerAutocomplete extends ConsumerWidget {
     final customers = ref.watch(customersStreamProvider).valueOrNull ?? const [];
     return RawAutocomplete<Customer>(
       textEditingController: controller,
-      focusNode: FocusNode(),
+      focusNode: focusNode,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
         if (q.isEmpty) return const Iterable<Customer>.empty();
