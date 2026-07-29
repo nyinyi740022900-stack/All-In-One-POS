@@ -118,6 +118,32 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     }
   }
 
+  Future<void> _confirmDelete() async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.deleteConfirmTitle),
+        content: Text(widget.existing!.product.name),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await ref
+        .read(inventoryRepositoryProvider)
+        .deleteProduct(widget.existing!.product.id);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -152,6 +178,14 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? l.inventoryEditProduct : l.inventoryAddProduct),
+        actions: [
+          if (isEdit)
+            IconButton(
+              tooltip: l.commonDelete,
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _confirmDelete,
+            ),
+        ],
       ),
       body: Form(
         key: _formKey,
