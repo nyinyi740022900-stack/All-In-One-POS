@@ -162,6 +162,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get checkoutAddCustomer => 'ဝယ်သူ ထည့်';
 
   @override
+  String get checkoutSaveToDirectory => 'Customer list ထဲ သိမ်းရန်';
+
+  @override
   String get checkoutPickCustomer => 'Customer list ကနေ ရွေးရန်';
 
   @override
@@ -183,6 +186,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get creditBalanceDue => 'ကျန်ငွေ (ပေးရမည်)';
+
+  @override
+  String get creditPreviousBalance => 'ယခင်ကျန်ငွေ';
+
+  @override
+  String get creditTotalBalanceDue => 'စုစုပေါင်း ကျန်ငွေ (ပေးရမည်)';
 
   @override
   String get creditTotalOutstanding => 'စုစုပေါင်း ကျန်ရှိငွေ';

@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'Add customer'**
   String get checkoutAddCustomer;
 
+  /// No description provided for @checkoutSaveToDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to customer list'**
+  String get checkoutSaveToDirectory;
+
   /// No description provided for @checkoutPickCustomer.
   ///
   /// In en, this message translates to:
@@ -433,6 +439,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Balance due'**
   String get creditBalanceDue;
+
+  /// No description provided for @creditPreviousBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous balance'**
+  String get creditPreviousBalance;
+
+  /// No description provided for @creditTotalBalanceDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Total balance due'**
+  String get creditTotalBalanceDue;
 
   /// No description provided for @creditTotalOutstanding.
   ///

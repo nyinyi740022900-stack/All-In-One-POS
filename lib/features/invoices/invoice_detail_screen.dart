@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../credit/credit_providers.dart';
 import '../printing/print_action.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
@@ -64,6 +65,20 @@ class InvoiceDetailScreen extends ConsumerWidget {
           final s = d.sale;
           final isRefund = s.refundOfSaleId != null;
           final refundRow = refundOf.valueOrNull;
+          // This invoice's own shortfall, plus the customer's total credit-book
+          // balance (which already includes this invoice, once finalized) —
+          // "previous balance" is just the difference, not separately stored.
+          final thisOwed = s.total > s.paid ? s.total - s.paid : 0;
+          var totalOutstanding = thisOwed;
+          if (s.customerId != null) {
+            for (final c in ref.watch(creditCustomersProvider)) {
+              if (c.customerId == s.customerId) {
+                totalOutstanding = c.outstanding;
+                break;
+              }
+            }
+          }
+          final previousBalance = totalOutstanding - thisOwed;
           return ListView(
             padding: const EdgeInsets.all(AppTheme.space4),
             children: [
@@ -120,6 +135,20 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   bold: true),
               _row(context, l.sellPaymentMethod,
                   paymentLabel(l, s.paymentMethod)),
+              if (thisOwed > 0) ...[
+                _row(context, l.creditDeposit,
+                    Money(s.paid).withSymbol(currency)),
+                _row(context, l.creditBalanceDue,
+                    Money(thisOwed).withSymbol(currency),
+                    bold: true),
+              ],
+              if (previousBalance > 0) ...[
+                _row(context, l.creditPreviousBalance,
+                    Money(previousBalance).withSymbol(currency)),
+                _row(context, l.creditTotalBalanceDue,
+                    Money(totalOutstanding).withSymbol(currency),
+                    bold: true),
+              ],
               if (s.deviceId != null)
                 _row(context, l.invoiceDevice,
                     ref.watch(deviceLabelMapProvider)[s.deviceId] ??

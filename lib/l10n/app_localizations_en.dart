@@ -162,6 +162,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkoutAddCustomer => 'Add customer';
 
   @override
+  String get checkoutSaveToDirectory => 'Save to customer list';
+
+  @override
   String get checkoutPickCustomer => 'Pick from customers';
 
   @override
@@ -184,6 +187,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditBalanceDue => 'Balance due';
+
+  @override
+  String get creditPreviousBalance => 'Previous balance';
+
+  @override
+  String get creditTotalBalanceDue => 'Total balance due';
 
   @override
   String get creditTotalOutstanding => 'Total outstanding';

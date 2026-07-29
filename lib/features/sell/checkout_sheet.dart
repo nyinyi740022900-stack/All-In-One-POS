@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/local/database.dart';
+import '../credit/credit_providers.dart';
 import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
@@ -33,10 +34,19 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   bool _submitting = false;
   // Seller-controlled, per-sale: reveal the optional customer name/phone fields.
   bool _addCustomer = false;
+  // Whether a freshly-*typed* (not picked) name gets saved as a new directory
+  // entry, vs just attached to this one invoice. Irrelevant once an existing
+  // customer is picked (already in the directory — nothing new to save) and
+  // forced on for credit sales (the credit book needs the directory link).
+  bool _saveToDirectory = true;
   // Set when a directory customer was picked from the autocomplete; cleared
   // whenever the name is edited by hand so a stale id never gets attached to
   // the wrong typed name.
   String? _selectedCustomerId;
+  // The picked customer's outstanding balance *before* this sale, so the
+  // seller sees it before confirming (the invoice itself shows the combined
+  // total afterward — see InvoiceDetailScreen).
+  int _previousBalance = 0;
   // True once `_confirm` has cleared the cart on a successful sale — guards
   // `dispose` so a cancelled/dismissed sheet reverts any tier it applied.
   bool _confirmed = false;
@@ -57,6 +67,15 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   }
 
   int get _paidAmount => int.tryParse(_paid.text.trim()) ?? 0;
+
+  /// This customer's outstanding credit-book balance *before* this sale —
+  /// 0 if they have none (or aren't a directory customer at all).
+  int _outstandingFor(String customerId) {
+    for (final c in ref.read(creditCustomersProvider)) {
+      if (c.customerId == customerId) return c.outstanding;
+    }
+    return 0;
+  }
 
   /// Amount tendered. Empty field means "paid in full" for a normal method, or
   /// "nothing down" for the credit method.
@@ -81,7 +100,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     final name = _customer.text.trim();
     // A shortfall is booked as credit, and the credit method is always credit —
     // both need a customer name to bill. Phone stays optional.
-    if ((owed > 0 || _method == 'credit') && name.isEmpty) {
+    final forced = owed > 0 || _method == 'credit';
+    if (forced && name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.creditCustomerRequired)),
       );
@@ -94,18 +114,22 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       final salesRepo = ref.read(salesRepositoryProvider);
       final phone = _phone.text.trim();
       final address = _address.text.trim();
-      // Prefer the directory entry the seller picked from the autocomplete;
-      // otherwise resolve (or create) one by the typed name so repeat
-      // customers still link to one directory entry over time even if the
-      // seller never bothers with the dropdown.
+      // Prefer the directory entry the seller picked from the autocomplete —
+      // already in the directory, nothing new to create. Otherwise, only
+      // create a new directory entry for a freshly-typed name if the seller
+      // opted in (or it's forced, since the credit book needs the link);
+      // declining just attaches the name/phone/address to this one invoice
+      // via customerName/customerPhone below, with no directory row.
       final customerId = name.isEmpty
           ? null
           : _selectedCustomerId ??
-              await ref.read(customerRepositoryProvider).resolveOrCreate(
-                    name,
-                    phone: phone.isEmpty ? null : phone,
-                    address: address.isEmpty ? null : address,
-                  );
+              (forced || _saveToDirectory
+                  ? await ref.read(customerRepositoryProvider).resolveOrCreate(
+                        name,
+                        phone: phone.isEmpty ? null : phone,
+                        address: address.isEmpty ? null : address,
+                      )
+                  : null);
       final result = await salesRepo.finalizeSale(
         cart: cart,
         paymentMethod: _method,
@@ -269,6 +293,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           _phone.clear();
                           _address.clear();
                           _selectedCustomerId = null;
+                          _previousBalance = 0;
                           ref.read(cartProvider.notifier).setCustomerTier(null);
                         }
                       }),
@@ -288,12 +313,14 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                   _customer.text = c.name;
                   _phone.text = c.phone ?? '';
                   _address.text = c.address ?? '';
+                  _previousBalance = _outstandingFor(c.id);
                   ref
                       .read(cartProvider.notifier)
                       .setCustomerTier(c.tier == 'retail' ? null : c.tier);
                 }),
                 onEditedByHand: () {
                   _selectedCustomerId = null;
+                  _previousBalance = 0;
                   ref.read(cartProvider.notifier).setCustomerTier(null);
                 },
               ),
@@ -308,6 +335,25 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                 controller: _address,
                 decoration: InputDecoration(labelText: l.customerAddress),
               ),
+              // Only meaningful for a freshly-typed name: an already-picked
+              // directory customer is already saved, and a forced (credit)
+              // sale must save regardless (the credit book needs the link).
+              if (!forced && _selectedCustomerId == null)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(l.checkoutSaveToDirectory),
+                  value: _saveToDirectory,
+                  onChanged: (v) =>
+                      setState(() => _saveToDirectory = v ?? true),
+                ),
+              if (_previousBalance > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.space2),
+                  child: _row(l.creditPreviousBalance,
+                      Money(_previousBalance).withSymbol(currency)),
+                ),
               if (cart.customerTier != null) ...[
                 const SizedBox(height: AppTheme.space2),
                 Text(
