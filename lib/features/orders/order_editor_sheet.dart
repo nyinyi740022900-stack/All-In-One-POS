@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
+import '../customers/customer_picker.dart';
 import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import 'order_labels.dart';
@@ -61,6 +62,7 @@ class OrderEditorSheet extends ConsumerStatefulWidget {
 
 class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
   late final TextEditingController _name;
+  final _nameFocus = FocusNode();
   late final TextEditingController _phone;
   late final TextEditingController _address;
   late final TextEditingController _deliveryFee;
@@ -68,12 +70,17 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
   late String _channel;
   final List<_LineDraft> _lines = [];
   bool _saving = false;
+  // Set when a directory customer was picked via the autocomplete/picker
+  // sheet; cleared whenever the name is edited by hand so a stale id never
+  // gets attached to the wrong typed name.
+  String? _selectedCustomerId;
 
   @override
   void initState() {
     super.initState();
     final o = widget.order;
     _name = TextEditingController(text: o?.customerName ?? '');
+    _selectedCustomerId = o?.customerId;
     _phone = TextEditingController(text: o?.customerPhone ?? '');
     _address = TextEditingController(text: o?.deliveryAddress ?? '');
     _deliveryFee = TextEditingController(
@@ -94,6 +101,7 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
   @override
   void dispose() {
     _name.dispose();
+    _nameFocus.dispose();
     _phone.dispose();
     _address.dispose();
     _deliveryFee.dispose();
@@ -168,10 +176,14 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
 
     setState(() => _saving = true);
     final phone = _phone.text.trim();
-    final customerId = await ref
-        .read(customerRepositoryProvider)
-        .resolveOrCreate(_name.text.trim(),
-            phone: phone.isEmpty ? null : phone);
+    // A directory customer explicitly picked via the autocomplete/picker
+    // sheet is used as-is — resolving by name again could match a different
+    // customer sharing that name.
+    final customerId = _selectedCustomerId ??
+        await ref
+            .read(customerRepositoryProvider)
+            .resolveOrCreate(_name.text.trim(),
+                phone: phone.isEmpty ? null : phone);
     await ref.read(ordersRepositoryProvider).saveOrder(
           id: widget.order?.id,
           customerName: _name.text.trim(),
@@ -199,12 +211,22 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
       child: DraftedContent(
         title: widget.order == null ? l.orderNew : l.orderEditTitle,
         children: [
-          TextField(
+          CustomerAutocomplete(
             controller: _name,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(labelText: l.orderCustomerName),
+            focusNode: _nameFocus,
+            labelText: l.orderCustomerName,
+            onChanged: () {},
+            onEditedByHand: () => _selectedCustomerId = null,
+            onSelected: (c) {
+              setState(() {
+                _name.text = c.name;
+                if (_phone.text.trim().isEmpty && (c.phone ?? '').isNotEmpty) {
+                  _phone.text = c.phone!;
+                }
+                _selectedCustomerId = c.id;
+              });
+            },
           ),
-          const SizedBox(height: 12),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _channel,

@@ -27,17 +27,6 @@ const orderChannels = <String>[
   'other',
 ];
 
-/// Delivery-leg status, separate from the Kanban [orderStatuses] stage — this
-/// tracks the handoff to a carrier specifically.
-const deliveryStatuses = <String>[
-  'pending',
-  'booked',
-  'out_for_delivery',
-  'delivered',
-  'failed',
-  'returned',
-];
-
 /// A line the caller wants on an order, before it is persisted. A line may
 /// reference a catalog product ([productId]) or be a free-text item.
 class OrderDraftLine {

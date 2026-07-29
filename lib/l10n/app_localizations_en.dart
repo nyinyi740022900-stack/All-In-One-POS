@@ -1351,7 +1351,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderStatusDelivered => 'Delivered';
 
   @override
-  String get orderStatusCancelled => 'Cancelled';
+  String get orderStatusCancelled => 'Return';
 
   @override
   String get orderChannelFacebook => 'Facebook';
@@ -1502,10 +1502,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderAlreadySale => 'Already recorded as a sale.';
 
   @override
-  String get orderCancel => 'Cancel order';
+  String get orderCancel => 'Mark as return';
 
   @override
-  String get orderRestore => 'Restore to New';
+  String get orderRestore => 'Undo return';
 
   @override
   String get orderNeedsName => 'Enter a customer name.';
@@ -1534,9 +1534,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderPrint => 'Print';
 
   @override
-  String get deliverySection => 'Delivery';
-
-  @override
   String get deliveryTownship => 'Township';
 
   @override
@@ -1556,27 +1553,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter after booking on the carrier\'s own app';
 
   @override
-  String get deliveryStatusLabel => 'Delivery status';
-
-  @override
-  String get deliveryStatusPending => 'Pending';
-
-  @override
-  String get deliveryStatusBooked => 'Booked';
-
-  @override
-  String get deliveryStatusOutForDelivery => 'Out for delivery';
-
-  @override
-  String get deliveryStatusDelivered => 'Delivered';
-
-  @override
-  String get deliveryStatusFailed => 'Failed';
-
-  @override
-  String get deliveryStatusReturned => 'Returned';
-
-  @override
   String get deliverySave => 'Save delivery info';
 
   @override
@@ -1587,7 +1563,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No live carrier API yet — book the waybill in the carrier\'s own app, then record the tracking number here.';
 
   @override
-  String get ordersSearchHint => 'Search name, phone, order #';
+  String get ordersSearchHint => 'Search name, phone, order #, invoice #';
 
   @override
   String get ordersNoMatch => 'No orders match your filters.';

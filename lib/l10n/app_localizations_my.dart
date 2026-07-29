@@ -1350,7 +1350,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderStatusDelivered => 'ရောက်ရှိပြီး';
 
   @override
-  String get orderStatusCancelled => 'ပယ်ဖျက်ပြီး';
+  String get orderStatusCancelled => 'ပြန်ပို့ပြီး';
 
   @override
   String get orderChannelFacebook => 'Facebook';
@@ -1500,10 +1500,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderAlreadySale => 'အရောင်းအဖြစ် မှတ်တမ်းတင်ပြီးပြီ။';
 
   @override
-  String get orderCancel => 'အော်ဒါ ပယ်ဖျက်';
+  String get orderCancel => 'ပြန်ပို့အဖြစ် မှတ်မည်';
 
   @override
-  String get orderRestore => 'အသစ်သို့ ပြန်ယူ';
+  String get orderRestore => 'ပြန်ပို့မှု ပြန်ရုပ်သိမ်းမည်';
 
   @override
   String get orderNeedsName => 'ဖောက်သည်အမည် ထည့်ပါ။';
@@ -1532,9 +1532,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderPrint => 'Print ထုတ်';
 
   @override
-  String get deliverySection => 'ပို့ဆောင်ရေး';
-
-  @override
   String get deliveryTownship => 'မြို့နယ်';
 
   @override
@@ -1554,27 +1551,6 @@ class AppLocalizationsMy extends AppLocalizations {
       'ကုမ္ပဏီရဲ့ app/website မှာ book ပြီးမှ ဒီမှာ ရိုက်ထည့်ပါ';
 
   @override
-  String get deliveryStatusLabel => 'ပို့ဆောင်မှု အခြေအနေ';
-
-  @override
-  String get deliveryStatusPending => 'မစသေး';
-
-  @override
-  String get deliveryStatusBooked => 'Book လုပ်ပြီး';
-
-  @override
-  String get deliveryStatusOutForDelivery => 'ပို့ဆောင်နေဆဲ';
-
-  @override
-  String get deliveryStatusDelivered => 'ပို့ပြီး';
-
-  @override
-  String get deliveryStatusFailed => 'မအောင်မြင်';
-
-  @override
-  String get deliveryStatusReturned => 'ပြန်လာသည်';
-
-  @override
   String get deliverySave => 'ပို့ဆောင်ရေးအချက်အလက် သိမ်း';
 
   @override
@@ -1585,7 +1561,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'အခုထိ ကုမ္ပဏီ API တိုက်ရိုက် မချိတ်ဆက်ရသေးပါ — waybill ကို ကုမ္ပဏီရဲ့ app/website မှာ ကိုယ်တိုင် book လုပ်ပြီး tracking number ကို ဒီမှာ မှတ်ထားပါ။';
 
   @override
-  String get ordersSearchHint => 'နာမည်၊ ဖုန်း၊ order # ရှာ';
+  String get ordersSearchHint => 'နာမည်၊ ဖုန်း၊ order #၊ invoice # ရှာ';
 
   @override
   String get ordersNoMatch => 'filter နဲ့ ကိုက်ညီတဲ့ order မရှိပါ။';

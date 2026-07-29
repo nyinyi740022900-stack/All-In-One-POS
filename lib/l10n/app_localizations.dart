@@ -2573,7 +2573,7 @@ abstract class AppLocalizations {
   /// No description provided for @orderStatusCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Cancelled'**
+  /// **'Return'**
   String get orderStatusCancelled;
 
   /// No description provided for @orderChannelFacebook.
@@ -2855,13 +2855,13 @@ abstract class AppLocalizations {
   /// No description provided for @orderCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel order'**
+  /// **'Mark as return'**
   String get orderCancel;
 
   /// No description provided for @orderRestore.
   ///
   /// In en, this message translates to:
-  /// **'Restore to New'**
+  /// **'Undo return'**
   String get orderRestore;
 
   /// No description provided for @orderNeedsName.
@@ -2912,12 +2912,6 @@ abstract class AppLocalizations {
   /// **'Print'**
   String get orderPrint;
 
-  /// No description provided for @deliverySection.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery'**
-  String get deliverySection;
-
   /// No description provided for @deliveryTownship.
   ///
   /// In en, this message translates to:
@@ -2954,48 +2948,6 @@ abstract class AppLocalizations {
   /// **'Enter after booking on the carrier\'s own app'**
   String get deliveryTrackingHint;
 
-  /// No description provided for @deliveryStatusLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery status'**
-  String get deliveryStatusLabel;
-
-  /// No description provided for @deliveryStatusPending.
-  ///
-  /// In en, this message translates to:
-  /// **'Pending'**
-  String get deliveryStatusPending;
-
-  /// No description provided for @deliveryStatusBooked.
-  ///
-  /// In en, this message translates to:
-  /// **'Booked'**
-  String get deliveryStatusBooked;
-
-  /// No description provided for @deliveryStatusOutForDelivery.
-  ///
-  /// In en, this message translates to:
-  /// **'Out for delivery'**
-  String get deliveryStatusOutForDelivery;
-
-  /// No description provided for @deliveryStatusDelivered.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivered'**
-  String get deliveryStatusDelivered;
-
-  /// No description provided for @deliveryStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get deliveryStatusFailed;
-
-  /// No description provided for @deliveryStatusReturned.
-  ///
-  /// In en, this message translates to:
-  /// **'Returned'**
-  String get deliveryStatusReturned;
-
   /// No description provided for @deliverySave.
   ///
   /// In en, this message translates to:
@@ -3017,7 +2969,7 @@ abstract class AppLocalizations {
   /// No description provided for @ordersSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search name, phone, order #'**
+  /// **'Search name, phone, order #, invoice #'**
   String get ordersSearchHint;
 
   /// No description provided for @ordersNoMatch.

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -342,6 +343,30 @@ void main() {
       expect(filterOrders(all, query: 'aung'), hasLength(1));
       expect(filterOrders(all, channel: 'viber'), hasLength(1));
       expect(filterOrders(all, payment: 'unpaid'), hasLength(2));
+    });
+
+    test('search also matches the invoice number of a converted order\'s '
+        'sale, via invoiceNoBySaleId', () async {
+      final all = await seedList();
+      final delivered = all.firstWhere((o) => o.status == 'delivered');
+      final invoiceNoBySaleId = {'sale-xyz': 'INV-20260101-007'};
+      // Not converted yet (no saleId) — invoice number search finds nothing.
+      expect(
+        filterOrders(all,
+            query: 'INV-20260101-007', invoiceNoBySaleId: invoiceNoBySaleId),
+        isEmpty,
+      );
+      // Simulate conversion, then confirm the invoice number becomes searchable.
+      final withSale = all
+          .map((o) => o.id == delivered.id
+              ? o.copyWith(saleId: const Value('sale-xyz'))
+              : o)
+          .toList();
+      expect(
+        filterOrders(withSale,
+            query: 'inv-20260101-007', invoiceNoBySaleId: invoiceNoBySaleId),
+        hasLength(1),
+      );
     });
   });
 }

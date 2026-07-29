@@ -53,7 +53,15 @@ class InvoicesScreen extends ConsumerWidget {
                 .where((s) =>
                     s.invoiceNo.toLowerCase().contains(query) ||
                     (s.customerName?.toLowerCase().contains(query) ?? false) ||
-                    (s.customerPhone?.toLowerCase().contains(query) ?? false))
+                    (s.customerPhone?.toLowerCase().contains(query) ?? false) ||
+                    // A Social Order converted to this sale was handed to
+                    // the customer as an invoice showing the *order*
+                    // number (generated before conversion, unrelated to
+                    // this sale's own invoiceNo) — `note` carries
+                    // "Order {orderNo}" (see OrdersRepository.convertToSale),
+                    // so searching/scanning that original number still
+                    // finds the sale here.
+                    (s.note?.toLowerCase().contains(query) ?? false))
                 .toList();
           }
           return Column(

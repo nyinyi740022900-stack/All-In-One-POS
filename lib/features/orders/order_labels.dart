@@ -2,15 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// Localized label for a Kanban status code.
+/// Localized label for an order pipeline status code.
 String orderStatusLabel(AppLocalizations l, String status) {
   switch (status) {
-    case 'confirmed':
-      return l.orderStatusConfirmed;
-    case 'packed':
-      return l.orderStatusPacked;
-    case 'shipped':
-      return l.orderStatusShipped;
     case 'delivered':
       return l.orderStatusDelivered;
     case 'cancelled':
@@ -21,16 +15,9 @@ String orderStatusLabel(AppLocalizations l, String status) {
   }
 }
 
-/// A distinct accent colour per pipeline stage (board column headers + card
-/// stripes). Derived from fixed hues so light/dark both read clearly.
+/// A distinct accent colour per status (filter chips + card stripes).
 Color orderStatusColor(String status) {
   switch (status) {
-    case 'confirmed':
-      return const Color(0xFF3B82F6); // blue
-    case 'packed':
-      return const Color(0xFF8B5CF6); // violet
-    case 'shipped':
-      return const Color(0xFFF59E0B); // amber
     case 'delivered':
       return const Color(0xFF10B981); // green
     case 'cancelled':
@@ -51,8 +38,6 @@ String orderChannelLabel(AppLocalizations l, String channel) {
       return l.orderChannelViber;
     case 'tiktok':
       return l.orderChannelTiktok;
-    case 'instagram':
-      return l.orderChannelInstagram;
     case 'phone':
       return l.orderChannelPhone;
     case 'storefront':
@@ -73,7 +58,6 @@ IconData orderChannelIcon(String channel) {
       return Icons.language;
     case 'viber':
     case 'tiktok':
-    case 'instagram':
     case 'facebook':
     case 'other':
     default:
@@ -91,37 +75,5 @@ String orderPaymentLabel(AppLocalizations l, String status) {
     case 'unpaid':
     default:
       return l.orderPayUnpaid;
-  }
-}
-
-/// Localized label for a delivery-carrier code.
-String deliveryCarrierLabel(AppLocalizations l, String carrier) {
-  switch (carrier) {
-    case 'ninja_van':
-      return l.deliveryCarrierNinjaVan;
-    case 'royal_express':
-      return l.deliveryCarrierRoyalExpress;
-    case 'other':
-    default:
-      return l.deliveryCarrierOther;
-  }
-}
-
-/// Localized label for a delivery-leg status code.
-String deliveryStatusLabel(AppLocalizations l, String status) {
-  switch (status) {
-    case 'booked':
-      return l.deliveryStatusBooked;
-    case 'out_for_delivery':
-      return l.deliveryStatusOutForDelivery;
-    case 'delivered':
-      return l.deliveryStatusDelivered;
-    case 'failed':
-      return l.deliveryStatusFailed;
-    case 'returned':
-      return l.deliveryStatusReturned;
-    case 'pending':
-    default:
-      return l.deliveryStatusPending;
   }
 }

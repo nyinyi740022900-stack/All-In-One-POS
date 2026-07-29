@@ -8,12 +8,10 @@ import '../../l10n/app_localizations.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
 import '../storefront/storefront_screen.dart' show storefrontRepositoryProvider;
-import 'myanmar_townships.dart';
 import 'order_invoice.dart';
 import 'order_editor_sheet.dart';
 import 'order_labels.dart';
 import 'orders_providers.dart';
-import 'orders_repository.dart';
 
 /// Read-only order view with pipeline actions (edit, move, convert, cancel,
 /// delete). Reads the live order from the stream so it reflects edits/moves.
@@ -52,11 +50,6 @@ class OrderDetailSheet extends ConsumerWidget {
     final total = o.itemsTotal + o.deliveryFee;
     final isCancelled = o.status == 'cancelled';
     final canConvert = o.status == 'delivered' && o.saleId == null;
-    // Show delivery tracking once the order has reached 'shipped' or later
-    // (or already has delivery info recorded, e.g. edited earlier).
-    final showDelivery = orderStatuses.indexOf(o.status) >=
-            orderStatuses.indexOf('shipped') ||
-        (o.trackingNumber ?? '').isNotEmpty;
 
     return SafeArea(
       top: false,
@@ -89,26 +82,12 @@ class OrderDetailSheet extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(orderChannelLabel(l, o.channel),
                 style: Theme.of(context).textTheme.bodySmall),
-            // Move-to is the single most-used action on this sheet (moving an
-            // order across the Kanban pipeline) — surfaced first so it never
-            // requires scrolling past customer/item/delivery detail.
+            // Carrier hand-off is the single most-used action on this sheet
+            // (it's what actually moves an order along) — surfaced first so
+            // it never requires scrolling past customer/item detail.
             if (!isCancelled) ...[
               const SizedBox(height: 14),
-              Text(l.orderMoveTo,
-                  style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final s in orderStatuses)
-                    ChoiceChip(
-                      label: Text(orderStatusLabel(l, s)),
-                      selected: o.status == s,
-                      onSelected: (_) => repo.setStatus(orderId, s),
-                    ),
-                ],
-              ),
+              _CarrierHandoffSection(order: o),
             ],
             const Divider(height: 20),
             _kv(context, Icons.person_outline, o.customerName),
@@ -175,14 +154,6 @@ class OrderDetailSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             _PaymentSection(order: o),
-            // Delivery info is only relevant once an order is actually being
-            // shipped — hidden for new/confirmed/packed so the common
-            // "just move this order along" flow doesn't scroll past a form
-            // that's still empty and irrelevant at that stage.
-            if (showDelivery) ...[
-              const Divider(height: 24),
-              _DeliverySection(order: o),
-            ],
             const Divider(height: 24),
 
             // --- actions ---
@@ -625,51 +596,61 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// Inline editor for township / carrier / tracking number / delivery status.
-/// No live carrier API — the waybill is booked in the carrier's own app and
-/// the tracking number is recorded here manually (see PROJECT_SPEC §12).
-class _DeliverySection extends ConsumerStatefulWidget {
-  const _DeliverySection({required this.order});
+/// The primary action: pick (or type a new) carrier and hand the order off
+/// in one tap. Before hand-off, shows the carrier field + button; after,
+/// shows a compact confirmation with a "Change" link back into edit mode.
+class _CarrierHandoffSection extends ConsumerStatefulWidget {
+  const _CarrierHandoffSection({required this.order});
   final Order order;
 
   @override
-  ConsumerState<_DeliverySection> createState() => _DeliverySectionState();
+  ConsumerState<_CarrierHandoffSection> createState() =>
+      _CarrierHandoffSectionState();
 }
 
-class _DeliverySectionState extends ConsumerState<_DeliverySection> {
-  late String? _township;
-  late String? _carrier;
+class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> {
+  late final TextEditingController _carrier;
   late final TextEditingController _tracking;
-  late String _deliveryStatus;
+  bool _editing = false;
   bool _saving = false;
+  bool _savingTracking = false;
 
   @override
   void initState() {
     super.initState();
-    _township = widget.order.township;
-    _carrier = widget.order.deliveryCarrier;
+    _carrier = TextEditingController(text: widget.order.deliveryCarrier ?? '');
     _tracking = TextEditingController(text: widget.order.trackingNumber ?? '');
-    _deliveryStatus = widget.order.deliveryStatus ?? 'pending';
   }
 
   @override
   void dispose() {
+    _carrier.dispose();
     _tracking.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    final l = AppLocalizations.of(context);
+  Future<void> _handOff() async {
+    final carrier = _carrier.text.trim();
+    if (carrier.isEmpty) return;
     setState(() => _saving = true);
-    await ref.read(ordersRepositoryProvider).setDelivery(
-          widget.order.id,
-          township: _township ?? '',
-          carrier: _carrier ?? '',
-          trackingNumber: _tracking.text.trim(),
-          deliveryStatus: _deliveryStatus,
-        );
+    await ref
+        .read(ordersRepositoryProvider)
+        .handOffToCarrier(widget.order.id, carrier: carrier);
     if (!mounted) return;
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      _editing = false;
+    });
+  }
+
+  Future<void> _saveTracking() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _savingTracking = true);
+    await ref
+        .read(ordersRepositoryProvider)
+        .setDelivery(widget.order.id, trackingNumber: _tracking.text.trim());
+    if (!mounted) return;
+    setState(() => _savingTracking = false);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(l.deliverySaved)));
   }
@@ -677,75 +658,127 @@ class _DeliverySectionState extends ConsumerState<_DeliverySection> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final handedOff = widget.order.status == 'delivered' && !_editing;
+
+    if (handedOff) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_shipping_outlined,
+                  color: Colors.green, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                  child: Text(
+                      l.orderHandedOffTo(widget.order.deliveryCarrier ?? ''))),
+              TextButton(
+                onPressed: () => setState(() => _editing = true),
+                child: Text(l.orderChangeCarrier),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Waybill/tracking number is only ever known once the carrier has
+          // actually picked the parcel up — asking for it before hand-off
+          // (as an always-visible field) just means an empty box nobody can
+          // fill in yet.
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _tracking,
+                  decoration: InputDecoration(
+                    labelText: l.deliveryTrackingNumber,
+                    hintText: l.deliveryTrackingHint,
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: _savingTracking ? null : _saveTracking,
+                icon: _savingTracking
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.check, size: 18),
+                label: Text(l.deliverySave),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    final suggestions =
+        ref.watch(carrierSuggestionsProvider).where((c) => c.isNotEmpty).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l.deliverySection,
-            style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        Text(l.deliveryManualNote,
-            style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<String>(
-          initialValue:
-              myanmarTownships.contains(_township) ? _township : null,
-          decoration: InputDecoration(
-              labelText: l.deliveryTownship, isDense: true),
-          items: [
-            for (final t in myanmarTownships)
-              DropdownMenuItem(value: t, child: Text(t)),
-          ],
-          onChanged: (v) => setState(() => _township = v),
-        ),
+        Text(l.deliveryCarrier, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue:
-              deliveryCarriers.contains(_carrier) ? _carrier : null,
-          decoration:
-              InputDecoration(labelText: l.deliveryCarrier, isDense: true),
-          items: [
-            for (final c in deliveryCarriers)
-              DropdownMenuItem(
-                  value: c, child: Text(deliveryCarrierLabel(l, c))),
-          ],
-          onChanged: (v) => setState(() => _carrier = v),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _tracking,
-          decoration: InputDecoration(
-            labelText: l.deliveryTrackingNumber,
-            hintText: l.deliveryTrackingHint,
-            isDense: true,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _deliveryStatus,
-          decoration:
-              InputDecoration(labelText: l.deliveryStatusLabel, isDense: true),
-          items: [
-            for (final s in deliveryStatuses)
-              DropdownMenuItem(value: s, child: Text(deliveryStatusLabel(l, s))),
-          ],
-          onChanged: (v) =>
-              setState(() => _deliveryStatus = v ?? 'pending'),
+        RawAutocomplete<String>(
+          textEditingController: _carrier,
+          focusNode: FocusNode(),
+          optionsBuilder: (v) {
+            final q = v.text.trim().toLowerCase();
+            if (q.isEmpty) return suggestions;
+            return suggestions.where((c) => c.toLowerCase().contains(q));
+          },
+          onSelected: (c) => setState(() => _carrier.text = c),
+          fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                labelText: l.orderCarrierHint,
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            );
+          },
+          optionsViewBuilder: (context, onSelectedOption, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    children: [
+                      for (final c in options)
+                        ListTile(
+                          dense: true,
+                          title: Text(c),
+                          onTap: () => onSelectedOption(c),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.check, size: 18),
-            label: Text(l.deliverySave),
-          ),
+        FilledButton.icon(
+          onPressed:
+              _saving || _carrier.text.trim().isEmpty ? null : _handOff,
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.local_shipping_outlined),
+          label: Text(l.orderHandOffButton),
         ),
       ],
     );
   }
 }
+
