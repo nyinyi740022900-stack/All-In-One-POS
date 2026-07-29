@@ -362,6 +362,12 @@ abstract class AppLocalizations {
   /// **'Credit'**
   String get paymentCredit;
 
+  /// No description provided for @paymentCod.
+  ///
+  /// In en, this message translates to:
+  /// **'COD (Cash on Delivery)'**
+  String get paymentCod;
+
   /// No description provided for @creditTitle.
   ///
   /// In en, this message translates to:
@@ -2528,24 +2534,6 @@ abstract class AppLocalizations {
   /// **'New'**
   String get orderStatusNew;
 
-  /// No description provided for @orderStatusConfirmed.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirmed'**
-  String get orderStatusConfirmed;
-
-  /// No description provided for @orderStatusPacked.
-  ///
-  /// In en, this message translates to:
-  /// **'Packed'**
-  String get orderStatusPacked;
-
-  /// No description provided for @orderStatusShipped.
-  ///
-  /// In en, this message translates to:
-  /// **'Shipped'**
-  String get orderStatusShipped;
-
   /// No description provided for @orderStatusDelivered.
   ///
   /// In en, this message translates to:
@@ -2575,12 +2563,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TikTok'**
   String get orderChannelTiktok;
-
-  /// No description provided for @orderChannelInstagram.
-  ///
-  /// In en, this message translates to:
-  /// **'Instagram'**
-  String get orderChannelInstagram;
 
   /// No description provided for @orderChannelPhone.
   ///
@@ -2792,11 +2774,29 @@ abstract class AppLocalizations {
   /// **'Requested more than the recorded stock at the time of this order'**
   String get orderLowStockAtOrder;
 
-  /// No description provided for @orderMoveTo.
+  /// No description provided for @orderCarrierHint.
   ///
   /// In en, this message translates to:
-  /// **'Move to'**
-  String get orderMoveTo;
+  /// **'Type or pick a carrier'**
+  String get orderCarrierHint;
+
+  /// No description provided for @orderHandOffButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed off to carrier'**
+  String get orderHandOffButton;
+
+  /// No description provided for @orderHandedOffTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed off to {carrier}'**
+  String orderHandedOffTo(String carrier);
+
+  /// No description provided for @orderChangeCarrier.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get orderChangeCarrier;
 
   /// No description provided for @orderConvertToSale.
   ///
@@ -2905,24 +2905,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Carrier'**
   String get deliveryCarrier;
-
-  /// No description provided for @deliveryCarrierNinjaVan.
-  ///
-  /// In en, this message translates to:
-  /// **'Ninja Van'**
-  String get deliveryCarrierNinjaVan;
-
-  /// No description provided for @deliveryCarrierRoyalExpress.
-  ///
-  /// In en, this message translates to:
-  /// **'Royal Express'**
-  String get deliveryCarrierRoyalExpress;
-
-  /// No description provided for @deliveryCarrierOther.
-  ///
-  /// In en, this message translates to:
-  /// **'Other'**
-  String get deliveryCarrierOther;
 
   /// No description provided for @deliveryCarrierNone.
   ///

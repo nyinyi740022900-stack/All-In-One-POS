@@ -13,6 +13,8 @@ String paymentLabel(AppLocalizations l, String method) {
       return l.paymentCbPay;
     case 'credit':
       return l.paymentCredit;
+    case 'cod':
+      return l.paymentCod;
     case 'cash':
     default:
       return l.paymentCash;

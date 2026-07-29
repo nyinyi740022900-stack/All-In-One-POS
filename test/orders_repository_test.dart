@@ -51,10 +51,22 @@ void main() {
       channel: 'viber',
       lines: const [OrderDraftLine(name: 'Shirt', price: 15000, qty: 1)],
     );
-    await orders.setStatus(id, 'confirmed');
-    expect((await orders.getOrder(id)).status, 'confirmed');
-    await orders.setStatus(id, 'packed');
-    expect((await orders.getOrder(id)).status, 'packed');
+    expect((await orders.getOrder(id)).status, 'new');
+    await orders.setStatus(id, 'delivered');
+    expect((await orders.getOrder(id)).status, 'delivered');
+  });
+
+  test('handOffToCarrier records the carrier and advances to delivered in '
+      'one write', () async {
+    final id = await orders.saveOrder(
+      customerName: 'Thiri',
+      channel: 'facebook',
+      lines: const [OrderDraftLine(name: 'Bag', price: 20000, qty: 1)],
+    );
+    await orders.handOffToCarrier(id, carrier: 'Ah Ba Courier');
+    final o = await orders.getOrder(id);
+    expect(o.status, 'delivered');
+    expect(o.deliveryCarrier, 'Ah Ba Courier');
   });
 
   test('setPaymentStatus updates and enqueues the order for sync', () async {
@@ -140,6 +152,23 @@ void main() {
     expect(saleMove.qtyDelta, -2);
   });
 
+  test('convertToSale carries the delivery address onto the sale', () async {
+    final pid = await seedProduct(name: 'Bag', price: 20000, qty: 5);
+    final id = await orders.saveOrder(
+      customerName: 'Nilar',
+      channel: 'facebook',
+      deliveryAddress: '123 Pyay Road',
+      lines: [
+        OrderDraftLine(productId: pid, name: 'Bag', price: 20000, qty: 1),
+      ],
+    );
+    final saleId = await orders.convertToSale(id);
+    final sale =
+        await (db.select(db.sales)..where((s) => s.id.equals(saleId)))
+            .getSingle();
+    expect(sale.deliveryAddress, '123 Pyay Road');
+  });
+
   test('convertToSale is idempotent (returns the same sale id)', () async {
     final id = await orders.saveOrder(
       customerName: 'Aye',
@@ -214,7 +243,7 @@ void main() {
       channel: 'facebook',
       lines: const [OrderDraftLine(name: 'Item', price: 500, qty: 1)],
     );
-    await orders.setStatus(id, 'confirmed');
+    await orders.setStatus(id, 'delivered');
     final tables =
         (await db.select(db.outbox).get()).map((o) => o.entityTable).toSet();
     expect(tables, containsAll(<String>{'orders', 'order_items'}));
@@ -228,22 +257,20 @@ void main() {
         channel: 'facebook',
         lines: const [OrderDraftLine(name: 'X', price: 1000, qty: 1)],
       );
-      final b = await orders.saveOrder(
+      await orders.saveOrder(
         customerName: 'Su Su',
         channel: 'viber',
         lines: const [OrderDraftLine(name: 'Y', price: 1000, qty: 1)],
       );
-      await orders.setStatus(a, 'confirmed');
-      await orders.setStatus(b, 'packed');
+      await orders.setStatus(a, 'delivered');
       return orders.watchOrders().first;
     }
 
-    test('buckets by status into pipeline columns + cancelled', () async {
+    test('buckets by status into new/delivered + cancelled', () async {
       final all = await seedBoard();
       final g = groupOrdersForBoard(all);
-      expect(g['confirmed'], hasLength(1));
-      expect(g['packed'], hasLength(1));
-      expect(g['new'], isEmpty);
+      expect(g['delivered'], hasLength(1));
+      expect(g['new'], hasLength(1));
       expect(g.containsKey('cancelled'), isTrue);
     });
 
@@ -271,6 +298,50 @@ void main() {
       // both seeded orders are unpaid by default
       expect(_count(groupOrdersForBoard(all, payment: 'unpaid')), 2);
       expect(_count(groupOrdersForBoard(all, payment: 'paid')), 0);
+    });
+  });
+
+  group('filterOrders (flat list)', () {
+    Future<List<Order>> seedList() async {
+      final a = await orders.saveOrder(
+        customerName: 'Aung Aung',
+        customerPhone: '0912345678',
+        channel: 'facebook',
+        lines: const [OrderDraftLine(name: 'X', price: 1000, qty: 1)],
+      );
+      await orders.saveOrder(
+        customerName: 'Su Su',
+        channel: 'viber',
+        lines: const [OrderDraftLine(name: 'Y', price: 1000, qty: 1)],
+      );
+      final c = await orders.saveOrder(
+        customerName: 'Cancelled Guy',
+        channel: 'facebook',
+        lines: const [OrderDraftLine(name: 'Z', price: 1000, qty: 1)],
+      );
+      await orders.setStatus(a, 'delivered');
+      await orders.setStatus(c, 'cancelled');
+      return orders.watchOrders().first;
+    }
+
+    test('default view (status: null) excludes cancelled', () async {
+      final all = await seedList();
+      expect(filterOrders(all), hasLength(2));
+    });
+
+    test('status filter narrows to one status, including cancelled', () async {
+      final all = await seedList();
+      expect(filterOrders(all, status: 'new'), hasLength(1));
+      expect(filterOrders(all, status: 'delivered'), hasLength(1));
+      expect(filterOrders(all, status: 'cancelled'), hasLength(1));
+    });
+
+    test('search/channel/payment filters compose with the default status '
+        'exclusion', () async {
+      final all = await seedList();
+      expect(filterOrders(all, query: 'aung'), hasLength(1));
+      expect(filterOrders(all, channel: 'viber'), hasLength(1));
+      expect(filterOrders(all, payment: 'unpaid'), hasLength(2));
     });
   });
 }

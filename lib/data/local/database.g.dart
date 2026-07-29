@@ -3338,6 +3338,17 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _deliveryAddressMeta = const VerificationMeta(
+    'deliveryAddress',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryAddress = GeneratedColumn<String>(
+    'delivery_address',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _refundOfSaleIdMeta = const VerificationMeta(
     'refundOfSaleId',
   );
@@ -3392,6 +3403,7 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     customerPhone,
     note,
     finalizedAt,
+    deliveryAddress,
     refundOfSaleId,
     customerId,
     deviceId,
@@ -3537,6 +3549,15 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         ),
       );
     }
+    if (data.containsKey('delivery_address')) {
+      context.handle(
+        _deliveryAddressMeta,
+        deliveryAddress.isAcceptableOrUnknown(
+          data['delivery_address']!,
+          _deliveryAddressMeta,
+        ),
+      );
+    }
     if (data.containsKey('refund_of_sale_id')) {
       context.handle(
         _refundOfSaleIdMeta,
@@ -3643,6 +3664,10 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}finalized_at'],
       )!,
+      deliveryAddress: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_address'],
+      ),
       refundOfSaleId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}refund_of_sale_id'],
@@ -3680,12 +3705,19 @@ class Sale extends DataClass implements Insertable<Sale> {
   final int paid;
   final int changeDue;
 
-  /// cash | kbzpay | wavepay | ayapay | cbpay
+  /// cash | kbzpay | wavepay | ayapay | cbpay | credit | cod
   final String paymentMethod;
   final String? customerName;
   final String? customerPhone;
   final String? note;
   final DateTime finalizedAt;
+
+  /// Where to deliver this sale, carried over from the `Orders` row it was
+  /// converted from (`Order.deliveryAddress` + `Order.township` combined) —
+  /// null for an ordinary in-store sale. Without this, a converted order's
+  /// invoice/receipt loses the delivery address entirely, which the whole
+  /// point of printing it (so whoever fulfills the delivery has it) defeats.
+  final String? deliveryAddress;
 
   /// Set on a refund row, pointing at the sale it reverses. A refund is a
   /// normal append-only [Sales] row with negated subtotal/discount/total/paid
@@ -3725,6 +3757,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     this.customerPhone,
     this.note,
     required this.finalizedAt,
+    this.deliveryAddress,
     this.refundOfSaleId,
     this.customerId,
     this.deviceId,
@@ -3759,6 +3792,9 @@ class Sale extends DataClass implements Insertable<Sale> {
       map['note'] = Variable<String>(note);
     }
     map['finalized_at'] = Variable<DateTime>(finalizedAt);
+    if (!nullToAbsent || deliveryAddress != null) {
+      map['delivery_address'] = Variable<String>(deliveryAddress);
+    }
     if (!nullToAbsent || refundOfSaleId != null) {
       map['refund_of_sale_id'] = Variable<String>(refundOfSaleId);
     }
@@ -3798,6 +3834,9 @@ class Sale extends DataClass implements Insertable<Sale> {
           : Value(customerPhone),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       finalizedAt: Value(finalizedAt),
+      deliveryAddress: deliveryAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveryAddress),
       refundOfSaleId: refundOfSaleId == null && nullToAbsent
           ? const Value.absent()
           : Value(refundOfSaleId),
@@ -3835,6 +3874,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       customerPhone: serializer.fromJson<String?>(json['customerPhone']),
       note: serializer.fromJson<String?>(json['note']),
       finalizedAt: serializer.fromJson<DateTime>(json['finalizedAt']),
+      deliveryAddress: serializer.fromJson<String?>(json['deliveryAddress']),
       refundOfSaleId: serializer.fromJson<String?>(json['refundOfSaleId']),
       customerId: serializer.fromJson<String?>(json['customerId']),
       deviceId: serializer.fromJson<String?>(json['deviceId']),
@@ -3863,6 +3903,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       'customerPhone': serializer.toJson<String?>(customerPhone),
       'note': serializer.toJson<String?>(note),
       'finalizedAt': serializer.toJson<DateTime>(finalizedAt),
+      'deliveryAddress': serializer.toJson<String?>(deliveryAddress),
       'refundOfSaleId': serializer.toJson<String?>(refundOfSaleId),
       'customerId': serializer.toJson<String?>(customerId),
       'deviceId': serializer.toJson<String?>(deviceId),
@@ -3889,6 +3930,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     Value<String?> customerPhone = const Value.absent(),
     Value<String?> note = const Value.absent(),
     DateTime? finalizedAt,
+    Value<String?> deliveryAddress = const Value.absent(),
     Value<String?> refundOfSaleId = const Value.absent(),
     Value<String?> customerId = const Value.absent(),
     Value<String?> deviceId = const Value.absent(),
@@ -3914,6 +3956,9 @@ class Sale extends DataClass implements Insertable<Sale> {
         : this.customerPhone,
     note: note.present ? note.value : this.note,
     finalizedAt: finalizedAt ?? this.finalizedAt,
+    deliveryAddress: deliveryAddress.present
+        ? deliveryAddress.value
+        : this.deliveryAddress,
     refundOfSaleId: refundOfSaleId.present
         ? refundOfSaleId.value
         : this.refundOfSaleId,
@@ -3949,6 +3994,9 @@ class Sale extends DataClass implements Insertable<Sale> {
       finalizedAt: data.finalizedAt.present
           ? data.finalizedAt.value
           : this.finalizedAt,
+      deliveryAddress: data.deliveryAddress.present
+          ? data.deliveryAddress.value
+          : this.deliveryAddress,
       refundOfSaleId: data.refundOfSaleId.present
           ? data.refundOfSaleId.value
           : this.refundOfSaleId,
@@ -3981,6 +4029,7 @@ class Sale extends DataClass implements Insertable<Sale> {
           ..write('customerPhone: $customerPhone, ')
           ..write('note: $note, ')
           ..write('finalizedAt: $finalizedAt, ')
+          ..write('deliveryAddress: $deliveryAddress, ')
           ..write('refundOfSaleId: $refundOfSaleId, ')
           ..write('customerId: $customerId, ')
           ..write('deviceId: $deviceId')
@@ -4009,6 +4058,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     customerPhone,
     note,
     finalizedAt,
+    deliveryAddress,
     refundOfSaleId,
     customerId,
     deviceId,
@@ -4036,6 +4086,7 @@ class Sale extends DataClass implements Insertable<Sale> {
           other.customerPhone == this.customerPhone &&
           other.note == this.note &&
           other.finalizedAt == this.finalizedAt &&
+          other.deliveryAddress == this.deliveryAddress &&
           other.refundOfSaleId == this.refundOfSaleId &&
           other.customerId == this.customerId &&
           other.deviceId == this.deviceId);
@@ -4061,6 +4112,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
   final Value<String?> customerPhone;
   final Value<String?> note;
   final Value<DateTime> finalizedAt;
+  final Value<String?> deliveryAddress;
   final Value<String?> refundOfSaleId;
   final Value<String?> customerId;
   final Value<String?> deviceId;
@@ -4085,6 +4137,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.customerPhone = const Value.absent(),
     this.note = const Value.absent(),
     this.finalizedAt = const Value.absent(),
+    this.deliveryAddress = const Value.absent(),
     this.refundOfSaleId = const Value.absent(),
     this.customerId = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -4110,6 +4163,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.customerPhone = const Value.absent(),
     this.note = const Value.absent(),
     this.finalizedAt = const Value.absent(),
+    this.deliveryAddress = const Value.absent(),
     this.refundOfSaleId = const Value.absent(),
     this.customerId = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -4137,6 +4191,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Expression<String>? customerPhone,
     Expression<String>? note,
     Expression<DateTime>? finalizedAt,
+    Expression<String>? deliveryAddress,
     Expression<String>? refundOfSaleId,
     Expression<String>? customerId,
     Expression<String>? deviceId,
@@ -4162,6 +4217,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       if (customerPhone != null) 'customer_phone': customerPhone,
       if (note != null) 'note': note,
       if (finalizedAt != null) 'finalized_at': finalizedAt,
+      if (deliveryAddress != null) 'delivery_address': deliveryAddress,
       if (refundOfSaleId != null) 'refund_of_sale_id': refundOfSaleId,
       if (customerId != null) 'customer_id': customerId,
       if (deviceId != null) 'device_id': deviceId,
@@ -4189,6 +4245,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Value<String?>? customerPhone,
     Value<String?>? note,
     Value<DateTime>? finalizedAt,
+    Value<String?>? deliveryAddress,
     Value<String?>? refundOfSaleId,
     Value<String?>? customerId,
     Value<String?>? deviceId,
@@ -4214,6 +4271,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       customerPhone: customerPhone ?? this.customerPhone,
       note: note ?? this.note,
       finalizedAt: finalizedAt ?? this.finalizedAt,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       refundOfSaleId: refundOfSaleId ?? this.refundOfSaleId,
       customerId: customerId ?? this.customerId,
       deviceId: deviceId ?? this.deviceId,
@@ -4281,6 +4339,9 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     if (finalizedAt.present) {
       map['finalized_at'] = Variable<DateTime>(finalizedAt.value);
     }
+    if (deliveryAddress.present) {
+      map['delivery_address'] = Variable<String>(deliveryAddress.value);
+    }
     if (refundOfSaleId.present) {
       map['refund_of_sale_id'] = Variable<String>(refundOfSaleId.value);
     }
@@ -4318,6 +4379,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
           ..write('customerPhone: $customerPhone, ')
           ..write('note: $note, ')
           ..write('finalizedAt: $finalizedAt, ')
+          ..write('deliveryAddress: $deliveryAddress, ')
           ..write('refundOfSaleId: $refundOfSaleId, ')
           ..write('customerId: $customerId, ')
           ..write('deviceId: $deviceId, ')
@@ -13816,6 +13878,7 @@ typedef $$SalesTableCreateCompanionBuilder =
       Value<String?> customerPhone,
       Value<String?> note,
       Value<DateTime> finalizedAt,
+      Value<String?> deliveryAddress,
       Value<String?> refundOfSaleId,
       Value<String?> customerId,
       Value<String?> deviceId,
@@ -13842,6 +13905,7 @@ typedef $$SalesTableUpdateCompanionBuilder =
       Value<String?> customerPhone,
       Value<String?> note,
       Value<DateTime> finalizedAt,
+      Value<String?> deliveryAddress,
       Value<String?> refundOfSaleId,
       Value<String?> customerId,
       Value<String?> deviceId,
@@ -13948,6 +14012,11 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<DateTime> get finalizedAt => $composableBuilder(
     column: $table.finalizedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveryAddress => $composableBuilder(
+    column: $table.deliveryAddress,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14071,6 +14140,11 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get deliveryAddress => $composableBuilder(
+    column: $table.deliveryAddress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get refundOfSaleId => $composableBuilder(
     column: $table.refundOfSaleId,
     builder: (column) => ColumnOrderings(column),
@@ -14161,6 +14235,11 @@ class $$SalesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get deliveryAddress => $composableBuilder(
+    column: $table.deliveryAddress,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get refundOfSaleId => $composableBuilder(
     column: $table.refundOfSaleId,
     builder: (column) => column,
@@ -14222,6 +14301,7 @@ class $$SalesTableTableManager
                 Value<String?> customerPhone = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> finalizedAt = const Value.absent(),
+                Value<String?> deliveryAddress = const Value.absent(),
                 Value<String?> refundOfSaleId = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
                 Value<String?> deviceId = const Value.absent(),
@@ -14246,6 +14326,7 @@ class $$SalesTableTableManager
                 customerPhone: customerPhone,
                 note: note,
                 finalizedAt: finalizedAt,
+                deliveryAddress: deliveryAddress,
                 refundOfSaleId: refundOfSaleId,
                 customerId: customerId,
                 deviceId: deviceId,
@@ -14272,6 +14353,7 @@ class $$SalesTableTableManager
                 Value<String?> customerPhone = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> finalizedAt = const Value.absent(),
+                Value<String?> deliveryAddress = const Value.absent(),
                 Value<String?> refundOfSaleId = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
                 Value<String?> deviceId = const Value.absent(),
@@ -14296,6 +14378,7 @@ class $$SalesTableTableManager
                 customerPhone: customerPhone,
                 note: note,
                 finalizedAt: finalizedAt,
+                deliveryAddress: deliveryAddress,
                 refundOfSaleId: refundOfSaleId,
                 customerId: customerId,
                 deviceId: deviceId,

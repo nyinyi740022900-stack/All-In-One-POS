@@ -53,6 +53,9 @@ class ReceiptFormatter {
     if (r.customerPhone != null && r.customerPhone!.isNotEmpty) {
       out.add(_two(labels.phone, r.customerPhone!));
     }
+    if (r.deliveryAddress != null && r.deliveryAddress!.isNotEmpty) {
+      out.addAll(_wrap('${labels.deliveryAddress}: ${r.deliveryAddress}'));
+    }
     out.add(_divider());
 
     // Items: name on its own line, then "qty x price ....... lineTotal".
@@ -141,6 +144,7 @@ class ReceiptLabels {
   final String cashier;
   final String customer;
   final String phone;
+  final String deliveryAddress;
   final String subtotal;
   final String discount;
   final String total;
@@ -154,6 +158,7 @@ class ReceiptLabels {
     required this.cashier,
     required this.customer,
     required this.phone,
+    required this.deliveryAddress,
     required this.subtotal,
     required this.discount,
     required this.total,

@@ -6,31 +6,26 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
 
-/// Kanban pipeline statuses, in board order. `cancelled` is a terminal state
-/// kept off the board (reachable from an order's actions / a filter).
+/// Order pipeline statuses. Deliberately just two — `new` (received, not yet
+/// handed to a carrier) and `delivered` (handed off) — collapsed from an
+/// earlier 5-stage Confirmed/Packed/Shipped pipeline that Myanmar shop owners
+/// found confusing in practice; a Myanmar retail order's real lifecycle is
+/// "arrived" then "gone to the courier," not a multi-step warehouse flow.
+/// `cancelled` is a separate terminal state reachable from an order's actions.
 const orderStatuses = <String>[
   'new',
-  'confirmed',
-  'packed',
-  'shipped',
   'delivered',
 ];
 
-/// Social channels an order can come from.
+/// Social channels an order can come from. (Instagram dropped — not commonly
+/// used for order-taking by Myanmar shops.)
 const orderChannels = <String>[
   'facebook',
   'viber',
   'tiktok',
-  'instagram',
   'phone',
   'other',
 ];
-
-/// Carriers a shop can assign an order to. No live API integration yet — see
-/// PROJECT_SPEC §12 (Ninja Van needs a sandbox application; Royal Express has
-/// no public developer API). The waybill/tracking number is entered manually
-/// from the carrier's own app/site in the meantime.
-const deliveryCarriers = <String>['ninja_van', 'royal_express', 'other'];
 
 /// Delivery-leg status, separate from the Kanban [orderStatuses] stage — this
 /// tracks the handoff to a carrier specifically.
@@ -223,6 +218,25 @@ class OrdersRepository {
     });
   }
 
+  /// The primary "I gave this to the courier" action: records which carrier
+  /// it went with and advances the order straight to `delivered` in one
+  /// atomic write — the single step a shop owner needs, instead of
+  /// separately picking a carrier then moving the pipeline stage. This is
+  /// also what unlocks [convertToSale] (`status == 'delivered'`).
+  Future<void> handOffToCarrier(String orderId, {required String carrier}) async {
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      await (_db.update(_db.orders)..where((o) => o.id.equals(orderId)))
+          .write(OrdersCompanion(
+        deliveryCarrier: Value(carrier),
+        status: const Value('delivered'),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueueOrder(orderId);
+    });
+  }
+
   /// Tombstones the order and its items.
   Future<void> deleteOrder(String orderId) async {
     final now = DateTime.now();
@@ -282,6 +296,7 @@ class OrdersRepository {
             customerPhone: Value(order.customerPhone),
             customerId: Value(order.customerId),
             note: Value('Order ${order.orderNo}'),
+            deliveryAddress: Value(_combinedAddress(order)),
             finalizedAt: Value(now),
             updatedAt: Value(now),
           ));
@@ -335,6 +350,17 @@ class OrdersRepository {
   }
 
   // ---- internals ---------------------------------------------------------
+
+  /// [Order.deliveryAddress] + [Order.township] combined into the single
+  /// free-text line `Sales.deliveryAddress` carries — null if neither is set.
+  String? _combinedAddress(Order order) {
+    final address = (order.deliveryAddress ?? '').trim();
+    final township = (order.township ?? '').trim();
+    if (address.isEmpty && township.isEmpty) return null;
+    if (address.isEmpty) return township;
+    if (township.isEmpty) return address;
+    return '$address, $township';
+  }
 
   Future<void> _recordStockOut(
       String productId, int qty, String saleId, DateTime now) async {

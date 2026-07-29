@@ -25,6 +25,7 @@ ReceiptData receiptFromSale(
     dateTime: sale.finalizedAt,
     customerName: sale.customerName,
     customerPhone: sale.customerPhone,
+    deliveryAddress: sale.deliveryAddress,
     items: items
         .map((i) => ReceiptLineItem(
               name: i.nameSnapshot,
@@ -65,6 +66,7 @@ ReceiptData receiptFromOrder(
     dateTime: order.createdAt,
     customerName: order.customerName,
     customerPhone: order.customerPhone,
+    deliveryAddress: _combinedAddress(order),
     items: [
       for (final it in items)
         ReceiptLineItem(
@@ -91,4 +93,16 @@ ReceiptData receiptFromOrder(
         ? shop.footer
         : defaultFooter,
   );
+}
+
+/// [Order.deliveryAddress] + [Order.township] combined into one line —
+/// null if neither is set. Sales.deliveryAddress is already this combined
+/// form (set once, at conversion time — see `OrdersRepository.convertToSale`).
+String? _combinedAddress(Order order) {
+  final address = (order.deliveryAddress ?? '').trim();
+  final township = (order.township ?? '').trim();
+  if (address.isEmpty && township.isEmpty) return null;
+  if (address.isEmpty) return township;
+  if (township.isEmpty) return address;
+  return '$address, $township';
 }

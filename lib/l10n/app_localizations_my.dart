@@ -147,6 +147,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get paymentCredit => 'အကြွေး';
 
   @override
+  String get paymentCod => 'COD (အရောက်ငွေချေ)';
+
+  @override
   String get creditTitle => 'အကြွေးစာရင်း';
 
   @override
@@ -1329,15 +1332,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderStatusNew => 'အသစ်';
 
   @override
-  String get orderStatusConfirmed => 'အတည်ပြုပြီး';
-
-  @override
-  String get orderStatusPacked => 'ထုပ်ပိုးပြီး';
-
-  @override
-  String get orderStatusShipped => 'ပို့ဆောင်ဆဲ';
-
-  @override
   String get orderStatusDelivered => 'ရောက်ရှိပြီး';
 
   @override
@@ -1351,9 +1345,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get orderChannelTiktok => 'TikTok';
-
-  @override
-  String get orderChannelInstagram => 'Instagram';
 
   @override
   String get orderChannelPhone => 'ဖုန်း';
@@ -1465,7 +1456,18 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ order တင်တဲ့အချိန်မှာ မှတ်တမ်းတင်ထားတဲ့ လက်ကျန်ထက် ပိုတောင်းထားပါတယ်';
 
   @override
-  String get orderMoveTo => 'ရွှေ့မယ်';
+  String get orderCarrierHint => 'Carrier ရိုက်ထည့် (သို့) ရွေးပါ';
+
+  @override
+  String get orderHandOffButton => 'Carrier ကို အပ်ပြီး';
+
+  @override
+  String orderHandedOffTo(String carrier) {
+    return '$carrier ကို အပ်ပြီး';
+  }
+
+  @override
+  String get orderChangeCarrier => 'ပြောင်းမည်';
 
   @override
   String get orderConvertToSale => 'အရောင်းအဖြစ် ပြောင်း';
@@ -1525,15 +1527,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deliveryCarrier => 'ပို့ဆောင်ရေးကုမ္ပဏီ';
-
-  @override
-  String get deliveryCarrierNinjaVan => 'Ninja Van';
-
-  @override
-  String get deliveryCarrierRoyalExpress => 'Royal Express';
-
-  @override
-  String get deliveryCarrierOther => 'အခြား';
 
   @override
   String get deliveryCarrierNone => 'မသတ်မှတ်ရသေး';

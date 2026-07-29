@@ -114,13 +114,20 @@ class Sales extends Table with SyncColumns {
   IntColumn get paid => integer().withDefault(const Constant(0))();
   IntColumn get changeDue => integer().withDefault(const Constant(0))();
 
-  /// cash | kbzpay | wavepay | ayapay | cbpay
+  /// cash | kbzpay | wavepay | ayapay | cbpay | credit | cod
   TextColumn get paymentMethod => text().withDefault(const Constant('cash'))();
   TextColumn get customerName => text().nullable()();
   TextColumn get customerPhone => text().nullable()();
   TextColumn get note => text().nullable()();
   DateTimeColumn get finalizedAt =>
       dateTime().withDefault(currentDateAndTime)();
+
+  /// Where to deliver this sale, carried over from the `Orders` row it was
+  /// converted from (`Order.deliveryAddress` + `Order.township` combined) —
+  /// null for an ordinary in-store sale. Without this, a converted order's
+  /// invoice/receipt loses the delivery address entirely, which the whole
+  /// point of printing it (so whoever fulfills the delivery has it) defeats.
+  TextColumn get deliveryAddress => text().nullable()();
 
   /// Set on a refund row, pointing at the sale it reverses. A refund is a
   /// normal append-only [Sales] row with negated subtotal/discount/total/paid

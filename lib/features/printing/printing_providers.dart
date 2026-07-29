@@ -44,6 +44,7 @@ ReceiptLabels receiptLabels(AppLocalizations l) => ReceiptLabels(
       cashier: l.receiptCashier,
       customer: l.receiptCustomer,
       phone: l.receiptPhone,
+      deliveryAddress: l.orderDeliveryAddress,
       subtotal: l.sellSubtotal,
       discount: l.sellDiscount,
       total: l.commonTotal,

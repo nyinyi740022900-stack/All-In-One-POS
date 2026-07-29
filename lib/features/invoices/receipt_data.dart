@@ -38,6 +38,7 @@ class ReceiptData {
   final String? cashier;
   final String? customerName;
   final String? customerPhone;
+  final String? deliveryAddress;
   final List<ReceiptLineItem> items;
   final int subtotal;
   final int discount;
@@ -57,6 +58,7 @@ class ReceiptData {
     this.cashier,
     this.customerName,
     this.customerPhone,
+    this.deliveryAddress,
     required this.items,
     required this.subtotal,
     required this.discount,

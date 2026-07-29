@@ -147,6 +147,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentCredit => 'Credit';
 
   @override
+  String get paymentCod => 'COD (Cash on Delivery)';
+
+  @override
   String get creditTitle => 'Credit book';
 
   @override
@@ -1330,15 +1333,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderStatusNew => 'New';
 
   @override
-  String get orderStatusConfirmed => 'Confirmed';
-
-  @override
-  String get orderStatusPacked => 'Packed';
-
-  @override
-  String get orderStatusShipped => 'Shipped';
-
-  @override
   String get orderStatusDelivered => 'Delivered';
 
   @override
@@ -1352,9 +1346,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderChannelTiktok => 'TikTok';
-
-  @override
-  String get orderChannelInstagram => 'Instagram';
 
   @override
   String get orderChannelPhone => 'Phone';
@@ -1467,7 +1458,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Requested more than the recorded stock at the time of this order';
 
   @override
-  String get orderMoveTo => 'Move to';
+  String get orderCarrierHint => 'Type or pick a carrier';
+
+  @override
+  String get orderHandOffButton => 'Handed off to carrier';
+
+  @override
+  String orderHandedOffTo(String carrier) {
+    return 'Handed off to $carrier';
+  }
+
+  @override
+  String get orderChangeCarrier => 'Change';
 
   @override
   String get orderConvertToSale => 'Convert to sale';
@@ -1527,15 +1529,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deliveryCarrier => 'Carrier';
-
-  @override
-  String get deliveryCarrierNinjaVan => 'Ninja Van';
-
-  @override
-  String get deliveryCarrierRoyalExpress => 'Royal Express';
-
-  @override
-  String get deliveryCarrierOther => 'Other';
 
   @override
   String get deliveryCarrierNone => 'Not assigned';

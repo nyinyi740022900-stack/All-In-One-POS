@@ -8,6 +8,7 @@ const _labels = ReceiptLabels(
   cashier: 'Cashier',
   customer: 'Customer',
   phone: 'Phone',
+  deliveryAddress: 'Delivery address',
   subtotal: 'Subtotal',
   discount: 'Discount',
   total: 'Total',
@@ -17,13 +18,17 @@ const _labels = ReceiptLabels(
 );
 
 ReceiptData _sample(
-        {int discount = 0, String? longName, String? customerName}) =>
+        {int discount = 0,
+        String? longName,
+        String? customerName,
+        String? deliveryAddress}) =>
     ReceiptData(
       shopName: 'Aung Minimart',
       address: 'Yangon',
       invoiceNo: 'INV-20260710-001',
       dateTime: DateTime(2026, 7, 10, 14, 30),
       customerName: customerName,
+      deliveryAddress: deliveryAddress,
       items: [
         ReceiptLineItem(
             name: longName ?? 'Coca-Cola',
@@ -86,6 +91,21 @@ void main() {
           ReceiptFormatter(paper: PaperSize.mm58, labels: _labels)
               .format(_sample());
       expect(without.any((l) => l.startsWith('Customer')), isFalse);
+    });
+
+    test('delivery address is printed when present, omitted otherwise', () {
+      final withAddress = ReceiptFormatter(
+              paper: PaperSize.mm58, labels: _labels)
+          .format(_sample(deliveryAddress: '123 Pyay Road, Sanchaung'));
+      // Address text is wrapped at the paper width like anything else, so
+      // check the joined output rather than a single line.
+      expect(withAddress.join(' '), contains('123 Pyay Road, Sanchaung'));
+      expect(withAddress.any((l) => l.contains('Delivery address')), isTrue);
+
+      final without =
+          ReceiptFormatter(paper: PaperSize.mm58, labels: _labels)
+              .format(_sample());
+      expect(without.any((l) => l.contains('Delivery address')), isFalse);
     });
 
     test(

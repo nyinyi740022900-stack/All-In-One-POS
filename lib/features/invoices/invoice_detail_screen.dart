@@ -94,6 +94,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
               if (s.customerPhone != null &&
                   s.customerPhone!.trim().isNotEmpty)
                 _row(context, l.receiptPhone, s.customerPhone!),
+              if (s.deliveryAddress != null &&
+                  s.deliveryAddress!.trim().isNotEmpty)
+                _row(context, l.orderDeliveryAddress, s.deliveryAddress!),
               const Divider(height: AppTheme.space5),
               ...d.items.map((it) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
