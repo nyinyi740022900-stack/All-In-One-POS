@@ -20,7 +20,10 @@ class CreditScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final currency = l.currencySymbol;
-    final customers = ref.watch(creditCustomersProvider);
+    final filter = ref.watch(creditFilterProvider);
+    final customers = filter == CreditFilter.all
+        ? ref.watch(allCreditCustomersProvider)
+        : ref.watch(creditCustomersProvider);
     final total = ref.watch(creditOutstandingTotalProvider);
 
     return Scaffold(
@@ -45,6 +48,27 @@ class CreditScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4, AppTheme.space2, AppTheme.space4, 0),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: Text(l.creditFilterOutstanding),
+                  selected: filter == CreditFilter.outstanding,
+                  onSelected: (_) => ref.read(creditFilterProvider.notifier).state =
+                      CreditFilter.outstanding,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                ChoiceChip(
+                  label: Text(l.creditFilterAll),
+                  selected: filter == CreditFilter.all,
+                  onSelected: (_) => ref.read(creditFilterProvider.notifier).state =
+                      CreditFilter.all,
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: customers.isEmpty
                 ? Center(child: Text(l.creditEmpty))
@@ -53,17 +77,31 @@ class CreditScreen extends ConsumerWidget {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final c = customers[i];
+                      final settled = c.outstanding <= 0;
                       return ListTile(
                         leading: const CircleAvatar(child: Icon(Icons.person)),
                         title: Text(c.name),
                         subtitle: Text(l.creditOpenInvoices(c.openInvoices)),
-                        trailing: Text(
-                          Money(c.outstanding).withSymbol(currency),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
+                        trailing: settled
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.green, size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(l.creditSettled,
+                                      style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              )
+                            : Text(
+                                Money(c.outstanding).withSymbol(currency),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => CreditCustomerScreen(

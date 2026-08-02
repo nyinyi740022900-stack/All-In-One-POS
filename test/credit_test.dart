@@ -58,6 +58,26 @@ void main() {
       expect(result, isEmpty);
     });
 
+    test('includeSettled: true keeps fully-settled customers, at 0 owed', () {
+      final result = CreditRepository.aggregate(
+        [creditSale('Bo', 5000, 0)],
+        [repay('Bo', 5000)],
+        includeSettled: true,
+      );
+      expect(result, hasLength(1));
+      expect(result.single.name, 'Bo');
+      expect(result.single.outstanding, 0);
+    });
+
+    test('includeSettled: true still excludes an unnamed credit sale', () {
+      final result = CreditRepository.aggregate(
+        [creditSale('', 5000, 0)],
+        const [],
+        includeSettled: true,
+      );
+      expect(result, isEmpty);
+    });
+
     test('multiple invoices for one customer sum up', () {
       final result = CreditRepository.aggregate(
         [creditSale('Cho', 3000, 0), creditSale('Cho', 2000, 500)],

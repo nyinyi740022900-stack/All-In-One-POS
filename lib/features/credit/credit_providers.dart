@@ -26,6 +26,21 @@ final creditCustomersProvider = Provider<List<CreditCustomer>>((ref) {
   return CreditRepository.aggregate(sales, repayments);
 });
 
+/// Every customer who has ever had a credit sale, including ones fully paid
+/// off — backs the credit book's "All" filter so a settled customer's
+/// repayment history (exact date/time of each payment) stays reachable
+/// instead of disappearing once their balance hits 0.
+final allCreditCustomersProvider = Provider<List<CreditCustomer>>((ref) {
+  final sales = ref.watch(creditSalesProvider).valueOrNull ?? const [];
+  final repayments = ref.watch(repaymentsProvider).valueOrNull ?? const [];
+  return CreditRepository.aggregate(sales, repayments, includeSettled: true);
+});
+
+enum CreditFilter { outstanding, all }
+
+final creditFilterProvider =
+    StateProvider<CreditFilter>((ref) => CreditFilter.outstanding);
+
 /// Total credit outstanding across all customers.
 final creditOutstandingTotalProvider = Provider<int>((ref) {
   return ref

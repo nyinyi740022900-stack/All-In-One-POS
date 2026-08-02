@@ -78,6 +78,8 @@
   "creditOutstanding": "Outstanding",
   "creditInvoices": "Credit invoices",
   "creditSettled": "Settled",
+  "creditFilterOutstanding": "Outstanding",
+  "creditFilterAll": "All",
   "creditRepayments": "Repayments",
   "creditRecordRepayment": "Record repayment",
   "creditAmount": "Amount",

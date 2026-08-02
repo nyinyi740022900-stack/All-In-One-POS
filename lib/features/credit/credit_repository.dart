@@ -76,12 +76,17 @@ class CreditRepository {
         .watch();
   }
 
-  /// Folds credit sales + repayments into a per-customer balance. Only
-  /// customers who still owe money are returned, largest balance first.
+  /// Folds credit sales + repayments into a per-customer balance. By default
+  /// only customers who still owe money are returned (largest balance
+  /// first) — pass [includeSettled] to also get customers whose credit is
+  /// fully paid off (outstanding 0), so their repayment history (exact
+  /// date/time of each payment) stays reachable after the last one settles
+  /// it, instead of the customer just disappearing from the credit book.
   static List<CreditCustomer> aggregate(
     List<Sale> creditSales,
-    List<CreditPayment> repayments,
-  ) {
+    List<CreditPayment> repayments, {
+    bool includeSettled = false,
+  }) {
     final billed = <String, int>{};
     final paid = <String, int>{};
     final openInvoices = <String, int>{};
@@ -123,7 +128,7 @@ class CreditRepository {
         paid: paid[key] ?? 0,
         openInvoices: openInvoices[key] ?? 0,
       );
-      if (c.outstanding > 0) customers.add(c);
+      if (includeSettled || c.outstanding > 0) customers.add(c);
     }
     customers.sort((a, b) => b.outstanding.compareTo(a.outstanding));
     return customers;

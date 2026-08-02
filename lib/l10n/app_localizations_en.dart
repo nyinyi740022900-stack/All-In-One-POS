@@ -229,6 +229,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creditSettled => 'Settled';
 
   @override
+  String get creditFilterOutstanding => 'Outstanding';
+
+  @override
+  String get creditFilterAll => 'All';
+
+  @override
   String get creditRepayments => 'Repayments';
 
   @override

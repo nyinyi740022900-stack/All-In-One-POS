@@ -500,6 +500,18 @@ abstract class AppLocalizations {
   /// **'Settled'**
   String get creditSettled;
 
+  /// No description provided for @creditFilterOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get creditFilterOutstanding;
+
+  /// No description provided for @creditFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get creditFilterAll;
+
   /// No description provided for @creditRepayments.
   ///
   /// In en, this message translates to:

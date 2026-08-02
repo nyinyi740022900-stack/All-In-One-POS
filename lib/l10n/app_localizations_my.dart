@@ -222,6 +222,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get creditSettled => 'ဆပ်ပြီး';
 
   @override
+  String get creditFilterOutstanding => 'ကျန်ရှိ';
+
+  @override
+  String get creditFilterAll => 'အားလုံး';
+
+  @override
   String get creditRepayments => 'ပြန်ဆပ်မှုများ';
 
   @override

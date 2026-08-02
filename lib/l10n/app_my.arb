@@ -77,6 +77,8 @@
   "creditOutstanding": "ကျန်ရှိငွေ",
   "creditInvoices": "အကြွေး ပြေစာများ",
   "creditSettled": "ဆပ်ပြီး",
+  "creditFilterOutstanding": "ကျန်ရှိ",
+  "creditFilterAll": "အားလုံး",
   "creditRepayments": "ပြန်ဆပ်မှုများ",
   "creditRecordRepayment": "ပြန်ဆပ်ငွေ မှတ်တမ်းတင်",
   "creditAmount": "ပမာဏ",
