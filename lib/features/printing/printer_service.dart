@@ -6,6 +6,8 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 import '../invoices/receipt_data.dart';
 import '../invoices/receipt_formatter.dart';
+import '../invoices/sales_report_data.dart';
+import '../invoices/sales_report_formatter.dart';
 import 'label_data.dart';
 import 'label_raster.dart';
 import 'receipt_raster.dart';
@@ -122,6 +124,69 @@ class PrinterService {
         return const PrintResult(false, 'connect_failed');
       }
       final bytes = await buildBytes(data, paper: paper, labels: labels);
+      final ok = await PrintBluetoothThermal.writeBytes(bytes);
+      return PrintResult(ok, ok ? null : 'write_failed');
+    } catch (e) {
+      return PrintResult(false, e.toString());
+    }
+  }
+
+  /// Builds the ESC/POS byte stream for a date-range sales report (raster
+  /// image + cut, no barcode — a report isn't a single scannable document).
+  Future<List<int>> buildReportBytes(
+    SalesReport report,
+    String shopName, {
+    required PaperSize paper,
+    required String title,
+    required String dateRangeLabel,
+    required String totalLabel,
+    required String noSalesLabel,
+  }) async {
+    final bodyLines = SalesReportFormatter(paper: paper).format(
+      report,
+      title: title,
+      dateRangeLabel: dateRangeLabel,
+      totalLabel: totalLabel,
+      noSalesLabel: noSalesLabel,
+    );
+    final image = await renderReportImage(shopName, bodyLines, paper);
+
+    final profile = await esc.CapabilityProfile.load();
+    final generator = esc.Generator(
+      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      profile,
+    );
+
+    final bytes = <int>[];
+    bytes.addAll(generator.imageRaster(image));
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+    return bytes;
+  }
+
+  Future<PrintResult> printReport(
+    SalesReport report,
+    String shopName, {
+    required PaperSize paper,
+    required String mac,
+    required String title,
+    required String dateRangeLabel,
+    required String totalLabel,
+    required String noSalesLabel,
+  }) async {
+    try {
+      if (!await _ensureConnected(mac)) {
+        return const PrintResult(false, 'connect_failed');
+      }
+      final bytes = await buildReportBytes(
+        report,
+        shopName,
+        paper: paper,
+        title: title,
+        dateRangeLabel: dateRangeLabel,
+        totalLabel: totalLabel,
+        noSalesLabel: noSalesLabel,
+      );
       final ok = await PrintBluetoothThermal.writeBytes(bytes);
       return PrintResult(ok, ok ? null : 'write_failed');
     } catch (e) {

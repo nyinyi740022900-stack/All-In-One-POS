@@ -12,6 +12,12 @@ enum PaperSize {
   final int dots;
 }
 
+/// Page size for a real (A4/A5) document export — a real printer or a
+/// browser's print dialog, unlike [PaperSize]'s narrow thermal rolls. Some
+/// shops print invoices/reports on a WiFi/AirPrint or computer-attached
+/// printer loaded with A5 rather than the more common A4.
+enum PdfPaperSize { a4, a5 }
+
 class ReceiptLineItem {
   final String name;
   final int qty;

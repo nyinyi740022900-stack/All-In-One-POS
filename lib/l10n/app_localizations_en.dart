@@ -636,6 +636,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceAlreadyRefunded => 'This invoice was already refunded.';
 
   @override
+  String get salesReportTitle => 'Sales report';
+
+  @override
+  String get salesReportAllDates => 'All dates';
+
+  @override
+  String get salesReportEmpty => 'No sales in this range.';
+
+  @override
+  String get salesReportTotal => 'Total';
+
+  @override
+  String get salesReportColumnInvoice => 'Invoice #';
+
+  @override
+  String get salesReportColumnDate => 'Date';
+
+  @override
+  String get salesReportColumnCustomer => 'Customer';
+
+  @override
+  String get salesReportColumnAddress => 'Address';
+
+  @override
+  String get salesReportColumnAmount => 'Amount';
+
+  @override
+  String get salesReportPrintBluetooth => 'Print (Bluetooth)';
+
+  @override
+  String get salesReportExportPdf => 'Export PDF';
+
+  @override
+  String get salesReportNoPrinter =>
+      'No Bluetooth printer set up — see Printer settings.';
+
+  @override
+  String salesReportCount(int count) {
+    return '$count sales';
+  }
+
+  @override
   String get printerSettings => 'Printer settings';
 
   @override
@@ -686,6 +728,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paper80 => '80 mm';
+
+  @override
+  String get printerPdfPaperSize => 'Document paper size';
+
+  @override
+  String get printerPdfPaperSizeHint =>
+      'For invoices/reports printed via AirPrint or a computer, not the thermal printer above.';
+
+  @override
+  String get paperA4 => 'A4';
+
+  @override
+  String get paperA5 => 'A5';
 
   @override
   String get settingsLabelPrinter => 'Label printer';

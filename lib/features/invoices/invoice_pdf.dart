@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'invoice_view.dart';
+import 'pdf_font.dart';
 
 /// Renders the same document as [InvoiceView] onto a real A4 page — used by
 /// the Invoices Web companion (and available to the mobile app) wherever a
@@ -32,7 +33,13 @@ Future<Uint8List> buildInvoicePdf(InvoiceData data) async {
         (m) => ',',
       )} ${data.currencySymbol}';
 
-  final doc = pw.Document();
+  // Bundled font so a Myanmar customer name/address/item name renders
+  // correctly instead of as tofu boxes — the `pdf` package's default font
+  // has no Myanmar glyphs.
+  final font = await loadMyanmarPdfFont();
+  final doc = pw.Document(
+    theme: pw.ThemeData.withFont(base: font.regular, bold: font.bold),
+  );
   doc.addPage(
     pw.Page(
       pageFormat: PdfPageFormat.a4,

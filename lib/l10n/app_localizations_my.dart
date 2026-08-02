@@ -631,6 +631,48 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invoiceAlreadyRefunded => 'ဒီပြေစာကို ပြန်အမ်းပြီးသားဖြစ်ပါသည်။';
 
   @override
+  String get salesReportTitle => 'အရောင်း အစီရင်ခံစာ';
+
+  @override
+  String get salesReportAllDates => 'ရက်စွဲအားလုံး';
+
+  @override
+  String get salesReportEmpty => 'ဒီကာလအတွင်း အရောင်း မရှိသေးပါ။';
+
+  @override
+  String get salesReportTotal => 'စုစုပေါင်း';
+
+  @override
+  String get salesReportColumnInvoice => 'ပြေစာနံပါတ်';
+
+  @override
+  String get salesReportColumnDate => 'ရက်စွဲ';
+
+  @override
+  String get salesReportColumnCustomer => 'ဖောက်သည်';
+
+  @override
+  String get salesReportColumnAddress => 'လိပ်စာ';
+
+  @override
+  String get salesReportColumnAmount => 'ပမာဏ';
+
+  @override
+  String get salesReportPrintBluetooth => 'Print ထုတ် (Bluetooth)';
+
+  @override
+  String get salesReportExportPdf => 'PDF ထုတ်';
+
+  @override
+  String get salesReportNoPrinter =>
+      'Bluetooth printer သတ်မှတ်မထားပါ — Printer settings ကို ကြည့်ပါ။';
+
+  @override
+  String salesReportCount(int count) {
+    return 'အရောင်း $count ခု';
+  }
+
+  @override
   String get printerSettings => 'ပရင်တာ ဆက်တင်';
 
   @override
@@ -681,6 +723,19 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get paper80 => '၈၀ မီလီမီတာ';
+
+  @override
+  String get printerPdfPaperSize => 'စာရွက် paper size';
+
+  @override
+  String get printerPdfPaperSizeHint =>
+      'AirPrint (သို့) ကွန်ပျူတာကနေ print ထုတ်တဲ့ invoice/report အတွက်ပါ — အပေါ်က thermal printer အတွက် မဟုတ်ပါ။';
+
+  @override
+  String get paperA4 => 'A4';
+
+  @override
+  String get paperA5 => 'A5';
 
   @override
   String get settingsLabelPrinter => 'Label ပရင်တာ';

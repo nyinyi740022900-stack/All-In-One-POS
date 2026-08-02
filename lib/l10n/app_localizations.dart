@@ -1268,6 +1268,84 @@ abstract class AppLocalizations {
   /// **'This invoice was already refunded.'**
   String get invoiceAlreadyRefunded;
 
+  /// No description provided for @salesReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales report'**
+  String get salesReportTitle;
+
+  /// No description provided for @salesReportAllDates.
+  ///
+  /// In en, this message translates to:
+  /// **'All dates'**
+  String get salesReportAllDates;
+
+  /// No description provided for @salesReportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sales in this range.'**
+  String get salesReportEmpty;
+
+  /// No description provided for @salesReportTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get salesReportTotal;
+
+  /// No description provided for @salesReportColumnInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice #'**
+  String get salesReportColumnInvoice;
+
+  /// No description provided for @salesReportColumnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get salesReportColumnDate;
+
+  /// No description provided for @salesReportColumnCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get salesReportColumnCustomer;
+
+  /// No description provided for @salesReportColumnAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get salesReportColumnAddress;
+
+  /// No description provided for @salesReportColumnAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get salesReportColumnAmount;
+
+  /// No description provided for @salesReportPrintBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Print (Bluetooth)'**
+  String get salesReportPrintBluetooth;
+
+  /// No description provided for @salesReportExportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get salesReportExportPdf;
+
+  /// No description provided for @salesReportNoPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'No Bluetooth printer set up — see Printer settings.'**
+  String get salesReportNoPrinter;
+
+  /// No description provided for @salesReportCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sales'**
+  String salesReportCount(int count);
+
   /// No description provided for @printerSettings.
   ///
   /// In en, this message translates to:
@@ -1369,6 +1447,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'80 mm'**
   String get paper80;
+
+  /// No description provided for @printerPdfPaperSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Document paper size'**
+  String get printerPdfPaperSize;
+
+  /// No description provided for @printerPdfPaperSizeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For invoices/reports printed via AirPrint or a computer, not the thermal printer above.'**
+  String get printerPdfPaperSizeHint;
+
+  /// No description provided for @paperA4.
+  ///
+  /// In en, this message translates to:
+  /// **'A4'**
+  String get paperA4;
+
+  /// No description provided for @paperA5.
+  ///
+  /// In en, this message translates to:
+  /// **'A5'**
+  String get paperA5;
 
   /// No description provided for @settingsLabelPrinter.
   ///

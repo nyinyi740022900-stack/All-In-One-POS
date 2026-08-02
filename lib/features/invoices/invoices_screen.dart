@@ -10,6 +10,7 @@ import '../credit/credit_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
 import '../sell/sales_providers.dart';
 import 'invoice_detail_screen.dart';
+import 'sales_report_screen.dart';
 
 enum InvoiceFilter { all, credit }
 
@@ -40,7 +41,18 @@ class InvoicesScreen extends ConsumerWidget {
     int owedOf(Sale s) => owedBySale[s.id] ?? (s.total - s.paid);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.navInvoices)),
+      appBar: AppBar(
+        title: Text(l.navInvoices),
+        actions: [
+          IconButton(
+            tooltip: l.salesReportTitle,
+            icon: const Icon(Icons.summarize_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const SalesReportScreen(),
+            )),
+          ),
+        ],
+      ),
       body: sales.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),

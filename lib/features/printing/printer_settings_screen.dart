@@ -96,6 +96,22 @@ class _PrinterSettingsScreenState
           ),
           const SizedBox(height: AppTheme.space5),
 
+          Text(l.printerPdfPaperSize,
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppTheme.space1),
+          Text(l.printerPdfPaperSizeHint,
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: AppTheme.space2),
+          SegmentedButton<PdfPaperSize>(
+            segments: [
+              ButtonSegment(value: PdfPaperSize.a4, label: Text(l.paperA4)),
+              ButtonSegment(value: PdfPaperSize.a5, label: Text(l.paperA5)),
+            ],
+            selected: {config?.pdfPaperSize ?? PdfPaperSize.a4},
+            onSelectionChanged: (s) => settings.setPdfPaperSize(s.first),
+          ),
+          const SizedBox(height: AppTheme.space5),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

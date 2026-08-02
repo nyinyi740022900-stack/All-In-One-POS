@@ -16,6 +16,7 @@ class SettingsRepository {
   final FlutterSecureStorage _secure;
 
   static const _kPaperSize = 'printer.paper_size';
+  static const _kPdfPaperSize = 'printer.pdf_paper_size';
   static const _kPrinterMac = 'printer.mac';
   static const _kPrinterName = 'printer.name';
   static const _kLabelSize = 'label_printer.size';
@@ -50,6 +51,9 @@ class SettingsRepository {
         paper: map[_kPaperSize] == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
         mac: map[_kPrinterMac],
         name: map[_kPrinterName],
+        pdfPaperSize: map[_kPdfPaperSize] == 'a5'
+            ? PdfPaperSize.a5
+            : PdfPaperSize.a4,
       );
     });
   }
@@ -61,11 +65,16 @@ class SettingsRepository {
           : PaperSize.mm58,
       mac: await _get(_kPrinterMac),
       name: await _get(_kPrinterName),
+      pdfPaperSize:
+          (await _get(_kPdfPaperSize)) == 'a5' ? PdfPaperSize.a5 : PdfPaperSize.a4,
     );
   }
 
   Future<void> setPaperSize(PaperSize size) =>
       _set(_kPaperSize, size == PaperSize.mm80 ? 'mm80' : 'mm58');
+
+  Future<void> setPdfPaperSize(PdfPaperSize size) =>
+      _set(_kPdfPaperSize, size == PdfPaperSize.a5 ? 'a5' : 'a4');
 
   Future<void> setPrinter(String mac, String name) async {
     await _set(_kPrinterMac, mac);
@@ -272,7 +281,12 @@ class PrinterConfig {
   final PaperSize paper;
   final String? mac;
   final String? name;
-  const PrinterConfig({required this.paper, this.mac, this.name});
+  final PdfPaperSize pdfPaperSize;
+  const PrinterConfig(
+      {required this.paper,
+      this.mac,
+      this.name,
+      this.pdfPaperSize = PdfPaperSize.a4});
 
   bool get hasPrinter => mac != null && mac!.isNotEmpty;
 }

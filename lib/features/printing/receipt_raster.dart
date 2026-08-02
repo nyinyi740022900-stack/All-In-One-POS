@@ -101,6 +101,57 @@ Future<img.Image> renderReceiptImage(
   );
 }
 
+/// Renders a sales report to a monochrome-friendly bitmap sized to the
+/// paper's dot width: shop name header, a divider, then the monospace
+/// [bodyLines] (produced by `SalesReportFormatter.format`). Same Myanmar-safe
+/// raster rationale as [renderReceiptImage] — see its doc comment.
+Future<img.Image> renderReportImage(
+  String shopName,
+  List<String> bodyLines,
+  PaperSize paper, {
+  double fontSize = 22,
+}) async {
+  final width = paper.dots;
+  final nameFontSize = fontSize * 1.35;
+  const pad = 10.0;
+
+  final namePara = paragraph(shopName, width,
+      fontSize: nameFontSize, bold: true, align: ui.TextAlign.center);
+  final bodyPara = paragraph(bodyLines.join('\n'), width,
+      fontSize: fontSize, monospace: true, align: ui.TextAlign.left);
+
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawColor(const ui.Color(0xFFFFFFFF), ui.BlendMode.src);
+
+  var y = pad;
+  canvas.drawParagraph(namePara, ui.Offset(0, y));
+  y += namePara.height + pad;
+  canvas.drawLine(
+    ui.Offset(0, y),
+    ui.Offset(width.toDouble(), y),
+    ui.Paint()
+      ..color = const ui.Color(0xFF000000)
+      ..strokeWidth = 1.5,
+  );
+  y += pad;
+  canvas.drawParagraph(bodyPara, ui.Offset(0, y));
+  y += bodyPara.height + pad;
+
+  final totalHeight = y.ceil();
+  final picture = recorder.endRecording();
+  final uiImage = await picture.toImage(width, totalHeight);
+  final bytes = await uiImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+  uiImage.dispose();
+
+  return img.Image.fromBytes(
+    width: width,
+    height: totalHeight,
+    bytes: bytes!.buffer,
+    numChannels: 4,
+  );
+}
+
 /// Lays out a single block of text at a fixed pixel [width]. Shared by every
 /// raster renderer (receipt, label) that needs Myanmar-safe text — see the
 /// WHY note above on why raw ESC/POS text mode can't be used for this.
