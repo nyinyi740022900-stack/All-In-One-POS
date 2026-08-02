@@ -2864,6 +2864,18 @@ abstract class AppLocalizations {
   /// **'Undo return'**
   String get orderRestore;
 
+  /// No description provided for @orderReturnConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Return this order?'**
+  String get orderReturnConfirmTitle;
+
+  /// No description provided for @orderReturnConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.'**
+  String orderReturnConfirmBody(String amount);
+
   /// No description provided for @orderNeedsName.
   ///
   /// In en, this message translates to:

@@ -1506,6 +1506,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderRestore => 'ပြန်ပို့မှု ပြန်ရုပ်သိမ်းမည်';
 
   @override
+  String get orderReturnConfirmTitle => 'ဒီအော်ဒါကို ပြန်ပို့မည်လား?';
+
+  @override
+  String orderReturnConfirmBody(String amount) {
+    return 'ဒါက $amount ပြန်အမ်းပေးမည်၊ အရောင်းကို ပြန်ပြင်ပေးမည်၊ ကုန်ပစ္စည်းလက်ကျန်ကိုလည်း ပြန်ထည့်ပေးမည်ဖြစ်ပြီး ပြန်ရုပ်သိမ်းလို့ မရတော့ပါ။';
+  }
+
+  @override
   String get orderNeedsName => 'ဖောက်သည်အမည် ထည့်ပါ။';
 
   @override

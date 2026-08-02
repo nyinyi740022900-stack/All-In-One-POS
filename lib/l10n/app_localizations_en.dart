@@ -1508,6 +1508,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderRestore => 'Undo return';
 
   @override
+  String get orderReturnConfirmTitle => 'Return this order?';
+
+  @override
+  String orderReturnConfirmBody(String amount) {
+    return 'This refunds $amount, reverses the sale, and restores stock. This cannot be undone.';
+  }
+
+  @override
   String get orderNeedsName => 'Enter a customer name.';
 
   @override

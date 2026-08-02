@@ -195,7 +195,7 @@ class OrderDetailSheet extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => isCancelled
                         ? repo.setStatus(orderId, 'new')
-                        : repo.setStatus(orderId, 'cancelled'),
+                        : _markReturn(context, ref, o),
                     icon: Icon(isCancelled
                         ? Icons.restore
                         : Icons.cancel_outlined),
@@ -325,6 +325,51 @@ class OrderDetailSheet extends ConsumerWidget {
     messenger.showSnackBar(
         SnackBar(content: Text(l.orderConverted(sale.invoiceNo))));
     nav.pop();
+  }
+
+  /// Marking an order Return used to be a pure label change — it never
+  /// touched the sale it was converted to, or the stock that sale already
+  /// deducted, which could easily read as "the stock/money came back" when
+  /// it hadn't. If the order has a linked sale, this now reverses it for
+  /// real via the same accounting-correct refund used from Invoices
+  /// (append-only reversal sale, stock restored at original cost, payment
+  /// reversed, any outstanding credit closed) — with an explicit
+  /// confirmation showing the amount, since it's irreversible. An order
+  /// never converted to a sale has nothing to reverse, so it just flips the
+  /// status as before.
+  Future<void> _markReturn(BuildContext context, WidgetRef ref, Order o) async {
+    final l = AppLocalizations.of(context);
+    final repo = ref.read(ordersRepositoryProvider);
+    final saleId = o.saleId;
+    if (saleId == null) {
+      await repo.setStatus(o.id, 'cancelled');
+      return;
+    }
+    final salesRepo = ref.read(salesRepositoryProvider);
+    final alreadyRefunded = await salesRepo.refundOf(saleId) != null;
+    if (!alreadyRefunded) {
+      final sale = await salesRepo.getSale(saleId);
+      if (!context.mounted) return;
+      final amount = Money(sale.total).withSymbol(l.currencySymbol);
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l.orderReturnConfirmTitle),
+          content: Text(l.orderReturnConfirmBody(amount)),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l.invoiceRefund)),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+      await salesRepo.refundSale(saleId);
+    }
+    await repo.setStatus(o.id, 'cancelled');
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
