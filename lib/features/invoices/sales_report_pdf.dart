@@ -58,7 +58,14 @@ Future<Uint8List> buildSalesReportPdf({
 
   final font = await loadMyanmarPdfFont();
   final doc = pw.Document(
-    theme: pw.ThemeData.withFont(base: font.regular, bold: font.bold),
+    theme: pw.ThemeData.withFont(
+      base: font.regular,
+      bold: font.bold,
+      // Noto Sans Myanmar doesn't cover every symbol (e.g. the date-range
+      // arrow "→") — fall back to the bundled Helvetica for anything it's
+      // missing rather than a tofu box.
+      fontFallback: [pw.Font.helvetica(), pw.Font.helveticaBold()],
+    ),
   );
   doc.addPage(
     pw.MultiPage(
@@ -106,7 +113,11 @@ Future<Uint8List> buildSalesReportPdf({
                     fontWeight: pw.FontWeight.bold,
                     letterSpacing: 1.2,
                     color: accent)),
-            pw.Text(dateRangeLabel,
+            // "→" (as shown on-screen, where Flutter's own text engine
+            // renders it fine) has no glyph in either the bundled Myanmar
+            // font or the Unicode-less Helvetica fallback — swap it for a
+            // plain hyphen here rather than a tofu box.
+            pw.Text(dateRangeLabel.replaceAll('→', '-'),
                 style: pw.TextStyle(fontSize: 10, color: muted)),
             pw.SizedBox(height: 12),
           ],

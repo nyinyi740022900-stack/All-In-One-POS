@@ -38,7 +38,14 @@ Future<Uint8List> buildInvoicePdf(InvoiceData data) async {
   // has no Myanmar glyphs.
   final font = await loadMyanmarPdfFont();
   final doc = pw.Document(
-    theme: pw.ThemeData.withFont(base: font.regular, bold: font.bold),
+    theme: pw.ThemeData.withFont(
+      base: font.regular,
+      bold: font.bold,
+      // Noto Sans Myanmar doesn't cover every symbol (e.g. the date-range
+      // arrow "→") — fall back to the bundled Helvetica for anything it's
+      // missing rather than a tofu box.
+      fontFallback: [pw.Font.helvetica(), pw.Font.helveticaBold()],
+    ),
   );
   doc.addPage(
     pw.Page(
