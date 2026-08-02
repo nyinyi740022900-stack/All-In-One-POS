@@ -44,6 +44,7 @@ final syncTables = <SyncTableDef>[
   _staffMembers,
   _customers,
   _expenses,
+  _cashSessions,
   _deviceLabels,
 ];
 
@@ -710,6 +711,53 @@ final _expenses = SyncTableDef(
           amount: Value(_int(m['amount'])),
           date: Value(_dt(m['date'])),
           note: Value(m['note'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- cash_sessions -----------------------------------------------------
+final _cashSessions = SyncTableDef(
+  name: 'cash_sessions',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.cashSessions)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'opened_at': _iso(r.openedAt),
+      'opening_amount': r.openingAmount,
+      'closed_at': r.closedAt == null ? null : _iso(r.closedAt!),
+      'closing_amount': r.closingAmount,
+      'note': r.note,
+      'device_id': r.deviceId,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.cashSessions)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.cashSessions).insertOnConflictUpdate(CashSessionsCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          openedAt: Value(_dt(m['opened_at'])),
+          openingAmount: Value(_int(m['opening_amount'])),
+          closedAt: Value(
+              m['closed_at'] == null ? null : _dt(m['closed_at'])),
+          closingAmount: Value(
+              m['closing_amount'] == null ? null : _int(m['closing_amount'])),
+          note: Value(m['note'] as String?),
+          deviceId: Value(m['device_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),

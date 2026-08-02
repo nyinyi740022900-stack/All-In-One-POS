@@ -150,6 +150,67 @@ class AppLocalizationsMy extends AppLocalizations {
   String get paymentCod => 'COD (အရောက်ငွေချေ)';
 
   @override
+  String get cashRegisterTitle => 'ငွေတိုက်';
+
+  @override
+  String get cashRegisterOpen => 'ဖွင့်ထား';
+
+  @override
+  String get cashRegisterClosed => 'ပိတ်ပြီး';
+
+  @override
+  String get cashOpeningAmount => 'အဖွင့်ငွေပမာဏ';
+
+  @override
+  String get cashOpenRegister => 'ငွေတိုက် ဖွင့်မည်';
+
+  @override
+  String get cashCloseRegister => 'ငွေတိုက် ပိတ်မည်';
+
+  @override
+  String get cashExpectedNow => 'ယခု ရှိသင့်သော ငွေပမာဏ';
+
+  @override
+  String get cashOpenedAt => 'ဖွင့်ချိန်';
+
+  @override
+  String get cashClosingAmount => 'ရေတွက်ရရှိသည့် ငွေပမာဏ';
+
+  @override
+  String get cashVariance => 'ကွာခြားချက်';
+
+  @override
+  String cashVarianceShort(String amount) {
+    return '$amount လျော့နေသည်';
+  }
+
+  @override
+  String cashVarianceOver(String amount) {
+    return '$amount ပိုနေသည်';
+  }
+
+  @override
+  String get cashVarianceExact => 'အတိအကျ ကိုက်ညီသည်';
+
+  @override
+  String get cashNote => 'မှတ်ချက် (ရွေးချယ်ခွင့်)';
+
+  @override
+  String get cashHistory => 'မှတ်တမ်းဟောင်း';
+
+  @override
+  String get cashNoSession => 'ငွေတိုက် မဖွင့်ရသေးပါ။';
+
+  @override
+  String get cashNoHistory => 'ယခင် session မှတ်တမ်း မရှိသေးပါ။';
+
+  @override
+  String get cashRegisterOpenedMsg => 'ငွေတိုက် ဖွင့်ပြီး';
+
+  @override
+  String get cashRegisterClosedMsg => 'ငွေတိုက် ပိတ်ပြီး';
+
+  @override
   String get creditTitle => 'အကြွေးစာရင်း';
 
   @override

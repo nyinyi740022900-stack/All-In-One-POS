@@ -150,6 +150,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentCod => 'COD (Cash on Delivery)';
 
   @override
+  String get cashRegisterTitle => 'Cash register';
+
+  @override
+  String get cashRegisterOpen => 'Open';
+
+  @override
+  String get cashRegisterClosed => 'Closed';
+
+  @override
+  String get cashOpeningAmount => 'Opening cash amount';
+
+  @override
+  String get cashOpenRegister => 'Open register';
+
+  @override
+  String get cashCloseRegister => 'Close register';
+
+  @override
+  String get cashExpectedNow => 'Expected cash now';
+
+  @override
+  String get cashOpenedAt => 'Opened';
+
+  @override
+  String get cashClosingAmount => 'Counted cash';
+
+  @override
+  String get cashVariance => 'Variance';
+
+  @override
+  String cashVarianceShort(String amount) {
+    return 'Short by $amount';
+  }
+
+  @override
+  String cashVarianceOver(String amount) {
+    return 'Over by $amount';
+  }
+
+  @override
+  String get cashVarianceExact => 'Matches exactly';
+
+  @override
+  String get cashNote => 'Note (optional)';
+
+  @override
+  String get cashHistory => 'History';
+
+  @override
+  String get cashNoSession => 'The register isn\'t open yet.';
+
+  @override
+  String get cashNoHistory => 'No past sessions yet.';
+
+  @override
+  String get cashRegisterOpenedMsg => 'Register opened';
+
+  @override
+  String get cashRegisterClosedMsg => 'Register closed';
+
+  @override
   String get creditTitle => 'Credit book';
 
   @override

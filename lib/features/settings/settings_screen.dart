@@ -17,6 +17,7 @@ import '../printing/printing_providers.dart';
 import '../referral/referral_screen.dart';
 import '../../core/money.dart';
 import '../backup/backup_screen.dart';
+import '../cash/cash_session_screen.dart';
 import '../credit/credit_providers.dart';
 import '../credit/credit_screen.dart';
 import '../customers/customers_screen.dart';
@@ -49,6 +50,14 @@ class SettingsScreen extends ConsumerWidget {
             )),
           ),
           _TrackStockTile(),
+          ListTile(
+            leading: const Icon(Icons.point_of_sale_outlined),
+            title: Text(l.cashRegisterTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const CashSessionScreen(),
+            )),
+          ),
           _CreditTile(),
           ListTile(
             leading: const Icon(Icons.people_outline),

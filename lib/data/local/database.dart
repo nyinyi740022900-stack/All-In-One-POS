@@ -28,6 +28,7 @@ part 'database.g.dart';
     StaffMembers,
     Customers,
     Expenses,
+    CashSessions,
     DeviceLabels,
     AppSettings,
     Outbox,
@@ -40,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +144,12 @@ class AppDatabase extends _$AppDatabase {
           // invoice/receipt had nowhere to deliver it printed on.
           if (from < 19) {
             await m.addColumn(sales, sales.deliveryAddress);
+          }
+          // v20: cash-drawer sessions (opening float + closing count, with
+          // an expected-cash reconciliation computed from cash sales/
+          // repayments/expenses in between).
+          if (from < 20) {
+            await m.createTable(cashSessions);
           }
         },
       );

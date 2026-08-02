@@ -368,6 +368,120 @@ abstract class AppLocalizations {
   /// **'COD (Cash on Delivery)'**
   String get paymentCod;
 
+  /// No description provided for @cashRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash register'**
+  String get cashRegisterTitle;
+
+  /// No description provided for @cashRegisterOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get cashRegisterOpen;
+
+  /// No description provided for @cashRegisterClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get cashRegisterClosed;
+
+  /// No description provided for @cashOpeningAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening cash amount'**
+  String get cashOpeningAmount;
+
+  /// No description provided for @cashOpenRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Open register'**
+  String get cashOpenRegister;
+
+  /// No description provided for @cashCloseRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Close register'**
+  String get cashCloseRegister;
+
+  /// No description provided for @cashExpectedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected cash now'**
+  String get cashExpectedNow;
+
+  /// No description provided for @cashOpenedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Opened'**
+  String get cashOpenedAt;
+
+  /// No description provided for @cashClosingAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted cash'**
+  String get cashClosingAmount;
+
+  /// No description provided for @cashVariance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variance'**
+  String get cashVariance;
+
+  /// No description provided for @cashVarianceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short by {amount}'**
+  String cashVarianceShort(String amount);
+
+  /// No description provided for @cashVarianceOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Over by {amount}'**
+  String cashVarianceOver(String amount);
+
+  /// No description provided for @cashVarianceExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches exactly'**
+  String get cashVarianceExact;
+
+  /// No description provided for @cashNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get cashNote;
+
+  /// No description provided for @cashHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get cashHistory;
+
+  /// No description provided for @cashNoSession.
+  ///
+  /// In en, this message translates to:
+  /// **'The register isn\'t open yet.'**
+  String get cashNoSession;
+
+  /// No description provided for @cashNoHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No past sessions yet.'**
+  String get cashNoHistory;
+
+  /// No description provided for @cashRegisterOpenedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Register opened'**
+  String get cashRegisterOpenedMsg;
+
+  /// No description provided for @cashRegisterClosedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Register closed'**
+  String get cashRegisterClosedMsg;
+
   /// No description provided for @creditTitle.
   ///
   /// In en, this message translates to:

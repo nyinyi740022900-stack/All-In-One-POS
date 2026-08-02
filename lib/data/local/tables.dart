@@ -379,6 +379,31 @@ class Expenses extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A cash-drawer session: an owner/cashier declares [openingAmount] at the
+/// start of the day (or shift) and, at the end, counts the drawer and
+/// records [closingAmount] — the app computes what the drawer *should* hold
+/// (opening + cash sales + cash credit-repayments − cash expenses, all
+/// within [openedAt, closedAt)) so a mismatch (till shortage/overage) shows
+/// up immediately rather than being noticed weeks later. [closedAt] null
+/// means the session is still open — only one open session per shop is
+/// expected at a time (enforced app-side, not by a DB constraint, so an
+/// interrupted close never locks the shop out).
+class CashSessions extends Table with SyncColumns {
+  DateTimeColumn get openedAt => dateTime()();
+  IntColumn get openingAmount => integer()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+  IntColumn get closingAmount => integer().nullable()();
+  TextColumn get note => text().nullable()();
+
+  /// The device that opened this session (`SettingsRepository.deviceId()`,
+  /// same stable id used elsewhere) — a raw UUID means nothing to an owner
+  /// on its own; see [DeviceLabels] for the friendly name shown in the UI.
+  TextColumn get deviceId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// An owner-set friendly name for one of the shop's devices (e.g. "Counter
 /// A", "Owner's phone"), so a raw device UUID on a [Sales] row can show as
 /// something meaningful on an invoice regardless of which device is doing
