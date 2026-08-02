@@ -1431,9 +1431,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cash on delivery — collected when the order arrives';
 
   @override
-  String get orderPayPartial => 'Partial';
-
-  @override
   String get orderPayPaid => 'Paid';
 
   @override

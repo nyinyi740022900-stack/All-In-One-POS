@@ -2726,12 +2726,6 @@ abstract class AppLocalizations {
   /// **'Cash on delivery — collected when the order arrives'**
   String get orderPaymentCodNote;
 
-  /// No description provided for @orderPayPartial.
-  ///
-  /// In en, this message translates to:
-  /// **'Partial'**
-  String get orderPayPartial;
-
   /// No description provided for @orderPayPaid.
   ///
   /// In en, this message translates to:

@@ -486,7 +486,6 @@
   "orderPaymentTransfer": "ငွေလွှဲ",
   "orderPaymentCod": "အိမ်ရောက်ငွေချေ",
   "orderPaymentCodNote": "အိမ်ရောက်ငွေချေ — ပစ္စည်းရောက်မှ ငွေကောက်ခံမည်",
-  "orderPayPartial": "တစ်စိတ်တစ်ပိုင်း",
   "orderPayPaid": "ပေးပြီး",
   "orderAwaitingPayment": "ငွေမရရှိသေးပါ",
   "orderMarkAsPaid": "ငွေရရှိပြီဟု မှတ်သားရန်",

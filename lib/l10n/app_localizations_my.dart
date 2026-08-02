@@ -1429,9 +1429,6 @@ class AppLocalizationsMy extends AppLocalizations {
       'အိမ်ရောက်ငွေချေ — ပစ္စည်းရောက်မှ ငွေကောက်ခံမည်';
 
   @override
-  String get orderPayPartial => 'တစ်စိတ်တစ်ပိုင်း';
-
-  @override
   String get orderPayPaid => 'ပေးပြီး';
 
   @override

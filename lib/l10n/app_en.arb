@@ -487,7 +487,6 @@
   "orderPaymentTransfer": "Bank transfer",
   "orderPaymentCod": "Cash on delivery",
   "orderPaymentCodNote": "Cash on delivery — collected when the order arrives",
-  "orderPayPartial": "Partial",
   "orderPayPaid": "Paid",
   "orderAwaitingPayment": "Awaiting payment",
   "orderMarkAsPaid": "Mark as paid",

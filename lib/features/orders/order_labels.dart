@@ -65,11 +65,11 @@ IconData orderChannelIcon(String channel) {
   }
 }
 
-/// Localized label for a payment status code.
+/// Localized label for a payment status code. Order.paymentStatus is only
+/// ever written as 'paid' or 'unpaid' (setPaymentStatus, convertToSale, the
+/// storefront submit_order function) — there's no 'partial' state to label.
 String orderPaymentLabel(AppLocalizations l, String status) {
   switch (status) {
-    case 'partial':
-      return l.orderPayPartial;
     case 'paid':
       return l.orderPayPaid;
     case 'unpaid':

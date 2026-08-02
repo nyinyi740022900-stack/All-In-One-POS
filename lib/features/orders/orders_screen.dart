@@ -160,7 +160,7 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
                         .state = (channel == c ? null : c),
                   ),
                 const SizedBox(width: 12),
-                for (final p in const ['unpaid', 'partial', 'paid'])
+                for (final p in const ['unpaid', 'paid'])
                   _FilterChip(
                     label: orderPaymentLabel(l, p),
                     selected: payment == p,
@@ -308,7 +308,6 @@ class _PayDot extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final color = switch (status) {
       'paid' => Colors.green,
-      'partial' => Colors.orange,
       _ => Theme.of(context).colorScheme.outline,
     };
     return Row(
