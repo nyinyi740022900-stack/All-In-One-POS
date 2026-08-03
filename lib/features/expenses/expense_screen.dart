@@ -12,6 +12,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../analytics/analytics_providers.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
 import 'recurring_expense_providers.dart';
@@ -116,6 +117,7 @@ class ExpenseScreen extends ConsumerWidget {
     final expenses =
         ref.watch(expensesInRangeProvider).valueOrNull ?? const <Expense>[];
     final total = ref.watch(expensesTotalProvider);
+    final range = ref.watch(analyticsRangeProvider);
     final df = DateFormat('yyyy-MM-dd');
 
     return Scaffold(
@@ -142,6 +144,25 @@ class ExpenseScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(AppTheme.space3),
+            child: SegmentedButton<AnalyticsRange>(
+              segments: [
+                ButtonSegment(
+                    value: AnalyticsRange.today,
+                    label: Text(l.analyticsRangeToday)),
+                ButtonSegment(
+                    value: AnalyticsRange.week,
+                    label: Text(l.analyticsRangeWeek)),
+                ButtonSegment(
+                    value: AnalyticsRange.month,
+                    label: Text(l.analyticsRangeMonth)),
+              ],
+              selected: {range},
+              onSelectionChanged: (s) =>
+                  ref.read(analyticsRangeProvider.notifier).state = s.first,
+            ),
+          ),
           Container(
             width: double.infinity,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
