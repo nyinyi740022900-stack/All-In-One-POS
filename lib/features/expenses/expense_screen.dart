@@ -104,7 +104,8 @@ String categoryLabel(AppLocalizations l, String category) {
 
 /// The shop's non-inventory operating expenses (rent, utilities, wages,
 /// transport, packaging). Reached from the Analytics dashboard's "Total
-/// expenses" card, since that's where the owner thinks about profit.
+/// expenses" card (where the owner thinks about profit) and from Settings
+/// (for discoverability — some owners never open Analytics).
 class ExpenseScreen extends ConsumerWidget {
   const ExpenseScreen({super.key});
 
