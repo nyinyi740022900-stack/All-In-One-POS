@@ -6,6 +6,7 @@ import 'core/locale_controller.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/sync/sync_providers.dart';
+import 'features/expenses/recurring_expense_providers.dart';
 import 'features/license/license_providers.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/printing/printing_providers.dart';
@@ -30,6 +31,8 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(syncControllerProvider);
     // Poll for new referral commissions and fire the "earned" notification.
     ref.watch(referralWatcherProvider);
+    // Auto-generate any due recurring-expense templates once per launch.
+    ref.watch(recurringExpenseGeneratorProvider);
 
     // Shown once per install, before the tabbed shell. Loading reads as
     // "done" so the (effectively instant) first Drift read never flashes

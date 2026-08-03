@@ -12482,6 +12482,44 @@ class $RecurringExpensesTable extends RecurringExpenses
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _autoGenerateMeta = const VerificationMeta(
+    'autoGenerate',
+  );
+  @override
+  late final GeneratedColumn<bool> autoGenerate = GeneratedColumn<bool>(
+    'auto_generate',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_generate" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _generationTimingMeta = const VerificationMeta(
+    'generationTiming',
+  );
+  @override
+  late final GeneratedColumn<String> generationTiming = GeneratedColumn<String>(
+    'generation_timing',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('month_start'),
+  );
+  static const VerificationMeta _lastGeneratedPeriodMeta =
+      const VerificationMeta('lastGeneratedPeriod');
+  @override
+  late final GeneratedColumn<String> lastGeneratedPeriod =
+      GeneratedColumn<String>(
+        'last_generated_period',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -12494,6 +12532,9 @@ class $RecurringExpensesTable extends RecurringExpenses
     amount,
     note,
     active,
+    autoGenerate,
+    generationTiming,
+    lastGeneratedPeriod,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -12572,6 +12613,33 @@ class $RecurringExpensesTable extends RecurringExpenses
         active.isAcceptableOrUnknown(data['active']!, _activeMeta),
       );
     }
+    if (data.containsKey('auto_generate')) {
+      context.handle(
+        _autoGenerateMeta,
+        autoGenerate.isAcceptableOrUnknown(
+          data['auto_generate']!,
+          _autoGenerateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('generation_timing')) {
+      context.handle(
+        _generationTimingMeta,
+        generationTiming.isAcceptableOrUnknown(
+          data['generation_timing']!,
+          _generationTimingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_generated_period')) {
+      context.handle(
+        _lastGeneratedPeriodMeta,
+        lastGeneratedPeriod.isAcceptableOrUnknown(
+          data['last_generated_period']!,
+          _lastGeneratedPeriodMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -12621,6 +12689,18 @@ class $RecurringExpensesTable extends RecurringExpenses
         DriftSqlType.bool,
         data['${effectivePrefix}active'],
       )!,
+      autoGenerate: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_generate'],
+      )!,
+      generationTiming: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generation_timing'],
+      )!,
+      lastGeneratedPeriod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_generated_period'],
+      ),
     );
   }
 
@@ -12642,6 +12722,9 @@ class RecurringExpense extends DataClass
   final int amount;
   final String? note;
   final bool active;
+  final bool autoGenerate;
+  final String generationTiming;
+  final String? lastGeneratedPeriod;
   const RecurringExpense({
     required this.id,
     required this.shopId,
@@ -12653,6 +12736,9 @@ class RecurringExpense extends DataClass
     required this.amount,
     this.note,
     required this.active,
+    required this.autoGenerate,
+    required this.generationTiming,
+    this.lastGeneratedPeriod,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -12669,6 +12755,11 @@ class RecurringExpense extends DataClass
       map['note'] = Variable<String>(note);
     }
     map['active'] = Variable<bool>(active);
+    map['auto_generate'] = Variable<bool>(autoGenerate);
+    map['generation_timing'] = Variable<String>(generationTiming);
+    if (!nullToAbsent || lastGeneratedPeriod != null) {
+      map['last_generated_period'] = Variable<String>(lastGeneratedPeriod);
+    }
     return map;
   }
 
@@ -12684,6 +12775,11 @@ class RecurringExpense extends DataClass
       amount: Value(amount),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       active: Value(active),
+      autoGenerate: Value(autoGenerate),
+      generationTiming: Value(generationTiming),
+      lastGeneratedPeriod: lastGeneratedPeriod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastGeneratedPeriod),
     );
   }
 
@@ -12703,6 +12799,11 @@ class RecurringExpense extends DataClass
       amount: serializer.fromJson<int>(json['amount']),
       note: serializer.fromJson<String?>(json['note']),
       active: serializer.fromJson<bool>(json['active']),
+      autoGenerate: serializer.fromJson<bool>(json['autoGenerate']),
+      generationTiming: serializer.fromJson<String>(json['generationTiming']),
+      lastGeneratedPeriod: serializer.fromJson<String?>(
+        json['lastGeneratedPeriod'],
+      ),
     );
   }
   @override
@@ -12719,6 +12820,9 @@ class RecurringExpense extends DataClass
       'amount': serializer.toJson<int>(amount),
       'note': serializer.toJson<String?>(note),
       'active': serializer.toJson<bool>(active),
+      'autoGenerate': serializer.toJson<bool>(autoGenerate),
+      'generationTiming': serializer.toJson<String>(generationTiming),
+      'lastGeneratedPeriod': serializer.toJson<String?>(lastGeneratedPeriod),
     };
   }
 
@@ -12733,6 +12837,9 @@ class RecurringExpense extends DataClass
     int? amount,
     Value<String?> note = const Value.absent(),
     bool? active,
+    bool? autoGenerate,
+    String? generationTiming,
+    Value<String?> lastGeneratedPeriod = const Value.absent(),
   }) => RecurringExpense(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -12744,6 +12851,11 @@ class RecurringExpense extends DataClass
     amount: amount ?? this.amount,
     note: note.present ? note.value : this.note,
     active: active ?? this.active,
+    autoGenerate: autoGenerate ?? this.autoGenerate,
+    generationTiming: generationTiming ?? this.generationTiming,
+    lastGeneratedPeriod: lastGeneratedPeriod.present
+        ? lastGeneratedPeriod.value
+        : this.lastGeneratedPeriod,
   );
   RecurringExpense copyWithCompanion(RecurringExpensesCompanion data) {
     return RecurringExpense(
@@ -12757,6 +12869,15 @@ class RecurringExpense extends DataClass
       amount: data.amount.present ? data.amount.value : this.amount,
       note: data.note.present ? data.note.value : this.note,
       active: data.active.present ? data.active.value : this.active,
+      autoGenerate: data.autoGenerate.present
+          ? data.autoGenerate.value
+          : this.autoGenerate,
+      generationTiming: data.generationTiming.present
+          ? data.generationTiming.value
+          : this.generationTiming,
+      lastGeneratedPeriod: data.lastGeneratedPeriod.present
+          ? data.lastGeneratedPeriod.value
+          : this.lastGeneratedPeriod,
     );
   }
 
@@ -12772,7 +12893,10 @@ class RecurringExpense extends DataClass
           ..write('category: $category, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
-          ..write('active: $active')
+          ..write('active: $active, ')
+          ..write('autoGenerate: $autoGenerate, ')
+          ..write('generationTiming: $generationTiming, ')
+          ..write('lastGeneratedPeriod: $lastGeneratedPeriod')
           ..write(')'))
         .toString();
   }
@@ -12789,6 +12913,9 @@ class RecurringExpense extends DataClass
     amount,
     note,
     active,
+    autoGenerate,
+    generationTiming,
+    lastGeneratedPeriod,
   );
   @override
   bool operator ==(Object other) =>
@@ -12803,7 +12930,10 @@ class RecurringExpense extends DataClass
           other.category == this.category &&
           other.amount == this.amount &&
           other.note == this.note &&
-          other.active == this.active);
+          other.active == this.active &&
+          other.autoGenerate == this.autoGenerate &&
+          other.generationTiming == this.generationTiming &&
+          other.lastGeneratedPeriod == this.lastGeneratedPeriod);
 }
 
 class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
@@ -12817,6 +12947,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
   final Value<int> amount;
   final Value<String?> note;
   final Value<bool> active;
+  final Value<bool> autoGenerate;
+  final Value<String> generationTiming;
+  final Value<String?> lastGeneratedPeriod;
   final Value<int> rowid;
   const RecurringExpensesCompanion({
     this.id = const Value.absent(),
@@ -12829,6 +12962,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
     this.active = const Value.absent(),
+    this.autoGenerate = const Value.absent(),
+    this.generationTiming = const Value.absent(),
+    this.lastGeneratedPeriod = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecurringExpensesCompanion.insert({
@@ -12842,6 +12978,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     required int amount,
     this.note = const Value.absent(),
     this.active = const Value.absent(),
+    this.autoGenerate = const Value.absent(),
+    this.generationTiming = const Value.absent(),
+    this.lastGeneratedPeriod = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -12858,6 +12997,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Expression<int>? amount,
     Expression<String>? note,
     Expression<bool>? active,
+    Expression<bool>? autoGenerate,
+    Expression<String>? generationTiming,
+    Expression<String>? lastGeneratedPeriod,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -12871,6 +13013,10 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       if (amount != null) 'amount': amount,
       if (note != null) 'note': note,
       if (active != null) 'active': active,
+      if (autoGenerate != null) 'auto_generate': autoGenerate,
+      if (generationTiming != null) 'generation_timing': generationTiming,
+      if (lastGeneratedPeriod != null)
+        'last_generated_period': lastGeneratedPeriod,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -12886,6 +13032,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Value<int>? amount,
     Value<String?>? note,
     Value<bool>? active,
+    Value<bool>? autoGenerate,
+    Value<String>? generationTiming,
+    Value<String?>? lastGeneratedPeriod,
     Value<int>? rowid,
   }) {
     return RecurringExpensesCompanion(
@@ -12899,6 +13048,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       amount: amount ?? this.amount,
       note: note ?? this.note,
       active: active ?? this.active,
+      autoGenerate: autoGenerate ?? this.autoGenerate,
+      generationTiming: generationTiming ?? this.generationTiming,
+      lastGeneratedPeriod: lastGeneratedPeriod ?? this.lastGeneratedPeriod,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -12936,6 +13088,17 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     if (active.present) {
       map['active'] = Variable<bool>(active.value);
     }
+    if (autoGenerate.present) {
+      map['auto_generate'] = Variable<bool>(autoGenerate.value);
+    }
+    if (generationTiming.present) {
+      map['generation_timing'] = Variable<String>(generationTiming.value);
+    }
+    if (lastGeneratedPeriod.present) {
+      map['last_generated_period'] = Variable<String>(
+        lastGeneratedPeriod.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -12955,6 +13118,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
           ..write('amount: $amount, ')
           ..write('note: $note, ')
           ..write('active: $active, ')
+          ..write('autoGenerate: $autoGenerate, ')
+          ..write('generationTiming: $generationTiming, ')
+          ..write('lastGeneratedPeriod: $lastGeneratedPeriod, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -19479,6 +19645,9 @@ typedef $$RecurringExpensesTableCreateCompanionBuilder =
       required int amount,
       Value<String?> note,
       Value<bool> active,
+      Value<bool> autoGenerate,
+      Value<String> generationTiming,
+      Value<String?> lastGeneratedPeriod,
       Value<int> rowid,
     });
 typedef $$RecurringExpensesTableUpdateCompanionBuilder =
@@ -19493,6 +19662,9 @@ typedef $$RecurringExpensesTableUpdateCompanionBuilder =
       Value<int> amount,
       Value<String?> note,
       Value<bool> active,
+      Value<bool> autoGenerate,
+      Value<String> generationTiming,
+      Value<String?> lastGeneratedPeriod,
       Value<int> rowid,
     });
 
@@ -19552,6 +19724,21 @@ class $$RecurringExpensesTableFilterComposer
 
   ColumnFilters<bool> get active => $composableBuilder(
     column: $table.active,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoGenerate => $composableBuilder(
+    column: $table.autoGenerate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get generationTiming => $composableBuilder(
+    column: $table.generationTiming,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastGeneratedPeriod => $composableBuilder(
+    column: $table.lastGeneratedPeriod,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -19614,6 +19801,21 @@ class $$RecurringExpensesTableOrderingComposer
     column: $table.active,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get autoGenerate => $composableBuilder(
+    column: $table.autoGenerate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generationTiming => $composableBuilder(
+    column: $table.generationTiming,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastGeneratedPeriod => $composableBuilder(
+    column: $table.lastGeneratedPeriod,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecurringExpensesTableAnnotationComposer
@@ -19654,6 +19856,21 @@ class $$RecurringExpensesTableAnnotationComposer
 
   GeneratedColumn<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoGenerate => $composableBuilder(
+    column: $table.autoGenerate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get generationTiming => $composableBuilder(
+    column: $table.generationTiming,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastGeneratedPeriod => $composableBuilder(
+    column: $table.lastGeneratedPeriod,
+    builder: (column) => column,
+  );
 }
 
 class $$RecurringExpensesTableTableManager
@@ -19706,6 +19923,9 @@ class $$RecurringExpensesTableTableManager
                 Value<int> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<bool> active = const Value.absent(),
+                Value<bool> autoGenerate = const Value.absent(),
+                Value<String> generationTiming = const Value.absent(),
+                Value<String?> lastGeneratedPeriod = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecurringExpensesCompanion(
                 id: id,
@@ -19718,6 +19938,9 @@ class $$RecurringExpensesTableTableManager
                 amount: amount,
                 note: note,
                 active: active,
+                autoGenerate: autoGenerate,
+                generationTiming: generationTiming,
+                lastGeneratedPeriod: lastGeneratedPeriod,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -19732,6 +19955,9 @@ class $$RecurringExpensesTableTableManager
                 required int amount,
                 Value<String?> note = const Value.absent(),
                 Value<bool> active = const Value.absent(),
+                Value<bool> autoGenerate = const Value.absent(),
+                Value<String> generationTiming = const Value.absent(),
+                Value<String?> lastGeneratedPeriod = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecurringExpensesCompanion.insert(
                 id: id,
@@ -19744,6 +19970,9 @@ class $$RecurringExpensesTableTableManager
                 amount: amount,
                 note: note,
                 active: active,
+                autoGenerate: autoGenerate,
+                generationTiming: generationTiming,
+                lastGeneratedPeriod: lastGeneratedPeriod,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

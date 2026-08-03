@@ -81,6 +81,8 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
   final _amount = TextEditingController();
   final _note = TextEditingController();
   late String _category;
+  late bool _autoGenerate;
+  late String _generationTiming;
   bool _saving = false;
 
   @override
@@ -88,6 +90,8 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
     super.initState();
     final e = widget.existing;
     _category = e?.category ?? expenseCategories.first;
+    _autoGenerate = e?.autoGenerate ?? false;
+    _generationTiming = e?.generationTiming ?? 'month_start';
     if (e != null) {
       _amount.text = '${e.amount}';
       _note.text = e.note ?? '';
@@ -115,6 +119,8 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
             amount: amount,
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
             active: widget.existing?.active ?? true,
+            autoGenerate: _autoGenerate,
+            generationTiming: _generationTiming,
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseSaved)));
@@ -188,6 +194,30 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
               controller: _note,
               decoration: InputDecoration(labelText: l.expenseNote),
             ),
+            const SizedBox(height: AppTheme.space3),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l.recurringExpenseAutoGenerate),
+              subtitle: Text(l.recurringExpenseAutoGenerateHint),
+              value: _autoGenerate,
+              onChanged: (v) => setState(() => _autoGenerate = v),
+            ),
+            if (_autoGenerate) ...[
+              const SizedBox(height: AppTheme.space2),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                      value: 'month_start',
+                      label: Text(l.recurringExpenseTimingStart)),
+                  ButtonSegment(
+                      value: 'month_end',
+                      label: Text(l.recurringExpenseTimingEnd)),
+                ],
+                selected: {_generationTiming},
+                onSelectionChanged: (s) =>
+                    setState(() => _generationTiming = s.first),
+              ),
+            ],
           ],
         ),
       ),

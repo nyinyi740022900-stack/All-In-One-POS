@@ -419,16 +419,26 @@ class DeviceLabels extends Table with SyncColumns {
 }
 
 /// A recurring monthly cost (rent, wages, etc.) the owner sets up once so
-/// they don't have to retype it every month — deliberately NOT
-/// auto-generated: the owner explicitly quick-fills a new [Expenses] row
-/// from a template each month via the Expenses screen, reviewing the
-/// amount/date before saving. [active] lets a seasonal cost be paused
+/// they don't have to retype it every month. Manual quick-fill by default —
+/// the owner taps to create a new [Expenses] row from a template, reviewing
+/// the amount/date before saving. [active] lets a seasonal cost be paused
 /// without losing it, distinct from a real (soft) delete.
+///
+/// [autoGenerate] opts a template into automatic generation instead —
+/// [generationTiming] ('month_start'/'month_end') picks which day of the
+/// month it fires on, and [lastGeneratedPeriod] ('YYYY-MM') is stamped after
+/// a successful auto-generation so the same month never double-fires (see
+/// `RecurringExpenseRepository.generateDueExpenses`).
 class RecurringExpenses extends Table with SyncColumns {
   TextColumn get category => text()();
   IntColumn get amount => integer()();
   TextColumn get note => text().nullable()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
+  BoolColumn get autoGenerate =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get generationTiming =>
+      text().withDefault(const Constant('month_start'))();
+  TextColumn get lastGeneratedPeriod => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

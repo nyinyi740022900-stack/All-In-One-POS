@@ -42,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -156,6 +156,16 @@ class AppDatabase extends _$AppDatabase {
           // a new Expense from these each month instead of retyping.
           if (from < 21) {
             await m.createTable(recurringExpenses);
+          }
+          // v22: optional automatic generation for a recurring expense
+          // template, at month-start or month-end, instead of the manual
+          // quick-fill this feature originally shipped with.
+          if (from < 22) {
+            await m.addColumn(recurringExpenses, recurringExpenses.autoGenerate);
+            await m.addColumn(
+                recurringExpenses, recurringExpenses.generationTiming);
+            await m.addColumn(
+                recurringExpenses, recurringExpenses.lastGeneratedPeriod);
           }
         },
       );

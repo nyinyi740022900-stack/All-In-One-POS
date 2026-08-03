@@ -2199,6 +2199,24 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ လစဉ်ကုန်ကျစရိတ်ကို ဖျက်မလား?';
 
   @override
+  String get recurringExpenseAutoGenerate => 'လစဉ် အလိုအလျောက် ထည့်မည်';
+
+  @override
+  String get recurringExpenseAutoGenerateHint =>
+      '\"Template မှ ထည့်မည်\" မလိုတော့ဘဲ အလိုအလျောက် ထည့်ပေးပါမယ် — List ထဲမှာ ချက်ချင်း မြင်ရပါလိမ့်မယ်။';
+
+  @override
+  String get recurringExpenseTimingStart => 'လ၏ ၁ ရက်နေ့';
+
+  @override
+  String get recurringExpenseTimingEnd => 'လကုန်ရက်';
+
+  @override
+  String recurringExpenseAutoAdded(int count, String names) {
+    return 'လစဉ်ကုန်ကျစရိတ် $count ခု အလိုအလျောက် ထည့်ပြီးပါပြီ — $names';
+  }
+
+  @override
   String get onboardModeTitle => 'GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?';
 
   @override

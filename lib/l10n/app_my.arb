@@ -746,6 +746,12 @@
   "recurringExpenseSaved": "သိမ်းပြီးပါပြီ။",
   "recurringExpenseDeleted": "ဖျက်ပြီးပါပြီ။",
   "recurringExpenseDeleteConfirmTitle": "ဒီ လစဉ်ကုန်ကျစရိတ်ကို ဖျက်မလား?",
+  "recurringExpenseAutoGenerate": "လစဉ် အလိုအလျောက် ထည့်မည်",
+  "recurringExpenseAutoGenerateHint": "\"Template မှ ထည့်မည်\" မလိုတော့ဘဲ အလိုအလျောက် ထည့်ပေးပါမယ် — List ထဲမှာ ချက်ချင်း မြင်ရပါလိမ့်မယ်။",
+  "recurringExpenseTimingStart": "လ၏ ၁ ရက်နေ့",
+  "recurringExpenseTimingEnd": "လကုန်ရက်",
+  "recurringExpenseAutoAdded": "လစဉ်ကုန်ကျစရိတ် {count} ခု အလိုအလျောက် ထည့်ပြီးပါပြီ — {names}",
+  "@recurringExpenseAutoAdded": { "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } } },
 
   "onboardModeTitle": "GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?",
   "onboardModeOfflineTitle": "Offline",

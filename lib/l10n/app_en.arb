@@ -750,6 +750,12 @@
   "recurringExpenseSaved": "Saved.",
   "recurringExpenseDeleted": "Deleted.",
   "recurringExpenseDeleteConfirmTitle": "Delete this recurring expense?",
+  "recurringExpenseAutoGenerate": "Auto-add every month",
+  "recurringExpenseAutoGenerateHint": "Adds this automatically instead of needing \"Add from template\" — you'll still see it in the list right away.",
+  "recurringExpenseTimingStart": "Day 1",
+  "recurringExpenseTimingEnd": "Last day",
+  "recurringExpenseAutoAdded": "{count, plural, one{1 recurring expense added automatically} other{{count} recurring expenses added automatically}}: {names}",
+  "@recurringExpenseAutoAdded": { "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } } },
 
   "onboardModeTitle": "How will you use GoldPOSMM?",
   "onboardModeOfflineTitle": "Offline",

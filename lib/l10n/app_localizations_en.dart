@@ -2198,6 +2198,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete this recurring expense?';
 
   @override
+  String get recurringExpenseAutoGenerate => 'Auto-add every month';
+
+  @override
+  String get recurringExpenseAutoGenerateHint =>
+      'Adds this automatically instead of needing \"Add from template\" — you\'ll still see it in the list right away.';
+
+  @override
+  String get recurringExpenseTimingStart => 'Day 1';
+
+  @override
+  String get recurringExpenseTimingEnd => 'Last day';
+
+  @override
+  String recurringExpenseAutoAdded(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recurring expenses added automatically',
+      one: '1 recurring expense added automatically',
+    );
+    return '$_temp0: $names';
+  }
+
+  @override
   String get onboardModeTitle => 'How will you use GoldPOSMM?';
 
   @override

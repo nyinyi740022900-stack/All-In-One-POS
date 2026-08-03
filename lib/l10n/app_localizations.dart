@@ -4124,6 +4124,36 @@ abstract class AppLocalizations {
   /// **'Delete this recurring expense?'**
   String get recurringExpenseDeleteConfirmTitle;
 
+  /// No description provided for @recurringExpenseAutoGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-add every month'**
+  String get recurringExpenseAutoGenerate;
+
+  /// No description provided for @recurringExpenseAutoGenerateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds this automatically instead of needing \"Add from template\" — you\'ll still see it in the list right away.'**
+  String get recurringExpenseAutoGenerateHint;
+
+  /// No description provided for @recurringExpenseTimingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Day 1'**
+  String get recurringExpenseTimingStart;
+
+  /// No description provided for @recurringExpenseTimingEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Last day'**
+  String get recurringExpenseTimingEnd;
+
+  /// No description provided for @recurringExpenseAutoAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 recurring expense added automatically} other{{count} recurring expenses added automatically}}: {names}'**
+  String recurringExpenseAutoAdded(int count, String names);
+
   /// No description provided for @onboardModeTitle.
   ///
   /// In en, this message translates to:
