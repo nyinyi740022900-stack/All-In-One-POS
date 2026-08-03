@@ -82,6 +82,7 @@ class CashSessionScreen extends ConsumerWidget {
         title: l.cashCloseRegister,
         amountLabel: l.cashClosingAmount,
         confirmLabel: l.cashCloseRegister,
+        warningText: l.cashCloseWarning,
       ),
     );
     if (amount == null || !context.mounted) return;
@@ -399,10 +400,12 @@ class _AmountDialog extends StatefulWidget {
     required this.title,
     required this.amountLabel,
     required this.confirmLabel,
+    this.warningText,
   });
   final String title;
   final String amountLabel;
   final String confirmLabel;
+  final String? warningText;
 
   @override
   State<_AmountDialog> createState() => _AmountDialogState();
@@ -422,15 +425,26 @@ class _AmountDialogState extends State<_AmountDialog> {
     final l = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(widget.title),
-      content: TextField(
-        controller: _amount,
-        autofocus: true,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: InputDecoration(
-          labelText: widget.amountLabel,
-          suffixText: l.currencySymbol,
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _amount,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: widget.amountLabel,
+              suffixText: l.currencySymbol,
+            ),
+          ),
+          if (widget.warningText != null) ...[
+            const SizedBox(height: 8),
+            Text(widget.warningText!,
+                style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
       ),
       actions: [
         TextButton(

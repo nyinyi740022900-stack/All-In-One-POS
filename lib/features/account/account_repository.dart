@@ -16,13 +16,28 @@ class AccountActionResult {
   final String? error;
   final String? userId;
   final CachedLicense? license;
+  final bool needsWipeConfirmation;
   const AccountActionResult.success(this.userId, {this.license})
       : ok = true,
-        error = null;
+        error = null,
+        needsWipeConfirmation = false;
   const AccountActionResult.failure(this.error)
       : ok = false,
         userId = null,
-        license = null;
+        license = null,
+        needsWipeConfirmation = false;
+  // Signed in successfully, but this device was previously scoped to a
+  // DIFFERENT shop — proceeding would wipe local data. The caller must show
+  // an explicit confirmation and, if accepted, call
+  // [AccountRepository.confirmWipeAndClaimDevice]; if declined, sign back out
+  // rather than leaving the device mid-session for a shop its local data
+  // doesn't match.
+  const AccountActionResult.needsWipeConfirmation()
+      : ok = false,
+        error = null,
+        userId = null,
+        license = null,
+        needsWipeConfirmation = true;
 }
 
 /// Outcome of [AccountRepository.signupShop] — carries the freshly-minted
@@ -124,13 +139,30 @@ class AccountRepository {
     }
 
     if (currentLic != null) {
-      final pending = await _db.select(_db.outbox).get();
-      if (pending.isNotEmpty) {
-        return const AccountActionResult.failure('pending_sync');
-      }
-      await _db.wipeSyncedData();
+      // Scoped to a different shop already — don't wipe without the caller
+      // showing an explicit confirmation first.
+      return const AccountActionResult.needsWipeConfirmation();
     }
 
+    return _claimDeviceSlot();
+  }
+
+  /// Call only after the caller has shown the wipe-confirmation dialog
+  /// prompted by [signInAndClaimDevice] returning
+  /// [AccountActionResult.needsWipeConfirmation] and the user accepted.
+  /// Wipes local data (same safety check as a branch switch: never while
+  /// unsynced writes exist) then claims a device slot under the now-signed-in
+  /// account's shop.
+  Future<AccountActionResult> confirmWipeAndClaimDevice() async {
+    final pending = await _db.select(_db.outbox).get();
+    if (pending.isNotEmpty) {
+      return const AccountActionResult.failure('pending_sync');
+    }
+    await _db.wipeSyncedData();
+    return _claimDeviceSlot();
+  }
+
+  Future<AccountActionResult> _claimDeviceSlot() async {
     final slot = await _licenseRepository.requestDeviceSlot();
     if (!slot.ok || slot.key == null) {
       return AccountActionResult.failure(slot.errorCode ?? 'server_error');

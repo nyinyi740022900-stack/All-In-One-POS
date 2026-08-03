@@ -268,7 +268,7 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    if (amount <= 0) return;
+    if (amount <= 0 || amount > widget.customer.outstanding) return;
     setState(() => _saving = true);
     try {
       await ref.read(creditRepositoryProvider).recordRepayment(
@@ -289,6 +289,8 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
     final l = AppLocalizations.of(context);
     // Repayments settle a debt — 'credit' isn't a tender here.
     final methods = paymentMethods.where((m) => m != 'credit').toList();
+    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final exceedsOutstanding = amount > widget.customer.outstanding;
     return AlertDialog(
       title: Text(l.creditRecordRepayment),
       content: Column(
@@ -299,7 +301,15 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
             autofocus: true,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(labelText: l.creditAmount),
+            decoration: InputDecoration(
+              labelText: l.creditAmount,
+              errorText: exceedsOutstanding
+                  ? l.creditRepaymentExceedsOutstanding(
+                      Money(widget.customer.outstanding)
+                          .withSymbol(l.currencySymbol))
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppTheme.space3),
           Wrap(
@@ -321,7 +331,8 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
           child: Text(l.commonCancel),
         ),
         FilledButton(
-          onPressed: _saving ? null : _save,
+          onPressed:
+              _saving || amount <= 0 || exceedsOutstanding ? null : _save,
           child: Text(l.commonSave),
         ),
       ],

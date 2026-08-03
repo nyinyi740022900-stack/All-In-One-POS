@@ -182,24 +182,26 @@ class CreditRepository {
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
-    await _db.into(_db.creditPayments).insert(CreditPaymentsCompanion.insert(
-          id: id,
-          shopId: _shopId,
-          customerName: customerName.trim(),
-          customerId: Value(customerId),
-          amount: amount,
-          method: Value(method),
-          note: Value(note),
-          updatedAt: Value(now),
-        ));
-    final row = await (_db.select(_db.creditPayments)
-          ..where((t) => t.id.equals(id)))
-        .getSingle();
-    await _db.into(_db.outbox).insert(OutboxCompanion.insert(
-          entityTable: 'credit_payments',
-          rowId: id,
-          op: 'upsert',
-          payload: jsonEncode(row.toJson()),
-        ));
+    await _db.transaction(() async {
+      await _db.into(_db.creditPayments).insert(CreditPaymentsCompanion.insert(
+            id: id,
+            shopId: _shopId,
+            customerName: customerName.trim(),
+            customerId: Value(customerId),
+            amount: amount,
+            method: Value(method),
+            note: Value(note),
+            updatedAt: Value(now),
+          ));
+      final row = await (_db.select(_db.creditPayments)
+            ..where((t) => t.id.equals(id)))
+          .getSingle();
+      await _db.into(_db.outbox).insert(OutboxCompanion.insert(
+            entityTable: 'credit_payments',
+            rowId: id,
+            op: 'upsert',
+            payload: jsonEncode(row.toJson()),
+          ));
+    });
   }
 }

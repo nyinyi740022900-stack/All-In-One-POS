@@ -182,6 +182,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashClosingAmount => 'ရေတွက်ရရှိသည့် ငွေပမာဏ';
 
   @override
+  String get cashCloseWarning =>
+      'ပိတ်လိုက်ပြီးရင် ဒီအရေအတွက်က အပြီးအပိုင်ဖြစ်သွားပါမည် — session နှင့် variance ကို နောက်မှ ပြင်လို့မရတော့ပါ။';
+
+  @override
   String get cashVariance => 'ကွာခြားချက်';
 
   @override
@@ -325,6 +329,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get creditAmount => 'ပမာဏ';
 
   @override
+  String creditRepaymentExceedsOutstanding(String outstanding) {
+    return 'ကျန်ငွေ ($outstanding) ထက် ပိုနေပါတယ်။';
+  }
+
+  @override
   String get creditRepaymentSaved => 'ပြန်ဆပ်ငွေ မှတ်တမ်းတင်ပြီး';
 
   @override
@@ -430,6 +439,15 @@ class AppLocalizationsMy extends AppLocalizations {
   String get poSaved => 'ကုန်ဝယ်အမှာစာ သိမ်းပြီးပါပြီ။';
 
   @override
+  String get poNeedsSupplier => 'Supplier နာမည် ထည့်ပါ။';
+
+  @override
+  String get poNeedsItems => 'မသိမ်းမီ item အနည်းဆုံး တစ်ခု ထည့်ပါ။';
+
+  @override
+  String get poNoProductsFound => 'Product မတွေ့ပါ။';
+
+  @override
   String get poStatusOpen => 'ဖွင့်ထား';
 
   @override
@@ -462,6 +480,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get poDeleteConfirmTitle => 'ဒီကုန်ဝယ်အမှာစာကို ဖျက်မလား?';
+
+  @override
+  String get poDeleteConfirmBody =>
+      'ဒီ draft နှင့် line item အားလုံးကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။';
 
   @override
   String get inventoryTitle => 'ကုန်ပစ္စည်း';
@@ -578,6 +600,14 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get stockAdjustConfirmTitle => 'လက်ကျန် ပြောင်းလဲမှု အတည်ပြုပါ';
+
+  @override
+  String stockAdjustConfirmBody(String name, int before, int after) {
+    return '$name: လက်ကျန် $before ကနေ $after ကို ပြောင်းသွားပါမည်။ ဒါကို stock history မှာ မှတ်တမ်းတင်ထားပေမယ့် အလိုအလျောက် ပြန်ပြင်လို့ မရပါ။';
+  }
+
+  @override
   String get stockReasonDamaged => 'ပျက်စီး';
 
   @override
@@ -627,6 +657,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deleteConfirmBody => 'ဤပစ္စည်းကို ဖယ်ရှားပါမည်။';
+
+  @override
+  String get productDeleteConfirmBody =>
+      'Sell နှင့် Inventory ကနေ ဖျောက်ထားမှာပါ၊ ဒါပေမယ့် past sales/invoices/stock history မှာတော့ ဆက်ပေါ်နေပါလိမ့်မယ်။';
+
+  @override
+  String get categoryDeleteConfirmBody =>
+      'ဒီ category ထဲက products တွေရဲ့ ဈေးနှုန်း/stock ကတော့ ဒီအတိုင်းရှိမှာပါ၊ category မရှိတော့ဘဲ ပြပါလိမ့်မယ်။';
 
   @override
   String get settingsTitle => 'ဆက်တင်';
@@ -1111,6 +1149,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get expenseDeleteConfirmTitle => 'ဒီကုန်ကျစရိတ်ကို ဖျက်မလား?';
+
+  @override
+  String get expenseDeleteConfirmBody =>
+      'ဒီကုန်ကျစရိတ် မှတ်တမ်းကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။';
 
   @override
   String get expenseDeleted => 'ကုန်ကျစရိတ် ဖျက်ပြီးပါပြီ';
@@ -1949,6 +1991,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontNeedsName => 'ဆိုင်နာမည် ထည့်ပါ';
 
   @override
+  String get storefrontPhoneShown => 'ဖုန်း (ဖောက်သည်များ မြင်ရမည်)';
+
+  @override
+  String get storefrontAddressShown => 'လိပ်စာ (ဖောက်သည်များ မြင်ရမည်)';
+
+  @override
+  String get storefrontLogoLabel => 'ဆိုင် Logo';
+
+  @override
+  String get storefrontProfileSaved => 'သိမ်းပြီးပါပြီ';
+
+  @override
   String get storefrontShare =>
       'ဒီ link ကို Facebook, Viber စသည်တွင် ဖောက်သည်များထံ မျှဝေပါ။';
 
@@ -2163,6 +2217,21 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountSignedOut => 'ထွက်ပြီးပါပြီ။';
 
   @override
+  String get accountSignOutConfirmTitle => 'ထွက်မှာ သေချာပါသလား?';
+
+  @override
+  String get accountSignOutConfirmBody =>
+      'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။ Device-key activation နဲ့ local PIN quick-switch ကို ဒါက မထိခိုက်ပါ။';
+
+  @override
+  String get accountSignInWipeConfirmTitle =>
+      'ဒီ account က ဆိုင်တခြားတစ်ခုနှင့် သက်ဆိုင်ပါတယ်';
+
+  @override
+  String get accountSignInWipeConfirmBody =>
+      'ဒီစက်ပေါ်မှာ တခြားဆိုင်ရဲ့ data ရှိနေပါတယ်။ ဆက်လုပ်ရင် ဒီစက်ပေါ်က local data အားလုံးကို ဒီ account ရဲ့ ဆိုင်data နဲ့ အစားထိုးပစ်ပါလိမ့်မယ်။ အရင် sync အပြည့်ဖြစ်အောင် သေချာစေပါ — ဒါကို ပြန်ပြင်လို့မရပါ။';
+
+  @override
   String get accountLoginCreated => 'Login ဖန်တီးပြီးပါပြီ။';
 
   @override
@@ -2319,6 +2388,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get recurringExpenseDeleteConfirmTitle =>
       'ဒီ လစဉ်ကုန်ကျစရိတ်ကို ဖျက်မလား?';
+
+  @override
+  String get recurringExpenseDeleteConfirmBody =>
+      'ဒါက template ကိုပဲ ဖျက်ပါမည် — auto-generate ရပ်သွားပါလိမ့်မယ်၊ ဒါပေမယ့် အရင်က generate ဖြစ်ပြီးသား ကုန်ကျစရိတ်တွေကတော့ မထိခိုက်ပါ။';
 
   @override
   String get recurringExpenseAutoGenerate => 'လစဉ် အလိုအလျောက် ထည့်မည်';

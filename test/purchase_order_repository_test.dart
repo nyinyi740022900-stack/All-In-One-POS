@@ -113,6 +113,28 @@ void main() {
     expect(po!.status, 'cancelled');
   });
 
+  test('receivePO on a cancelled PO is a no-op (guard is status != open, '
+      'not just != received)', () async {
+    final productId =
+        await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 5);
+    final poId = await repo.savePO(
+      supplierName: 'Acme',
+      lines: [
+        PurchaseOrderDraftLine(
+            productId: productId, name: 'Coke', qty: 10, unitCost: 500),
+      ],
+    );
+
+    await repo.cancelPO(poId);
+    await repo.receivePO(poId);
+
+    final products = await inventory.watchProducts().first;
+    final coke = products.firstWhere((p) => p.product.id == productId);
+    expect(coke.quantity, 5); // unchanged — never un-cancels via receivePO
+    final po = await repo.getOrder(poId);
+    expect(po!.status, 'cancelled');
+  });
+
   test('watchOrders excludes other shops', () async {
     final productId =
         await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 5);

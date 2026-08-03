@@ -85,11 +85,15 @@ void main() {
 
     test('month_start: due on or after day 1, generates once and stamps '
         'lastGeneratedPeriod', () async {
+      // Created before this period's trigger day (day 1) so the "just
+      // enabled, trigger day already passed" catch-up guard doesn't apply —
+      // this is a legitimately due-this-period fire, not a surprise catch-up.
       final id = await repo.upsertTemplate(
           category: 'rent',
           amount: 150000,
           autoGenerate: true,
-          generationTiming: 'month_start');
+          generationTiming: 'month_start',
+          now: DateTime(2026, 7, 31));
 
       final fired =
           await repo.generateDueExpenses(now: DateTime(2026, 8, 3));
@@ -111,7 +115,8 @@ void main() {
           category: 'rent',
           amount: 150000,
           autoGenerate: true,
-          generationTiming: 'month_start');
+          generationTiming: 'month_start',
+          now: DateTime(2026, 7, 31));
 
       await repo.generateDueExpenses(now: DateTime(2026, 8, 3));
       final second = await repo.generateDueExpenses(now: DateTime(2026, 8, 20));
@@ -120,6 +125,33 @@ void main() {
       final expenses =
           await expenseRepo.watchExpenses(DateTime(2026, 8), DateTime(2026, 9)).first;
       expect(expenses, hasLength(1));
+    });
+
+    test(
+        'creating a template after its trigger day already passed this '
+        'period waits for the next real trigger instead of catching up',
+        () async {
+      // Enabling a month_start template on day 20 (trigger day 1 already
+      // passed) should NOT immediately fire for the current period.
+      final id = await repo.upsertTemplate(
+          category: 'rent',
+          amount: 150000,
+          autoGenerate: true,
+          generationTiming: 'month_start',
+          now: DateTime(2026, 8, 20));
+
+      final template = (await repo.watchTemplates().first).single;
+      expect(template.lastGeneratedPeriod, '2026-08');
+
+      final firedThisPeriod =
+          await repo.generateDueExpenses(now: DateTime(2026, 8, 25));
+      expect(firedThisPeriod, isEmpty);
+
+      // Next month's actual trigger day fires normally.
+      final firedNextPeriod =
+          await repo.generateDueExpenses(now: DateTime(2026, 9, 1));
+      expect(firedNextPeriod, hasLength(1));
+      expect(firedNextPeriod.single.id, id);
     });
 
     test('month_end: does not fire mid-month, fires on the actual last day',

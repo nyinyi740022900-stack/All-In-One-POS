@@ -182,6 +182,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashClosingAmount => 'Counted cash';
 
   @override
+  String get cashCloseWarning =>
+      'Once closed, this count is final — the session and its variance can\'t be edited afterward.';
+
+  @override
   String get cashVariance => 'Variance';
 
   @override
@@ -332,6 +336,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creditAmount => 'Amount';
 
   @override
+  String creditRepaymentExceedsOutstanding(String outstanding) {
+    return 'This is more than the amount owed ($outstanding).';
+  }
+
+  @override
   String get creditRepaymentSaved => 'Repayment recorded';
 
   @override
@@ -435,6 +444,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poSaved => 'Purchase order saved.';
 
   @override
+  String get poNeedsSupplier => 'Enter a supplier name.';
+
+  @override
+  String get poNeedsItems => 'Add at least one item before saving.';
+
+  @override
+  String get poNoProductsFound => 'No products found.';
+
+  @override
   String get poStatusOpen => 'Open';
 
   @override
@@ -465,6 +483,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get poDeleteConfirmTitle => 'Delete this purchase order?';
+
+  @override
+  String get poDeleteConfirmBody =>
+      'This permanently removes the draft and its line items. This cannot be undone.';
 
   @override
   String get inventoryTitle => 'Inventory';
@@ -580,6 +602,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get stockAdjustConfirmTitle => 'Confirm stock change';
+
+  @override
+  String stockAdjustConfirmBody(String name, int before, int after) {
+    return '$name: stock changes from $before to $after. This is recorded in stock history but not automatically reversible.';
+  }
+
+  @override
   String get stockReasonDamaged => 'Damaged';
 
   @override
@@ -629,6 +659,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteConfirmBody => 'This item will be removed.';
+
+  @override
+  String get productDeleteConfirmBody =>
+      'It will be hidden from Sell and Inventory, but stays visible on past sales, invoices, and stock history.';
+
+  @override
+  String get categoryDeleteConfirmBody =>
+      'Products in this category keep their prices and stock, but show as uncategorized.';
 
   @override
   String get settingsTitle => 'Settings';
@@ -1110,6 +1148,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expenseDeleteConfirmTitle => 'Delete this expense?';
+
+  @override
+  String get expenseDeleteConfirmBody =>
+      'This permanently removes the expense record. This cannot be undone.';
 
   @override
   String get expenseDeleted => 'Expense deleted';
@@ -1946,6 +1988,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontNeedsName => 'Enter a storefront name';
 
   @override
+  String get storefrontPhoneShown => 'Phone (shown to customers)';
+
+  @override
+  String get storefrontAddressShown => 'Address (shown to customers)';
+
+  @override
+  String get storefrontLogoLabel => 'Shop logo';
+
+  @override
+  String get storefrontProfileSaved => 'Saved';
+
+  @override
   String get storefrontShare =>
       'Share this link with customers on Facebook, Viber, etc.';
 
@@ -2159,6 +2213,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountSignedOut => 'Signed out.';
 
   @override
+  String get accountSignOutConfirmTitle => 'Sign out?';
+
+  @override
+  String get accountSignOutConfirmBody =>
+      'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.';
+
+  @override
+  String get accountSignInWipeConfirmTitle =>
+      'This account belongs to a different shop';
+
+  @override
+  String get accountSignInWipeConfirmBody =>
+      'This device currently has another shop\'s data. Continuing replaces all local data on this device with this account\'s shop data. Make sure everything is already synced first — this cannot be undone.';
+
+  @override
   String get accountLoginCreated => 'Login created.';
 
   @override
@@ -2314,6 +2383,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recurringExpenseDeleteConfirmTitle =>
       'Delete this recurring expense?';
+
+  @override
+  String get recurringExpenseDeleteConfirmBody =>
+      'This only removes the template — auto-generation stops, but expenses it already created stay untouched.';
 
   @override
   String get recurringExpenseAutoGenerate => 'Auto-add every month';

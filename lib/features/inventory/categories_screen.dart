@@ -98,7 +98,7 @@ class CategoriesScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.deleteConfirmTitle),
-        content: Text(c.name),
+        content: Text('${c.name}\n\n${l.categoryDeleteConfirmBody}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

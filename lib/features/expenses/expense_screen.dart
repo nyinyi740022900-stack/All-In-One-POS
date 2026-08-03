@@ -405,6 +405,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
       // the wrong navigator.
       builder: (dialogContext) => AlertDialog(
         title: Text(l.expenseDeleteConfirmTitle),
+        content: Text(l.expenseDeleteConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

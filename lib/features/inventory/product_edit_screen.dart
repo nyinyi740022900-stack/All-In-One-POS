@@ -124,7 +124,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.deleteConfirmTitle),
-        content: Text(widget.existing!.product.name),
+        content: Text(
+            '${widget.existing!.product.name}\n\n${l.productDeleteConfirmBody}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

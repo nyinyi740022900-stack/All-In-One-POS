@@ -107,8 +107,9 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           );
       ref.invalidate(myStorefrontProvider);
       if (mounted) {
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Saved')));
+            .showSnackBar(SnackBar(content: Text(l.storefrontProfileSaved)));
       }
     } catch (e) {
       if (mounted) {
@@ -177,18 +178,18 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Phone (shown to customers)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l.storefrontPhoneShown,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _address,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Address (shown to customers)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l.storefrontAddressShown,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -237,7 +238,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.add_a_photo_outlined, size: 18),
-                label: const Text('Shop logo'),
+                label: Text(l.storefrontLogoLabel),
               ),
             ],
           ),
@@ -253,13 +254,13 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(labelText: 'Phone'),
+          decoration: InputDecoration(labelText: l.storefrontPhoneShown),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _address,
           maxLines: 2,
-          decoration: const InputDecoration(labelText: 'Address'),
+          decoration: InputDecoration(labelText: l.storefrontAddressShown),
         ),
         const Divider(height: 32),
         Text(l.storefrontPaymentInfoTitle,
@@ -299,7 +300,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         FilledButton.icon(
           onPressed: _busy ? null : _saveProfile,
           icon: const Icon(Icons.check),
-          label: const Text('Save'),
+          label: Text(l.commonSave),
         ),
         const Divider(height: 32),
         SwitchListTile(

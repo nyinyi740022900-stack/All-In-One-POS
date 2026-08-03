@@ -78,6 +78,25 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
       return;
     }
     final delta = _mode == _Mode.restock ? entered.abs() : entered;
+    final after = widget.currentQuantity + delta;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.stockAdjustConfirmTitle),
+        content: Text(l.stockAdjustConfirmBody(
+            widget.productName, widget.currentQuantity, after)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.stockAdjustSave)),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       _saving = true;

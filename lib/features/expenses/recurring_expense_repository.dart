@@ -32,10 +32,35 @@ class RecurringExpenseRepository {
     bool active = true,
     bool autoGenerate = false,
     String generationTiming = 'month_start',
+    // Exists purely so tests can pick a deterministic date, same reason
+    // generateDueExpenses takes one, rather than depending on the real
+    // calendar — see the "justEnabled" catch-up guard below.
+    DateTime? now,
   }) async {
     final templateId = id ?? _uuid.v4();
-    final now = DateTime.now();
+    final effectiveNow = now ?? DateTime.now();
     await _db.transaction(() async {
+      final existing = await (_db.select(_db.recurringExpenses)
+            ..where((t) => t.id.equals(templateId)))
+          .getSingleOrNull();
+
+      // Turning auto-generate on (a new template, or re-enabling it) should
+      // never immediately "catch up" for the current period if this
+      // period's trigger day has already passed — wait for the next real
+      // trigger instead of surprising the owner with an expense dated today
+      // for a day that's already gone by.
+      var lastGeneratedPeriod = existing?.lastGeneratedPeriod;
+      final justEnabled = autoGenerate && existing?.autoGenerate != true;
+      if (justEnabled) {
+        final period =
+            '${effectiveNow.year}-${effectiveNow.month.toString().padLeft(2, '0')}';
+        final lastDayOfMonth =
+            DateTime(effectiveNow.year, effectiveNow.month + 1, 0).day;
+        final triggerDay =
+            generationTiming == 'month_end' ? lastDayOfMonth : 1;
+        if (effectiveNow.day >= triggerDay) lastGeneratedPeriod = period;
+      }
+
       await _db.into(_db.recurringExpenses).insertOnConflictUpdate(
             RecurringExpensesCompanion(
               id: Value(templateId),
@@ -46,7 +71,8 @@ class RecurringExpenseRepository {
               active: Value(active),
               autoGenerate: Value(autoGenerate),
               generationTiming: Value(generationTiming),
-              updatedAt: Value(now),
+              lastGeneratedPeriod: Value(lastGeneratedPeriod),
+              updatedAt: Value(effectiveNow),
               dirty: const Value(true),
             ),
           );

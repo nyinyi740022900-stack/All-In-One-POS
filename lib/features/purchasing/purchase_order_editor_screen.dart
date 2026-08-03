@@ -140,18 +140,25 @@ class _PurchaseOrderEditorScreenState
                   ConstrainedBox(
                     constraints: BoxConstraints(
                         maxHeight: MediaQuery.of(ctx).size.height * 0.5),
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        for (final p in filtered)
-                          ListTile(
-                            title: Text(p.product.name),
-                            subtitle: Text(Money(p.product.costPrice)
-                                .withSymbol(l.currencySymbol)),
-                            onTap: () => Navigator.pop(ctx, p),
+                    child: filtered.isEmpty
+                        ? Padding(
+                            padding:
+                                const EdgeInsets.all(AppTheme.space4),
+                            child: Text(l.poNoProductsFound,
+                                style: Theme.of(ctx).textTheme.bodySmall),
+                          )
+                        : ListView(
+                            shrinkWrap: true,
+                            children: [
+                              for (final p in filtered)
+                                ListTile(
+                                  title: Text(p.product.name),
+                                  subtitle: Text(Money(p.product.costPrice)
+                                      .withSymbol(l.currencySymbol)),
+                                  onTap: () => Navigator.pop(ctx, p),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -229,8 +236,15 @@ class _PurchaseOrderEditorScreenState
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
-    if (_supplierName.text.trim().isEmpty || _lines.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    if (_supplierName.text.trim().isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l.poNeedsSupplier)));
+      return;
+    }
+    if (_lines.isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l.poNeedsItems)));
+      return;
+    }
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
     try {

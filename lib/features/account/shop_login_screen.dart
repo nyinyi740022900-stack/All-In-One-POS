@@ -61,10 +61,41 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     final messenger = ScaffoldMessenger.of(context);
     if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
     setState(() => _busy = true);
-    final result = await ref
+    var result = await ref
         .read(accountRepositoryProvider)
         .signInAndClaimDevice(_email.text.trim(), _password.text);
     if (!mounted) return;
+
+    if (result.needsWipeConfirmation) {
+      setState(() => _busy = false);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.accountSignInWipeConfirmTitle),
+          content: Text(l.accountSignInWipeConfirmBody),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.accountSignIn)),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (confirmed != true) {
+        // Already signed in to the OTHER shop's auth session at this point —
+        // back out cleanly rather than leave local data mismatched with it.
+        await ref.read(accountRepositoryProvider).signOut();
+        return;
+      }
+      setState(() => _busy = true);
+      result =
+          await ref.read(accountRepositoryProvider).confirmWipeAndClaimDevice();
+      if (!mounted) return;
+    }
+
     setState(() => _busy = false);
     if (result.ok) {
       if (result.license != null) {
@@ -73,6 +104,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       }
       messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
       _password.clear();
+      setState(() {});
     } else {
       messenger.showSnackBar(
           SnackBar(content: Text(_errorMessage(l, result.error))));
@@ -82,6 +114,22 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   Future<void> _signOut() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.accountSignOutConfirmTitle),
+        content: Text(l.accountSignOutConfirmBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.accountSignOut)),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     await ref.read(accountRepositoryProvider).signOut();
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));

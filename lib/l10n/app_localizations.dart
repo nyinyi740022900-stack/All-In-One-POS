@@ -428,6 +428,12 @@ abstract class AppLocalizations {
   /// **'Counted cash'**
   String get cashClosingAmount;
 
+  /// No description provided for @cashCloseWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Once closed, this count is final — the session and its variance can\'t be edited afterward.'**
+  String get cashCloseWarning;
+
   /// No description provided for @cashVariance.
   ///
   /// In en, this message translates to:
@@ -692,6 +698,12 @@ abstract class AppLocalizations {
   /// **'Amount'**
   String get creditAmount;
 
+  /// No description provided for @creditRepaymentExceedsOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than the amount owed ({outstanding}).'**
+  String creditRepaymentExceedsOutstanding(String outstanding);
+
   /// No description provided for @creditRepaymentSaved.
   ///
   /// In en, this message translates to:
@@ -890,6 +902,24 @@ abstract class AppLocalizations {
   /// **'Purchase order saved.'**
   String get poSaved;
 
+  /// No description provided for @poNeedsSupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a supplier name.'**
+  String get poNeedsSupplier;
+
+  /// No description provided for @poNeedsItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one item before saving.'**
+  String get poNeedsItems;
+
+  /// No description provided for @poNoProductsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found.'**
+  String get poNoProductsFound;
+
   /// No description provided for @poStatusOpen.
   ///
   /// In en, this message translates to:
@@ -949,6 +979,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this purchase order?'**
   String get poDeleteConfirmTitle;
+
+  /// No description provided for @poDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently removes the draft and its line items. This cannot be undone.'**
+  String get poDeleteConfirmBody;
 
   /// No description provided for @inventoryTitle.
   ///
@@ -1166,6 +1202,18 @@ abstract class AppLocalizations {
   /// **'Current stock: {quantity}'**
   String stockAdjustCurrentStock(int quantity);
 
+  /// No description provided for @stockAdjustConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm stock change'**
+  String get stockAdjustConfirmTitle;
+
+  /// No description provided for @stockAdjustConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: stock changes from {before} to {after}. This is recorded in stock history but not automatically reversible.'**
+  String stockAdjustConfirmBody(String name, int before, int after);
+
   /// No description provided for @stockReasonDamaged.
   ///
   /// In en, this message translates to:
@@ -1267,6 +1315,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This item will be removed.'**
   String get deleteConfirmBody;
+
+  /// No description provided for @productDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be hidden from Sell and Inventory, but stays visible on past sales, invoices, and stock history.'**
+  String get productDeleteConfirmBody;
+
+  /// No description provided for @categoryDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Products in this category keep their prices and stock, but show as uncategorized.'**
+  String get categoryDeleteConfirmBody;
 
   /// No description provided for @settingsTitle.
   ///
@@ -2179,6 +2239,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this expense?'**
   String get expenseDeleteConfirmTitle;
+
+  /// No description provided for @expenseDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently removes the expense record. This cannot be undone.'**
+  String get expenseDeleteConfirmBody;
 
   /// No description provided for @expenseDeleted.
   ///
@@ -3680,6 +3746,30 @@ abstract class AppLocalizations {
   /// **'Enter a storefront name'**
   String get storefrontNeedsName;
 
+  /// No description provided for @storefrontPhoneShown.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (shown to customers)'**
+  String get storefrontPhoneShown;
+
+  /// No description provided for @storefrontAddressShown.
+  ///
+  /// In en, this message translates to:
+  /// **'Address (shown to customers)'**
+  String get storefrontAddressShown;
+
+  /// No description provided for @storefrontLogoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop logo'**
+  String get storefrontLogoLabel;
+
+  /// No description provided for @storefrontProfileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get storefrontProfileSaved;
+
   /// No description provided for @storefrontShare.
   ///
   /// In en, this message translates to:
@@ -4058,6 +4148,30 @@ abstract class AppLocalizations {
   /// **'Signed out.'**
   String get accountSignedOut;
 
+  /// No description provided for @accountSignOutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out?'**
+  String get accountSignOutConfirmTitle;
+
+  /// No description provided for @accountSignOutConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.'**
+  String get accountSignOutConfirmBody;
+
+  /// No description provided for @accountSignInWipeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This account belongs to a different shop'**
+  String get accountSignInWipeConfirmTitle;
+
+  /// No description provided for @accountSignInWipeConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This device currently has another shop\'s data. Continuing replaces all local data on this device with this account\'s shop data. Make sure everything is already synced first — this cannot be undone.'**
+  String get accountSignInWipeConfirmBody;
+
   /// No description provided for @accountLoginCreated.
   ///
   /// In en, this message translates to:
@@ -4345,6 +4459,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this recurring expense?'**
   String get recurringExpenseDeleteConfirmTitle;
+
+  /// No description provided for @recurringExpenseDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This only removes the template — auto-generation stops, but expenses it already created stay untouched.'**
+  String get recurringExpenseDeleteConfirmBody;
 
   /// No description provided for @recurringExpenseAutoGenerate.
   ///

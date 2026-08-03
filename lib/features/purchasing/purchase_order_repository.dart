@@ -136,34 +136,41 @@ class PurchaseOrderRepository {
   /// All-or-nothing: adds every line's ordered qty to stock at its ordered
   /// cost via the existing `InventoryRepository.adjustStock` (the same
   /// method a manual restock already calls), then marks the PO received.
-  /// Idempotent — a PO already received is left untouched, same dedupe
-  /// guard `OrdersRepository.convertToSale` uses.
+  /// Idempotent — a PO no longer `open` (already received OR cancelled) is
+  /// left untouched, same dedupe guard `OrdersRepository.convertToSale`
+  /// uses. Wrapped in a transaction so a crash/kill mid-loop can never leave
+  /// some lines' stock applied while the PO stays `open` — the resulting
+  /// partial state was the one scenario that could double-count stock on a
+  /// retry, since re-running `adjustStock` per line is not itself
+  /// idempotent.
   Future<void> receivePO(String poId) async {
-    final po = await getOrder(poId);
-    if (po == null || po.status == 'received') return;
+    await _db.transaction(() async {
+      final po = await getOrder(poId);
+      if (po == null || po.status != 'open') return;
 
-    final lines = await (_db.select(_db.purchaseOrderItems)
-          ..where((t) => t.poId.equals(poId) & t.isDeleted.equals(false)))
-        .get();
-    for (final l in lines) {
-      await _inventory.adjustStock(
-        productId: l.productId,
-        delta: l.qty,
-        type: 'purchase',
-        unitCost: l.unitCost,
-        note: 'PO ${po.poNo}',
-      );
-    }
+      final lines = await (_db.select(_db.purchaseOrderItems)
+            ..where((t) => t.poId.equals(poId) & t.isDeleted.equals(false)))
+          .get();
+      for (final l in lines) {
+        await _inventory.adjustStock(
+          productId: l.productId,
+          delta: l.qty,
+          type: 'purchase',
+          unitCost: l.unitCost,
+          note: 'PO ${po.poNo}',
+        );
+      }
 
-    final now = DateTime.now();
-    await (_db.update(_db.purchaseOrders)..where((t) => t.id.equals(poId)))
-        .write(PurchaseOrdersCompanion(
-      status: const Value('received'),
-      receivedAt: Value(now),
-      updatedAt: Value(now),
-      dirty: const Value(true),
-    ));
-    await _enqueuePO(poId);
+      final now = DateTime.now();
+      await (_db.update(_db.purchaseOrders)..where((t) => t.id.equals(poId)))
+          .write(PurchaseOrdersCompanion(
+        status: const Value('received'),
+        receivedAt: Value(now),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueuePO(poId);
+    });
   }
 
   /// A cancelled PO never touches stock — this is the only other terminal

@@ -137,6 +137,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.recurringExpenseDeleteConfirmTitle),
+        content: Text(l.recurringExpenseDeleteConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
