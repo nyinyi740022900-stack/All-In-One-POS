@@ -109,6 +109,11 @@ class LicenseController extends StateNotifier<LicenseState> {
     return result;
   }
 
+  /// Applies a [CachedLicense] that was already persisted elsewhere (e.g. by
+  /// [LicenseRepository.saveExternal] after a branch switch) — same
+  /// shopId-binding + status recompute `activate()`/`load()` already do.
+  void applyExternal(CachedLicense lic) => _apply(lic);
+
   void _apply(CachedLicense? lic) {
     final status = computeLicenseStatus(
       expiresAt: lic?.expiresAt,

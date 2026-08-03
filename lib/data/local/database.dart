@@ -154,6 +154,39 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
+  /// Clears every row of shop-scoped data (every `SyncColumns` table, plus
+  /// the local-only `StockLots` FIFO cache) and resets every sync cursor —
+  /// used when switching which branch/shop this device is scoped to, since
+  /// the local DB isn't partitioned per shop and a stale cursor would skip
+  /// any of the new shop's rows older than the old shop's high-water mark.
+  /// Callers must ensure the outbox is already empty before calling this —
+  /// it does NOT touch the outbox itself, so an unsynced write would
+  /// otherwise be silently discarded along with everything else.
+  Future<void> wipeSyncedData() {
+    return transaction(() async {
+      await delete(categories).go();
+      await delete(products).go();
+      await delete(stockLevels).go();
+      await delete(stockLots).go();
+      await delete(stockMovements).go();
+      await delete(sales).go();
+      await delete(saleItems).go();
+      await delete(payments).go();
+      await delete(licensePayments).go();
+      await delete(creditPayments).go();
+      await delete(orders).go();
+      await delete(orderItems).go();
+      await delete(staffMembers).go();
+      await delete(customers).go();
+      await delete(expenses).go();
+      await delete(cashSessions).go();
+      await delete(deviceLabels).go();
+      await (delete(appSettings)
+            ..where((s) => s.key.like('sync.cursor.%')))
+          .go();
+    });
+  }
+
   static QueryExecutor _open() {
     return LazyDatabase(() async {
       final dir = await getApplicationDocumentsDirectory();

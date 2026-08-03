@@ -2083,5 +2083,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get branchesTitle => 'Branches';
+
+  @override
+  String get branchesLink => 'Link a branch';
+
+  @override
+  String get branchesKeyLabel => 'License key';
+
+  @override
+  String get branchesLabelField => 'Branch name';
+
+  @override
+  String get branchesLinked => 'Branch linked.';
+
+  @override
+  String get branchesInvalidKey => 'That license key wasn\'t found.';
+
+  @override
+  String get branchesEmpty => 'No branches linked yet.';
+
+  @override
+  String get branchesCurrent => 'Current';
+
+  @override
+  String get branchesSwitch => 'Switch';
+
+  @override
+  String get branchesSwitched => 'Switched branch.';
+
+  @override
+  String get branchesSwitchConfirmTitle => 'Switch to this branch?';
+
+  @override
+  String branchesSwitchConfirmBody(String label) {
+    return 'This replaces all local data on this device with \"$label\"\'s data. Make sure everything is already synced first — this cannot be undone.';
+  }
+
+  @override
+  String get branchesPendingSync =>
+      'This device still has unsynced changes. Wait for sync to finish, then try again.';
+
+  @override
+  String get branchesUnlink => 'Unlink';
+
+  @override
+  String get branchesUnlinkConfirmTitle => 'Unlink this branch?';
+
+  @override
+  String branchesUnlinkConfirmBody(String label) {
+    return '\"$label\" will be removed from your branch list. You can re-link it later with its key.';
+  }
+
+  @override
   String get currencySymbol => 'Ks';
 }

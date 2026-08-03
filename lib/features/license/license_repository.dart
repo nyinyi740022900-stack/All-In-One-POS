@@ -156,6 +156,12 @@ class LicenseRepository {
 
   Future<void> deactivate() => _settings.clearLicense();
 
+  /// Persists a [CachedLicense] built from somewhere other than `activate()`
+  /// (e.g. a branch switch, which restamps the caller's own shop_id claim
+  /// via a different Edge Function action). Same cache write `activate()`
+  /// itself uses.
+  Future<CachedLicense?> saveExternal(CachedLicense lic) => _save(lic);
+
   // ---- Multi-device (Phase 3) --------------------------------------------
 
   /// The shop's device slots (one row per license key under this shop_id).

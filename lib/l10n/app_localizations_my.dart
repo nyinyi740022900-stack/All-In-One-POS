@@ -2084,5 +2084,58 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get branchesTitle => 'ဆိုင်ခွဲများ';
+
+  @override
+  String get branchesLink => 'ဆိုင်ခွဲ ချိတ်ဆက်မည်';
+
+  @override
+  String get branchesKeyLabel => 'License Key';
+
+  @override
+  String get branchesLabelField => 'ဆိုင်ခွဲအမည်';
+
+  @override
+  String get branchesLinked => 'ဆိုင်ခွဲ ချိတ်ဆက်ပြီးပါပြီ။';
+
+  @override
+  String get branchesInvalidKey => 'ဒီ License Key ကို ရှာမတွေ့ပါ။';
+
+  @override
+  String get branchesEmpty => 'ဆိုင်ခွဲ မချိတ်ဆက်ရသေးပါ။';
+
+  @override
+  String get branchesCurrent => 'လက်ရှိ';
+
+  @override
+  String get branchesSwitch => 'ပြောင်းမည်';
+
+  @override
+  String get branchesSwitched => 'ဆိုင်ခွဲ ပြောင်းပြီးပါပြီ။';
+
+  @override
+  String get branchesSwitchConfirmTitle => 'ဒီဆိုင်ခွဲကို ပြောင်းမလား?';
+
+  @override
+  String branchesSwitchConfirmBody(String label) {
+    return 'ဒီစက်ပေါ်က Data အားလုံးကို \"$label\" ရဲ့ Data နဲ့ အစားထိုးပါလိမ့်မယ်။ Data အားလုံး sync ပြီးသားဖြစ်ကြောင်း သေချာအောင် စစ်ပါ — ပြန်လှည့်လို့ မရပါ။';
+  }
+
+  @override
+  String get branchesPendingSync =>
+      'ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get branchesUnlink => 'ဖြုတ်မည်';
+
+  @override
+  String get branchesUnlinkConfirmTitle => 'ဒီဆိုင်ခွဲကို ဖြုတ်မလား?';
+
+  @override
+  String branchesUnlinkConfirmBody(String label) {
+    return '\"$label\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။';
+  }
+
+  @override
   String get currencySymbol => 'ကျပ်';
 }

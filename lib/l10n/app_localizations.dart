@@ -3914,6 +3914,102 @@ abstract class AppLocalizations {
   /// **'{email} will no longer be able to sign in.'**
   String staffAccountsRevokeConfirmBody(String email);
 
+  /// No description provided for @branchesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Branches'**
+  String get branchesTitle;
+
+  /// No description provided for @branchesLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a branch'**
+  String get branchesLink;
+
+  /// No description provided for @branchesKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'License key'**
+  String get branchesKeyLabel;
+
+  /// No description provided for @branchesLabelField.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch name'**
+  String get branchesLabelField;
+
+  /// No description provided for @branchesLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch linked.'**
+  String get branchesLinked;
+
+  /// No description provided for @branchesInvalidKey.
+  ///
+  /// In en, this message translates to:
+  /// **'That license key wasn\'t found.'**
+  String get branchesInvalidKey;
+
+  /// No description provided for @branchesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No branches linked yet.'**
+  String get branchesEmpty;
+
+  /// No description provided for @branchesCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get branchesCurrent;
+
+  /// No description provided for @branchesSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get branchesSwitch;
+
+  /// No description provided for @branchesSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched branch.'**
+  String get branchesSwitched;
+
+  /// No description provided for @branchesSwitchConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to this branch?'**
+  String get branchesSwitchConfirmTitle;
+
+  /// No description provided for @branchesSwitchConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces all local data on this device with \"{label}\"\'s data. Make sure everything is already synced first — this cannot be undone.'**
+  String branchesSwitchConfirmBody(String label);
+
+  /// No description provided for @branchesPendingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'This device still has unsynced changes. Wait for sync to finish, then try again.'**
+  String get branchesPendingSync;
+
+  /// No description provided for @branchesUnlink.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get branchesUnlink;
+
+  /// No description provided for @branchesUnlinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink this branch?'**
+  String get branchesUnlinkConfirmTitle;
+
+  /// No description provided for @branchesUnlinkConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{label}\" will be removed from your branch list. You can re-link it later with its key.'**
+  String branchesUnlinkConfirmBody(String label);
+
   /// No description provided for @currencySymbol.
   ///
   /// In en, this message translates to:

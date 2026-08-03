@@ -711,5 +711,24 @@
   "staffAccountsRevokeConfirmBody": "{email} will no longer be able to sign in.",
   "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
 
+  "branchesTitle": "Branches",
+  "branchesLink": "Link a branch",
+  "branchesKeyLabel": "License key",
+  "branchesLabelField": "Branch name",
+  "branchesLinked": "Branch linked.",
+  "branchesInvalidKey": "That license key wasn't found.",
+  "branchesEmpty": "No branches linked yet.",
+  "branchesCurrent": "Current",
+  "branchesSwitch": "Switch",
+  "branchesSwitched": "Switched branch.",
+  "branchesSwitchConfirmTitle": "Switch to this branch?",
+  "branchesSwitchConfirmBody": "This replaces all local data on this device with \"{label}\"'s data. Make sure everything is already synced first — this cannot be undone.",
+  "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+  "branchesPendingSync": "This device still has unsynced changes. Wait for sync to finish, then try again.",
+  "branchesUnlink": "Unlink",
+  "branchesUnlinkConfirmTitle": "Unlink this branch?",
+  "branchesUnlinkConfirmBody": "\"{label}\" will be removed from your branch list. You can re-link it later with its key.",
+  "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+
   "currencySymbol": "Ks"
 }

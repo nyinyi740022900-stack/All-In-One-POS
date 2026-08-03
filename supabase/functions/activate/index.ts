@@ -22,6 +22,22 @@
 //                                                 staff accounts under their
 //                                                 own shop_id (auth.users
 //                                                 isn't client-queryable)
+//   link_branch { key, label }                -> owner-role caller registers
+//                                                 another shop_id (proven by
+//                                                 its key) as a branch they
+//                                                 own; upsert, so it also
+//                                                 renames
+//   list_branches {}                          -> owner-role caller lists
+//                                                 every branch they've
+//                                                 linked (incl. their own
+//                                                 current shop_id)
+//   unlink_branch { shop_id }                 -> owner-role caller removes a
+//                                                 branch link
+//   switch_branch { shop_id }                 -> owner-role caller re-scopes
+//                                                 their OWN session to a
+//                                                 branch they've linked; the
+//                                                 client wipes+resyncs local
+//                                                 data after this succeeds
 //
 // activate flow:
 //  1. Authenticate the caller (anonymous or otherwise) from the JWT.
@@ -65,6 +81,8 @@ Deno.serve(async (req) => {
     email?: string;
     password?: string;
     user_id?: string;
+    label?: string;
+    shop_id?: string;
   };
   try {
     body = await req.json();
@@ -102,6 +120,23 @@ Deno.serve(async (req) => {
   }
   if (action === "list_staff") {
     return handleListStaff(admin, userData.user);
+  }
+  if (action === "link_branch") {
+    return handleLinkBranch(
+      admin,
+      userData.user,
+      body.key ?? "",
+      body.label ?? "",
+    );
+  }
+  if (action === "list_branches") {
+    return handleListBranches(admin, userData.user);
+  }
+  if (action === "unlink_branch") {
+    return handleUnlinkBranch(admin, userData.user, body.shop_id ?? "");
+  }
+  if (action === "switch_branch") {
+    return handleSwitchBranch(admin, userData.user, body.shop_id ?? "");
   }
 
   const key = (body.key ?? "").trim();
@@ -237,6 +272,13 @@ async function handleCreateShopLogin(
     }
     return json({ ok: false, error: "server_error" }, 500);
   }
+  // Every real-login owner always has at least one branch registered: their
+  // own shop, labeled "Home". Best-effort — a failure here shouldn't fail
+  // account creation; the owner can link it manually via link_branch later.
+  await admin.from("org_branches").upsert(
+    { owner_user_id: data.user?.id, shop_id: shopId, label: "Home" },
+    { onConflict: "owner_user_id,shop_id" },
+  );
   return json({ ok: true, user_id: data.user?.id, email }, 200);
 }
 
@@ -391,6 +433,151 @@ async function handleReleaseDevice(
     return json({ ok: false, error: "not_found" }, 200);
   }
   return json({ ok: true }, 200);
+}
+
+// Owner-role only. Proves the caller actually holds the target branch's key
+// (same service-role lookup as the main `activate` flow) before letting them
+// register it — otherwise anyone could claim any shop_id as their own
+// "branch" just by guessing a shop_id string. Does NOT touch
+// `licenses.device_id` — linking is pure bookkeeping, independent of which
+// physical device activated that key. Upsert, so re-running it with a new
+// label renames the branch.
+async function handleLinkBranch(
+  admin: AdminClient,
+  user: SupabaseUser,
+  key: string,
+  label: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+  const trimmedKey = key.trim();
+  if (!trimmedKey) return json({ ok: false, error: "bad_request" }, 400);
+
+  const { data: license, error: licErr } = await admin
+    .from("licenses")
+    .select("shop_id")
+    .eq("key", trimmedKey)
+    .maybeSingle();
+  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+  if (!license) return json({ ok: false, error: "invalid_key" }, 200);
+
+  const { error } = await admin.from("org_branches").upsert(
+    {
+      owner_user_id: user.id,
+      shop_id: license.shop_id,
+      label: label.trim() || null,
+    },
+    { onConflict: "owner_user_id,shop_id" },
+  );
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+  return json({ ok: true, shop_id: license.shop_id }, 200);
+}
+
+// Owner-role only. Lists every branch the caller has linked (including their
+// own current shop_id, auto-registered at create_shop_login time).
+async function handleListBranches(
+  admin: AdminClient,
+  user: SupabaseUser,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+
+  const { data, error } = await admin
+    .from("org_branches")
+    .select("shop_id, label")
+    .eq("owner_user_id", user.id)
+    .order("created_at", { ascending: true });
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+
+  // deno-lint-ignore no-explicit-any
+  const branches = (data as any[]).map((b) => ({
+    shop_id: b.shop_id,
+    label: b.label,
+    is_current: b.shop_id === shopId,
+  }));
+  return json({ ok: true, branches }, 200);
+}
+
+// Owner-role only. Removes a branch link. No guard against unlinking down to
+// zero (including the caller's own current branch) — re-linking is always
+// possible with the key.
+async function handleUnlinkBranch(
+  admin: AdminClient,
+  user: SupabaseUser,
+  targetShopId: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+  if (!targetShopId) return json({ ok: false, error: "bad_request" }, 400);
+
+  const { error } = await admin
+    .from("org_branches")
+    .delete()
+    .eq("owner_user_id", user.id)
+    .eq("shop_id", targetShopId);
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+  return json({ ok: true }, 200);
+}
+
+// Owner-role only. Re-scopes the CALLER's OWN session to a branch they've
+// already linked — the target must appear in their own org_branches rows,
+// so an owner can never switch into a shop they don't own. Also looks up the
+// target's own license row (read-only, no device_id mutation — switching is
+// a "which shop am I viewing" operation, not a re-activation) so the client
+// can rebuild its local CachedLicense without a second round trip. The
+// client is responsible for wiping+resyncing local data after this succeeds
+// — this app's local DB isn't partitioned per shop.
+async function handleSwitchBranch(
+  admin: AdminClient,
+  user: SupabaseUser,
+  targetShopId: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+  if (!targetShopId) return json({ ok: false, error: "bad_request" }, 400);
+
+  const { data: link, error: linkErr } = await admin
+    .from("org_branches")
+    .select("shop_id")
+    .eq("owner_user_id", user.id)
+    .eq("shop_id", targetShopId)
+    .maybeSingle();
+  if (linkErr) return json({ ok: false, error: "server_error" }, 500);
+  if (!link) return json({ ok: false, error: "forbidden" }, 403);
+
+  const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: { shop_id: targetShopId, role: "owner" },
+  });
+  if (metaErr) return json({ ok: false, error: "server_error" }, 500);
+
+  const { data: license } = await admin
+    .from("licenses")
+    .select("plan, expires_at, realtime_enabled, activated_at")
+    .eq("shop_id", targetShopId)
+    .order("expires_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return json({
+    ok: true,
+    shop_id: targetShopId,
+    plan: license?.plan ?? "monthly",
+    expires_at: license?.expires_at ?? null,
+    realtime_enabled: license?.realtime_enabled === true,
+    activated_at: license?.activated_at ?? null,
+  }, 200);
 }
 
 function json(body: unknown, status: number): Response {

@@ -707,5 +707,24 @@
   "staffAccountsRevokeConfirmBody": "{email} ဟာ နောက်ထပ် ဝင်ရောက်လို့ မရတော့ပါ။",
   "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
 
+  "branchesTitle": "ဆိုင်ခွဲများ",
+  "branchesLink": "ဆိုင်ခွဲ ချိတ်ဆက်မည်",
+  "branchesKeyLabel": "License Key",
+  "branchesLabelField": "ဆိုင်ခွဲအမည်",
+  "branchesLinked": "ဆိုင်ခွဲ ချိတ်ဆက်ပြီးပါပြီ။",
+  "branchesInvalidKey": "ဒီ License Key ကို ရှာမတွေ့ပါ။",
+  "branchesEmpty": "ဆိုင်ခွဲ မချိတ်ဆက်ရသေးပါ။",
+  "branchesCurrent": "လက်ရှိ",
+  "branchesSwitch": "ပြောင်းမည်",
+  "branchesSwitched": "ဆိုင်ခွဲ ပြောင်းပြီးပါပြီ။",
+  "branchesSwitchConfirmTitle": "ဒီဆိုင်ခွဲကို ပြောင်းမလား?",
+  "branchesSwitchConfirmBody": "ဒီစက်ပေါ်က Data အားလုံးကို \"{label}\" ရဲ့ Data နဲ့ အစားထိုးပါလိမ့်မယ်။ Data အားလုံး sync ပြီးသားဖြစ်ကြောင်း သေချာအောင် စစ်ပါ — ပြန်လှည့်လို့ မရပါ။",
+  "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+  "branchesPendingSync": "ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။",
+  "branchesUnlink": "ဖြုတ်မည်",
+  "branchesUnlinkConfirmTitle": "ဒီဆိုင်ခွဲကို ဖြုတ်မလား?",
+  "branchesUnlinkConfirmBody": "\"{label}\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။",
+  "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+
   "currencySymbol": "ကျပ်"
 }
