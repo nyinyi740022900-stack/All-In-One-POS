@@ -371,6 +371,95 @@ class AppLocalizationsMy extends AppLocalizations {
   String get customerDeleted => 'ဖောက်သည် ဖယ်ရှားပြီး';
 
   @override
+  String get suppliersTitle => 'ကုန်ပို့သူများ';
+
+  @override
+  String get suppliersEmpty =>
+      'ကုန်ပို့သူ မထည့်ရသေးပါ။ ပထမဆုံး ကုန်ပို့သူကို ထည့်ပါ။';
+
+  @override
+  String get supplierAdd => 'ကုန်ပို့သူ ထည့်မည်';
+
+  @override
+  String get supplierEdit => 'ကုန်ပို့သူ ပြင်မည်';
+
+  @override
+  String get supplierNameLabel => 'ကုန်ပို့သူအမည်';
+
+  @override
+  String get supplierSaved => 'ကုန်ပို့သူ သိမ်းပြီးပါပြီ။';
+
+  @override
+  String get supplierDeleteConfirmTitle => 'ဒီကုန်ပို့သူကို ဖယ်ရှားမလား?';
+
+  @override
+  String supplierDeleteConfirmBody(String name) {
+    return '$name ကို Purchase order အသစ်တွေမှာ အကြံပြုမှာ မဟုတ်တော့ပါ။ ယခင် Purchase order တွေမှာတော့ အမည် ဆက်ပြပါလိမ့်မယ်။';
+  }
+
+  @override
+  String get supplierDeleted => 'ကုန်ပို့သူ ဖယ်ရှားပြီး';
+
+  @override
+  String get purchaseOrdersTitle => 'ကုန်ဝယ်အမှာစာများ';
+
+  @override
+  String get purchaseOrdersEmpty => 'ကုန်ဝယ်အမှာစာ မရှိသေးပါ။';
+
+  @override
+  String get poCreate => 'ကုန်ဝယ်အမှာစာ ဖန်တီးမည်';
+
+  @override
+  String get poItems => 'ပစ္စည်းများ';
+
+  @override
+  String get poNoItems =>
+      'ပစ္စည်း မထည့်ရသေးပါ — Product ထည့်ဖို့ + ကို နှိပ်ပါ။';
+
+  @override
+  String get poUnitCost => 'တစ်ခုချင်း ဝယ်ဈေး';
+
+  @override
+  String get poSaveDraft => 'သိမ်းမည်';
+
+  @override
+  String get poSaved => 'ကုန်ဝယ်အမှာစာ သိမ်းပြီးပါပြီ။';
+
+  @override
+  String get poStatusOpen => 'ဖွင့်ထား';
+
+  @override
+  String get poStatusReceived => 'လက်ခံရရှိပြီး';
+
+  @override
+  String get poStatusCancelled => 'ပယ်ဖျက်ပြီး';
+
+  @override
+  String get poMarkReceived => 'လက်ခံရရှိကြောင်း မှတ်သားမည်';
+
+  @override
+  String get poReceiveConfirmTitle =>
+      'ဒီကုန်ဝယ်အမှာစာကို လက်ခံရရှိကြောင်း မှတ်သားမလား?';
+
+  @override
+  String get poReceiveConfirmBody =>
+      'ဒါက Item အားလုံးရဲ့ မှာထားတဲ့ အရေအတွက်ကို မှာထားတဲ့ ဝယ်ဈေးနဲ့ Stock ထဲ ထည့်ပေးပါလိမ့်မယ်။ ပြန်ပြင်လို့ မရပါ။';
+
+  @override
+  String get poReceived =>
+      'ကုန်ဝယ်အမှာစာ လက်ခံရရှိပြီ — Stock အသစ်ပြင်ပြီးပါပြီ။';
+
+  @override
+  String get poCancelOrder => 'ကုန်ဝယ်အမှာစာ ပယ်ဖျက်မည်';
+
+  @override
+  String get poCancelConfirmTitle =>
+      'ဒီကုန်ဝယ်အမှာစာကို ပယ်ဖျက်မလား? Stock ကို မထိခိုက်ပါ။';
+
+  @override
+  String get poDeleteConfirmTitle => 'ဒီကုန်ဝယ်အမှာစာကို ဖျက်မလား?';
+
+  @override
   String get inventoryTitle => 'ကုန်ပစ္စည်း';
 
   @override

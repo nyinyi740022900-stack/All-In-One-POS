@@ -378,6 +378,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customerDeleted => 'Customer removed';
 
   @override
+  String get suppliersTitle => 'Suppliers';
+
+  @override
+  String get suppliersEmpty => 'No suppliers yet. Add your first supplier.';
+
+  @override
+  String get supplierAdd => 'Add supplier';
+
+  @override
+  String get supplierEdit => 'Edit supplier';
+
+  @override
+  String get supplierNameLabel => 'Supplier name';
+
+  @override
+  String get supplierSaved => 'Supplier saved';
+
+  @override
+  String get supplierDeleteConfirmTitle => 'Remove this supplier?';
+
+  @override
+  String supplierDeleteConfirmBody(String name) {
+    return '$name will no longer appear as a suggestion on new purchase orders. Past purchase orders still show their name.';
+  }
+
+  @override
+  String get supplierDeleted => 'Supplier removed';
+
+  @override
+  String get purchaseOrdersTitle => 'Purchase orders';
+
+  @override
+  String get purchaseOrdersEmpty => 'No purchase orders yet.';
+
+  @override
+  String get poCreate => 'Create purchase order';
+
+  @override
+  String get poItems => 'Items';
+
+  @override
+  String get poNoItems => 'No items added yet — tap + to add a product.';
+
+  @override
+  String get poUnitCost => 'Unit cost';
+
+  @override
+  String get poSaveDraft => 'Save';
+
+  @override
+  String get poSaved => 'Purchase order saved.';
+
+  @override
+  String get poStatusOpen => 'Open';
+
+  @override
+  String get poStatusReceived => 'Received';
+
+  @override
+  String get poStatusCancelled => 'Cancelled';
+
+  @override
+  String get poMarkReceived => 'Mark as received';
+
+  @override
+  String get poReceiveConfirmTitle => 'Mark this purchase order as received?';
+
+  @override
+  String get poReceiveConfirmBody =>
+      'This adds every item\'s ordered quantity to stock at its ordered cost. This can\'t be undone.';
+
+  @override
+  String get poReceived => 'Purchase order received — stock updated.';
+
+  @override
+  String get poCancelOrder => 'Cancel purchase order';
+
+  @override
+  String get poCancelConfirmTitle =>
+      'Cancel this purchase order? Stock will not be affected.';
+
+  @override
+  String get poDeleteConfirmTitle => 'Delete this purchase order?';
+
+  @override
   String get inventoryTitle => 'Inventory';
 
   @override

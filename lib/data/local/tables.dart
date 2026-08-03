@@ -227,6 +227,54 @@ class Customers extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A supplier the shop buys stock from — same shape as [Customers] (a
+/// simple named-entity directory), used by [PurchaseOrders].
+class Suppliers extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+  TextColumn get note => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// A purchase order placed with a supplier — lightweight tracking (what was
+/// ordered, from whom, at what cost), NOT procurement automation (see
+/// PROJECT_SPEC.md §1.2). [supplierName] is a snapshot (shown even if the
+/// supplier is later renamed/deleted), same convention as [Orders.customerName].
+/// `status`: open | received | cancelled. Receiving is all-or-nothing (no
+/// partial-per-line receiving) — see `PurchaseOrderRepository.receivePO`,
+/// which reuses `InventoryRepository.adjustStock` (the same method a manual
+/// restock already calls) rather than any new stock-mutation logic.
+class PurchaseOrders extends Table with SyncColumns {
+  TextColumn get poNo => text()();
+  TextColumn get supplierId => text().nullable()();
+  TextColumn get supplierName => text()();
+  TextColumn get status => text().withDefault(const Constant('open'))();
+  IntColumn get itemsTotal => integer().withDefault(const Constant(0))();
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get receivedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One line of a [PurchaseOrders] row — always tied to a real [Products] row
+/// (unlike [OrderItems], which allows a free-text line) since receiving
+/// needs a concrete product to restock.
+class PurchaseOrderItems extends Table with SyncColumns {
+  TextColumn get poId => text()();
+  TextColumn get productId => text()();
+  TextColumn get nameSnapshot => text()();
+  IntColumn get qty => integer()();
+  IntColumn get unitCost => integer()();
+  IntColumn get lineTotal => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// A repayment a customer made against their outstanding credit (အကြွေး).
 /// Customers are keyed by [customerName] (the same free-text field carried on
 /// [Sales]); a credit sale is a sale with `paymentMethod = 'credit'` where

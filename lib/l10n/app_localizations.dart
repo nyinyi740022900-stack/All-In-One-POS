@@ -782,6 +782,168 @@ abstract class AppLocalizations {
   /// **'Customer removed'**
   String get customerDeleted;
 
+  /// No description provided for @suppliersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers'**
+  String get suppliersTitle;
+
+  /// No description provided for @suppliersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No suppliers yet. Add your first supplier.'**
+  String get suppliersEmpty;
+
+  /// No description provided for @supplierAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add supplier'**
+  String get supplierAdd;
+
+  /// No description provided for @supplierEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit supplier'**
+  String get supplierEdit;
+
+  /// No description provided for @supplierNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier name'**
+  String get supplierNameLabel;
+
+  /// No description provided for @supplierSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier saved'**
+  String get supplierSaved;
+
+  /// No description provided for @supplierDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this supplier?'**
+  String get supplierDeleteConfirmTitle;
+
+  /// No description provided for @supplierDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer appear as a suggestion on new purchase orders. Past purchase orders still show their name.'**
+  String supplierDeleteConfirmBody(String name);
+
+  /// No description provided for @supplierDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier removed'**
+  String get supplierDeleted;
+
+  /// No description provided for @purchaseOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase orders'**
+  String get purchaseOrdersTitle;
+
+  /// No description provided for @purchaseOrdersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No purchase orders yet.'**
+  String get purchaseOrdersEmpty;
+
+  /// No description provided for @poCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create purchase order'**
+  String get poCreate;
+
+  /// No description provided for @poItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get poItems;
+
+  /// No description provided for @poNoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No items added yet — tap + to add a product.'**
+  String get poNoItems;
+
+  /// No description provided for @poUnitCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit cost'**
+  String get poUnitCost;
+
+  /// No description provided for @poSaveDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get poSaveDraft;
+
+  /// No description provided for @poSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase order saved.'**
+  String get poSaved;
+
+  /// No description provided for @poStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get poStatusOpen;
+
+  /// No description provided for @poStatusReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get poStatusReceived;
+
+  /// No description provided for @poStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get poStatusCancelled;
+
+  /// No description provided for @poMarkReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as received'**
+  String get poMarkReceived;
+
+  /// No description provided for @poReceiveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this purchase order as received?'**
+  String get poReceiveConfirmTitle;
+
+  /// No description provided for @poReceiveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This adds every item\'s ordered quantity to stock at its ordered cost. This can\'t be undone.'**
+  String get poReceiveConfirmBody;
+
+  /// No description provided for @poReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase order received — stock updated.'**
+  String get poReceived;
+
+  /// No description provided for @poCancelOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel purchase order'**
+  String get poCancelOrder;
+
+  /// No description provided for @poCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this purchase order? Stock will not be affected.'**
+  String get poCancelConfirmTitle;
+
+  /// No description provided for @poDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this purchase order?'**
+  String get poDeleteConfirmTitle;
+
   /// No description provided for @inventoryTitle.
   ///
   /// In en, this message translates to:

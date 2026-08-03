@@ -26,6 +26,8 @@ import '../credit/credit_providers.dart';
 import '../credit/credit_screen.dart';
 import '../customers/customers_screen.dart';
 import '../expenses/expense_screen.dart';
+import '../purchasing/purchase_orders_screen.dart';
+import '../suppliers/suppliers_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
@@ -78,6 +80,22 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const ExpenseScreen(),
+            )),
+          ),
+          ListTile(
+            leading: const Icon(Icons.local_shipping_outlined),
+            title: Text(l.suppliersTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const SuppliersScreen(),
+            )),
+          ),
+          ListTile(
+            leading: const Icon(Icons.shopping_cart_outlined),
+            title: Text(l.purchaseOrdersTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PurchaseOrdersScreen(),
             )),
           ),
           if (ref.watch(isOwnerProvider)) _StorefrontTile(),

@@ -47,6 +47,9 @@ final syncTables = <SyncTableDef>[
   _cashSessions,
   _deviceLabels,
   _recurringExpenses,
+  _suppliers,
+  _purchaseOrders,
+  _purchaseOrderItems,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -846,6 +849,146 @@ final _recurringExpenses = SyncTableDef(
             generationTiming:
                 Value(m['generation_timing'] as String? ?? 'month_start'),
             lastGeneratedPeriod: Value(m['last_generated_period'] as String?),
+            createdAt: Value(_dt(m['created_at'])),
+            updatedAt: Value(updated),
+            isDeleted: Value(_bool(m['is_deleted'])),
+            dirty: const Value(false),
+          ),
+        );
+  },
+);
+
+// --- suppliers ----------------------------------------------------------
+final _suppliers = SyncTableDef(
+  name: 'suppliers',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.suppliers)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'name': r.name,
+      'phone': r.phone,
+      'address': r.address,
+      'note': r.note,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.suppliers)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.suppliers).insertOnConflictUpdate(SuppliersCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          name: Value(m['name'] as String),
+          phone: Value(m['phone'] as String?),
+          address: Value(m['address'] as String?),
+          note: Value(m['note'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- purchase_orders ------------------------------------------------------
+final _purchaseOrders = SyncTableDef(
+  name: 'purchase_orders',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.purchaseOrders)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'po_no': r.poNo,
+      'supplier_id': r.supplierId,
+      'supplier_name': r.supplierName,
+      'status': r.status,
+      'items_total': r.itemsTotal,
+      'note': r.note,
+      'received_at': r.receivedAt == null ? null : _iso(r.receivedAt!),
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.purchaseOrders)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.purchaseOrders).insertOnConflictUpdate(
+          PurchaseOrdersCompanion(
+            id: Value(id),
+            shopId: Value(m['shop_id'] as String),
+            poNo: Value(m['po_no'] as String),
+            supplierId: Value(m['supplier_id'] as String?),
+            supplierName: Value(m['supplier_name'] as String),
+            status: Value((m['status'] as String?) ?? 'open'),
+            itemsTotal: Value(_int(m['items_total'])),
+            note: Value(m['note'] as String?),
+            receivedAt: Value(
+                m['received_at'] == null ? null : _dt(m['received_at'])),
+            createdAt: Value(_dt(m['created_at'])),
+            updatedAt: Value(updated),
+            isDeleted: Value(_bool(m['is_deleted'])),
+            dirty: const Value(false),
+          ),
+        );
+  },
+);
+
+// --- purchase_order_items --------------------------------------------------
+final _purchaseOrderItems = SyncTableDef(
+  name: 'purchase_order_items',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.purchaseOrderItems)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'po_id': r.poId,
+      'product_id': r.productId,
+      'name_snapshot': r.nameSnapshot,
+      'qty': r.qty,
+      'unit_cost': r.unitCost,
+      'line_total': r.lineTotal,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.purchaseOrderItems)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.purchaseOrderItems).insertOnConflictUpdate(
+          PurchaseOrderItemsCompanion(
+            id: Value(id),
+            shopId: Value(m['shop_id'] as String),
+            poId: Value(m['po_id'] as String),
+            productId: Value(m['product_id'] as String),
+            nameSnapshot: Value(m['name_snapshot'] as String),
+            qty: Value(_int(m['qty'])),
+            unitCost: Value(_int(m['unit_cost'])),
+            lineTotal: Value(_int(m['line_total'])),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
             isDeleted: Value(_bool(m['is_deleted'])),

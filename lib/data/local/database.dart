@@ -31,6 +31,9 @@ part 'database.g.dart';
     CashSessions,
     DeviceLabels,
     RecurringExpenses,
+    Suppliers,
+    PurchaseOrders,
+    PurchaseOrderItems,
     AppSettings,
     Outbox,
   ],
@@ -42,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -167,6 +170,14 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
                 recurringExpenses, recurringExpenses.lastGeneratedPeriod);
           }
+          // v23: suppliers directory + lightweight purchase-order tracking
+          // (what was ordered from whom, at what cost) — receiving a PO
+          // reuses the existing restock/adjustStock machinery as-is.
+          if (from < 23) {
+            await m.createTable(suppliers);
+            await m.createTable(purchaseOrders);
+            await m.createTable(purchaseOrderItems);
+          }
         },
       );
 
@@ -198,6 +209,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(cashSessions).go();
       await delete(deviceLabels).go();
       await delete(recurringExpenses).go();
+      await delete(suppliers).go();
+      await delete(purchaseOrders).go();
+      await delete(purchaseOrderItems).go();
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();
