@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
-import '../account/staff_accounts_screen.dart';
 import 'staff_members_screen.dart';
 import 'staff_providers.dart';
 
@@ -240,15 +239,6 @@ class StaffModeCard extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const StaffMembersScreen(),
-            )),
-          ),
-        if (isOwner)
-          ListTile(
-            leading: const Icon(Icons.admin_panel_settings_outlined),
-            title: Text(l.staffAccountsTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const StaffAccountsScreen(),
             )),
           ),
       ],

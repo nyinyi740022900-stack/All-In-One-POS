@@ -19,6 +19,7 @@ import '../../core/money.dart';
 import '../account/account_providers.dart';
 import '../account/branches_screen.dart';
 import '../account/shop_login_screen.dart';
+import '../account/staff_accounts_screen.dart';
 import '../backup/backup_screen.dart';
 import '../cash/cash_session_screen.dart';
 import '../credit/credit_providers.dart';
@@ -83,7 +84,15 @@ class SettingsScreen extends ConsumerWidget {
             )),
           ),
           if (ref.read(accountRepositoryProvider).isSignedInWithRealAccount &&
-              ref.watch(isOwnerProvider))
+              ref.watch(isOwnerProvider)) ...[
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: Text(l.staffAccountsTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const StaffAccountsScreen(),
+              )),
+            ),
             ListTile(
               leading: const Icon(Icons.store_mall_directory_outlined),
               title: Text(l.branchesTitle),
@@ -92,6 +101,7 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (_) => const BranchesScreen(),
               )),
             ),
+          ],
           _ReferralTile(),
           ListTile(
             leading: const Icon(Icons.backup),
