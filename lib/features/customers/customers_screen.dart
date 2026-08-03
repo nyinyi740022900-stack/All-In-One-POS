@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,7 +68,14 @@ class CustomersScreen extends ConsumerWidget {
                 TextField(
                   controller: phone,
                   keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(labelText: l.customerPhone),
+                  decoration: InputDecoration(
+                    labelText: l.customerPhone,
+                    helperText: looksLikeMyanmarPhone(phone.text)
+                        ? null
+                        : l.phoneFormatHint,
+                    helperMaxLines: 2,
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
                 ),
                 const SizedBox(height: AppTheme.space2),
                 TextField(

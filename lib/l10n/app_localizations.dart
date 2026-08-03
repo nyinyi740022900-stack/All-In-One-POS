@@ -542,6 +542,12 @@ abstract class AppLocalizations {
   /// **'Phone (optional)'**
   String get customerPhone;
 
+  /// No description provided for @phoneFormatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Doesn\'t look like a Myanmar phone number (e.g. 09xxxxxxxxx) — you can still save it.'**
+  String get phoneFormatHint;
+
   /// No description provided for @checkoutAddCustomer.
   ///
   /// In en, this message translates to:

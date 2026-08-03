@@ -243,6 +243,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customerPhone => 'Phone (optional)';
 
   @override
+  String get phoneFormatHint =>
+      'Doesn\'t look like a Myanmar phone number (e.g. 09xxxxxxxxx) — you can still save it.';
+
+  @override
   String get checkoutAddCustomer => 'Add customer';
 
   @override

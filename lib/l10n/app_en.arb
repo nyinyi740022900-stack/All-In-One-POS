@@ -86,6 +86,7 @@
   "creditTitle": "Credit book",
   "creditCustomerName": "Customer name",
   "customerPhone": "Phone (optional)",
+  "phoneFormatHint": "Doesn't look like a Myanmar phone number (e.g. 09xxxxxxxxx) — you can still save it.",
   "checkoutAddCustomer": "Add customer",
   "checkoutSaveToDirectory": "Save to customer list",
   "checkoutPickCustomer": "Pick from customers",

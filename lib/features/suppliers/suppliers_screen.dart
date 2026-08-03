@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
@@ -47,7 +48,8 @@ class SuppliersScreen extends ConsumerWidget {
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
         title: Text(existing == null ? l.supplierAdd : l.supplierEdit),
         content: SingleChildScrollView(
           child: Column(
@@ -62,7 +64,14 @@ class SuppliersScreen extends ConsumerWidget {
               TextField(
                 controller: phone,
                 keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: l.customerPhone),
+                decoration: InputDecoration(
+                  labelText: l.customerPhone,
+                  helperText: looksLikeMyanmarPhone(phone.text)
+                      ? null
+                      : l.phoneFormatHint,
+                  helperMaxLines: 2,
+                ),
+                onChanged: (_) => setDialogState(() {}),
               ),
               const SizedBox(height: AppTheme.space2),
               TextField(
@@ -85,6 +94,7 @@ class SuppliersScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.commonSave)),
         ],
+        ),
       ),
     );
     if (saved != true || name.text.trim().isEmpty) return;

@@ -243,6 +243,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get customerPhone => 'ဖုန်း (မဖြည့်လည်းရ)';
 
   @override
+  String get phoneFormatHint =>
+      'မြန်မာဖုန်းနံပါတ် ပုံစံနဲ့ မတူပါ (ဥပမာ - 09xxxxxxxxx) — ဒါပေမယ့် သိမ်းလို့ ရပါတယ်။';
+
+  @override
   String get checkoutAddCustomer => 'ဝယ်သူ ထည့်';
 
   @override

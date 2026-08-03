@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -30,6 +31,15 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
   bool _loaded = false;
   bool _saving = false;
   bool _uploadingLogo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Live-updates the phone format hint below — a plain helperText, never
+    // wired to `validator`, so an unusual (but possibly legitimate, e.g. a
+    // landline) number never blocks Save.
+    _phone.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -196,6 +206,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
 
   Widget _field(TextEditingController c, String label,
       {int lines = 1, bool phone = false, String? Function(String?)? validator}) {
+    final l = AppLocalizations.of(context);
     return TextFormField(
       controller: c,
       maxLines: lines,
@@ -207,6 +218,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
         // Extra vertical padding so tall Myanmar stacked glyphs aren't clipped.
         contentPadding: const EdgeInsets.symmetric(
             horizontal: AppTheme.space4, vertical: AppTheme.space4),
+        helperText:
+            phone && !looksLikeMyanmarPhone(c.text) ? l.phoneFormatHint : null,
+        helperMaxLines: 2,
       ),
       validator: validator,
     );

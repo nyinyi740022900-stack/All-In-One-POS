@@ -83,6 +83,7 @@
   "creditTitle": "အကြွေးစာရင်း",
   "creditCustomerName": "ဝယ်သူအမည်",
   "customerPhone": "ဖုန်း (မဖြည့်လည်းရ)",
+  "phoneFormatHint": "မြန်မာဖုန်းနံပါတ် ပုံစံနဲ့ မတူပါ (ဥပမာ - 09xxxxxxxxx) — ဒါပေမယ့် သိမ်းလို့ ရပါတယ်။",
   "checkoutAddCustomer": "ဝယ်သူ ထည့်",
   "checkoutSaveToDirectory": "Customer list ထဲ သိမ်းရန်",
   "checkoutPickCustomer": "Customer list ကနေ ရွေးရန်",
