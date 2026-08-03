@@ -686,5 +686,30 @@
   "onboardStaffTitle": "Owner and Staff modes",
   "onboardStaffBody": "You're in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.",
 
+  "accountShopLoginTitle": "Shop login",
+  "accountShopLoginHint": "Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.",
+  "accountEmail": "Email",
+  "accountPassword": "Password",
+  "accountCreateShopLogin": "Create shop login",
+  "accountSignIn": "Sign in",
+  "accountSignOut": "Sign out",
+  "accountSignedIn": "Signed in.",
+  "accountSignedOut": "Signed out.",
+  "accountLoginCreated": "Login created.",
+  "accountEmailTaken": "That email is already in use.",
+  "accountNotActivated": "Activate this device first.",
+  "accountNoBackend": "No internet connection.",
+  "accountActionFailed": "Something went wrong. Please try again.",
+
+  "staffAccountsTitle": "Staff accounts (login)",
+  "staffAccountsInvite": "Invite staff",
+  "staffAccountsEmpty": "No staff accounts yet. Invite one with an email and password so they can sign in on their own device.",
+  "staffAccountsActive": "Active",
+  "staffAccountsRevoked": "Revoked",
+  "staffAccountsRevoke": "Revoke",
+  "staffAccountsRevokeConfirmTitle": "Revoke this account?",
+  "staffAccountsRevokeConfirmBody": "{email} will no longer be able to sign in.",
+  "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
+
   "currencySymbol": "Ks"
 }

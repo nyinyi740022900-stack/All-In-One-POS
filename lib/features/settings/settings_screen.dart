@@ -16,6 +16,7 @@ import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
 import '../referral/referral_screen.dart';
 import '../../core/money.dart';
+import '../account/shop_login_screen.dart';
 import '../backup/backup_screen.dart';
 import '../cash/cash_session_screen.dart';
 import '../credit/credit_providers.dart';
@@ -71,6 +72,14 @@ class SettingsScreen extends ConsumerWidget {
 
           _SectionHeader(l.settingsSectionFinance),
           _LicenseTile(),
+          ListTile(
+            leading: const Icon(Icons.alternate_email),
+            title: Text(l.accountShopLoginTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const ShopLoginScreen(),
+            )),
+          ),
           _ReferralTile(),
           ListTile(
             leading: const Icon(Icons.backup),

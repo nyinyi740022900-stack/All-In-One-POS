@@ -2013,5 +2013,76 @@ class AppLocalizationsMy extends AppLocalizations {
       'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။';
 
   @override
+  String get accountShopLoginTitle => 'ဆိုင် Login';
+
+  @override
+  String get accountShopLoginHint =>
+      'ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
+
+  @override
+  String get accountEmail => 'အီးမေးလ်';
+
+  @override
+  String get accountPassword => 'စကားဝှက်';
+
+  @override
+  String get accountCreateShopLogin => 'ဆိုင် Login ဖန်တီးမည်';
+
+  @override
+  String get accountSignIn => 'ဝင်ရောက်မည်';
+
+  @override
+  String get accountSignOut => 'ထွက်မည်';
+
+  @override
+  String get accountSignedIn => 'ဝင်ရောက်ပြီးပါပြီ။';
+
+  @override
+  String get accountSignedOut => 'ထွက်ပြီးပါပြီ။';
+
+  @override
+  String get accountLoginCreated => 'Login ဖန်တီးပြီးပါပြီ။';
+
+  @override
+  String get accountEmailTaken => 'ဒီအီးမေးလ်ကို အသုံးပြုပြီးသားဖြစ်ပါတယ်။';
+
+  @override
+  String get accountNotActivated => 'ဒီစက်ကို အရင် Activate လုပ်ပါ။';
+
+  @override
+  String get accountNoBackend => 'အင်တာနက် ချိတ်ဆက်မှု မရှိပါ။';
+
+  @override
+  String get accountActionFailed =>
+      'တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားကြည့်ပါ။';
+
+  @override
+  String get staffAccountsTitle => 'ဝန်ထမ်း Account (Login)';
+
+  @override
+  String get staffAccountsInvite => 'ဝန်ထမ်း ဖိတ်ခေါ်မည်';
+
+  @override
+  String get staffAccountsEmpty =>
+      'ဝန်ထမ်း Account မရှိသေးပါ။ Email + Password နဲ့ ဖိတ်ခေါ်ပြီး သူတို့ကိုယ်ပိုင်စက်နဲ့ ဝင်ရောက်နိုင်အောင် လုပ်ပေးပါ။';
+
+  @override
+  String get staffAccountsActive => 'အသုံးပြုနေဆဲ';
+
+  @override
+  String get staffAccountsRevoked => 'ပယ်ဖျက်ပြီး';
+
+  @override
+  String get staffAccountsRevoke => 'ပယ်ဖျက်မည်';
+
+  @override
+  String get staffAccountsRevokeConfirmTitle => 'ဒီ Account ကို ပယ်ဖျက်မလား?';
+
+  @override
+  String staffAccountsRevokeConfirmBody(String email) {
+    return '$email ဟာ နောက်ထပ် ဝင်ရောက်လို့ မရတော့ပါ။';
+  }
+
+  @override
   String get currencySymbol => 'ကျပ်';
 }

@@ -3782,6 +3782,138 @@ abstract class AppLocalizations {
   /// **'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.'**
   String get onboardStaffBody;
 
+  /// No description provided for @accountShopLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop login'**
+  String get accountShopLoginTitle;
+
+  /// No description provided for @accountShopLoginHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.'**
+  String get accountShopLoginHint;
+
+  /// No description provided for @accountEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get accountEmail;
+
+  /// No description provided for @accountPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get accountPassword;
+
+  /// No description provided for @accountCreateShopLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Create shop login'**
+  String get accountCreateShopLogin;
+
+  /// No description provided for @accountSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get accountSignIn;
+
+  /// No description provided for @accountSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get accountSignOut;
+
+  /// No description provided for @accountSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in.'**
+  String get accountSignedIn;
+
+  /// No description provided for @accountSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed out.'**
+  String get accountSignedOut;
+
+  /// No description provided for @accountLoginCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Login created.'**
+  String get accountLoginCreated;
+
+  /// No description provided for @accountEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That email is already in use.'**
+  String get accountEmailTaken;
+
+  /// No description provided for @accountNotActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate this device first.'**
+  String get accountNotActivated;
+
+  /// No description provided for @accountNoBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection.'**
+  String get accountNoBackend;
+
+  /// No description provided for @accountActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get accountActionFailed;
+
+  /// No description provided for @staffAccountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff accounts (login)'**
+  String get staffAccountsTitle;
+
+  /// No description provided for @staffAccountsInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite staff'**
+  String get staffAccountsInvite;
+
+  /// No description provided for @staffAccountsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No staff accounts yet. Invite one with an email and password so they can sign in on their own device.'**
+  String get staffAccountsEmpty;
+
+  /// No description provided for @staffAccountsActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get staffAccountsActive;
+
+  /// No description provided for @staffAccountsRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoked'**
+  String get staffAccountsRevoked;
+
+  /// No description provided for @staffAccountsRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get staffAccountsRevoke;
+
+  /// No description provided for @staffAccountsRevokeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke this account?'**
+  String get staffAccountsRevokeConfirmTitle;
+
+  /// No description provided for @staffAccountsRevokeConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{email} will no longer be able to sign in.'**
+  String staffAccountsRevokeConfirmBody(String email);
+
   /// No description provided for @currencySymbol.
   ///
   /// In en, this message translates to:

@@ -2013,5 +2013,75 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.';
 
   @override
+  String get accountShopLoginTitle => 'Shop login';
+
+  @override
+  String get accountShopLoginHint =>
+      'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.';
+
+  @override
+  String get accountEmail => 'Email';
+
+  @override
+  String get accountPassword => 'Password';
+
+  @override
+  String get accountCreateShopLogin => 'Create shop login';
+
+  @override
+  String get accountSignIn => 'Sign in';
+
+  @override
+  String get accountSignOut => 'Sign out';
+
+  @override
+  String get accountSignedIn => 'Signed in.';
+
+  @override
+  String get accountSignedOut => 'Signed out.';
+
+  @override
+  String get accountLoginCreated => 'Login created.';
+
+  @override
+  String get accountEmailTaken => 'That email is already in use.';
+
+  @override
+  String get accountNotActivated => 'Activate this device first.';
+
+  @override
+  String get accountNoBackend => 'No internet connection.';
+
+  @override
+  String get accountActionFailed => 'Something went wrong. Please try again.';
+
+  @override
+  String get staffAccountsTitle => 'Staff accounts (login)';
+
+  @override
+  String get staffAccountsInvite => 'Invite staff';
+
+  @override
+  String get staffAccountsEmpty =>
+      'No staff accounts yet. Invite one with an email and password so they can sign in on their own device.';
+
+  @override
+  String get staffAccountsActive => 'Active';
+
+  @override
+  String get staffAccountsRevoked => 'Revoked';
+
+  @override
+  String get staffAccountsRevoke => 'Revoke';
+
+  @override
+  String get staffAccountsRevokeConfirmTitle => 'Revoke this account?';
+
+  @override
+  String staffAccountsRevokeConfirmBody(String email) {
+    return '$email will no longer be able to sign in.';
+  }
+
+  @override
   String get currencySymbol => 'Ks';
 }
