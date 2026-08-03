@@ -38,6 +38,15 @@
 //                                                 branch they've linked; the
 //                                                 client wipes+resyncs local
 //                                                 data after this succeeds
+//   signup_shop { shop_name, email, password,
+//                 device_id }                  -> mints a BRAND NEW shop_id +
+//                                                 2-month trial license +
+//                                                 real owner login, all in
+//                                                 one call — the only action
+//                                                 that doesn't require a
+//                                                 shop to already exist; the
+//                                                 client signs in with the
+//                                                 new credentials itself
 //
 // activate flow:
 //  1. Authenticate the caller (anonymous or otherwise) from the JWT.
@@ -83,6 +92,7 @@ Deno.serve(async (req) => {
     user_id?: string;
     label?: string;
     shop_id?: string;
+    shop_name?: string;
   };
   try {
     body = await req.json();
@@ -137,6 +147,15 @@ Deno.serve(async (req) => {
   }
   if (action === "switch_branch") {
     return handleSwitchBranch(admin, userData.user, body.shop_id ?? "");
+  }
+  if (action === "signup_shop") {
+    return handleSignupShop(
+      admin,
+      body.shop_name ?? "",
+      body.email ?? "",
+      body.password ?? "",
+      body.device_id ?? "",
+    );
   }
 
   const key = (body.key ?? "").trim();
@@ -577,6 +596,80 @@ async function handleSwitchBranch(
     expires_at: license?.expires_at ?? null,
     realtime_enabled: license?.realtime_enabled === true,
     activated_at: license?.activated_at ?? null,
+  }, 200);
+}
+
+const SIGNUP_TRIAL_MONTHS = 2;
+
+// The only action that doesn't require a shop to already exist — mints a
+// brand new shop_id, a 2-month trial license bound to this device, a real
+// owner login, and an auto-registered "Home" branch, all in one call. Does
+// NOT touch the calling (anonymous) session at all — the new owner account
+// is a completely separate auth user, signed into directly by the client
+// afterward, same as `create_shop_login`/`invite_staff` already create
+// separate users rather than upgrading the caller in place.
+async function handleSignupShop(
+  admin: AdminClient,
+  shopName: string,
+  email: string,
+  password: string,
+  deviceId: string,
+): Promise<Response> {
+  if (!email || !password) return json({ ok: false, error: "bad_request" }, 400);
+
+  const shopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  const key = "SIGNUP-" +
+    crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + SIGNUP_TRIAL_MONTHS);
+  const { data: refCode } = await admin.rpc("gen_referral_code");
+
+  const { data: license, error: licErr } = await admin
+    .from("licenses")
+    .insert({
+      shop_id: shopId,
+      shop_name: shopName || null,
+      key,
+      plan: "trial",
+      status: "active",
+      device_id: deviceId || null,
+      expires_at: expires.toISOString(),
+      activated_at: now.toISOString(),
+      referral_code: refCode,
+    })
+    .select("*")
+    .single();
+  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+
+  const { data: userRes, error: userErr } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    app_metadata: { shop_id: shopId, role: "owner" },
+  });
+  if (userErr) {
+    // Roll back the just-created license so a failed signup doesn't leave an
+    // orphaned shop_id nothing can ever claim.
+    await admin.from("licenses").delete().eq("id", license.id);
+    const msg = String(userErr.message ?? "").toLowerCase();
+    if (msg.includes("already") || msg.includes("registered")) {
+      return json({ ok: false, error: "email_taken" }, 200);
+    }
+    return json({ ok: false, error: "server_error" }, 500);
+  }
+
+  await admin.from("org_branches").upsert(
+    { owner_user_id: userRes.user?.id, shop_id: shopId, label: "Home" },
+    { onConflict: "owner_user_id,shop_id" },
+  );
+
+  return json({
+    ok: true,
+    shop_id: shopId,
+    plan: "trial",
+    expires_at: license.expires_at,
+    activated_at: license.activated_at,
   }, 200);
 }
 

@@ -4010,6 +4010,60 @@ abstract class AppLocalizations {
   /// **'\"{label}\" will be removed from your branch list. You can re-link it later with its key.'**
   String branchesUnlinkConfirmBody(String label);
 
+  /// No description provided for @onboardModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How will you use GoldPOSMM?'**
+  String get onboardModeTitle;
+
+  /// No description provided for @onboardModeOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get onboardModeOfflineTitle;
+
+  /// No description provided for @onboardModeOfflineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate with a license key. Works fully offline; no account needed.'**
+  String get onboardModeOfflineBody;
+
+  /// No description provided for @onboardModeOnlineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get onboardModeOnlineTitle;
+
+  /// No description provided for @onboardModeOnlineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a shop account with your email. Get a 2-month free trial, and manage staff and branches from Settings.'**
+  String get onboardModeOnlineBody;
+
+  /// No description provided for @onboardOnlineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your shop account'**
+  String get onboardOnlineTitle;
+
+  /// No description provided for @onboardOnlineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your shop name, email, and a password — that\'s all you need to get started with a 2-month free trial.'**
+  String get onboardOnlineBody;
+
+  /// No description provided for @onboardOnlineDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created. Your free trial has started.'**
+  String get onboardOnlineDone;
+
+  /// No description provided for @onboardOnlineCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create shop account'**
+  String get onboardOnlineCreateAccount;
+
   /// No description provided for @currencySymbol.
   ///
   /// In en, this message translates to:

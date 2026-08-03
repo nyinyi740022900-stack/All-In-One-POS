@@ -2137,5 +2137,36 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get onboardModeTitle => 'GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?';
+
+  @override
+  String get onboardModeOfflineTitle => 'Offline';
+
+  @override
+  String get onboardModeOfflineBody =>
+      'License Key နဲ့ Activate လုပ်ပါ။ Internet မလိုဘဲ အပြည့်အဝ အသုံးပြုနိုင်ပြီး Account မလိုပါ။';
+
+  @override
+  String get onboardModeOnlineTitle => 'Online';
+
+  @override
+  String get onboardModeOnlineBody =>
+      'Email နဲ့ ဆိုင် Account ဖန်တီးပါ။ 2လ အခမဲ့ စမ်းသုံးခွင့်ရမယ်၊ Settings ကနေ ဝန်ထမ်းနဲ့ ဆိုင်ခွဲတွေကို စီမံနိုင်ပါတယ်။';
+
+  @override
+  String get onboardOnlineTitle => 'ဆိုင် Account ဖန်တီးပါ';
+
+  @override
+  String get onboardOnlineBody =>
+      'ဆိုင်အမည်၊ Email နဲ့ Password ပဲ လိုပါတယ် — 2လ အခမဲ့ စမ်းသုံးခွင့်နဲ့ စတင်နိုင်ပါပြီ။';
+
+  @override
+  String get onboardOnlineDone =>
+      'Account ဖန်တီးပြီးပါပြီ။ အခမဲ့ စမ်းသုံးခွင့် စတင်ပါပြီ။';
+
+  @override
+  String get onboardOnlineCreateAccount => 'ဆိုင် Account ဖန်တီးမည်';
+
+  @override
   String get currencySymbol => 'ကျပ်';
 }

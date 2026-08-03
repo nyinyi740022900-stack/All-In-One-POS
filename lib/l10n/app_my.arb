@@ -726,5 +726,15 @@
   "branchesUnlinkConfirmBody": "\"{label}\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။",
   "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
 
+  "onboardModeTitle": "GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?",
+  "onboardModeOfflineTitle": "Offline",
+  "onboardModeOfflineBody": "License Key နဲ့ Activate လုပ်ပါ။ Internet မလိုဘဲ အပြည့်အဝ အသုံးပြုနိုင်ပြီး Account မလိုပါ။",
+  "onboardModeOnlineTitle": "Online",
+  "onboardModeOnlineBody": "Email နဲ့ ဆိုင် Account ဖန်တီးပါ။ 2လ အခမဲ့ စမ်းသုံးခွင့်ရမယ်၊ Settings ကနေ ဝန်ထမ်းနဲ့ ဆိုင်ခွဲတွေကို စီမံနိုင်ပါတယ်။",
+  "onboardOnlineTitle": "ဆိုင် Account ဖန်တီးပါ",
+  "onboardOnlineBody": "ဆိုင်အမည်၊ Email နဲ့ Password ပဲ လိုပါတယ် — 2လ အခမဲ့ စမ်းသုံးခွင့်နဲ့ စတင်နိုင်ပါပြီ။",
+  "onboardOnlineDone": "Account ဖန်တီးပြီးပါပြီ။ အခမဲ့ စမ်းသုံးခွင့် စတင်ပါပြီ။",
+  "onboardOnlineCreateAccount": "ဆိုင် Account ဖန်တီးမည်",
+
   "currencySymbol": "ကျပ်"
 }

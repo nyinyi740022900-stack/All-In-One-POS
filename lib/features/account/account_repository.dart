@@ -1,7 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
+import '../../data/repositories/settings_repository.dart';
+import '../license/license_model.dart';
 import '../license/license_repository.dart';
+import '../license/license_status.dart';
 
 /// Result of an account action (create shop login / invite staff), mirroring
 /// the shape of [ActivationResult] in `license_model.dart` but kept local
@@ -16,6 +19,17 @@ class AccountActionResult {
   const AccountActionResult.failure(this.error)
       : ok = false,
         userId = null;
+}
+
+/// Outcome of [AccountRepository.signupShop] — carries the freshly-minted
+/// [CachedLicense] on success so the caller can apply it via
+/// `LicenseController.applyExternal` (same pattern as a branch switch).
+class SignupResult {
+  final bool ok;
+  final String? error;
+  final CachedLicense? license;
+  const SignupResult.success(this.license) : ok = true, error = null;
+  const SignupResult.failure(this.error) : ok = false, license = null;
 }
 
 /// One invited staff account, as returned by listing `auth.users` for this
@@ -40,9 +54,10 @@ class StaffAccount {
 /// after a successful password sign-in, reusing that machinery as-is rather
 /// than duplicating it.
 class AccountRepository {
-  AccountRepository(this._licenseRepository);
+  AccountRepository(this._licenseRepository, this._settings);
 
   final LicenseRepository _licenseRepository;
+  final SettingsRepository _settings;
 
   bool get isSignedInWithRealAccount {
     final user = Supabase.instance.client.auth.currentUser;
@@ -95,6 +110,64 @@ class AccountRepository {
   }
 
   Future<void> signOut() => Supabase.instance.client.auth.signOut();
+
+  /// Mints a brand new shop from nothing (no prior device-key activation
+  /// needed) — the entry point for the "Online" onboarding path: a shop
+  /// name + email + password gets a fresh shop_id, a 2-month trial license
+  /// bound to this device, and a real owner login, all in one call
+  /// (`signup_shop`). Signs in with the new credentials directly afterward
+  /// (no `refreshSession()` dance — a fresh sign-in already carries the
+  /// right claims) and builds the resulting [CachedLicense] for the caller
+  /// to apply via `LicenseController.applyExternal`.
+  Future<SignupResult> signupShop(
+      String shopName, String email, String password) async {
+    if (!Env.hasBackend) return const SignupResult.failure('no_backend');
+    final deviceId = await _settings.deviceId();
+
+    Map<String, dynamic> data;
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {
+          'action': 'signup_shop',
+          'shop_name': shopName,
+          'email': email,
+          'password': password,
+          'device_id': deviceId,
+        },
+      );
+      data = res.data as Map<String, dynamic>;
+    } catch (_) {
+      return const SignupResult.failure('network_error');
+    }
+    if (data['ok'] != true) {
+      return SignupResult.failure(data['error'] as String?);
+    }
+    final expiresAtRaw = data['expires_at'] as String?;
+    if (expiresAtRaw == null) return const SignupResult.failure('server_error');
+
+    try {
+      await Supabase.instance.client.auth
+          .signInWithPassword(email: email, password: password);
+    } on AuthException catch (e) {
+      return SignupResult.failure(e.message);
+    } catch (_) {
+      return const SignupResult.failure('network_error');
+    }
+
+    final now = DateTime.now();
+    final lic = CachedLicense(
+      key: 'SIGNUP',
+      shopId: data['shop_id'] as String,
+      plan: LicensePlan.trial,
+      expiresAt: DateTime.parse(expiresAtRaw),
+      activatedAt: DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
+      lastVerifiedAt: now,
+      deviceId: deviceId,
+    );
+    await _licenseRepository.saveExternal(lic);
+    return SignupResult.success(lic);
+  }
 
   Future<AccountActionResult> createShopLogin(
       String email, String password) async {

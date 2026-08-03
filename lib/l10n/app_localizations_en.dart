@@ -2136,5 +2136,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get onboardModeTitle => 'How will you use GoldPOSMM?';
+
+  @override
+  String get onboardModeOfflineTitle => 'Offline';
+
+  @override
+  String get onboardModeOfflineBody =>
+      'Activate with a license key. Works fully offline; no account needed.';
+
+  @override
+  String get onboardModeOnlineTitle => 'Online';
+
+  @override
+  String get onboardModeOnlineBody =>
+      'Create a shop account with your email. Get a 2-month free trial, and manage staff and branches from Settings.';
+
+  @override
+  String get onboardOnlineTitle => 'Create your shop account';
+
+  @override
+  String get onboardOnlineBody =>
+      'Your shop name, email, and a password — that\'s all you need to get started with a 2-month free trial.';
+
+  @override
+  String get onboardOnlineDone =>
+      'Account created. Your free trial has started.';
+
+  @override
+  String get onboardOnlineCreateAccount => 'Create shop account';
+
+  @override
   String get currencySymbol => 'Ks';
 }
