@@ -86,6 +86,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellDiscount => 'လျှော့ဈေး';
 
   @override
+  String sellItemDiscountTitle(String item) {
+    return '$item အတွက် လျှော့ဈေး';
+  }
+
+  @override
   String get sellPaymentMethod => 'ငွေပေးချေမှုနည်းလမ်း';
 
   @override

@@ -86,6 +86,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellDiscount => 'Discount';
 
   @override
+  String sellItemDiscountTitle(String item) {
+    return 'Discount for $item';
+  }
+
+  @override
   String get sellPaymentMethod => 'Payment method';
 
   @override

@@ -77,6 +77,44 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     return 0;
   }
 
+  /// Opens a small dialog to set (or clear) a flat-Kyat discount on just
+  /// this one cart line — distinct from the order-level discount below,
+  /// which still applies on top.
+  Future<void> _editLineDiscount(CartLine line) async {
+    final l = AppLocalizations.of(context);
+    final controller =
+        TextEditingController(text: line.discount > 0 ? '${line.discount}' : '');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.sellItemDiscountTitle(line.product.name)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(labelText: l.sellDiscount),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim()) ?? 0;
+              ref
+                  .read(cartProvider.notifier)
+                  .setLineDiscount(line.product.id, value);
+              Navigator.of(dialogContext).pop();
+            },
+            child: Text(l.commonSave),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Amount tendered. Empty field means "paid in full" for a normal method, or
   /// "nothing down" for the credit method.
   int _resolvePaid(int total) {
@@ -201,6 +239,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                   line: line,
                   lineTotal: cart.lineTotalFor(line),
                   currency: currency,
+                  onDiscountTap: () => _editLineDiscount(line),
                   onInc: () {
                     final ok = ref.read(cartProvider.notifier).increment(
                           line.product.id,
@@ -410,6 +449,7 @@ class _CartLineTile extends StatelessWidget {
     required this.currency,
     required this.onInc,
     required this.onDec,
+    required this.onDiscountTap,
   });
 
   final CartLine line;
@@ -417,14 +457,25 @@ class _CartLineTile extends StatelessWidget {
   final String currency;
   final VoidCallback onInc;
   final VoidCallback onDec;
+  final VoidCallback onDiscountTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: Text(line.product.name)),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.sell_outlined,
+                color: line.discount > 0
+                    ? Theme.of(context).colorScheme.primary
+                    : null),
+            tooltip: AppLocalizations.of(context).sellDiscount,
+            onPressed: onDiscountTap,
+          ),
           IconButton(
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.remove_circle_outline),
@@ -438,9 +489,23 @@ class _CartLineTile extends StatelessWidget {
           ),
           SizedBox(
             width: 90,
-            child: Text(
-              lineTotal.withSymbol(currency),
-              textAlign: TextAlign.right,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  lineTotal.withSymbol(currency),
+                  textAlign: TextAlign.right,
+                ),
+                if (line.discount > 0)
+                  Text(
+                    '-${Money(line.discount).withSymbol(currency)}',
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Theme.of(context).colorScheme.error),
+                  ),
+              ],
             ),
           ),
         ],

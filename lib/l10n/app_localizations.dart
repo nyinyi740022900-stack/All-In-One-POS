@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Discount'**
   String get sellDiscount;
 
+  /// No description provided for @sellItemDiscountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount for {item}'**
+  String sellItemDiscountTitle(String item);
+
   /// No description provided for @sellPaymentMethod.
   ///
   /// In en, this message translates to:

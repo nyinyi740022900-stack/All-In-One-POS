@@ -30,6 +30,8 @@
   "sellCheckout": "Checkout",
   "sellSubtotal": "Subtotal",
   "sellDiscount": "Discount",
+  "sellItemDiscountTitle": "Discount for {item}",
+  "@sellItemDiscountTitle": { "placeholders": { "item": { "type": "String" } } },
   "sellPaymentMethod": "Payment method",
   "sellAmountPaid": "Amount paid",
   "sellChange": "Change",

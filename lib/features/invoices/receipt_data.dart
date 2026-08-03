@@ -18,6 +18,16 @@ enum PaperSize {
 /// printer loaded with A5 rather than the more common A4.
 enum PdfPaperSize { a4, a5 }
 
+/// A line item's own discount, recovered from what's already stored rather
+/// than needing its own column — `SaleItems.lineTotal` is written as
+/// `unitPrice * qty - lineDiscount` at sale time (see
+/// `CartState.lineTotalFor`), so the difference is exactly the discount.
+/// Never negative (a line total can't exceed unitPrice * qty).
+int lineDiscountOf({required int unitPrice, required int qty, required int lineTotal}) {
+  final d = unitPrice * qty - lineTotal;
+  return d > 0 ? d : 0;
+}
+
 class ReceiptLineItem {
   final String name;
   final int qty;

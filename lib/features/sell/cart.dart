@@ -14,15 +14,22 @@ int resolveUnitPrice(Product product, String? tier) {
   };
 }
 
-/// One line in the current sale.
+/// One line in the current sale. [discount] is a flat Kyat markdown on just
+/// this line — e.g. a damaged-item price cut or a per-product promo —
+/// distinct from [CartState.discount], which still applies on top of every
+/// line's own total.
 class CartLine {
   final Product product;
   final int qty;
+  final int discount;
 
-  const CartLine({required this.product, required this.qty});
+  const CartLine({required this.product, required this.qty, this.discount = 0});
 
-  CartLine copyWith({int? qty}) =>
-      CartLine(product: product, qty: qty ?? this.qty);
+  CartLine copyWith({int? qty, int? discount}) => CartLine(
+        product: product,
+        qty: qty ?? this.qty,
+        discount: discount ?? this.discount,
+      );
 }
 
 /// The in-progress sale: line items + an order-level discount (in kyat).
@@ -41,7 +48,10 @@ class CartState {
 
   Money unitPriceFor(CartLine line) =>
       Money(resolveUnitPrice(line.product, customerTier));
-  Money lineTotalFor(CartLine line) => unitPriceFor(line) * line.qty;
+  Money lineTotalFor(CartLine line) {
+    final t = unitPriceFor(line) * line.qty - Money(line.discount);
+    return t.isNegative ? Money.zero : t;
+  }
 
   Money get subtotal =>
       lines.fold(Money.zero, (s, l) => s + lineTotalFor(l));
@@ -118,6 +128,15 @@ class CartNotifier extends StateNotifier<CartState> {
 
   void setDiscount(int discount) =>
       state = state.copyWith(discount: discount < 0 ? 0 : discount);
+
+  void setLineDiscount(String productId, int discount) {
+    final clamped = discount < 0 ? 0 : discount;
+    final lines = state.lines
+        .map((l) =>
+            l.product.id == productId ? l.copyWith(discount: clamped) : l)
+        .toList();
+    state = state.copyWith(lines: lines);
+  }
 
   /// Sets (or clears, when [tier] is null) the tier prices resolve against.
   void setCustomerTier(String? tier) => state = state.copyWith(

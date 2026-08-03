@@ -29,6 +29,8 @@
   "sellCheckout": "ငွေရှင်း",
   "sellSubtotal": "ကုန်ကျ",
   "sellDiscount": "လျှော့ဈေး",
+  "sellItemDiscountTitle": "{item} အတွက် လျှော့ဈေး",
+  "@sellItemDiscountTitle": { "placeholders": { "item": { "type": "String" } } },
   "sellPaymentMethod": "ငွေပေးချေမှုနည်းလမ်း",
   "sellAmountPaid": "ပေးချေငွေ",
   "sellChange": "အ‌ကြွေ",

@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
 import '../printing/print_action.dart';
+import 'receipt_data.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
 import '../settings/device_label_providers.dart';
@@ -113,18 +114,37 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   s.deliveryAddress!.trim().isNotEmpty)
                 _row(context, l.orderDeliveryAddress, s.deliveryAddress!),
               const Divider(height: AppTheme.space5),
-              ...d.items.map((it) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                              '${it.nameSnapshot}\n${it.qty} x ${Money(it.priceSnapshot).formatted}'),
-                        ),
-                        Text(Money(it.lineTotal).withSymbol(currency)),
-                      ],
-                    ),
-                  )),
+              ...d.items.map((it) {
+                final itemDiscount = lineDiscountOf(
+                    unitPrice: it.priceSnapshot,
+                    qty: it.qty,
+                    lineTotal: it.lineTotal);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                            '${it.nameSnapshot}\n${it.qty} x ${Money(it.priceSnapshot).formatted}'),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(Money(it.lineTotal).withSymbol(currency)),
+                          if (itemDiscount > 0)
+                            Text(
+                              '-${Money(itemDiscount).withSymbol(currency)}',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.error),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
               const Divider(height: AppTheme.space5),
               _row(context, l.sellSubtotal,
                   Money(s.subtotal).withSymbol(currency)),

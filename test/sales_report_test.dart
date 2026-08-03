@@ -36,6 +36,24 @@ Sale _sale({
 }
 
 void main() {
+  group('lineDiscountOf', () {
+    test('zero when the line total matches unitPrice * qty exactly', () {
+      expect(
+          lineDiscountOf(unitPrice: 1000, qty: 2, lineTotal: 2000), 0);
+    });
+
+    test('positive when the line total is less than unitPrice * qty', () {
+      expect(
+          lineDiscountOf(unitPrice: 1000, qty: 2, lineTotal: 1800), 200);
+    });
+
+    test('never negative, even if lineTotal somehow exceeds unitPrice * qty',
+        () {
+      expect(
+          lineDiscountOf(unitPrice: 1000, qty: 1, lineTotal: 1500), 0);
+    });
+  });
+
   group('buildSalesReport', () {
     test('projects sales newest-first with a net total', () {
       final sales = [

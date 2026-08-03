@@ -63,6 +63,11 @@ class ReceiptFormatter {
       out.addAll(_wrap(it.name));
       out.add(_two('  ${it.qty} x ${_money.format(it.unitPrice)}',
           _amt(it.lineTotal)));
+      final itemDiscount = lineDiscountOf(
+          unitPrice: it.unitPrice, qty: it.qty, lineTotal: it.lineTotal);
+      if (itemDiscount > 0) {
+        out.add(_two('  ${labels.discount}', '-${_amt(itemDiscount)}'));
+      }
     }
     out.add(_divider());
 
