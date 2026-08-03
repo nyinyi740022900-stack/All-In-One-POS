@@ -730,6 +730,13 @@
   "branchesUnlinkConfirmBody": "\"{label}\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။",
   "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
 
+  "pricingTierTitle": "ဈေးနှုန်း အမျိုးအစား",
+  "pricingTierOffline": "Offline ဈေးနှုန်း",
+  "pricingTierOnline": "Online ဈေးနှုန်း",
+  "pricingTierSwitchToOnline": "Online သို့ ပြောင်းမည်",
+  "pricingTierSwitchToOffline": "Offline သို့ ပြောင်းမည်",
+  "pricingTierConfirmBody": "ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။",
+
   "onboardModeTitle": "GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "License Key နဲ့ Activate လုပ်ပါ။ Internet မလိုဘဲ အပြည့်အဝ အသုံးပြုနိုင်ပြီး Account မလိုပါ။",

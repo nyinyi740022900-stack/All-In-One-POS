@@ -80,7 +80,7 @@ class _RequestsTab extends StatelessWidget {
             color: fulfilled ? Colors.green : Colors.orange,
           ),
           title: Text(
-              '${r['shop_name']}  ·  ${r['amount']} Ks  ·  ${r['method']}  ·  ${r['months']} mo'),
+              '${r['shop_name']}  ·  ${r['amount']} Ks  ·  ${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}'),
           subtitle: Text(
               'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
               'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'

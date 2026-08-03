@@ -4034,6 +4034,42 @@ abstract class AppLocalizations {
   /// **'\"{label}\" will be removed from your branch list. You can re-link it later with its key.'**
   String branchesUnlinkConfirmBody(String label);
 
+  /// No description provided for @pricingTierTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pricing tier'**
+  String get pricingTierTitle;
+
+  /// No description provided for @pricingTierOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline pricing'**
+  String get pricingTierOffline;
+
+  /// No description provided for @pricingTierOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online pricing'**
+  String get pricingTierOnline;
+
+  /// No description provided for @pricingTierSwitchToOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to Online'**
+  String get pricingTierSwitchToOnline;
+
+  /// No description provided for @pricingTierSwitchToOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to Offline'**
+  String get pricingTierSwitchToOffline;
+
+  /// No description provided for @pricingTierConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.'**
+  String get pricingTierConfirmBody;
+
   /// No description provided for @onboardModeTitle.
   ///
   /// In en, this message translates to:

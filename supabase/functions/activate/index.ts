@@ -59,6 +59,13 @@
 //                                                 shop to already exist; the
 //                                                 client signs in with the
 //                                                 new credentials itself
+//   set_tier { tier }                          -> owner-role caller
+//                                                 self-service switches
+//                                                 their OWN shop's pricing
+//                                                 tier ('offline'/'online');
+//                                                 affects the *suggested*
+//                                                 renewal price only, never
+//                                                 shop_id/session/data
 //
 // activate flow:
 //  1. Authenticate the caller (anonymous or otherwise) from the JWT.
@@ -105,6 +112,7 @@ Deno.serve(async (req) => {
     label?: string;
     shop_id?: string;
     shop_name?: string;
+    tier?: string;
   };
   try {
     body = await req.json();
@@ -171,6 +179,9 @@ Deno.serve(async (req) => {
       body.password ?? "",
       body.device_id ?? "",
     );
+  }
+  if (action === "set_tier") {
+    return handleSetTier(admin, userData.user, body.tier ?? "");
   }
 
   const key = (body.key ?? "").trim();
@@ -282,6 +293,33 @@ function roleOf(user: SupabaseUser): string | null {
 // (not the caller's own anonymous one) with role: 'owner', so the shop can
 // keep using its existing anonymous/device sessions unaffected while also
 // gaining a real email+password login.
+// Owner-role only. Self-service: switches the CALLER's OWN shop between
+// 'offline'/'online' pricing tier. Never touches shop_id, the caller's
+// session, or any local data — this only changes which price is suggested
+// on the next renewal request (the amount field there stays user-editable
+// and admin-reviewed either way, so this isn't a new abuse surface).
+async function handleSetTier(
+  admin: AdminClient,
+  user: SupabaseUser,
+  tier: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+  if (tier !== "offline" && tier !== "online") {
+    return json({ ok: false, error: "bad_request" }, 400);
+  }
+
+  const { error } = await admin
+    .from("licenses")
+    .update({ tier, updated_at: new Date().toISOString() })
+    .eq("shop_id", shopId);
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+  return json({ ok: true, tier }, 200);
+}
+
 async function handleCreateShopLogin(
   admin: AdminClient,
   user: SupabaseUser,

@@ -142,6 +142,31 @@ class AccountRepository {
 
   Future<void> signOut() => Supabase.instance.client.auth.signOut();
 
+  /// Self-service switches the shop's pricing tier ('offline'/'online') —
+  /// affects only the *suggested* price on the next renewal request, never
+  /// `shopId`/session/local data, so no wipe/resync is needed. The caller
+  /// applies the returned [AccountActionResult.license] via
+  /// `LicenseController.applyExternal`.
+  Future<AccountActionResult> setPricingTier(String tier) async {
+    if (!Env.hasBackend) return const AccountActionResult.failure('no_backend');
+    Map<String, dynamic> data;
+    try {
+      final res = await Supabase.instance.client.functions
+          .invoke('activate', body: {'action': 'set_tier', 'tier': tier});
+      data = res.data as Map<String, dynamic>;
+    } catch (_) {
+      return const AccountActionResult.failure('network_error');
+    }
+    if (data['ok'] != true) {
+      return AccountActionResult.failure(data['error'] as String?);
+    }
+    final current = await _licenseRepository.current();
+    if (current == null) return const AccountActionResult.failure('not_activated');
+    final updated = current.copyWith(tier: tier);
+    await _licenseRepository.saveExternal(updated);
+    return AccountActionResult.success(null, license: updated);
+  }
+
   /// Mints a brand new shop from nothing (no prior device-key activation
   /// needed) — the entry point for the "Online" onboarding path: a shop
   /// name + email + password gets a fresh shop_id, a 2-month trial license

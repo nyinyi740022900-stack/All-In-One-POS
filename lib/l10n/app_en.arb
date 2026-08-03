@@ -734,6 +734,13 @@
   "branchesUnlinkConfirmBody": "\"{label}\" will be removed from your branch list. You can re-link it later with its key.",
   "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
 
+  "pricingTierTitle": "Pricing tier",
+  "pricingTierOffline": "Offline pricing",
+  "pricingTierOnline": "Online pricing",
+  "pricingTierSwitchToOnline": "Switch to Online",
+  "pricingTierSwitchToOffline": "Switch to Offline",
+  "pricingTierConfirmBody": "This changes the suggested price on your next renewal request only — it doesn't affect your current plan or anything already paid.",
+
   "onboardModeTitle": "How will you use GoldPOSMM?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "Activate with a license key. Works fully offline; no account needed.",

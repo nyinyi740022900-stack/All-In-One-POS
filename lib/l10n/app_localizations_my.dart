@@ -2151,6 +2151,25 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get pricingTierTitle => 'ဈေးနှုန်း အမျိုးအစား';
+
+  @override
+  String get pricingTierOffline => 'Offline ဈေးနှုန်း';
+
+  @override
+  String get pricingTierOnline => 'Online ဈေးနှုန်း';
+
+  @override
+  String get pricingTierSwitchToOnline => 'Online သို့ ပြောင်းမည်';
+
+  @override
+  String get pricingTierSwitchToOffline => 'Offline သို့ ပြောင်းမည်';
+
+  @override
+  String get pricingTierConfirmBody =>
+      'ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။';
+
+  @override
   String get onboardModeTitle => 'GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?';
 
   @override

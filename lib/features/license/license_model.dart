@@ -77,6 +77,7 @@ class CachedLicense {
     DateTime? lastVerifiedAt,
     DateTime? expiresAt,
     bool? realtimeEnabled,
+    String? tier,
   }) =>
       CachedLicense(
         key: key,
@@ -87,7 +88,7 @@ class CachedLicense {
         lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
         deviceId: deviceId,
         realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
-        tier: tier,
+        tier: tier ?? this.tier,
       );
 }
 

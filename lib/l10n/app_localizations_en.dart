@@ -2150,6 +2150,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pricingTierTitle => 'Pricing tier';
+
+  @override
+  String get pricingTierOffline => 'Offline pricing';
+
+  @override
+  String get pricingTierOnline => 'Online pricing';
+
+  @override
+  String get pricingTierSwitchToOnline => 'Switch to Online';
+
+  @override
+  String get pricingTierSwitchToOffline => 'Switch to Offline';
+
+  @override
+  String get pricingTierConfirmBody =>
+      'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.';
+
+  @override
   String get onboardModeTitle => 'How will you use GoldPOSMM?';
 
   @override

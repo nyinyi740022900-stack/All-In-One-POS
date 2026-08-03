@@ -101,6 +101,7 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (_) => const BranchesScreen(),
               )),
             ),
+            _PricingTierTile(),
           ],
           _ReferralTile(),
           ListTile(
@@ -305,6 +306,63 @@ class _LicenseTile extends ConsumerWidget {
         builder: (_) => const LicenseScreen(),
       )),
     );
+  }
+}
+
+/// Self-service switch between Offline/Online pricing tier — fixed at
+/// shop-creation time otherwise (see `CachedLicense.tier`), so a shop that
+/// wants to actually change which price applies needs this. Only affects
+/// the *suggested* amount on the next renewal request, never shopId/data.
+class _PricingTierTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final tier = ref.watch(licenseControllerProvider).license?.tier ?? 'offline';
+    final isOnline = tier == 'online';
+    final otherTier = isOnline ? 'offline' : 'online';
+    return ListTile(
+      leading: const Icon(Icons.price_change_outlined),
+      title: Text(l.pricingTierTitle),
+      subtitle: Text(isOnline ? l.pricingTierOnline : l.pricingTierOffline),
+      trailing: TextButton(
+        onPressed: () => _confirmSwitch(context, ref, otherTier),
+        child: Text(otherTier == 'online'
+            ? l.pricingTierSwitchToOnline
+            : l.pricingTierSwitchToOffline),
+      ),
+    );
+  }
+
+  Future<void> _confirmSwitch(
+      BuildContext context, WidgetRef ref, String newTier) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(newTier == 'online'
+            ? l.pricingTierSwitchToOnline
+            : l.pricingTierSwitchToOffline),
+        content: Text(l.pricingTierConfirmBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.commonOk)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final result =
+        await ref.read(accountRepositoryProvider).setPricingTier(newTier);
+    if (!context.mounted) return;
+    if (result.ok && result.license != null) {
+      ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+    }
   }
 }
 
