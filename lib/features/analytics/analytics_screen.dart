@@ -59,7 +59,7 @@ class AnalyticsScreen extends ConsumerWidget {
           Expanded(
             child: summary.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('$e')),
+              error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
               data: (s) => _Dashboard(summary: s, trackStock: trackStock),
             ),
           ),

@@ -211,9 +211,25 @@ class _PurchaseOrderEditorScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() => _lines.remove(line));
-              Navigator.pop(ctx, false);
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: ctx,
+                builder: (ctx2) => AlertDialog(
+                  title: Text(l.poRemoveLineConfirmTitle),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx2, false),
+                        child: Text(l.commonCancel)),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(ctx2, true),
+                        child: Text(l.commonDelete)),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                setState(() => _lines.remove(line));
+                if (ctx.mounted) Navigator.pop(ctx, false);
+              }
             },
             child: Text(l.commonDelete,
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),

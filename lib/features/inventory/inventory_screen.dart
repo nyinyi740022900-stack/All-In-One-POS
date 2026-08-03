@@ -86,7 +86,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }
 
@@ -155,7 +155,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           Expanded(
             child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (_) {
           if (products.isEmpty) {
             final searching =

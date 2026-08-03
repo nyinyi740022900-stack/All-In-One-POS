@@ -1,8 +1,13 @@
 // Edge Function: grant (or return) a device's one free trial.
 //
-// Server-side so the trial can't be farmed by reinstalling: the trial license
-// is keyed to the device id. Also stamps app_metadata.shop_id so the trial
-// user's data syncs under shop-isolation RLS (same as `activate`).
+// Server-side so a SAME device_id can't get a second trial by reinstalling —
+// the trial license is keyed to the device id. This is a weaker guarantee
+// than it might sound: device_id is a client-generated/persisted value, not
+// a hardware fingerprint, so clearing app data / reinstalling with a fresh
+// generated id yields a brand-new device_id and a fresh trial. A known,
+// accepted limitation, not a gap this function is meant to close on its own.
+// Also stamps app_metadata.shop_id so the trial user's data syncs under
+// shop-isolation RLS (same as `activate`).
 //
 // Deploy: supabase functions deploy start_trial
 

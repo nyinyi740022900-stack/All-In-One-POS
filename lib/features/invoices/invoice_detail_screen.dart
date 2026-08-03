@@ -61,7 +61,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.invoiceDetail)),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (d) {
           final s = d.sale;
           final isRefund = s.refundOfSaleId != null;

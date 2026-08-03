@@ -27,6 +27,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get navSettings => 'ဆက်တင်';
 
   @override
+  String get commonUnexpectedError =>
+      'တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားပေးပါ။';
+
+  @override
   String get commonSave => 'သိမ်းမည်';
 
   @override
@@ -428,6 +432,9 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get poNoItems =>
       'ပစ္စည်း မထည့်ရသေးပါ — Product ထည့်ဖို့ + ကို နှိပ်ပါ။';
+
+  @override
+  String get poRemoveLineConfirmTitle => 'ဒီ item ကို draft ထဲကနေ ဖယ်မလား?';
 
   @override
   String get poUnitCost => 'တစ်ခုချင်း ဝယ်ဈေး';

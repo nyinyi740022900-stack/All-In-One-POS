@@ -91,6 +91,23 @@ void main() {
     expect(row?.value, 'dev-123');
   });
 
+  test('restored rows are enqueued to the outbox, not just written locally',
+      () async {
+    await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 10);
+    final snapshot = await backup.exportJson();
+
+    // Drain the outbox from the seed mutation so only the restore's own
+    // enqueues are counted below.
+    await db.delete(db.outbox).go();
+
+    await backup.importReplaceAll(snapshot);
+
+    final outbox = await db.select(db.outbox).get();
+    expect(outbox, isNotEmpty);
+    expect(outbox.any((o) => o.entityTable == 'products'), isTrue);
+    expect(outbox.every((o) => o.op == 'upsert'), isTrue);
+  });
+
   test('rejects a non-MM-POS file', () async {
     expect(
       () => backup.importReplaceAll('{"app":"something-else"}'),

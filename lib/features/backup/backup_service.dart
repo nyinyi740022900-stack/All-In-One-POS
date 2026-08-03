@@ -86,6 +86,13 @@ class BackupService {
   /// Restores a backup, **replacing** all business data. Device settings,
   /// license, and the outbox are left untouched. Runs in one transaction so a
   /// bad file can never leave a half-restored database. Returns rows written.
+  ///
+  /// Every restored row is stamped with a fresh `updatedAt` and re-enqueued
+  /// to the outbox — restoring is itself a write. Without this, the restore
+  /// would only ever be local: the next sync pull could silently overwrite
+  /// it with whatever's still on the server (last-write-wins on the
+  /// backup's old timestamps), and other devices on this shop would never
+  /// see it at all.
   Future<int> importReplaceAll(String jsonStr) async {
     final decoded = jsonDecode(jsonStr);
     if (decoded is! Map || decoded['app'] != 'mm_pos') {
@@ -98,6 +105,7 @@ class BackupService {
             .toList();
 
     var written = 0;
+    final now = DateTime.now();
     await _db.transaction(() async {
       // Clear existing business data (no FKs, so order is irrelevant).
       await _db.delete(_db.saleItems).go();
@@ -112,46 +120,80 @@ class BackupService {
       await _db.delete(_db.expenses).go();
 
       for (final m in rows('categories')) {
-        await _db.into(_db.categories).insert(Category.fromJson(m));
+        final row = Category.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.categories).insert(row);
+        await _enqueue('categories', row.id, row.toJson());
         written++;
       }
       for (final m in rows('products')) {
-        await _db.into(_db.products).insert(Product.fromJson(m));
+        final row = Product.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.products).insert(row);
+        await _enqueue('products', row.id, row.toJson());
         written++;
       }
       for (final m in rows('stock_levels')) {
-        await _db.into(_db.stockLevels).insert(StockLevel.fromJson(m));
+        final row =
+            StockLevel.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.stockLevels).insert(row);
+        await _enqueue('stock_levels', row.id, row.toJson());
         written++;
       }
       for (final m in rows('stock_movements')) {
-        await _db.into(_db.stockMovements).insert(StockMovement.fromJson(m));
+        final row =
+            StockMovement.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.stockMovements).insert(row);
+        await _enqueue('stock_movements', row.id, row.toJson());
         written++;
       }
       for (final m in rows('sales')) {
-        await _db.into(_db.sales).insert(Sale.fromJson(m));
+        final row = Sale.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.sales).insert(row);
+        await _enqueue('sales', row.id, row.toJson());
         written++;
       }
       for (final m in rows('sale_items')) {
-        await _db.into(_db.saleItems).insert(SaleItem.fromJson(m));
+        final row = SaleItem.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.saleItems).insert(row);
+        await _enqueue('sale_items', row.id, row.toJson());
         written++;
       }
       for (final m in rows('payments')) {
-        await _db.into(_db.payments).insert(Payment.fromJson(m));
+        final row = Payment.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.payments).insert(row);
+        await _enqueue('payments', row.id, row.toJson());
         written++;
       }
       for (final m in rows('credit_payments')) {
-        await _db.into(_db.creditPayments).insert(CreditPayment.fromJson(m));
+        final row =
+            CreditPayment.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.creditPayments).insert(row);
+        await _enqueue('credit_payments', row.id, row.toJson());
         written++;
       }
       for (final m in rows('license_payments')) {
-        await _db.into(_db.licensePayments).insert(LicensePayment.fromJson(m));
+        final row =
+            LicensePayment.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.licensePayments).insert(row);
+        await _enqueue('license_payments', row.id, row.toJson());
         written++;
       }
       for (final m in rows('expenses')) {
-        await _db.into(_db.expenses).insert(Expense.fromJson(m));
+        final row = Expense.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.expenses).insert(row);
+        await _enqueue('expenses', row.id, row.toJson());
         written++;
       }
     });
     return written;
+  }
+
+  Future<void> _enqueue(
+      String table, String rowId, Map<String, dynamic> payload) {
+    return _db.into(_db.outbox).insert(OutboxCompanion.insert(
+          entityTable: table,
+          rowId: rowId,
+          op: 'upsert',
+          payload: jsonEncode(payload),
+        ));
   }
 }

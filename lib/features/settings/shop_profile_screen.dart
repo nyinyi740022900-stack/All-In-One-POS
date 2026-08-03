@@ -82,8 +82,8 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       if (mounted) setState(() => _logoUrl = url);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _uploadingLogo = false);
@@ -123,7 +123,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       appBar: AppBar(title: Text(l.settingsShop)),
       body: profile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (p) {
           _hydrate(p);
           return Form(

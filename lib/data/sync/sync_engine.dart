@@ -34,17 +34,43 @@ class SupabaseSyncRemote implements SyncRemote {
     }).eq('id', id);
   }
 
+  // Page size kept well under PostgREST's default `max_rows` (commonly
+  // 1000) so a single page is never itself silently truncated by the server.
+  static const _pageSize = 500;
+
   @override
   Future<List<Map<String, dynamic>>> fetchChanges(
       String table, String shopId, DateTime? since) async {
-    final filter = _client.from(table).select().eq('shop_id', shopId);
-    final scoped = since != null
-        ? filter.gt('updated_at', since.toUtc().toIso8601String())
-        : filter;
-    final rows = await scoped.order('updated_at', ascending: true);
-    return (rows as List)
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
+    // Two changes to the same or different rows within the same second get
+    // an identical `updated_at` — Drift's DateTimeColumn stores it as whole
+    // Unix seconds, so app-level microsecond timestamps are truncated on
+    // write. A strict `gt` cursor filter would then permanently drop
+    // whichever tied row lands exactly on the next pull's cursor boundary
+    // (its `updated_at` can never be "after" a cursor equal to itself).
+    // Using an inclusive `gte` instead means a boundary row may be re-fetched
+    // on the following pull, but every `upsertLocal` mapper already no-ops a
+    // row it has already applied (LWW / already-seen-id checks), so the
+    // redundant re-fetch is a harmless, bounded cost — not a correctness
+    // problem — and cursor advancement still only happens once a strictly
+    // newer row actually arrives.
+    final all = <Map<String, dynamic>>[];
+    var offset = 0;
+    while (true) {
+      final filter = _client.from(table).select().eq('shop_id', shopId);
+      final scoped = since != null
+          ? filter.gte('updated_at', since.toUtc().toIso8601String())
+          : filter;
+      final page = await scoped
+          .order('updated_at', ascending: true)
+          .range(offset, offset + _pageSize - 1);
+      final rows = (page as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      all.addAll(rows);
+      if (rows.length < _pageSize) break;
+      offset += _pageSize;
+    }
+    return all;
   }
 }
 
@@ -120,17 +146,40 @@ class SyncEngine {
     var count = 0;
     for (final def in tables) {
       final since = await settings.syncCursor(def.name);
+      final seenAtCursor = await settings.syncCursorTieIds(def.name);
       final changes = await remote.fetchChanges(def.name, shopId, since);
 
       DateTime? maxSeen = since;
       for (final row in changes) {
+        final rowId = row['id'] as String;
+        final rowUpdated = DateTime.parse(row['updated_at'] as String).toLocal();
+        // Already applied this exact row the last time the cursor sat on
+        // this same timestamp — the inclusive pull filter re-fetches it,
+        // but it must not be re-applied or re-counted.
+        if (since != null &&
+            rowUpdated.isAtSameMomentAs(since) &&
+            seenAtCursor.contains(rowId)) {
+          continue;
+        }
         await def.upsertLocal(db, row);
-        final u = DateTime.parse(row['updated_at'] as String).toLocal();
-        if (maxSeen == null || u.isAfter(maxSeen)) maxSeen = u;
         count++;
+        if (maxSeen == null || rowUpdated.isAfter(maxSeen)) maxSeen = rowUpdated;
       }
-      if (maxSeen != null && (since == null || maxSeen.isAfter(since))) {
-        await settings.setSyncCursor(def.name, maxSeen);
+
+      if (maxSeen != null) {
+        final idsAtMax = changes
+            .where((r) => DateTime.parse(r['updated_at'] as String)
+                .toLocal()
+                .isAtSameMomentAs(maxSeen!))
+            .map((r) => r['id'] as String)
+            .toSet();
+        if (since == null || maxSeen.isAfter(since)) {
+          await settings.setSyncCursor(def.name, maxSeen);
+          await settings.setSyncCursorTieIds(def.name, idsAtMax);
+        } else if (idsAtMax.difference(seenAtCursor).isNotEmpty) {
+          await settings.setSyncCursorTieIds(
+              def.name, {...seenAtCursor, ...idsAtMax});
+        }
       }
     }
     return count;

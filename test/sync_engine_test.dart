@@ -26,12 +26,14 @@ class FakeSyncRemote implements SyncRemote {
   @override
   Future<List<Map<String, dynamic>>> fetchChanges(
       String table, String shopId, DateTime? since) async {
+    // Inclusive (>=), matching SupabaseSyncRemote's `gte` filter — see its
+    // doc comment for why the pull filter can't be a strict `gt`.
     final rows = (store[table] ?? {})
         .values
         .where((r) =>
             r['shop_id'] == shopId &&
             (since == null ||
-                DateTime.parse(r['updated_at'] as String).isAfter(since)))
+                !DateTime.parse(r['updated_at'] as String).isBefore(since)))
         .map((e) => Map<String, dynamic>.from(e))
         .toList()
       ..sort((a, b) => DateTime.parse(a['updated_at'] as String)
@@ -150,6 +152,34 @@ void main() {
     // Nothing changed remotely -> second sync pulls zero.
     final second = await engine.syncNow();
     expect(second.pulled, 0);
+  });
+
+  test(
+      'a second row landing at the exact same updated_at as the cursor is '
+      'still picked up on the next pull, not silently dropped', () async {
+    // Same instant: Drift's DateTimeColumn truncates to whole seconds, so
+    // two changes within the same second are indistinguishable — a strict
+    // `gt` cursor filter would permanently drop whichever one lands here.
+    final tiedInstant = DateTime.now();
+    remote.store['products'] = {
+      'p1': remoteProduct('p1', name: 'First', updatedAt: tiedInstant),
+    };
+    final first = await engine.syncNow();
+    expect(first.pulled, greaterThanOrEqualTo(1));
+
+    // A second row appears later in wall time but happens to round to the
+    // exact same `updated_at` the cursor now sits on.
+    remote.store['products']!['p2'] =
+        remoteProduct('p2', name: 'Second', updatedAt: tiedInstant);
+    final second = await engine.syncNow();
+    expect(second.pulled, 1);
+
+    final local = await inventory.watchProducts().first;
+    expect(local.map((p) => p.product.name), containsAll(['First', 'Second']));
+
+    // A third sync with nothing new doesn't re-pull either tied row again.
+    final third = await engine.syncNow();
+    expect(third.pulled, 0);
   });
 
   test('a failing row does not block later outbox items', () async {

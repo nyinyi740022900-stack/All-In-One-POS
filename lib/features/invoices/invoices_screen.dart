@@ -55,7 +55,7 @@ class InvoicesScreen extends ConsumerWidget {
       ),
       body: sales.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (all) {
           var list = filter == InvoiceFilter.credit
               ? all.where((s) => owedOf(s) > 0).toList()

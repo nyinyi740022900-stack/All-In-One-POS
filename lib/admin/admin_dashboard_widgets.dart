@@ -109,6 +109,29 @@ class _ReferralsTab extends StatelessWidget {
   final List<Map<String, dynamic>> referrals;
   final Future<void> Function(String shopId) onApplyCredit;
 
+  Future<void> _confirmApplyCredit(
+      BuildContext context, String shopId, int balance) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apply referral credit?'),
+        content: Text(
+            'Converts as much of $shopId\'s $balance Ks referral balance as '
+            'covers full months into a license extension for that shop, and '
+            'deducts it from their balance. This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Apply')),
+        ],
+      ),
+    );
+    if (ok == true) await onApplyCredit(shopId);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (commissions.isEmpty && referrals.isEmpty) {
@@ -147,7 +170,7 @@ class _ReferralsTab extends StatelessWidget {
               subtitle: Text(
                   '${counts[sid]} payment(s)  ·  earned ${earned[sid]} Ks'),
               trailing: FilledButton(
-                onPressed: () => onApplyCredit(sid),
+                onPressed: () => _confirmApplyCredit(context, sid, earned[sid] ?? 0),
                 child: const Text('Apply credit'),
               ),
             ),
@@ -361,10 +384,14 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
 
 class _CodePromptDialog extends StatefulWidget {
   const _CodePromptDialog(
-      {required this.title, required this.label, required this.action});
+      {required this.title,
+      required this.label,
+      required this.action,
+      this.warning});
   final String title;
   final String label;
   final String action;
+  final String? warning;
   @override
   State<_CodePromptDialog> createState() => _CodePromptDialogState();
 }
@@ -381,10 +408,21 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.title),
-      content: TextField(
-        controller: _code,
-        autofocus: true,
-        decoration: InputDecoration(labelText: widget.label),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _code,
+            autofocus: true,
+            decoration: InputDecoration(labelText: widget.label),
+          ),
+          if (widget.warning != null) ...[
+            const SizedBox(height: 8),
+            Text(widget.warning!,
+                style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          ],
+        ],
       ),
       actions: [
         TextButton(
@@ -612,6 +650,30 @@ class _DeliveryTab extends StatelessWidget {
     if (result != null) await onSave(result);
   }
 
+  Future<void> _confirmDelete(
+      BuildContext context, Map<String, dynamic> row) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${_carrierLabel(row['carrier'] as String?)}?'),
+        content: const Text(
+            'This removes the stored API credentials for this carrier. '
+            'Any storefront order already using it is unaffected, but new '
+            'orders can no longer be handed off to it until reconfigured. '
+            'This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) await onDelete(row['id'] as String);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -668,7 +730,7 @@ class _DeliveryTab extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.delete_outline,
                                 color: Colors.red),
-                            onPressed: () => onDelete(r['id'] as String),
+                            onPressed: () => _confirmDelete(context, r),
                           ),
                         ],
                       ),

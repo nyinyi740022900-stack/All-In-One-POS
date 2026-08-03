@@ -261,8 +261,8 @@ class OrderDetailSheet extends ConsumerWidget {
       await printOrderInvoice(context, ref, o, items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     }
   }
@@ -273,8 +273,8 @@ class OrderDetailSheet extends ConsumerWidget {
       await shareOrderInvoice(context, ref, o, items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     }
   }

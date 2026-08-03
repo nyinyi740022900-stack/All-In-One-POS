@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../local/database.dart';
+
+const _syncMappersUuid = Uuid();
 
 /// Describes how one table is serialized to Supabase and merged back.
 ///
@@ -252,6 +255,14 @@ final _stockLevels = SyncTableDef(
       'is_deleted': r.isDeleted,
     };
   },
+  // `quantity` is a counter — CLAUDE.md explicitly forbids syncing a counter
+  // as an absolute last-write-wins value (two offline devices selling the
+  // same product would have one's decrement silently clobber the other's on
+  // whichever pushes last). This device's own `quantity` is instead
+  // reconciled purely from `stock_movements` deltas (see `_stockMovements`
+  // below, the append-only, conflict-safe source of truth) — a pulled
+  // `stock_levels` row only ever updates `reorder_level` (a real per-shop
+  // setting, safe under LWW) and identity/tombstone fields.
   upsertLocal: (db, m) async {
     final id = m['id'] as String;
     final updated = _dt(m['updated_at']);
@@ -262,7 +273,6 @@ final _stockLevels = SyncTableDef(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
           productId: Value(m['product_id'] as String),
-          quantity: Value(_int(m['quantity'])),
           reorderLevel: Value(_int(m['reorder_level'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
@@ -296,26 +306,63 @@ final _stockMovements = SyncTableDef(
   upsertLocal: (db, m) async {
     final id = m['id'] as String;
     final updated = _dt(m['updated_at']);
-    final local =
-        await (db.select(db.stockMovements)..where((t) => t.id.equals(id)))
+    await db.transaction(() async {
+      final local =
+          await (db.select(db.stockMovements)..where((t) => t.id.equals(id)))
+              .getSingleOrNull();
+      if (local != null && !local.updatedAt.isBefore(updated)) return;
+      // A movement never seen on this device before originated on ANOTHER
+      // device — reconcile the cached `stock_levels.quantity` by applying its
+      // delta now, exactly once. A movement this device created itself
+      // already applied its delta at creation time (see
+      // InventoryRepository.adjustStock/finalizeSale/etc.), so `local` being
+      // non-null (already present, e.g. echoed back after a push) means
+      // "already accounted for" and must NOT be re-applied.
+      final isNewMovement = local == null;
+      await db
+          .into(db.stockMovements)
+          .insertOnConflictUpdate(StockMovementsCompanion(
+            id: Value(id),
+            shopId: Value(m['shop_id'] as String),
+            productId: Value(m['product_id'] as String),
+            type: Value(m['type'] as String),
+            qtyDelta: Value(_int(m['qty_delta'])),
+            unitCost: Value(_int(m['unit_cost'])),
+            refId: Value(m['ref_id'] as String?),
+            note: Value(m['note'] as String?),
+            createdAt: Value(_dt(m['created_at'])),
+            updatedAt: Value(updated),
+            isDeleted: Value(_bool(m['is_deleted'])),
+            dirty: const Value(false),
+          ));
+
+      if (isNewMovement && !_bool(m['is_deleted'])) {
+        final productId = m['product_id'] as String;
+        final shopId = m['shop_id'] as String;
+        final delta = _int(m['qty_delta']);
+        final existingLevel = await (db.select(db.stockLevels)
+              ..where((t) =>
+                  t.productId.equals(productId) & t.shopId.equals(shopId)))
             .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
-    await db
-        .into(db.stockMovements)
-        .insertOnConflictUpdate(StockMovementsCompanion(
-          id: Value(id),
-          shopId: Value(m['shop_id'] as String),
-          productId: Value(m['product_id'] as String),
-          type: Value(m['type'] as String),
-          qtyDelta: Value(_int(m['qty_delta'])),
-          unitCost: Value(_int(m['unit_cost'])),
-          refId: Value(m['ref_id'] as String?),
-          note: Value(m['note'] as String?),
-          createdAt: Value(_dt(m['created_at'])),
-          updatedAt: Value(updated),
-          isDeleted: Value(_bool(m['is_deleted'])),
-          dirty: const Value(false),
-        ));
+        final now = DateTime.now();
+        if (existingLevel != null) {
+          await (db.update(db.stockLevels)
+                ..where((t) => t.id.equals(existingLevel.id)))
+              .write(StockLevelsCompanion(
+            quantity: Value(existingLevel.quantity + delta),
+            updatedAt: Value(now),
+            dirty: const Value(true),
+          ));
+        } else {
+          await db.into(db.stockLevels).insert(StockLevelsCompanion.insert(
+                id: _syncMappersUuid.v4(),
+                shopId: shopId,
+                productId: productId,
+                quantity: Value(delta),
+              ));
+        }
+      }
+    });
   },
 );
 

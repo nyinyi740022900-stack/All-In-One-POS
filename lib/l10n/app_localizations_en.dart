@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navSettings => 'Settings';
 
   @override
+  String get commonUnexpectedError => 'Something went wrong. Please try again.';
+
+  @override
   String get commonSave => 'Save';
 
   @override
@@ -433,6 +436,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get poNoItems => 'No items added yet — tap + to add a product.';
+
+  @override
+  String get poRemoveLineConfirmTitle => 'Remove this item from the draft?';
 
   @override
   String get poUnitCost => 'Unit cost';

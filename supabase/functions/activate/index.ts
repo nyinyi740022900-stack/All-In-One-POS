@@ -38,7 +38,12 @@
 //                                                 so it also renames —
 //                                                 secondary/advanced path
 //                                                 for a shop that already
-//                                                 exists separately
+//                                                 exists separately. Shares
+//                                                 the default action's per-IP
+//                                                 rate limit, since it's the
+//                                                 same "guess an arbitrary
+//                                                 key string" brute-force
+//                                                 surface.
 //   list_branches {}                          -> owner-role caller lists
 //                                                 every branch they've
 //                                                 linked (incl. their own
@@ -122,6 +127,9 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
   const action = body.action ?? "activate";
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
+    .split(",")[0]
+    .trim();
 
   if (action === "request_device_slot") {
     return handleRequestDeviceSlot(admin, userData.user);
@@ -155,6 +163,13 @@ Deno.serve(async (req) => {
     return handleCreateBranch(admin, userData.user, body.shop_name ?? "");
   }
   if (action === "link_branch") {
+    // Accepts an arbitrary key string and reports back whether it was
+    // valid — the exact same brute-force surface as the default `activate`
+    // action, so it gets the same per-IP rate limit (previously missing:
+    // this action could be probed for valid keys with no throttling at all).
+    if (!(await checkAndRecordRateLimit(admin, ip))) {
+      return json({ ok: false, error: "rate_limited" }, 200);
+    }
     return handleLinkBranch(
       admin,
       userData.user,
@@ -190,26 +205,17 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "bad_request" }, 400);
   }
 
-  // Rate limit: the `activate` action accepts an arbitrary key string and
-  // reports back whether it was valid — exactly the surface a brute-force
-  // script would target. At most 10 attempts per IP per 15 minutes; counted
-  // before the lookup so rapid guesses can't dodge the limit.
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
-    .split(",")[0]
-    .trim();
-  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-  const { count } = await admin
-    .from("activate_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
-    .gte("created_at", windowStart);
-  if ((count ?? 0) >= 10) {
+  // Rate limit: this action accepts an arbitrary key string and reports back
+  // whether it was valid — exactly the surface a brute-force script would
+  // target. At most 10 attempts per IP per 15 minutes; counted before the
+  // lookup so rapid guesses can't dodge the limit. (`link_branch` shares this
+  // same helper — see its dispatch above.)
+  if (!(await checkAndRecordRateLimit(admin, ip))) {
     // 200, not 429 — every other soft/business-logic error this action
     // returns (invalid_key, device_mismatch) uses 200 so the client's
     // `res.data` parsing path (not its exception path) handles it.
     return json({ ok: false, error: "rate_limited" }, 200);
   }
-  await admin.from("activate_attempts").insert({ ip });
 
   const { data: license, error: licErr } = await admin
     .from("licenses")
@@ -269,6 +275,26 @@ Deno.serve(async (req) => {
 type SupabaseUser = any;
 // deno-lint-ignore no-explicit-any
 type AdminClient = any;
+
+// At most 10 attempts per IP per 15 minutes across every action that accepts
+// an arbitrary, guessable key string and reports back whether it was valid
+// (`activate`'s default action, and `link_branch`) — recorded before the
+// lookup so rapid guesses can't dodge the limit. Returns false when the
+// caller should be rejected with `rate_limited`.
+async function checkAndRecordRateLimit(
+  admin: AdminClient,
+  ip: string,
+): Promise<boolean> {
+  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("activate_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if ((count ?? 0) >= 10) return false;
+  await admin.from("activate_attempts").insert({ ip });
+  return true;
+}
 
 function shopIdOf(user: SupabaseUser): string | null {
   const meta = user.app_metadata as Record<string, unknown> | null;

@@ -94,7 +94,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -124,7 +124,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _exportingCsv = false);
     }

@@ -228,6 +228,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: 'Reset device binding',
         label: 'App Reference ID / Shop Code',
         action: 'Reset',
+        warning: 'This clears the device bound to this license — any '
+            'device can then re-activate it. Use this when a shop lost or '
+            'replaced their phone; it does not affect their expiry date.',
       ),
     );
     if (code == null || code.isEmpty) return;

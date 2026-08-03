@@ -110,8 +110,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       if (mounted) setState(() => _imageUrl = url);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);

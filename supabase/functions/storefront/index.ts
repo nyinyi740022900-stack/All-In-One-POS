@@ -293,7 +293,11 @@ Deno.serve(async (req) => {
     const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
-    const orderNo = "WEB-" + Date.now().toString().slice(-8);
+    // Derived from the order's own (guaranteed-unique) id rather than a
+    // millisecond timestamp — two orders submitted in the same millisecond
+    // (well within the 5-per-10-min rate limit across multiple concurrent
+    // shops) previously could have collided on order_no.
+    const orderNo = "WEB-" + orderId.replace(/-/g, "").slice(0, 8).toUpperCase();
 
     const { error: oErr } = await admin.from("orders").insert({
       id: orderId,

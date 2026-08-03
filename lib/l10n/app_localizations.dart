@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
+  /// No description provided for @commonUnexpectedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get commonUnexpectedError;
+
   /// No description provided for @commonSave.
   ///
   /// In en, this message translates to:
@@ -883,6 +889,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No items added yet — tap + to add a product.'**
   String get poNoItems;
+
+  /// No description provided for @poRemoveLineConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this item from the draft?'**
+  String get poRemoveLineConfirmTitle;
 
   /// No description provided for @poUnitCost.
   ///

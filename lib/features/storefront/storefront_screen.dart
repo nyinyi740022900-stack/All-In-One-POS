@@ -85,7 +85,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -113,8 +113,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -134,8 +134,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       if (mounted) setState(() => _logoUrl = url);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _uploadingLogo = false);
@@ -150,7 +150,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       appBar: AppBar(title: Text(l.storefrontTitle)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (row) {
           if (row == null) return _publishForm(l);
           _initFrom(row);
@@ -407,7 +407,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (rows) {
           if (rows.isEmpty) {
             return Center(child: Text(l.storefrontNoBlockedCustomers));

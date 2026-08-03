@@ -8,6 +8,7 @@
   "navAnalytics": "စာရင်းအင်း",
   "navSettings": "ဆက်တင်",
 
+  "commonUnexpectedError": "တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားပေးပါ။",
   "commonSave": "သိမ်းမည်",
   "commonCancel": "မလုပ်တော့ပါ",
   "commonOk": "အိုကေ",
@@ -147,6 +148,7 @@
   "poCreate": "ကုန်ဝယ်အမှာစာ ဖန်တီးမည်",
   "poItems": "ပစ္စည်းများ",
   "poNoItems": "ပစ္စည်း မထည့်ရသေးပါ — Product ထည့်ဖို့ + ကို နှိပ်ပါ။",
+  "poRemoveLineConfirmTitle": "ဒီ item ကို draft ထဲကနေ ဖယ်မလား?",
   "poUnitCost": "တစ်ခုချင်း ဝယ်ဈေး",
   "poSaveDraft": "သိမ်းမည်",
   "poSaved": "ကုန်ဝယ်အမှာစာ သိမ်းပြီးပါပြီ။",

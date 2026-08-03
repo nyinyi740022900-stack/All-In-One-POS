@@ -234,6 +234,24 @@ class SettingsRepository {
   Future<void> setSyncCursor(String table, DateTime value) =>
       _set('sync.cursor.$table', value.toUtc().toIso8601String());
 
+  /// Row ids already applied at the exact `updated_at` timestamp the cursor
+  /// sits on. The pull filter is inclusive (`gte`, not `gt`) — because
+  /// Drift's second-precision `DateTimeColumn` storage means two changes
+  /// within the same second collide on `updated_at` — so the same
+  /// boundary row can be re-fetched on the next pull. This set lets
+  /// [SyncEngine] tell "already applied, skip" apart from "a new tie-partner
+  /// landed at this same timestamp after the fact, apply it" instead of
+  /// either silently dropping the latter (a strict `gt` would) or
+  /// re-applying the former forever.
+  Future<Set<String>> syncCursorTieIds(String table) async {
+    final raw = await _get('sync.cursor.ids.$table');
+    if (raw == null || raw.isEmpty) return {};
+    return raw.split(',').toSet();
+  }
+
+  Future<void> setSyncCursorTieIds(String table, Set<String> ids) =>
+      _set('sync.cursor.ids.$table', ids.join(','));
+
   Future<ShopProfile> shopProfile() async {
     return ShopProfile(
       name: (await _get(_kShopName)) ?? 'My Shop',

@@ -257,7 +257,7 @@ class _DevicesSection extends ConsumerWidget {
             padding: EdgeInsets.symmetric(vertical: AppTheme.space2),
             child: LinearProgressIndicator(),
           ),
-          error: (e, _) => Text('$e'),
+          error: (e, _) => Text(l.commonUnexpectedError),
           data: (list) {
             final used = list.where((d) => d.isBound).length;
             return Column(

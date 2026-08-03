@@ -33,7 +33,7 @@ class OrdersScreen extends ConsumerWidget {
       ),
       body: ordersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (all) {
           // Nothing in the DB at all → the first-run empty state (no filters).
           if (all.isEmpty) {

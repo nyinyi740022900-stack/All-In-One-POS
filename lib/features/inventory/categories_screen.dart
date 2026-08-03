@@ -22,7 +22,7 @@ class CategoriesScreen extends ConsumerWidget {
       ),
       body: categories.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (list) {
           if (list.isEmpty) {
             return Center(child: Text(l.categoriesEmpty));

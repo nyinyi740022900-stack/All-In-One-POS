@@ -9,6 +9,7 @@
   "navAnalytics": "Analytics",
   "navSettings": "Settings",
 
+  "commonUnexpectedError": "Something went wrong. Please try again.",
   "commonSave": "Save",
   "commonCancel": "Cancel",
   "commonOk": "OK",
@@ -151,6 +152,7 @@
   "poCreate": "Create purchase order",
   "poItems": "Items",
   "poNoItems": "No items added yet — tap + to add a product.",
+  "poRemoveLineConfirmTitle": "Remove this item from the draft?",
   "poUnitCost": "Unit cost",
   "poSaveDraft": "Save",
   "poSaved": "Purchase order saved.",

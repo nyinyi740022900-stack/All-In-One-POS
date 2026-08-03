@@ -390,7 +390,7 @@ class _HistoryTile extends ConsumerWidget {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }
 }
