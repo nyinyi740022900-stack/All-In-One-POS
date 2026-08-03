@@ -216,6 +216,24 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashRegisterClosedMsg => 'ငွေတိုက် ပိတ်ပြီး';
 
   @override
+  String get cashReportTitle => 'ငွေတိုက် Session အစီရင်ခံစာ';
+
+  @override
+  String get cashClosedAt => 'ပိတ်ချိန်';
+
+  @override
+  String get cashReportPrintBluetooth => 'Print (Bluetooth)';
+
+  @override
+  String get cashReportSharePdf => 'PDF မျှဝေမည်';
+
+  @override
+  String get cashReportCashSales => 'ငွေသား ရောင်းအား';
+
+  @override
+  String get cashReportCashRepayments => 'ငွေသား ကြွေးဆပ်ငွေ';
+
+  @override
   String get creditTitle => 'အကြွေးစာရင်း';
 
   @override

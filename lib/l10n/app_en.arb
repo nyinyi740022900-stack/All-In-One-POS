@@ -76,6 +76,12 @@
   "cashNoHistory": "No past sessions yet.",
   "cashRegisterOpenedMsg": "Register opened",
   "cashRegisterClosedMsg": "Register closed",
+  "cashReportTitle": "Cash Session Report",
+  "cashClosedAt": "Closed",
+  "cashReportPrintBluetooth": "Print (Bluetooth)",
+  "cashReportSharePdf": "Share PDF",
+  "cashReportCashSales": "Cash sales",
+  "cashReportCashRepayments": "Cash repayments",
 
   "creditTitle": "Credit book",
   "creditCustomerName": "Customer name",

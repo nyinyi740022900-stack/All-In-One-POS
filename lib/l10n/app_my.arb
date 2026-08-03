@@ -73,6 +73,12 @@
   "cashNoHistory": "ယခင် session မှတ်တမ်း မရှိသေးပါ။",
   "cashRegisterOpenedMsg": "ငွေတိုက် ဖွင့်ပြီး",
   "cashRegisterClosedMsg": "ငွေတိုက် ပိတ်ပြီး",
+  "cashReportTitle": "ငွေတိုက် Session အစီရင်ခံစာ",
+  "cashClosedAt": "ပိတ်ချိန်",
+  "cashReportPrintBluetooth": "Print (Bluetooth)",
+  "cashReportSharePdf": "PDF မျှဝေမည်",
+  "cashReportCashSales": "ငွေသား ရောင်းအား",
+  "cashReportCashRepayments": "ငွေသား ကြွေးဆပ်ငွေ",
 
   "creditTitle": "အကြွေးစာရင်း",
   "creditCustomerName": "ဝယ်သူအမည်",

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -140,6 +141,81 @@ void main() {
       final expected = await repo.expectedCash(session!);
       expect(expected, 13000); // 10000 + 5000 - 2000
       expect(id, isNotEmpty);
+    });
+
+    group('reportFor', () {
+      test('breaks down the same window expectedCash collapses to one int',
+          () async {
+        final id = await repo.openSession(openingAmount: 10000);
+        final session = await repo.watchCurrentSession().first;
+
+        await db.into(db.payments).insert(PaymentsCompanion.insert(
+              id: 'p1',
+              shopId: 'shop-1',
+              saleId: 'sale-1',
+              method: 'cash',
+              amount: 5000,
+            ));
+        await db.into(db.creditPayments).insert(
+              CreditPaymentsCompanion.insert(
+                id: 'r1',
+                shopId: 'shop-1',
+                customerName: 'Aung',
+                method: const Value('cash'),
+                amount: 1000,
+              ),
+            );
+        await db.into(db.expenses).insert(ExpensesCompanion.insert(
+              id: 'e1',
+              shopId: 'shop-1',
+              category: 'other',
+              amount: 2000,
+              date: DateTime.now(),
+            ));
+
+        final report = await repo.reportFor(session!);
+        expect(report.openingAmount, 10000);
+        expect(report.cashSalesTotal, 5000);
+        expect(report.cashRepaymentsTotal, 1000);
+        expect(report.expensesTotal, 2000);
+        expect(report.expectedCash, 14000); // 10000 + 5000 + 1000 - 2000
+        expect(report.closingAmount, isNull);
+        expect(report.variance, isNull);
+        expect(id, isNotEmpty);
+      });
+
+      test('closingAmount/variance are populated once the session is closed',
+          () async {
+        // Explicit timestamps throughout (rather than relying on
+        // openSession/closeSession's DateTime.now()) so the payment falls
+        // deterministically inside the window regardless of wall-clock
+        // timing.
+        final opened = DateTime(2026, 8, 1, 9);
+        final closed = DateTime(2026, 8, 1, 20);
+        await db.into(db.cashSessions).insert(CashSessionsCompanion.insert(
+              id: 's1',
+              shopId: 'shop-1',
+              openedAt: opened,
+              openingAmount: 10000,
+              closedAt: Value(closed),
+              closingAmount: const Value(14500),
+            ));
+        await db.into(db.payments).insert(PaymentsCompanion.insert(
+              id: 'p1',
+              shopId: 'shop-1',
+              saleId: 'sale-1',
+              method: 'cash',
+              amount: 5000,
+              createdAt: Value(DateTime(2026, 8, 1, 12)),
+            ));
+
+        final session =
+            (await db.select(db.cashSessions).get()).single;
+        final report = await repo.reportFor(session);
+        expect(report.expectedCash, 15000); // 10000 + 5000
+        expect(report.closingAmount, 14500);
+        expect(report.variance, -500); // short by 500
+      });
     });
   });
 }

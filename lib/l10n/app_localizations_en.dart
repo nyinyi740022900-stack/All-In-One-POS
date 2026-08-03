@@ -216,6 +216,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashRegisterClosedMsg => 'Register closed';
 
   @override
+  String get cashReportTitle => 'Cash Session Report';
+
+  @override
+  String get cashClosedAt => 'Closed';
+
+  @override
+  String get cashReportPrintBluetooth => 'Print (Bluetooth)';
+
+  @override
+  String get cashReportSharePdf => 'Share PDF';
+
+  @override
+  String get cashReportCashSales => 'Cash sales';
+
+  @override
+  String get cashReportCashRepayments => 'Cash repayments';
+
+  @override
   String get creditTitle => 'Credit book';
 
   @override

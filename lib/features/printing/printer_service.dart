@@ -194,6 +194,51 @@ class PrinterService {
     }
   }
 
+  // ---- End-of-day (Z-report) summaries ---------------------------------
+  //
+  // Takes already-formatted lines (e.g. from `CashSessionReportFormatter`)
+  // rather than a specific report type — `renderReportImage` only needs a
+  // shop name + body lines, so this stays generic instead of coupling the
+  // printing layer to the cash-session feature.
+
+  Future<List<int>> buildZReportBytes(
+    List<String> bodyLines,
+    String shopName, {
+    required PaperSize paper,
+  }) async {
+    final image = await renderReportImage(shopName, bodyLines, paper);
+
+    final profile = await esc.CapabilityProfile.load();
+    final generator = esc.Generator(
+      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      profile,
+    );
+
+    final bytes = <int>[];
+    bytes.addAll(generator.imageRaster(image));
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+    return bytes;
+  }
+
+  Future<PrintResult> printZReport(
+    List<String> bodyLines,
+    String shopName, {
+    required PaperSize paper,
+    required String mac,
+  }) async {
+    try {
+      if (!await _ensureConnected(mac)) {
+        return const PrintResult(false, 'connect_failed');
+      }
+      final bytes = await buildZReportBytes(bodyLines, shopName, paper: paper);
+      final ok = await PrintBluetoothThermal.writeBytes(bytes);
+      return PrintResult(ok, ok ? null : 'write_failed');
+    } catch (e) {
+      return PrintResult(false, e.toString());
+    }
+  }
+
   // ---- Product labels -------------------------------------------------
   //
   // Two ways to print a product's barcode label, both reusing the

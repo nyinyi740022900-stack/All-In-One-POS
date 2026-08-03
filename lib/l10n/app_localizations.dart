@@ -488,6 +488,42 @@ abstract class AppLocalizations {
   /// **'Register closed'**
   String get cashRegisterClosedMsg;
 
+  /// No description provided for @cashReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash Session Report'**
+  String get cashReportTitle;
+
+  /// No description provided for @cashClosedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get cashClosedAt;
+
+  /// No description provided for @cashReportPrintBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Print (Bluetooth)'**
+  String get cashReportPrintBluetooth;
+
+  /// No description provided for @cashReportSharePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Share PDF'**
+  String get cashReportSharePdf;
+
+  /// No description provided for @cashReportCashSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash sales'**
+  String get cashReportCashSales;
+
+  /// No description provided for @cashReportCashRepayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash repayments'**
+  String get cashReportCashRepayments;
+
   /// No description provided for @creditTitle.
   ///
   /// In en, this message translates to:

@@ -1,14 +1,21 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../invoices/receipt_data.dart';
 import '../printing/printing_providers.dart';
 import 'cash_providers.dart';
+import 'cash_session_report_formatter.dart';
+import 'cash_session_report_pdf.dart';
 
 /// Cash-drawer session: open with a declared float, watch what the drawer
 /// should hold live, close with a counted amount to see the variance.
@@ -203,6 +210,14 @@ class _HistoryTile extends ConsumerWidget {
   const _HistoryTile({required this.session});
   final CashSession session;
 
+  String _varianceText(AppLocalizations l, int variance) {
+    final sym = l.currencySymbol;
+    if (variance == 0) return l.cashVarianceExact;
+    return variance < 0
+        ? l.cashVarianceShort(Money(-variance).withSymbol(sym))
+        : l.cashVarianceOver(Money(variance).withSymbol(sym));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -226,36 +241,156 @@ class _HistoryTile extends ConsumerWidget {
       ),
       trailing: closing == null
           ? null
-          : FutureBuilder<int>(
-              // Variance is counted cash vs. what the drawer *should* hold
-              // (opening + cash sales/repayments − cash expenses in the
-              // session's window) — not vs. the opening amount alone, which
-              // would flag every normal day of sales as "over."
-              future: ref.read(cashSessionRepositoryProvider).expectedCash(session),
-              builder: (context, snap) {
-                if (!snap.hasData) {
-                  return const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2));
-                }
-                final variance = closing - snap.data!;
-                return Text(
-                  variance == 0
-                      ? l.cashVarianceExact
-                      : (variance < 0
-                          ? l.cashVarianceShort(Money(-variance).withSymbol(sym))
-                          : l.cashVarianceOver(Money(variance).withSymbol(sym))),
-                  style: TextStyle(
-                    color: variance == 0
-                        ? Colors.green
-                        : Theme.of(context).colorScheme.error,
-                    fontSize: 12,
-                  ),
-                );
-              },
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FutureBuilder<int>(
+                  // Variance is counted cash vs. what the drawer *should*
+                  // hold (opening + cash sales/repayments − cash expenses in
+                  // the session's window) — not vs. the opening amount
+                  // alone, which would flag every normal day of sales as
+                  // "over."
+                  future:
+                      ref.read(cashSessionRepositoryProvider).expectedCash(session),
+                  builder: (context, snap) {
+                    if (!snap.hasData) {
+                      return const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2));
+                    }
+                    final variance = closing - snap.data!;
+                    return Text(
+                      _varianceText(l, variance),
+                      style: TextStyle(
+                        color: variance == 0
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  tooltip: l.cashReportTitle,
+                  onPressed: () => _showReportSheet(context, ref),
+                ),
+              ],
             ),
     );
+  }
+
+  Future<void> _showReportSheet(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (printerConfig.hasPrinter)
+              ListTile(
+                leading: const Icon(Icons.print_outlined),
+                title: Text(l.cashReportPrintBluetooth),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _printReport(context, ref, printerConfig.mac!, printerConfig.paper);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l.cashReportSharePdf),
+              onTap: () {
+                Navigator.pop(ctx);
+                _sharePdf(context, ref);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _printReport(BuildContext context, WidgetRef ref, String mac,
+      PaperSize paper) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
+    final varianceText =
+        report.variance == null ? null : _varianceText(l, report.variance!);
+    final lines = CashSessionReportFormatter(paper: paper, currencySymbol: l.currencySymbol)
+        .format(
+      report,
+      title: l.cashReportTitle,
+      openedLabel: l.cashOpenedAt,
+      closedLabel: l.cashClosedAt,
+      openingFloatLabel: l.cashOpeningAmount,
+      cashSalesLabel: l.cashReportCashSales,
+      cashRepaymentsLabel: l.cashReportCashRepayments,
+      expensesLabel: l.expensesTitle,
+      expectedCashLabel: l.cashExpectedNow,
+      countedCashLabel: l.cashClosingAmount,
+      openedAt: session.openedAt,
+      closedAt: session.closedAt,
+      varianceLabel: l.cashVariance,
+      varianceText: varianceText,
+    );
+    final profile = await ref.read(shopProfileProvider.future);
+    final result = await ref
+        .read(printerServiceProvider)
+        .printZReport(lines, profile.name, paper: paper, mac: mac);
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)));
+  }
+
+  Future<void> _sharePdf(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
+      final varianceText =
+          report.variance == null ? null : _varianceText(l, report.variance!);
+      final profile = await ref.read(shopProfileProvider.future);
+      final printerConfig = await ref.read(printerConfigProvider.future);
+      final bytes = await buildCashSessionReportPdf(
+        shopName: profile.name,
+        shopLogoUrl: profile.logoUrl,
+        shopPhone: profile.phone,
+        shopAddress: profile.address,
+        title: l.cashReportTitle,
+        report: report,
+        currencySymbol: l.currencySymbol,
+        openedLabel: l.cashOpenedAt,
+        closedLabel: l.cashClosedAt,
+        openingFloatLabel: l.cashOpeningAmount,
+        cashSalesLabel: l.cashReportCashSales,
+        cashRepaymentsLabel: l.cashReportCashRepayments,
+        expensesLabel: l.expensesTitle,
+        expectedCashLabel: l.cashExpectedNow,
+        countedCashLabel: l.cashClosingAmount,
+        openedAt: session.openedAt,
+        closedAt: session.closedAt,
+        varianceLabel: l.cashVariance,
+        varianceText: varianceText,
+        pageFormat: printerConfig.pdfPaperSize,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/cash-session-report.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.cashReportTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 }
 

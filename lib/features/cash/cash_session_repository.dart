@@ -31,6 +31,30 @@ int computeExpectedCash({
   return openingAmount + cashIn - cashOut;
 }
 
+/// Itemized breakdown behind one session's [CashSessionRepository.reportFor]
+/// — same inputs [computeExpectedCash] folds into a single int, kept apart
+/// here for a printable/shareable end-of-day summary. [variance] and
+/// [closingAmount] are null while the session is still open.
+class CashSessionReport {
+  final int openingAmount;
+  final int cashSalesTotal;
+  final int cashRepaymentsTotal;
+  final int expensesTotal;
+  final int expectedCash;
+  final int? closingAmount;
+  final int? variance;
+
+  const CashSessionReport({
+    required this.openingAmount,
+    required this.cashSalesTotal,
+    required this.cashRepaymentsTotal,
+    required this.expensesTotal,
+    required this.expectedCash,
+    required this.closingAmount,
+    required this.variance,
+  });
+}
+
 /// Cash-drawer sessions (opening float → closing count). See `CashSessions`
 /// in tables.dart for the reconciliation rationale.
 class CashSessionRepository {
@@ -151,6 +175,66 @@ class CashSessionRepository {
       payments: payments,
       repayments: repayments,
       expenses: expenses,
+    );
+  }
+
+  /// Same window/queries as [expectedCash], kept as per-category subtotals
+  /// for a printable/shareable end-of-day summary — added alongside
+  /// [expectedCash] rather than refactored out of it, so the already-shipped
+  /// live "Expected cash now" and history-variance call sites are untouched.
+  Future<CashSessionReport> reportFor(CashSession session) async {
+    final end = session.closedAt;
+
+    final payments = await (_db.select(_db.payments)
+          ..where((t) {
+            var pred = t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerOrEqualValue(session.openedAt);
+            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+            return pred;
+          }))
+        .get();
+    final repayments = await (_db.select(_db.creditPayments)
+          ..where((t) {
+            var pred = t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerOrEqualValue(session.openedAt);
+            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+            return pred;
+          }))
+        .get();
+    final expenses = await (_db.select(_db.expenses)
+          ..where((t) {
+            var pred = t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.date.isBiggerOrEqualValue(session.openedAt);
+            if (end != null) pred = pred & t.date.isSmallerThanValue(end);
+            return pred;
+          }))
+        .get();
+
+    final cashSalesTotal = payments
+        .where((p) => p.method == 'cash')
+        .fold<int>(0, (sum, p) => sum + p.amount);
+    final cashRepaymentsTotal = repayments
+        .where((r) => r.method == 'cash')
+        .fold<int>(0, (sum, r) => sum + r.amount);
+    final expensesTotal = expenses.fold<int>(0, (sum, e) => sum + e.amount);
+    final expectedCash = session.openingAmount +
+        cashSalesTotal +
+        cashRepaymentsTotal -
+        expensesTotal;
+
+    return CashSessionReport(
+      openingAmount: session.openingAmount,
+      cashSalesTotal: cashSalesTotal,
+      cashRepaymentsTotal: cashRepaymentsTotal,
+      expensesTotal: expensesTotal,
+      expectedCash: expectedCash,
+      closingAmount: session.closingAmount,
+      variance: session.closingAmount == null
+          ? null
+          : session.closingAmount! - expectedCash,
     );
   }
 
