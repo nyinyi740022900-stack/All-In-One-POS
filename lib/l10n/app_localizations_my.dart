@@ -2053,6 +2053,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountNoBackend => 'အင်တာနက် ချိတ်ဆက်မှု မရှိပါ။';
 
   @override
+  String get accountPendingSync =>
+      'ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
   String get accountActionFailed =>
       'တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားကြည့်ပါ။';
 

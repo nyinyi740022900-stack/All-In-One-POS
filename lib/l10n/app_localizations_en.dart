@@ -2053,6 +2053,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountNoBackend => 'No internet connection.';
 
   @override
+  String get accountPendingSync =>
+      'This device still has unsynced changes. Wait for sync to finish, then try again.';
+
+  @override
   String get accountActionFailed => 'Something went wrong. Please try again.';
 
   @override

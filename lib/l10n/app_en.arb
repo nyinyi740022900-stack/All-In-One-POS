@@ -699,6 +699,7 @@
   "accountEmailTaken": "That email is already in use.",
   "accountNotActivated": "Activate this device first.",
   "accountNoBackend": "No internet connection.",
+  "accountPendingSync": "This device still has unsynced changes. Wait for sync to finish, then try again.",
   "accountActionFailed": "Something went wrong. Please try again.",
 
   "staffAccountsTitle": "Staff accounts (login)",

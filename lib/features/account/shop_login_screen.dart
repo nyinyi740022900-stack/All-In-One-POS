@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
 import 'account_providers.dart';
 
 /// Real email/password login for the shop, additive to the existing
@@ -31,6 +33,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         'email_taken' => l.accountEmailTaken,
         'not_activated' => l.accountNotActivated,
         'no_backend' => l.accountNoBackend,
+        'pending_sync' => l.accountPendingSync,
         _ => l.accountActionFailed,
       };
 
@@ -64,6 +67,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (result.ok) {
+      if (result.license != null) {
+        ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+        ref.read(syncControllerProvider.notifier).sync();
+      }
       messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
       _password.clear();
     } else {

@@ -1,24 +1,28 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
+import '../../data/local/database.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../license/license_model.dart';
 import '../license/license_repository.dart';
 import '../license/license_status.dart';
 
-/// Result of an account action (create shop login / invite staff), mirroring
-/// the shape of [ActivationResult] in `license_model.dart` but kept local
-/// since these actions don't produce a [CachedLicense].
+/// Result of an account action (create shop login / invite staff / sign in),
+/// mirroring the shape of [ActivationResult] in `license_model.dart`. Most
+/// actions never populate [license] — only [AccountRepository.signInAndClaimDevice]
+/// does, so the caller can apply it via `LicenseController.applyExternal`.
 class AccountActionResult {
   final bool ok;
   final String? error;
   final String? userId;
-  const AccountActionResult.success(this.userId)
+  final CachedLicense? license;
+  const AccountActionResult.success(this.userId, {this.license})
       : ok = true,
         error = null;
   const AccountActionResult.failure(this.error)
       : ok = false,
-        userId = null;
+        userId = null,
+        license = null;
 }
 
 /// Outcome of [AccountRepository.signupShop] — carries the freshly-minted
@@ -54,10 +58,11 @@ class StaffAccount {
 /// after a successful password sign-in, reusing that machinery as-is rather
 /// than duplicating it.
 class AccountRepository {
-  AccountRepository(this._licenseRepository, this._settings);
+  AccountRepository(this._licenseRepository, this._settings, this._db);
 
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
+  final AppDatabase _db;
 
   bool get isSignedInWithRealAccount {
     final user = Supabase.instance.client.auth.currentUser;
@@ -75,10 +80,25 @@ class AccountRepository {
     return role is String && role.isNotEmpty ? role : null;
   }
 
-  /// Signs in with a real account, then — if this device doesn't already
-  /// have a bound license — claims a device slot and activates it, so a
-  /// device reached via real login still consumes the shop's device-slot
-  /// limit exactly like device-key activation does.
+  /// Signs in with a real account, then makes sure THIS device ends up
+  /// correctly scoped to the account's own shop_id — the caller must apply
+  /// the returned [AccountActionResult.license] via
+  /// `LicenseController.applyExternal` and kick `SyncController.sync()`
+  /// afterward (this repository stays Riverpod-free, same split as
+  /// `BranchRepository.switchBranch`).
+  ///
+  /// Three cases:
+  /// - This device already has no cached license (brand new / never
+  ///   activated) — claims a device slot under the account's shop and
+  ///   activates it, consuming the shop's device-slot limit exactly like
+  ///   device-key activation does.
+  /// - This device is already correctly scoped to the SAME shop (e.g.
+  ///   re-signing in after a sign-out) — nothing to claim or resync.
+  /// - This device was previously activated for a DIFFERENT shop (e.g. a
+  ///   device-key-activated shop's owner signing into a different real
+  ///   account) — the local DB isn't partitioned per shop, so it must be
+  ///   wiped (same safety check as a branch switch: never while unsynced
+  ///   writes exist) before claiming a slot under the new shop.
   Future<AccountActionResult> signInAndClaimDevice(
       String email, String password) async {
     if (!Env.hasBackend) {
@@ -93,20 +113,31 @@ class AccountRepository {
       return const AccountActionResult.failure('network_error');
     }
 
-    // Only claim a NEW device slot if this device isn't already activated —
-    // requestDeviceSlot() has no way to know "this caller's device already
-    // has one," it would just claim another slot every time it's called.
-    final alreadyActivated = await _licenseRepository.current() != null;
-    if (!alreadyActivated) {
-      final slot = await _licenseRepository.requestDeviceSlot();
-      if (slot.ok && slot.key != null) {
-        await _licenseRepository.activate(slot.key!);
-      }
-      // A declined/failed slot claim (e.g. payment_required) still leaves
-      // sign-in itself successful — the owner can retry claiming a device
-      // slot from the existing Devices screen afterward.
+    final shopId =
+        Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
+            as String?;
+    if (shopId == null) return const AccountActionResult.failure('not_activated');
+
+    final currentLic = await _licenseRepository.current();
+    if (currentLic != null && currentLic.shopId == shopId) {
+      return AccountActionResult.success(null, license: currentLic);
     }
-    return const AccountActionResult.success(null);
+
+    if (currentLic != null) {
+      final pending = await _db.select(_db.outbox).get();
+      if (pending.isNotEmpty) {
+        return const AccountActionResult.failure('pending_sync');
+      }
+      await _db.wipeSyncedData();
+    }
+
+    final slot = await _licenseRepository.requestDeviceSlot();
+    if (!slot.ok || slot.key == null) {
+      return AccountActionResult.failure(slot.errorCode ?? 'server_error');
+    }
+    final result = await _licenseRepository.activate(slot.key!);
+    if (!result.ok) return AccountActionResult.failure(result.errorCode);
+    return AccountActionResult.success(null, license: result.license);
   }
 
   Future<void> signOut() => Supabase.instance.client.auth.signOut();

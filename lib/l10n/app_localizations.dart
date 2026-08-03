@@ -3860,6 +3860,12 @@ abstract class AppLocalizations {
   /// **'No internet connection.'**
   String get accountNoBackend;
 
+  /// No description provided for @accountPendingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'This device still has unsynced changes. Wait for sync to finish, then try again.'**
+  String get accountPendingSync;
+
   /// No description provided for @accountActionFailed.
   ///
   /// In en, this message translates to:
