@@ -195,6 +195,7 @@ class AccountRepository {
       activatedAt: DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
       lastVerifiedAt: now,
       deviceId: deviceId,
+      tier: data['tier'] as String? ?? 'online',
     );
     await _licenseRepository.saveExternal(lic);
     return SignupResult.success(lic);

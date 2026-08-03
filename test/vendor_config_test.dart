@@ -29,6 +29,28 @@ void main() {
     expect(VendorConfig.empty.hasSupport, isFalse);
   });
 
+  test('priceFor: online price defaults to the offline price when unset',
+      () {
+    final cfg = VendorConfig.fromMap({
+      'price.monthly': '15000',
+      'price.yearly': '150000',
+    });
+    expect(cfg.priceFor('monthly', tier: 'online'), 15000);
+    expect(cfg.priceFor('yearly', tier: 'online'), 150000);
+  });
+
+  test('priceFor: an explicitly-set online price overrides the default', () {
+    final cfg = VendorConfig.fromMap({
+      'price.monthly': '15000',
+      'price.yearly': '150000',
+      'price.monthly.online': '25000',
+      'price.yearly.online': '250000',
+    });
+    expect(cfg.priceFor('monthly'), 15000);
+    expect(cfg.priceFor('monthly', tier: 'online'), 25000);
+    expect(cfg.priceFor('yearly', tier: 'online'), 250000);
+  });
+
   test('load() falls back to the cached config when offline', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

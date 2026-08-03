@@ -161,6 +161,7 @@ class BranchRepository {
       lastVerifiedAt: now,
       deviceId: deviceId,
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
+      tier: data['tier'] as String? ?? 'offline',
     );
     await _licenseRepository.saveExternal(lic);
     return BranchSwitchResult.success(lic);

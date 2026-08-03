@@ -80,6 +80,7 @@ class LicenseRepository {
         lastVerifiedAt: now,
         deviceId: deviceId,
         realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
+        tier: data['tier'] as String? ?? 'offline',
       );
       // Refresh the session so the new shop_id claim lands in the JWT.
       try {
@@ -131,6 +132,7 @@ class LicenseRepository {
                 (data['activated_at'] ?? now.toIso8601String()) as String),
             lastVerifiedAt: now,
             deviceId: deviceId,
+            tier: data['tier'] as String? ?? 'offline',
           );
           try {
             await Supabase.instance.client.auth.refreshSession();

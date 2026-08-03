@@ -28,6 +28,14 @@ class CachedLicense {
   /// change within seconds instead of waiting for the 5-minute poll.
   final bool realtimeEnabled;
 
+  /// Fixed at shop-creation time — 'online' for a shop minted by the
+  /// self-serve signup/create-branch actions, 'offline' for everything else
+  /// (key activate, device trial, admin-issued key). Never re-derived from
+  /// whichever session type happens to be active later (a real login can be
+  /// added to an offline shop too), so pricing (`VendorConfig.priceFor`)
+  /// stays correct regardless of how the shop is currently being used.
+  final String tier;
+
   const CachedLicense({
     required this.key,
     required this.shopId,
@@ -37,6 +45,7 @@ class CachedLicense {
     required this.lastVerifiedAt,
     required this.deviceId,
     this.realtimeEnabled = false,
+    this.tier = 'offline',
   });
 
   Map<String, dynamic> toJson() => {
@@ -48,6 +57,7 @@ class CachedLicense {
         'last_verified_at': lastVerifiedAt.toIso8601String(),
         'device_id': deviceId,
         'realtime_enabled': realtimeEnabled,
+        'tier': tier,
       };
 
   factory CachedLicense.fromJson(Map<String, dynamic> j) => CachedLicense(
@@ -60,6 +70,7 @@ class CachedLicense {
             (j['last_verified_at'] ?? j['activated_at']) as String),
         deviceId: j['device_id'] as String? ?? '',
         realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
+        tier: j['tier'] as String? ?? 'offline',
       );
 
   CachedLicense copyWith({
@@ -76,6 +87,7 @@ class CachedLicense {
         lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
         deviceId: deviceId,
         realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
+        tier: tier,
       );
 }
 

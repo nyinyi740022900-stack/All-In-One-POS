@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         expires_at: expires.toISOString(),
         activated_at: now.toISOString(),
         referral_code: refCode,
+        tier: "offline",
       })
       .select("*")
       .single();
@@ -88,6 +89,7 @@ Deno.serve(async (req) => {
     plan: "trial",
     expires_at: license.expires_at,
     activated_at: license.activated_at,
+    tier: license.tier ?? "offline",
   });
 });
 

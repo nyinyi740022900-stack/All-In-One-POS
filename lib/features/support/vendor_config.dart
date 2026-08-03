@@ -16,6 +16,8 @@ class VendorConfig {
   final String supportViber;
   final int priceMonthly;
   final int priceYearly;
+  final int priceMonthlyOnline;
+  final int priceYearlyOnline;
   final int deviceFreeLimit;
   final int deviceExtraFee;
 
@@ -27,6 +29,8 @@ class VendorConfig {
     this.supportViber = '',
     this.priceMonthly = 0,
     this.priceYearly = 0,
+    this.priceMonthlyOnline = 0,
+    this.priceYearlyOnline = 0,
     this.deviceFreeLimit = 2,
     this.deviceExtraFee = 0,
   });
@@ -35,19 +39,37 @@ class VendorConfig {
   bool get hasWave => waveNumber.isNotEmpty;
   bool get hasSupport => supportViber.isNotEmpty;
 
-  int priceFor(String plan) => plan == 'yearly' ? priceYearly : priceMonthly;
+  /// [tier] is the shop's own `CachedLicense.tier` ('offline'/'online'),
+  /// fixed at shop-creation time — see `CachedLicense.tier`. Online prices
+  /// default to the offline ones until an admin explicitly sets a distinct
+  /// `price.monthly.online`/`price.yearly.online`, so behavior is unchanged
+  /// until that's configured.
+  int priceFor(String plan, {String tier = 'offline'}) {
+    if (tier == 'online') {
+      return plan == 'yearly' ? priceYearlyOnline : priceMonthlyOnline;
+    }
+    return plan == 'yearly' ? priceYearly : priceMonthly;
+  }
 
-  factory VendorConfig.fromMap(Map<String, String> m) => VendorConfig(
-        kbzName: m['pay.kbzpay.name'] ?? '',
-        kbzNumber: m['pay.kbzpay.number'] ?? '',
-        waveName: m['pay.wavepay.name'] ?? '',
-        waveNumber: m['pay.wavepay.number'] ?? '',
-        supportViber: m['support.viber'] ?? '',
-        priceMonthly: int.tryParse(m['price.monthly'] ?? '') ?? 0,
-        priceYearly: int.tryParse(m['price.yearly'] ?? '') ?? 0,
-        deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 2,
-        deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
-      );
+  factory VendorConfig.fromMap(Map<String, String> m) {
+    final priceMonthly = int.tryParse(m['price.monthly'] ?? '') ?? 0;
+    final priceYearly = int.tryParse(m['price.yearly'] ?? '') ?? 0;
+    return VendorConfig(
+      kbzName: m['pay.kbzpay.name'] ?? '',
+      kbzNumber: m['pay.kbzpay.number'] ?? '',
+      waveName: m['pay.wavepay.name'] ?? '',
+      waveNumber: m['pay.wavepay.number'] ?? '',
+      supportViber: m['support.viber'] ?? '',
+      priceMonthly: priceMonthly,
+      priceYearly: priceYearly,
+      priceMonthlyOnline:
+          int.tryParse(m['price.monthly.online'] ?? '') ?? priceMonthly,
+      priceYearlyOnline:
+          int.tryParse(m['price.yearly.online'] ?? '') ?? priceYearly,
+      deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 2,
+      deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
+    );
+  }
 
   Map<String, String> toMap() => {
         'pay.kbzpay.name': kbzName,
@@ -57,6 +79,8 @@ class VendorConfig {
         'support.viber': supportViber,
         'price.monthly': '$priceMonthly',
         'price.yearly': '$priceYearly',
+        'price.monthly.online': '$priceMonthlyOnline',
+        'price.yearly.online': '$priceYearlyOnline',
         'device.free_limit': '$deviceFreeLimit',
         'device.extra_fee': '$deviceExtraFee',
       };

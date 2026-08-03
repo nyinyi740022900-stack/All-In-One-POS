@@ -250,6 +250,7 @@ Deno.serve(async (req) => {
     expires_at: license.expires_at,
     realtime_enabled: license.realtime_enabled === true,
     activated_at: license.activated_at ?? now.toISOString(),
+    tier: license.tier ?? "offline",
   }, 200);
 });
 
@@ -514,6 +515,7 @@ async function handleCreateBranch(
       expires_at: expires.toISOString(),
       activated_at: now.toISOString(),
       referral_code: refCode,
+      tier: "online",
     })
     .select("shop_id")
     .single();
@@ -650,7 +652,7 @@ async function handleSwitchBranch(
 
   const { data: license } = await admin
     .from("licenses")
-    .select("plan, expires_at, realtime_enabled, activated_at")
+    .select("plan, expires_at, realtime_enabled, activated_at, tier")
     .eq("shop_id", targetShopId)
     .order("expires_at", { ascending: false })
     .limit(1)
@@ -663,6 +665,7 @@ async function handleSwitchBranch(
     expires_at: license?.expires_at ?? null,
     realtime_enabled: license?.realtime_enabled === true,
     activated_at: license?.activated_at ?? null,
+    tier: license?.tier ?? "offline",
   }, 200);
 }
 
@@ -704,6 +707,7 @@ async function handleSignupShop(
       expires_at: expires.toISOString(),
       activated_at: now.toISOString(),
       referral_code: refCode,
+      tier: "online",
     })
     .select("*")
     .single();
@@ -737,6 +741,7 @@ async function handleSignupShop(
     plan: "trial",
     expires_at: license.expires_at,
     activated_at: license.activated_at,
+    tier: "online",
   }, 200);
 }
 

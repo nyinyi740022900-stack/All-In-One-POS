@@ -338,12 +338,17 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final deviceId = await settings.deviceId();
     final profile = await settings.shopProfile();
     if (!mounted) return;
+    // Fixed at shop-creation time — see CachedLicense.tier — so pricing
+    // reflects how this shop was made, not whichever session happens to be
+    // active right now.
+    final tier = ref.read(licenseControllerProvider).license?.tier ?? 'offline';
     final cur = l.currencySymbol;
     // Prefill from the shop profile (blank for the default placeholder).
     final shopName = TextEditingController(
         text: profile.name == 'My Shop' ? '' : profile.name);
     final phone = TextEditingController();
-    final amount = TextEditingController(text: '${cfg.priceFor('monthly')}');
+    final amount =
+        TextEditingController(text: '${cfg.priceFor('monthly', tier: tier)}');
     final txn = TextEditingController();
     final referral = TextEditingController();
     String method = 'kbzpay';
@@ -386,7 +391,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   onSelectionChanged: (s) => setLocal(() {
                     plan = s.first;
                     qty = 1;
-                    amount.text = '${cfg.priceFor(plan) * qty}';
+                    amount.text = '${cfg.priceFor(plan, tier: tier) * qty}';
                   }),
                 ),
                 const SizedBox(height: AppTheme.space3),
@@ -399,7 +404,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                       onPressed: qty > 1
                           ? () => setLocal(() {
                                 qty--;
-                                amount.text = '${cfg.priceFor(plan) * qty}';
+                                amount.text =
+                                    '${cfg.priceFor(plan, tier: tier) * qty}';
                               })
                           : null,
                       icon: const Icon(Icons.remove),
@@ -414,7 +420,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                     IconButton.filledTonal(
                       onPressed: () => setLocal(() {
                         qty++;
-                        amount.text = '${cfg.priceFor(plan) * qty}';
+                        amount.text = '${cfg.priceFor(plan, tier: tier) * qty}';
                       }),
                       icon: const Icon(Icons.add),
                     ),
@@ -422,7 +428,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 ),
                 const SizedBox(height: AppTheme.space2),
                 Text(
-                  '${Money(cfg.priceFor(plan)).withSymbol(cur)} × $qty = ${Money(cfg.priceFor(plan) * qty).withSymbol(cur)}',
+                  '${Money(cfg.priceFor(plan, tier: tier)).withSymbol(cur)} × $qty = ${Money(cfg.priceFor(plan, tier: tier) * qty).withSymbol(cur)}',
                   textAlign: TextAlign.center,
                   style: Theme.of(ctx)
                       .textTheme
@@ -532,6 +538,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                           referredByCode: referral.text.trim().isEmpty
                               ? null
                               : referral.text.trim().toUpperCase(),
+                          tier: tier,
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) _showThankYou(cfg.supportViber);

@@ -508,8 +508,10 @@ class _ConfigTabState extends State<_ConfigTab> {
     'pay.wavepay.name': 'WavePay account name',
     'pay.wavepay.number': 'WavePay number',
     'support.viber': 'Support Viber number',
-    'price.monthly': 'Monthly price (Ks)',
-    'price.yearly': 'Yearly price (Ks)',
+    'price.monthly': 'Monthly price, offline (Ks)',
+    'price.yearly': 'Yearly price, offline (Ks)',
+    'price.monthly.online': 'Monthly price, online (Ks, defaults to offline)',
+    'price.yearly.online': 'Yearly price, online (Ks, defaults to offline)',
     'referral.enabled': 'Referral program on (true/false)',
     'referral.rate': 'Referral commission rate (e.g. 0.15 = 15%)',
   };
