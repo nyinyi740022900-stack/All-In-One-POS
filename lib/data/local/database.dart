@@ -30,6 +30,7 @@ part 'database.g.dart';
     Expenses,
     CashSessions,
     DeviceLabels,
+    RecurringExpenses,
     AppSettings,
     Outbox,
   ],
@@ -41,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -151,6 +152,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 20) {
             await m.createTable(cashSessions);
           }
+          // v21: recurring expense templates (rent, wages, etc.) — quick-fill
+          // a new Expense from these each month instead of retyping.
+          if (from < 21) {
+            await m.createTable(recurringExpenses);
+          }
         },
       );
 
@@ -181,6 +187,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(expenses).go();
       await delete(cashSessions).go();
       await delete(deviceLabels).go();
+      await delete(recurringExpenses).go();
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();

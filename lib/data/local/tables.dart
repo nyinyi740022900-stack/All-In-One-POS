@@ -418,6 +418,22 @@ class DeviceLabels extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A recurring monthly cost (rent, wages, etc.) the owner sets up once so
+/// they don't have to retype it every month — deliberately NOT
+/// auto-generated: the owner explicitly quick-fills a new [Expenses] row
+/// from a template each month via the Expenses screen, reviewing the
+/// amount/date before saving. [active] lets a seasonal cost be paused
+/// without losing it, distinct from a real (soft) delete.
+class RecurringExpenses extends Table with SyncColumns {
+  TextColumn get category => text()();
+  IntColumn get amount => integer()();
+  TextColumn get note => text().nullable()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Simple local key/value store for device-scoped app settings (printer MAC,
 /// paper size, selected language, etc.). Not synced.
 class AppSettings extends Table {

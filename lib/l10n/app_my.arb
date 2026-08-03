@@ -737,6 +737,16 @@
   "pricingTierSwitchToOffline": "Offline သို့ ပြောင်းမည်",
   "pricingTierConfirmBody": "ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။",
 
+  "recurringExpenseTitle": "လစဉ် ပုံသေ ကုန်ကျစရိတ်",
+  "recurringExpenseManage": "လစဉ် ကုန်ကျစရိတ် စီမံမည်",
+  "recurringExpenseAddFromTemplate": "Template မှ ထည့်မည်",
+  "recurringExpenseEmpty": "လစဉ် ပုံသေ ကုန်ကျစရိတ် မထည့်ရသေးပါ။ ဆိုင်ခန်းငှားခ ဒါမှမဟုတ် ဝန်ထမ်းစရိတ်လို လစဉ်ပေးရတဲ့ စရိတ်တစ်ခု ထည့်ပါ။",
+  "recurringExpenseAdd": "လစဉ် ကုန်ကျစရိတ် ထည့်မည်",
+  "recurringExpenseEdit": "လစဉ် ကုန်ကျစရိတ် ပြင်မည်",
+  "recurringExpenseSaved": "သိမ်းပြီးပါပြီ။",
+  "recurringExpenseDeleted": "ဖျက်ပြီးပါပြီ။",
+  "recurringExpenseDeleteConfirmTitle": "ဒီ လစဉ်ကုန်ကျစရိတ်ကို ဖျက်မလား?",
+
   "onboardModeTitle": "GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "License Key နဲ့ Activate လုပ်ပါ။ Internet မလိုဘဲ အပြည့်အဝ အသုံးပြုနိုင်ပြီး Account မလိုပါ။",

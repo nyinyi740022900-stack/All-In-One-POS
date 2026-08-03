@@ -2170,6 +2170,35 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။';
 
   @override
+  String get recurringExpenseTitle => 'လစဉ် ပုံသေ ကုန်ကျစရိတ်';
+
+  @override
+  String get recurringExpenseManage => 'လစဉ် ကုန်ကျစရိတ် စီမံမည်';
+
+  @override
+  String get recurringExpenseAddFromTemplate => 'Template မှ ထည့်မည်';
+
+  @override
+  String get recurringExpenseEmpty =>
+      'လစဉ် ပုံသေ ကုန်ကျစရိတ် မထည့်ရသေးပါ။ ဆိုင်ခန်းငှားခ ဒါမှမဟုတ် ဝန်ထမ်းစရိတ်လို လစဉ်ပေးရတဲ့ စရိတ်တစ်ခု ထည့်ပါ။';
+
+  @override
+  String get recurringExpenseAdd => 'လစဉ် ကုန်ကျစရိတ် ထည့်မည်';
+
+  @override
+  String get recurringExpenseEdit => 'လစဉ် ကုန်ကျစရိတ် ပြင်မည်';
+
+  @override
+  String get recurringExpenseSaved => 'သိမ်းပြီးပါပြီ။';
+
+  @override
+  String get recurringExpenseDeleted => 'ဖျက်ပြီးပါပြီ။';
+
+  @override
+  String get recurringExpenseDeleteConfirmTitle =>
+      'ဒီ လစဉ်ကုန်ကျစရိတ်ကို ဖျက်မလား?';
+
+  @override
   String get onboardModeTitle => 'GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?';
 
   @override

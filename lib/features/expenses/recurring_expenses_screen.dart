@@ -1,0 +1,212 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/money.dart';
+import '../../core/theme/app_theme.dart';
+import '../../data/local/database.dart';
+import '../../l10n/app_localizations.dart';
+import 'expense_repository.dart';
+import 'expense_screen.dart' show categoryIcon, categoryLabel;
+import 'recurring_expense_providers.dart';
+
+/// Manage recurring-expense templates (rent, wages, etc.) — see
+/// `RecurringExpenses` in tables.dart. Reached from the Expenses screen.
+class RecurringExpensesScreen extends ConsumerWidget {
+  const RecurringExpensesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final templates =
+        ref.watch(recurringExpenseTemplatesProvider).valueOrNull ?? const [];
+    return Scaffold(
+      appBar: AppBar(title: Text(l.recurringExpenseTitle)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openDialog(context),
+        child: const Icon(Icons.add),
+      ),
+      body: templates.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space5),
+                child: Text(l.recurringExpenseEmpty, textAlign: TextAlign.center),
+              ),
+            )
+          : ListView.separated(
+              itemCount: templates.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final t = templates[i];
+                return ListTile(
+                  leading: CircleAvatar(child: Icon(categoryIcon(t.category))),
+                  title: Text(categoryLabel(l, t.category)),
+                  subtitle: Text(
+                    t.note == null || t.note!.isEmpty
+                        ? Money(t.amount).withSymbol(l.currencySymbol)
+                        : '${Money(t.amount).withSymbol(l.currencySymbol)} · ${t.note}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Switch(
+                    value: t.active,
+                    onChanged: (v) => ref
+                        .read(recurringExpenseRepositoryProvider)
+                        .setActive(t.id, v),
+                  ),
+                  onTap: () => _openDialog(context, existing: t),
+                );
+              },
+            ),
+    );
+  }
+
+  Future<void> _openDialog(BuildContext context, {RecurringExpense? existing}) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => _TemplateDialog(existing: existing),
+    );
+  }
+}
+
+class _TemplateDialog extends ConsumerStatefulWidget {
+  const _TemplateDialog({this.existing});
+  final RecurringExpense? existing;
+
+  @override
+  ConsumerState<_TemplateDialog> createState() => _TemplateDialogState();
+}
+
+class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
+  final _amount = TextEditingController();
+  final _note = TextEditingController();
+  late String _category;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _category = e?.category ?? expenseCategories.first;
+    if (e != null) {
+      _amount.text = '${e.amount}';
+      _note.text = e.note ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    if (amount <= 0) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _saving = true);
+    try {
+      await ref.read(recurringExpenseRepositoryProvider).upsertTemplate(
+            id: widget.existing?.id,
+            category: _category,
+            amount: amount,
+            note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+            active: widget.existing?.active ?? true,
+          );
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseSaved)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.recurringExpenseDeleteConfirmTitle),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref
+        .read(recurringExpenseRepositoryProvider)
+        .deleteTemplate(widget.existing!.id);
+    navigator.pop();
+    messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseDeleted)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(widget.existing == null
+          ? l.recurringExpenseAdd
+          : l.recurringExpenseEdit),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _amount,
+              autofocus: widget.existing == null,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(labelText: l.expenseAmount),
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Wrap(
+              spacing: AppTheme.space2,
+              runSpacing: AppTheme.space2,
+              children: [
+                for (final c in expenseCategories)
+                  ChoiceChip(
+                    label: Text(categoryLabel(l, c)),
+                    selected: _category == c,
+                    onSelected: (_) => setState(() => _category = c),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _note,
+              decoration: InputDecoration(labelText: l.expenseNote),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        if (widget.existing != null)
+          TextButton(
+            onPressed: _saving ? null : _delete,
+            child: Text(l.commonDelete,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(l.commonSave),
+        ),
+      ],
+    );
+  }
+}

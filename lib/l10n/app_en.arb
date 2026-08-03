@@ -741,6 +741,16 @@
   "pricingTierSwitchToOffline": "Switch to Offline",
   "pricingTierConfirmBody": "This changes the suggested price on your next renewal request only — it doesn't affect your current plan or anything already paid.",
 
+  "recurringExpenseTitle": "Recurring expenses",
+  "recurringExpenseManage": "Manage recurring expenses",
+  "recurringExpenseAddFromTemplate": "Add from template",
+  "recurringExpenseEmpty": "No recurring expenses set up yet. Add one for a cost you pay every month, like rent or wages.",
+  "recurringExpenseAdd": "Add recurring expense",
+  "recurringExpenseEdit": "Edit recurring expense",
+  "recurringExpenseSaved": "Saved.",
+  "recurringExpenseDeleted": "Deleted.",
+  "recurringExpenseDeleteConfirmTitle": "Delete this recurring expense?",
+
   "onboardModeTitle": "How will you use GoldPOSMM?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "Activate with a license key. Works fully offline; no account needed.",

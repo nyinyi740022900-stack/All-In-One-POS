@@ -46,6 +46,7 @@ final syncTables = <SyncTableDef>[
   _expenses,
   _cashSessions,
   _deviceLabels,
+  _recurringExpenses,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -800,5 +801,49 @@ final _deviceLabels = SyncTableDef(
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+  },
+);
+
+// --- recurring_expenses ------------------------------------------------------
+final _recurringExpenses = SyncTableDef(
+  name: 'recurring_expenses',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.recurringExpenses)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'category': r.category,
+      'amount': r.amount,
+      'note': r.note,
+      'active': r.active,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.recurringExpenses)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.recurringExpenses).insertOnConflictUpdate(
+          RecurringExpensesCompanion(
+            id: Value(id),
+            shopId: Value(m['shop_id'] as String),
+            category: Value(m['category'] as String),
+            amount: Value(_int(m['amount'])),
+            note: Value(m['note'] as String?),
+            active: Value(_bool(m['active'])),
+            createdAt: Value(_dt(m['created_at'])),
+            updatedAt: Value(updated),
+            isDeleted: Value(_bool(m['is_deleted'])),
+            dirty: const Value(false),
+          ),
+        );
   },
 );

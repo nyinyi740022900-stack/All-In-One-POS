@@ -4070,6 +4070,60 @@ abstract class AppLocalizations {
   /// **'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.'**
   String get pricingTierConfirmBody;
 
+  /// No description provided for @recurringExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring expenses'**
+  String get recurringExpenseTitle;
+
+  /// No description provided for @recurringExpenseManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage recurring expenses'**
+  String get recurringExpenseManage;
+
+  /// No description provided for @recurringExpenseAddFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Add from template'**
+  String get recurringExpenseAddFromTemplate;
+
+  /// No description provided for @recurringExpenseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recurring expenses set up yet. Add one for a cost you pay every month, like rent or wages.'**
+  String get recurringExpenseEmpty;
+
+  /// No description provided for @recurringExpenseAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add recurring expense'**
+  String get recurringExpenseAdd;
+
+  /// No description provided for @recurringExpenseEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recurring expense'**
+  String get recurringExpenseEdit;
+
+  /// No description provided for @recurringExpenseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved.'**
+  String get recurringExpenseSaved;
+
+  /// No description provided for @recurringExpenseDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted.'**
+  String get recurringExpenseDeleted;
+
+  /// No description provided for @recurringExpenseDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this recurring expense?'**
+  String get recurringExpenseDeleteConfirmTitle;
+
   /// No description provided for @onboardModeTitle.
   ///
   /// In en, this message translates to:

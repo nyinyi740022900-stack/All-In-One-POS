@@ -2169,6 +2169,35 @@ class AppLocalizationsEn extends AppLocalizations {
       'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.';
 
   @override
+  String get recurringExpenseTitle => 'Recurring expenses';
+
+  @override
+  String get recurringExpenseManage => 'Manage recurring expenses';
+
+  @override
+  String get recurringExpenseAddFromTemplate => 'Add from template';
+
+  @override
+  String get recurringExpenseEmpty =>
+      'No recurring expenses set up yet. Add one for a cost you pay every month, like rent or wages.';
+
+  @override
+  String get recurringExpenseAdd => 'Add recurring expense';
+
+  @override
+  String get recurringExpenseEdit => 'Edit recurring expense';
+
+  @override
+  String get recurringExpenseSaved => 'Saved.';
+
+  @override
+  String get recurringExpenseDeleted => 'Deleted.';
+
+  @override
+  String get recurringExpenseDeleteConfirmTitle =>
+      'Delete this recurring expense?';
+
+  @override
   String get onboardModeTitle => 'How will you use GoldPOSMM?';
 
   @override

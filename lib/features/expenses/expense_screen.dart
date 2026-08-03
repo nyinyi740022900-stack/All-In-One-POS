@@ -14,6 +14,8 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
+import 'recurring_expense_providers.dart';
+import 'recurring_expenses_screen.dart';
 
 String _photoMimeType(String path) {
   final ext = path.split('.').last.toLowerCase();
@@ -64,7 +66,7 @@ class ReceiptPhotoViewer extends StatelessWidget {
   }
 }
 
-IconData _categoryIcon(String category) {
+IconData categoryIcon(String category) {
   switch (category) {
     case 'rent':
       return Icons.store_outlined;
@@ -116,7 +118,23 @@ class ExpenseScreen extends ConsumerWidget {
     final df = DateFormat('yyyy-MM-dd');
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.expensesTitle)),
+      appBar: AppBar(
+        title: Text(l.expensesTitle),
+        actions: [
+          IconButton(
+            tooltip: l.recurringExpenseAddFromTemplate,
+            icon: const Icon(Icons.playlist_add),
+            onPressed: () => _openTemplatePicker(context, ref),
+          ),
+          IconButton(
+            tooltip: l.recurringExpenseManage,
+            icon: const Icon(Icons.repeat),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const RecurringExpensesScreen(),
+            )),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openDialog(context),
         child: const Icon(Icons.add),
@@ -151,7 +169,7 @@ class ExpenseScreen extends ConsumerWidget {
                       final e = expenses[i];
                       return ListTile(
                         leading: CircleAvatar(
-                          child: Icon(_categoryIcon(e.category)),
+                          child: Icon(categoryIcon(e.category)),
                         ),
                         title: Text(categoryLabel(l, e.category)),
                         subtitle: Text(
@@ -175,17 +193,73 @@ class ExpenseScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openDialog(BuildContext context, {Expense? existing}) {
+  Future<void> _openDialog(BuildContext context,
+      {Expense? existing, ExpenseTemplatePrefill? prefill}) {
     return showDialog<void>(
       context: context,
-      builder: (_) => _ExpenseDialog(existing: existing),
+      builder: (_) => _ExpenseDialog(existing: existing, prefill: prefill),
     );
+  }
+
+  Future<void> _openTemplatePicker(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final templates = await ref.read(recurringExpenseTemplatesProvider.future);
+    final active = templates.where((t) => t.active).toList();
+    if (!context.mounted) return;
+    if (active.isEmpty) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const RecurringExpensesScreen(),
+      ));
+      return;
+    }
+    final picked = await showModalBottomSheet<RecurringExpense>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space3),
+              child: Text(l.recurringExpenseAddFromTemplate,
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            for (final t in active)
+              ListTile(
+                leading: Icon(categoryIcon(t.category)),
+                title: Text(categoryLabel(l, t.category)),
+                subtitle: t.note == null || t.note!.isEmpty
+                    ? null
+                    : Text(t.note!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                trailing: Text(Money(t.amount).withSymbol(l.currencySymbol),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                onTap: () => Navigator.pop(ctx, t),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !context.mounted) return;
+    await _openDialog(context,
+        prefill: ExpenseTemplatePrefill(
+            category: picked.category, amount: picked.amount, note: picked.note));
   }
 }
 
+/// Prefill values from a recurring-expense template — deliberately not the
+/// `RecurringExpense` row itself, so this dialog doesn't need to know
+/// anything about that table.
+class ExpenseTemplatePrefill {
+  const ExpenseTemplatePrefill(
+      {required this.category, required this.amount, this.note});
+  final String category;
+  final int amount;
+  final String? note;
+}
+
 class _ExpenseDialog extends ConsumerStatefulWidget {
-  const _ExpenseDialog({this.existing});
+  const _ExpenseDialog({this.existing, this.prefill});
   final Expense? existing;
+  final ExpenseTemplatePrefill? prefill;
 
   @override
   ConsumerState<_ExpenseDialog> createState() => _ExpenseDialogState();
@@ -203,12 +277,16 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _category = e?.category ?? expenseCategories.first;
+    final p = widget.prefill;
+    _category = e?.category ?? p?.category ?? expenseCategories.first;
     _date = e?.date ?? DateTime.now();
     _receiptPhotoPath = e?.receiptPhotoPath;
     if (e != null) {
       _amount.text = '${e.amount}';
       _note.text = e.note ?? '';
+    } else if (p != null) {
+      _amount.text = '${p.amount}';
+      _note.text = p.note ?? '';
     }
   }
 
