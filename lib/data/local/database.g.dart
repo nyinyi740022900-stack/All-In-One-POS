@@ -3241,16 +3241,6 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _taxMeta = const VerificationMeta('tax');
-  @override
-  late final GeneratedColumn<int> tax = GeneratedColumn<int>(
-    'tax',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
   static const VerificationMeta _totalMeta = const VerificationMeta('total');
   @override
   late final GeneratedColumn<int> total = GeneratedColumn<int>(
@@ -3394,7 +3384,6 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     staffId,
     subtotal,
     discount,
-    tax,
     total,
     paid,
     changeDue,
@@ -3481,12 +3470,6 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
       context.handle(
         _discountMeta,
         discount.isAcceptableOrUnknown(data['discount']!, _discountMeta),
-      );
-    }
-    if (data.containsKey('tax')) {
-      context.handle(
-        _taxMeta,
-        tax.isAcceptableOrUnknown(data['tax']!, _taxMeta),
       );
     }
     if (data.containsKey('total')) {
@@ -3628,10 +3611,6 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         DriftSqlType.int,
         data['${effectivePrefix}discount'],
       )!,
-      tax: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}tax'],
-      )!,
       total: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total'],
@@ -3700,7 +3679,6 @@ class Sale extends DataClass implements Insertable<Sale> {
   final String? staffId;
   final int subtotal;
   final int discount;
-  final int tax;
   final int total;
   final int paid;
   final int changeDue;
@@ -3748,7 +3726,6 @@ class Sale extends DataClass implements Insertable<Sale> {
     this.staffId,
     required this.subtotal,
     required this.discount,
-    required this.tax,
     required this.total,
     required this.paid,
     required this.changeDue,
@@ -3777,7 +3754,6 @@ class Sale extends DataClass implements Insertable<Sale> {
     }
     map['subtotal'] = Variable<int>(subtotal);
     map['discount'] = Variable<int>(discount);
-    map['tax'] = Variable<int>(tax);
     map['total'] = Variable<int>(total);
     map['paid'] = Variable<int>(paid);
     map['change_due'] = Variable<int>(changeDue);
@@ -3821,7 +3797,6 @@ class Sale extends DataClass implements Insertable<Sale> {
           : Value(staffId),
       subtotal: Value(subtotal),
       discount: Value(discount),
-      tax: Value(tax),
       total: Value(total),
       paid: Value(paid),
       changeDue: Value(changeDue),
@@ -3865,7 +3840,6 @@ class Sale extends DataClass implements Insertable<Sale> {
       staffId: serializer.fromJson<String?>(json['staffId']),
       subtotal: serializer.fromJson<int>(json['subtotal']),
       discount: serializer.fromJson<int>(json['discount']),
-      tax: serializer.fromJson<int>(json['tax']),
       total: serializer.fromJson<int>(json['total']),
       paid: serializer.fromJson<int>(json['paid']),
       changeDue: serializer.fromJson<int>(json['changeDue']),
@@ -3894,7 +3868,6 @@ class Sale extends DataClass implements Insertable<Sale> {
       'staffId': serializer.toJson<String?>(staffId),
       'subtotal': serializer.toJson<int>(subtotal),
       'discount': serializer.toJson<int>(discount),
-      'tax': serializer.toJson<int>(tax),
       'total': serializer.toJson<int>(total),
       'paid': serializer.toJson<int>(paid),
       'changeDue': serializer.toJson<int>(changeDue),
@@ -3921,7 +3894,6 @@ class Sale extends DataClass implements Insertable<Sale> {
     Value<String?> staffId = const Value.absent(),
     int? subtotal,
     int? discount,
-    int? tax,
     int? total,
     int? paid,
     int? changeDue,
@@ -3945,7 +3917,6 @@ class Sale extends DataClass implements Insertable<Sale> {
     staffId: staffId.present ? staffId.value : this.staffId,
     subtotal: subtotal ?? this.subtotal,
     discount: discount ?? this.discount,
-    tax: tax ?? this.tax,
     total: total ?? this.total,
     paid: paid ?? this.paid,
     changeDue: changeDue ?? this.changeDue,
@@ -3977,7 +3948,6 @@ class Sale extends DataClass implements Insertable<Sale> {
       staffId: data.staffId.present ? data.staffId.value : this.staffId,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
       discount: data.discount.present ? data.discount.value : this.discount,
-      tax: data.tax.present ? data.tax.value : this.tax,
       total: data.total.present ? data.total.value : this.total,
       paid: data.paid.present ? data.paid.value : this.paid,
       changeDue: data.changeDue.present ? data.changeDue.value : this.changeDue,
@@ -4020,7 +3990,6 @@ class Sale extends DataClass implements Insertable<Sale> {
           ..write('staffId: $staffId, ')
           ..write('subtotal: $subtotal, ')
           ..write('discount: $discount, ')
-          ..write('tax: $tax, ')
           ..write('total: $total, ')
           ..write('paid: $paid, ')
           ..write('changeDue: $changeDue, ')
@@ -4049,7 +4018,6 @@ class Sale extends DataClass implements Insertable<Sale> {
     staffId,
     subtotal,
     discount,
-    tax,
     total,
     paid,
     changeDue,
@@ -4077,7 +4045,6 @@ class Sale extends DataClass implements Insertable<Sale> {
           other.staffId == this.staffId &&
           other.subtotal == this.subtotal &&
           other.discount == this.discount &&
-          other.tax == this.tax &&
           other.total == this.total &&
           other.paid == this.paid &&
           other.changeDue == this.changeDue &&
@@ -4103,7 +4070,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
   final Value<String?> staffId;
   final Value<int> subtotal;
   final Value<int> discount;
-  final Value<int> tax;
   final Value<int> total;
   final Value<int> paid;
   final Value<int> changeDue;
@@ -4128,7 +4094,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.staffId = const Value.absent(),
     this.subtotal = const Value.absent(),
     this.discount = const Value.absent(),
-    this.tax = const Value.absent(),
     this.total = const Value.absent(),
     this.paid = const Value.absent(),
     this.changeDue = const Value.absent(),
@@ -4154,7 +4119,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.staffId = const Value.absent(),
     this.subtotal = const Value.absent(),
     this.discount = const Value.absent(),
-    this.tax = const Value.absent(),
     this.total = const Value.absent(),
     this.paid = const Value.absent(),
     this.changeDue = const Value.absent(),
@@ -4182,7 +4146,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Expression<String>? staffId,
     Expression<int>? subtotal,
     Expression<int>? discount,
-    Expression<int>? tax,
     Expression<int>? total,
     Expression<int>? paid,
     Expression<int>? changeDue,
@@ -4208,7 +4171,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       if (staffId != null) 'staff_id': staffId,
       if (subtotal != null) 'subtotal': subtotal,
       if (discount != null) 'discount': discount,
-      if (tax != null) 'tax': tax,
       if (total != null) 'total': total,
       if (paid != null) 'paid': paid,
       if (changeDue != null) 'change_due': changeDue,
@@ -4236,7 +4198,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Value<String?>? staffId,
     Value<int>? subtotal,
     Value<int>? discount,
-    Value<int>? tax,
     Value<int>? total,
     Value<int>? paid,
     Value<int>? changeDue,
@@ -4262,7 +4223,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       staffId: staffId ?? this.staffId,
       subtotal: subtotal ?? this.subtotal,
       discount: discount ?? this.discount,
-      tax: tax ?? this.tax,
       total: total ?? this.total,
       paid: paid ?? this.paid,
       changeDue: changeDue ?? this.changeDue,
@@ -4311,9 +4271,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     }
     if (discount.present) {
       map['discount'] = Variable<int>(discount.value);
-    }
-    if (tax.present) {
-      map['tax'] = Variable<int>(tax.value);
     }
     if (total.present) {
       map['total'] = Variable<int>(total.value);
@@ -4370,7 +4327,6 @@ class SalesCompanion extends UpdateCompanion<Sale> {
           ..write('staffId: $staffId, ')
           ..write('subtotal: $subtotal, ')
           ..write('discount: $discount, ')
-          ..write('tax: $tax, ')
           ..write('total: $total, ')
           ..write('paid: $paid, ')
           ..write('changeDue: $changeDue, ')
@@ -17403,7 +17359,6 @@ typedef $$SalesTableCreateCompanionBuilder =
       Value<String?> staffId,
       Value<int> subtotal,
       Value<int> discount,
-      Value<int> tax,
       Value<int> total,
       Value<int> paid,
       Value<int> changeDue,
@@ -17430,7 +17385,6 @@ typedef $$SalesTableUpdateCompanionBuilder =
       Value<String?> staffId,
       Value<int> subtotal,
       Value<int> discount,
-      Value<int> tax,
       Value<int> total,
       Value<int> paid,
       Value<int> changeDue,
@@ -17501,11 +17455,6 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<int> get discount => $composableBuilder(
     column: $table.discount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get tax => $composableBuilder(
-    column: $table.tax,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17629,11 +17578,6 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get tax => $composableBuilder(
-    column: $table.tax,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get total => $composableBuilder(
     column: $table.total,
     builder: (column) => ColumnOrderings(column),
@@ -17734,9 +17678,6 @@ class $$SalesTableAnnotationComposer
   GeneratedColumn<int> get discount =>
       $composableBuilder(column: $table.discount, builder: (column) => column);
 
-  GeneratedColumn<int> get tax =>
-      $composableBuilder(column: $table.tax, builder: (column) => column);
-
   GeneratedColumn<int> get total =>
       $composableBuilder(column: $table.total, builder: (column) => column);
 
@@ -17826,7 +17767,6 @@ class $$SalesTableTableManager
                 Value<String?> staffId = const Value.absent(),
                 Value<int> subtotal = const Value.absent(),
                 Value<int> discount = const Value.absent(),
-                Value<int> tax = const Value.absent(),
                 Value<int> total = const Value.absent(),
                 Value<int> paid = const Value.absent(),
                 Value<int> changeDue = const Value.absent(),
@@ -17851,7 +17791,6 @@ class $$SalesTableTableManager
                 staffId: staffId,
                 subtotal: subtotal,
                 discount: discount,
-                tax: tax,
                 total: total,
                 paid: paid,
                 changeDue: changeDue,
@@ -17878,7 +17817,6 @@ class $$SalesTableTableManager
                 Value<String?> staffId = const Value.absent(),
                 Value<int> subtotal = const Value.absent(),
                 Value<int> discount = const Value.absent(),
-                Value<int> tax = const Value.absent(),
                 Value<int> total = const Value.absent(),
                 Value<int> paid = const Value.absent(),
                 Value<int> changeDue = const Value.absent(),
@@ -17903,7 +17841,6 @@ class $$SalesTableTableManager
                 staffId: staffId,
                 subtotal: subtotal,
                 discount: discount,
-                tax: tax,
                 total: total,
                 paid: paid,
                 changeDue: changeDue,

@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -177,6 +177,14 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(suppliers);
             await m.createTable(purchaseOrders);
             await m.createTable(purchaseOrderItems);
+          }
+          // v24: drop sales.tax — never set/read anywhere (no checkout UI,
+          // no receipt/invoice line ever used it); dead weight since it was
+          // added. Drift has no dropColumn helper, so this issues the raw
+          // SQL directly (supported since SQLite 3.35, well within what the
+          // bundled sqlite3 provides).
+          if (from < 24) {
+            await m.database.customStatement('ALTER TABLE sales DROP COLUMN tax');
           }
         },
       );

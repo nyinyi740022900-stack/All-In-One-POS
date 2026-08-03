@@ -109,7 +109,6 @@ class Sales extends Table with SyncColumns {
   TextColumn get staffId => text().nullable()();
   IntColumn get subtotal => integer().withDefault(const Constant(0))();
   IntColumn get discount => integer().withDefault(const Constant(0))();
-  IntColumn get tax => integer().withDefault(const Constant(0))();
   IntColumn get total => integer().withDefault(const Constant(0))();
   IntColumn get paid => integer().withDefault(const Constant(0))();
   IntColumn get changeDue => integer().withDefault(const Constant(0))();

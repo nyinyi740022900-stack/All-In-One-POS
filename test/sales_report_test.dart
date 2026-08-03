@@ -23,7 +23,6 @@ Sale _sale({
     invoiceNo: invoiceNo,
     subtotal: total,
     discount: 0,
-    tax: 0,
     total: total,
     paid: total,
     changeDue: 0,
