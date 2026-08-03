@@ -2086,7 +2086,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesTitle => 'Branches';
 
   @override
-  String get branchesLink => 'Link a branch';
+  String get branchesCreate => 'Create a new branch';
+
+  @override
+  String get branchesCreated => 'Branch created.';
+
+  @override
+  String get branchesLink => 'Link with a key';
+
+  @override
+  String get branchesLinkHint =>
+      'For a shop that already exists separately (e.g. bought its own license key elsewhere). To start a fresh branch, use \"Create a new branch\" instead.';
 
   @override
   String get branchesKeyLabel => 'License key';

@@ -708,7 +708,10 @@
   "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
 
   "branchesTitle": "ဆိုင်ခွဲများ",
-  "branchesLink": "ဆိုင်ခွဲ ချိတ်ဆက်မည်",
+  "branchesCreate": "ဆိုင်ခွဲ အသစ် ဖန်တီးမည်",
+  "branchesCreated": "ဆိုင်ခွဲ ဖန်တီးပြီးပါပြီ။",
+  "branchesLink": "Key နဲ့ ချိတ်ဆက်မည်",
+  "branchesLinkHint": "ဟိုးအရင်ကတည်းက Key သီးသန့်ဝယ်ထားပြီးသား ဆိုင်ခွဲအတွက်ပါ။ ဆိုင်ခွဲ အသစ်တစ်ခု စတင်ချင်ရင် \"ဆိုင်ခွဲ အသစ် ဖန်တီးမည်\" ကို သုံးပါ။",
   "branchesKeyLabel": "License Key",
   "branchesLabelField": "ဆိုင်ခွဲအမည်",
   "branchesLinked": "ဆိုင်ခွဲ ချိတ်ဆက်ပြီးပါပြီ။",

@@ -712,7 +712,10 @@
   "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
 
   "branchesTitle": "Branches",
-  "branchesLink": "Link a branch",
+  "branchesCreate": "Create a new branch",
+  "branchesCreated": "Branch created.",
+  "branchesLink": "Link with a key",
+  "branchesLinkHint": "For a shop that already exists separately (e.g. bought its own license key elsewhere). To start a fresh branch, use \"Create a new branch\" instead.",
   "branchesKeyLabel": "License key",
   "branchesLabelField": "Branch name",
   "branchesLinked": "Branch linked.",

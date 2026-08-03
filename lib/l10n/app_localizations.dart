@@ -3920,11 +3920,29 @@ abstract class AppLocalizations {
   /// **'Branches'**
   String get branchesTitle;
 
+  /// No description provided for @branchesCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new branch'**
+  String get branchesCreate;
+
+  /// No description provided for @branchesCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch created.'**
+  String get branchesCreated;
+
   /// No description provided for @branchesLink.
   ///
   /// In en, this message translates to:
-  /// **'Link a branch'**
+  /// **'Link with a key'**
   String get branchesLink;
+
+  /// No description provided for @branchesLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For a shop that already exists separately (e.g. bought its own license key elsewhere). To start a fresh branch, use \"Create a new branch\" instead.'**
+  String get branchesLinkHint;
 
   /// No description provided for @branchesKeyLabel.
   ///

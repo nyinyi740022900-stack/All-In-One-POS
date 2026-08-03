@@ -2087,7 +2087,17 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesTitle => 'ဆိုင်ခွဲများ';
 
   @override
-  String get branchesLink => 'ဆိုင်ခွဲ ချိတ်ဆက်မည်';
+  String get branchesCreate => 'ဆိုင်ခွဲ အသစ် ဖန်တီးမည်';
+
+  @override
+  String get branchesCreated => 'ဆိုင်ခွဲ ဖန်တီးပြီးပါပြီ။';
+
+  @override
+  String get branchesLink => 'Key နဲ့ ချိတ်ဆက်မည်';
+
+  @override
+  String get branchesLinkHint =>
+      'ဟိုးအရင်ကတည်းက Key သီးသန့်ဝယ်ထားပြီးသား ဆိုင်ခွဲအတွက်ပါ။ ဆိုင်ခွဲ အသစ်တစ်ခု စတင်ချင်ရင် \"ဆိုင်ခွဲ အသစ် ဖန်တီးမည်\" ကို သုံးပါ။';
 
   @override
   String get branchesKeyLabel => 'License Key';

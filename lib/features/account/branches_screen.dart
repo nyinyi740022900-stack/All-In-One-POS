@@ -9,8 +9,12 @@ import '../staff/staff_ui.dart';
 import 'branch_providers.dart';
 import 'branch_repository.dart';
 
-/// Lets a real-login owner list, link, unlink, and switch between branches
-/// (each its own shop_id/license) they own. Owner-only — see OwnerOnlyGate.
+/// Lets a real-login owner list, create, link, unlink, and switch between
+/// branches (each its own shop_id/license) they own. Owner-only — see
+/// OwnerOnlyGate. Creating a branch (just a name, no key) is the primary
+/// path — this is a cloud account, so a new branch should be as easy as
+/// naming it; linking an already-existing separate shop by its key stays
+/// available as a secondary, less prominent action.
 class BranchesScreen extends ConsumerWidget {
   const BranchesScreen({super.key});
 
@@ -18,18 +22,68 @@ class BranchesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.branchesTitle)),
+      appBar: AppBar(
+        title: Text(l.branchesTitle),
+        actions: [
+          OwnerOnlyGate(
+            child: Builder(
+              builder: (context) => IconButton(
+                tooltip: l.branchesLink,
+                icon: const Icon(Icons.key_outlined),
+                onPressed: () => _linkBranch(context, ref),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: OwnerOnlyGate(child: _BranchesBody()),
       floatingActionButton: OwnerOnlyGate(
         child: Builder(
           builder: (context) => FloatingActionButton.extended(
-            onPressed: () => _linkBranch(context, ref),
+            onPressed: () => _createBranch(context, ref),
             icon: const Icon(Icons.add_business),
-            label: Text(l.branchesLink),
+            label: Text(l.branchesCreate),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _createBranch(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final name = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.branchesCreate),
+        content: TextField(
+          controller: name,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(labelText: l.shopName),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.branchesCreate)),
+        ],
+      ),
+    );
+    if (submitted != true || !context.mounted) return;
+    if (name.text.trim().isEmpty) return;
+    final result =
+        await ref.read(branchRepositoryProvider).createBranch(name.text.trim());
+    if (!context.mounted) return;
+    if (result.ok) {
+      ref.invalidate(branchesProvider);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.branchesCreated)));
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+    }
   }
 
   Future<void> _linkBranch(BuildContext context, WidgetRef ref) async {
@@ -43,6 +97,9 @@ class BranchesScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(l.branchesLinkHint,
+                style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: AppTheme.space2),
             TextField(
               controller: key,
               decoration: InputDecoration(labelText: l.branchesKeyLabel),

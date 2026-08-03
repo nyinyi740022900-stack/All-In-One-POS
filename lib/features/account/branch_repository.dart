@@ -71,6 +71,22 @@ class BranchRepository {
     }
   }
 
+  /// Mints a brand new branch from just a name — no separate license key
+  /// needed. The primary way to add a branch (see `link_branch` for the
+  /// secondary case of registering an already-existing separate shop).
+  Future<BranchActionResult> createBranch(String shopName) async {
+    if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
+    try {
+      final res = await Supabase.instance.client.functions.invoke('activate',
+          body: {'action': 'create_branch', 'shop_name': shopName});
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] == true) return const BranchActionResult.success();
+      return BranchActionResult.failure(data['error'] as String?);
+    } catch (_) {
+      return const BranchActionResult.failure('network_error');
+    }
+  }
+
   Future<BranchActionResult> linkBranch(String key, String label) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {

@@ -22,11 +22,23 @@
 //                                                 staff accounts under their
 //                                                 own shop_id (auth.users
 //                                                 isn't client-queryable)
+//   create_branch { shop_name }                -> owner-role caller mints a
+//                                                 BRAND NEW shop_id + trial
+//                                                 license (no device bound
+//                                                 yet) and auto-links it as
+//                                                 a branch they own — the
+//                                                 primary way to add a
+//                                                 branch when already signed
+//                                                 in with a real account, no
+//                                                 separate key needed
 //   link_branch { key, label }                -> owner-role caller registers
-//                                                 another shop_id (proven by
-//                                                 its key) as a branch they
-//                                                 own; upsert, so it also
-//                                                 renames
+//                                                 another EXISTING shop_id
+//                                                 (proven by its key) as a
+//                                                 branch they own; upsert,
+//                                                 so it also renames —
+//                                                 secondary/advanced path
+//                                                 for a shop that already
+//                                                 exists separately
 //   list_branches {}                          -> owner-role caller lists
 //                                                 every branch they've
 //                                                 linked (incl. their own
@@ -130,6 +142,9 @@ Deno.serve(async (req) => {
   }
   if (action === "list_staff") {
     return handleListStaff(admin, userData.user);
+  }
+  if (action === "create_branch") {
+    return handleCreateBranch(admin, userData.user, body.shop_name ?? "");
   }
   if (action === "link_branch") {
     return handleLinkBranch(
@@ -461,6 +476,58 @@ async function handleReleaseDevice(
 // `licenses.device_id` — linking is pure bookkeeping, independent of which
 // physical device activated that key. Upsert, so re-running it with a new
 // label renames the branch.
+const BRANCH_TRIAL_MONTHS = 2;
+
+// Owner-role only. Mints a brand new shop_id + trial license (NOT bound to
+// any device yet — this branch might not be activated on this physical
+// device at all) and auto-links it as a branch the caller owns. This is the
+// PRIMARY way to add a branch once already signed in with a real account —
+// no separate key round-trip needed, unlike `link_branch` (which stays
+// available for the secondary case of an already-existing separate shop).
+async function handleCreateBranch(
+  admin: AdminClient,
+  user: SupabaseUser,
+  shopName: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+
+  const newShopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  const key = "BRANCH-" +
+    crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + BRANCH_TRIAL_MONTHS);
+  const { data: refCode } = await admin.rpc("gen_referral_code");
+
+  const { data: license, error: licErr } = await admin
+    .from("licenses")
+    .insert({
+      shop_id: newShopId,
+      shop_name: shopName || null,
+      key,
+      plan: "trial",
+      status: "active",
+      expires_at: expires.toISOString(),
+      activated_at: now.toISOString(),
+      referral_code: refCode,
+    })
+    .select("shop_id")
+    .single();
+  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+
+  const { error: linkErr } = await admin.from("org_branches").upsert(
+    { owner_user_id: user.id, shop_id: newShopId, label: shopName || null },
+    { onConflict: "owner_user_id,shop_id" },
+  );
+  if (linkErr) return json({ ok: false, error: "server_error" }, 500);
+
+  return json({ ok: true, shop_id: license.shop_id }, 200);
+}
+
 async function handleLinkBranch(
   admin: AdminClient,
   user: SupabaseUser,
