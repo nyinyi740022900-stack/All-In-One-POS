@@ -358,6 +358,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryTitle => 'Inventory';
 
   @override
+  String get inventoryExportCsv => 'Export CSV';
+
+  @override
   String get inventoryEmpty => 'No products yet. Add your first product.';
 
   @override
@@ -734,6 +737,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get salesReportExportPdf => 'Export PDF';
+
+  @override
+  String get salesReportExportCsv => 'Export CSV';
 
   @override
   String get salesReportNoPrinter =>

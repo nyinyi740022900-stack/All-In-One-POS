@@ -28,6 +28,7 @@ class SalesReportScreen extends ConsumerStatefulWidget {
 
 class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   bool _exporting = false;
+  bool _exportingCsv = false;
   bool _printing = false;
 
   Future<void> _pickRange() async {
@@ -96,6 +97,36 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _exportCsv(SalesReport report) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _exportingCsv = true);
+    try {
+      final csv = buildSalesReportCsv(
+        report,
+        invoiceHeader: l.salesReportColumnInvoice,
+        dateHeader: l.salesReportColumnDate,
+        customerHeader: l.salesReportColumnCustomer,
+        addressHeader: l.salesReportColumnAddress,
+        amountHeader: l.salesReportColumnAmount,
+        totalLabel: l.salesReportTotal,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/sales-report.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l.salesReportTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _exportingCsv = false);
     }
   }
 
@@ -250,6 +281,21 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(l.salesReportExportPdf),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _exportingCsv ? null : () => _exportCsv(report),
+                      icon: _exportingCsv
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.table_chart_outlined),
+                      label: Text(l.salesReportExportCsv),
                     ),
                   ),
                 ],

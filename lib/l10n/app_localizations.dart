@@ -746,6 +746,12 @@ abstract class AppLocalizations {
   /// **'Inventory'**
   String get inventoryTitle;
 
+  /// No description provided for @inventoryExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get inventoryExportCsv;
+
   /// No description provided for @inventoryEmpty.
   ///
   /// In en, this message translates to:
@@ -1459,6 +1465,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export PDF'**
   String get salesReportExportPdf;
+
+  /// No description provided for @salesReportExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get salesReportExportCsv;
 
   /// No description provided for @salesReportNoPrinter.
   ///

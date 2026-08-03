@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/providers.dart';
@@ -13,6 +17,7 @@ import '../printing/label_print_dialog.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'categories_screen.dart';
+import 'inventory_csv.dart';
 import 'inventory_providers.dart';
 import 'product_edit_screen.dart';
 import 'stock_adjust_dialog.dart';
@@ -52,6 +57,39 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     ));
   }
 
+  Future<void> _exportCsv() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final products = ref.read(filteredProductsProvider);
+    final categories = ref.read(categoriesStreamProvider).valueOrNull ?? const [];
+    final categoryNameById = {for (final c in categories) c.id: c.name};
+    try {
+      final csv = buildInventoryCsv(
+        products,
+        categoryNameById,
+        nameHeader: l.productName,
+        skuHeader: l.productSku,
+        barcodeHeader: l.productBarcode,
+        categoryHeader: l.productCategory,
+        costPriceHeader: l.productCost,
+        salePriceHeader: l.productPrice,
+        quantityHeader: l.productQuantity,
+        reorderLevelHeader: l.productReorderLevel,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/inventory.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l.inventoryTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -67,6 +105,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       appBar: AppBar(
         title: Text(l.inventoryTitle),
         actions: [
+          IconButton(
+            tooltip: l.inventoryExportCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+            onPressed: _exportCsv,
+          ),
           IconButton(
             tooltip: l.stockHistoryTitle,
             icon: const Icon(Icons.history),

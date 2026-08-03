@@ -121,6 +121,7 @@
   "customerDeleted": "ဖောက်သည် ဖယ်ရှားပြီး",
 
   "inventoryTitle": "ကုန်ပစ္စည်း",
+  "inventoryExportCsv": "CSV ထုတ်",
   "inventoryEmpty": "ပစ္စည်းမရှိသေးပါ။ ပထမဆုံး ပစ္စည်းထည့်ပါ။",
   "inventoryLowStock": "လက်ကျန်နည်းနေသည်",
   "inventoryAddProduct": "ပစ္စည်းအသစ်ထည့်",
@@ -248,6 +249,7 @@
   "salesReportColumnAmount": "ပမာဏ",
   "salesReportPrintBluetooth": "Print ထုတ် (Bluetooth)",
   "salesReportExportPdf": "PDF ထုတ်",
+  "salesReportExportCsv": "CSV ထုတ်",
   "salesReportNoPrinter": "Bluetooth printer သတ်မှတ်မထားပါ — Printer settings ကို ကြည့်ပါ။",
   "salesReportCount": "အရောင်း {count} ခု",
   "@salesReportCount": { "placeholders": { "count": { "type": "int" } } },

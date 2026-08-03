@@ -351,6 +351,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get inventoryTitle => 'ကုန်ပစ္စည်း';
 
   @override
+  String get inventoryExportCsv => 'CSV ထုတ်';
+
+  @override
   String get inventoryEmpty => 'ပစ္စည်းမရှိသေးပါ။ ပထမဆုံး ပစ္စည်းထည့်ပါ။';
 
   @override
@@ -729,6 +732,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get salesReportExportPdf => 'PDF ထုတ်';
+
+  @override
+  String get salesReportExportCsv => 'CSV ထုတ်';
 
   @override
   String get salesReportNoPrinter =>

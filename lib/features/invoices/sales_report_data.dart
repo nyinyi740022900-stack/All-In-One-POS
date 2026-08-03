@@ -1,3 +1,4 @@
+import '../../core/csv_util.dart';
 import '../../data/local/database.dart';
 
 /// One row of a date-range sales report — a thin projection of [Sale] with
@@ -49,3 +50,29 @@ SalesReport buildSalesReport(List<Sale> sales) {
   final total = rows.fold<int>(0, (sum, r) => sum + r.amount);
   return SalesReport(rows: rows, total: total);
 }
+
+/// Pure: renders a built report as CSV — for handing off to an accountant
+/// or further analysis in a spreadsheet, alongside the existing print/PDF
+/// export paths. A trailing "Total" row nets refunds in the same way the
+/// on-screen total does (they're just negative-amount rows).
+String buildSalesReportCsv(
+  SalesReport report, {
+  required String invoiceHeader,
+  required String dateHeader,
+  required String customerHeader,
+  required String addressHeader,
+  required String amountHeader,
+  required String totalLabel,
+}) {
+  return csvDocument(
+    [invoiceHeader, dateHeader, customerHeader, addressHeader, amountHeader],
+    [
+      for (final r in report.rows)
+        [r.invoiceNo, _isoDate(r.date), r.customerName, r.address, r.amount],
+      [totalLabel, '', '', '', report.total],
+    ],
+  );
+}
+
+String _isoDate(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

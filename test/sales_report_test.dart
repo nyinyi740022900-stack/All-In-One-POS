@@ -148,4 +148,57 @@ void main() {
           isTrue);
     });
   });
+
+  group('buildSalesReportCsv', () {
+    test('renders a header row, one row per sale, and a total row', () {
+      final report = buildSalesReport([
+        _sale(
+            id: 's1',
+            invoiceNo: 'INV-001',
+            finalizedAt: DateTime(2026, 8, 1),
+            total: 1000,
+            customerName: 'Aye'),
+        _sale(
+            id: 's2',
+            invoiceNo: 'INV-002',
+            finalizedAt: DateTime(2026, 8, 2),
+            total: 500),
+      ]);
+      final csv = buildSalesReportCsv(
+        report,
+        invoiceHeader: 'Invoice',
+        dateHeader: 'Date',
+        customerHeader: 'Customer',
+        addressHeader: 'Address',
+        amountHeader: 'Amount',
+        totalLabel: 'Total',
+      );
+      final lines = csv.split('\r\n');
+      expect(lines[0], 'Invoice,Date,Customer,Address,Amount');
+      expect(lines, contains('INV-002,2026-08-02,,,500'));
+      expect(lines, contains('INV-001,2026-08-01,Aye,,1000'));
+      expect(lines.last, 'Total,,,,1500');
+    });
+
+    test('quotes a customer name containing a comma', () {
+      final report = buildSalesReport([
+        _sale(
+            id: 's1',
+            invoiceNo: 'INV-001',
+            finalizedAt: DateTime(2026, 8, 1),
+            total: 1000,
+            customerName: 'Aye, Mya'),
+      ]);
+      final csv = buildSalesReportCsv(
+        report,
+        invoiceHeader: 'Invoice',
+        dateHeader: 'Date',
+        customerHeader: 'Customer',
+        addressHeader: 'Address',
+        amountHeader: 'Amount',
+        totalLabel: 'Total',
+      );
+      expect(csv, contains('"Aye, Mya"'));
+    });
+  });
 }

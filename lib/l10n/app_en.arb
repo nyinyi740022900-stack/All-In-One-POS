@@ -124,6 +124,7 @@
   "customerDeleted": "Customer removed",
 
   "inventoryTitle": "Inventory",
+  "inventoryExportCsv": "Export CSV",
   "inventoryEmpty": "No products yet. Add your first product.",
   "inventoryLowStock": "Low stock",
   "inventoryAddProduct": "Add product",
@@ -251,6 +252,7 @@
   "salesReportColumnAmount": "Amount",
   "salesReportPrintBluetooth": "Print (Bluetooth)",
   "salesReportExportPdf": "Export PDF",
+  "salesReportExportCsv": "Export CSV",
   "salesReportNoPrinter": "No Bluetooth printer set up — see Printer settings.",
   "salesReportCount": "{count} sales",
   "@salesReportCount": { "placeholders": { "count": { "type": "int" } } },
