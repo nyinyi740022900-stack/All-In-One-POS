@@ -2513,14 +2513,32 @@ abstract class AppLocalizations {
   /// No description provided for @licenseNoKeyHint.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe online: pay via KBZPay/WavePay and we\'ll send your key.'**
+  /// **'Pay via KBZPay/WavePay and we\'ll send your license key.'**
   String get licenseNoKeyHint;
 
   /// No description provided for @licenseSubscribe.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe / Get license'**
+  /// **'Subscribe'**
   String get licenseSubscribe;
+
+  /// No description provided for @licenseGetKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get license key'**
+  String get licenseGetKeyTitle;
+
+  /// No description provided for @licenseOnlineNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in — sign in from Settings first so this subscription is linked to your account.'**
+  String get licenseOnlineNotSignedIn;
+
+  /// No description provided for @licenseOnlineApplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Once approved, this is applied to your account automatically — no key to enter.'**
+  String get licenseOnlineApplyHint;
 
   /// No description provided for @licenseRenew.
   ///

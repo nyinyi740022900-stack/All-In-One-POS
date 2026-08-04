@@ -1304,10 +1304,21 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseNoKeyHint =>
-      'Online စာရင်းသွင်း — KBZPay/WavePay နဲ့ ပေးချေပြီး key ကို ပို့ပေးပါမယ်။';
+      'KBZPay/WavePay နဲ့ ပေးချေပြီး license key ကို ပို့ပေးပါမယ်။';
 
   @override
-  String get licenseSubscribe => 'စာရင်းသွင်း / License ယူ';
+  String get licenseSubscribe => 'Subscribe';
+
+  @override
+  String get licenseGetKeyTitle => 'License Key ယူရန်';
+
+  @override
+  String get licenseOnlineNotSignedIn =>
+      'Sign in မဝင်ရသေးပါ — Subscription ကို Account နဲ့ ချိတ်ဆက်နိုင်ဖို့ Settings ကနေ အရင် Sign in ဝင်ပါ။';
+
+  @override
+  String get licenseOnlineApplyHint =>
+      'Admin approve လုပ်ပြီးရင် Account ပေါ်မှာ အလိုအလျောက် သက်ရောက်ပါလိမ့်မယ် — Key ထည့်စရာမလိုပါ။';
 
   @override
   String get licenseRenew => 'သက်တမ်းတိုး';

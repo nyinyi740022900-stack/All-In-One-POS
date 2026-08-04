@@ -1303,10 +1303,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseNoKeyHint =>
-      'Subscribe online: pay via KBZPay/WavePay and we\'ll send your key.';
+      'Pay via KBZPay/WavePay and we\'ll send your license key.';
 
   @override
-  String get licenseSubscribe => 'Subscribe / Get license';
+  String get licenseSubscribe => 'Subscribe';
+
+  @override
+  String get licenseGetKeyTitle => 'Get license key';
+
+  @override
+  String get licenseOnlineNotSignedIn =>
+      'Not signed in — sign in from Settings first so this subscription is linked to your account.';
+
+  @override
+  String get licenseOnlineApplyHint =>
+      'Once approved, this is applied to your account automatically — no key to enter.';
 
   @override
   String get licenseRenew => 'Renew / Extend';

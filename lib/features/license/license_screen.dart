@@ -10,6 +10,7 @@ import '../../core/env.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../account/account_providers.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import 'license_request.dart';
@@ -216,7 +217,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           const SizedBox(height: AppTheme.space4),
           if (status.canSell) ...[
             FilledButton.icon(
-              onPressed: () => _showRequestDialog(),
+              onPressed: () => (state.license?.tier ?? 'offline') == 'online'
+                  ? _showOnlineSubscribeDialog()
+                  : _showOfflineKeyDialog(),
               icon: Icon(state.license?.plan == LicensePlan.free
                   ? Icons.workspace_premium_outlined
                   : Icons.autorenew),
@@ -305,9 +308,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: AppTheme.space3),
               OutlinedButton.icon(
-                onPressed: _showRequestDialog,
+                onPressed: _showOfflineKeyDialog,
                 icon: const Icon(Icons.shopping_cart_checkout),
-                label: Text(l.licenseSubscribe),
+                label: Text(l.licenseGetKeyTitle),
               ),
             ],
           ],
@@ -339,18 +342,166 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
   }
 
-  /// Self-service subscription request for a user who has no key yet.
-  Future<void> _showRequestDialog() async {
+  /// The plan/duration/payment-method/amount/txn-id/referral block shared by
+  /// both the Offline and Online request dialogs — the manual
+  /// KBZPay/WavePay payment mechanism itself doesn't differ by tier, only
+  /// the identity section around it does.
+  List<Widget> _buildPaymentFields({
+    required BuildContext ctx,
+    required AppLocalizations l,
+    required VendorConfig cfg,
+    required String tier,
+    required String cur,
+    required TextEditingController amount,
+    required TextEditingController txn,
+    required TextEditingController referral,
+    required String Function() getMethod,
+    required String Function() getPlan,
+    required int Function() getQty,
+    required void Function(String) setMethod,
+    required void Function(String) setPlan,
+    required void Function(int) setQty,
+    required void Function(void Function()) setLocal,
+  }) {
+    final plan = getPlan();
+    final qty = getQty();
+    final method = getMethod();
+    const methods = ['kbzpay', 'wavepay'];
+    return [
+      SegmentedButton<String>(
+        segments: [
+          ButtonSegment(value: 'monthly', label: Text(l.licensePlanMonthly)),
+          ButtonSegment(value: 'yearly', label: Text(l.licensePlanYearly)),
+        ],
+        selected: {plan},
+        onSelectionChanged: (s) => setLocal(() {
+          setPlan(s.first);
+          setQty(1);
+          amount.text = '${cfg.priceFor(s.first, tier: tier)}';
+        }),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      Row(
+        children: [
+          Text(l.licenseDuration, style: Theme.of(ctx).textTheme.labelLarge),
+          const Spacer(),
+          IconButton.filledTonal(
+            onPressed: qty > 1
+                ? () => setLocal(() {
+                      setQty(qty - 1);
+                      amount.text =
+                          '${cfg.priceFor(plan, tier: tier) * (qty - 1)}';
+                    })
+                : null,
+            icon: const Icon(Icons.remove),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
+            child: Text('$qty ${plan == 'yearly' ? l.unitYears : l.unitMonths}',
+                style: Theme.of(ctx).textTheme.titleMedium),
+          ),
+          IconButton.filledTonal(
+            onPressed: () => setLocal(() {
+              setQty(qty + 1);
+              amount.text = '${cfg.priceFor(plan, tier: tier) * (qty + 1)}';
+            }),
+            icon: const Icon(Icons.add),
+          ),
+        ],
+      ),
+      const SizedBox(height: AppTheme.space2),
+      Text(
+        '${Money(cfg.priceFor(plan, tier: tier)).withSymbol(cur)} × $qty = ${Money(cfg.priceFor(plan, tier: tier) * qty).withSymbol(cur)}',
+        textAlign: TextAlign.center,
+        style: Theme.of(ctx)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      Wrap(
+        spacing: AppTheme.space2,
+        children: [
+          for (final m in methods)
+            ChoiceChip(
+              label: Text(paymentLabel(l, m)),
+              selected: method == m,
+              onSelected: (_) => setLocal(() => setMethod(m)),
+            ),
+        ],
+      ),
+      _PayToCard(config: cfg, method: method),
+      const SizedBox(height: AppTheme.space2),
+      TextField(
+        controller: amount,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(labelText: l.licenseAmount),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      TextField(
+        controller: txn,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(6),
+        ],
+        decoration: InputDecoration(labelText: l.licenseTxnId),
+      ),
+      const SizedBox(height: AppTheme.space4),
+      Container(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.card_giftcard,
+                    size: 18, color: Theme.of(ctx).colorScheme.primary),
+                const SizedBox(width: AppTheme.space2),
+                Text(l.referralHaveCode,
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(l.referralHaveCodeHint,
+                style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: AppTheme.space2),
+            TextField(
+              controller: referral,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: l.referralCodeOptional,
+                hintText: 'REF-XXXX',
+                filled: true,
+                fillColor: Theme.of(ctx).colorScheme.surface,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Offline (device-key) tier: shop name + phone are collected manually
+  /// since there's no account to read them from — same manual
+  /// KBZPay/WavePay-then-admin-approval flow as before.
+  Future<void> _showOfflineKeyDialog() async {
     final l = AppLocalizations.of(context);
     final cfg = await ref.read(vendorConfigProvider.future);
     final settings = ref.read(settingsRepositoryProvider);
     final deviceId = await settings.deviceId();
     final profile = await settings.shopProfile();
     if (!mounted) return;
-    // Fixed at shop-creation time — see CachedLicense.tier — so pricing
-    // reflects how this shop was made, not whichever session happens to be
-    // active right now.
-    final tier = ref.read(licenseControllerProvider).license?.tier ?? 'offline';
+    const tier = 'offline';
     final cur = l.currencySymbol;
     // Prefill from the shop profile (blank for the default placeholder).
     final shopName = TextEditingController(
@@ -363,14 +514,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     String method = 'kbzpay';
     String plan = 'monthly';
     int qty = 1;
-    const methods = ['kbzpay', 'wavepay'];
     var busy = false;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: Text(l.licenseSubscribe),
+          title: Text(l.licenseGetKeyTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -388,132 +538,22 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   decoration: InputDecoration(labelText: l.customerPhone),
                 ),
                 const SizedBox(height: AppTheme.space3),
-                SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(
-                        value: 'monthly',
-                        label: Text(l.licensePlanMonthly)),
-                    ButtonSegment(
-                        value: 'yearly', label: Text(l.licensePlanYearly)),
-                  ],
-                  selected: {plan},
-                  onSelectionChanged: (s) => setLocal(() {
-                    plan = s.first;
-                    qty = 1;
-                    amount.text = '${cfg.priceFor(plan, tier: tier) * qty}';
-                  }),
-                ),
-                const SizedBox(height: AppTheme.space3),
-                Row(
-                  children: [
-                    Text(l.licenseDuration,
-                        style: Theme.of(ctx).textTheme.labelLarge),
-                    const Spacer(),
-                    IconButton.filledTonal(
-                      onPressed: qty > 1
-                          ? () => setLocal(() {
-                                qty--;
-                                amount.text =
-                                    '${cfg.priceFor(plan, tier: tier) * qty}';
-                              })
-                          : null,
-                      icon: const Icon(Icons.remove),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.space3),
-                      child: Text(
-                          '$qty ${plan == 'yearly' ? l.unitYears : l.unitMonths}',
-                          style: Theme.of(ctx).textTheme.titleMedium),
-                    ),
-                    IconButton.filledTonal(
-                      onPressed: () => setLocal(() {
-                        qty++;
-                        amount.text = '${cfg.priceFor(plan, tier: tier) * qty}';
-                      }),
-                      icon: const Icon(Icons.add),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTheme.space2),
-                Text(
-                  '${Money(cfg.priceFor(plan, tier: tier)).withSymbol(cur)} × $qty = ${Money(cfg.priceFor(plan, tier: tier) * qty).withSymbol(cur)}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(ctx)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: AppTheme.space3),
-                Wrap(
-                  spacing: AppTheme.space2,
-                  children: [
-                    for (final m in methods)
-                      ChoiceChip(
-                        label: Text(paymentLabel(l, m)),
-                        selected: method == m,
-                        onSelected: (_) => setLocal(() => method = m),
-                      ),
-                  ],
-                ),
-                _PayToCard(config: cfg, method: method),
-                const SizedBox(height: AppTheme.space2),
-                TextField(
-                  controller: amount,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(labelText: l.licenseAmount),
-                ),
-                const SizedBox(height: AppTheme.space3),
-                TextField(
-                  controller: txn,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(6),
-                  ],
-                  decoration: InputDecoration(labelText: l.licenseTxnId),
-                ),
-                const SizedBox(height: AppTheme.space4),
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.space3),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.card_giftcard,
-                              size: 18,
-                              color: Theme.of(ctx).colorScheme.primary),
-                          const SizedBox(width: AppTheme.space2),
-                          Text(l.referralHaveCode,
-                              style: Theme.of(ctx)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: AppTheme.space1),
-                      Text(l.referralHaveCodeHint,
-                          style: Theme.of(ctx).textTheme.bodySmall),
-                      const SizedBox(height: AppTheme.space2),
-                      TextField(
-                        controller: referral,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: l.referralCodeOptional,
-                          hintText: 'REF-XXXX',
-                          filled: true,
-                          fillColor: Theme.of(ctx).colorScheme.surface,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                    ],
-                  ),
+                ..._buildPaymentFields(
+                  ctx: ctx,
+                  l: l,
+                  cfg: cfg,
+                  tier: tier,
+                  cur: cur,
+                  amount: amount,
+                  txn: txn,
+                  referral: referral,
+                  getMethod: () => method,
+                  getPlan: () => plan,
+                  getQty: () => qty,
+                  setMethod: (v) => method = v,
+                  setPlan: (v) => plan = v,
+                  setQty: (v) => qty = v,
+                  setLocal: setLocal,
                 ),
               ],
             ),
@@ -557,7 +597,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                             SnackBar(content: Text(l.licenseActivateFailed)));
                       }
                     },
-              child: Text(l.licenseSubscribe),
+              child: Text(l.licenseGetKeyTitle),
             ),
           ],
         ),
@@ -565,6 +605,133 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
     shopName.dispose();
     phone.dispose();
+    amount.dispose();
+    txn.dispose();
+    referral.dispose();
+  }
+
+  /// Online (email-account) tier: the shop name + contact identity are
+  /// already known from the signed-in account/profile, so there's nothing
+  /// to type — just the payment details. Same manual
+  /// KBZPay/WavePay-then-admin-approval mechanism as Offline; the request
+  /// is simply tagged tier: 'online' and applies to the account, not a key.
+  Future<void> _showOnlineSubscribeDialog() async {
+    final l = AppLocalizations.of(context);
+    final cfg = await ref.read(vendorConfigProvider.future);
+    final settings = ref.read(settingsRepositoryProvider);
+    final deviceId = await settings.deviceId();
+    final profile = await settings.shopProfile();
+    if (!mounted) return;
+    const tier = 'online';
+    final cur = l.currencySymbol;
+    final account = ref.read(accountRepositoryProvider);
+    final signedIn = account.isSignedInWithRealAccount;
+    final accountEmail = account.currentAccountEmail;
+    final amount =
+        TextEditingController(text: '${cfg.priceFor('monthly', tier: tier)}');
+    final txn = TextEditingController();
+    final referral = TextEditingController();
+    String method = 'kbzpay';
+    String plan = 'monthly';
+    int qty = 1;
+    var busy = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text(l.licenseSubscribe),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (signedIn)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.verified_user,
+                          color: Colors.green),
+                      title: Text(profile.name),
+                      subtitle: Text(accountEmail ?? ''),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.space3),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(l.licenseOnlineNotSignedIn,
+                        style: TextStyle(
+                            color: Theme.of(ctx).colorScheme.onErrorContainer)),
+                  ),
+                const SizedBox(height: AppTheme.space3),
+                ..._buildPaymentFields(
+                  ctx: ctx,
+                  l: l,
+                  cfg: cfg,
+                  tier: tier,
+                  cur: cur,
+                  amount: amount,
+                  txn: txn,
+                  referral: referral,
+                  getMethod: () => method,
+                  getPlan: () => plan,
+                  getQty: () => qty,
+                  setMethod: (v) => method = v,
+                  setPlan: (v) => plan = v,
+                  setQty: (v) => qty = v,
+                  setLocal: setLocal,
+                ),
+                const SizedBox(height: AppTheme.space2),
+                Text(l.licenseOnlineApplyHint,
+                    style: Theme.of(ctx).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(ctx),
+              child: Text(l.commonCancel),
+            ),
+            FilledButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setLocal(() => busy = true);
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await LicenseRequestService.submit(
+                          shopName: profile.name,
+                          phone: null,
+                          plan: plan,
+                          months: plan == 'yearly' ? qty * 12 : qty,
+                          method: method,
+                          amount: int.tryParse(amount.text.trim()) ?? 0,
+                          refNo: txn.text.trim().isEmpty
+                              ? null
+                              : txn.text.trim(),
+                          deviceId: deviceId,
+                          referredByCode: referral.text.trim().isEmpty
+                              ? null
+                              : referral.text.trim().toUpperCase(),
+                          tier: tier,
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) _showThankYou(cfg.supportViber);
+                      } catch (_) {
+                        setLocal(() => busy = false);
+                        messenger.showSnackBar(
+                            SnackBar(content: Text(l.licenseActivateFailed)));
+                      }
+                    },
+              child: Text(l.licenseSubscribe),
+            ),
+          ],
+        ),
+      ),
+    );
     amount.dispose();
     txn.dispose();
     referral.dispose();
