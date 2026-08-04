@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
 import '../storefront/storefront_screen.dart' show storefrontRepositoryProvider;
@@ -304,9 +305,12 @@ class OrderDetailSheet extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(height: 8),
-            for (final m in paymentMethods.where((m) => m != 'credit'))
+            for (final m in paymentMethodIds(
+                ref.read(paymentAccountsProvider).valueOrNull ?? const []))
               ListTile(
-                title: Text(paymentLabel(l, m)),
+                title: Text(paymentLabel(l, m,
+                    accounts:
+                        ref.read(paymentAccountsProvider).valueOrNull)),
                 onTap: () => Navigator.of(context).pop(m),
               ),
             const SizedBox(height: 8),

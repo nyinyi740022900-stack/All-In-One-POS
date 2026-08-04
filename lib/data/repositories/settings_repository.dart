@@ -198,6 +198,15 @@ class SettingsRepository {
   Future<bool> trialUsed() async => (await _get(_kTrialUsed)) == 'true';
   Future<void> markTrialUsed() => _set(_kTrialUsed, 'true');
 
+  // Whether the default Payment Accounts (KBZPay/WavePay/AYAPay/CBPay) have
+  // already been seeded once — set-and-forget, so a shop that later
+  // deletes all of them never has them silently reappear.
+  static const _kPaymentAccountsSeeded = 'payment_accounts.seeded';
+  Future<bool> paymentAccountsSeeded() async =>
+      (await _get(_kPaymentAccountsSeeded)) == 'true';
+  Future<void> setPaymentAccountsSeeded() =>
+      _set(_kPaymentAccountsSeeded, 'true');
+
   // First-run onboarding (shop profile / license / owner-staff-mode intro),
   // shown once per install.
   static const _kOnboardingDone = 'onboarding.done';

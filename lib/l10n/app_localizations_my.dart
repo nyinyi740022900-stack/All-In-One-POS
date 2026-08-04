@@ -425,6 +425,42 @@ class AppLocalizationsMy extends AppLocalizations {
   String get supplierDeleted => 'ကုန်ပို့သူ ဖယ်ရှားပြီး';
 
   @override
+  String get paymentAccountsTitle => 'ငွေပေးချေမှု အကောင့်များ';
+
+  @override
+  String get paymentAccountsEmpty =>
+      'Account မထည့်ရသေးပါ။ ပထမဆုံး Account ကို ထည့်ပါ။';
+
+  @override
+  String get paymentAccountAdd => 'Account ထည့်မည်';
+
+  @override
+  String get paymentAccountEdit => 'Account ပြင်မည်';
+
+  @override
+  String get paymentAccountNameLabel => 'Account အမည်';
+
+  @override
+  String get paymentAccountOpeningBalanceLabel => 'အစပိုင်း လက်ကျန်ငွေ';
+
+  @override
+  String get paymentAccountSaved => 'Account သိမ်းပြီးပါပြီ။';
+
+  @override
+  String get paymentAccountDeleteConfirmTitle => 'ဒီ Account ကို ဖယ်ရှားမလား?';
+
+  @override
+  String paymentAccountDeleteConfirmBody(String name) {
+    return '$name ကို ငွေရှင်းချိန် payment option အနေနဲ့ ထပ်မပေါ်တော့ပါ။ ယခင်အရောင်းများမှာတော့ အမည် ဆက်ပြပါလိမ့်မယ်။';
+  }
+
+  @override
+  String get paymentAccountDeleted => 'Account ဖယ်ရှားပြီး';
+
+  @override
+  String get expensePaidFrom => 'ဘယ် Account ကနေ ပေးလဲ';
+
+  @override
   String get purchaseOrdersTitle => 'ကုန်ဝယ်အမှာစာများ';
 
   @override

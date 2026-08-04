@@ -430,6 +430,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supplierDeleted => 'Supplier removed';
 
   @override
+  String get paymentAccountsTitle => 'Payment accounts';
+
+  @override
+  String get paymentAccountsEmpty =>
+      'No payment accounts yet. Add your first account.';
+
+  @override
+  String get paymentAccountAdd => 'Add account';
+
+  @override
+  String get paymentAccountEdit => 'Edit account';
+
+  @override
+  String get paymentAccountNameLabel => 'Account name';
+
+  @override
+  String get paymentAccountOpeningBalanceLabel => 'Opening balance';
+
+  @override
+  String get paymentAccountSaved => 'Account saved';
+
+  @override
+  String get paymentAccountDeleteConfirmTitle => 'Remove this account?';
+
+  @override
+  String paymentAccountDeleteConfirmBody(String name) {
+    return '$name will no longer appear as a payment option at checkout. Past sales still show its name.';
+  }
+
+  @override
+  String get paymentAccountDeleted => 'Account removed';
+
+  @override
+  String get expensePaidFrom => 'Paid from';
+
+  @override
   String get purchaseOrdersTitle => 'Purchase orders';
 
   @override

@@ -53,6 +53,7 @@ final syncTables = <SyncTableDef>[
   _suppliers,
   _purchaseOrders,
   _purchaseOrderItems,
+  _paymentAccounts,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -742,6 +743,7 @@ final _expenses = SyncTableDef(
       'amount': r.amount,
       'date': _iso(r.date),
       'note': r.note,
+      'account_id': r.accountId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'is_deleted': r.isDeleted,
@@ -760,6 +762,7 @@ final _expenses = SyncTableDef(
           amount: Value(_int(m['amount'])),
           date: Value(_dt(m['date'])),
           note: Value(m['note'] as String?),
+          accountId: Value(m['account_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),
@@ -941,6 +944,46 @@ final _suppliers = SyncTableDef(
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+  },
+);
+
+// --- payment_accounts -------------------------------------------------------
+final _paymentAccounts = SyncTableDef(
+  name: 'payment_accounts',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.paymentAccounts)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'name': r.name,
+      'opening_balance': r.openingBalance,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.paymentAccounts)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.paymentAccounts).insertOnConflictUpdate(
+          PaymentAccountsCompanion(
+            id: Value(id),
+            shopId: Value(m['shop_id'] as String),
+            name: Value(m['name'] as String),
+            openingBalance: Value(_int(m['opening_balance'])),
+            createdAt: Value(_dt(m['created_at'])),
+            updatedAt: Value(updated),
+            isDeleted: Value(_bool(m['is_deleted'])),
+            dirty: const Value(false),
+          ),
+        );
   },
 );
 

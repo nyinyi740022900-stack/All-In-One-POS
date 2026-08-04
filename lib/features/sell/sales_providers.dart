@@ -54,13 +54,3 @@ final sellProductsProvider = Provider<List<ProductWithStock>>((ref) {
         (prod.barcode?.toLowerCase().contains(q) ?? false);
   }).toList();
 });
-
-/// The payment methods offered at checkout, in display order.
-const paymentMethods = <String>[
-  'cash',
-  'kbzpay',
-  'wavepay',
-  'ayapay',
-  'cbpay',
-  'credit',
-];

@@ -872,6 +872,72 @@ abstract class AppLocalizations {
   /// **'Supplier removed'**
   String get supplierDeleted;
 
+  /// No description provided for @paymentAccountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment accounts'**
+  String get paymentAccountsTitle;
+
+  /// No description provided for @paymentAccountsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No payment accounts yet. Add your first account.'**
+  String get paymentAccountsEmpty;
+
+  /// No description provided for @paymentAccountAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add account'**
+  String get paymentAccountAdd;
+
+  /// No description provided for @paymentAccountEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit account'**
+  String get paymentAccountEdit;
+
+  /// No description provided for @paymentAccountNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Account name'**
+  String get paymentAccountNameLabel;
+
+  /// No description provided for @paymentAccountOpeningBalanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening balance'**
+  String get paymentAccountOpeningBalanceLabel;
+
+  /// No description provided for @paymentAccountSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Account saved'**
+  String get paymentAccountSaved;
+
+  /// No description provided for @paymentAccountDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this account?'**
+  String get paymentAccountDeleteConfirmTitle;
+
+  /// No description provided for @paymentAccountDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will no longer appear as a payment option at checkout. Past sales still show its name.'**
+  String paymentAccountDeleteConfirmBody(String name);
+
+  /// No description provided for @paymentAccountDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Account removed'**
+  String get paymentAccountDeleted;
+
+  /// No description provided for @expensePaidFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid from'**
+  String get expensePaidFrom;
+
   /// No description provided for @purchaseOrdersTitle.
   ///
   /// In en, this message translates to:

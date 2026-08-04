@@ -45,6 +45,7 @@ class ExpenseRepository {
     required DateTime date,
     String? note,
     String? receiptPhotoPath,
+    String? accountId,
   }) async {
     final expenseId = id ?? _uuid.v4();
     final now = DateTime.now();
@@ -57,6 +58,7 @@ class ExpenseRepository {
             date: Value(date),
             note: Value(note),
             receiptPhotoPath: Value(receiptPhotoPath),
+            accountId: Value(accountId),
             updatedAt: Value(now),
             dirty: const Value(true),
           ));

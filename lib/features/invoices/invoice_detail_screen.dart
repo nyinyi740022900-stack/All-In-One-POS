@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
 import '../printing/print_action.dart';
 import 'receipt_data.dart';
@@ -56,6 +57,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final detail = ref.watch(saleDetailProvider(saleId));
     final refundOf = ref.watch(refundOfProvider(saleId));
     final currency = l.currencySymbol;
+    final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(title: Text(l.invoiceDetail)),
@@ -154,7 +156,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
               _row(context, l.commonTotal, Money(s.total).withSymbol(currency),
                   bold: true),
               _row(context, l.sellPaymentMethod,
-                  paymentLabel(l, s.paymentMethod)),
+                  paymentLabel(l, s.paymentMethod, accounts: accounts)),
               if (thisOwed > 0) ...[
                 _row(context, l.creditDeposit,
                     Money(s.paid).withSymbol(currency)),

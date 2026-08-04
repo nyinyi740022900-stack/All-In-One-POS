@@ -28,6 +28,7 @@ import '../credit/credit_screen.dart';
 import '../customers/customers_screen.dart';
 import '../expenses/expense_screen.dart';
 import '../purchasing/purchase_orders_screen.dart';
+import '../accounts/payment_accounts_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
@@ -97,6 +98,14 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const PurchaseOrdersScreen(),
+            )),
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet_outlined),
+            title: Text(l.paymentAccountsTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PaymentAccountsScreen(),
             )),
           ),
           if (ref.watch(isOwnerProvider)) _StorefrontTile(),

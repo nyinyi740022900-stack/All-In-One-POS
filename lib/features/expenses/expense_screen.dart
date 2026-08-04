@@ -12,6 +12,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../analytics/analytics_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -329,6 +330,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
   late String _category;
   late DateTime _date;
   String? _receiptPhotoPath;
+  String? _accountId;
   bool _saving = false;
 
   @override
@@ -339,6 +341,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     _category = e?.category ?? p?.category ?? expenseCategories.first;
     _date = e?.date ?? DateTime.now();
     _receiptPhotoPath = e?.receiptPhotoPath;
+    _accountId = e?.accountId;
     if (e != null) {
       _amount.text = '${e.amount}';
       _note.text = e.note ?? '';
@@ -393,6 +396,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
             date: _date,
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
             receiptPhotoPath: _receiptPhotoPath,
+            accountId: _accountId,
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.expenseSaved)));
@@ -463,6 +467,26 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
                     label: Text(categoryLabel(l, c)),
                     selected: _category == c,
                     onSelected: (_) => setState(() => _category = c),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(l.expensePaidFrom, style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: AppTheme.space1),
+            Wrap(
+              spacing: AppTheme.space2,
+              runSpacing: AppTheme.space2,
+              children: [
+                ChoiceChip(
+                  label: Text(l.paymentCash),
+                  selected: _accountId == null,
+                  onSelected: (_) => setState(() => _accountId = null),
+                ),
+                for (final a in ref.watch(paymentAccountsProvider).valueOrNull ?? const [])
+                  ChoiceChip(
+                    label: Text(a.name),
+                    selected: _accountId == a.id,
+                    onSelected: (_) => setState(() => _accountId = a.id),
                   ),
               ],
             ),

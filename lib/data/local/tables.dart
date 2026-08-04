@@ -238,6 +238,23 @@ class Suppliers extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A named money account the shop receives payments into besides cash —
+/// KBZPay, WavePay, or any custom one the owner adds — used to track a
+/// running balance per account. [openingBalance] is set once at creation
+/// (rarely edited after, like [CashSessions.openingAmount]) — the actual
+/// running balance is never stored here; it's always derived at read time
+/// from [Payments]/[CreditPayments]/[Expenses] rows referencing this
+/// account's id (see `computeAccountBalance`), same reasoning
+/// `stock_levels.quantity` already follows: a running total must never be
+/// a directly-synced absolute-value LWW field.
+class PaymentAccounts extends Table with SyncColumns {
+  TextColumn get name => text()();
+  IntColumn get openingBalance => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// A purchase order placed with a supplier — lightweight tracking (what was
 /// ordered, from whom, at what cost), NOT procurement automation (see
 /// PROJECT_SPEC.md §1.2). [supplierName] is a snapshot (shown even if the
@@ -421,6 +438,10 @@ class Expenses extends Table with SyncColumns {
   DateTimeColumn get date => dateTime()();
   TextColumn get note => text().nullable()();
   TextColumn get receiptPhotoPath => text().nullable()();
+  /// Which [PaymentAccounts] row this was paid from — null means cash (the
+  /// implicit default every expense had before this column existed; see
+  /// `computeExpectedCash`'s own doc comment).
+  TextColumn get accountId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

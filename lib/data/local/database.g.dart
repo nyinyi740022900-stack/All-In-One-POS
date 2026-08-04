@@ -10574,6 +10574,17 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10587,6 +10598,7 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     date,
     note,
     receiptPhotoPath,
+    accountId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10676,6 +10688,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         ),
       );
     }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
     return context;
   }
 
@@ -10729,6 +10747,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.string,
         data['${effectivePrefix}receipt_photo_path'],
       ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      ),
     );
   }
 
@@ -10752,6 +10774,11 @@ class Expense extends DataClass implements Insertable<Expense> {
   final DateTime date;
   final String? note;
   final String? receiptPhotoPath;
+
+  /// Which [PaymentAccounts] row this was paid from — null means cash (the
+  /// implicit default every expense had before this column existed; see
+  /// `computeExpectedCash`'s own doc comment).
+  final String? accountId;
   const Expense({
     required this.id,
     required this.shopId,
@@ -10764,6 +10791,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     required this.date,
     this.note,
     this.receiptPhotoPath,
+    this.accountId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10783,6 +10811,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     if (!nullToAbsent || receiptPhotoPath != null) {
       map['receipt_photo_path'] = Variable<String>(receiptPhotoPath);
     }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
+    }
     return map;
   }
 
@@ -10801,6 +10832,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       receiptPhotoPath: receiptPhotoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(receiptPhotoPath),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
     );
   }
 
@@ -10821,6 +10855,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       date: serializer.fromJson<DateTime>(json['date']),
       note: serializer.fromJson<String?>(json['note']),
       receiptPhotoPath: serializer.fromJson<String?>(json['receiptPhotoPath']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
     );
   }
   @override
@@ -10838,6 +10873,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'date': serializer.toJson<DateTime>(date),
       'note': serializer.toJson<String?>(note),
       'receiptPhotoPath': serializer.toJson<String?>(receiptPhotoPath),
+      'accountId': serializer.toJson<String?>(accountId),
     };
   }
 
@@ -10853,6 +10889,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     DateTime? date,
     Value<String?> note = const Value.absent(),
     Value<String?> receiptPhotoPath = const Value.absent(),
+    Value<String?> accountId = const Value.absent(),
   }) => Expense(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -10867,6 +10904,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     receiptPhotoPath: receiptPhotoPath.present
         ? receiptPhotoPath.value
         : this.receiptPhotoPath,
+    accountId: accountId.present ? accountId.value : this.accountId,
   );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
@@ -10883,6 +10921,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       receiptPhotoPath: data.receiptPhotoPath.present
           ? data.receiptPhotoPath.value
           : this.receiptPhotoPath,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
     );
   }
 
@@ -10899,7 +10938,8 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('amount: $amount, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
-          ..write('receiptPhotoPath: $receiptPhotoPath')
+          ..write('receiptPhotoPath: $receiptPhotoPath, ')
+          ..write('accountId: $accountId')
           ..write(')'))
         .toString();
   }
@@ -10917,6 +10957,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     date,
     note,
     receiptPhotoPath,
+    accountId,
   );
   @override
   bool operator ==(Object other) =>
@@ -10932,7 +10973,8 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.amount == this.amount &&
           other.date == this.date &&
           other.note == this.note &&
-          other.receiptPhotoPath == this.receiptPhotoPath);
+          other.receiptPhotoPath == this.receiptPhotoPath &&
+          other.accountId == this.accountId);
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
@@ -10947,6 +10989,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<DateTime> date;
   final Value<String?> note;
   final Value<String?> receiptPhotoPath;
+  final Value<String?> accountId;
   final Value<int> rowid;
   const ExpensesCompanion({
     this.id = const Value.absent(),
@@ -10960,6 +11003,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.date = const Value.absent(),
     this.note = const Value.absent(),
     this.receiptPhotoPath = const Value.absent(),
+    this.accountId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -10974,6 +11018,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     required DateTime date,
     this.note = const Value.absent(),
     this.receiptPhotoPath = const Value.absent(),
+    this.accountId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -10992,6 +11037,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<DateTime>? date,
     Expression<String>? note,
     Expression<String>? receiptPhotoPath,
+    Expression<String>? accountId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11006,6 +11052,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (date != null) 'date': date,
       if (note != null) 'note': note,
       if (receiptPhotoPath != null) 'receipt_photo_path': receiptPhotoPath,
+      if (accountId != null) 'account_id': accountId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11022,6 +11069,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<DateTime>? date,
     Value<String?>? note,
     Value<String?>? receiptPhotoPath,
+    Value<String?>? accountId,
     Value<int>? rowid,
   }) {
     return ExpensesCompanion(
@@ -11036,6 +11084,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       date: date ?? this.date,
       note: note ?? this.note,
       receiptPhotoPath: receiptPhotoPath ?? this.receiptPhotoPath,
+      accountId: accountId ?? this.accountId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11076,6 +11125,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (receiptPhotoPath.present) {
       map['receipt_photo_path'] = Variable<String>(receiptPhotoPath.value);
     }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11096,6 +11148,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('date: $date, ')
           ..write('note: $note, ')
           ..write('receiptPhotoPath: $receiptPhotoPath, ')
+          ..write('accountId: $accountId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15128,6 +15181,513 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
   }
 }
 
+class $PaymentAccountsTable extends PaymentAccounts
+    with TableInfo<$PaymentAccountsTable, PaymentAccount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentAccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shopIdMeta = const VerificationMeta('shopId');
+  @override
+  late final GeneratedColumn<String> shopId = GeneratedColumn<String>(
+    'shop_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _openingBalanceMeta = const VerificationMeta(
+    'openingBalance',
+  );
+  @override
+  late final GeneratedColumn<int> openingBalance = GeneratedColumn<int>(
+    'opening_balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    name,
+    openingBalance,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payment_accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentAccount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('shop_id')) {
+      context.handle(
+        _shopIdMeta,
+        shopId.isAcceptableOrUnknown(data['shop_id']!, _shopIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_shopIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('opening_balance')) {
+      context.handle(
+        _openingBalanceMeta,
+        openingBalance.isAcceptableOrUnknown(
+          data['opening_balance']!,
+          _openingBalanceMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentAccount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentAccount(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      shopId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shop_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      openingBalance: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}opening_balance'],
+      )!,
+    );
+  }
+
+  @override
+  $PaymentAccountsTable createAlias(String alias) {
+    return $PaymentAccountsTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
+  final String id;
+  final String shopId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool dirty;
+  final String name;
+  final int openingBalance;
+  const PaymentAccount({
+    required this.id,
+    required this.shopId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.dirty,
+    required this.name,
+    required this.openingBalance,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['shop_id'] = Variable<String>(shopId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['dirty'] = Variable<bool>(dirty);
+    map['name'] = Variable<String>(name);
+    map['opening_balance'] = Variable<int>(openingBalance);
+    return map;
+  }
+
+  PaymentAccountsCompanion toCompanion(bool nullToAbsent) {
+    return PaymentAccountsCompanion(
+      id: Value(id),
+      shopId: Value(shopId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      dirty: Value(dirty),
+      name: Value(name),
+      openingBalance: Value(openingBalance),
+    );
+  }
+
+  factory PaymentAccount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentAccount(
+      id: serializer.fromJson<String>(json['id']),
+      shopId: serializer.fromJson<String>(json['shopId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      name: serializer.fromJson<String>(json['name']),
+      openingBalance: serializer.fromJson<int>(json['openingBalance']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'shopId': serializer.toJson<String>(shopId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'dirty': serializer.toJson<bool>(dirty),
+      'name': serializer.toJson<String>(name),
+      'openingBalance': serializer.toJson<int>(openingBalance),
+    };
+  }
+
+  PaymentAccount copyWith({
+    String? id,
+    String? shopId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? dirty,
+    String? name,
+    int? openingBalance,
+  }) => PaymentAccount(
+    id: id ?? this.id,
+    shopId: shopId ?? this.shopId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    dirty: dirty ?? this.dirty,
+    name: name ?? this.name,
+    openingBalance: openingBalance ?? this.openingBalance,
+  );
+  PaymentAccount copyWithCompanion(PaymentAccountsCompanion data) {
+    return PaymentAccount(
+      id: data.id.present ? data.id.value : this.id,
+      shopId: data.shopId.present ? data.shopId.value : this.shopId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      name: data.name.present ? data.name.value : this.name,
+      openingBalance: data.openingBalance.present
+          ? data.openingBalance.value
+          : this.openingBalance,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentAccount(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('name: $name, ')
+          ..write('openingBalance: $openingBalance')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    name,
+    openingBalance,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentAccount &&
+          other.id == this.id &&
+          other.shopId == this.shopId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.dirty == this.dirty &&
+          other.name == this.name &&
+          other.openingBalance == this.openingBalance);
+}
+
+class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
+  final Value<String> id;
+  final Value<String> shopId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> dirty;
+  final Value<String> name;
+  final Value<int> openingBalance;
+  final Value<int> rowid;
+  const PaymentAccountsCompanion({
+    this.id = const Value.absent(),
+    this.shopId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.name = const Value.absent(),
+    this.openingBalance = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PaymentAccountsCompanion.insert({
+    required String id,
+    required String shopId,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    required String name,
+    this.openingBalance = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       shopId = Value(shopId),
+       name = Value(name);
+  static Insertable<PaymentAccount> custom({
+    Expression<String>? id,
+    Expression<String>? shopId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? dirty,
+    Expression<String>? name,
+    Expression<int>? openingBalance,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (shopId != null) 'shop_id': shopId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (dirty != null) 'dirty': dirty,
+      if (name != null) 'name': name,
+      if (openingBalance != null) 'opening_balance': openingBalance,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PaymentAccountsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? shopId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? dirty,
+    Value<String>? name,
+    Value<int>? openingBalance,
+    Value<int>? rowid,
+  }) {
+    return PaymentAccountsCompanion(
+      id: id ?? this.id,
+      shopId: shopId ?? this.shopId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      dirty: dirty ?? this.dirty,
+      name: name ?? this.name,
+      openingBalance: openingBalance ?? this.openingBalance,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (shopId.present) {
+      map['shop_id'] = Variable<String>(shopId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (openingBalance.present) {
+      map['opening_balance'] = Variable<int>(openingBalance.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentAccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('name: $name, ')
+          ..write('openingBalance: $openingBalance, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AppSettingsTable extends AppSettings
     with TableInfo<$AppSettingsTable, AppSetting> {
   @override
@@ -15813,6 +16373,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PurchaseOrdersTable purchaseOrders = $PurchaseOrdersTable(this);
   late final $PurchaseOrderItemsTable purchaseOrderItems =
       $PurchaseOrderItemsTable(this);
+  late final $PaymentAccountsTable paymentAccounts = $PaymentAccountsTable(
+    this,
+  );
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   @override
@@ -15841,6 +16404,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     suppliers,
     purchaseOrders,
     purchaseOrderItems,
+    paymentAccounts,
     appSettings,
     outbox,
   ];
@@ -20731,6 +21295,7 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       required DateTime date,
       Value<String?> note,
       Value<String?> receiptPhotoPath,
+      Value<String?> accountId,
       Value<int> rowid,
     });
 typedef $$ExpensesTableUpdateCompanionBuilder =
@@ -20746,6 +21311,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<DateTime> date,
       Value<String?> note,
       Value<String?> receiptPhotoPath,
+      Value<String?> accountId,
       Value<int> rowid,
     });
 
@@ -20810,6 +21376,11 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<String> get receiptPhotoPath => $composableBuilder(
     column: $table.receiptPhotoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -20877,6 +21448,11 @@ class $$ExpensesTableOrderingComposer
     column: $table.receiptPhotoPath,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ExpensesTableAnnotationComposer
@@ -20922,6 +21498,9 @@ class $$ExpensesTableAnnotationComposer
     column: $table.receiptPhotoPath,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
 }
 
 class $$ExpensesTableTableManager
@@ -20963,6 +21542,7 @@ class $$ExpensesTableTableManager
                 Value<DateTime> date = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> receiptPhotoPath = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion(
                 id: id,
@@ -20976,6 +21556,7 @@ class $$ExpensesTableTableManager
                 date: date,
                 note: note,
                 receiptPhotoPath: receiptPhotoPath,
+                accountId: accountId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -20991,6 +21572,7 @@ class $$ExpensesTableTableManager
                 required DateTime date,
                 Value<String?> note = const Value.absent(),
                 Value<String?> receiptPhotoPath = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion.insert(
                 id: id,
@@ -21004,6 +21586,7 @@ class $$ExpensesTableTableManager
                 date: date,
                 note: note,
                 receiptPhotoPath: receiptPhotoPath,
+                accountId: accountId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -22992,6 +23575,271 @@ typedef $$PurchaseOrderItemsTableProcessedTableManager =
       PurchaseOrderItem,
       PrefetchHooks Function()
     >;
+typedef $$PaymentAccountsTableCreateCompanionBuilder =
+    PaymentAccountsCompanion Function({
+      required String id,
+      required String shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      required String name,
+      Value<int> openingBalance,
+      Value<int> rowid,
+    });
+typedef $$PaymentAccountsTableUpdateCompanionBuilder =
+    PaymentAccountsCompanion Function({
+      Value<String> id,
+      Value<String> shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      Value<String> name,
+      Value<int> openingBalance,
+      Value<int> rowid,
+    });
+
+class $$PaymentAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentAccountsTable> {
+  $$PaymentAccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get openingBalance => $composableBuilder(
+    column: $table.openingBalance,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PaymentAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentAccountsTable> {
+  $$PaymentAccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get openingBalance => $composableBuilder(
+    column: $table.openingBalance,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PaymentAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentAccountsTable> {
+  $$PaymentAccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get shopId =>
+      $composableBuilder(column: $table.shopId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get openingBalance => $composableBuilder(
+    column: $table.openingBalance,
+    builder: (column) => column,
+  );
+}
+
+class $$PaymentAccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentAccountsTable,
+          PaymentAccount,
+          $$PaymentAccountsTableFilterComposer,
+          $$PaymentAccountsTableOrderingComposer,
+          $$PaymentAccountsTableAnnotationComposer,
+          $$PaymentAccountsTableCreateCompanionBuilder,
+          $$PaymentAccountsTableUpdateCompanionBuilder,
+          (
+            PaymentAccount,
+            BaseReferences<
+              _$AppDatabase,
+              $PaymentAccountsTable,
+              PaymentAccount
+            >,
+          ),
+          PaymentAccount,
+          PrefetchHooks Function()
+        > {
+  $$PaymentAccountsTableTableManager(
+    _$AppDatabase db,
+    $PaymentAccountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentAccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentAccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentAccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> shopId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> openingBalance = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentAccountsCompanion(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                name: name,
+                openingBalance: openingBalance,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String shopId,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                required String name,
+                Value<int> openingBalance = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentAccountsCompanion.insert(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                name: name,
+                openingBalance: openingBalance,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PaymentAccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentAccountsTable,
+      PaymentAccount,
+      $$PaymentAccountsTableFilterComposer,
+      $$PaymentAccountsTableOrderingComposer,
+      $$PaymentAccountsTableAnnotationComposer,
+      $$PaymentAccountsTableCreateCompanionBuilder,
+      $$PaymentAccountsTableUpdateCompanionBuilder,
+      (
+        PaymentAccount,
+        BaseReferences<_$AppDatabase, $PaymentAccountsTable, PaymentAccount>,
+      ),
+      PaymentAccount,
+      PrefetchHooks Function()
+    >;
 typedef $$AppSettingsTableCreateCompanionBuilder =
     AppSettingsCompanion Function({
       required String key,
@@ -23407,6 +24255,8 @@ class $AppDatabaseManager {
       $$PurchaseOrdersTableTableManager(_db, _db.purchaseOrders);
   $$PurchaseOrderItemsTableTableManager get purchaseOrderItems =>
       $$PurchaseOrderItemsTableTableManager(_db, _db.purchaseOrderItems);
+  $$PaymentAccountsTableTableManager get paymentAccounts =>
+      $$PaymentAccountsTableTableManager(_db, _db.paymentAccounts);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$OutboxTableTableManager get outbox =>

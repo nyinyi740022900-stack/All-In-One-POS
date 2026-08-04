@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../invoices/receipt_mapper.dart';
 import '../sell/payment_labels.dart';
 import 'printing_providers.dart';
@@ -26,11 +27,12 @@ Future<void> printSaleReceipt(
   }
 
   final shop = await settings.shopProfile();
+  final accounts = ref.read(paymentAccountsProvider).valueOrNull;
   final data = receiptFromSale(
     sale,
     items,
     shop,
-    paymentMethodLabel: paymentLabel(l, sale.paymentMethod),
+    paymentMethodLabel: paymentLabel(l, sale.paymentMethod, accounts: accounts),
     defaultFooter: l.receiptThankYou,
   );
 

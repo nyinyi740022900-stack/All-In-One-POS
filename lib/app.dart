@@ -6,6 +6,7 @@ import 'core/locale_controller.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/sync/sync_providers.dart';
+import 'features/accounts/payment_account_providers.dart';
 import 'features/expenses/recurring_expense_providers.dart';
 import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
@@ -35,6 +36,8 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(referralWatcherProvider);
     // Auto-generate any due recurring-expense templates once per launch.
     ref.watch(recurringExpenseGeneratorProvider);
+    // Seed the default payment accounts once per shop.
+    ref.watch(paymentAccountSeederProvider);
     // Listen for password-recovery deep links for the whole app lifetime.
     ref.watch(passwordRecoveryWatcherProvider);
 

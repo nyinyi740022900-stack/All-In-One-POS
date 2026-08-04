@@ -7,10 +7,10 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../sell/payment_labels.dart';
-import '../sell/sales_providers.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
 
@@ -164,6 +164,7 @@ class CreditCustomerScreen extends ConsumerWidget {
                 customerKey)
             .toList();
     final df = DateFormat('yyyy-MM-dd HH:mm');
+    final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(title: Text(customerName)),
@@ -229,7 +230,7 @@ class CreditCustomerScreen extends ConsumerWidget {
                   leading: const Icon(Icons.check_circle, color: Colors.green),
                   title: Text('+${Money(p.amount).withSymbol(currency)}'),
                   subtitle: Text(
-                      '${paymentLabel(l, p.method)} · ${df.format(p.createdAt)}'),
+                      '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
                 )),
           ],
         ],
@@ -295,8 +296,10 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // Repayments settle a debt — 'credit' isn't a tender here.
-    final methods = paymentMethods.where((m) => m != 'credit').toList();
+    // Repayments settle a debt — 'credit' isn't a tender here, so this is
+    // just cash + accounts (never includes it, unlike checkout).
+    final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
+    final methods = paymentMethodIds(accounts);
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
     final exceedsOutstanding = amount > widget.customer.outstanding;
     return AlertDialog(
@@ -328,7 +331,7 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
             children: [
               for (final m in methods)
                 ChoiceChip(
-                  label: Text(paymentLabel(l, m)),
+                  label: Text(paymentLabel(l, m, accounts: accounts)),
                   selected: _method == m,
                   onSelected: (_) => setState(() => _method = m),
                 ),

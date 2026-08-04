@@ -34,6 +34,7 @@ part 'database.g.dart';
     Suppliers,
     PurchaseOrders,
     PurchaseOrderItems,
+    PaymentAccounts,
     AppSettings,
     Outbox,
   ],
@@ -45,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -186,6 +187,14 @@ class AppDatabase extends _$AppDatabase {
           if (from < 24) {
             await m.database.customStatement('ALTER TABLE sales DROP COLUMN tax');
           }
+          // v25: Payment Accounts — a named-money-account directory (KBZPay,
+          // WavePay, or any custom one) with a derived-not-stored running
+          // balance; expenses gain an optional accountId so an
+          // account-paid expense can reduce that account's balance.
+          if (from < 25) {
+            await m.createTable(paymentAccounts);
+            await m.addColumn(expenses, expenses.accountId);
+          }
         },
       );
 
@@ -220,6 +229,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(suppliers).go();
       await delete(purchaseOrders).go();
       await delete(purchaseOrderItems).go();
+      await delete(paymentAccounts).go();
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();

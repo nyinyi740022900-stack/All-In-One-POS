@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
 import '../customers/customer_picker.dart';
 import '../customers/customer_providers.dart';
@@ -209,6 +210,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     final l = AppLocalizations.of(context);
     final cart = ref.watch(cartProvider);
     final currency = l.currencySymbol;
+    final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     // Live stock per product, to cap the qty steppers (no overselling).
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final stockById = <String, int>{
@@ -279,9 +281,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             Wrap(
               spacing: AppTheme.space2,
               children: [
-                for (final m in paymentMethods)
+                for (final m in [...paymentMethodIds(accounts), 'credit'])
                   ChoiceChip(
-                    label: Text(paymentLabel(l, m)),
+                    label: Text(paymentLabel(l, m, accounts: accounts)),
                     selected: _method == m,
                     onSelected: (_) => setState(() => _method = m),
                   ),
