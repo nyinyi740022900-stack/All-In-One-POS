@@ -45,6 +45,11 @@ Future<void> _bootstrap() async {
           url: Env.supabaseUrl,
           // anon key == publishable key; safe to ship (RLS enforces access).
           publishableKey: Env.supabaseAnonKey,
+          // PKCE is the recommended flow for a mobile deep-link password
+          // reset (see PasswordRecoveryWatcher) — the implicit flow's
+          // tokens-in-fragment shape doesn't suit the mmpos:// custom scheme.
+          authOptions:
+              const FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce),
         );
       } catch (e) {
         // Never let a backend init failure block an offline-first app.

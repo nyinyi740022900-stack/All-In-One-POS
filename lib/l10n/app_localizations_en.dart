@@ -2242,6 +2242,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountPassword => 'Password';
 
   @override
+  String get accountConfirmPassword => 'Confirm password';
+
+  @override
+  String get accountPasswordMismatch => 'Passwords don\'t match';
+
+  @override
+  String get accountForgotPassword => 'Forgot password?';
+
+  @override
+  String get accountResetPasswordTitle => 'Reset password';
+
+  @override
+  String get accountResetPasswordHint =>
+      'Enter the email for your shop account. We\'ll send a link to reset your password.';
+
+  @override
+  String get accountResetPasswordSend => 'Send reset link';
+
+  @override
+  String get accountResetPasswordSent => 'Check your email for a reset link.';
+
+  @override
+  String get accountResetPasswordNewLabel => 'New password';
+
+  @override
+  String get accountResetPasswordSave => 'Save new password';
+
+  @override
+  String get accountResetPasswordSuccess =>
+      'Password updated. You\'re signed in.';
+
+  @override
   String get accountCreateShopLogin => 'Create shop login';
 
   @override

@@ -23,6 +23,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -156,6 +157,58 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     setState(() {});
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final l = AppLocalizations.of(context);
+    final email = TextEditingController(text: _email.text.trim());
+    final sent = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.accountResetPasswordTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.accountResetPasswordHint,
+                style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: email,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(labelText: l.accountEmail),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+            onPressed: () async {
+              if (email.text.trim().isEmpty) return;
+              try {
+                await Supabase.instance.client.auth.resetPasswordForEmail(
+                  email.text.trim(),
+                  redirectTo: 'mmpos://login-callback',
+                );
+              } catch (_) {
+                // Supabase deliberately doesn't reveal whether the email
+                // exists — show the same "check your email" outcome either
+                // way rather than leaking account existence via an error.
+              }
+              if (ctx.mounted) Navigator.pop(ctx, true);
+            },
+            child: Text(l.accountResetPasswordSend),
+          ),
+        ],
+      ),
+    );
+    email.dispose();
+    if (sent == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.accountResetPasswordSent)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -191,10 +244,24 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
             const SizedBox(height: AppTheme.space2),
             TextField(
               controller: _password,
-              obscureText: true,
-              decoration: InputDecoration(labelText: l.accountPassword),
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: l.accountPassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                      _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
             ),
-            const SizedBox(height: AppTheme.space4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _busy ? null : _showForgotPasswordDialog,
+                child: Text(l.accountForgotPassword),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space2),
             FilledButton(
               onPressed: _busy ? null : _createLogin,
               child: Text(l.accountCreateShopLogin),

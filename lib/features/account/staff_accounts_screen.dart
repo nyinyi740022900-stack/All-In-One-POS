@@ -43,34 +43,46 @@ class StaffAccountsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final email = TextEditingController();
     final password = TextEditingController();
+    var obscure = true;
     final submitted = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.staffAccountsInvite),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(labelText: l.accountEmail),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: password,
-              obscureText: true,
-              decoration: InputDecoration(labelText: l.accountPassword),
-            ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l.staffAccountsInvite),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: l.accountEmail),
+              ),
+              const SizedBox(height: AppTheme.space2),
+              TextField(
+                controller: password,
+                obscureText: obscure,
+                decoration: InputDecoration(
+                  labelText: l.accountPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () =>
+                        setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.staffAccountsInvite)),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.staffAccountsInvite)),
-        ],
       ),
     );
     if (submitted != true || !context.mounted) return;

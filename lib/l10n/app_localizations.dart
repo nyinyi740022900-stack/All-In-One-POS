@@ -4190,6 +4190,66 @@ abstract class AppLocalizations {
   /// **'Password'**
   String get accountPassword;
 
+  /// No description provided for @accountConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get accountConfirmPassword;
+
+  /// No description provided for @accountPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get accountPasswordMismatch;
+
+  /// No description provided for @accountForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get accountForgotPassword;
+
+  /// No description provided for @accountResetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get accountResetPasswordTitle;
+
+  /// No description provided for @accountResetPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email for your shop account. We\'ll send a link to reset your password.'**
+  String get accountResetPasswordHint;
+
+  /// No description provided for @accountResetPasswordSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reset link'**
+  String get accountResetPasswordSend;
+
+  /// No description provided for @accountResetPasswordSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email for a reset link.'**
+  String get accountResetPasswordSent;
+
+  /// No description provided for @accountResetPasswordNewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get accountResetPasswordNewLabel;
+
+  /// No description provided for @accountResetPasswordSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get accountResetPasswordSave;
+
+  /// No description provided for @accountResetPasswordSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated. You\'re signed in.'**
+  String get accountResetPasswordSuccess;
+
   /// No description provided for @accountCreateShopLogin.
   ///
   /// In en, this message translates to:

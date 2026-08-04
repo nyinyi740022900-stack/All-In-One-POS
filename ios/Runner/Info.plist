@@ -72,5 +72,16 @@
 	<string>This app connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera to scan product barcodes.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mmpos</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

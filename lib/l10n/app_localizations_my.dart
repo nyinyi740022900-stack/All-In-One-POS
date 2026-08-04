@@ -2247,6 +2247,38 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountPassword => 'စကားဝှက်';
 
   @override
+  String get accountConfirmPassword => 'စကားဝှက် အတည်ပြုပါ';
+
+  @override
+  String get accountPasswordMismatch => 'စကားဝှက်များ မတူညီပါ';
+
+  @override
+  String get accountForgotPassword => 'စကားဝှက် မေ့နေပါသလား?';
+
+  @override
+  String get accountResetPasswordTitle => 'စကားဝှက် ပြန်လည်သတ်မှတ်ရန်';
+
+  @override
+  String get accountResetPasswordHint =>
+      'ဆိုင်အကောင့်ရဲ့ email ကို ထည့်ပါ — စကားဝှက် ပြန်လည်သတ်မှတ်ဖို့ link ကို ပို့ပေးပါမယ်။';
+
+  @override
+  String get accountResetPasswordSend => 'Reset link ပို့မည်';
+
+  @override
+  String get accountResetPasswordSent => 'Reset link ကို email မှာ စစ်ကြည့်ပါ။';
+
+  @override
+  String get accountResetPasswordNewLabel => 'စကားဝှက်အသစ်';
+
+  @override
+  String get accountResetPasswordSave => 'စကားဝှက်အသစ် သိမ်းမည်';
+
+  @override
+  String get accountResetPasswordSuccess =>
+      'စကားဝှက် ပြောင်းပြီးပါပြီ — ဝင်ရောက်ထားပါပြီ။';
+
+  @override
   String get accountCreateShopLogin => 'ဆိုင် Login ဖန်တီးမည်';
 
   @override

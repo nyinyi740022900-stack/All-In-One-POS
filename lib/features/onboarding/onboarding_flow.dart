@@ -430,8 +430,10 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
   final _shopName = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   bool _busy = false;
   bool _done = false;
+  bool _obscure = true;
   String? _error;
 
   @override
@@ -439,6 +441,7 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
     _shopName.dispose();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -453,6 +456,10 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
     if (_shopName.text.trim().isEmpty ||
         _email.text.trim().isEmpty ||
         _password.text.isEmpty) {
+      return;
+    }
+    if (_password.text != _confirmPassword.text) {
+      setState(() => _error = l.accountPasswordMismatch);
       return;
     }
     setState(() {
@@ -512,8 +519,23 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _password,
-                    obscureText: true,
-                    decoration: InputDecoration(labelText: l.accountPassword),
+                    obscureText: _obscure,
+                    decoration: InputDecoration(
+                      labelText: l.accountPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _confirmPassword,
+                    obscureText: _obscure,
+                    decoration:
+                        InputDecoration(labelText: l.accountConfirmPassword),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
