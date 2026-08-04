@@ -217,9 +217,18 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           const SizedBox(height: AppTheme.space4),
           if (status.canSell) ...[
             FilledButton.icon(
-              onPressed: () => (state.license?.tier ?? 'offline') == 'online'
-                  ? _showOnlineSubscribeDialog()
-                  : _showOfflineKeyDialog(),
+              // Which dialog to show follows whether this device is
+              // *currently* signed in with a real account — not the shop's
+              // stored pricing tier, which can stay 'online' after a
+              // sign-out (see AccountRepository.signOut). Dispatching on
+              // tier alone would show the Online dialog's "not signed in"
+              // warning and nudge a signed-out device toward signing back
+              // in just to renew, instead of letting it use the plain
+              // key-request flow it can complete right now.
+              onPressed: () =>
+                  ref.read(accountRepositoryProvider).isSignedInWithRealAccount
+                      ? _showOnlineSubscribeDialog()
+                      : _showOfflineKeyDialog(),
               icon: Icon(state.license?.plan == LicensePlan.free
                   ? Icons.workspace_premium_outlined
                   : Icons.autorenew),
@@ -610,11 +619,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     referral.dispose();
   }
 
-  /// Online (email-account) tier: the shop name + contact identity are
-  /// already known from the signed-in account/profile, so there's nothing
-  /// to type — just the payment details. Same manual
-  /// KBZPay/WavePay-then-admin-approval mechanism as Offline; the request
-  /// is simply tagged tier: 'online' and applies to the account, not a key.
+  /// Online: only ever opened when this device is currently signed in with
+  /// a real account (see the Renew/Upgrade button's dispatch), so the shop
+  /// name + contact identity are already known from the signed-in
+  /// account/profile — nothing to type, just the payment details. Same
+  /// manual KBZPay/WavePay-then-admin-approval mechanism as Offline; the
+  /// request is simply tagged tier: 'online' and applies to the account,
+  /// not a key.
   Future<void> _showOnlineSubscribeDialog() async {
     final l = AppLocalizations.of(context);
     final cfg = await ref.read(vendorConfigProvider.future);
@@ -624,9 +635,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     if (!mounted) return;
     const tier = 'online';
     final cur = l.currencySymbol;
-    final account = ref.read(accountRepositoryProvider);
-    final signedIn = account.isSignedInWithRealAccount;
-    final accountEmail = account.currentAccountEmail;
+    final accountEmail = ref.read(accountRepositoryProvider).currentAccountEmail;
     final amount =
         TextEditingController(text: '${cfg.priceFor('monthly', tier: tier)}');
     final txn = TextEditingController();
@@ -646,26 +655,14 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (signedIn)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.verified_user,
-                          color: Colors.green),
-                      title: Text(profile.name),
-                      subtitle: Text(accountEmail ?? ''),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(AppTheme.space3),
-                    decoration: BoxDecoration(
-                      color: Theme.of(ctx).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(l.licenseOnlineNotSignedIn,
-                        style: TextStyle(
-                            color: Theme.of(ctx).colorScheme.onErrorContainer)),
+                Card(
+                  child: ListTile(
+                    leading:
+                        const Icon(Icons.verified_user, color: Colors.green),
+                    title: Text(profile.name),
+                    subtitle: Text(accountEmail ?? ''),
                   ),
+                ),
                 const SizedBox(height: AppTheme.space3),
                 ..._buildPaymentFields(
                   ctx: ctx,

@@ -1313,10 +1313,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseGetKeyTitle => 'License Key ယူရန်';
 
   @override
-  String get licenseOnlineNotSignedIn =>
-      'Sign in မဝင်ရသေးပါ — Subscription ကို Account နဲ့ ချိတ်ဆက်နိုင်ဖို့ Settings ကနေ အရင် Sign in ဝင်ပါ။';
-
-  @override
   String get licenseOnlineApplyHint =>
       'Admin approve လုပ်ပြီးရင် Account ပေါ်မှာ အလိုအလျောက် သက်ရောက်ပါလိမ့်မယ် — Key ထည့်စရာမလိုပါ။';
 

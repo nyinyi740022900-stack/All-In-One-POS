@@ -2528,12 +2528,6 @@ abstract class AppLocalizations {
   /// **'Get license key'**
   String get licenseGetKeyTitle;
 
-  /// No description provided for @licenseOnlineNotSignedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Not signed in — sign in from Settings first so this subscription is linked to your account.'**
-  String get licenseOnlineNotSignedIn;
-
   /// No description provided for @licenseOnlineApplyHint.
   ///
   /// In en, this message translates to:

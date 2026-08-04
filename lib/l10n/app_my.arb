@@ -439,7 +439,6 @@
   "licenseNoKeyHint": "KBZPay/WavePay နဲ့ ပေးချေပြီး license key ကို ပို့ပေးပါမယ်။",
   "licenseSubscribe": "Subscribe",
   "licenseGetKeyTitle": "License Key ယူရန်",
-  "licenseOnlineNotSignedIn": "Sign in မဝင်ရသေးပါ — Subscription ကို Account နဲ့ ချိတ်ဆက်နိုင်ဖို့ Settings ကနေ အရင် Sign in ဝင်ပါ။",
   "licenseOnlineApplyHint": "Admin approve လုပ်ပြီးရင် Account ပေါ်မှာ အလိုအလျောက် သက်ရောက်ပါလိမ့်မယ် — Key ထည့်စရာမလိုပါ။",
   "licenseRenew": "သက်တမ်းတိုး",
   "licenseExpiringSoon": "License သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",

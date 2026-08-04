@@ -445,7 +445,6 @@
   "licenseNoKeyHint": "Pay via KBZPay/WavePay and we'll send your license key.",
   "licenseSubscribe": "Subscribe",
   "licenseGetKeyTitle": "Get license key",
-  "licenseOnlineNotSignedIn": "Not signed in — sign in from Settings first so this subscription is linked to your account.",
   "licenseOnlineApplyHint": "Once approved, this is applied to your account automatically — no key to enter.",
   "licenseRenew": "Renew / Extend",
   "licenseExpiringSoon": "License expires in {days} days — tap to renew.",
