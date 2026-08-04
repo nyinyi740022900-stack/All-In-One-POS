@@ -420,7 +420,7 @@
   "licensePayTo": "လိုင်စင်ကြေး ဤသို့ လွှဲပါ:",
   "licenseTxnId": "Transaction ID (နောက်ဆုံး ၆ လုံး)",
   "licenseDeactivate": "လိုင်စင် ဖယ်ရှား",
-  "licenseDeactivateConfirm": "ဒီ device ကနေ လိုင်စင် ဖယ်မှာလား? ကုန်ဆုံးရက် အတူတူ ဆက်ရှိနေမယ် — key အတူတူ ပြန် activate ရင် ရက်မပျောက်၊ အစက ပြန်မစပါဘူး။",
+  "licenseDeactivateConfirm": "ဒီ device ကနေ လိုင်စင် ဖယ်မှာလား? ကုန်ဆုံးရက် အတူတူ ဆက်ရှိနေမယ် — key အတူတူ ပြန် activate ရင် ရက်မပျောက်၊ အစက ပြန်မစပါဘူး။ ဒီအကြားမှာ ဒီ device က Free plan ကို ပြောင်းသွားမှာမို့ ရောင်းချမှု + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှု ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။",
   "licensePlanLabel": "အစီအစဉ်",
   "licensePlanMonthly": "လစဉ်",
   "licensePlanFree": "အခမဲ့ အစီအစဉ်",

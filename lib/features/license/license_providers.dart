@@ -96,9 +96,22 @@ class LicenseController extends StateNotifier<LicenseState> {
     return result;
   }
 
+  /// Detaches this device's key/trial. Falls back to the Free plan (same
+  /// `downgradeToFree` a license lapse already uses) rather than leaving the
+  /// device in a bare not-activated state — Sell/Inventory keep working, the
+  /// device stays on the shop's own data, and a key can be re-entered later
+  /// from the Free-plan section of this screen. Only the defensive
+  /// null-license branch (unreachable via the UI — "Remove license" only
+  /// ever shows for an active non-free license) still clears to nothing.
   Future<void> deactivate() async {
-    await _repo.deactivate();
-    _apply(null);
+    final current = state.license;
+    if (current == null) {
+      await _repo.deactivate();
+      _apply(null);
+      return;
+    }
+    final downgraded = await _repo.downgradeToFree(current);
+    _apply(downgraded);
   }
 
   /// Enters the Free plan — no key, no account, no network call. See

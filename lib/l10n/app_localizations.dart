@@ -2417,7 +2417,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseDeactivateConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it.'**
+  /// **'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.'**
   String get licenseDeactivateConfirm;
 
   /// No description provided for @licensePlanLabel.

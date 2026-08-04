@@ -1250,7 +1250,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseDeactivateConfirm =>
-      'ဒီ device ကနေ လိုင်စင် ဖယ်မှာလား? ကုန်ဆုံးရက် အတူတူ ဆက်ရှိနေမယ် — key အတူတူ ပြန် activate ရင် ရက်မပျောက်၊ အစက ပြန်မစပါဘူး။';
+      'ဒီ device ကနေ လိုင်စင် ဖယ်မှာလား? ကုန်ဆုံးရက် အတူတူ ဆက်ရှိနေမယ် — key အတူတူ ပြန် activate ရင် ရက်မပျောက်၊ အစက ပြန်မစပါဘူး။ ဒီအကြားမှာ ဒီ device က Free plan ကို ပြောင်းသွားမှာမို့ ရောင်းချမှု + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှု ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
 
   @override
   String get licensePlanLabel => 'အစီအစဉ်';

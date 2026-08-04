@@ -425,7 +425,7 @@
   "licensePayTo": "Transfer license fee to:",
   "licenseTxnId": "Transaction ID (last 6 digits)",
   "licenseDeactivate": "Remove license",
-  "licenseDeactivateConfirm": "Remove the license from this device? Your expiry date is kept — re-activating the same key later won't lose any days or restart it.",
+  "licenseDeactivateConfirm": "Remove the license from this device? Your expiry date is kept — re-activating the same key later won't lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.",
   "licensePlanLabel": "Plan",
   "licensePlanMonthly": "Monthly",
   "licensePlanFree": "Free plan",

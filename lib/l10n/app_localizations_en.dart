@@ -1249,7 +1249,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseDeactivateConfirm =>
-      'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it.';
+      'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.';
 
   @override
   String get licensePlanLabel => 'Plan';
