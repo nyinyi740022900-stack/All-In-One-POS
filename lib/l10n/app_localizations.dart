@@ -2504,6 +2504,30 @@ abstract class AppLocalizations {
   /// **'Enter the key you received when you subscribed.'**
   String get licenseGetKey;
 
+  /// No description provided for @licenseHaveKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have a license key?'**
+  String get licenseHaveKeyTitle;
+
+  /// No description provided for @licensePaymentProofLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment screenshot (optional)'**
+  String get licensePaymentProofLabel;
+
+  /// No description provided for @licensePaymentProofAttach.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach screenshot'**
+  String get licensePaymentProofAttach;
+
+  /// No description provided for @licensePaymentProofAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot attached'**
+  String get licensePaymentProofAttached;
+
   /// No description provided for @licenseNoKeyTitle.
   ///
   /// In en, this message translates to:

@@ -74,6 +74,7 @@ class _RequestsTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final r = rows[i];
         final fulfilled = r['status'] == 'fulfilled';
+        final proofPath = r['payment_proof_path'] as String?;
         return ListTile(
           leading: Icon(
             fulfilled ? Icons.check_circle : Icons.hourglass_top,
@@ -86,14 +87,45 @@ class _RequestsTab extends StatelessWidget {
               'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
               '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'),
           isThreeLine: true,
-          trailing: fulfilled
-              ? const Text('Issued')
-              : FilledButton(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (proofPath != null && proofPath.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () => _showProof(context, proofPath),
+                  icon: const Icon(Icons.image_outlined, size: 18),
+                  label: const Text('Screenshot'),
+                ),
+              if (fulfilled)
+                const Text('Issued')
+              else
+                FilledButton(
                   onPressed: () => onIssue(r),
                   child: const Text('Issue key'),
                 ),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  Future<void> _showProof(BuildContext context, String path) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Payment screenshot'),
+        content: SizedBox(
+          width: 400,
+          child: _RequestProofImage(path: path),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -840,6 +872,49 @@ class _CarrierDialogState extends State<_CarrierDialog> {
           child: const Text('Save'),
         ),
       ],
+    );
+  }
+}
+
+/// Renders a license-request payment screenshot from the private
+/// `payment-proofs` bucket via a signed URL — same call
+/// `order_detail_sheet.dart`'s `_PaymentProof` makes on the mobile app side;
+/// the admin's own session is `authenticated`, already covered by the
+/// existing bucket-wide SELECT policy (migration 0022).
+class _RequestProofImage extends StatefulWidget {
+  const _RequestProofImage({required this.path});
+  final String path;
+
+  @override
+  State<_RequestProofImage> createState() => _RequestProofImageState();
+}
+
+class _RequestProofImageState extends State<_RequestProofImage> {
+  late final Future<String> _url;
+
+  @override
+  void initState() {
+    super.initState();
+    _url = Supabase.instance.client.storage
+        .from('payment-proofs')
+        .createSignedUrl(widget.path, 3600);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _url,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const SizedBox(
+              height: 200, child: Center(child: CircularProgressIndicator()));
+        }
+        if (snap.hasError || snap.data == null) {
+          return const SizedBox(
+              height: 120, child: Icon(Icons.broken_image_outlined));
+        }
+        return Image.network(snap.data!, fit: BoxFit.contain);
+      },
     );
   }
 }

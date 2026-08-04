@@ -1300,6 +1300,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseGetKey => 'စာရင်းသွင်းစဉ်က ရရှိသော key ကို ထည့်ပါ။';
 
   @override
+  String get licenseHaveKeyTitle => 'License key ရပြီးသားလား?';
+
+  @override
+  String get licensePaymentProofLabel => 'ငွေလွှဲ Screenshot (မထည့်လည်းရ)';
+
+  @override
+  String get licensePaymentProofAttach => 'Screenshot ထည့်ရန်';
+
+  @override
+  String get licensePaymentProofAttached => 'Screenshot ထည့်ပြီးပါပြီ';
+
+  @override
   String get licenseNoKeyTitle => 'Key မရှိသေးဘူးလား?';
 
   @override

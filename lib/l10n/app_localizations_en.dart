@@ -1299,6 +1299,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseGetKey => 'Enter the key you received when you subscribed.';
 
   @override
+  String get licenseHaveKeyTitle => 'Already have a license key?';
+
+  @override
+  String get licensePaymentProofLabel => 'Payment screenshot (optional)';
+
+  @override
+  String get licensePaymentProofAttach => 'Attach screenshot';
+
+  @override
+  String get licensePaymentProofAttached => 'Screenshot attached';
+
+  @override
   String get licenseNoKeyTitle => 'Don\'t have a key?';
 
   @override

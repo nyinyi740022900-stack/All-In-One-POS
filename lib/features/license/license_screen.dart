@@ -1,12 +1,15 @@
 import 'dart:convert';
 
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
+import '../../core/image_util.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -236,6 +239,23 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   ? l.premiumUpgradeCta
                   : l.licenseRenew),
             ),
+            // A Free-plan shop that just paid for a first-time key (via the
+            // Upgrade dialog above) has nowhere else to type/scan it in —
+            // Free is always `canSell`, so this branch is otherwise all this
+            // device ever sees; the key-entry fields below only render in
+            // the `else` (not-activated) branch further down.
+            if (state.license?.plan == LicensePlan.free) ...[
+              const SizedBox(height: AppTheme.space4),
+              const Divider(),
+              const SizedBox(height: AppTheme.space2),
+              Text(l.licenseHaveKeyTitle,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppTheme.space1),
+              Text(l.licenseGetKey,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: AppTheme.space3),
+              ..._buildKeyEntryFields(l),
+            ],
             // Nothing to check/deactivate for the Free plan — there's no key
             // or subscription behind it, just a local marker.
             if (state.license?.plan != LicensePlan.free) ...[
@@ -277,29 +297,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             Text(l.licenseGetKey,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: AppTheme.space3),
-            TextField(
-              controller: _key,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: l.licenseKeyLabel,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  tooltip: l.scanBarcode,
-                  onPressed: _scanKey,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppTheme.space3),
-            FilledButton.icon(
-              onPressed: _busy ? null : _activate,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.check),
-              label: Text(l.licenseActivateBtn),
-            ),
+            ..._buildKeyEntryFields(l),
             const SizedBox(height: AppTheme.space2),
             OutlinedButton.icon(
               onPressed: _busy ? null : _startTrial,
@@ -328,6 +326,38 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
   }
 
+  /// The key `TextField` (+ QR-scan icon) and Activate button — shared by
+  /// the not-activated screen and the Free-plan "Already have a license
+  /// key?" section, since both are really the same action (redeem a key on
+  /// this device), just reachable from different states.
+  List<Widget> _buildKeyEntryFields(AppLocalizations l) {
+    return [
+      TextField(
+        controller: _key,
+        textCapitalization: TextCapitalization.characters,
+        decoration: InputDecoration(
+          labelText: l.licenseKeyLabel,
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: l.scanBarcode,
+            onPressed: _scanKey,
+          ),
+        ),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      FilledButton.icon(
+        onPressed: _busy ? null : _activate,
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.check),
+        label: Text(l.licenseActivateBtn),
+      ),
+    ];
+  }
+
   void _showThankYou(String viber) {
     final l = AppLocalizations.of(context);
     showDialog<void>(
@@ -351,6 +381,36 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
   }
 
+  /// Same pick→compress flow as the storefront guest checkout's payment
+  /// proof (`storefront_page.dart._pickProof`) — reused here rather than
+  /// duplicated logic, just returning the picked/compressed bytes instead
+  /// of mutating `State` fields, since these dialogs live inside a
+  /// `StatefulBuilder`, not a full `ConsumerStatefulWidget`.
+  Future<({Uint8List bytes, String ext, String name})?> _pickPaymentProof() async {
+    final res = await FilePicker.platform
+        .pickFiles(type: FileType.image, withData: true);
+    final file = res?.files.firstOrNull;
+    if (file == null || file.bytes == null) return null;
+    final c = compressImage(Uint8List.fromList(file.bytes!),
+        fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+    return (bytes: c.bytes, ext: c.ext, name: file.name);
+  }
+
+  /// Uploads to the private `payment-proofs` bucket, same as
+  /// `StorefrontApi.uploadPaymentProof` — anon uploads are allowed by
+  /// policy (migration 0018); the admin console reads it back later via a
+  /// signed URL (0022).
+  Future<String> _uploadPaymentProof(Uint8List bytes, String ext) async {
+    final path =
+        'proof-${DateTime.now().millisecondsSinceEpoch}-${bytes.length}.$ext';
+    await Supabase.instance.client.storage.from('payment-proofs').uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(upsert: false),
+        );
+    return path;
+  }
+
   /// The plan/duration/payment-method/amount/txn-id/referral block shared by
   /// both the Offline and Online request dialogs — the manual
   /// KBZPay/WavePay payment mechanism itself doesn't differ by tier, only
@@ -371,6 +431,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     required void Function(String) setPlan,
     required void Function(int) setQty,
     required void Function(void Function()) setLocal,
+    required String? Function() getProofName,
+    required Future<void> Function() onPickProof,
+    required VoidCallback onRemoveProof,
   }) {
     final plan = getPlan();
     final qty = getQty();
@@ -457,6 +520,29 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         ],
         decoration: InputDecoration(labelText: l.licenseTxnId),
       ),
+      const SizedBox(height: AppTheme.space3),
+      if (getProofName() == null)
+        OutlinedButton.icon(
+          onPressed: onPickProof,
+          icon: const Icon(Icons.attach_file),
+          label: Text(l.licensePaymentProofAttach),
+        )
+      else
+        Row(
+          children: [
+            const Icon(Icons.check_circle_outline,
+                color: Colors.green, size: 18),
+            const SizedBox(width: AppTheme.space2),
+            Expanded(
+              child: Text('${l.licensePaymentProofAttached}: ${getProofName()}',
+                  overflow: TextOverflow.ellipsis),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: onRemoveProof,
+            ),
+          ],
+        ),
       const SizedBox(height: AppTheme.space4),
       Container(
         padding: const EdgeInsets.all(AppTheme.space3),
@@ -524,6 +610,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     String plan = 'monthly';
     int qty = 1;
     var busy = false;
+    Uint8List? proofBytes;
+    String? proofExt;
+    String? proofName;
 
     await showDialog<void>(
       context: context,
@@ -563,6 +652,21 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   setPlan: (v) => plan = v,
                   setQty: (v) => qty = v,
                   setLocal: setLocal,
+                  getProofName: () => proofName,
+                  onPickProof: () async {
+                    final picked = await _pickPaymentProof();
+                    if (picked == null) return;
+                    setLocal(() {
+                      proofBytes = picked.bytes;
+                      proofExt = picked.ext;
+                      proofName = picked.name;
+                    });
+                  },
+                  onRemoveProof: () => setLocal(() {
+                    proofBytes = null;
+                    proofExt = null;
+                    proofName = null;
+                  }),
                 ),
               ],
             ),
@@ -580,6 +684,11 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                       setLocal(() => busy = true);
                       final messenger = ScaffoldMessenger.of(context);
                       try {
+                        String? proofPath;
+                        if (proofBytes != null) {
+                          proofPath = await _uploadPaymentProof(
+                              proofBytes!, proofExt ?? 'jpg');
+                        }
                         await LicenseRequestService.submit(
                           shopName: shopName.text.trim(),
                           phone: phone.text.trim().isEmpty
@@ -597,6 +706,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                               ? null
                               : referral.text.trim().toUpperCase(),
                           tier: tier,
+                          paymentProofPath: proofPath,
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) _showThankYou(cfg.supportViber);
@@ -644,6 +754,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     String plan = 'monthly';
     int qty = 1;
     var busy = false;
+    Uint8List? proofBytes;
+    String? proofExt;
+    String? proofName;
 
     await showDialog<void>(
       context: context,
@@ -680,6 +793,21 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   setPlan: (v) => plan = v,
                   setQty: (v) => qty = v,
                   setLocal: setLocal,
+                  getProofName: () => proofName,
+                  onPickProof: () async {
+                    final picked = await _pickPaymentProof();
+                    if (picked == null) return;
+                    setLocal(() {
+                      proofBytes = picked.bytes;
+                      proofExt = picked.ext;
+                      proofName = picked.name;
+                    });
+                  },
+                  onRemoveProof: () => setLocal(() {
+                    proofBytes = null;
+                    proofExt = null;
+                    proofName = null;
+                  }),
                 ),
                 const SizedBox(height: AppTheme.space2),
                 Text(l.licenseOnlineApplyHint,
@@ -699,6 +827,11 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                       setLocal(() => busy = true);
                       final messenger = ScaffoldMessenger.of(context);
                       try {
+                        String? proofPath;
+                        if (proofBytes != null) {
+                          proofPath = await _uploadPaymentProof(
+                              proofBytes!, proofExt ?? 'jpg');
+                        }
                         await LicenseRequestService.submit(
                           shopName: profile.name,
                           phone: null,
@@ -714,6 +847,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                               ? null
                               : referral.text.trim().toUpperCase(),
                           tier: tier,
+                          paymentProofPath: proofPath,
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) _showThankYou(cfg.supportViber);
