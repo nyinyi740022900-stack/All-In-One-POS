@@ -147,7 +147,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (!ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.storefrontTitle)),
         body: PremiumGate(featureName: l.storefrontTitle, child: const SizedBox.shrink()),

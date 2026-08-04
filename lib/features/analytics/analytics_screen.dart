@@ -30,7 +30,7 @@ class AnalyticsScreen extends ConsumerWidget {
         body: const OwnerOnlyGate(child: SizedBox.shrink()),
       );
     }
-    if (!ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
         body: PremiumGate(featureName: l.navAnalytics, child: const SizedBox.shrink()),

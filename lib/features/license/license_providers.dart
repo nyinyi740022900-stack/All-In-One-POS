@@ -102,10 +102,25 @@ class LicenseController extends StateNotifier<LicenseState> {
   }
 
   /// Enters the Free plan — no key, no account, no network call. See
-  /// `LicenseRepository.startFreePlan`.
-  Future<void> continueFree() async {
+  /// `LicenseRepository.startFreePlan`. Currently only reachable from
+  /// onboarding (a fresh device with no prior license), but guarded
+  /// defensively here in case a future entry point ever calls this on a
+  /// device that already has real synced data under a DIFFERENT shop: never
+  /// silently mixes data under the new Free shopId. Refuses (returns false)
+  /// if there are unsynced writes — same check `BranchRepository.switchBranch`
+  /// uses — and wipes local data first if actually switching shops, exactly
+  /// like a branch switch would.
+  Future<bool> continueFree() async {
+    final current = await _repo.current();
+    if (current != null) {
+      final db = _ref.read(databaseProvider);
+      final pending = await db.select(db.outbox).get();
+      if (pending.isNotEmpty) return false;
+      await db.wipeSyncedData();
+    }
     final lic = await _repo.startFreePlan();
     _apply(lic);
+    return true;
   }
 
   /// Starts the one-time free 2-month trial. Returns false if already used.
@@ -166,6 +181,12 @@ class LicenseController extends StateNotifier<LicenseState> {
         lic.plan != LicensePlan.free &&
         status.kind == LicenseStatusKind.expired) {
       _repo.downgradeToFree(lic).then((free) {
+        // Staleness guard: if a newer `_apply` (e.g. a manual activation
+        // that raced ahead of this stale reverify) already replaced
+        // `state.license` with something else, applying `free` now would
+        // wrongly stomp it and re-pin `shopIdProvider` back to the shop
+        // this downgrade was computed for.
+        if (!identical(state.license, lic)) return;
         _ref.read(pendingPlanDowngradeNoticeProvider.notifier).state = true;
         _apply(free);
       });

@@ -8,6 +8,7 @@ import '../../core/env.dart';
 import '../../core/providers.dart';
 import '../../features/license/license_model.dart';
 import '../../features/license/license_providers.dart';
+import '../../features/license/license_status.dart';
 import '../../features/printing/printing_providers.dart';
 import 'sync_engine.dart';
 
@@ -28,9 +29,18 @@ class SyncState {
       );
 }
 
-/// The sync engine, available only when backend credentials are configured.
+/// The sync engine, available only when backend credentials are configured
+/// AND the current license actually has a real server-side shop behind it.
+/// The Free plan's `shopId` (`free-<deviceId>`) is synthesized purely
+/// locally — no `licenses` row, no JWT `shop_id` claim — so every push would
+/// be rejected by RLS forever, permanently filling the outbox and retrying
+/// on every periodic sync for no reason. Free-plan data is local-only by
+/// design; skip the sync engine entirely rather than let it grind on a shop
+/// that doesn't exist server-side.
 final syncEngineProvider = Provider<SyncEngine?>((ref) {
   if (!Env.hasBackend) return null;
+  final license = ref.watch(licenseControllerProvider).license;
+  if (license != null && license.plan == LicensePlan.free) return null;
   return SyncEngine(
     db: ref.watch(databaseProvider),
     remote: SupabaseSyncRemote(Supabase.instance.client),

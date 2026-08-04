@@ -159,7 +159,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (!ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.salesReportTitle)),
         body: PremiumGate(featureName: l.salesReportTitle, child: const SizedBox.shrink()),

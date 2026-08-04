@@ -143,7 +143,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (!ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.expensesTitle)),
         body: PremiumGate(featureName: l.expensesTitle, child: const SizedBox.shrink()),

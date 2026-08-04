@@ -340,6 +340,12 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Covers the mirror case `initState`'s postFrame check can't: the
+    // auto-downgrade firing (e.g. via the 6-hour silent re-verify) while
+    // this tile is already mounted and visible.
+    ref.listen<bool>(pendingPlanDowngradeNoticeProvider, (_, pending) {
+      if (pending) _showDowngradeNotice();
+    });
     final licState = ref.watch(licenseControllerProvider);
     final status = licState.status;
     final (String label, Color color) = licState.license?.plan == LicensePlan.free

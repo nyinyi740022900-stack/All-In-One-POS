@@ -17,7 +17,15 @@ class PremiumGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(isPremiumProvider)) return child;
+    final licState = ref.watch(licenseControllerProvider);
+    // Before `LicenseController.load()` resolves, `license` is null and
+    // `isPremium` would read as false — without this check every gated
+    // screen would flash the paywall for a frame on cold start, even for a
+    // genuinely Premium shop, until the cached license finishes loading.
+    if (licState.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (licState.isPremium) return child;
     return _PremiumPaywall(featureName: featureName);
   }
 }
