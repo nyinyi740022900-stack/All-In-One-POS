@@ -1499,7 +1499,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideAnalyticsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. Pick a date range at the top — today, this week, this month, or a custom range.\n2. View total sales, profit, and transaction count for that period.\n3. Scroll down to see your best-selling products, ranked by revenue or quantity.\n4. Profit figures use each sale\'s actual recorded cost, not just today\'s cost price — so past sales stay accurate even after you change a product\'s cost.\n5. Compare two periods side by side to spot trends before deciding what to restock or re-price.'**
+  /// **'Analytics is a Premium feature — a Free-plan shop sees an upgrade prompt here instead of this screen.\n1. Pick a date range at the top — today, this week, this month, or a custom range.\n2. View total sales, profit, and transaction count for that period.\n3. Scroll down to see your best-selling products, ranked by revenue or quantity.\n4. Profit figures use each sale\'s actual recorded cost, not just today\'s cost price — so past sales stay accurate even after you change a product\'s cost.\n5. Compare two periods side by side to spot trends before deciding what to restock or re-price.'**
   String get helpGuideAnalyticsBody;
 
   /// No description provided for @helpGuideSettingsTitle.
@@ -1511,7 +1511,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — activate your key, check your plan\'s status, and add or release devices.\n4. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n5. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n6. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n7. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — pay via KBZPay/WavePay for a license key, or subscribe under your Shop Login account.\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device, and to subscribe online instead of using a key. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
