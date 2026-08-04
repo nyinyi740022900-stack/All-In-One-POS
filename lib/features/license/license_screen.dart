@@ -554,6 +554,11 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         ),
       ),
     );
+    shopName.dispose();
+    phone.dispose();
+    amount.dispose();
+    txn.dispose();
+    referral.dispose();
   }
 }
 

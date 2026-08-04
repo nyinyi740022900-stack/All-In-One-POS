@@ -97,16 +97,21 @@ class SuppliersScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
-
-    await ref.read(supplierRepositoryProvider).upsertSupplier(
-          id: existing?.id,
-          name: name.text.trim(),
-          phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-          address: address.text.trim().isEmpty ? null : address.text.trim(),
-          note: note.text.trim().isEmpty ? null : note.text.trim(),
-        );
-    if (context.mounted) {
+    final shouldSave = saved == true && name.text.trim().isNotEmpty;
+    if (shouldSave) {
+      await ref.read(supplierRepositoryProvider).upsertSupplier(
+            id: existing?.id,
+            name: name.text.trim(),
+            phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
+            address: address.text.trim().isEmpty ? null : address.text.trim(),
+            note: note.text.trim().isEmpty ? null : note.text.trim(),
+          );
+    }
+    name.dispose();
+    phone.dispose();
+    address.dispose();
+    note.dispose();
+    if (shouldSave && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.supplierSaved)));
     }

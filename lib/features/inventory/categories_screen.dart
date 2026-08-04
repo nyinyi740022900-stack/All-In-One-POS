@@ -82,6 +82,7 @@ class CategoriesScreen extends ConsumerWidget {
         ],
       ),
     );
+    controller.dispose();
     if (name != null && name.isNotEmpty) {
       await ref.read(inventoryRepositoryProvider).upsertCategory(
             id: existing?.id,

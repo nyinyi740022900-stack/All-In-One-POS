@@ -83,18 +83,21 @@ class StaffMembersScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (saved != true) return;
-    if (name.text.trim().isEmpty) return;
     // Adding a member always needs a PIN; editing may leave it blank to keep
     // the current one.
-    if (existing == null && pin.text.trim().isEmpty) return;
-
-    await ref.read(staffRepositoryProvider).upsertMember(
-          id: existing?.id,
-          name: name.text.trim(),
-          pin: pin.text.trim().isEmpty ? null : pin.text.trim(),
-        );
-    if (context.mounted) {
+    final shouldSave = saved == true &&
+        name.text.trim().isNotEmpty &&
+        !(existing == null && pin.text.trim().isEmpty);
+    if (shouldSave) {
+      await ref.read(staffRepositoryProvider).upsertMember(
+            id: existing?.id,
+            name: name.text.trim(),
+            pin: pin.text.trim().isEmpty ? null : pin.text.trim(),
+          );
+    }
+    name.dispose();
+    pin.dispose();
+    if (shouldSave && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.staffMemberSaved)));
     }

@@ -92,7 +92,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(9),
+          ],
           decoration: InputDecoration(labelText: l.sellDiscount),
         ),
         actions: [
@@ -113,6 +116,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         ],
       ),
     );
+    controller.dispose();
   }
 
   /// Amount tendered. Empty field means "paid in full" for a normal method, or
@@ -289,7 +293,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             TextField(
               controller: _paid,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(9),
+          ],
               decoration: InputDecoration(
                 labelText:
                     _method == 'credit' ? l.creditPaidNow : l.sellAmountPaid,
@@ -531,7 +538,10 @@ class _DiscountField extends StatelessWidget {
             width: 120,
             child: TextField(
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(9),
+          ],
               textAlign: TextAlign.right,
               decoration: const InputDecoration(
                 isDense: true,

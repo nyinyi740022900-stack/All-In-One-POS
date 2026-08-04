@@ -334,8 +334,15 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             horizontal: AppTheme.space4, vertical: AppTheme.space4),
       ),
       keyboardType: number ? TextInputType.number : TextInputType.text,
-      inputFormatters:
-          number ? [FilteringTextInputFormatter.digitsOnly] : null,
+      // 9 digits comfortably covers any real kyat price/quantity while
+      // guarding against a fat-fingered huge number losing precision on the
+      // admin web (dart2js) build, where numbers are JS doubles.
+      inputFormatters: number
+          ? [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(9),
+            ]
+          : null,
       validator: validator,
     );
   }

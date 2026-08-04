@@ -300,7 +300,10 @@ class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
             controller: _amount,
             autofocus: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(9),
+            ],
             decoration: InputDecoration(
               labelText: l.creditAmount,
               errorText: exceedsOutstanding

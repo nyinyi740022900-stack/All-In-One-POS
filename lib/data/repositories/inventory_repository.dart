@@ -184,6 +184,11 @@ class InventoryRepository {
           .getSingleOrNull();
       final rowId = existing?.id ?? _uuid.v4();
       final newQuantity = (existing?.quantity ?? 0) + delta;
+      if (newQuantity < 0) {
+        throw StateError(
+            'adjustStock: delta $delta would take stock below zero '
+            '(currently ${existing?.quantity ?? 0})');
+      }
 
       final product =
           await (_db.select(_db.products)..where((p) => p.id.equals(productId)))

@@ -110,6 +110,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellClear => 'ရှင်းမည်';
 
   @override
+  String get sellClearConfirmTitle => 'Cart ကို ရှင်းမလား?';
+
+  @override
+  String get sellClearConfirmBody =>
+      'ထည့်ထားပြီးသား item အားလုံး ဖယ်ရှားပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။';
+
+  @override
   String get scanBarcode => 'Barcode ဖတ်';
 
   @override
@@ -600,6 +607,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get stockAdjustInvalid => 'မှန်ကန်သော အရေအတွက် ရိုက်ထည့်ပါ';
+
+  @override
+  String stockAdjustBelowZero(int quantity) {
+    return 'ဒါလုပ်ရင် stock က ဇီးရိုထက်နည်းသွားပါမယ် (လက်ရှိ $quantity)။';
+  }
 
   @override
   String stockAdjustCurrentStock(int quantity) {

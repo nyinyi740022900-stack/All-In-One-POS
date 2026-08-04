@@ -18,6 +18,26 @@ import 'sales_providers.dart';
 class SellScreen extends ConsumerWidget {
   const SellScreen({super.key});
 
+  Future<void> _confirmClear(
+      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.sellClearConfirmTitle),
+        content: Text(l.sellClearConfirmBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.sellClear)),
+        ],
+      ),
+    );
+    if (ok == true) ref.read(cartProvider.notifier).clear();
+  }
+
   /// Opens the camera scanner, then adds the matching product to the cart. If
   /// no product carries that barcode, drops it into the search box instead.
   Future<void> _scanAndAdd(
@@ -73,7 +93,7 @@ class SellScreen extends ConsumerWidget {
             IconButton(
               tooltip: l.sellClear,
               icon: const Icon(Icons.remove_shopping_cart),
-              onPressed: () => ref.read(cartProvider.notifier).clear(),
+              onPressed: () => _confirmClear(context, ref, l),
             ),
         ],
         bottom: PreferredSize(

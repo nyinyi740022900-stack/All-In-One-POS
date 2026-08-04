@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -79,6 +80,10 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
     }
     final delta = _mode == _Mode.restock ? entered.abs() : entered;
     final after = widget.currentQuantity + delta;
+    if (after < 0) {
+      setState(() => _error = l.stockAdjustBelowZero(widget.currentQuantity));
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -157,6 +162,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               controller: _qtyController,
               keyboardType:
                   TextInputType.numberWithOptions(signed: _mode == _Mode.adjust),
+              inputFormatters: [LengthLimitingTextInputFormatter(10)],
               decoration: InputDecoration(
                 labelText: l.stockAdjustQuantity,
                 hintText: _mode == _Mode.restock
@@ -170,6 +176,10 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               TextField(
                 controller: _unitCostController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(9),
+                ],
                 decoration: InputDecoration(
                   labelText: l.stockAdjustUnitCost,
                   hintText: l.stockAdjustUnitCostHint,

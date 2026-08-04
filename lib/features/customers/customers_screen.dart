@@ -112,16 +112,20 @@ class CustomersScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
-
-    await ref.read(customerRepositoryProvider).upsertCustomer(
-          id: existing?.id,
-          name: name.text.trim(),
-          phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-          address: address.text.trim().isEmpty ? null : address.text.trim(),
-          tier: tier,
-        );
-    if (context.mounted) {
+    final shouldSave = saved == true && name.text.trim().isNotEmpty;
+    if (shouldSave) {
+      await ref.read(customerRepositoryProvider).upsertCustomer(
+            id: existing?.id,
+            name: name.text.trim(),
+            phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
+            address: address.text.trim().isEmpty ? null : address.text.trim(),
+            tier: tier,
+          );
+    }
+    name.dispose();
+    phone.dispose();
+    address.dispose();
+    if (shouldSave && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.customerSaved)));
     }

@@ -176,6 +176,17 @@ void main() {
       );
     });
 
+    test('a delta that would take stock below zero is rejected', () async {
+      final id = await repo.upsertProduct(name: 'Salt', quantity: 5);
+      expect(
+        () => repo.adjustStock(productId: id, delta: -10, type: 'adjustment'),
+        throwsStateError,
+      );
+      // Unchanged — the rejected adjustment never partially applied.
+      final p = (await repo.watchProducts().first).single;
+      expect(p.quantity, 5);
+    });
+
     test('watchStockMovements is newest-first and enqueues outbox rows',
         () async {
       final id = await repo.upsertProduct(name: 'Match', quantity: 5);

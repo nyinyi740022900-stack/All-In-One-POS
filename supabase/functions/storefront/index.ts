@@ -333,7 +333,16 @@ Deno.serve(async (req) => {
       updated_at: now,
     }));
     const { error: iErr } = await admin.from("order_items").insert(items);
-    if (iErr) return json({ error: "server_error", detail: iErr.message }, 500);
+    if (iErr) {
+      // Compensating rollback: the two inserts aren't in a single DB
+      // transaction (this client has no RPC for that), so if the items
+      // insert fails after the order insert already succeeded, delete the
+      // now-orphaned order rather than leaving a real order with
+      // items_total set and zero line items visible in the shop's Orders
+      // list.
+      await admin.from("orders").delete().eq("id", orderId);
+      return json({ error: "server_error", detail: iErr.message }, 500);
+    }
 
     return json({ ok: true, order_no: orderNo });
   }

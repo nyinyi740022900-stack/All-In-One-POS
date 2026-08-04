@@ -71,10 +71,12 @@ class BranchesScreen extends ConsumerWidget {
         ],
       ),
     );
+    final shopName = name.text.trim();
+    name.dispose();
     if (submitted != true || !context.mounted) return;
-    if (name.text.trim().isEmpty) return;
+    if (shopName.isEmpty) return;
     final result =
-        await ref.read(branchRepositoryProvider).createBranch(name.text.trim());
+        await ref.read(branchRepositoryProvider).createBranch(shopName);
     if (!context.mounted) return;
     if (result.ok) {
       ref.invalidate(branchesProvider);
@@ -121,11 +123,15 @@ class BranchesScreen extends ConsumerWidget {
         ],
       ),
     );
+    final keyText = key.text.trim();
+    final labelText = label.text.trim();
+    key.dispose();
+    label.dispose();
     if (submitted != true || !context.mounted) return;
-    if (key.text.trim().isEmpty) return;
+    if (keyText.isEmpty) return;
     final result = await ref
         .read(branchRepositoryProvider)
-        .linkBranch(key.text.trim(), label.text.trim());
+        .linkBranch(keyText, labelText);
     if (!context.mounted) return;
     if (result.ok) {
       ref.invalidate(branchesProvider);

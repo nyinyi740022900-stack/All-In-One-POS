@@ -63,26 +63,31 @@ void main() {
     final engineB = SyncEngine(
         db: dbB, remote: remote, settings: settingsB, shopId: 'shop-1');
 
-    // Device A creates the product (quantity 0) and syncs it up.
+    // Device A creates the product (quantity 10) and syncs it up. Starts
+    // above zero — unlike a real sale (which decrements `stock_levels`
+    // directly, uncapped), `adjustStock` itself now rejects a delta that
+    // would take stock negative (a separate, correctness fix — see
+    // stock_adjust_dialog.dart), so this scenario keeps both devices'
+    // intermediate, pre-sync quantities non-negative on purpose.
     final productId =
-        await inventoryA.upsertProduct(name: 'Coke', salePrice: 700, quantity: 0);
+        await inventoryA.upsertProduct(name: 'Coke', salePrice: 700, quantity: 10);
     await engineA.syncNow();
 
     // Device B pulls it down — both devices now share the same product +
-    // stock_levels row, starting at quantity 0.
+    // stock_levels row, starting at quantity 10.
     await engineB.syncNow();
 
     // Both devices go offline and independently adjust stock.
     await inventoryA.adjustStock(productId: productId, delta: 5, type: 'purchase');
-    await inventoryB.adjustStock(productId: productId, delta: -3, type: 'sale');
+    await inventoryB.adjustStock(productId: productId, delta: -3, type: 'adjustment');
 
     // Sanity: each device only sees its own change before syncing again.
     final aBefore =
         (await inventoryA.watchProducts().first).single.quantity;
     final bBefore =
         (await inventoryB.watchProducts().first).single.quantity;
-    expect(aBefore, 5);
-    expect(bBefore, -3);
+    expect(aBefore, 15);
+    expect(bBefore, 7);
 
     // Both come back online — push then pull, in either order, repeatedly
     // until both sides have seen everything (mirrors real usage: sync isn't
@@ -95,12 +100,12 @@ void main() {
     final aAfter = (await inventoryA.watchProducts().first).single.quantity;
     final bAfter = (await inventoryB.watchProducts().first).single.quantity;
 
-    // Correct combined result: 0 + 5 (A's purchase) - 3 (B's sale) = 2.
+    // Correct combined result: 10 + 5 (A's purchase) - 3 (B's adjustment) = 12.
     // Before the fix, whichever device's absolute `stock_levels.quantity`
     // push landed last would have silently overwritten the other's change
-    // (ending at 5 or -3, never the true combined 2).
-    expect(aAfter, 2);
-    expect(bAfter, 2);
+    // (ending at 15 or 7, never the true combined 12).
+    expect(aAfter, 12);
+    expect(bAfter, 12);
 
     await dbA.close();
     await dbB.close();

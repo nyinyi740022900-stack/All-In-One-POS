@@ -525,11 +525,10 @@ class _DeviceLabelTile extends ConsumerWidget {
         ],
       ),
     );
+    final label = controller.text.trim();
+    controller.dispose();
     if (saved != true) return;
     final deviceId = await ref.read(deviceIdProvider.future);
-    await ref
-        .read(deviceLabelRepositoryProvider)
-        .setLabel(deviceId, controller.text.trim());
-    controller.dispose();
+    await ref.read(deviceLabelRepositoryProvider).setLabel(deviceId, label);
   }
 }

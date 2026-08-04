@@ -109,6 +109,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellClear => 'Clear';
 
   @override
+  String get sellClearConfirmTitle => 'Clear the cart?';
+
+  @override
+  String get sellClearConfirmBody =>
+      'Every item already added will be removed. This cannot be undone.';
+
+  @override
   String get scanBarcode => 'Scan barcode';
 
   @override
@@ -601,6 +608,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stockAdjustInvalid => 'Enter a valid quantity';
+
+  @override
+  String stockAdjustBelowZero(int quantity) {
+    return 'This would take stock below zero (currently $quantity).';
+  }
 
   @override
   String stockAdjustCurrentStock(int quantity) {

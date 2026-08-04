@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/sales_repository.dart';
+import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/backup/backup_service.dart';
 import 'package:mm_pos/features/expenses/expense_repository.dart';
 import 'package:mm_pos/features/sell/cart.dart';
@@ -13,10 +14,12 @@ void main() {
   late InventoryRepository inventory;
   late SalesRepository sales;
   late ExpenseRepository expenses;
+  late SettingsRepository settings;
 
   setUp(() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    backup = BackupService(db);
+    settings = SettingsRepository(db);
+    backup = BackupService(db, settings);
     inventory = InventoryRepository(db, 'shop-1');
     sales = SalesRepository(db, 'shop-1');
     expenses = ExpenseRepository(db, 'shop-1');
@@ -106,6 +109,40 @@ void main() {
     expect(outbox, isNotEmpty);
     expect(outbox.any((o) => o.entityTable == 'products'), isTrue);
     expect(outbox.every((o) => o.op == 'upsert'), isTrue);
+  });
+
+  test(
+      'restore resets every restored table\'s pull cursor, so a remote row '
+      'not in the backup snapshot is re-fetched instead of permanently '
+      'skipped', () async {
+    await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 10);
+    final snapshot = await backup.exportJson();
+
+    // Simulate a prior sync having advanced every restored table's cursor
+    // past "now" — the exact state a device would be in after syncing
+    // normally before an (older) backup is restored.
+    final future = DateTime.now().add(const Duration(days: 1));
+    for (final table in [
+      'categories',
+      'products',
+      'stock_levels',
+      'stock_movements',
+      'sales',
+      'sale_items',
+      'payments',
+      'credit_payments',
+      'license_payments',
+      'expenses',
+    ]) {
+      await settings.setSyncCursor(table, future);
+    }
+
+    await backup.importReplaceAll(snapshot);
+
+    for (final table in ['products', 'stock_levels', 'stock_movements']) {
+      expect(await settings.syncCursor(table), isNull,
+          reason: '$table cursor should be cleared after restore');
+    }
   });
 
   test('rejects a non-MM-POS file', () async {

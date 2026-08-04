@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../data/local/database.dart';
+import '../../data/repositories/settings_repository.dart';
 
 /// Import/export of the shop's business data as a single JSON file.
 ///
@@ -13,11 +14,28 @@ import '../../data/local/database.dart';
 /// license cache, printer config) and the `outbox` — so restoring a backup on
 /// the same device never clobbers its identity or pending sync queue.
 class BackupService {
-  BackupService(this._db);
+  BackupService(this._db, this._settings);
 
   final AppDatabase _db;
+  final SettingsRepository _settings;
 
   static const formatVersion = 1;
+
+  /// Every table a restore touches — must stay in sync with [_readAll]'s keys
+  /// (and `importReplaceAll`'s delete/insert list). Used to reset that
+  /// table's sync cursor after a restore.
+  static const _restoredTables = [
+    'categories',
+    'products',
+    'stock_levels',
+    'stock_movements',
+    'sales',
+    'sale_items',
+    'payments',
+    'credit_payments',
+    'license_payments',
+    'expenses',
+  ];
 
   Future<Map<String, List<Map<String, dynamic>>>> _readAll() async {
     return {
@@ -93,6 +111,13 @@ class BackupService {
   /// it with whatever's still on the server (last-write-wins on the
   /// backup's old timestamps), and other devices on this shop would never
   /// see it at all.
+  ///
+  /// Also resets every restored table's pull cursor. The backup snapshot may
+  /// predate the shop's current cloud state (e.g. another device synced
+  /// changes after this backup was taken) — without a reset, the next pull's
+  /// `since` cursor would still sit at its pre-restore position and silently
+  /// skip any remote row not present in the backup file, permanently losing
+  /// it locally.
   Future<int> importReplaceAll(String jsonStr) async {
     final decoded = jsonDecode(jsonStr);
     if (decoded is! Map || decoded['app'] != 'mm_pos') {
@@ -184,6 +209,9 @@ class BackupService {
         written++;
       }
     });
+    for (final table in _restoredTables) {
+      await _settings.clearSyncCursor(table);
+    }
     return written;
   }
 

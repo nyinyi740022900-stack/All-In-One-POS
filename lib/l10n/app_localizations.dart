@@ -290,6 +290,18 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get sellClear;
 
+  /// No description provided for @sellClearConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the cart?'**
+  String get sellClearConfirmTitle;
+
+  /// No description provided for @sellClearConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every item already added will be removed. This cannot be undone.'**
+  String get sellClearConfirmBody;
+
   /// No description provided for @scanBarcode.
   ///
   /// In en, this message translates to:
@@ -1207,6 +1219,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid quantity'**
   String get stockAdjustInvalid;
+
+  /// No description provided for @stockAdjustBelowZero.
+  ///
+  /// In en, this message translates to:
+  /// **'This would take stock below zero (currently {quantity}).'**
+  String stockAdjustBelowZero(int quantity);
 
   /// No description provided for @stockAdjustCurrentStock.
   ///

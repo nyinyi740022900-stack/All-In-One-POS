@@ -44,6 +44,10 @@ class SettingsRepository {
         AppSettingsCompanion(key: Value(key), value: Value(value)));
   }
 
+  Future<void> _delete(String key) {
+    return (_db.delete(_db.appSettings)..where((s) => s.key.equals(key))).go();
+  }
+
   Stream<PrinterConfig> watchPrinterConfig() {
     return _db.select(_db.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
@@ -251,6 +255,18 @@ class SettingsRepository {
 
   Future<void> setSyncCursorTieIds(String table, Set<String> ids) =>
       _set('sync.cursor.ids.$table', ids.join(','));
+
+  /// Resets a table's pull cursor entirely, so the next sync re-fetches its
+  /// FULL remote history from scratch (every mapper's own LWW / idempotent
+  /// upsert logic makes this safe, if wasteful, to do broadly). Used after a
+  /// backup restore: the restored snapshot may be older than the shop's
+  /// current cloud state, and the cursor from before the restore would
+  /// otherwise make the next pull skip any remote row not present in the
+  /// backup file, permanently losing it locally.
+  Future<void> clearSyncCursor(String table) async {
+    await _delete('sync.cursor.$table');
+    await _delete('sync.cursor.ids.$table');
+  }
 
   Future<ShopProfile> shopProfile() async {
     return ShopProfile(

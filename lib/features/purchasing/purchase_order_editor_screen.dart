@@ -167,6 +167,7 @@ class _PurchaseOrderEditorScreenState
         },
       ),
     );
+    searchCtrl.dispose();
     if (picked == null) return;
     setState(() {
       final idx =
@@ -197,14 +198,20 @@ class _PurchaseOrderEditorScreenState
             TextField(
               controller: qtyCtrl,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(9),
+              ],
               decoration: InputDecoration(labelText: l.productQuantity),
             ),
             const SizedBox(height: AppTheme.space2),
             TextField(
               controller: costCtrl,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(9),
+              ],
               decoration: InputDecoration(labelText: l.poUnitCost),
             ),
           ],
@@ -243,10 +250,14 @@ class _PurchaseOrderEditorScreenState
         ],
       ),
     );
+    final newQty = int.tryParse(qtyCtrl.text.trim());
+    final newCost = int.tryParse(costCtrl.text.trim());
+    qtyCtrl.dispose();
+    costCtrl.dispose();
     if (result != true) return;
     setState(() {
-      line.qty = int.tryParse(qtyCtrl.text.trim()) ?? line.qty;
-      line.unitCost = int.tryParse(costCtrl.text.trim()) ?? line.unitCost;
+      line.qty = newQty ?? line.qty;
+      line.unitCost = newCost ?? line.unitCost;
     });
   }
 
