@@ -1,3 +1,4 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -202,8 +203,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           title: const Text('Offline license code'),
           content: SizedBox(
             width: 400,
-            child: SelectableText(token,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                    'Scan on the customer\'s phone (License screen > License key '
+                    'field > scan icon) instead of retyping the code below.',
+                    style: TextStyle(fontSize: 12)),
+                const SizedBox(height: 16),
+                BarcodeWidget(
+                  barcode: Barcode.qrCode(),
+                  data: token,
+                  width: 220,
+                  height: 220,
+                ),
+                const SizedBox(height: 16),
+                SelectableText(token,
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+              ],
+            ),
           ),
           actions: [
             TextButton(
