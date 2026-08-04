@@ -2443,6 +2443,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.';
 
   @override
+  String get pricingTierWhatsTheDifference => 'What\'s the difference?';
+
+  @override
+  String get pricingTierCompareTitle => 'Online vs Offline';
+
+  @override
+  String get pricingTierOnlineExplain =>
+      'Sign in with your email and password on any device to reach this shop — no key to type. Your subscription is linked to your account, so renewing keeps every signed-in device working. Signing out stops Premium features on that device until you sign back in or renew.';
+
+  @override
+  String get pricingTierOfflineExplain =>
+      'No account or internet needed to keep selling — the license key lives on this device. Adding another device needs its own key (Settings → Devices). Premium stays with the device permanently, regardless of any sign-in.';
+
+  @override
   String get recurringExpenseTitle => 'Recurring expenses';
 
   @override

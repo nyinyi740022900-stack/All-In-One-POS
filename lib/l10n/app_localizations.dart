@@ -4556,6 +4556,30 @@ abstract class AppLocalizations {
   /// **'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.'**
   String get pricingTierConfirmBody;
 
+  /// No description provided for @pricingTierWhatsTheDifference.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the difference?'**
+  String get pricingTierWhatsTheDifference;
+
+  /// No description provided for @pricingTierCompareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online vs Offline'**
+  String get pricingTierCompareTitle;
+
+  /// No description provided for @pricingTierOnlineExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your email and password on any device to reach this shop — no key to type. Your subscription is linked to your account, so renewing keeps every signed-in device working. Signing out stops Premium features on that device until you sign back in or renew.'**
+  String get pricingTierOnlineExplain;
+
+  /// No description provided for @pricingTierOfflineExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'No account or internet needed to keep selling — the license key lives on this device. Adding another device needs its own key (Settings → Devices). Premium stays with the device permanently, regardless of any sign-in.'**
+  String get pricingTierOfflineExplain;
+
   /// No description provided for @recurringExpenseTitle.
   ///
   /// In en, this message translates to:

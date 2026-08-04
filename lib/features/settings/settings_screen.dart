@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/env.dart';
 import '../../core/locale_controller.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -385,11 +386,56 @@ class _PricingTierTile extends ConsumerWidget {
       leading: const Icon(Icons.price_change_outlined),
       title: Text(l.pricingTierTitle),
       subtitle: Text(isOnline ? l.pricingTierOnline : l.pricingTierOffline),
-      trailing: TextButton(
-        onPressed: () => _confirmSwitch(context, ref, otherTier),
-        child: Text(otherTier == 'online'
-            ? l.pricingTierSwitchToOnline
-            : l.pricingTierSwitchToOffline),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: l.pricingTierWhatsTheDifference,
+            onPressed: () => _showComparisonSheet(context, l),
+          ),
+          TextButton(
+            onPressed: () => _confirmSwitch(context, ref, otherTier),
+            child: Text(otherTier == 'online'
+                ? l.pricingTierSwitchToOnline
+                : l.pricingTierSwitchToOffline),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showComparisonSheet(
+      BuildContext context, AppLocalizations l) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppTheme.space4, 0,
+              AppTheme.space4, AppTheme.space5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.pricingTierCompareTitle,
+                  style: Theme.of(ctx).textTheme.titleLarge),
+              const SizedBox(height: AppTheme.space4),
+              _TierExplainCard(
+                icon: Icons.cloud_outlined,
+                title: l.pricingTierOnline,
+                body: l.pricingTierOnlineExplain,
+              ),
+              const SizedBox(height: AppTheme.space3),
+              _TierExplainCard(
+                icon: Icons.smartphone_outlined,
+                title: l.pricingTierOffline,
+                body: l.pricingTierOfflineExplain,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -424,6 +470,45 @@ class _PricingTierTile extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
+  }
+}
+
+class _TierExplainCard extends StatelessWidget {
+  const _TierExplainCard(
+      {required this.icon, required this.title, required this.body});
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space3),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: AppTheme.space2),
+              Text(title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space1),
+          Text(body, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
   }
 }
 

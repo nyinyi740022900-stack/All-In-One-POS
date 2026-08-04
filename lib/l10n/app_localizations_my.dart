@@ -2449,6 +2449,20 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။';
 
   @override
+  String get pricingTierWhatsTheDifference => 'ဘာတွေ ကွာခြားလဲ?';
+
+  @override
+  String get pricingTierCompareTitle => 'Online vs Offline';
+
+  @override
+  String get pricingTierOnlineExplain =>
+      'Device မရွေး email/password နဲ့ ဒီစတိုးကို sign in ဝင်နိုင်ပါတယ် — key ရိုက်စရာမလိုပါ။ Subscription က Account နဲ့ ချိတ်ဆက်ထားလို့ renew လုပ်တိုင်း sign in ဝင်ထားတဲ့ device အားလုံး ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။ Sign out လုပ်လိုက်ရင်တော့ ပြန် sign in ဝင်တဲ့အထိ ဒါမှမဟုတ် renew လုပ်တဲ့အထိ ဒီ device ပေါ်က Premium feature တွေ ရပ်သွားပါလိမ့်မယ်။';
+
+  @override
+  String get pricingTierOfflineExplain =>
+      'ရောင်းရန်အတွက် Account သို့မဟုတ် Internet မလိုပါ — License key က ဒီ device ပေါ်မှာပဲ ရှိပါတယ်။ Device နောက်ထပ်ထည့်ချင်ရင် သီးခြား key တစ်ခု လိုအပ်ပါတယ် (Settings → Devices)။ Premium ကတော့ Sign in အခြေအနေ မရွေး ဒီ device နဲ့ အမြဲ ချိတ်ဆက်ထားပါလိမ့်မယ်။';
+
+  @override
   String get recurringExpenseTitle => 'လစဉ် ပုံသေ ကုန်ကျစရိတ်';
 
   @override
