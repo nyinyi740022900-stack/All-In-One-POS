@@ -340,7 +340,20 @@ Deno.serve(async (req) => {
       // now-orphaned order rather than leaving a real order with
       // items_total set and zero line items visible in the shop's Orders
       // list.
-      await admin.from("orders").delete().eq("id", orderId);
+      const { error: delErr } = await admin.from("orders").delete().eq(
+        "id",
+        orderId,
+      );
+      if (delErr) {
+        // Nothing further to compensate with from here — surface it in the
+        // function logs so an orphaned order (real row, zero items) can at
+        // least be found and cleaned up manually instead of vanishing
+        // silently.
+        console.error(
+          `submit_order: failed to roll back orphaned order ${orderId} after order_items insert failed`,
+          delErr,
+        );
+      }
       return json({ error: "server_error", detail: iErr.message }, 500);
     }
 
