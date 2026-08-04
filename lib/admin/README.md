@@ -8,8 +8,11 @@ work goes through the `admin` Edge Function (service role stays server-side).
 
 ## What it does
 - **Licenses** — every key: shop, plan, status, expiry, bound device.
-- **Payments** — renewal payments shops recorded; **Approve** extends the
-  license (calls `renew_license`) and marks the payment reconciled.
+- **Requests** — self-service subscribe/renew requests customers submit
+  in-app (KBZPay/WavePay + a payment screenshot); **Issue key** calls
+  `fulfill_request`, which extends the shop's existing license when the
+  request carries a `shop_id` (or matches by `device_id` for older requests
+  with none), or mints a brand-new one otherwise.
 - **Generate key** — mint a key for a shop (`create_license`).
 - **Referrals** — commissions grouped by referrer (lifetime earned + payment
   count) with **Apply credit** (redeems the referrer's balance into license

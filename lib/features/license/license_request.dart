@@ -19,6 +19,7 @@ class LicenseRequestService {
     String? referredByCode,
     String? tier,
     String? paymentProofPath,
+    String? shopId,
   }) async {
     await Supabase.instance.client.from('license_requests').insert({
       'id': _uuid.v4(),
@@ -34,6 +35,7 @@ class LicenseRequestService {
         'referred_by_code': referredByCode,
       'tier': ?tier,
       'payment_proof_path': ?paymentProofPath,
+      'shop_id': ?shopId,
     });
   }
 }

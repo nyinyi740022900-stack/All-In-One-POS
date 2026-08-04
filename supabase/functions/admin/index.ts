@@ -7,9 +7,7 @@
 //
 // Actions (POST body { action, ... }):
 //   list_licenses                         -> licenses (newest first)
-//   list_payments                         -> license_payments (newest first)
 //   create_license { shop_id, plan, months } -> { key }
-//   renew_license  { key, months, payment_id? } -> { expires_at }
 //
 // Deploy: supabase functions deploy admin
 
@@ -45,7 +43,6 @@ Deno.serve(async (req) => {
     months?: number;
     key?: string;
     device_id?: string;
-    payment_id?: string;
     request_id?: string;
     config?: Record<string, string>;
   };
@@ -66,34 +63,6 @@ Deno.serve(async (req) => {
         .limit(500);
       if (error) return json({ error: "server_error" }, 500);
       return json({ rows: data });
-    }
-
-    case "list_payments": {
-      const { data, error } = await admin
-        .from("license_payments")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) return json({ error: "server_error" }, 500);
-      // Enrich each payment with the license's device + shop name so the admin
-      // can see who paid and which device before approving.
-      const { data: lic } = await admin
-        .from("licenses")
-        .select("key, device_id, shop_name");
-      const byKey = new Map(
-        (lic ?? []).map((r: Record<string, unknown>) => [r.key, r]),
-      );
-      const rows = (data ?? []).map((p: Record<string, unknown>) => {
-        const l = byKey.get(p.license_key) as Record<string, unknown> | undefined;
-        // Prefer the shop name the payment carried (from the shop's own
-        // profile); fall back to the name the admin set on the license.
-        return {
-          ...p,
-          device_id: l?.device_id ?? null,
-          shop_name: p.shop_name ?? l?.shop_name ?? null,
-        };
-      });
-      return json({ rows });
     }
 
     case "extend_by_device": {
@@ -188,15 +157,37 @@ Deno.serve(async (req) => {
 
       const months = body.months ?? reqRow.months ?? 1;
       const dev = (reqRow.device_id ?? "").trim();
+      const reqShopId = (reqRow.shop_id ?? "").trim();
 
-      // If this device already has a license, this is a RENEWAL → extend it.
-      const { data: existing } = dev
-        ? await admin
-            .from("licenses")
-            .select("key, shop_id")
-            .eq("device_id", dev)
-            .maybeSingle()
-        : { data: null };
+      // If this shop already has a license, this is a RENEWAL → extend it.
+      // Prefer shop_id (the app sends its own shopId whenever it already has
+      // one) over device_id: a shop can have multiple devices/rows
+      // (0025_multi_device_licensing.sql) with only one device_id stamped on
+      // any given row, so a device_id-only lookup can miss and wrongly fall
+      // through to "issue new" for a shop that's already paying. shop_id
+      // matches ANY of the shop's rows — good enough, since renew_license
+      // already extends every row sharing that shop_id. device_id stays as
+      // the fallback for requests submitted before this column existed, or a
+      // genuinely brand-new offline customer with no shop_id yet.
+      let existing: { key: string; shop_id: string } | null = null;
+      if (reqShopId) {
+        const { data } = await admin
+          .from("licenses")
+          .select("key, shop_id")
+          .eq("shop_id", reqShopId)
+          .eq("is_deleted", false)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        existing = data;
+      } else if (dev) {
+        const { data } = await admin
+          .from("licenses")
+          .select("key, shop_id")
+          .eq("device_id", dev)
+          .maybeSingle();
+        existing = data;
+      }
 
       let key: string;
       let referredShopId: string;
@@ -390,25 +381,6 @@ Deno.serve(async (req) => {
       });
       if (error) return json({ error: "server_error", detail: error.message }, 500);
       return json({ key: data });
-    }
-
-    case "renew_license": {
-      const key = (body.key ?? "").trim();
-      const months = body.months ?? 1;
-      if (!key) return json({ error: "bad_request" }, 400);
-      const { data, error } = await admin.rpc("renew_license", {
-        p_key: key,
-        p_months: months,
-      });
-      if (error) return json({ error: "server_error", detail: error.message }, 500);
-      // Optionally mark the originating payment reconciled.
-      if (body.payment_id) {
-        await admin
-          .from("license_payments")
-          .update({ reconciled: true, updated_at: new Date().toISOString() })
-          .eq("id", body.payment_id);
-      }
-      return json({ expires_at: data });
     }
 
     default:

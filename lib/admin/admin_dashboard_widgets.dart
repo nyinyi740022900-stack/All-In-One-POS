@@ -75,6 +75,7 @@ class _RequestsTab extends StatelessWidget {
         final r = rows[i];
         final fulfilled = r['status'] == 'fulfilled';
         final proofPath = r['payment_proof_path'] as String?;
+        final shopId = r['shop_id'] as String?;
         return ListTile(
           leading: Icon(
             fulfilled ? Icons.check_circle : Icons.hourglass_top,
@@ -85,7 +86,10 @@ class _RequestsTab extends StatelessWidget {
           subtitle: Text(
               'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
               'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
-              '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'),
+              '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'
+              // Renewal (an existing shop) vs a brand-new one — see
+              // fulfill_request's shop_id-first lookup.
+              '${shopId != null && shopId.isNotEmpty ? '\nRenewal for shop: $shopId' : '\n(No shop_id — treated as a new shop)'}'),
           isThreeLine: true,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

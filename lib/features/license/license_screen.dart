@@ -701,6 +701,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                               proofBytes!, proofExt ?? 'jpg');
                         }
                         await LicenseRequestService.submit(
+                          shopId: ref
+                              .read(licenseControllerProvider)
+                              .license
+                              ?.shopId,
                           shopName: shopName.text.trim(),
                           phone: phone.text.trim().isEmpty
                               ? null
@@ -844,6 +848,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                               proofBytes!, proofExt ?? 'jpg');
                         }
                         await LicenseRequestService.submit(
+                          shopId: ref
+                              .read(licenseControllerProvider)
+                              .license
+                              ?.shopId,
                           shopName: profile.name,
                           phone: null,
                           plan: plan,
