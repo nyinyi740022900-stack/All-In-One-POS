@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/license/license_model.dart';
+import 'package:mm_pos/features/license/license_providers.dart';
 import 'package:mm_pos/features/license/license_repository.dart';
 import 'package:mm_pos/features/license/license_screen.dart';
 import 'package:mm_pos/features/license/license_status.dart';
@@ -119,6 +120,18 @@ void main() {
       final s = computeLicenseStatus(expiresAt: now, now: now);
       expect(s.kind, LicenseStatusKind.active);
     });
+
+    test('the Free plan is always active/sellable, even long past its '
+        'nominal expiresAt', () {
+      final s = computeLicenseStatus(
+        expiresAt: now.subtract(const Duration(days: 3650)),
+        now: now,
+        plan: LicensePlan.free,
+      );
+      expect(s.kind, LicenseStatusKind.active);
+      expect(s.canSell, isTrue);
+      expect(s.isReadOnly, isFalse);
+    });
   });
 
   group('LicenseRepository (offline / no backend)', () {
@@ -173,12 +186,86 @@ void main() {
       expect(a, isNotEmpty);
     });
 
+    test('startFreePlan grants an always-active Free license with no key',
+        () async {
+      final lic = await repo.startFreePlan();
+      expect(lic.plan, LicensePlan.free);
+      expect(lic.key, 'FREE');
+      expect(lic.shopId, isNotEmpty);
+
+      final cached = await repo.current();
+      expect(cached?.plan, LicensePlan.free);
+    });
+
+    test('downgradeToFree preserves shopId/deviceId/tier of the original '
+        'license', () async {
+      final result = await repo.activate('SOME-KEY');
+      final original = result.license!;
+
+      final free = await repo.downgradeToFree(original);
+      expect(free.plan, LicensePlan.free);
+      expect(free.shopId, original.shopId);
+      expect(free.deviceId, original.deviceId);
+      expect(free.tier, original.tier);
+    });
+
     test('multi-device actions are no-ops with no backend', () async {
       expect(await repo.listDevices(), isEmpty);
       final slot = await repo.requestDeviceSlot();
       expect(slot.ok, isFalse);
       expect(slot.errorCode, 'no_backend');
       expect(await repo.releaseDevice('some-device'), isFalse);
+    });
+  });
+
+  group('LicenseState.isPremium', () {
+    CachedLicense license({required LicensePlan plan, required DateTime expiresAt}) {
+      final now = DateTime.now();
+      return CachedLicense(
+        key: 'K',
+        shopId: 'shop-1',
+        plan: plan,
+        expiresAt: expiresAt,
+        activatedAt: now,
+        lastVerifiedAt: now,
+        deviceId: 'dev-1',
+      );
+    }
+
+    test('no license at all is not premium', () {
+      const state = LicenseState();
+      expect(state.isPremium, isFalse);
+    });
+
+    test('an active paid plan is premium', () {
+      final lic = license(
+          plan: LicensePlan.monthly,
+          expiresAt: DateTime.now().add(const Duration(days: 10)));
+      final status = computeLicenseStatus(
+          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+      final state = LicenseState(license: lic, status: status, loading: false);
+      expect(state.isPremium, isTrue);
+    });
+
+    test('the Free plan is never premium, even though it can still sell', () {
+      final lic = license(
+          plan: LicensePlan.free,
+          expiresAt: DateTime.now().subtract(const Duration(days: 3650)));
+      final status = computeLicenseStatus(
+          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+      final state = LicenseState(license: lic, status: status, loading: false);
+      expect(state.canSell, isTrue);
+      expect(state.isPremium, isFalse);
+    });
+
+    test('an expired paid plan is not premium', () {
+      final lic = license(
+          plan: LicensePlan.monthly,
+          expiresAt: DateTime.now().subtract(const Duration(days: 30)));
+      final status = computeLicenseStatus(
+          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+      final state = LicenseState(license: lic, status: status, loading: false);
+      expect(state.isPremium, isFalse);
     });
   });
 }

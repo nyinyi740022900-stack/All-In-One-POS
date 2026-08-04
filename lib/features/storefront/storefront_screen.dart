@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import 'storefront_repository.dart';
 
 final storefrontRepositoryProvider = Provider<StorefrontRepository>((ref) {
@@ -145,6 +147,12 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.storefrontTitle)),
+        body: PremiumGate(featureName: l.storefrontTitle, child: const SizedBox.shrink()),
+      );
+    }
     final async = ref.watch(myStorefrontProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l.storefrontTitle)),

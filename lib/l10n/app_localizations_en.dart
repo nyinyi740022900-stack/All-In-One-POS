@@ -1258,6 +1258,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licensePlanMonthly => 'Monthly';
 
   @override
+  String get licensePlanFree => 'Free plan';
+
+  @override
+  String premiumFeatureTitle(String featureName) {
+    return '$featureName is a Premium feature';
+  }
+
+  @override
+  String get premiumFeatureBody =>
+      'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Premium subscription or license key.';
+
+  @override
+  String get premiumUpgradeCta => 'Upgrade';
+
+  @override
+  String get onboardingContinueFree => 'Continue Free';
+
+  @override
+  String get accountSignOutPremiumConfirmBody =>
+      'You\'ll lose Premium features on this device and it will drop to the Free plan (Sell and Inventory keep working). You\'ll need your email and password again to sign back in and restore Premium.';
+
+  @override
+  String get licenseDowngradedToFreeNotice =>
+      'Your subscription/key expired — this device is now on the Free plan. Sell and Inventory still work; renew to unlock Premium features again.';
+
+  @override
   String get licensePlanYearly => 'Yearly';
 
   @override

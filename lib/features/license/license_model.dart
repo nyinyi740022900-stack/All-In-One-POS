@@ -3,6 +3,7 @@ import 'license_status.dart';
 LicensePlan _planFrom(String s) => switch (s) {
       'yearly' => LicensePlan.yearly,
       'monthly' => LicensePlan.monthly,
+      'free' => LicensePlan.free,
       _ => LicensePlan.trial,
     };
 
@@ -10,6 +11,7 @@ String planName(LicensePlan p) => switch (p) {
       LicensePlan.yearly => 'yearly',
       LicensePlan.monthly => 'monthly',
       LicensePlan.trial => 'trial',
+      LicensePlan.free => 'free',
     };
 
 /// Locally cached license, refreshed from the server on activation/verify.
@@ -78,11 +80,13 @@ class CachedLicense {
     DateTime? expiresAt,
     bool? realtimeEnabled,
     String? tier,
+    LicensePlan? plan,
+    String? key,
   }) =>
       CachedLicense(
-        key: key,
+        key: key ?? this.key,
         shopId: shopId,
-        plan: plan,
+        plan: plan ?? this.plan,
         expiresAt: expiresAt ?? this.expiresAt,
         activatedAt: activatedAt,
         lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,

@@ -12,6 +12,8 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import 'cash_providers.dart';
 import 'cash_session_report_formatter.dart';
@@ -25,6 +27,12 @@ class CashSessionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.cashRegisterTitle)),
+        body: PremiumGate(featureName: l.cashRegisterTitle, child: const SizedBox.shrink()),
+      );
+    }
     final session = ref.watch(currentCashSessionProvider).valueOrNull;
     final history = ref.watch(cashSessionHistoryProvider).valueOrNull ?? const [];
     final pastSessions = history.where((s) => s.id != session?.id).toList();

@@ -4,6 +4,7 @@ String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
       LicensePlan.yearly => l.licensePlanYearly,
       LicensePlan.monthly => l.licensePlanMonthly,
       LicensePlan.trial => l.licenseFreeTrial,
+      LicensePlan.free => l.licensePlanFree,
     };
 
 /// Shows the unique App Reference ID / Shop Code (the admin extends by this).
@@ -425,7 +426,9 @@ class _StatusCard extends StatelessWidget {
                   if (status.plan != null)
                     Text('${l.licensePlanLabel}: ${_planName(l, status.plan!)}',
                         style: Theme.of(context).textTheme.bodySmall),
-                  if (status.expiresAt != null)
+                  // The Free plan never expires (see computeLicenseStatus) —
+                  // its expiresAt is a meaningless placeholder, not a real date.
+                  if (status.expiresAt != null && status.plan != LicensePlan.free)
                     Text(l.licenseExpires(
                         DateFormat('yyyy-MM-dd').format(status.expiresAt!))),
                   if (status.kind == LicenseStatusKind.grace)

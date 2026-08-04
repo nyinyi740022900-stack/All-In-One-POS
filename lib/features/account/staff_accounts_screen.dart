@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../staff/staff_ui.dart';
 import 'account_providers.dart';
 import 'account_repository.dart';
@@ -16,6 +18,12 @@ class StaffAccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.staffAccountsTitle)),
+        body: PremiumGate(featureName: l.staffAccountsTitle, child: const SizedBox.shrink()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(l.staffAccountsTitle)),
       body: OwnerOnlyGate(child: _StaffAccountsBody()),

@@ -8,6 +8,8 @@ import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
@@ -26,6 +28,12 @@ class AnalyticsScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
         body: const OwnerOnlyGate(child: SizedBox.shrink()),
+      );
+    }
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.navAnalytics)),
+        body: PremiumGate(featureName: l.navAnalytics, child: const SizedBox.shrink()),
       );
     }
 

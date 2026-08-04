@@ -1259,6 +1259,32 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licensePlanMonthly => 'လစဉ်';
 
   @override
+  String get licensePlanFree => 'အခမဲ့ အစီအစဉ်';
+
+  @override
+  String premiumFeatureTitle(String featureName) {
+    return '$featureName က Premium feature ဖြစ်ပါတယ်';
+  }
+
+  @override
+  String get premiumFeatureBody =>
+      'အခု Free plan ကို သုံးနေပါတယ် — Sell နဲ့ Inventory ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ ဒီ feature ကိုတော့ Premium subscription ဒါမှမဟုတ် license key active ရှိမှ သုံးလို့ရပါမယ်။';
+
+  @override
+  String get premiumUpgradeCta => 'Upgrade လုပ်မည်';
+
+  @override
+  String get onboardingContinueFree => 'အခမဲ့ ဆက်သုံးမည်';
+
+  @override
+  String get accountSignOutPremiumConfirmBody =>
+      'ဒီ device ပေါ်က Premium feature တွေ ရပ်သွားပြီး Free plan ကို ကျသွားပါလိမ့်မယ် (Sell နဲ့ Inventory ကတော့ ဆက်အလုပ်လုပ်ပါမယ်)။ ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပြီး Premium ကို ပြန်ရမှာပါ။';
+
+  @override
+  String get licenseDowngradedToFreeNotice =>
+      'Subscription/key သက်တမ်းကုန်သွားပါပြီ — ဒီ device က Free plan ကို ရောက်သွားပါပြီ။ Sell နဲ့ Inventory ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ Premium ပြန်ရဖို့ renew လုပ်ပါ။';
+
+  @override
   String get licensePlanYearly => 'နှစ်စဉ်';
 
   @override

@@ -12,6 +12,8 @@ import '../../data/repositories/demo_seed.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../printing/label_data.dart';
 import '../printing/label_print_dialog.dart';
 import '../printing/printing_providers.dart';
@@ -59,6 +61,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _exportCsv() async {
     final l = AppLocalizations.of(context);
+    if (!ref.read(isPremiumProvider)) {
+      await showPremiumRequiredDialog(context, l.inventoryExportCsv);
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context);
     final products = ref.read(filteredProductsProvider);
     final categories = ref.read(categoriesStreamProvider).valueOrNull ?? const [];

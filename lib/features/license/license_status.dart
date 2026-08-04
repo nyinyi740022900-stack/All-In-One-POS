@@ -1,5 +1,7 @@
-/// Subscription plan.
-enum LicensePlan { trial, monthly, yearly }
+/// Subscription plan. `free` is the always-on, never-expiring plan that
+/// backs core POS features (Sell/Inventory/etc.) for a shop with no active
+/// key/subscription — see `computeLicenseStatus`'s special case below.
+enum LicensePlan { trial, monthly, yearly, free }
 
 /// How the app should behave right now given the license.
 enum LicenseStatusKind {
@@ -56,6 +58,18 @@ LicenseStatus computeLicenseStatus({
   int graceDays = 7,
 }) {
   if (!activated || expiresAt == null) return LicenseStatus.none;
+
+  // The Free plan never expires — core POS features (Sell/Inventory/etc.)
+  // stay usable forever with no key/subscription. Only `isPremium` (derived
+  // separately, see LicenseState) distinguishes Free from a paid plan; this
+  // function only ever answers "can this shop sell right now."
+  if (plan == LicensePlan.free) {
+    return LicenseStatus(
+      kind: LicenseStatusKind.active,
+      plan: plan,
+      expiresAt: expiresAt,
+    );
+  }
 
   if (!now.isAfter(expiresAt)) {
     return LicenseStatus(

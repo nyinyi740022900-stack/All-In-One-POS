@@ -217,33 +217,42 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           if (status.canSell) ...[
             FilledButton.icon(
               onPressed: () => _showRequestDialog(),
-              icon: const Icon(Icons.autorenew),
-              label: Text(l.licenseRenew),
+              icon: Icon(state.license?.plan == LicensePlan.free
+                  ? Icons.workspace_premium_outlined
+                  : Icons.autorenew),
+              label: Text(state.license?.plan == LicensePlan.free
+                  ? l.premiumUpgradeCta
+                  : l.licenseRenew),
             ),
-            const SizedBox(height: AppTheme.space2),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _refresh,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.refresh),
-              label: Text(l.licenseCheckRenewal),
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(l.licenseRenewHint,
-                style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: AppTheme.space2),
-            TextButton.icon(
-              onPressed: _confirmDeactivate,
-              icon: const Icon(Icons.link_off),
-              label: Text(l.licenseDeactivate),
-            ),
-            // A trial's shop_id is derived from this one device's id, so
-            // "another device under the same shop" isn't a coherent idea
-            // until the shop is on a real paid key.
-            if (state.license?.plan != LicensePlan.trial) ...[
+            // Nothing to check/deactivate for the Free plan — there's no key
+            // or subscription behind it, just a local marker.
+            if (state.license?.plan != LicensePlan.free) ...[
+              const SizedBox(height: AppTheme.space2),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _refresh,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh),
+                label: Text(l.licenseCheckRenewal),
+              ),
+              const SizedBox(height: AppTheme.space1),
+              Text(l.licenseRenewHint,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: AppTheme.space2),
+              TextButton.icon(
+                onPressed: _confirmDeactivate,
+                icon: const Icon(Icons.link_off),
+                label: Text(l.licenseDeactivate),
+              ),
+            ],
+            // A trial's or the Free plan's shop_id is derived from this one
+            // device's id, so "another device under the same shop" isn't a
+            // coherent idea until the shop is on a real paid key.
+            if (state.license?.plan != LicensePlan.trial &&
+                state.license?.plan != LicensePlan.free) ...[
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),

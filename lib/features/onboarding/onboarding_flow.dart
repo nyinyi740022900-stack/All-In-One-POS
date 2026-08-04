@@ -375,20 +375,39 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   }
 }
 
-class _LicensePage extends StatelessWidget {
+class _LicensePage extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return _OnboardPage(
       icon: Icons.verified_outlined,
       title: l.onboardLicenseTitle,
       body: l.onboardLicenseBody,
-      extra: OutlinedButton.icon(
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => const LicenseScreen(),
-        )),
-        icon: const Icon(Icons.key_outlined),
-        label: Text(l.onboardActivateNow),
+      extra: Column(
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const LicenseScreen(),
+            )),
+            icon: const Icon(Icons.key_outlined),
+            label: Text(l.onboardActivateNow),
+          ),
+          const SizedBox(height: 8),
+          // No key yet: enter the app immediately on the Free plan (Sell +
+          // Inventory work forever, no signup/network call at all) — a real
+          // key can be added later from Settings without losing any data.
+          TextButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await ref.read(licenseControllerProvider.notifier).continueFree();
+              if (context.mounted) {
+                messenger.showSnackBar(
+                    SnackBar(content: Text(l.licensePlanFree)));
+              }
+            },
+            child: Text(l.onboardingContinueFree),
+          ),
+        ],
       ),
     );
   }

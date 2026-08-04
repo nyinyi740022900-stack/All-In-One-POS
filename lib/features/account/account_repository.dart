@@ -172,7 +172,28 @@ class AccountRepository {
     return AccountActionResult.success(null, license: result.license);
   }
 
-  Future<void> signOut() => Supabase.instance.client.auth.signOut();
+  /// Signs out of the real-login session. On an Online-tier shop, Premium is
+  /// tied to being an authenticated, paying, signed-in user — not to the
+  /// device having once claimed a slot — so signing out also releases this
+  /// device's slot and downgrades it to the Free plan (Sell/Inventory keep
+  /// working, Premium features lock until signing back in). This does NOT
+  /// apply when `tier == 'offline'`: that device's Premium comes from its own
+  /// key, independent of any auth session (e.g. an owner's permanent
+  /// register that also has a real-login layered on top) — signing out of
+  /// the account there is unaffected, exactly as the sign-out confirmation
+  /// dialog already tells the owner.
+  Future<AccountActionResult> signOut() async {
+    final current = await _licenseRepository.current();
+    CachedLicense? downgraded;
+    if (current != null &&
+        current.tier == 'online' &&
+        current.plan != LicensePlan.free) {
+      await _licenseRepository.releaseDevice(current.deviceId); // best-effort
+      downgraded = await _licenseRepository.downgradeToFree(current);
+    }
+    await Supabase.instance.client.auth.signOut();
+    return AccountActionResult.success(null, license: downgraded);
+  }
 
   /// Self-service switches the shop's pricing tier ('offline'/'online') —
   /// affects only the *suggested* price on the next renewal request, never

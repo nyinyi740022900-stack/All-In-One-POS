@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
+import '../license/license_status.dart';
 import 'account_providers.dart';
 
 /// Real email/password login for the shop, additive to the existing
@@ -87,7 +89,12 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       if (confirmed != true) {
         // Already signed in to the OTHER shop's auth session at this point —
         // back out cleanly rather than leave local data mismatched with it.
-        await ref.read(accountRepositoryProvider).signOut();
+        // Deliberately the raw Supabase sign-out, NOT
+        // AccountRepository.signOut() — that method's Premium-downgrade
+        // logic reads THIS device's still-original (never applied) cached
+        // license, so routing through it here would incorrectly downgrade
+        // the original shop the owner never asked to sign out of.
+        await Supabase.instance.client.auth.signOut();
         return;
       }
       setState(() => _busy = true);
@@ -114,11 +121,21 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   Future<void> _signOut() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // This device loses Premium on sign-out only when its Premium came from
+    // being an authenticated Online-tier user in the first place — a
+    // key-activated (Offline-tier) device's Premium is independent of any
+    // auth session, so its sign-out keeps the generic wording.
+    final license = ref.read(licenseControllerProvider).license;
+    final losesPremium = license != null &&
+        license.tier == 'online' &&
+        license.plan != LicensePlan.free;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.accountSignOutConfirmTitle),
-        content: Text(l.accountSignOutConfirmBody),
+        content: Text(losesPremium
+            ? l.accountSignOutPremiumConfirmBody
+            : l.accountSignOutConfirmBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -130,8 +147,11 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ref.read(accountRepositoryProvider).signOut();
+    final result = await ref.read(accountRepositoryProvider).signOut();
     if (!mounted) return;
+    if (result.license != null) {
+      ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+    }
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() {});
   }

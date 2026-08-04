@@ -9,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import 'receipt_data.dart';
 import 'sales_report_data.dart';
@@ -157,6 +159,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.salesReportTitle)),
+        body: PremiumGate(featureName: l.salesReportTitle, child: const SizedBox.shrink()),
+      );
+    }
     final sym = l.currencySymbol;
     final report = ref.watch(salesReportProvider);
     final start = ref.watch(salesReportStartDateProvider);

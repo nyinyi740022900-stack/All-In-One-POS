@@ -2432,6 +2432,48 @@ abstract class AppLocalizations {
   /// **'Monthly'**
   String get licensePlanMonthly;
 
+  /// No description provided for @licensePlanFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free plan'**
+  String get licensePlanFree;
+
+  /// No description provided for @premiumFeatureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{featureName} is a Premium feature'**
+  String premiumFeatureTitle(String featureName);
+
+  /// No description provided for @premiumFeatureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Premium subscription or license key.'**
+  String get premiumFeatureBody;
+
+  /// No description provided for @premiumUpgradeCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get premiumUpgradeCta;
+
+  /// No description provided for @onboardingContinueFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Free'**
+  String get onboardingContinueFree;
+
+  /// No description provided for @accountSignOutPremiumConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll lose Premium features on this device and it will drop to the Free plan (Sell and Inventory keep working). You\'ll need your email and password again to sign back in and restore Premium.'**
+  String get accountSignOutPremiumConfirmBody;
+
+  /// No description provided for @licenseDowngradedToFreeNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription/key expired — this device is now on the Free plan. Sell and Inventory still work; renew to unlock Premium features again.'**
+  String get licenseDowngradedToFreeNotice;
+
   /// No description provided for @licensePlanYearly.
   ///
   /// In en, this message translates to:

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import 'purchase_order_detail_screen.dart';
 import 'purchase_order_editor_screen.dart';
 import 'purchase_order_providers.dart';
@@ -28,6 +30,12 @@ class PurchaseOrdersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.purchaseOrdersTitle)),
+        body: PremiumGate(featureName: l.purchaseOrdersTitle, child: const SizedBox.shrink()),
+      );
+    }
     final orders = ref.watch(purchaseOrdersProvider).valueOrNull ?? const [];
     final loading = ref.watch(purchaseOrdersProvider).isLoading;
     final df = DateFormat('yyyy-MM-dd');

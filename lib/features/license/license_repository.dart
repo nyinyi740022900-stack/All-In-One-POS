@@ -156,6 +156,40 @@ class LicenseRepository {
     return lic;
   }
 
+  /// Enters the Free plan from scratch — no key, no account, no network call.
+  /// Core POS features (Sell/Inventory/etc.) work immediately and forever;
+  /// only Premium-gated features stay locked (see `PremiumGate`). The shop_id
+  /// is synthesized locally, same shape as the offline-trial fallback above,
+  /// since a Free-plan shop has no server-side `licenses` row at all.
+  Future<CachedLicense> startFreePlan() async {
+    final deviceId = await _settings.deviceId();
+    final now = DateTime.now();
+    return (await _save(CachedLicense(
+      key: 'FREE',
+      shopId: 'free-${deviceId.replaceAll('-', '').substring(0, 10)}',
+      plan: LicensePlan.free,
+      expiresAt: now,
+      activatedAt: now,
+      lastVerifiedAt: now,
+      deviceId: deviceId,
+    )))!;
+  }
+
+  /// Drops an existing license to the Free plan while preserving its
+  /// identity (`shopId`/`deviceId`/`tier`) — local data and sync keep working
+  /// under the same shop, only Premium features stop being unlocked. Used
+  /// both for auto-downgrade on expiry and for the sign-out-revokes-premium
+  /// flow (see `LicenseController`/`AccountRepository`).
+  Future<CachedLicense> downgradeToFree(CachedLicense current) async {
+    final now = DateTime.now();
+    return (await _save(current.copyWith(
+      key: 'FREE',
+      plan: LicensePlan.free,
+      expiresAt: now,
+      lastVerifiedAt: now,
+    )))!;
+  }
+
   Future<void> deactivate() => _settings.clearLicense();
 
   /// Persists a [CachedLicense] built from somewhere other than `activate()`

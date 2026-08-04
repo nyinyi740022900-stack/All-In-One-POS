@@ -311,19 +311,47 @@ class _CreditTile extends ConsumerWidget {
   }
 }
 
-class _LicenseTile extends ConsumerWidget {
+class _LicenseTile extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_LicenseTile> createState() => _LicenseTileState();
+}
+
+class _LicenseTileState extends ConsumerState<_LicenseTile> {
+  @override
+  void initState() {
+    super.initState();
+    // The auto-downgrade may have already fired (e.g. at app launch, before
+    // Settings was ever opened this session) — a plain `ref.listen`
+    // registered at first build would miss that, since it only reacts to
+    // changes AFTER registration. Checking the current value on the first
+    // frame covers both "just fired" and "fired a while ago."
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showDowngradeNotice());
+  }
+
+  void _showDowngradeNotice() {
+    if (!mounted) return;
+    if (!ref.read(pendingPlanDowngradeNoticeProvider)) return;
+    ref.read(pendingPlanDowngradeNoticeProvider.notifier).state = false;
     final l = AppLocalizations.of(context);
-    final status = ref.watch(licenseControllerProvider).status;
-    final (String label, Color color) = switch (status.kind) {
-      LicenseStatusKind.active => (l.licenseStatusActive, Colors.green),
-      LicenseStatusKind.grace => (l.licenseStatusGrace, Colors.orange),
-      LicenseStatusKind.expired =>
-        (l.licenseStatusExpired, Theme.of(context).colorScheme.error),
-      LicenseStatusKind.none =>
-        (l.licenseStatusNone, Theme.of(context).colorScheme.outline),
-    };
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.licenseDowngradedToFreeNotice)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final licState = ref.watch(licenseControllerProvider);
+    final status = licState.status;
+    final (String label, Color color) = licState.license?.plan == LicensePlan.free
+        ? (l.licensePlanFree, Theme.of(context).colorScheme.outline)
+        : switch (status.kind) {
+            LicenseStatusKind.active => (l.licenseStatusActive, Colors.green),
+            LicenseStatusKind.grace => (l.licenseStatusGrace, Colors.orange),
+            LicenseStatusKind.expired =>
+              (l.licenseStatusExpired, Theme.of(context).colorScheme.error),
+            LicenseStatusKind.none =>
+              (l.licenseStatusNone, Theme.of(context).colorScheme.outline),
+          };
     return ListTile(
       leading: const Icon(Icons.key),
       title: Text(l.settingsLicense),
