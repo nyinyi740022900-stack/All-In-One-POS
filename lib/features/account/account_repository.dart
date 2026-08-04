@@ -295,7 +295,21 @@ class AccountRepository {
       );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) {
-        return AccountActionResult.success(data['user_id'] as String?);
+        // A real email/password login is the definition of "Online" — the
+        // License screen's Renew/Upgrade dialog picks Offline vs Online by
+        // tier, so a shop that just gained a login but stayed tier 'offline'
+        // would confusingly still see the key-based dialog. Auto-switch;
+        // best-effort (a failure here doesn't fail the login itself, which
+        // already succeeded server-side, and the owner can still switch
+        // manually via Settings → Pricing tier).
+        final current = await _licenseRepository.current();
+        CachedLicense? updated;
+        if (current != null && current.tier != 'online') {
+          final tierResult = await setPricingTier('online');
+          if (tierResult.ok) updated = tierResult.license;
+        }
+        return AccountActionResult.success(data['user_id'] as String?,
+            license: updated);
       }
       return AccountActionResult.failure(data['error'] as String?);
     } catch (_) {

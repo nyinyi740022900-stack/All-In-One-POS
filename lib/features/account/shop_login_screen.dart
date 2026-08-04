@@ -51,6 +51,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (result.ok) {
+      if (result.license != null) {
+        ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+      }
       messenger.showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
       _password.clear();
     } else {
