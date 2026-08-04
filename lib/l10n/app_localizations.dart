@@ -4175,13 +4175,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardLicenseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Free trial or license key'**
+  /// **'Free plan or license key'**
   String get onboardLicenseTitle;
 
   /// No description provided for @onboardLicenseBody.
   ///
   /// In en, this message translates to:
-  /// **'You get a 2-month free trial automatically — no card, no signup. Already have a license key from an agent? Activate it now, or add it later from Settings.'**
+  /// **'Continue on the Free plan — Sell and Inventory work forever, no card, no signup, no key needed. Already have a license key from an agent? Activate it now to unlock Premium, or add one later from Settings.'**
   String get onboardLicenseBody;
 
   /// No description provided for @onboardActivateNow.
@@ -4703,7 +4703,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardModeOfflineBody.
   ///
   /// In en, this message translates to:
-  /// **'Activate with a license key. Works fully offline; no account needed.'**
+  /// **'Start free with Sell + Inventory, no account needed. Add a license key anytime to unlock Premium.'**
   String get onboardModeOfflineBody;
 
   /// No description provided for @onboardModeOnlineTitle.

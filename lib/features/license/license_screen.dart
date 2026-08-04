@@ -243,8 +243,19 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             // Upgrade dialog above) has nowhere else to type/scan it in —
             // Free is always `canSell`, so this branch is otherwise all this
             // device ever sees; the key-entry fields below only render in
-            // the `else` (not-activated) branch further down.
+            // the `else` (not-activated) branch further down. Same reasoning
+            // for the trial button — it used to live only in that `else`
+            // branch, making it permanently unreachable once a device is on
+            // Free plan (the primary path into Free plan in the first
+            // place), even though the trial is meant as Free plan's own
+            // try-Premium-for-free on-ramp.
             if (state.license?.plan == LicensePlan.free) ...[
+              const SizedBox(height: AppTheme.space2),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _startTrial,
+                icon: const Icon(Icons.card_giftcard),
+                label: Text(l.licenseFreeTrial),
+              ),
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),

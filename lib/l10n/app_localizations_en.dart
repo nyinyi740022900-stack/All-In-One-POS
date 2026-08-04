@@ -2231,11 +2231,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardShopBody => 'This appears on your printed receipts.';
 
   @override
-  String get onboardLicenseTitle => 'Free trial or license key';
+  String get onboardLicenseTitle => 'Free plan or license key';
 
   @override
   String get onboardLicenseBody =>
-      'You get a 2-month free trial automatically — no card, no signup. Already have a license key from an agent? Activate it now, or add it later from Settings.';
+      'Continue on the Free plan — Sell and Inventory work forever, no card, no signup, no key needed. Already have a license key from an agent? Activate it now to unlock Premium, or add one later from Settings.';
 
   @override
   String get onboardActivateNow => 'Activate a license key';
@@ -2529,7 +2529,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardModeOfflineBody =>
-      'Activate with a license key. Works fully offline; no account needed.';
+      'Start free with Sell + Inventory, no account needed. Add a license key anytime to unlock Premium.';
 
   @override
   String get onboardModeOnlineTitle => 'Online';

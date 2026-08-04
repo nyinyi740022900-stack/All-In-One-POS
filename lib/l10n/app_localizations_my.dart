@@ -2236,11 +2236,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardShopBody => 'ဒါက ပြေစာပေါ်မှာ ပါဝင်ပါမယ်။';
 
   @override
-  String get onboardLicenseTitle => 'အခမဲ့ Trial သို့မဟုတ် License Key';
+  String get onboardLicenseTitle => 'Free Plan သို့မဟုတ် License Key';
 
   @override
   String get onboardLicenseBody =>
-      'Card မလို၊ sign up မလိုဘဲ ၂ လ အခမဲ့ trial အလိုအလျောက် ရရှိပါမယ်။ Agent ဆီက license key ရှိပြီးသားလား? အခုပဲ activate လုပ်ပါ ဒါမှမဟုတ် နောက်မှ Settings ကနေ ထည့်နိုင်ပါတယ်။';
+      'Free Plan နဲ့ ဆက်လက်အသုံးပြုနိုင်ပါတယ် — ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုတွေ Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲအသုံးပြုနိုင်ပါမယ်။ Agent ဆီက license key ရှိပြီးသားလား? Premium ဖွင့်ဖို့ အခုပဲ activate လုပ်ပါ ဒါမှမဟုတ် နောက်မှ Settings ကနေ ထည့်နိုင်ပါတယ်။';
 
   @override
   String get onboardActivateNow => 'License key ချက်ချင်း activate';
@@ -2529,7 +2529,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardModeOfflineBody =>
-      'License Key နဲ့ Activate လုပ်ပါ။ Internet မလိုဘဲ အပြည့်အဝ အသုံးပြုနိုင်ပြီး Account မလိုပါ။';
+      'ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုနဲ့ Account မလိုဘဲ အခမဲ့ စတင်နိုင်ပါတယ်။ Premium ဖွင့်ချင်ရင် License key ကို အချိန်မရွေး ထည့်နိုင်ပါတယ်။';
 
   @override
   String get onboardModeOnlineTitle => 'Online';
