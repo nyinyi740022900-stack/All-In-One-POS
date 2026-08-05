@@ -130,13 +130,20 @@ class SyncEngine {
         }
         await _removeOutbox(item.seq);
         count++;
-      } catch (_) {
+      } catch (e) {
         // One row failing (schema drift, a transient error, a bad payload)
         // must NOT wedge the whole outbox — record the attempt and move on so
         // later rows (e.g. a license payment) still reach the server. The
-        // failed row stays queued and is retried on the next sync.
+        // failed row stays queued and is retried on the next sync. The error
+        // itself is also recorded (not just swallowed) so a row that can
+        // never succeed — a "poison pill" — surfaces to the owner via the
+        // Sync issues screen instead of retrying forever invisibly behind an
+        // otherwise-accurate "Up to date" status.
         await (db.update(db.outbox)..where((o) => o.seq.equals(item.seq)))
-            .write(OutboxCompanion(attempts: Value(item.attempts + 1)));
+            .write(OutboxCompanion(
+          attempts: Value(item.attempts + 1),
+          lastError: Value(e.toString()),
+        ));
       }
     }
     return count;

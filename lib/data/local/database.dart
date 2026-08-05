@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -204,6 +204,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 26) {
             await m.createTable(supplierPayments);
             await m.createTable(equityEntries);
+          }
+          // v27: surface a permanently-failing outbox row's last error
+          // instead of it retrying forever invisibly (see #49's Sync
+          // issues screen).
+          if (from < 27) {
+            await m.addColumn(outbox, outbox.lastError);
           }
         },
       );

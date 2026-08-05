@@ -1811,6 +1811,33 @@ class AppLocalizationsMy extends AppLocalizations {
   String get syncRealtimeOn => 'Live update ဖွင့်ထားသည်';
 
   @override
+  String syncIssuesTitle(int count) {
+    return 'Sync ပြဿနာ $count ခု';
+  }
+
+  @override
+  String get syncIssuesSubtitle =>
+      'ပြောင်းလဲမှု တစ်ချို့ sync မဖြစ်နိုင်ခဲ့ပါ — ကြည့်ရှုရန် နှိပ်ပါ';
+
+  @override
+  String get syncIssuesEmpty => 'Sync ပြဿနာ မရှိပါ။';
+
+  @override
+  String syncIssuesAttempts(int count) {
+    return '$count ကြိမ် ကြိုးစားခဲ့ပြီး မအောင်မြင်ပါ';
+  }
+
+  @override
+  String get syncIssuesDiscard => 'ဖျက်ပစ်မည်';
+
+  @override
+  String get syncIssuesDiscardConfirmTitle => 'ဒီပြောင်းလဲမှုကို ဖျက်ပစ်မလား?';
+
+  @override
+  String get syncIssuesDiscardConfirmBody =>
+      'ဒီ local ပြောင်းလဲမှုက cloud ကို ဘယ်တော့မှ sync ဖြစ်မှာ မဟုတ်တော့ဘဲ ပြန်ရယူလို့လည်း မရနိုင်တော့ပါ။ ဒါက သင့်ကို ပိတ်ဆို့နေရင် (ဥပမာ ဆိုင်ခွဲ switch မလုပ်နိုင်ဘူးဆိုရင်) ပြီးတော့ ဆုံးရှုံးလည်း ပြဿနာမရှိဘူးလို့ သေချာမှသာ ဖျက်ပစ်ပါ။';
+
+  @override
   String get navOrders => 'အော်ဒါ';
 
   @override

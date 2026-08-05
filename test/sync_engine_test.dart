@@ -213,6 +213,22 @@ void main() {
     expect(remaining.any((o) => o.entityTable == 'license_payments'), isFalse);
   });
 
+  test('a failing row records the exception in lastError and bumps attempts',
+      () async {
+    await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 10);
+
+    final failing = PartialFailRemote('products');
+    final engine2 = SyncEngine(
+        db: db, remote: failing, settings: settings, shopId: 'shop-1');
+    await engine2.syncNow();
+    await engine2.syncNow();
+
+    final row = (await db.select(db.outbox).get())
+        .singleWhere((o) => o.entityTable == 'products');
+    expect(row.attempts, 2);
+    expect(row.lastError, contains('boom'));
+  });
+
   test('delete is pushed as a tombstone', () async {
     final id = await inventory.upsertProduct(name: 'Temp', salePrice: 1);
     await engine.syncNow(); // push create

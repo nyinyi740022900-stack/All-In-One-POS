@@ -3404,6 +3404,48 @@ abstract class AppLocalizations {
   /// **'Live updates on'**
   String get syncRealtimeOn;
 
+  /// No description provided for @syncIssuesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Sync issue} other{Sync issues}}'**
+  String syncIssuesTitle(int count);
+
+  /// No description provided for @syncIssuesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One or more changes couldn\'t be synced — tap to review'**
+  String get syncIssuesSubtitle;
+
+  /// No description provided for @syncIssuesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sync issues.'**
+  String get syncIssuesEmpty;
+
+  /// No description provided for @syncIssuesAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Failed {count} time} other{Failed {count} times}}'**
+  String syncIssuesAttempts(int count);
+
+  /// No description provided for @syncIssuesDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get syncIssuesDiscard;
+
+  /// No description provided for @syncIssuesDiscardConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this change?'**
+  String get syncIssuesDiscardConfirmTitle;
+
+  /// No description provided for @syncIssuesDiscardConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This local change will never sync to the cloud and cannot be recovered afterward. Only discard it if it\'s blocking you (e.g. from switching branches) and you\'ve confirmed it\'s safe to lose.'**
+  String get syncIssuesDiscardConfirmBody;
+
   /// No description provided for @navOrders.
   ///
   /// In en, this message translates to:

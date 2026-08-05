@@ -1806,6 +1806,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncRealtimeOn => 'Live updates on';
 
   @override
+  String syncIssuesTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sync issues',
+      one: 'Sync issue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncIssuesSubtitle =>
+      'One or more changes couldn\'t be synced — tap to review';
+
+  @override
+  String get syncIssuesEmpty => 'No sync issues.';
+
+  @override
+  String syncIssuesAttempts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Failed $count times',
+      one: 'Failed $count time',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncIssuesDiscard => 'Discard';
+
+  @override
+  String get syncIssuesDiscardConfirmTitle => 'Discard this change?';
+
+  @override
+  String get syncIssuesDiscardConfirmBody =>
+      'This local change will never sync to the cloud and cannot be recovered afterward. Only discard it if it\'s blocking you (e.g. from switching branches) and you\'ve confirmed it\'s safe to lose.';
+
+  @override
   String get navOrders => 'Orders';
 
   @override

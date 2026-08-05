@@ -578,4 +578,12 @@ class Outbox extends Table {
   DateTimeColumn get enqueuedAt =>
       dateTime().withDefault(currentDateAndTime)();
   IntColumn get attempts => integer().withDefault(const Constant(0))();
+
+  /// The exception message from the most recent failed push attempt, if
+  /// any — lets a permanently-failing row ("poison pill": bad payload,
+  /// schema drift, an RLS rule the row no longer satisfies) surface as
+  /// something visible and actionable, instead of silently retrying
+  /// forever behind an otherwise-accurate "Up to date" sync status (see
+  /// `SyncEngine._push`'s per-row error isolation).
+  TextColumn get lastError => text().nullable()();
 }
