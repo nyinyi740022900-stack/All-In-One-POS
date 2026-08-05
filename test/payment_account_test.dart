@@ -39,17 +39,32 @@ Expense _expense(int amount, {String? accountId}) => Expense(
       dirty: false,
     );
 
+SupplierPayment _supplierPayment(String method, int amount) => SupplierPayment(
+      id: 'suppay-$method-$amount',
+      shopId: 'shop-1',
+      supplierName: 'Golden Trading',
+      method: method,
+      amount: amount,
+      createdAt: DateTime(2026, 8, 1),
+      updatedAt: DateTime(2026, 8, 1),
+      isDeleted: false,
+      dirty: false,
+    );
+
 void main() {
   group('computeAccountBalance (pure)', () {
-    test('opening balance + payments/repayments in this account − its expenses', () {
+    test(
+        'opening balance + payments/repayments in this account − its expenses/supplier payments',
+        () {
       final result = computeAccountBalance(
         openingBalance: 10000,
         payments: [_payment('kbzpay', 20000), _payment('cash', 5000)],
         repayments: [_repayment('kbzpay', 3000)],
         expenses: [_expense(4000, accountId: 'kbzpay')],
+        supplierPayments: [_supplierPayment('kbzpay', 2000)],
         accountId: 'kbzpay',
       );
-      expect(result, 29000); // 10000 + 20000 + 3000 - 4000
+      expect(result, 27000); // 10000 + 20000 + 3000 - 4000 - 2000
     });
 
     test('other accounts and cash never leak into this account\'s balance', () {
@@ -58,6 +73,7 @@ void main() {
         payments: [_payment('cash', 50000), _payment('wavepay', 8000)],
         repayments: [_repayment('cash', 1000)],
         expenses: [_expense(2000, accountId: 'wavepay')],
+        supplierPayments: [_supplierPayment('wavepay', 1000)],
         accountId: 'kbzpay',
       );
       expect(result, 0);
@@ -69,9 +85,22 @@ void main() {
         payments: [_payment('kbzpay', 1000)],
         repayments: const [],
         expenses: [_expense(3000)], // accountId: null → cash
+        supplierPayments: const [],
         accountId: 'kbzpay',
       );
       expect(result, 6000); // the cash expense doesn't touch kbzpay
+    });
+
+    test('a supplier payment made from this account reduces its balance', () {
+      final result = computeAccountBalance(
+        openingBalance: 20000,
+        payments: const [],
+        repayments: const [],
+        expenses: const [],
+        supplierPayments: [_supplierPayment('kbzpay', 12000)],
+        accountId: 'kbzpay',
+      );
+      expect(result, 8000);
     });
 
     test('no activity: balance is just the opening balance', () {
@@ -80,6 +109,7 @@ void main() {
         payments: const [],
         repayments: const [],
         expenses: const [],
+        supplierPayments: const [],
         accountId: 'kbzpay',
       );
       expect(result, 15000);

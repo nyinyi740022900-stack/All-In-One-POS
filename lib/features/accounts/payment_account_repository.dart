@@ -8,15 +8,17 @@ import '../../data/repositories/settings_repository.dart';
 
 /// A running balance for one [PaymentAccounts] row: [openingBalance] plus
 /// every payment/repayment tendered into this account, minus every expense
-/// paid from it. Pure (no DB, no I/O) — mirrors `computeExpectedCash`
-/// (`cash_session_repository.dart`), generalized from a hardcoded `'cash'`
-/// filter to any account id. Never stored — always derived at read time
-/// (see the doc comment on `PaymentAccounts` in tables.dart for why).
+/// or supplier payment paid from it. Pure (no DB, no I/O) — mirrors
+/// `computeExpectedCash` (`cash_session_repository.dart`), generalized
+/// from a hardcoded `'cash'` filter to any account id. Never stored —
+/// always derived at read time (see the doc comment on `PaymentAccounts`
+/// in tables.dart for why).
 int computeAccountBalance({
   required int openingBalance,
   required List<Payment> payments,
   required List<CreditPayment> repayments,
   required List<Expense> expenses,
+  required List<SupplierPayment> supplierPayments,
   required String accountId,
 }) {
   final inflow = payments
@@ -26,8 +28,11 @@ int computeAccountBalance({
           .where((r) => r.method == accountId)
           .fold<int>(0, (sum, r) => sum + r.amount);
   final outflow = expenses
-      .where((e) => e.accountId == accountId)
-      .fold<int>(0, (sum, e) => sum + e.amount);
+          .where((e) => e.accountId == accountId)
+          .fold<int>(0, (sum, e) => sum + e.amount) +
+      supplierPayments
+          .where((p) => p.method == accountId)
+          .fold<int>(0, (sum, p) => sum + p.amount);
   return openingBalance + inflow - outflow;
 }
 
@@ -114,11 +119,15 @@ class PaymentAccountRepository {
     final expenses = await (_db.select(_db.expenses)
           ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .get();
+    final supplierPayments = await (_db.select(_db.supplierPayments)
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
     return computeAccountBalance(
       openingBalance: account.openingBalance,
       payments: payments,
       repayments: repayments,
       expenses: expenses,
+      supplierPayments: supplierPayments,
       accountId: account.id,
     );
   }

@@ -33,7 +33,10 @@ class AccountsPayableScreen extends ConsumerWidget {
       );
     }
     final currency = l.currencySymbol;
-    final balances = ref.watch(supplierBalancesProvider);
+    final filter = ref.watch(accountsPayableFilterProvider);
+    final balances = filter == AccountsPayableFilter.all
+        ? ref.watch(allSupplierBalancesProvider)
+        : ref.watch(supplierBalancesProvider);
     final total = ref.watch(accountsPayableTotalProvider);
 
     return Scaffold(
@@ -58,6 +61,29 @@ class AccountsPayableScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4, AppTheme.space2, AppTheme.space4, 0),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: Text(l.creditFilterOutstanding),
+                  selected: filter == AccountsPayableFilter.outstanding,
+                  onSelected: (_) =>
+                      ref.read(accountsPayableFilterProvider.notifier).state =
+                          AccountsPayableFilter.outstanding,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                ChoiceChip(
+                  label: Text(l.creditFilterAll),
+                  selected: filter == AccountsPayableFilter.all,
+                  onSelected: (_) =>
+                      ref.read(accountsPayableFilterProvider.notifier).state =
+                          AccountsPayableFilter.all,
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: balances.isEmpty
                 ? Center(child: Text(l.apEmpty))
@@ -66,17 +92,31 @@ class AccountsPayableScreen extends ConsumerWidget {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final b = balances[i];
+                      final settled = b.outstanding <= 0;
                       return ListTile(
                         leading: const CircleAvatar(
                             child: Icon(Icons.local_shipping_outlined)),
                         title: Text(b.name),
-                        trailing: Text(
-                          Money(b.outstanding).withSymbol(currency),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
+                        trailing: settled
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.green, size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(l.creditSettled,
+                                      style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              )
+                            : Text(
+                                Money(b.outstanding).withSymbol(currency),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => AccountsPayableSupplierScreen(

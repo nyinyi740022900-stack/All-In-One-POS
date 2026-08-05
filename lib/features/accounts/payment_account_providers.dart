@@ -27,14 +27,16 @@ List<String> paymentMethodIds(List<PaymentAccount> accounts) =>
     ['cash', for (final a in accounts) a.id];
 
 /// Live balance for one account. `payment_accounts` itself doesn't change
-/// when a sale/repayment/expense happens, so there's nothing on that table
-/// to `watch()` — instead this re-fetches whenever any of the three inputs
-/// change, same shape as Cash Register's `expectedCashProvider`.
+/// when a sale/repayment/expense/supplier-payment happens, so there's
+/// nothing on that table to `watch()` — instead this re-fetches whenever
+/// any of the inputs change, same shape as Cash Register's
+/// `expectedCashProvider`.
 final accountBalanceProvider =
     FutureProvider.family<int, PaymentAccount>((ref, account) async {
   ref.watch(salesStreamProvider);
   ref.watch(repaymentsProvider);
   ref.watch(_accountExpensesWatchProvider);
+  ref.watch(_accountSupplierPaymentsWatchProvider);
   return ref.read(paymentAccountRepositoryProvider).balanceFor(account);
 });
 
@@ -43,6 +45,17 @@ final _accountExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
   final db = ref.watch(databaseProvider);
   final shopId = ref.watch(shopIdProvider);
   return (db.select(db.expenses)
+        ..where((t) => t.shopId.equals(shopId) & t.isDeleted.equals(false)))
+      .watch();
+});
+
+/// Invalidation-only signal — see [accountBalanceProvider]. A supplier
+/// payment made from an account is an outflow, same as an expense.
+final _accountSupplierPaymentsWatchProvider =
+    StreamProvider<List<SupplierPayment>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.supplierPayments)
         ..where((t) => t.shopId.equals(shopId) & t.isDeleted.equals(false)))
       .watch();
 });

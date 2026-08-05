@@ -43,3 +43,11 @@ final accountsPayableTotalProvider = Provider<int>((ref) {
       .watch(supplierBalancesProvider)
       .fold(0, (sum, b) => sum + b.outstanding);
 });
+
+/// Same "Outstanding vs All" filter shape as Credit book's `CreditFilter` —
+/// lets a fully-paid-off supplier's payment history stay reachable instead
+/// of disappearing once their balance hits 0.
+enum AccountsPayableFilter { outstanding, all }
+
+final accountsPayableFilterProvider =
+    StateProvider<AccountsPayableFilter>((ref) => AccountsPayableFilter.outstanding);
