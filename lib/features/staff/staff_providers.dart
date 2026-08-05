@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
+import '../account/account_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'staff_repository.dart';
@@ -27,6 +28,16 @@ final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
   return ref.watch(staffRepositoryProvider).watchActiveMembers();
 });
 
+/// A lightweight 1-second ticker so staff-mode UI can refresh countdown text
+/// (for owner PIN cooldown) without adding timers inside widgets.
+final ownerPinCooldownTickProvider = StreamProvider<int>((ref) async* {
+  var tick = 0;
+  while (true) {
+    yield tick++;
+    await Future<void>.delayed(const Duration(seconds: 1));
+  }
+});
+
 /// Which roster member is "using" this device right now — device-local, not
 /// synced. Null if no named staff is selected (plain staff mode).
 final activeStaffIdProvider = StreamProvider<String?>((ref) {
@@ -45,12 +56,31 @@ final activeStaffNameProvider = Provider<String?>((ref) {
   return null;
 });
 
-/// True when the current device mode is owner (or still loading, so the UI
-/// never briefly hides owner controls from the owner). Gates Analytics,
-/// Inventory add/edit, Storefront, Delivery-carrier config, and staff-mode/
-/// License management.
+/// Role currently applied by the UI permission layer.
+///
+/// Local device mode can lock a phone down to staff, while a real backend
+/// account may also itself be staff. We pick the more restrictive result:
+/// - backend 'staff' => always staff
+/// - backend 'owner' => follow local device mode
+/// - no backend role  => follow local device mode
+final effectiveRoleProvider = Provider<String>((ref) {
+  final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
+  final backendRole = ref.watch(backendAccountRoleProvider);
+  if (backendRole == 'staff') return 'staff';
+  if (backendRole == 'owner') return localRole;
+  if (backendRole != null && backendRole.isNotEmpty) return 'staff';
+  return localRole;
+});
+
+/// True when the effective permission role is owner. Owner controls should gate
+/// on this (not on local mode alone).
+final isEffectiveOwnerProvider = Provider<bool>((ref) {
+  return ref.watch(effectiveRoleProvider) == 'owner';
+});
+
+/// Backward-compatible alias for existing call sites.
 final isOwnerProvider = Provider<bool>((ref) {
-  return (ref.watch(staffRoleProvider).valueOrNull ?? 'owner') == 'owner';
+  return ref.watch(isEffectiveOwnerProvider);
 });
 
 /// Alias kept for call-site clarity in the Inventory screen — Inventory
@@ -76,15 +106,43 @@ final showStaffModeSectionProvider = Provider<bool>((ref) {
 /// 'staff' is always free (an owner locking the device down for a cashier);
 /// switching to 'owner' requires the correct PIN (or succeeds if none is set).
 class StaffController {
-  StaffController(this._ref);
+  StaffController(this._ref, {DateTime Function()? now})
+      : _now = now ?? DateTime.now;
   final Ref _ref;
+  final DateTime Function() _now;
+  int _ownerPinFailures = 0;
+  DateTime? _ownerPinLockedUntil;
+  static const int _kMaxOwnerPinFailures = 5;
+  static const Duration _kOwnerPinCooldown = Duration(seconds: 30);
+
+  void _clearExpiredOwnerPinLock() {
+    final until = _ownerPinLockedUntil;
+    if (until != null && !_now().isBefore(until)) {
+      _ownerPinLockedUntil = null;
+    }
+  }
+
+  int ownerPinCooldownRemainingSeconds() {
+    _clearExpiredOwnerPinLock();
+    final until = _ownerPinLockedUntil;
+    if (until == null) return 0;
+    final ms = until.difference(_now()).inMilliseconds;
+    if (ms <= 0) return 0;
+    return ((ms + 999) ~/ 1000);
+  }
+
+  bool isValidOwnerPin(String pin) => RegExp(r'^\d{4,6}$').hasMatch(pin);
 
   Future<bool> hasPin() async =>
-      (await _ref.read(settingsRepositoryProvider).staffPin())?.isNotEmpty ??
+      (await _ref.read(settingsRepositoryProvider).staffPinHash())?.isNotEmpty ??
       false;
 
-  Future<void> setPin(String pin) =>
-      _ref.read(settingsRepositoryProvider).setStaffPin(pin);
+  Future<void> setPin(String pin) async {
+    if (!isValidOwnerPin(pin)) {
+      throw ArgumentError('owner PIN must be 4-6 digits');
+    }
+    await _ref.read(settingsRepositoryProvider).setStaffPin(pin);
+  }
 
   /// Attempts to switch to [targetRole]. [pin] is required only when
   /// switching to 'owner'. Returns false on a wrong PIN (role unchanged).
@@ -93,10 +151,21 @@ class StaffController {
   Future<bool> switchRole(String targetRole, {String? pin}) async {
     final repo = _ref.read(settingsRepositoryProvider);
     if (targetRole == 'owner') {
-      final saved = await repo.staffPin();
-      if (saved != null && saved.isNotEmpty && saved != (pin ?? '')) {
+      _clearExpiredOwnerPinLock();
+      if (_ownerPinLockedUntil != null && _now().isBefore(_ownerPinLockedUntil!)) {
         return false;
       }
+      final ok = await repo.verifyStaffPin((pin ?? '').trim());
+      if (!ok) {
+        _ownerPinFailures += 1;
+        if (_ownerPinFailures >= _kMaxOwnerPinFailures) {
+          _ownerPinFailures = 0;
+          _ownerPinLockedUntil = _now().add(_kOwnerPinCooldown);
+        }
+        return false;
+      }
+      _ownerPinFailures = 0;
+      _ownerPinLockedUntil = null;
       await repo.setActiveStaffId('');
     }
     await repo.setStaffRole(targetRole);

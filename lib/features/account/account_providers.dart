@@ -12,3 +12,15 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
     ref.watch(databaseProvider),
   );
 });
+
+/// Current backend account role from Supabase auth metadata, if signed in via
+/// a real login. Null when signed out / anonymous.
+final backendAccountRoleProvider = Provider<String?>((ref) {
+  try {
+    return ref.watch(accountRepositoryProvider).currentAccountRole;
+  } catch (_) {
+    // Supabase may be uninitialized in unit/widget tests that don't touch
+    // backend auth. Treat as anonymous/no-role in that case.
+    return null;
+  }
+});

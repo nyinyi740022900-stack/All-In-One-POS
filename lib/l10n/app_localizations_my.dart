@@ -2097,6 +2097,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get staffWrongPin => 'PIN မှားနေပါသည်';
 
   @override
+  String staffPinTryAgainIn(int seconds) {
+    return 'ကြိမ်နှုန်းများနေပါသည်။ $seconds စက္ကန့်အကြာ ပြန်စမ်းပါ';
+  }
+
+  @override
   String get staffPinHint => 'ဂဏန်း ၄–၆ လုံး';
 
   @override

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
@@ -30,6 +33,7 @@ class SettingsRepository {
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
   static const _kStaffRole = 'staff.role';
+  static const _kStaffPinHash = 'staff.pin_hash';
   static const _kStaffPin = 'staff.pin';
 
   Future<String?> _get(String key) async {
@@ -175,9 +179,36 @@ class SettingsRepository {
     });
   }
 
-  /// The owner PIN (4–6 digits) required to leave cashier mode. Null = unset.
-  Future<String?> staffPin() => _get(_kStaffPin);
-  Future<void> setStaffPin(String pin) => _set(_kStaffPin, pin);
+  String _hashStaffPin(String pin) {
+    final digest = sha256.convert(utf8.encode('owner-pin:$pin'));
+    return 'v1:$digest';
+  }
+
+  /// The owner PIN hash (v1:sha256) required to leave staff mode.
+  ///
+  /// Legacy plaintext rows under [_kStaffPin] are auto-migrated on first read.
+  Future<String?> staffPinHash() async {
+    final hashed = await _get(_kStaffPinHash);
+    if (hashed != null && hashed.isNotEmpty) return hashed;
+
+    final legacyPlain = await _get(_kStaffPin);
+    if (legacyPlain == null || legacyPlain.isEmpty) return null;
+    final migrated = _hashStaffPin(legacyPlain);
+    await _set(_kStaffPinHash, migrated);
+    await _delete(_kStaffPin);
+    return migrated;
+  }
+
+  Future<void> setStaffPin(String pin) async {
+    await _set(_kStaffPinHash, _hashStaffPin(pin));
+    await _delete(_kStaffPin);
+  }
+
+  Future<bool> verifyStaffPin(String pin) async {
+    final saved = await staffPinHash();
+    if (saved == null || saved.isEmpty) return true;
+    return saved == _hashStaffPin(pin);
+  }
 
   /// Which staff-roster member (see `StaffMembers`) is currently "using" this
   /// device — device-local, not synced (the roster itself is shared across
@@ -322,21 +353,29 @@ class SettingsRepository {
 
   /// Whether the shop tracks inventory. When false the app runs "invoice
   /// only": no stock badges/alerts, no decrement on sale. Defaults to true.
-  Future<bool> trackStock() async => (await _get(_kTrackStock)) != 'false';
+  Future<bool> trackStock(String shopId) async {
+    final scoped = await _get(_shopKey(_kTrackStock, shopId));
+    if (scoped != null) return scoped != 'false';
+    if (shopId.isEmpty) return true;
+    final legacy = await _get(_kTrackStock);
+    return legacy != 'false';
+  }
 
-  Future<void> setTrackStock(bool value) =>
-      _set(_kTrackStock, value ? 'true' : 'false');
+  Future<void> setTrackStock(String shopId, bool value) =>
+      _set(_shopKey(_kTrackStock, shopId), value ? 'true' : 'false');
 
-  Stream<bool> watchTrackStock() => _watchBool(_kTrackStock, true);
-
-  Stream<bool> _watchBool(String key, bool defaultValue) {
+  Stream<bool> watchTrackStock(String shopId) {
+    final scopedKey = _shopKey(_kTrackStock, shopId);
     return _db.select(_db.appSettings).watch().map((rows) {
-      final row = rows.firstWhere(
-        (r) => r.key == key,
-        orElse: () =>
-            AppSetting(key: key, value: defaultValue ? 'true' : 'false'),
-      );
-      return row.value != 'false';
+      for (final r in rows) {
+        if (r.key == scopedKey) return r.value != 'false';
+      }
+      if (shopId.isNotEmpty) {
+        for (final r in rows) {
+          if (r.key == _kTrackStock) return r.value != 'false';
+        }
+      }
+      return true;
     });
   }
 

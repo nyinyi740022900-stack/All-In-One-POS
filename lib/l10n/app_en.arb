@@ -712,6 +712,8 @@
   "staffChangePin": "Change owner PIN",
   "staffEnterPin": "Enter owner PIN",
   "staffWrongPin": "Wrong PIN",
+  "staffPinTryAgainIn": "Too many attempts. Try again in {seconds}s",
+  "@staffPinTryAgainIn": { "placeholders": { "seconds": { "type": "int" } } },
   "staffPinHint": "4–6 digits",
   "staffPinSaved": "PIN saved",
   "staffOwnerOnly": "Owner only",

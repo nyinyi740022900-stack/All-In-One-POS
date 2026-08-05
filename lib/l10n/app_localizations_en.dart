@@ -2093,6 +2093,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffWrongPin => 'Wrong PIN';
 
   @override
+  String staffPinTryAgainIn(int seconds) {
+    return 'Too many attempts. Try again in ${seconds}s';
+  }
+
+  @override
   String get staffPinHint => '4–6 digits';
 
   @override

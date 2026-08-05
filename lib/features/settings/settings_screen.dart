@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/env.dart';
 import '../../core/locale_controller.dart';
+import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -61,7 +62,7 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const ShopProfileScreen(),
             )),
           ),
-          _TrackStockTile(),
+          if (ref.watch(isOwnerProvider)) _TrackStockTile(),
           ListTile(
             leading: const Icon(Icons.point_of_sale_outlined),
             title: Text(l.cashRegisterTitle),
@@ -116,7 +117,7 @@ class SettingsScreen extends ConsumerWidget {
           if (ref.watch(isOwnerProvider)) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
-          _LicenseTile(),
+          if (ref.watch(isOwnerProvider)) _LicenseTile(),
           ListTile(
             leading: const Icon(Icons.alternate_email),
             title: Text(l.accountShopLoginTitle),
@@ -146,14 +147,15 @@ class SettingsScreen extends ConsumerWidget {
             _PricingTierTile(),
           ],
           _ReferralTile(),
-          ListTile(
-            leading: const Icon(Icons.backup),
-            title: Text(l.backupTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const BackupScreen(),
-            )),
-          ),
+          if (ref.watch(isOwnerProvider))
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: Text(l.backupTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const BackupScreen(),
+              )),
+            ),
 
           _SectionHeader(l.settingsSectionDevice),
           ListTile(
@@ -246,6 +248,7 @@ class _TrackStockTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final shopId = ref.watch(shopIdProvider);
     final tracking = ref.watch(trackStockProvider).valueOrNull ?? true;
     return ListTile(
       leading: const Icon(Icons.inventory),
@@ -277,7 +280,7 @@ class _TrackStockTile extends ConsumerWidget {
           Switch(
             value: tracking,
             onChanged: (v) =>
-                ref.read(settingsRepositoryProvider).setTrackStock(v),
+                ref.read(settingsRepositoryProvider).setTrackStock(shopId, v),
           ),
         ],
       ),

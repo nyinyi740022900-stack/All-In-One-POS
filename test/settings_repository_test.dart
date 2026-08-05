@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
@@ -71,6 +72,27 @@ void main() {
       final profile = await repo.shopProfile('shop-fresh');
       expect(profile.name, 'My Shop');
       expect(profile.address, isNull);
+    });
+  });
+
+  group('trackStock (per-shop isolation)', () {
+    test('a saved value is isolated per shop', () async {
+      await repo.setTrackStock('shop-main', false);
+      await repo.setTrackStock('shop-branch', true);
+
+      expect(await repo.trackStock('shop-main'), isFalse);
+      expect(await repo.trackStock('shop-branch'), isTrue);
+    });
+
+    test('a shop with no scoped value falls back to legacy key', () async {
+      await db.into(db.appSettings).insertOnConflictUpdate(
+            const AppSettingsCompanion(
+              key: Value('shop.track_stock'),
+              value: Value('false'),
+            ),
+          );
+
+      expect(await repo.trackStock('new-shop'), isFalse);
     });
   });
 }

@@ -29,7 +29,8 @@ final shopProfileProvider = FutureProvider<ShopProfile>((ref) {
 
 /// Whether the shop tracks inventory (true) or runs invoice-only (false).
 final trackStockProvider = StreamProvider<bool>((ref) {
-  return ref.watch(settingsRepositoryProvider).watchTrackStock();
+  final shopId = ref.watch(shopIdProvider);
+  return ref.watch(settingsRepositoryProvider).watchTrackStock(shopId);
 });
 
 /// Stable per-install id, doubling as the user-facing App Reference ID / Shop

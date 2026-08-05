@@ -115,6 +115,14 @@ class StaffModeCard extends ConsumerWidget {
       BuildContext context, WidgetRef ref, String target) async {
     final l = AppLocalizations.of(context);
     final ctrl = ref.read(staffControllerProvider);
+    if (target == 'owner') {
+      final cooldown = ctrl.ownerPinCooldownRemainingSeconds();
+      if (cooldown > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.staffPinTryAgainIn(cooldown))));
+        return;
+      }
+    }
 
     // Switching to Staff with a named roster set up: ask who's using the
     // device (each name has its own PIN) instead of a single shared PIN.
@@ -150,8 +158,12 @@ class StaffModeCard extends ConsumerWidget {
     if (!context.mounted) return;
     final ok = await ctrl.switchRole(target, pin: pin);
     if (!ok && context.mounted) {
+      final remaining = ctrl.ownerPinCooldownRemainingSeconds();
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+          .showSnackBar(SnackBar(
+              content: Text(remaining > 0
+                  ? l.staffPinTryAgainIn(remaining)
+                  : l.staffWrongPin)));
     }
   }
 
@@ -198,6 +210,9 @@ class StaffModeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    ref.watch(ownerPinCooldownTickProvider);
+    final ctrl = ref.watch(staffControllerProvider);
+    final ownerCooldown = ctrl.ownerPinCooldownRemainingSeconds();
     final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
     final isOwner = role == 'owner';
 
@@ -216,7 +231,13 @@ class StaffModeCard extends ConsumerWidget {
                   ? Icons.lock_open_outlined
                   : Icons.badge_outlined),
               title: Text(l.staffSwitchTo(staffRoleLabel(l, target))),
-              onTap: () => _switchTo(context, ref, target),
+              subtitle: target == 'owner' && ownerCooldown > 0
+                  ? Text(l.staffPinTryAgainIn(ownerCooldown))
+                  : null,
+              enabled: !(target == 'owner' && ownerCooldown > 0),
+              onTap: (target == 'owner' && ownerCooldown > 0)
+                  ? null
+                  : () => _switchTo(context, ref, target),
             ),
         if (isOwner)
           ListTile(
@@ -225,10 +246,17 @@ class StaffModeCard extends ConsumerWidget {
             onTap: () async {
               final pin = await promptPin(context, l.staffSetPin);
               if (pin == null || pin.isEmpty) return;
-              await ref.read(staffControllerProvider).setPin(pin);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(l.staffPinSaved)));
+              try {
+                await ref.read(staffControllerProvider).setPin(pin);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(l.staffPinSaved)));
+                }
+              } on ArgumentError {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+                }
               }
             },
           ),

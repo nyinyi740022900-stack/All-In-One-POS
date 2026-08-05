@@ -3938,6 +3938,12 @@ abstract class AppLocalizations {
   /// **'Wrong PIN'**
   String get staffWrongPin;
 
+  /// No description provided for @staffPinTryAgainIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again in {seconds}s'**
+  String staffPinTryAgainIn(int seconds);
+
   /// No description provided for @staffPinHint.
   ///
   /// In en, this message translates to:

@@ -41,6 +41,13 @@ void main() {
     expect(await settings.staffRole(), 'staff');
   });
 
+  test('setPin rejects invalid lengths (must be 4-6 digits)', () async {
+    expect(() => ctrl().setPin('123'), throwsArgumentError);
+    expect(() => ctrl().setPin('1234567'), throwsArgumentError);
+    await ctrl().setPin('1234');
+    expect(await ctrl().switchRole('staff'), isTrue);
+  });
+
   test('switching back to owner with no PIN set succeeds', () async {
     await ctrl().switchRole('staff');
     expect(await ctrl().switchRole('owner', pin: ''), isTrue);
@@ -54,6 +61,44 @@ void main() {
     expect(await settings.staffRole(), 'staff');
     // Correct PIN succeeds.
     expect(await ctrl().switchRole('owner', pin: '1234'), isTrue);
+    expect(await settings.staffRole(), 'owner');
+  });
+
+  test('owner PIN is temporarily locked after too many wrong attempts',
+      () async {
+    await ctrl().setPin('1234');
+    await ctrl().switchRole('staff');
+
+    for (var i = 0; i < 5; i++) {
+      expect(await ctrl().switchRole('owner', pin: '0000'), isFalse);
+    }
+    // Cooldown lock is now active: even the correct PIN is rejected.
+    expect(await ctrl().switchRole('owner', pin: '1234'), isFalse);
+    expect(await settings.staffRole(), 'staff');
+  });
+
+  test('owner PIN cooldown expires and unlocks owner switch', () async {
+    var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+    final timed = ProviderContainer(overrides: [
+      settingsRepositoryProvider.overrideWithValue(settings),
+      databaseProvider.overrideWithValue(db),
+      shopIdProvider.overrideWith((ref) => 'shop-1'),
+      staffControllerProvider
+          .overrideWith((ref) => StaffController(ref, now: () => fakeNow)),
+    ]);
+    addTearDown(timed.dispose);
+    final timedCtrl = timed.read(staffControllerProvider);
+
+    await timedCtrl.setPin('1234');
+    await timedCtrl.switchRole('staff');
+    for (var i = 0; i < 5; i++) {
+      expect(await timedCtrl.switchRole('owner', pin: '0000'), isFalse);
+    }
+    expect(timedCtrl.ownerPinCooldownRemainingSeconds(), greaterThan(0));
+
+    fakeNow = fakeNow.add(const Duration(seconds: 31));
+    expect(timedCtrl.ownerPinCooldownRemainingSeconds(), 0);
+    expect(await timedCtrl.switchRole('owner', pin: '1234'), isTrue);
     expect(await settings.staffRole(), 'owner');
   });
 
@@ -123,6 +168,41 @@ void main() {
   });
 
   group('PIN hashing', () {
+    test('owner PIN is stored hashed, not plaintext', () async {
+      await ctrl().setPin('1234');
+      final row = await (db.select(db.appSettings)
+            ..where((s) => s.key.equals('staff.pin_hash')))
+          .getSingleOrNull();
+      expect(row, isNotNull);
+      expect(row!.value, startsWith('v1:'));
+      expect(row.value, isNot('1234'));
+      final legacy = await (db.select(db.appSettings)
+            ..where((s) => s.key.equals('staff.pin')))
+          .getSingleOrNull();
+      expect(legacy, isNull);
+    });
+
+    test('legacy plaintext owner PIN auto-migrates on verification', () async {
+      await db.into(db.appSettings).insertOnConflictUpdate(
+            const AppSettingsCompanion(
+              key: Value('staff.pin'),
+              value: Value('1234'),
+            ),
+          );
+
+      expect(await ctrl().switchRole('owner', pin: '1234'), isTrue);
+
+      final hashed = await (db.select(db.appSettings)
+            ..where((s) => s.key.equals('staff.pin_hash')))
+          .getSingleOrNull();
+      expect(hashed, isNotNull);
+      expect(hashed!.value, startsWith('v1:'));
+      final legacy = await (db.select(db.appSettings)
+            ..where((s) => s.key.equals('staff.pin')))
+          .getSingleOrNull();
+      expect(legacy, isNull);
+    });
+
     test('upsertMember never stores the PIN in the clear', () async {
       final staffRepo = container.read(staffRepositoryProvider);
       final id = await staffRepo.upsertMember(name: 'Aye Aye', pin: '4444');

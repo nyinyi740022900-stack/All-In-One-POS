@@ -7,6 +7,8 @@ import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../staff/staff_providers.dart';
+import '../staff/staff_ui.dart';
 import 'storefront_repository.dart';
 
 final storefrontRepositoryProvider = Provider<StorefrontRepository>((ref) {
@@ -147,6 +149,12 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isOwnerProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.storefrontTitle)),
+        body: const OwnerOnlyGate(child: SizedBox.shrink()),
+      );
+    }
     if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.storefrontTitle)),

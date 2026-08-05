@@ -113,6 +113,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
         ref.read(syncControllerProvider.notifier).sync();
       }
+      ref.invalidate(backendAccountRoleProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
       _password.clear();
       setState(() {});
@@ -156,6 +157,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     if (result.license != null) {
       ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
     }
+    ref.invalidate(backendAccountRoleProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() {});
   }

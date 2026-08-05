@@ -20,6 +20,7 @@ import 'license_request.dart';
 import '../sell/barcode_scanner_screen.dart';
 import '../sell/payment_labels.dart';
 import '../staff/staff_providers.dart';
+import '../staff/staff_ui.dart';
 import '../support/support_providers.dart';
 import '../support/vendor_config.dart';
 import 'license_providers.dart';
@@ -206,6 +207,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (!ref.watch(isOwnerProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.settingsLicense)),
+        body: const OwnerOnlyGate(child: SizedBox.shrink()),
+      );
+    }
     final state = ref.watch(licenseControllerProvider);
     final status = state.status;
 

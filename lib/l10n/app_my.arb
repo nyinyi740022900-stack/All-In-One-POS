@@ -705,6 +705,8 @@
   "staffChangePin": "ပိုင်ရှင် PIN ပြောင်း",
   "staffEnterPin": "ပိုင်ရှင် PIN ရိုက်ထည့်",
   "staffWrongPin": "PIN မှားနေပါသည်",
+  "staffPinTryAgainIn": "ကြိမ်နှုန်းများနေပါသည်။ {seconds} စက္ကန့်အကြာ ပြန်စမ်းပါ",
+  "@staffPinTryAgainIn": { "placeholders": { "seconds": { "type": "int" } } },
   "staffPinHint": "ဂဏန်း ၄–၆ လုံး",
   "staffPinSaved": "PIN သိမ်းပြီး",
   "staffOwnerOnly": "ပိုင်ရှင်သာ ကြည့်နိုင်",
