@@ -2628,6 +2628,42 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဆိုင်အသစ် data Sync လုပ်နေသည်';
 
   @override
+  String branchesRecoveryBody(String shopId) {
+    return '$shopId သို့ branch ပြောင်းခြင်း လုပ်ငန်းစဉ် မပြီးသေးပါ။ Sync ကို ထပ်စမ်းနိုင်ပါတယ်။';
+  }
+
+  @override
+  String branchesRecoveryBodyWithError(String shopId, String error) {
+    return '$shopId သို့ branch ပြောင်းခြင်း မပြီးသေးပါ — $error';
+  }
+
+  @override
+  String get branchesRecoveryRetrySync => 'Sync ပြန်လုပ်မည်';
+
+  @override
+  String get branchesRecoveryDismiss => 'ဖျောက်မည်';
+
+  @override
+  String get branchesRecoveryResolved => 'Branch setup ပြီးစီးပါပြီ။';
+
+  @override
+  String get branchesRecoveryStillPending =>
+      'Branch setup မပြီးသေးပါ။ Banner ကနေ ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get branchesVerifyTitle => 'Branch setup ဆက်ပြီးနေသည်';
+
+  @override
+  String get branchesVerifyBody =>
+      'Branch data တချို့ မပြည့်စုံသေးပါ။ ယခု sync ပြန်လုပ်မလား၊ background မှာ ဆက်ပြီးလုပ်မလား ရွေးနိုင်ပါတယ်။';
+
+  @override
+  String get branchesVerifyRetryNow => 'ယခု ပြန်လုပ်မည်';
+
+  @override
+  String get branchesVerifyFinishBackground => 'Background မှာ ဆက်လုပ်မည်';
+
+  @override
   String get branchesNetworkOnline => 'Online';
 
   @override

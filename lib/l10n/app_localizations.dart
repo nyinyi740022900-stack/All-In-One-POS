@@ -4874,6 +4874,66 @@ abstract class AppLocalizations {
   /// **'Syncing new branch data'**
   String get branchesSwitchStepSyncingNewData;
 
+  /// No description provided for @branchesRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch switch to {shopId} was interrupted before setup completed. You can retry sync now.'**
+  String branchesRecoveryBody(String shopId);
+
+  /// No description provided for @branchesRecoveryBodyWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch switch to {shopId} is still incomplete: {error}.'**
+  String branchesRecoveryBodyWithError(String shopId, String error);
+
+  /// No description provided for @branchesRecoveryRetrySync.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry sync'**
+  String get branchesRecoveryRetrySync;
+
+  /// No description provided for @branchesRecoveryDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get branchesRecoveryDismiss;
+
+  /// No description provided for @branchesRecoveryResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch setup completed.'**
+  String get branchesRecoveryResolved;
+
+  /// No description provided for @branchesRecoveryStillPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch setup is still incomplete. You can retry from the banner.'**
+  String get branchesRecoveryStillPending;
+
+  /// No description provided for @branchesVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing branch setup'**
+  String get branchesVerifyTitle;
+
+  /// No description provided for @branchesVerifyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Some branch data still looks incomplete. Retry sync now, or finish in background and keep using the app.'**
+  String get branchesVerifyBody;
+
+  /// No description provided for @branchesVerifyRetryNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry now'**
+  String get branchesVerifyRetryNow;
+
+  /// No description provided for @branchesVerifyFinishBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish in background'**
+  String get branchesVerifyFinishBackground;
+
   /// No description provided for @branchesNetworkOnline.
   ///
   /// In en, this message translates to:

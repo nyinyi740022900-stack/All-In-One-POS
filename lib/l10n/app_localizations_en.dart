@@ -2617,6 +2617,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesSwitchStepSyncingNewData => 'Syncing new branch data';
 
   @override
+  String branchesRecoveryBody(String shopId) {
+    return 'Branch switch to $shopId was interrupted before setup completed. You can retry sync now.';
+  }
+
+  @override
+  String branchesRecoveryBodyWithError(String shopId, String error) {
+    return 'Branch switch to $shopId is still incomplete: $error.';
+  }
+
+  @override
+  String get branchesRecoveryRetrySync => 'Retry sync';
+
+  @override
+  String get branchesRecoveryDismiss => 'Dismiss';
+
+  @override
+  String get branchesRecoveryResolved => 'Branch setup completed.';
+
+  @override
+  String get branchesRecoveryStillPending =>
+      'Branch setup is still incomplete. You can retry from the banner.';
+
+  @override
+  String get branchesVerifyTitle => 'Finishing branch setup';
+
+  @override
+  String get branchesVerifyBody =>
+      'Some branch data still looks incomplete. Retry sync now, or finish in background and keep using the app.';
+
+  @override
+  String get branchesVerifyRetryNow => 'Retry now';
+
+  @override
+  String get branchesVerifyFinishBackground => 'Finish in background';
+
+  @override
   String get branchesNetworkOnline => 'Online';
 
   @override

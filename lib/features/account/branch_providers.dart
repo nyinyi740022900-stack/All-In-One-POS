@@ -16,3 +16,8 @@ final branchRepositoryProvider = Provider<BranchRepository>((ref) {
 final branchesProvider = FutureProvider.autoDispose<List<Branch>>((ref) {
   return ref.watch(branchRepositoryProvider).listBranches();
 });
+
+final branchSwitchRecoveryProvider =
+    StreamProvider.autoDispose<BranchSwitchRecoveryState?>((ref) {
+      return ref.watch(branchRepositoryProvider).watchSwitchRecoveryState();
+    });

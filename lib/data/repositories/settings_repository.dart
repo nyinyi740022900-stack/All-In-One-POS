@@ -13,7 +13,7 @@ import '../local/database.dart';
 /// shop receipt header/footer, etc.
 class SettingsRepository {
   SettingsRepository(this._db, {FlutterSecureStorage? secureStorage})
-      : _secure = secureStorage ?? const FlutterSecureStorage();
+    : _secure = secureStorage ?? const FlutterSecureStorage();
 
   final AppDatabase _db;
   final FlutterSecureStorage _secure;
@@ -32,6 +32,7 @@ class SettingsRepository {
   static const _kReceiptFooter = 'receipt.footer';
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
+  static const _kBranchSwitchState = 'branch.switch.state';
   static const _kStaffRole = 'staff.role';
   static const _kStaffPinHash = 'staff.pin_hash';
   static const _kStaffPin = 'staff.pin';
@@ -39,15 +40,18 @@ class SettingsRepository {
   static const _kStaffPinLockedUntil = 'staff.pin_locked_until';
 
   Future<String?> _get(String key) async {
-    final row = await (_db.select(_db.appSettings)
-          ..where((s) => s.key.equals(key)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.appSettings,
+    )..where((s) => s.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
   Future<void> _set(String key, String value) {
-    return _db.into(_db.appSettings).insertOnConflictUpdate(
-        AppSettingsCompanion(key: Value(key), value: Value(value)));
+    return _db
+        .into(_db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion(key: Value(key), value: Value(value)),
+        );
   }
 
   Future<void> _delete(String key) {
@@ -84,8 +88,9 @@ class SettingsRepository {
           : PaperSize.mm58,
       mac: await _get(_kPrinterMac),
       name: await _get(_kPrinterName),
-      pdfPaperSize:
-          (await _get(_kPdfPaperSize)) == 'a5' ? PdfPaperSize.a5 : PdfPaperSize.a4,
+      pdfPaperSize: (await _get(_kPdfPaperSize)) == 'a5'
+          ? PdfPaperSize.a5
+          : PdfPaperSize.a4,
     );
   }
 
@@ -104,9 +109,9 @@ class SettingsRepository {
   // printer above) --------------------------------------------------------
 
   LabelSize _labelSizeFromKey(String? key) => LabelSize.values.firstWhere(
-        (s) => s.name == key,
-        orElse: () => LabelSize.mm40x30,
-      );
+    (s) => s.name == key,
+    orElse: () => LabelSize.mm40x30,
+  );
 
   Stream<LabelPrinterConfig> watchLabelPrinterConfig() {
     return _db.select(_db.appSettings).watch().map((rows) {
@@ -154,7 +159,9 @@ class SettingsRepository {
     try {
       final secure = await _secure.read(key: _kDeviceId);
       if (secure != null && secure.isNotEmpty) return secure;
-    } catch (_) {/* not available (tests) */}
+    } catch (_) {
+      /* not available (tests) */
+    }
 
     // 2) Migrate a legacy id from the local DB, or mint a new one.
     var id = await _get(_kDeviceId);
@@ -163,7 +170,9 @@ class SettingsRepository {
     await _set(_kDeviceId, id); // keep a local copy for offline reads
     try {
       await _secure.write(key: _kDeviceId, value: id);
-    } catch (_) {/* not available (tests) */}
+    } catch (_) {
+      /* not available (tests) */
+    }
     return id;
   }
 
@@ -219,7 +228,8 @@ class SettingsRepository {
 
   Future<void> setOwnerPinFailedAttempts(int attempts) =>
       _set(_kStaffPinFailedAttempts, '$attempts');
-  Future<void> clearOwnerPinFailedAttempts() => _delete(_kStaffPinFailedAttempts);
+  Future<void> clearOwnerPinFailedAttempts() =>
+      _delete(_kStaffPinFailedAttempts);
 
   Future<DateTime?> ownerPinLockedUntil() async {
     final raw = await _get(_kStaffPinLockedUntil);
@@ -288,16 +298,29 @@ class SettingsRepository {
   Future<void> setReferralSeenEarned(int value) =>
       _set(_kReferralSeenEarned, '$value');
 
+  /// Persisted branch-switch recovery marker (feature/account scoped JSON).
+  Future<String?> branchSwitchStateJson() => _get(_kBranchSwitchState);
+  Future<void> setBranchSwitchStateJson(String json) =>
+      _set(_kBranchSwitchState, json);
+  Future<void> clearBranchSwitchState() => _delete(_kBranchSwitchState);
+  Stream<String?> watchBranchSwitchStateJson() {
+    return _db.select(_db.appSettings).watch().map((rows) {
+      for (final r in rows) {
+        if (r.key == _kBranchSwitchState) return r.value;
+      }
+      return null;
+    });
+  }
+
   // Cached vendor config (payment accounts + support contact), refreshed from
   // the backend `app_config` table so it survives offline.
   static const _kVendorConfig = 'vendor.config.json';
   Future<String?> vendorConfigJson() => _get(_kVendorConfig);
-  Future<void> setVendorConfigJson(String json) =>
-      _set(_kVendorConfig, json);
+  Future<void> setVendorConfigJson(String json) => _set(_kVendorConfig, json);
   Future<void> clearLicense() {
-    return (_db.delete(_db.appSettings)
-          ..where((s) => s.key.equals(_kLicense)))
-        .go();
+    return (_db.delete(
+      _db.appSettings,
+    )..where((s) => s.key.equals(_kLicense))).go();
   }
 
   // ---- Sync cursors (per-table high-water mark of pulled updated_at) -------
@@ -416,11 +439,12 @@ class PrinterConfig {
   final String? mac;
   final String? name;
   final PdfPaperSize pdfPaperSize;
-  const PrinterConfig(
-      {required this.paper,
-      this.mac,
-      this.name,
-      this.pdfPaperSize = PdfPaperSize.a4});
+  const PrinterConfig({
+    required this.paper,
+    this.mac,
+    this.name,
+    this.pdfPaperSize = PdfPaperSize.a4,
+  });
 
   bool get hasPrinter => mac != null && mac!.isNotEmpty;
 }
@@ -440,10 +464,11 @@ class ShopProfile {
   final String? phone;
   final String? logoUrl;
   final String? footer;
-  const ShopProfile(
-      {required this.name,
-      this.address,
-      this.phone,
-      this.logoUrl,
-      this.footer});
+  const ShopProfile({
+    required this.name,
+    this.address,
+    this.phone,
+    this.logoUrl,
+    this.footer,
+  });
 }

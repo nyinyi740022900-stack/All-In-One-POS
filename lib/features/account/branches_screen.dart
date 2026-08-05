@@ -193,6 +193,7 @@ class _BranchesBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final branchesAsync = ref.watch(branchesProvider);
+    final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(child: Text(l.accountActionFailed)),
@@ -205,28 +206,71 @@ class _BranchesBody extends ConsumerWidget {
             ),
           );
         }
-        return ListView.separated(
-          itemCount: branches.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) {
-            final b = branches[i];
-            return ListTile(
-              leading: Icon(
-                b.isCurrent ? Icons.storefront : Icons.storefront_outlined,
-              ),
-              title: Text(b.label?.isNotEmpty == true ? b.label! : b.shopId),
-              subtitle: Text(b.shopId),
-              trailing: b.isCurrent
-                  ? Chip(label: Text(l.branchesCurrent))
-                  : IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () => _confirmUnlink(context, ref, b),
+        return Column(
+          children: [
+            if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
+            Expanded(
+              child: ListView.separated(
+                itemCount: branches.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, i) {
+                  final b = branches[i];
+                  return ListTile(
+                    leading: Icon(
+                      b.isCurrent
+                          ? Icons.storefront
+                          : Icons.storefront_outlined,
                     ),
-              onTap: b.isCurrent ? null : () => _confirmSwitch(context, ref, b),
-            );
-          },
+                    title: Text(
+                      b.label?.isNotEmpty == true ? b.label! : b.shopId,
+                    ),
+                    subtitle: Text(b.shopId),
+                    trailing: b.isCurrent
+                        ? Chip(label: Text(l.branchesCurrent))
+                        : IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => _confirmUnlink(context, ref, b),
+                          ),
+                    onTap: b.isCurrent
+                        ? null
+                        : () => _confirmSwitch(context, ref, b),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildRecoveryBanner(
+    BuildContext context,
+    WidgetRef ref,
+    BranchSwitchRecoveryState recovery,
+  ) {
+    final l = AppLocalizations.of(context);
+    final hint = recovery.lastError == null
+        ? l.branchesRecoveryBody(recovery.toShopId)
+        : l.branchesRecoveryBodyWithError(
+            recovery.toShopId,
+            _switchErrorMessage(l, recovery.lastError),
+          );
+    return MaterialBanner(
+      content: Text(hint),
+      leading: const Icon(Icons.restore_outlined),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+          },
+          child: Text(l.branchesRecoveryDismiss),
+        ),
+        FilledButton(
+          onPressed: () => _retryPendingSync(context, ref, recovery),
+          child: Text(l.branchesRecoveryRetrySync),
+        ),
+      ],
     );
   }
 
@@ -294,6 +338,7 @@ class _BranchesBody extends ConsumerWidget {
       'invalid_branch_state' => l.branchesInvalidState,
       'not_linked' => l.branchesInvalidState,
       'forbidden' => l.branchesInvalidState,
+      'post_switch_verify_failed' => l.branchesVerifyBody,
       _ => l.accountActionFailed,
     };
   }
@@ -459,6 +504,96 @@ class _BranchesBody extends ConsumerWidget {
     );
   }
 
+  Future<bool> _runPostSwitchVerification(
+    BuildContext context,
+    WidgetRef ref,
+    String targetShopId,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final verify = await ref
+        .read(branchRepositoryProvider)
+        .verifyPostSwitch(targetShopId);
+    if (verify.ok) return true;
+    if (!context.mounted) return false;
+    final action = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.branchesVerifyTitle),
+        content: Text(l.branchesVerifyBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.branchesVerifyFinishBackground),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.branchesVerifyRetryNow),
+          ),
+        ],
+      ),
+    );
+    if (action == true) {
+      await ref.read(syncControllerProvider.notifier).sync();
+      final second = await ref
+          .read(branchRepositoryProvider)
+          .verifyPostSwitch(targetShopId);
+      return second.ok;
+    }
+    return false;
+  }
+
+  Future<void> _retryPendingSync(
+    BuildContext context,
+    WidgetRef ref,
+    BranchSwitchRecoveryState recovery,
+  ) async {
+    final l = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text(l.branchesRecoveryRetrySync),
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: AppTheme.space4),
+            Expanded(child: Text(l.branchesSwitchStepSyncingNewData)),
+          ],
+        ),
+      ),
+    );
+    await ref.read(syncControllerProvider.notifier).sync();
+    if (!context.mounted) return;
+    final ok = await _runPostSwitchVerification(
+      context,
+      ref,
+      recovery.toShopId,
+    );
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+      if (ok) {
+        await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryResolved)));
+      } else {
+        await ref
+            .read(branchRepositoryProvider)
+            .markSwitchNeedsSyncRetry(
+              toShopId: recovery.toShopId,
+              fromShopId: recovery.fromShopId,
+              token: recovery.token,
+              lastError: 'post_switch_verify_failed',
+            );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryStillPending)));
+      }
+    }
+  }
+
   Future<void> _confirmSwitch(
     BuildContext context,
     WidgetRef ref,
@@ -516,11 +651,18 @@ class _BranchesBody extends ConsumerWidget {
     );
     _showSwitchProgressDialog(context, currentStep);
     try {
+      final existingRecovery = await ref
+          .read(branchRepositoryProvider)
+          .switchRecoveryState();
+      final recoveryToken = existingRecovery?.toShopId == b.shopId
+          ? existingRecovery?.token
+          : null;
       final result = await ref
           .read(branchRepositoryProvider)
           .switchBranch(
             b.shopId,
             onStep: (step) => currentStep.value = _mapRepoStep(step),
+            idempotencyToken: recoveryToken,
           );
       if (!context.mounted) return;
 
@@ -531,14 +673,47 @@ class _BranchesBody extends ConsumerWidget {
         ref.invalidate(branchesProvider);
         currentStep.value = _BranchSwitchUiStep.syncingNewData;
         await ref.read(syncControllerProvider.notifier).sync();
+        if (!context.mounted) return;
+        final verificationOk = await _runPostSwitchVerification(
+          context,
+          ref,
+          b.shopId,
+        );
+        if (verificationOk) {
+          await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+        } else {
+          final fromShopId = existingRecovery?.fromShopId ?? '';
+          await ref
+              .read(branchRepositoryProvider)
+              .markSwitchNeedsSyncRetry(
+                toShopId: b.shopId,
+                fromShopId: fromShopId,
+                token: recoveryToken ?? existingRecovery?.token,
+                lastError: 'post_switch_verify_failed',
+              );
+        }
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l.branchesSwitched)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                verificationOk
+                    ? l.branchesSwitched
+                    : l.branchesRecoveryStillPending,
+              ),
+            ),
+          );
         }
         return;
       }
+      await ref
+          .read(branchRepositoryProvider)
+          .markSwitchNeedsSyncRetry(
+            toShopId: b.shopId,
+            fromShopId: existingRecovery?.fromShopId ?? '',
+            token: recoveryToken,
+            lastError: result.error,
+          );
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context).showSnackBar(

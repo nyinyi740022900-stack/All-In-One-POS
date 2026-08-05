@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/env.dart';
 import '../../data/local/database.dart';
@@ -46,6 +49,95 @@ enum BranchSwitchStep {
 
 typedef BranchSwitchStepCallback = void Function(BranchSwitchStep step);
 
+class BranchSwitchRecoveryState {
+  final String token;
+  final String fromShopId;
+  final String toShopId;
+  final BranchSwitchStep step;
+  final DateTime startedAt;
+  final String? lastError;
+  final bool needsSyncRetry;
+
+  const BranchSwitchRecoveryState({
+    required this.token,
+    required this.fromShopId,
+    required this.toShopId,
+    required this.step,
+    required this.startedAt,
+    this.lastError,
+    this.needsSyncRetry = false,
+  });
+
+  BranchSwitchRecoveryState copyWith({
+    BranchSwitchStep? step,
+    String? lastError,
+    bool? needsSyncRetry,
+  }) {
+    return BranchSwitchRecoveryState(
+      token: token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: step ?? this.step,
+      startedAt: startedAt,
+      lastError: lastError,
+      needsSyncRetry: needsSyncRetry ?? this.needsSyncRetry,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'token': token,
+    'from_shop_id': fromShopId,
+    'to_shop_id': toShopId,
+    'step': step.name,
+    'started_at': startedAt.toUtc().toIso8601String(),
+    'last_error': lastError,
+    'needs_sync_retry': needsSyncRetry,
+  };
+
+  static BranchSwitchRecoveryState? fromJson(Map<String, dynamic> json) {
+    final token = json['token'] as String?;
+    final fromShopId = json['from_shop_id'] as String?;
+    final toShopId = json['to_shop_id'] as String?;
+    final stepName = json['step'] as String?;
+    final startedRaw = json['started_at'] as String?;
+    if (token == null ||
+        fromShopId == null ||
+        toShopId == null ||
+        stepName == null ||
+        startedRaw == null) {
+      return null;
+    }
+    final startedAt = DateTime.tryParse(startedRaw);
+    final step = BranchSwitchStep.values.where((e) => e.name == stepName);
+    if (startedAt == null || step.isEmpty) return null;
+    return BranchSwitchRecoveryState(
+      token: token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: step.first,
+      lastError: json['last_error'] as String?,
+      needsSyncRetry: json['needs_sync_retry'] as bool? ?? false,
+      startedAt: startedAt,
+    );
+  }
+}
+
+class BranchSwitchVerification {
+  final bool ok;
+  final bool shopMatchesTarget;
+  final bool profileReadable;
+  final bool categoryQueryOk;
+  final bool productQueryOk;
+
+  const BranchSwitchVerification({
+    required this.ok,
+    required this.shopMatchesTarget,
+    required this.profileReadable,
+    required this.categoryQueryOk,
+    required this.productQueryOk,
+  });
+}
+
 /// Lets a real-login owner (see `account_repository.dart`) group multiple
 /// shop_ids they own as "branches" and switch which one this device is
 /// scoped to. Switching wipes and resyncs local data — this app's local
@@ -60,6 +152,90 @@ class BranchRepository {
   final AppDatabase _db;
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
+
+  Future<void> _saveRecoveryState(BranchSwitchRecoveryState state) =>
+      _settings.setBranchSwitchStateJson(jsonEncode(state.toJson()));
+
+  Future<BranchSwitchRecoveryState?> switchRecoveryState() async {
+    final raw = await _settings.branchSwitchStateJson();
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return BranchSwitchRecoveryState.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Stream<BranchSwitchRecoveryState?> watchSwitchRecoveryState() {
+    return _settings.watchBranchSwitchStateJson().map((raw) {
+      if (raw == null || raw.isEmpty) return null;
+      try {
+        return BranchSwitchRecoveryState.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  Future<void> clearSwitchRecoveryState() => _settings.clearBranchSwitchState();
+
+  Future<void> markSwitchNeedsSyncRetry({
+    required String toShopId,
+    required String fromShopId,
+    String? token,
+    String? lastError,
+  }) {
+    final state = BranchSwitchRecoveryState(
+      token: (token == null || token.isEmpty) ? const Uuid().v4() : token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: BranchSwitchStep.clearingOldData,
+      startedAt: DateTime.now(),
+      lastError: lastError,
+      needsSyncRetry: true,
+    );
+    return _saveRecoveryState(state);
+  }
+
+  Future<BranchSwitchVerification> verifyPostSwitch(String targetShopId) async {
+    final current = await _licenseRepository.current();
+    final shopMatchesTarget = current?.shopId == targetShopId;
+
+    bool profileReadable = false;
+    try {
+      await _settings.shopProfile(targetShopId);
+      profileReadable = true;
+    } catch (_) {}
+
+    bool categoryQueryOk = false;
+    try {
+      await _db.select(_db.categories).get();
+      categoryQueryOk = true;
+    } catch (_) {}
+
+    bool productQueryOk = false;
+    try {
+      await _db.select(_db.products).get();
+      productQueryOk = true;
+    } catch (_) {}
+
+    final ok =
+        shopMatchesTarget &&
+        profileReadable &&
+        categoryQueryOk &&
+        productQueryOk;
+    return BranchSwitchVerification(
+      ok: ok,
+      shopMatchesTarget: shopMatchesTarget,
+      profileReadable: profileReadable,
+      categoryQueryOk: categoryQueryOk,
+      productQueryOk: productQueryOk,
+    );
+  }
 
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
@@ -147,7 +323,27 @@ class BranchRepository {
   Future<BranchSwitchResult> switchBranch(
     String shopId, {
     BranchSwitchStepCallback? onStep,
+    String? idempotencyToken,
   }) async {
+    final current = await _licenseRepository.current();
+    final fromShopId = current?.shopId ?? '';
+    final token = idempotencyToken ?? const Uuid().v4();
+    final startedAt = DateTime.now();
+    Future<void> saveStep(BranchSwitchStep step, {String? error}) async {
+      await _saveRecoveryState(
+        BranchSwitchRecoveryState(
+          token: token,
+          fromShopId: fromShopId,
+          toShopId: shopId,
+          step: step,
+          startedAt: startedAt,
+          lastError: error,
+          needsSyncRetry: false,
+        ),
+      );
+    }
+
+    await saveStep(BranchSwitchStep.checkingDataSafety);
     onStep?.call(BranchSwitchStep.checkingDataSafety);
     if (!Env.hasBackend) {
       return const BranchSwitchResult.failure('no_backend');
@@ -158,15 +354,24 @@ class BranchRepository {
     }
     final pending = await _db.select(_db.outbox).get();
     if (pending.isNotEmpty) {
+      await saveStep(
+        BranchSwitchStep.checkingDataSafety,
+        error: 'branch_switch_pending_sync',
+      );
       return const BranchSwitchResult.failure('branch_switch_pending_sync');
     }
 
     Map<String, dynamic> data;
     try {
+      await saveStep(BranchSwitchStep.switchingAccountClaim);
       onStep?.call(BranchSwitchStep.switchingAccountClaim);
       final res = await Supabase.instance.client.functions.invoke(
         'activate',
-        body: {'action': 'switch_branch', 'shop_id': shopId},
+        body: {
+          'action': 'switch_branch',
+          'shop_id': shopId,
+          'switch_token': token,
+        },
       );
       data = res.data as Map<String, dynamic>;
     } catch (e) {
@@ -175,12 +380,22 @@ class BranchRepository {
           msg.contains('unauthorized') ||
           msg.contains('forbidden') ||
           msg.contains('auth')) {
+        await saveStep(
+          BranchSwitchStep.switchingAccountClaim,
+          error: 'auth_expired',
+        );
         return const BranchSwitchResult.failure('auth_expired');
       }
+      await saveStep(
+        BranchSwitchStep.switchingAccountClaim,
+        error: 'network_error',
+      );
       return const BranchSwitchResult.failure('network_error');
     }
     if (data['ok'] != true) {
-      return BranchSwitchResult.failure(data['error'] as String?);
+      final error = data['error'] as String?;
+      await saveStep(BranchSwitchStep.switchingAccountClaim, error: error);
+      return BranchSwitchResult.failure(error);
     }
     final expiresAtRaw = data['expires_at'] as String?;
     if (expiresAtRaw == null) {
@@ -188,12 +403,15 @@ class BranchRepository {
     }
 
     try {
+      await saveStep(BranchSwitchStep.refreshingSession);
       onStep?.call(BranchSwitchStep.refreshingSession);
       await Supabase.instance.client.auth.refreshSession();
     } catch (_) {
+      await saveStep(BranchSwitchStep.refreshingSession, error: 'auth_expired');
       return const BranchSwitchResult.failure('auth_expired');
     }
 
+    await saveStep(BranchSwitchStep.clearingOldData);
     onStep?.call(BranchSwitchStep.clearingOldData);
     await _db.wipeSyncedData();
 
