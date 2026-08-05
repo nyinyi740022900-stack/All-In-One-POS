@@ -19,7 +19,7 @@ class OwnerOnlyGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(isOwnerProvider)) return child;
+    if (ref.watch(isEffectiveOwnerProvider)) return child;
     final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
@@ -47,7 +47,7 @@ class StaffBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(isOwnerProvider)) return const SizedBox.shrink();
+    if (ref.watch(isEffectiveOwnerProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final name = ref.watch(activeStaffNameProvider);
     return Container(
@@ -210,9 +210,10 @@ class StaffModeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    ref.watch(ownerPinCooldownTickProvider);
     final ctrl = ref.watch(staffControllerProvider);
-    final ownerCooldown = ctrl.ownerPinCooldownRemainingSeconds();
+    final ownerCooldown =
+        ref.watch(ownerPinCooldownSecondsProvider).valueOrNull ??
+            ctrl.ownerPinCooldownRemainingSeconds();
     final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
     final isOwner = role == 'owner';
 

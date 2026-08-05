@@ -42,7 +42,7 @@ class LicenseState {
 }
 
 /// Convenience read of [LicenseState.isPremium], same shape as
-/// `isOwnerProvider` — the primary thing `PremiumGate` watches.
+/// `isEffectiveOwnerProvider` — the primary thing `PremiumGate` watches.
 final isPremiumProvider =
     Provider<bool>((ref) => ref.watch(licenseControllerProvider).isPremium);
 

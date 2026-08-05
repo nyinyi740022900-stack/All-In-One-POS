@@ -35,6 +35,8 @@ class SettingsRepository {
   static const _kStaffRole = 'staff.role';
   static const _kStaffPinHash = 'staff.pin_hash';
   static const _kStaffPin = 'staff.pin';
+  static const _kStaffPinFailedAttempts = 'staff.pin_failed_attempts';
+  static const _kStaffPinLockedUntil = 'staff.pin_locked_until';
 
   Future<String?> _get(String key) async {
     final row = await (_db.select(_db.appSettings)
@@ -209,6 +211,24 @@ class SettingsRepository {
     if (saved == null || saved.isEmpty) return true;
     return saved == _hashStaffPin(pin);
   }
+
+  Future<int> ownerPinFailedAttempts() async {
+    final raw = await _get(_kStaffPinFailedAttempts);
+    return int.tryParse(raw ?? '') ?? 0;
+  }
+
+  Future<void> setOwnerPinFailedAttempts(int attempts) =>
+      _set(_kStaffPinFailedAttempts, '$attempts');
+  Future<void> clearOwnerPinFailedAttempts() => _delete(_kStaffPinFailedAttempts);
+
+  Future<DateTime?> ownerPinLockedUntil() async {
+    final raw = await _get(_kStaffPinLockedUntil);
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  Future<void> setOwnerPinLockedUntil(DateTime until) =>
+      _set(_kStaffPinLockedUntil, until.toUtc().toIso8601String());
+  Future<void> clearOwnerPinLockedUntil() => _delete(_kStaffPinLockedUntil);
 
   /// Which staff-roster member (see `StaffMembers`) is currently "using" this
   /// device — device-local, not synced (the roster itself is shared across

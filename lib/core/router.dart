@@ -55,7 +55,7 @@ class _ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final isOwner = ref.watch(isOwnerProvider);
+    final isOwner = ref.watch(isEffectiveOwnerProvider);
     // Tablet (wide) → rail; phone → bottom bar.
     final isWide = MediaQuery.sizeOf(context).width >= 640;
 

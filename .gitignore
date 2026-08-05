@@ -50,6 +50,7 @@ env.local.json
 
 # Personal Claude Code settings (per-developer deploy permissions, etc.)
 .claude/settings.local.json
+.claude/launch.json
 
 # Supabase CLI local state (linked project ref, pooler connection url, etc.)
 supabase/.temp/

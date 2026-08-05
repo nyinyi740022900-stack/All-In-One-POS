@@ -25,7 +25,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
 
     // Business analytics are owner-only.
-    if (!ref.watch(isOwnerProvider)) {
+    if (!ref.watch(isEffectiveOwnerProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
         body: const OwnerOnlyGate(child: SizedBox.shrink()),

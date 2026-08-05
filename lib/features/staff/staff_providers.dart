@@ -30,12 +30,12 @@ final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
 
 /// A lightweight 1-second ticker so staff-mode UI can refresh countdown text
 /// (for owner PIN cooldown) without adding timers inside widgets.
-final ownerPinCooldownTickProvider = StreamProvider<int>((ref) async* {
-  var tick = 0;
-  while (true) {
-    yield tick++;
-    await Future<void>.delayed(const Duration(seconds: 1));
-  }
+final ownerPinCooldownSecondsProvider = StreamProvider.autoDispose<int>((ref) async* {
+  final ctrl = ref.watch(staffControllerProvider);
+  await ctrl.primePinState();
+  yield ctrl.ownerPinCooldownRemainingSeconds();
+  yield* Stream<int>.periodic(const Duration(seconds: 1),
+      (_) => ctrl.ownerPinCooldownRemainingSeconds());
 });
 
 /// Which roster member is "using" this device right now — device-local, not
@@ -85,7 +85,8 @@ final isOwnerProvider = Provider<bool>((ref) {
 
 /// Alias kept for call-site clarity in the Inventory screen — Inventory
 /// add/edit is owner-only, same gate as everything else non-Sell/Orders.
-final canEditInventoryProvider = Provider<bool>((ref) => ref.watch(isOwnerProvider));
+final canEditInventoryProvider =
+    Provider<bool>((ref) => ref.watch(isEffectiveOwnerProvider));
 
 /// Staff/Owner mode only matters once there's a second device to hand off to
 /// someone else — for a shop running just one device, switching that one
@@ -112,14 +113,27 @@ class StaffController {
   final DateTime Function() _now;
   int _ownerPinFailures = 0;
   DateTime? _ownerPinLockedUntil;
+  bool _pinStateLoaded = false;
   static const int _kMaxOwnerPinFailures = 5;
   static const Duration _kOwnerPinCooldown = Duration(seconds: 30);
 
-  void _clearExpiredOwnerPinLock() {
+  Future<void> primePinState() => _ensurePinStateLoaded();
+
+  Future<void> _ensurePinStateLoaded() async {
+    if (_pinStateLoaded) return;
+    final repo = _ref.read(settingsRepositoryProvider);
+    _ownerPinFailures = await repo.ownerPinFailedAttempts();
+    _ownerPinLockedUntil = await repo.ownerPinLockedUntil();
+    _pinStateLoaded = true;
+  }
+
+  bool _clearExpiredOwnerPinLock() {
     final until = _ownerPinLockedUntil;
     if (until != null && !_now().isBefore(until)) {
       _ownerPinLockedUntil = null;
+      return true;
     }
+    return false;
   }
 
   int ownerPinCooldownRemainingSeconds() {
@@ -141,7 +155,13 @@ class StaffController {
     if (!isValidOwnerPin(pin)) {
       throw ArgumentError('owner PIN must be 4-6 digits');
     }
-    await _ref.read(settingsRepositoryProvider).setStaffPin(pin);
+    final repo = _ref.read(settingsRepositoryProvider);
+    await repo.setStaffPin(pin);
+    _ownerPinFailures = 0;
+    _ownerPinLockedUntil = null;
+    _pinStateLoaded = true;
+    await repo.clearOwnerPinFailedAttempts();
+    await repo.clearOwnerPinLockedUntil();
   }
 
   /// Attempts to switch to [targetRole]. [pin] is required only when
@@ -149,23 +169,32 @@ class StaffController {
   /// Switching to 'owner' always clears the active staff identity — no named
   /// staff is "using" the device while it's in owner mode.
   Future<bool> switchRole(String targetRole, {String? pin}) async {
+    await _ensurePinStateLoaded();
     final repo = _ref.read(settingsRepositoryProvider);
     if (targetRole == 'owner') {
-      _clearExpiredOwnerPinLock();
+      final lockExpired = _clearExpiredOwnerPinLock();
+      if (lockExpired) {
+        await repo.clearOwnerPinLockedUntil();
+      }
       if (_ownerPinLockedUntil != null && _now().isBefore(_ownerPinLockedUntil!)) {
         return false;
       }
       final ok = await repo.verifyStaffPin((pin ?? '').trim());
       if (!ok) {
         _ownerPinFailures += 1;
+        await repo.setOwnerPinFailedAttempts(_ownerPinFailures);
         if (_ownerPinFailures >= _kMaxOwnerPinFailures) {
           _ownerPinFailures = 0;
           _ownerPinLockedUntil = _now().add(_kOwnerPinCooldown);
+          await repo.setOwnerPinFailedAttempts(0);
+          await repo.setOwnerPinLockedUntil(_ownerPinLockedUntil!);
         }
         return false;
       }
       _ownerPinFailures = 0;
       _ownerPinLockedUntil = null;
+      await repo.clearOwnerPinFailedAttempts();
+      await repo.clearOwnerPinLockedUntil();
       await repo.setActiveStaffId('');
     }
     await repo.setStaffRole(targetRole);

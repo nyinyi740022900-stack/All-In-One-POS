@@ -102,6 +102,32 @@ void main() {
     expect(await settings.staffRole(), 'owner');
   });
 
+  test('owner PIN cooldown persists across controller recreation', () async {
+    final first = ProviderContainer(overrides: [
+      settingsRepositoryProvider.overrideWithValue(settings),
+      databaseProvider.overrideWithValue(db),
+      shopIdProvider.overrideWith((ref) => 'shop-1'),
+    ]);
+    final firstCtrl = first.read(staffControllerProvider);
+    await firstCtrl.setPin('1234');
+    await firstCtrl.switchRole('staff');
+    for (var i = 0; i < 5; i++) {
+      expect(await firstCtrl.switchRole('owner', pin: '0000'), isFalse);
+    }
+    first.dispose();
+
+    final second = ProviderContainer(overrides: [
+      settingsRepositoryProvider.overrideWithValue(settings),
+      databaseProvider.overrideWithValue(db),
+      shopIdProvider.overrideWith((ref) => 'shop-1'),
+    ]);
+    addTearDown(second.dispose);
+    final secondCtrl = second.read(staffControllerProvider);
+    // Lock is persisted: still denied even with correct PIN.
+    expect(await secondCtrl.switchRole('owner', pin: '1234'), isFalse);
+    expect(await settings.staffRole(), 'staff');
+  });
+
   test('switching to staff needs no PIN even when one is set', () async {
     await ctrl().setPin('1234');
     expect(await ctrl().switchRole('staff'), isTrue);

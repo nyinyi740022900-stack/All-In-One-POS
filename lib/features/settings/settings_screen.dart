@@ -62,7 +62,7 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const ShopProfileScreen(),
             )),
           ),
-          if (ref.watch(isOwnerProvider)) _TrackStockTile(),
+          if (ref.watch(isEffectiveOwnerProvider)) _TrackStockTile(),
           ListTile(
             leading: const Icon(Icons.point_of_sale_outlined),
             title: Text(l.cashRegisterTitle),
@@ -114,10 +114,10 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _AccountsPayableTile(),
           _EquityTile(),
-          if (ref.watch(isOwnerProvider)) _StorefrontTile(),
+          if (ref.watch(isEffectiveOwnerProvider)) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
-          if (ref.watch(isOwnerProvider)) _LicenseTile(),
+          if (ref.watch(isEffectiveOwnerProvider)) _LicenseTile(),
           ListTile(
             leading: const Icon(Icons.alternate_email),
             title: Text(l.accountShopLoginTitle),
@@ -127,7 +127,7 @@ class SettingsScreen extends ConsumerWidget {
             )),
           ),
           if (ref.read(accountRepositoryProvider).isSignedInWithRealAccount &&
-              ref.watch(isOwnerProvider)) ...[
+              ref.watch(isEffectiveOwnerProvider)) ...[
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: Text(l.staffAccountsTitle),
@@ -147,7 +147,7 @@ class SettingsScreen extends ConsumerWidget {
             _PricingTierTile(),
           ],
           _ReferralTile(),
-          if (ref.watch(isOwnerProvider))
+          if (ref.watch(isEffectiveOwnerProvider))
             ListTile(
               leading: const Icon(Icons.backup),
               title: Text(l.backupTitle),
