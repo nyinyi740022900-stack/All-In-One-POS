@@ -483,6 +483,11 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String supplierDeleteConfirmApWarning(String name, String amount) {
+    return '$name က Accounts Payable မှာ $amount ကျန်နေပါသေးတယ်။ Supplier ကို ဖျက်လိုက်ရင် အဲ့ကြွေးကျန်ကို ပယ်ဖျက်မသွားပါဘူး — သူတို့ရဲ့ သိမ်းထားတဲ့ အမည်နဲ့ Accounts Payable မှာ ဆက်ပြနေပါမယ်။';
+  }
+
+  @override
   String get supplierDeleted => 'ကုန်ပို့သူ ဖယ်ရှားပြီး';
 
   @override

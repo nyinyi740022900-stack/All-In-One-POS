@@ -167,6 +167,8 @@
   "supplierDeleteConfirmTitle": "Remove this supplier?",
   "supplierDeleteConfirmBody": "{name} will no longer appear as a suggestion on new purchase orders. Past purchase orders still show their name.",
   "@supplierDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "supplierDeleteConfirmApWarning": "{name} still owes {amount} in Accounts Payable. Deleting the supplier won't cancel that debt — it stays visible in Accounts Payable under their saved name.",
+  "@supplierDeleteConfirmApWarning": { "placeholders": { "name": { "type": "String" }, "amount": { "type": "String" } } },
   "supplierDeleted": "Supplier removed",
   "paymentAccountsTitle": "Payment accounts",
   "paymentAccountsEmpty": "No payment accounts yet. Add your first account.",

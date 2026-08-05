@@ -986,6 +986,12 @@ abstract class AppLocalizations {
   /// **'{name} will no longer appear as a suggestion on new purchase orders. Past purchase orders still show their name.'**
   String supplierDeleteConfirmBody(String name);
 
+  /// No description provided for @supplierDeleteConfirmApWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} still owes {amount} in Accounts Payable. Deleting the supplier won\'t cancel that debt — it stays visible in Accounts Payable under their saved name.'**
+  String supplierDeleteConfirmApWarning(String name, String amount);
+
   /// No description provided for @supplierDeleted.
   ///
   /// In en, this message translates to:

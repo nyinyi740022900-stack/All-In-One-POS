@@ -104,7 +104,7 @@ class SettingsScreen extends ConsumerWidget {
             )),
           ),
           ListTile(
-            leading: const Icon(Icons.account_balance_wallet_outlined),
+            leading: const Icon(Icons.credit_card_outlined),
             title: Text(l.paymentAccountsTitle),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(

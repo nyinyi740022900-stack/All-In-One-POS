@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/money.dart';
 import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import 'accounts_payable.dart';
+import 'accounts_payable_providers.dart';
 import 'supplier_providers.dart';
 
 /// Supplier directory: browse/add/edit/delete the shop's saved suppliers —
@@ -17,11 +20,32 @@ class SuppliersScreen extends ConsumerWidget {
   Future<void> _confirmDelete(
       BuildContext context, WidgetRef ref, Supplier s) async {
     final l = AppLocalizations.of(context);
+    final currency = l.currencySymbol;
+    final key = poSupplierKeyFor(s.id, s.name);
+    final balance = ref
+        .read(supplierBalancesProvider)
+        .where((b) => b.key == key)
+        .firstOrNull;
+    final outstanding = balance?.outstanding ?? 0;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.supplierDeleteConfirmTitle),
-        content: Text(l.supplierDeleteConfirmBody(s.name)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.supplierDeleteConfirmBody(s.name)),
+            if (outstanding > 0) ...[
+              const SizedBox(height: AppTheme.space3),
+              Text(
+                l.supplierDeleteConfirmApWarning(
+                    s.name, Money(outstanding).withSymbol(currency)),
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),

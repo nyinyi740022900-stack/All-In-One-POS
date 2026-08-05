@@ -487,6 +487,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String supplierDeleteConfirmApWarning(String name, String amount) {
+    return '$name still owes $amount in Accounts Payable. Deleting the supplier won\'t cancel that debt — it stays visible in Accounts Payable under their saved name.';
+  }
+
+  @override
   String get supplierDeleted => 'Supplier removed';
 
   @override

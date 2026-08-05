@@ -135,6 +135,51 @@ void main() {
     expect(po!.status, 'cancelled');
   });
 
+  test('savePO throws when called again on an already-received PO', () async {
+    final productId =
+        await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 5);
+    final poId = await repo.savePO(
+      supplierName: 'Acme',
+      lines: [
+        PurchaseOrderDraftLine(
+            productId: productId, name: 'Coke', qty: 10, unitCost: 500),
+      ],
+    );
+    await repo.receivePO(poId);
+
+    expect(
+      () => repo.savePO(
+        id: poId,
+        supplierName: 'Acme',
+        lines: [
+          PurchaseOrderDraftLine(
+              productId: productId, name: 'Coke', qty: 20, unitCost: 500),
+        ],
+      ),
+      throwsStateError,
+    );
+    final po = await repo.getOrder(poId);
+    expect(po!.itemsTotal, 5000); // unchanged
+  });
+
+  test('deletePO throws for an already-received PO, leaving it intact',
+      () async {
+    final productId =
+        await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 5);
+    final poId = await repo.savePO(
+      supplierName: 'Acme',
+      lines: [
+        PurchaseOrderDraftLine(
+            productId: productId, name: 'Coke', qty: 10, unitCost: 500),
+      ],
+    );
+    await repo.receivePO(poId);
+
+    expect(() => repo.deletePO(poId), throwsStateError);
+    final po = await repo.getOrder(poId);
+    expect(po!.isDeleted, isFalse);
+  });
+
   test('watchOrders excludes other shops', () async {
     final productId =
         await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 5);

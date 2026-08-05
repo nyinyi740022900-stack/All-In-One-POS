@@ -68,6 +68,13 @@ class PurchaseOrderRepository {
       final existing = await (_db.select(_db.purchaseOrders)
             ..where((t) => t.id.equals(poId)))
           .getSingleOrNull();
+      // A received PO is an immutable record of what actually happened to
+      // stock (same as a finalized Sale) — the editor UI already only lets
+      // an `open` PO reach this call, this is a repository-level backstop
+      // against a stale screen or a future caller bypassing that check.
+      if (existing != null && existing.status == 'received') {
+        throw StateError('Cannot edit a received purchase order: $poId');
+      }
       final poNo = existing?.poNo ?? 'PO-${poId.substring(0, 8).toUpperCase()}';
 
       await _db.into(_db.purchaseOrders).insertOnConflictUpdate(
@@ -188,10 +195,15 @@ class PurchaseOrderRepository {
 
   /// Only meaningful while still `open` — the UI doesn't offer this once a
   /// PO has been received (an immutable record of what actually happened to
-  /// stock, same as a finalized Sale).
+  /// stock, same as a finalized Sale); this throws if called anyway, same
+  /// backstop reasoning as [savePO]'s guard.
   Future<void> deletePO(String poId) async {
     final now = DateTime.now();
     await _db.transaction(() async {
+      final po = await getOrder(poId);
+      if (po != null && po.status == 'received') {
+        throw StateError('Cannot delete a received purchase order: $poId');
+      }
       await (_db.update(_db.purchaseOrders)..where((t) => t.id.equals(poId)))
           .write(PurchaseOrdersCompanion(
         isDeleted: const Value(true),

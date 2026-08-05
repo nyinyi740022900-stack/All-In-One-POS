@@ -163,6 +163,8 @@
   "supplierDeleteConfirmTitle": "ဒီကုန်ပို့သူကို ဖယ်ရှားမလား?",
   "supplierDeleteConfirmBody": "{name} ကို Purchase order အသစ်တွေမှာ အကြံပြုမှာ မဟုတ်တော့ပါ။ ယခင် Purchase order တွေမှာတော့ အမည် ဆက်ပြပါလိမ့်မယ်။",
   "@supplierDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "supplierDeleteConfirmApWarning": "{name} က Accounts Payable မှာ {amount} ကျန်နေပါသေးတယ်။ Supplier ကို ဖျက်လိုက်ရင် အဲ့ကြွေးကျန်ကို ပယ်ဖျက်မသွားပါဘူး — သူတို့ရဲ့ သိမ်းထားတဲ့ အမည်နဲ့ Accounts Payable မှာ ဆက်ပြနေပါမယ်။",
+  "@supplierDeleteConfirmApWarning": { "placeholders": { "name": { "type": "String" }, "amount": { "type": "String" } } },
   "supplierDeleted": "ကုန်ပို့သူ ဖယ်ရှားပြီး",
   "paymentAccountsTitle": "ငွေပေးချေမှု အကောင့်များ",
   "paymentAccountsEmpty": "Account မထည့်ရသေးပါ။ ပထမဆုံး Account ကို ထည့်ပါ။",

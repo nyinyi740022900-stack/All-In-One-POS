@@ -187,7 +187,16 @@ class _EquityEntryDialogState extends ConsumerState<_EquityEntryDialog> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _amount.addListener(_onAmountChanged);
+  }
+
+  void _onAmountChanged() => setState(() {});
+
+  @override
   void dispose() {
+    _amount.removeListener(_onAmountChanged);
     _amount.dispose();
     _note.dispose();
     super.dispose();
@@ -202,6 +211,8 @@ class _EquityEntryDialogState extends ConsumerState<_EquityEntryDialog> {
     );
     if (picked != null) setState(() => _date = picked);
   }
+
+  bool get _amountValid => (int.tryParse(_amount.text.trim()) ?? 0) > 0;
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
@@ -276,7 +287,7 @@ class _EquityEntryDialogState extends ConsumerState<_EquityEntryDialog> {
           child: Text(l.commonCancel),
         ),
         FilledButton(
-          onPressed: _saving ? null : _save,
+          onPressed: _saving || !_amountValid ? null : _save,
           child: Text(l.commonSave),
         ),
       ],
