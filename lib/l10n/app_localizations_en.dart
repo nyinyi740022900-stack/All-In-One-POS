@@ -2561,6 +2561,80 @@ class AppLocalizationsEn extends AppLocalizations {
       'This device still has unsynced changes. Wait for sync to finish, then try again.';
 
   @override
+  String branchesPreflightTitle(String label) {
+    return 'Ready to switch to \"$label\"?';
+  }
+
+  @override
+  String get branchesPreflightTarget => 'Target branch';
+
+  @override
+  String branchesPreflightPending(int count) {
+    return 'Pending local changes: $count';
+  }
+
+  @override
+  String branchesPreflightNetwork(String status) {
+    return 'Network: $status';
+  }
+
+  @override
+  String branchesPreflightLastSync(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String get branchesPreflightNeedSync =>
+      'Sync first before switching so no local changes are lost.';
+
+  @override
+  String get branchesPreflightNeedOnline =>
+      'You are offline. Connect to the internet before switching.';
+
+  @override
+  String get branchesPreflightSyncFirst => 'Sync first';
+
+  @override
+  String get branchesPreflightSwitchNow => 'Switch now';
+
+  @override
+  String get branchesSwitchInProgressTitle => 'Switching branch';
+
+  @override
+  String get branchesSwitchStepCheckingDataSafety => 'Checking data safety';
+
+  @override
+  String get branchesSwitchStepSwitchingAccountClaim =>
+      'Switching account claim';
+
+  @override
+  String get branchesSwitchStepRefreshingSession => 'Refreshing session';
+
+  @override
+  String get branchesSwitchStepClearingOldData => 'Clearing old shop data';
+
+  @override
+  String get branchesSwitchStepSyncingNewData => 'Syncing new branch data';
+
+  @override
+  String get branchesNetworkOnline => 'Online';
+
+  @override
+  String get branchesNetworkOffline => 'Offline';
+
+  @override
+  String get branchesNetworkRetry =>
+      'Internet connection looks unstable. Please retry.';
+
+  @override
+  String get branchesAuthExpired =>
+      'Your session expired. Please sign in again.';
+
+  @override
+  String get branchesInvalidState =>
+      'This branch is no longer linked or allowed for this account.';
+
+  @override
   String get branchesUnlink => 'Unlink';
 
   @override

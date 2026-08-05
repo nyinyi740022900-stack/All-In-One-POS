@@ -11,8 +11,11 @@ class Branch {
   final String shopId;
   final String? label;
   final bool isCurrent;
-  const Branch(
-      {required this.shopId, required this.label, required this.isCurrent});
+  const Branch({
+    required this.shopId,
+    required this.label,
+    required this.isCurrent,
+  });
 }
 
 class BranchActionResult {
@@ -31,10 +34,17 @@ class BranchSwitchResult {
   final String? error;
   final CachedLicense? license;
   const BranchSwitchResult.success(this.license) : ok = true, error = null;
-  const BranchSwitchResult.failure(this.error)
-      : ok = false,
-        license = null;
+  const BranchSwitchResult.failure(this.error) : ok = false, license = null;
 }
+
+enum BranchSwitchStep {
+  checkingDataSafety,
+  switchingAccountClaim,
+  refreshingSession,
+  clearingOldData,
+}
+
+typedef BranchSwitchStepCallback = void Function(BranchSwitchStep step);
 
 /// Lets a real-login owner (see `account_repository.dart`) group multiple
 /// shop_ids they own as "branches" and switch which one this device is
@@ -54,17 +64,21 @@ class BranchRepository {
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
     try {
-      final res = await Supabase.instance.client.functions
-          .invoke('activate', body: {'action': 'list_branches'});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'list_branches'},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] != true) return const [];
       final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
       return branches
-          .map((b) => Branch(
-                shopId: b['shop_id'] as String,
-                label: b['label'] as String?,
-                isCurrent: b['is_current'] as bool? ?? false,
-              ))
+          .map(
+            (b) => Branch(
+              shopId: b['shop_id'] as String,
+              label: b['label'] as String?,
+              isCurrent: b['is_current'] as bool? ?? false,
+            ),
+          )
           .toList();
     } catch (_) {
       return const [];
@@ -77,8 +91,10 @@ class BranchRepository {
   Future<BranchActionResult> createBranch(String shopName) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'create_branch', 'shop_name': shopName});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'create_branch', 'shop_name': shopName},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) return const BranchActionResult.success();
       return BranchActionResult.failure(data['error'] as String?);
@@ -90,8 +106,10 @@ class BranchRepository {
   Future<BranchActionResult> linkBranch(String key, String label) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'link_branch', 'key': key, 'label': label});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'link_branch', 'key': key, 'label': label},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) return const BranchActionResult.success();
       return BranchActionResult.failure(data['error'] as String?);
@@ -103,13 +121,20 @@ class BranchRepository {
   Future<bool> unlinkBranch(String shopId) async {
     if (!Env.hasBackend) return false;
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'unlink_branch', 'shop_id': shopId});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'unlink_branch', 'shop_id': shopId},
+      );
       final data = res.data as Map<String, dynamic>;
       return data['ok'] == true;
     } catch (_) {
       return false;
     }
+  }
+
+  Future<int> pendingOutboxCount() async {
+    final pending = await _db.select(_db.outbox).get();
+    return pending.length;
   }
 
   /// Switches this device to a different branch: checks the outbox is fully
@@ -119,9 +144,17 @@ class BranchRepository {
   /// clean for the new shop. Does NOT update `shopIdProvider`/trigger a
   /// resync itself — the caller applies the returned license via
   /// `LicenseController.applyExternal` and kicks `SyncController.sync()`.
-  Future<BranchSwitchResult> switchBranch(String shopId) async {
+  Future<BranchSwitchResult> switchBranch(
+    String shopId, {
+    BranchSwitchStepCallback? onStep,
+  }) async {
+    onStep?.call(BranchSwitchStep.checkingDataSafety);
     if (!Env.hasBackend) {
       return const BranchSwitchResult.failure('no_backend');
+    }
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentSession == null || auth.currentUser == null) {
+      return const BranchSwitchResult.failure('auth_expired');
     }
     final pending = await _db.select(_db.outbox).get();
     if (pending.isNotEmpty) {
@@ -130,10 +163,20 @@ class BranchRepository {
 
     Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions
-          .invoke('activate', body: {'action': 'switch_branch', 'shop_id': shopId});
+      onStep?.call(BranchSwitchStep.switchingAccountClaim);
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'switch_branch', 'shop_id': shopId},
+      );
       data = res.data as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('jwt') ||
+          msg.contains('unauthorized') ||
+          msg.contains('forbidden') ||
+          msg.contains('auth')) {
+        return const BranchSwitchResult.failure('auth_expired');
+      }
       return const BranchSwitchResult.failure('network_error');
     }
     if (data['ok'] != true) {
@@ -145,9 +188,13 @@ class BranchRepository {
     }
 
     try {
+      onStep?.call(BranchSwitchStep.refreshingSession);
       await Supabase.instance.client.auth.refreshSession();
-    } catch (_) {}
+    } catch (_) {
+      return const BranchSwitchResult.failure('auth_expired');
+    }
 
+    onStep?.call(BranchSwitchStep.clearingOldData);
     await _db.wipeSyncedData();
 
     final now = DateTime.now();
@@ -157,7 +204,8 @@ class BranchRepository {
       shopId: shopId,
       plan: _planFrom(data['plan'] as String? ?? 'monthly'),
       expiresAt: DateTime.parse(expiresAtRaw),
-      activatedAt: DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
+      activatedAt:
+          DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
       lastVerifiedAt: now,
       deviceId: deviceId,
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
@@ -169,7 +217,7 @@ class BranchRepository {
 }
 
 LicensePlan _planFrom(String s) => switch (s) {
-      'yearly' => LicensePlan.yearly,
-      'monthly' => LicensePlan.monthly,
-      _ => LicensePlan.trial,
-    };
+  'yearly' => LicensePlan.yearly,
+  'monthly' => LicensePlan.monthly,
+  _ => LicensePlan.trial,
+};

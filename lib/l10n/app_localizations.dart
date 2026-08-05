@@ -4784,6 +4784,126 @@ abstract class AppLocalizations {
   /// **'This device still has unsynced changes. Wait for sync to finish, then try again.'**
   String get branchesPendingSync;
 
+  /// No description provided for @branchesPreflightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to switch to \"{label}\"?'**
+  String branchesPreflightTitle(String label);
+
+  /// No description provided for @branchesPreflightTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target branch'**
+  String get branchesPreflightTarget;
+
+  /// No description provided for @branchesPreflightPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending local changes: {count}'**
+  String branchesPreflightPending(int count);
+
+  /// No description provided for @branchesPreflightNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network: {status}'**
+  String branchesPreflightNetwork(String status);
+
+  /// No description provided for @branchesPreflightLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String branchesPreflightLastSync(String time);
+
+  /// No description provided for @branchesPreflightNeedSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync first before switching so no local changes are lost.'**
+  String get branchesPreflightNeedSync;
+
+  /// No description provided for @branchesPreflightNeedOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Connect to the internet before switching.'**
+  String get branchesPreflightNeedOnline;
+
+  /// No description provided for @branchesPreflightSyncFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync first'**
+  String get branchesPreflightSyncFirst;
+
+  /// No description provided for @branchesPreflightSwitchNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch now'**
+  String get branchesPreflightSwitchNow;
+
+  /// No description provided for @branchesSwitchInProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching branch'**
+  String get branchesSwitchInProgressTitle;
+
+  /// No description provided for @branchesSwitchStepCheckingDataSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking data safety'**
+  String get branchesSwitchStepCheckingDataSafety;
+
+  /// No description provided for @branchesSwitchStepSwitchingAccountClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching account claim'**
+  String get branchesSwitchStepSwitchingAccountClaim;
+
+  /// No description provided for @branchesSwitchStepRefreshingSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing session'**
+  String get branchesSwitchStepRefreshingSession;
+
+  /// No description provided for @branchesSwitchStepClearingOldData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing old shop data'**
+  String get branchesSwitchStepClearingOldData;
+
+  /// No description provided for @branchesSwitchStepSyncingNewData.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing new branch data'**
+  String get branchesSwitchStepSyncingNewData;
+
+  /// No description provided for @branchesNetworkOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get branchesNetworkOnline;
+
+  /// No description provided for @branchesNetworkOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get branchesNetworkOffline;
+
+  /// No description provided for @branchesNetworkRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet connection looks unstable. Please retry.'**
+  String get branchesNetworkRetry;
+
+  /// No description provided for @branchesAuthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Please sign in again.'**
+  String get branchesAuthExpired;
+
+  /// No description provided for @branchesInvalidState.
+  ///
+  /// In en, this message translates to:
+  /// **'This branch is no longer linked or allowed for this account.'**
+  String get branchesInvalidState;
+
   /// No description provided for @branchesUnlink.
   ///
   /// In en, this message translates to:

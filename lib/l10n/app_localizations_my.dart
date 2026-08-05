@@ -2568,6 +2568,84 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။';
 
   @override
+  String branchesPreflightTitle(String label) {
+    return '\"$label\" သို့ ပြောင်းရန် အဆင်သင့်ဖြစ်ပြီလား?';
+  }
+
+  @override
+  String get branchesPreflightTarget => 'ပြောင်းမည့် ဆိုင်ခွဲ';
+
+  @override
+  String branchesPreflightPending(int count) {
+    return 'မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: $count';
+  }
+
+  @override
+  String branchesPreflightNetwork(String status) {
+    return 'Network: $status';
+  }
+
+  @override
+  String branchesPreflightLastSync(String time) {
+    return 'နောက်ဆုံး sync: $time';
+  }
+
+  @override
+  String get branchesPreflightNeedSync =>
+      'local data မပျောက်အောင် အရင် Sync လုပ်ပြီးမှ ပြောင်းပါ။';
+
+  @override
+  String get branchesPreflightNeedOnline =>
+      'လက်ရှိ Offline ဖြစ်နေပါတယ်။ branch ပြောင်းရန် internet ချိတ်ပါ။';
+
+  @override
+  String get branchesPreflightSyncFirst => 'အရင် Sync လုပ်မည်';
+
+  @override
+  String get branchesPreflightSwitchNow => 'ယခု ပြောင်းမည်';
+
+  @override
+  String get branchesSwitchInProgressTitle => 'ဆိုင်ခွဲ ပြောင်းနေသည်';
+
+  @override
+  String get branchesSwitchStepCheckingDataSafety =>
+      'Data လုံခြုံမှု စစ်ဆေးနေသည်';
+
+  @override
+  String get branchesSwitchStepSwitchingAccountClaim =>
+      'Account claim ပြောင်းနေသည်';
+
+  @override
+  String get branchesSwitchStepRefreshingSession =>
+      'Session ကို ပြန်လည်ပြင်ဆင်နေသည်';
+
+  @override
+  String get branchesSwitchStepClearingOldData =>
+      'ဆိုင်ဟောင်း data ဖယ်ရှားနေသည်';
+
+  @override
+  String get branchesSwitchStepSyncingNewData =>
+      'ဆိုင်အသစ် data Sync လုပ်နေသည်';
+
+  @override
+  String get branchesNetworkOnline => 'Online';
+
+  @override
+  String get branchesNetworkOffline => 'Offline';
+
+  @override
+  String get branchesNetworkRetry =>
+      'Internet မတည်ငြိမ်ပါ။ ခဏနေပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get branchesAuthExpired =>
+      'Session သက်တမ်းကုန်သွားပါပြီ။ ပြန်ဝင် (sign in) လုပ်ပါ။';
+
+  @override
+  String get branchesInvalidState =>
+      'ဒီ branch ကို ဒီ account နဲ့ မချိတ်ထားတော့ပါ (သို့) ခွင့်မပြုတော့ပါ။';
+
+  @override
   String get branchesUnlink => 'ဖြုတ်မည်';
 
   @override
