@@ -312,6 +312,48 @@ class CreditPayments extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// A payment the shop made toward a supplier's outstanding balance —
+/// Accounts Payable's mirror image of [CreditPayments] (money owed *by*
+/// the shop, not *to* it). Owed per supplier = Σ(itemsTotal of that
+/// supplier's **received** [PurchaseOrders]) − Σ(supplierPayments.amount).
+/// Only received POs count — an `open` PO hasn't actually incurred a debt
+/// yet, and a `cancelled` one never will (accrual, matching how
+/// [PurchaseOrderRepository.receivePO] is the one real "this happened"
+/// event in that lifecycle).
+class SupplierPayments extends Table with SyncColumns {
+  TextColumn get supplierName => text()();
+
+  /// cash | kbzpay | wavepay | ayapay | cbpay
+  TextColumn get method => text().withDefault(const Constant('cash'))();
+  IntColumn get amount => integer()();
+  TextColumn get note => text().nullable()();
+
+  /// Links to a [Suppliers] row — see [CreditPayments.customerId] for why
+  /// this is additional, not a replacement for [supplierName].
+  TextColumn get supplierId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One owner capital contribution or drawing — deliberately **separate**
+/// from [Expenses] (never summed into it), since a drawing must never
+/// silently reduce [AnalyticsSummary.netProfit]/the P&L the way a business
+/// expense correctly does. Paid-in capital = Σ(contribution amounts) −
+/// Σ(drawing amounts); combined with Retained Earnings (cumulative Net
+/// Profit since inception, derived from `AnalyticsRepository.summary()` —
+/// not stored here) into Owner's Equity for an eventual Balance Sheet.
+class EquityEntries extends Table with SyncColumns {
+  /// contribution | drawing
+  TextColumn get type => text()();
+  IntColumn get amount => integer()();
+  DateTimeColumn get date => dateTime()();
+  TextColumn get note => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// A social-channel order (Facebook/Viber/TikTok/phone) tracked through a
 /// Kanban pipeline **before** it becomes an in-store sale. Unlike [Sales] this
 /// row is **mutable** — the [status] moves through the board and items get

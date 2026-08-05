@@ -35,6 +35,8 @@ part 'database.g.dart';
     PurchaseOrders,
     PurchaseOrderItems,
     PaymentAccounts,
+    SupplierPayments,
+    EquityEntries,
     AppSettings,
     Outbox,
   ],
@@ -46,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -195,6 +197,14 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(paymentAccounts);
             await m.addColumn(expenses, expenses.accountId);
           }
+          // v26: Accounts Payable (supplier_payments, mirrors credit_payments
+          // but for money the shop owes a supplier) + Owner's Equity
+          // (equity_entries — contributions/drawings, deliberately separate
+          // from expenses so a drawing never affects the P&L).
+          if (from < 26) {
+            await m.createTable(supplierPayments);
+            await m.createTable(equityEntries);
+          }
         },
       );
 
@@ -230,6 +240,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(purchaseOrders).go();
       await delete(purchaseOrderItems).go();
       await delete(paymentAccounts).go();
+      await delete(supplierPayments).go();
+      await delete(equityEntries).go();
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();

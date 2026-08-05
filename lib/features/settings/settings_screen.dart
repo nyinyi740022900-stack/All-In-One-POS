@@ -29,6 +29,9 @@ import '../customers/customers_screen.dart';
 import '../expenses/expense_screen.dart';
 import '../purchasing/purchase_orders_screen.dart';
 import '../accounts/payment_accounts_screen.dart';
+import '../equity/equity_screen.dart';
+import '../suppliers/accounts_payable_providers.dart';
+import '../suppliers/accounts_payable_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
@@ -108,6 +111,8 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const PaymentAccountsScreen(),
             )),
           ),
+          _AccountsPayableTile(),
+          _EquityTile(),
           if (ref.watch(isOwnerProvider)) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
@@ -316,6 +321,40 @@ class _CreditTile extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => const CreditScreen(),
+      )),
+    );
+  }
+}
+
+class _AccountsPayableTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final total = ref.watch(accountsPayableTotalProvider);
+    return ListTile(
+      leading: const Icon(Icons.request_quote_outlined),
+      title: Text(l.accountsPayableTitle),
+      subtitle: Text(total > 0
+          ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
+          : l.apNoneDue),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const AccountsPayableScreen(),
+      )),
+    );
+  }
+}
+
+class _EquityTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(Icons.savings_outlined),
+      title: Text(l.equityTitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const OwnerEquityScreen(),
       )),
     );
   }

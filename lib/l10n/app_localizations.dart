@@ -722,6 +722,126 @@ abstract class AppLocalizations {
   /// **'This is more than the amount owed ({outstanding}).'**
   String creditRepaymentExceedsOutstanding(String outstanding);
 
+  /// No description provided for @accountsPayableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts payable'**
+  String get accountsPayableTitle;
+
+  /// No description provided for @apNoneDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing owed to suppliers'**
+  String get apNoneDue;
+
+  /// No description provided for @apOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get apOutstanding;
+
+  /// No description provided for @apEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t owe any supplier right now.'**
+  String get apEmpty;
+
+  /// No description provided for @apRecordPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Record payment'**
+  String get apRecordPayment;
+
+  /// No description provided for @apReceivedPOs.
+  ///
+  /// In en, this message translates to:
+  /// **'Received purchase orders'**
+  String get apReceivedPOs;
+
+  /// No description provided for @apPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get apPayments;
+
+  /// No description provided for @apPaymentSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment recorded'**
+  String get apPaymentSaved;
+
+  /// No description provided for @equityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner\'s equity'**
+  String get equityTitle;
+
+  /// No description provided for @equityPaidInCapital.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid-in capital'**
+  String get equityPaidInCapital;
+
+  /// No description provided for @equityRetainedEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Retained earnings'**
+  String get equityRetainedEarnings;
+
+  /// No description provided for @equityTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total equity'**
+  String get equityTotal;
+
+  /// No description provided for @equityContribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Contribution'**
+  String get equityContribution;
+
+  /// No description provided for @equityDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing'**
+  String get equityDrawing;
+
+  /// No description provided for @equityAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add entry'**
+  String get equityAdd;
+
+  /// No description provided for @equityAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get equityAmount;
+
+  /// No description provided for @equityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No contributions or drawings recorded yet.'**
+  String get equityEmpty;
+
+  /// No description provided for @equitySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get equitySaved;
+
+  /// No description provided for @equityDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this entry?'**
+  String get equityDeleteConfirmTitle;
+
+  /// No description provided for @equityDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get equityDeleteConfirmBody;
+
   /// No description provided for @creditRepaymentSaved.
   ///
   /// In en, this message translates to:

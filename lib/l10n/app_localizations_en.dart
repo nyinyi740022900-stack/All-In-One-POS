@@ -351,6 +351,66 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get accountsPayableTitle => 'Accounts payable';
+
+  @override
+  String get apNoneDue => 'Nothing owed to suppliers';
+
+  @override
+  String get apOutstanding => 'Outstanding';
+
+  @override
+  String get apEmpty => 'You don\'t owe any supplier right now.';
+
+  @override
+  String get apRecordPayment => 'Record payment';
+
+  @override
+  String get apReceivedPOs => 'Received purchase orders';
+
+  @override
+  String get apPayments => 'Payments';
+
+  @override
+  String get apPaymentSaved => 'Payment recorded';
+
+  @override
+  String get equityTitle => 'Owner\'s equity';
+
+  @override
+  String get equityPaidInCapital => 'Paid-in capital';
+
+  @override
+  String get equityRetainedEarnings => 'Retained earnings';
+
+  @override
+  String get equityTotal => 'Total equity';
+
+  @override
+  String get equityContribution => 'Contribution';
+
+  @override
+  String get equityDrawing => 'Drawing';
+
+  @override
+  String get equityAdd => 'Add entry';
+
+  @override
+  String get equityAmount => 'Amount';
+
+  @override
+  String get equityEmpty => 'No contributions or drawings recorded yet.';
+
+  @override
+  String get equitySaved => 'Saved';
+
+  @override
+  String get equityDeleteConfirmTitle => 'Remove this entry?';
+
+  @override
+  String get equityDeleteConfirmBody => 'This cannot be undone.';
+
+  @override
   String get creditRepaymentSaved => 'Repayment recorded';
 
   @override

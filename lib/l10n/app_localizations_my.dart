@@ -345,6 +345,67 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get accountsPayableTitle => 'ရောင်းသူပေးရန်ကျန်';
+
+  @override
+  String get apNoneDue => 'Supplier ကို ကျန်ငွေ မရှိပါ';
+
+  @override
+  String get apOutstanding => 'ကျန်ငွေ';
+
+  @override
+  String get apEmpty => 'လက်ရှိ ဘယ် Supplier ကိုမှ ကြွေးမကျန်ပါ။';
+
+  @override
+  String get apRecordPayment => 'ငွေပေးချေမှု မှတ်တမ်းတင်ရန်';
+
+  @override
+  String get apReceivedPOs => 'လက်ခံရရှိပြီး Purchase Order များ';
+
+  @override
+  String get apPayments => 'ငွေပေးချေမှုများ';
+
+  @override
+  String get apPaymentSaved => 'ငွေပေးချေမှု မှတ်တမ်းတင်ပြီး';
+
+  @override
+  String get equityTitle => 'ပိုင်ရှင် အရင်းအနှီး';
+
+  @override
+  String get equityPaidInCapital => 'ပေးသွင်းထားသော အရင်း';
+
+  @override
+  String get equityRetainedEarnings => 'ဆက်လက်ရှင်သန်နေသော အမြတ်';
+
+  @override
+  String get equityTotal => 'စုစုပေါင်း အရင်းအနှီး';
+
+  @override
+  String get equityContribution => 'အရင်းထည့်ဝင်ငွေ';
+
+  @override
+  String get equityDrawing => 'ထုတ်ယူငွေ';
+
+  @override
+  String get equityAdd => 'မှတ်တမ်း ထည့်ရန်';
+
+  @override
+  String get equityAmount => 'ပမာဏ';
+
+  @override
+  String get equityEmpty =>
+      'အရင်းထည့်ဝင်ငွေ (သို့) ထုတ်ယူငွေ မှတ်တမ်း မရှိသေးပါ။';
+
+  @override
+  String get equitySaved => 'သိမ်းပြီးပါပြီ';
+
+  @override
+  String get equityDeleteConfirmTitle => 'ဒီမှတ်တမ်းကို ဖယ်ရှားမလား?';
+
+  @override
+  String get equityDeleteConfirmBody => 'ဒီလုပ်ဆောင်ချက်ကို ပြန်ပြင်လို့ မရပါ။';
+
+  @override
   String get creditRepaymentSaved => 'ပြန်ဆပ်ငွေ မှတ်တမ်းတင်ပြီး';
 
   @override
