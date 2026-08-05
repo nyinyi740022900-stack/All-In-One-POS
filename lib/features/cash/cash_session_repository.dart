@@ -10,11 +10,10 @@ import '../../data/local/database.dart';
 /// so it's directly unit-testable — callers are expected to have already
 /// filtered each list to the session's own `[openedAt, closedAt)` window.
 ///
-/// Expenses has no payment-method column (see `Expenses` in tables.dart), so
-/// every expense is assumed paid from the till — the common case for a small
-/// shop's day-to-day purchases (tea, transport, a supply run). A shop that
-/// pays some expenses by transfer will see the drawer read short by that
-/// amount; noted here rather than silently treated as exact.
+/// An expense's `accountId` (added by the Payment Accounts feature) marks it
+/// as paid from a non-cash account; a null `accountId` means it came out of
+/// the till, same convention `payment_account_repository.dart` uses in
+/// reverse. Only till-paid expenses should reduce the drawer.
 int computeExpectedCash({
   required int openingAmount,
   required List<Payment> payments,
@@ -27,7 +26,9 @@ int computeExpectedCash({
       repayments
           .where((r) => r.method == 'cash')
           .fold<int>(0, (sum, r) => sum + r.amount);
-  final cashOut = expenses.fold<int>(0, (sum, e) => sum + e.amount);
+  final cashOut = expenses
+      .where((e) => e.accountId == null)
+      .fold<int>(0, (sum, e) => sum + e.amount);
   return openingAmount + cashIn - cashOut;
 }
 
@@ -219,7 +220,9 @@ class CashSessionRepository {
     final cashRepaymentsTotal = repayments
         .where((r) => r.method == 'cash')
         .fold<int>(0, (sum, r) => sum + r.amount);
-    final expensesTotal = expenses.fold<int>(0, (sum, e) => sum + e.amount);
+    final expensesTotal = expenses
+        .where((e) => e.accountId == null)
+        .fold<int>(0, (sum, e) => sum + e.amount);
     final expectedCash = session.openingAmount +
         cashSalesTotal +
         cashRepaymentsTotal -

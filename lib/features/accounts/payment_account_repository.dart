@@ -132,12 +132,14 @@ class PaymentAccountRepository {
     );
   }
 
-  /// One-shot: seeds the 4 default accounts the app has always offered, so
-  /// an upgrading shop's checkout looks identical to before. No-ops after
-  /// the first successful run (persisted flag), so a shop that later
-  /// deletes some/all of them never has them silently reappear.
+  /// One-shot **per shop**: seeds the 4 default accounts the app has always
+  /// offered, so an upgrading shop's checkout looks identical to before.
+  /// No-ops after the first successful run for this shop (persisted flag),
+  /// so a shop that later deletes some/all of them never has them silently
+  /// reappear — but a *different* shop this device later switches/adds a
+  /// branch to still gets seeded on its own first run.
   Future<void> ensureDefaultsSeeded() async {
-    if (await _settings.paymentAccountsSeeded()) return;
+    if (await _settings.paymentAccountsSeeded(_shopId)) return;
     final now = DateTime.now();
     await _db.transaction(() async {
       for (final entry in defaultAccounts.entries) {
@@ -154,7 +156,7 @@ class PaymentAccountRepository {
         await _enqueue(entry.key);
       }
     });
-    await _settings.setPaymentAccountsSeeded();
+    await _settings.setPaymentAccountsSeeded(_shopId);
   }
 
   Future<void> _enqueue(String id) async {

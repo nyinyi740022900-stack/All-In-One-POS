@@ -61,9 +61,12 @@ final _accountSupplierPaymentsWatchProvider =
 });
 
 /// Seeds the 4 default accounts once per shop (no-op after the first
-/// success) — fired once from its constructor, kept alive for the app's
-/// lifetime via a `ref.watch` in `app.dart`, same shape as
-/// `recurringExpenseGeneratorProvider`.
+/// success for that shop's id) — fired from its constructor, kept alive
+/// for the app's lifetime via a `ref.watch` in `app.dart`, same shape as
+/// `recurringExpenseGeneratorProvider`. Depends on [shopIdProvider] (not
+/// just constructed once globally) so switching branches/shops within the
+/// same app session re-runs the seed check for the newly-active shop
+/// instead of only ever seeding the very first shop this device opened.
 class PaymentAccountSeeder {
   PaymentAccountSeeder(Ref ref) {
     ref.read(paymentAccountRepositoryProvider).ensureDefaultsSeeded();
@@ -71,5 +74,6 @@ class PaymentAccountSeeder {
 }
 
 final paymentAccountSeederProvider = Provider<PaymentAccountSeeder>((ref) {
+  ref.watch(shopIdProvider);
   return PaymentAccountSeeder(ref);
 });

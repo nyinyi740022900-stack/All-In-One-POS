@@ -28,11 +28,12 @@ CreditPayment _repayment(String method, int amount) => CreditPayment(
       dirty: false,
     );
 
-Expense _expense(int amount) => Expense(
-      id: 'exp-$amount',
+Expense _expense(int amount, {String? accountId}) => Expense(
+      id: 'exp-$amount-${accountId ?? 'cash'}',
       shopId: 'shop-1',
       category: 'other',
       amount: amount,
+      accountId: accountId,
       date: DateTime(2026, 8, 1),
       createdAt: DateTime(2026, 8, 1),
       updatedAt: DateTime(2026, 8, 1),
@@ -70,6 +71,17 @@ void main() {
         expenses: const [],
       );
       expect(result, 10000);
+    });
+
+    test('an expense paid from a non-cash account does not reduce expected '
+        'cash', () {
+      final result = computeExpectedCash(
+        openingAmount: 50000,
+        payments: [_payment('cash', 10000)],
+        repayments: const [],
+        expenses: [_expense(3000, accountId: 'kbzpay')],
+      );
+      expect(result, 60000); // 50000 + 10000, the 3000 expense is ignored
     });
 
     test('no activity: expected cash is just the opening float', () {
@@ -172,12 +184,20 @@ void main() {
               amount: 2000,
               date: DateTime.now(),
             ));
+        await db.into(db.expenses).insert(ExpensesCompanion.insert(
+              id: 'e2',
+              shopId: 'shop-1',
+              category: 'other',
+              amount: 9000,
+              accountId: const Value('kbzpay'),
+              date: DateTime.now(),
+            ));
 
         final report = await repo.reportFor(session!);
         expect(report.openingAmount, 10000);
         expect(report.cashSalesTotal, 5000);
         expect(report.cashRepaymentsTotal, 1000);
-        expect(report.expensesTotal, 2000);
+        expect(report.expensesTotal, 2000); // the kbzpay-paid e2 is excluded
         expect(report.expectedCash, 14000); // 10000 + 5000 + 1000 - 2000
         expect(report.closingAmount, isNull);
         expect(report.variance, isNull);

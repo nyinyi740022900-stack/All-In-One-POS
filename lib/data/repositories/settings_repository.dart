@@ -199,13 +199,16 @@ class SettingsRepository {
   Future<void> markTrialUsed() => _set(_kTrialUsed, 'true');
 
   // Whether the default Payment Accounts (KBZPay/WavePay/AYAPay/CBPay) have
-  // already been seeded once — set-and-forget, so a shop that later
-  // deletes all of them never has them silently reappear.
-  static const _kPaymentAccountsSeeded = 'payment_accounts.seeded';
-  Future<bool> paymentAccountsSeeded() async =>
-      (await _get(_kPaymentAccountsSeeded)) == 'true';
-  Future<void> setPaymentAccountsSeeded() =>
-      _set(_kPaymentAccountsSeeded, 'true');
+  // already been seeded once **for this shop** — set-and-forget, so a shop
+  // that later deletes all of them never has them silently reappear.
+  // Keyed by shopId (not a single global flag): this device's AppSettings
+  // rows survive a branch switch (`wipeSyncedData` only clears synced
+  // *data*, never settings), so a bare global flag would permanently skip
+  // seeding for every shop after the first one this device ever opened.
+  Future<bool> paymentAccountsSeeded(String shopId) async =>
+      (await _get('payment_accounts.seeded.$shopId')) == 'true';
+  Future<void> setPaymentAccountsSeeded(String shopId) =>
+      _set('payment_accounts.seeded.$shopId', 'true');
 
   // First-run onboarding (shop profile / license / owner-staff-mode intro),
   // shown once per install.
