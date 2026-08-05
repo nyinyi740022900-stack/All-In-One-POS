@@ -80,4 +80,24 @@ class AnalyticsRepository {
       expenses: expenses,
     );
   }
+
+  /// Same shop-scoped/date-ranged expense query [summary] runs for its
+  /// lump-sum `expenses`, grouped by category instead — for a P&L
+  /// statement's per-line breakdown (rent/utilities/wages/transport/
+  /// packaging/other). Only categories with activity in range appear.
+  Future<Map<String, int>> expensesByCategory(
+      DateTime start, DateTime end) async {
+    final expenseRows = await (_db.select(_db.expenses)
+          ..where((e) =>
+              e.shopId.equals(_shopId) &
+              e.isDeleted.equals(false) &
+              e.date.isBiggerOrEqualValue(start) &
+              e.date.isSmallerThanValue(end)))
+        .get();
+    final byCategory = <String, int>{};
+    for (final e in expenseRows) {
+      byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amount;
+    }
+    return byCategory;
+  }
 }

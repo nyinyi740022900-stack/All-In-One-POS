@@ -955,6 +955,36 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get pnlTitle => 'အမြတ်-အရှုံး စာရင်း';
+
+  @override
+  String get pnlDateRange => 'ရက်စွဲကာလ';
+
+  @override
+  String get pnlRevenue => 'စုစုပေါင်း ဝင်ငွေ';
+
+  @override
+  String get pnlCogs => 'ကုန်ပစ္စည်း ကုန်ကျစရိတ်';
+
+  @override
+  String get pnlGrossProfit => 'စုစုပေါင်း အမြတ်';
+
+  @override
+  String get pnlTotalExpenses => 'စုစုပေါင်း ကုန်ကျစရိတ်';
+
+  @override
+  String get pnlNetProfit => 'အသားတင် အမြတ်';
+
+  @override
+  String get pnlLine => 'အကြောင်းအရာ';
+
+  @override
+  String get pnlAmount => 'ပမာဏ';
+
+  @override
+  String get pnlExportCsv => 'CSV ထုတ်ယူရန်';
+
+  @override
   String get printerSettings => 'ပရင်တာ ဆက်တင်';
 
   @override

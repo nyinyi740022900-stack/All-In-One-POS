@@ -955,6 +955,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pnlTitle => 'Profit & Loss';
+
+  @override
+  String get pnlDateRange => 'Date range';
+
+  @override
+  String get pnlRevenue => 'Revenue';
+
+  @override
+  String get pnlCogs => 'Cost of goods sold';
+
+  @override
+  String get pnlGrossProfit => 'Gross profit';
+
+  @override
+  String get pnlTotalExpenses => 'Total expenses';
+
+  @override
+  String get pnlNetProfit => 'Net profit';
+
+  @override
+  String get pnlLine => 'Line';
+
+  @override
+  String get pnlAmount => 'Amount';
+
+  @override
+  String get pnlExportCsv => 'Export CSV';
+
+  @override
   String get printerSettings => 'Printer settings';
 
   @override

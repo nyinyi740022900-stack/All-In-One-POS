@@ -15,6 +15,7 @@ import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import 'analytics_calculator.dart';
 import 'analytics_providers.dart';
+import 'pnl_screen.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -42,7 +43,18 @@ class AnalyticsScreen extends ConsumerWidget {
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.navAnalytics)),
+      appBar: AppBar(
+        title: Text(l.navAnalytics),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.summarize_outlined),
+            tooltip: l.pnlTitle,
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PnlScreen(),
+            )),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

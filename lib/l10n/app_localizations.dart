@@ -1850,6 +1850,66 @@ abstract class AppLocalizations {
   /// **'{count} sales'**
   String salesReportCount(int count);
 
+  /// No description provided for @pnlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profit & Loss'**
+  String get pnlTitle;
+
+  /// No description provided for @pnlDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get pnlDateRange;
+
+  /// No description provided for @pnlRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Revenue'**
+  String get pnlRevenue;
+
+  /// No description provided for @pnlCogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost of goods sold'**
+  String get pnlCogs;
+
+  /// No description provided for @pnlGrossProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross profit'**
+  String get pnlGrossProfit;
+
+  /// No description provided for @pnlTotalExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Total expenses'**
+  String get pnlTotalExpenses;
+
+  /// No description provided for @pnlNetProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Net profit'**
+  String get pnlNetProfit;
+
+  /// No description provided for @pnlLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get pnlLine;
+
+  /// No description provided for @pnlAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get pnlAmount;
+
+  /// No description provided for @pnlExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get pnlExportCsv;
+
   /// No description provided for @printerSettings.
   ///
   /// In en, this message translates to:
