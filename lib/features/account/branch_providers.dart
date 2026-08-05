@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../core/providers.dart';
 import '../license/license_providers.dart';
@@ -25,4 +26,15 @@ final branchSwitchRecoveryProvider =
 final pendingOutboxCountProvider = StreamProvider.autoDispose<int>((ref) {
   final db = ref.watch(databaseProvider);
   return db.select(db.outbox).watch().map((rows) => rows.length);
+});
+
+final branchConnectivityProvider = StreamProvider.autoDispose<bool>((
+  ref,
+) async* {
+  final connectivity = Connectivity();
+  final initial = await connectivity.checkConnectivity();
+  yield initial.any((r) => r != ConnectivityResult.none);
+  yield* connectivity.onConnectivityChanged.map(
+    (results) => results.any((r) => r != ConnectivityResult.none),
+  );
 });

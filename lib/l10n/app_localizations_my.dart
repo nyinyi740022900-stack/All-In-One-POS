@@ -2552,6 +2552,19 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesNoOther => 'အခြား ဆိုင်ခွဲ မရှိသေးပါ။';
 
   @override
+  String get branchesPinnedCurrentTitle => 'လက်ရှိဆိုင်ခွဲ (Pinned)';
+
+  @override
+  String get branchesPinnedCurrentHint =>
+      'ဒီစက်က လက်ရှိ ဒီဆိုင်ခွဲနဲ့ ချိတ်ထားပါတယ်။';
+
+  @override
+  String get branchesHealthSafeSwitch => 'ပြောင်းရန် အဆင်ပြေ';
+
+  @override
+  String get branchesHealthSyncNeeded => 'Sync လိုအပ်';
+
+  @override
   String branchesRowPending(int count) {
     return 'မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: $count';
   }

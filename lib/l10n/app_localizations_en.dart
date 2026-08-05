@@ -2545,6 +2545,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesNoOther => 'No other branches linked yet.';
 
   @override
+  String get branchesPinnedCurrentTitle => 'Pinned current branch';
+
+  @override
+  String get branchesPinnedCurrentHint =>
+      'This device is currently scoped to this branch.';
+
+  @override
+  String get branchesHealthSafeSwitch => 'Safe to switch';
+
+  @override
+  String get branchesHealthSyncNeeded => 'Sync needed';
+
+  @override
   String branchesRowPending(int count) {
     return 'Pending local changes: $count';
   }

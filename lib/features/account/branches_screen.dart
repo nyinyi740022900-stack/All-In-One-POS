@@ -211,12 +211,14 @@ class _BranchCard extends StatelessWidget {
     required this.branch,
     required this.pendingOutboxCount,
     required this.lastSyncedText,
+    required this.healthChip,
     required this.trailing,
   });
 
   final Branch branch;
   final int pendingOutboxCount;
   final String lastSyncedText;
+  final Widget healthChip;
   final Widget trailing;
 
   @override
@@ -259,6 +261,8 @@ class _BranchCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: AppTheme.space2),
+                healthChip,
               ],
             ),
             const SizedBox(height: AppTheme.space2),
@@ -280,6 +284,76 @@ class _BranchCard extends StatelessWidget {
   }
 }
 
+class _CurrentBranchPinnedCard extends StatelessWidget {
+  const _CurrentBranchPinnedCard({
+    required this.branch,
+    required this.pendingOutboxCount,
+    required this.lastSyncedText,
+    required this.healthChip,
+  });
+
+  final Branch branch;
+  final int pendingOutboxCount;
+  final String lastSyncedText;
+  final Widget healthChip;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final label = branch.label?.isNotEmpty == true
+        ? branch.label!
+        : branch.shopId;
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.space2),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.push_pin_outlined),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Text(
+                    l.branchesPinnedCurrentTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                healthChip,
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 2),
+            Text(
+              branch.shopId,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.branchesPinnedCurrentHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.branchesRowPending(pendingOutboxCount),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l.branchesRowLastSync(lastSyncedText),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BranchesBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -288,6 +362,7 @@ class _BranchesBody extends ConsumerWidget {
     final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
     final pendingOutbox =
         ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
+    final online = ref.watch(branchConnectivityProvider).valueOrNull ?? true;
     final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -324,14 +399,18 @@ class _BranchesBody extends ConsumerWidget {
                     _SectionHint(message: l.branchesEmpty)
                   else
                     ...currentBranches.map(
-                      (b) => _BranchCard(
+                      (b) => _CurrentBranchPinnedCard(
                         branch: b,
                         pendingOutboxCount: pendingOutbox,
                         lastSyncedText: _formatLastSync(
                           context,
                           syncState.lastSyncedAt,
                         ),
-                        trailing: Chip(label: Text(l.branchesCurrent)),
+                        healthChip: _buildHealthChip(
+                          context,
+                          online,
+                          pendingOutbox,
+                        ),
                       ),
                     ),
                   const SizedBox(height: AppTheme.space4),
@@ -343,48 +422,68 @@ class _BranchesBody extends ConsumerWidget {
                   if (otherBranches.isEmpty)
                     _SectionHint(message: l.branchesNoOther)
                   else
-                    ...otherBranches
-                        .map(
-                          (b) => _BranchCard(
-                            branch: b,
-                            pendingOutboxCount: pendingOutbox,
-                            lastSyncedText: _formatLastSync(
-                              context,
-                              syncState.lastSyncedAt,
-                            ),
-                            trailing: Wrap(
-                              spacing: AppTheme.space2,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _confirmSwitch(context, ref, b),
-                                  icon: const Icon(Icons.swap_horiz, size: 18),
-                                  label: Text(l.branchesSwitch),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () =>
-                                      _confirmUnlink(context, ref, b),
-                                  style: FilledButton.styleFrom(
-                                    foregroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.error,
-                                  ),
-                                  icon: const Icon(
-                                    Icons.remove_circle_outline,
-                                    size: 18,
-                                  ),
-                                  label: Text(l.branchesUnlink),
-                                ),
-                              ],
-                            ),
-                          ),
+                    ...otherBranches.map(
+                      (b) => _BranchCard(
+                        branch: b,
+                        pendingOutboxCount: pendingOutbox,
+                        lastSyncedText: _formatLastSync(
+                          context,
+                          syncState.lastSyncedAt,
                         ),
+                        healthChip: _buildHealthChip(
+                          context,
+                          online,
+                          pendingOutbox,
+                        ),
+                        trailing: Wrap(
+                          spacing: AppTheme.space2,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _confirmSwitch(context, ref, b),
+                              icon: const Icon(Icons.swap_horiz, size: 18),
+                              label: Text(l.branchesSwitch),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: () => _confirmUnlink(context, ref, b),
+                              style: FilledButton.styleFrom(
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.error,
+                              ),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                size: 18,
+                              ),
+                              label: Text(l.branchesUnlink),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildHealthChip(
+    BuildContext context,
+    bool online,
+    int pendingOutbox,
+  ) {
+    final l = AppLocalizations.of(context);
+    final safe = online && pendingOutbox == 0;
+    return Chip(
+      avatar: Icon(
+        safe ? Icons.verified_outlined : Icons.sync_problem_outlined,
+        size: 16,
+      ),
+      label: Text(
+        safe ? l.branchesHealthSafeSwitch : l.branchesHealthSyncNeeded,
+      ),
     );
   }
 

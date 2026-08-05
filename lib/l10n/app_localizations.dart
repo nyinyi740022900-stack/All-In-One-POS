@@ -4760,6 +4760,30 @@ abstract class AppLocalizations {
   /// **'No other branches linked yet.'**
   String get branchesNoOther;
 
+  /// No description provided for @branchesPinnedCurrentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned current branch'**
+  String get branchesPinnedCurrentTitle;
+
+  /// No description provided for @branchesPinnedCurrentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is currently scoped to this branch.'**
+  String get branchesPinnedCurrentHint;
+
+  /// No description provided for @branchesHealthSafeSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe to switch'**
+  String get branchesHealthSafeSwitch;
+
+  /// No description provided for @branchesHealthSyncNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync needed'**
+  String get branchesHealthSyncNeeded;
+
   /// No description provided for @branchesRowPending.
   ///
   /// In en, this message translates to:
