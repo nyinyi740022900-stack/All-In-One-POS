@@ -11,6 +11,15 @@ import 'tables.dart';
 
 part 'database.g.dart';
 
+/// Drift/SQLite migration safeguard for historical/stale local databases where
+/// a previous partial migration already added the target column.
+bool isDuplicateColumnMigrationError(Object error) {
+  final msg = error.toString().toLowerCase();
+  return msg.contains('duplicate column name') ||
+      msg.contains('duplicate column:') ||
+      msg.contains('already exists');
+}
+
 @DriftDatabase(
   tables: [
     Categories,
@@ -60,11 +69,12 @@ class AppDatabase extends _$AppDatabase {
           }
           // v3: optional customer phone on sales.
           if (from < 3) {
-            await m.addColumn(sales, sales.customerPhone);
+            await _safeAddColumn(m, sales, sales.customerPhone);
           }
           // v4: shop display name on license payments.
           if (from < 4) {
-            await m.addColumn(licensePayments, licensePayments.shopName);
+            await _safeAddColumn(
+                m, licensePayments, licensePayments.shopName);
           }
           // v5: social-order Kanban pipeline.
           if (from < 5) {
@@ -73,28 +83,28 @@ class AppDatabase extends _$AppDatabase {
           }
           // v6: customer payment screenshot on storefront orders.
           if (from < 6) {
-            await m.addColumn(orders, orders.paymentProofPath);
+            await _safeAddColumn(m, orders, orders.paymentProofPath);
           }
           // v7: public product photo URL for the web storefront.
           if (from < 7) {
-            await m.addColumn(products, products.imageUrl);
+            await _safeAddColumn(m, products, products.imageUrl);
           }
           // v8: delivery tracking (township, carrier, tracking number,
           // delivery status) — carrier-agnostic groundwork.
           if (from < 8) {
-            await m.addColumn(orders, orders.township);
-            await m.addColumn(orders, orders.deliveryCarrier);
-            await m.addColumn(orders, orders.trackingNumber);
-            await m.addColumn(orders, orders.deliveryStatus);
+            await _safeAddColumn(m, orders, orders.township);
+            await _safeAddColumn(m, orders, orders.deliveryCarrier);
+            await _safeAddColumn(m, orders, orders.trackingNumber);
+            await _safeAddColumn(m, orders, orders.deliveryStatus);
           }
           // v9: transfer vs cash-on-delivery, distinct from paymentStatus.
           if (from < 9) {
-            await m.addColumn(orders, orders.paymentMethod);
+            await _safeAddColumn(m, orders, orders.paymentMethod);
           }
           // v10: refunds — a refund is a normal append-only Sales row
           // pointing back at the sale it reverses.
           if (from < 10) {
-            await m.addColumn(sales, sales.refundOfSaleId);
+            await _safeAddColumn(m, sales, sales.refundOfSaleId);
           }
           // v11: named staff profiles (so a sale can be attributed to whoever
           // rang it up, not just a shared device PIN).
@@ -105,33 +115,33 @@ class AppDatabase extends _$AppDatabase {
           // reuse it, instead of retyping free text on every invoice/order.
           if (from < 12) {
             await m.createTable(customers);
-            await m.addColumn(sales, sales.customerId);
-            await m.addColumn(orders, orders.customerId);
-            await m.addColumn(creditPayments, creditPayments.customerId);
+            await _safeAddColumn(m, sales, sales.customerId);
+            await _safeAddColumn(m, orders, orders.customerId);
+            await _safeAddColumn(m, creditPayments, creditPayments.customerId);
           }
           // v13: tiered pricing — a customer's retail/wholesale/vip tier
           // picks which Products price column the Sell screen applies.
           if (from < 13) {
-            await m.addColumn(customers, customers.tier);
-            await m.addColumn(products, products.wholesalePrice);
-            await m.addColumn(products, products.vipPrice);
+            await _safeAddColumn(m, customers, customers.tier);
+            await _safeAddColumn(m, products, products.wholesalePrice);
+            await _safeAddColumn(m, products, products.vipPrice);
           }
           // v14: FIFO cost basis. StockLots is local-only (see its doc
           // comment) so it's created fresh here, never migrated from synced
           // data. costSnapshot is null on every pre-existing sale item.
           if (from < 14) {
             await m.createTable(stockLots);
-            await m.addColumn(saleItems, saleItems.costSnapshot);
+            await _safeAddColumn(m, saleItems, saleItems.costSnapshot);
           }
           // v15: flag a storefront order line placed against insufficient
           // stock, so the owner notices before packing it.
           if (from < 15) {
-            await m.addColumn(orderItems, orderItems.lowStockAtOrder);
+            await _safeAddColumn(m, orderItems, orderItems.lowStockAtOrder);
           }
           // v16: owner-set cap on how many units of a product the web
           // storefront may sell, independent of real in-store stock.
           if (from < 16) {
-            await m.addColumn(products, products.onlineStockLimit);
+            await _safeAddColumn(m, products, products.onlineStockLimit);
           }
           // v17: non-inventory operating expenses (rent, utilities, wages,
           // transport, packaging) — separate from restock cost so Analytics
@@ -143,14 +153,14 @@ class AppDatabase extends _$AppDatabase {
           // friendly device names so a raw device UUID can show as
           // something meaningful regardless of which device is viewing it.
           if (from < 18) {
-            await m.addColumn(sales, sales.deviceId);
+            await _safeAddColumn(m, sales, sales.deviceId);
             await m.createTable(deviceLabels);
           }
           // v19: delivery address, carried over when an Order converts to a
           // Sale — was previously dropped entirely, so a converted order's
           // invoice/receipt had nowhere to deliver it printed on.
           if (from < 19) {
-            await m.addColumn(sales, sales.deliveryAddress);
+            await _safeAddColumn(m, sales, sales.deliveryAddress);
           }
           // v20: cash-drawer sessions (opening float + closing count, with
           // an expected-cash reconciliation computed from cash sales/
@@ -167,11 +177,14 @@ class AppDatabase extends _$AppDatabase {
           // template, at month-start or month-end, instead of the manual
           // quick-fill this feature originally shipped with.
           if (from < 22) {
-            await m.addColumn(recurringExpenses, recurringExpenses.autoGenerate);
-            await m.addColumn(
-                recurringExpenses, recurringExpenses.generationTiming);
-            await m.addColumn(
-                recurringExpenses, recurringExpenses.lastGeneratedPeriod);
+            await _safeAddColumn(
+                m, recurringExpenses, recurringExpenses.autoGenerate);
+            await _safeAddColumn(
+                m, recurringExpenses, recurringExpenses.generationTiming);
+            await _safeAddColumn(
+                m,
+                recurringExpenses,
+                recurringExpenses.lastGeneratedPeriod);
           }
           // v23: suppliers directory + lightweight purchase-order tracking
           // (what was ordered from whom, at what cost) — receiving a PO
@@ -195,7 +208,7 @@ class AppDatabase extends _$AppDatabase {
           // account-paid expense can reduce that account's balance.
           if (from < 25) {
             await m.createTable(paymentAccounts);
-            await m.addColumn(expenses, expenses.accountId);
+            await _safeAddColumn(m, expenses, expenses.accountId);
           }
           // v26: Accounts Payable (supplier_payments, mirrors credit_payments
           // but for money the shop owes a supplier) + Owner's Equity
@@ -207,6 +220,21 @@ class AppDatabase extends _$AppDatabase {
           }
         },
       );
+
+  Future<void> _safeAddColumn(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn column,
+  ) async {
+    try {
+      await m.addColumn(table, column);
+    } catch (error) {
+      if (isDuplicateColumnMigrationError(error)) {
+        return;
+      }
+      rethrow;
+    }
+  }
 
   /// Clears every row of shop-scoped data (every `SyncColumns` table, plus
   /// the local-only `StockLots` FIFO cache) and resets every sync cursor —
