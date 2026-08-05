@@ -16,6 +16,35 @@ Two languages everywhere: English + Myanmar.
 - **Pure logic** (analytics, credit aggregation, license status, receipt
   formatting) lives in plain Dart classes with unit tests — keep it that way.
 
+## ⚠️ Before shipping a change: ripple-effect check (do NOT skip)
+`flutter analyze` clean + all tests passing does NOT mean a change is bug-free
+— several real bugs have shipped this way (a table's derived balance not
+watching a new column that affects it; a device-global settings key that
+should have been per-shop; a provider missing a watch on a table it reads).
+Unit tests here only cover **pure logic**; they cannot catch a Riverpod
+provider silently going stale or a settings key bleeding across shops/tenants.
+Before calling a change done:
+1. **Grep every reader of a table/column you added or changed** (`grep -rn
+   '<table_or_column>' lib`) and check each call site's semantics still hold
+   — especially any other feature's derived total/balance that folds over the
+   same table (e.g. adding `Expenses.accountId` should have triggered a check
+   of Cash Register's `computeExpectedCash`, not just Payment Accounts).
+2. **If you added a `FutureProvider`/derived value that depends on a table,
+   confirm it `ref.watch()`s an invalidation signal for every table it
+   reads** — not just the "obvious" one. Missing this makes the UI silently
+   stale instead of throwing, so it won't surface as a test failure or an
+   analyzer error.
+3. **If you added a `SettingsRepository` key, ask: does this value belong to
+   the device, or to the currently-active shop?** A device can switch shops
+   (`BranchRepository.switchBranch`) without `wipeSyncedData()` touching
+   `AppSettings` — a key that should be per-shop but isn't a fixed global key
+   will silently bleed across shops. When in doubt, key it by `shopId` (see
+   `SettingsRepository._shopKey`).
+4. **Test the multi-shop case, not just the single-shop case**, for any
+   repository/settings change that could plausibly differ per shop — see
+   `settings_repository_test.dart` for the pattern (two shop ids, assert
+   neither leaks into the other).
+
 ## ⚠️ Adding a synced table (do ALL of these — easy to miss a step)
 1. `lib/data/local/tables.dart` — new table `with SyncColumns`.
 2. `lib/data/local/database.dart` — register in `@DriftDatabase`, bump
@@ -28,6 +57,9 @@ Two languages everywhere: English + Myanmar.
    (`shop_id = auth_shop_id()`). NOT dev-open. (See the 0012 lesson below.)
 6. If it holds a counter (like stock): sync **movement deltas append-only**,
    never absolute quantities with LWW (LWW loses concurrent updates).
+7. Run the **ripple-effect check** below — a new column especially tends to
+   silently invalidate an existing feature's assumptions (e.g. "every
+   Expense is paid from the till") rather than break loudly.
 
 ## Sync model (don't break these invariants)
 - **Outbox pattern:** every mutation writes local + enqueues to `outbox`; the
@@ -59,6 +91,9 @@ Two languages everywhere: English + Myanmar.
 
 ## Workflow
 - Before any build: `flutter analyze` (clean) + `flutter test` (all pass).
+- **Before marking a feature done, run the ripple-effect check above** —
+  don't wait for the user to request a separate audit pass to catch a stale
+  provider or a device-global key that should've been per-shop.
 - **Reflect every change in `PROJECT_SPEC.md` §12 changelog** (same change-set).
 - Deploy: see the `deploy` skill (db push → functions deploy → admin web to
   Vercel → build to device). Test migrations on staging before prod.
