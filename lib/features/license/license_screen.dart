@@ -605,7 +605,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final cfg = await ref.read(vendorConfigProvider.future);
     final settings = ref.read(settingsRepositoryProvider);
     final deviceId = await settings.deviceId();
-    final profile = await settings.shopProfile();
+    final profile = await ref.read(shopProfileProvider.future);
     if (!mounted) return;
     const tier = 'offline';
     final cur = l.currencySymbol;
@@ -756,7 +756,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final cfg = await ref.read(vendorConfigProvider.future);
     final settings = ref.read(settingsRepositoryProvider);
     final deviceId = await settings.deviceId();
-    final profile = await settings.shopProfile();
+    final profile = await ref.read(shopProfileProvider.future);
     if (!mounted) return;
     const tier = 'online';
     final cur = l.currencySymbol;

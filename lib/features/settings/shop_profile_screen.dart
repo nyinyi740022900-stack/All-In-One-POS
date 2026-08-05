@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/env.dart';
 import '../../core/image_util.dart';
 import '../../core/phone_validator.dart';
+import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -77,7 +78,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       final url = storage.getPublicUrl(path);
       // Saved immediately — the logo isn't part of the rest of the form's
       // "Save" step, same as the storefront logo picker.
-      await ref.read(settingsRepositoryProvider).setShopLogoUrl(url);
+      await ref
+          .read(settingsRepositoryProvider)
+          .setShopLogoUrl(ref.read(shopIdProvider), url);
       ref.invalidate(shopProfileProvider);
       if (mounted) setState(() => _logoUrl = url);
     } catch (e) {
@@ -99,12 +102,15 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     String? orNull(TextEditingController c) =>
         c.text.trim().isEmpty ? null : c.text.trim();
     try {
-      await ref.read(settingsRepositoryProvider).saveShopProfile(ShopProfile(
-            name: _name.text.trim(),
-            address: orNull(_address),
-            phone: orNull(_phone),
-            footer: orNull(_footer),
-          ));
+      await ref.read(settingsRepositoryProvider).saveShopProfile(
+            ref.read(shopIdProvider),
+            ShopProfile(
+              name: _name.text.trim(),
+              address: orNull(_address),
+              phone: orNull(_phone),
+              footer: orNull(_footer),
+            ),
+          );
       // Receipts read this via a FutureProvider — refresh the cache.
       ref.invalidate(shopProfileProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.shopProfileSaved)));

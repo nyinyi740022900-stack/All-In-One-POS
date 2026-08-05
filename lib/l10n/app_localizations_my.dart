@@ -2547,6 +2547,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesSwitched => 'ဆိုင်ခွဲ ပြောင်းပြီးပါပြီ။';
 
   @override
+  String get branchesSwitchSyncing =>
+      'ဒီဆိုင်ရဲ့ ဒေတာကို sync လုပ်နေပါသည် — connection နှေးရင် အချိန် အနည်းငယ် ကြာနိုင်ပါသည်။';
+
+  @override
   String get branchesSwitchConfirmTitle => 'ဒီဆိုင်ခွဲကို ပြောင်းမလား?';
 
   @override

@@ -23,7 +23,8 @@ final labelPrinterConfigProvider = StreamProvider<LabelPrinterConfig>((ref) {
 });
 
 final shopProfileProvider = FutureProvider<ShopProfile>((ref) {
-  return ref.watch(settingsRepositoryProvider).shopProfile();
+  final shopId = ref.watch(shopIdProvider);
+  return ref.watch(settingsRepositoryProvider).shopProfile(shopId);
 });
 
 /// Whether the shop tracks inventory (true) or runs invoice-only (false).

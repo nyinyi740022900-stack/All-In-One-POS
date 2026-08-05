@@ -245,6 +245,14 @@ class AppDatabase extends _$AppDatabase {
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();
+      // `staffMembers` (this shop's roster) is wiped above, but which one
+      // was "active" is a separate device-local flag (SettingsRepository's
+      // `staff.active_id`) that otherwise survives a shop switch and would
+      // keep stamping new sales with a staff id from a roster that no
+      // longer exists locally (and likely doesn't exist under that id in
+      // the new shop either).
+      await (delete(appSettings)..where((s) => s.key.equals('staff.active_id')))
+          .go();
     });
   }
 

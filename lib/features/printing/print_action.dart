@@ -26,7 +26,7 @@ Future<void> printSaleReceipt(
     return;
   }
 
-  final shop = await settings.shopProfile();
+  final shop = await ref.read(shopProfileProvider.future);
   final accounts = ref.read(paymentAccountsProvider).valueOrNull;
   final data = receiptFromSale(
     sale,

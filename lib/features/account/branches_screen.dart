@@ -228,9 +228,30 @@ class _BranchesBody extends ConsumerWidget {
 
     if (result.ok && result.license != null) {
       ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
-      ref.read(syncControllerProvider.notifier).sync();
       ref.invalidate(branchesProvider);
+      // `switchBranch` already wiped this device's local data for the old
+      // shop — stay on a blocking, non-dismissible spinner (rather than
+      // firing sync() and popping immediately) until the new shop's first
+      // sync pass actually lands, so a user who taps straight into
+      // Sell/Inventory never sees a shop that looks permanently empty.
       if (context.mounted) {
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            content: Row(
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: AppTheme.space4),
+                Expanded(child: Text(l.branchesSwitchSyncing)),
+              ],
+            ),
+          ),
+        );
+      }
+      await ref.read(syncControllerProvider.notifier).sync();
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(l.branchesSwitched)));
       }

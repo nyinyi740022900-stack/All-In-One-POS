@@ -172,11 +172,11 @@ void main() {
     });
 
     test('free trial is one-time (guarded by the used flag)', () async {
-      final first = await repo.startFreeTrial();
+      final first = await repo.startFreeTrial('shop-1');
       expect(first, isNotNull);
       expect(first!.plan, LicensePlan.trial);
       // A second attempt is refused.
-      expect(await repo.startFreeTrial(), isNull);
+      expect(await repo.startFreeTrial('shop-1'), isNull);
     });
 
     test('device id is stable across calls', () async {

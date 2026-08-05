@@ -861,6 +861,7 @@
   "branchesCurrent": "Current",
   "branchesSwitch": "Switch",
   "branchesSwitched": "Switched branch.",
+  "branchesSwitchSyncing": "Syncing this shop's data — this may take a moment on a slow connection.",
   "branchesSwitchConfirmTitle": "Switch to this branch?",
   "branchesSwitchConfirmBody": "This replaces all local data on this device with \"{label}\"'s data. Make sure everything is already synced first — this cannot be undone.",
   "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },

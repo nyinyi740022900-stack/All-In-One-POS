@@ -80,7 +80,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
 
   Future<void> _share(String code) async {
     final l = AppLocalizations.of(context);
-    final profile = await ref.read(settingsRepositoryProvider).shopProfile();
+    final profile = await ref.read(shopProfileProvider.future);
     await SharePlus.instance.share(
       ShareParams(text: l.referralShareText(code, profile.name)),
     );

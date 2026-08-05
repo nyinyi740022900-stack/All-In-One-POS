@@ -2540,6 +2540,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesSwitched => 'Switched branch.';
 
   @override
+  String get branchesSwitchSyncing =>
+      'Syncing this shop\'s data — this may take a moment on a slow connection.';
+
+  @override
   String get branchesSwitchConfirmTitle => 'Switch to this branch?';
 
   @override

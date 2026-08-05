@@ -138,7 +138,7 @@ class LicenseController extends StateNotifier<LicenseState> {
 
   /// Starts the one-time free 2-month trial. Returns false if already used.
   Future<bool> startFreeTrial() async {
-    final lic = await _repo.startFreeTrial();
+    final lic = await _repo.startFreeTrial(_ref.read(shopIdProvider));
     if (lic == null) return false;
     _apply(lic);
     return true;

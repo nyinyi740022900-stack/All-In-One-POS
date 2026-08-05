@@ -4754,6 +4754,12 @@ abstract class AppLocalizations {
   /// **'Switched branch.'**
   String get branchesSwitched;
 
+  /// No description provided for @branchesSwitchSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing this shop\'s data — this may take a moment on a slow connection.'**
+  String get branchesSwitchSyncing;
+
   /// No description provided for @branchesSwitchConfirmTitle.
   ///
   /// In en, this message translates to:

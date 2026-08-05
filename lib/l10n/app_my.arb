@@ -854,6 +854,7 @@
   "branchesCurrent": "လက်ရှိ",
   "branchesSwitch": "ပြောင်းမည်",
   "branchesSwitched": "ဆိုင်ခွဲ ပြောင်းပြီးပါပြီ။",
+  "branchesSwitchSyncing": "ဒီဆိုင်ရဲ့ ဒေတာကို sync လုပ်နေပါသည် — connection နှေးရင် အချိန် အနည်းငယ် ကြာနိုင်ပါသည်။",
   "branchesSwitchConfirmTitle": "ဒီဆိုင်ခွဲကို ပြောင်းမလား?",
   "branchesSwitchConfirmBody": "ဒီစက်ပေါ်က Data အားလုံးကို \"{label}\" ရဲ့ Data နဲ့ အစားထိုးပါလိမ့်မယ်။ Data အားလုံး sync ပြီးသားဖြစ်ကြောင်း သေချာအောင် စစ်ပါ — ပြန်လှည့်လို့ မရပါ။",
   "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },

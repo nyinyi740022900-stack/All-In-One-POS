@@ -48,6 +48,15 @@ class SettingsRepository {
     return (_db.delete(_db.appSettings)..where((s) => s.key.equals(key))).go();
   }
 
+  /// Composes a per-shop settings key. An empty [shopId] (the
+  /// [shopIdProvider] default before any license/shop has ever been
+  /// assigned — e.g. mid-onboarding) maps back to the bare, un-suffixed
+  /// legacy key on purpose, so an existing single-shop install's data
+  /// (saved before multi-shop/branch support existed) keeps resolving to
+  /// the same key with no migration needed.
+  String _shopKey(String base, String shopId) =>
+      shopId.isEmpty ? base : '$base.$shopId';
+
   Stream<PrinterConfig> watchPrinterConfig() {
     return _db.select(_db.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
@@ -280,20 +289,36 @@ class SettingsRepository {
     await _delete('sync.cursor.ids.$table');
   }
 
-  Future<ShopProfile> shopProfile() async {
+  /// The shop's profile (name/address/phone/logo/footer) for [shopId] —
+  /// keyed per shop so a device that switches between a main shop and a
+  /// branch (`BranchRepository.switchBranch`) never bleeds one shop's
+  /// profile into the other. Falls back to the un-suffixed legacy key for
+  /// any field this shop hasn't set yet (see [_shopKey]) — for the very
+  /// first shop a device ever configures this transparently picks up its
+  /// pre-multi-shop data; for a later-added shop it's a sensible shared
+  /// default until that shop sets its own.
+  Future<ShopProfile> shopProfile(String shopId) async {
+    Future<String?> get(String base) async {
+      final scoped = await _get(_shopKey(base, shopId));
+      if (scoped != null) return scoped;
+      if (shopId.isEmpty) return null; // already the legacy key itself
+      return _get(base);
+    }
+
     return ShopProfile(
-      name: (await _get(_kShopName)) ?? 'My Shop',
-      address: await _get(_kShopAddress),
-      phone: await _get(_kShopPhone),
-      logoUrl: await _get(_kShopLogo),
-      footer: await _get(_kReceiptFooter),
+      name: (await get(_kShopName)) ?? 'My Shop',
+      address: await get(_kShopAddress),
+      phone: await get(_kShopPhone),
+      logoUrl: await get(_kShopLogo),
+      footer: await get(_kReceiptFooter),
     );
   }
 
   /// A dedicated setter (rather than routing through [saveShopProfile]) since
   /// the logo is uploaded and saved the moment it's picked, independent of
   /// the rest of the profile form.
-  Future<void> setShopLogoUrl(String url) => _set(_kShopLogo, url);
+  Future<void> setShopLogoUrl(String shopId, String url) =>
+      _set(_shopKey(_kShopLogo, shopId), url);
 
   /// Whether the shop tracks inventory. When false the app runs "invoice
   /// only": no stock badges/alerts, no decrement on sale. Defaults to true.
@@ -315,11 +340,15 @@ class SettingsRepository {
     });
   }
 
-  Future<void> saveShopProfile(ShopProfile p) async {
-    await _set(_kShopName, p.name);
-    if (p.address != null) await _set(_kShopAddress, p.address!);
-    if (p.phone != null) await _set(_kShopPhone, p.phone!);
-    if (p.footer != null) await _set(_kReceiptFooter, p.footer!);
+  Future<void> saveShopProfile(String shopId, ShopProfile p) async {
+    await _set(_shopKey(_kShopName, shopId), p.name);
+    if (p.address != null) {
+      await _set(_shopKey(_kShopAddress, shopId), p.address!);
+    }
+    if (p.phone != null) await _set(_shopKey(_kShopPhone, shopId), p.phone!);
+    if (p.footer != null) {
+      await _set(_shopKey(_kReceiptFooter, shopId), p.footer!);
+    }
   }
 }
 

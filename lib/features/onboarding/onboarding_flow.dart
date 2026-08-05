@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/locale_controller.dart';
+import '../../core/providers.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
@@ -329,13 +330,17 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) return;
     final repo = ref.read(settingsRepositoryProvider);
-    final existing = await repo.shopProfile();
-    await repo.saveShopProfile(ShopProfile(
-      name: _name.text.trim(),
-      phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-      address: existing.address,
-      footer: existing.footer,
-    ));
+    final shopId = ref.read(shopIdProvider);
+    final existing = await repo.shopProfile(shopId);
+    await repo.saveShopProfile(
+      shopId,
+      ShopProfile(
+        name: _name.text.trim(),
+        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        address: existing.address,
+        footer: existing.footer,
+      ),
+    );
     ref.invalidate(shopProfileProvider);
   }
 

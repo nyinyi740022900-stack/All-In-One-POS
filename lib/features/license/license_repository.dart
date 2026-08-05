@@ -109,14 +109,14 @@ class LicenseRepository {
   /// `start_trial` Edge Function (server-tracked per device, so it can't be
   /// farmed by reinstalling, and stamps the shop_id claim for sync); offline it
   /// falls back to a local trial.
-  Future<CachedLicense?> startFreeTrial() async {
+  Future<CachedLicense?> startFreeTrial(String shopId) async {
     if (await _settings.trialUsed()) return null;
     final deviceId = await _settings.deviceId();
     final now = DateTime.now();
 
     if (Env.hasBackend) {
       try {
-        final profile = await _settings.shopProfile();
+        final profile = await _settings.shopProfile(shopId);
         final res = await Supabase.instance.client.functions.invoke(
           'start_trial',
           body: {'device_id': deviceId, 'shop_name': profile.name},

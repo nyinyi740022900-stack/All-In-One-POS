@@ -103,7 +103,7 @@ Future<void> printOrderInvoice(
     return;
   }
 
-  final shop = await settings.shopProfile();
+  final shop = await ref.read(shopProfileProvider.future);
   final data = receiptFromOrder(
     order,
     items,

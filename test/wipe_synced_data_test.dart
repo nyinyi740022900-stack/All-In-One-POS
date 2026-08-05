@@ -26,6 +26,9 @@ void main() {
     await db.into(db.appSettings).insert(
         const AppSettingsCompanion(
             key: Value('printer.address'), value: Value('00:11:22')));
+    await db.into(db.appSettings).insert(
+        const AppSettingsCompanion(
+            key: Value('staff.active_id'), value: Value('staff-1')));
 
     await db.wipeSyncedData();
 
@@ -35,5 +38,18 @@ void main() {
     final settings = await db.select(db.appSettings).get();
     expect(settings.map((s) => s.key), isNot(contains('sync.cursor.products')));
     expect(settings.map((s) => s.key), contains('printer.address'));
+  });
+
+  test('wipeSyncedData clears the active-staff-id flag, so a new shop never '
+      'inherits a stale staff selection from the one just switched away from',
+      () async {
+    await db.into(db.appSettings).insert(
+        const AppSettingsCompanion(
+            key: Value('staff.active_id'), value: Value('staff-1')));
+
+    await db.wipeSyncedData();
+
+    final settings = await db.select(db.appSettings).get();
+    expect(settings.map((s) => s.key), isNot(contains('staff.active_id')));
   });
 }
