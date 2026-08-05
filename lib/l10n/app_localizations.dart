@@ -4742,6 +4742,36 @@ abstract class AppLocalizations {
   /// **'No branches linked yet.'**
   String get branchesEmpty;
 
+  /// No description provided for @branchesSectionCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current branch'**
+  String get branchesSectionCurrent;
+
+  /// No description provided for @branchesSectionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other branches'**
+  String get branchesSectionOther;
+
+  /// No description provided for @branchesNoOther.
+  ///
+  /// In en, this message translates to:
+  /// **'No other branches linked yet.'**
+  String get branchesNoOther;
+
+  /// No description provided for @branchesRowPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending local changes: {count}'**
+  String branchesRowPending(int count);
+
+  /// No description provided for @branchesRowLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String branchesRowLastSync(String time);
+
   /// No description provided for @branchesCurrent.
   ///
   /// In en, this message translates to:

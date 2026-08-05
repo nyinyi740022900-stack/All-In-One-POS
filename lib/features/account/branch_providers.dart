@@ -21,3 +21,8 @@ final branchSwitchRecoveryProvider =
     StreamProvider.autoDispose<BranchSwitchRecoveryState?>((ref) {
       return ref.watch(branchRepositoryProvider).watchSwitchRecoveryState();
     });
+
+final pendingOutboxCountProvider = StreamProvider.autoDispose<int>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.select(db.outbox).watch().map((rows) => rows.length);
+});

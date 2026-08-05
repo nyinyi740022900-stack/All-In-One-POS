@@ -188,12 +188,107 @@ enum _BranchSwitchUiStep {
   syncingNewData,
 }
 
+class _SectionHint extends StatelessWidget {
+  const _SectionHint({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space3),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+      ),
+      child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
+    );
+  }
+}
+
+class _BranchCard extends StatelessWidget {
+  const _BranchCard({
+    required this.branch,
+    required this.pendingOutboxCount,
+    required this.lastSyncedText,
+    required this.trailing,
+  });
+
+  final Branch branch;
+  final int pendingOutboxCount;
+  final String lastSyncedText;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final label = branch.label?.isNotEmpty == true
+        ? branch.label!
+        : branch.shopId;
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.space2),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  branch.isCurrent
+                      ? Icons.storefront
+                      : Icons.storefront_outlined,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        branch.shopId,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.branchesRowPending(pendingOutboxCount),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l.branchesRowLastSync(lastSyncedText),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Align(alignment: Alignment.centerRight, child: trailing),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BranchesBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final branchesAsync = ref.watch(branchesProvider);
     final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
+    final pendingOutbox =
+        ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
+    final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(child: Text(l.accountActionFailed)),
@@ -206,36 +301,85 @@ class _BranchesBody extends ConsumerWidget {
             ),
           );
         }
+        final currentBranches = branches.where((b) => b.isCurrent).toList();
+        final otherBranches = branches.where((b) => !b.isCurrent).toList();
         return Column(
           children: [
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
             Expanded(
-              child: ListView.separated(
-                itemCount: branches.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, i) {
-                  final b = branches[i];
-                  return ListTile(
-                    leading: Icon(
-                      b.isCurrent
-                          ? Icons.storefront
-                          : Icons.storefront_outlined,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  AppTheme.space6,
+                ),
+                children: [
+                  Text(
+                    l.branchesSectionCurrent,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  if (currentBranches.isEmpty)
+                    _SectionHint(message: l.branchesEmpty)
+                  else
+                    ...currentBranches.map(
+                      (b) => _BranchCard(
+                        branch: b,
+                        pendingOutboxCount: pendingOutbox,
+                        lastSyncedText: _formatLastSync(
+                          context,
+                          syncState.lastSyncedAt,
+                        ),
+                        trailing: Chip(label: Text(l.branchesCurrent)),
+                      ),
                     ),
-                    title: Text(
-                      b.label?.isNotEmpty == true ? b.label! : b.shopId,
-                    ),
-                    subtitle: Text(b.shopId),
-                    trailing: b.isCurrent
-                        ? Chip(label: Text(l.branchesCurrent))
-                        : IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () => _confirmUnlink(context, ref, b),
+                  const SizedBox(height: AppTheme.space4),
+                  Text(
+                    l.branchesSectionOther,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  if (otherBranches.isEmpty)
+                    _SectionHint(message: l.branchesNoOther)
+                  else
+                    ...otherBranches
+                        .map(
+                          (b) => _BranchCard(
+                            branch: b,
+                            pendingOutboxCount: pendingOutbox,
+                            lastSyncedText: _formatLastSync(
+                              context,
+                              syncState.lastSyncedAt,
+                            ),
+                            trailing: Wrap(
+                              spacing: AppTheme.space2,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _confirmSwitch(context, ref, b),
+                                  icon: const Icon(Icons.swap_horiz, size: 18),
+                                  label: Text(l.branchesSwitch),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () =>
+                                      _confirmUnlink(context, ref, b),
+                                  style: FilledButton.styleFrom(
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.error,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    size: 18,
+                                  ),
+                                  label: Text(l.branchesUnlink),
+                                ),
+                              ],
+                            ),
                           ),
-                    onTap: b.isCurrent
-                        ? null
-                        : () => _confirmSwitch(context, ref, b),
-                  );
-                },
+                        ),
+                ],
               ),
             ),
           ],

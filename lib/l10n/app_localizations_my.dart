@@ -2543,6 +2543,25 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesEmpty => 'ဆိုင်ခွဲ မချိတ်ဆက်ရသေးပါ။';
 
   @override
+  String get branchesSectionCurrent => 'လက်ရှိ ဆိုင်ခွဲ';
+
+  @override
+  String get branchesSectionOther => 'အခြား ဆိုင်ခွဲများ';
+
+  @override
+  String get branchesNoOther => 'အခြား ဆိုင်ခွဲ မရှိသေးပါ။';
+
+  @override
+  String branchesRowPending(int count) {
+    return 'မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: $count';
+  }
+
+  @override
+  String branchesRowLastSync(String time) {
+    return 'နောက်ဆုံး sync: $time';
+  }
+
+  @override
   String get branchesCurrent => 'လက်ရှိ';
 
   @override

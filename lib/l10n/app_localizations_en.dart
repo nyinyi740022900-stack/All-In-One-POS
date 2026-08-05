@@ -2536,6 +2536,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesEmpty => 'No branches linked yet.';
 
   @override
+  String get branchesSectionCurrent => 'Current branch';
+
+  @override
+  String get branchesSectionOther => 'Other branches';
+
+  @override
+  String get branchesNoOther => 'No other branches linked yet.';
+
+  @override
+  String branchesRowPending(int count) {
+    return 'Pending local changes: $count';
+  }
+
+  @override
+  String branchesRowLastSync(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
   String get branchesCurrent => 'Current';
 
   @override
