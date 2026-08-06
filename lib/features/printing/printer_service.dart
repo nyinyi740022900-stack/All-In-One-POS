@@ -70,7 +70,7 @@ class PrinterService {
             const Duration(seconds: 5),
           );
       if (res.statusCode != 200) return null;
-      return decodeLogoImage(res.bodyBytes);
+      return await decodeLogoImage(res.bodyBytes);
     } catch (_) {
       return null;
     }

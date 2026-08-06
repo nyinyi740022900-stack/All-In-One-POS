@@ -376,8 +376,12 @@ class _BranchesBody extends ConsumerWidget {
             ),
           );
         }
-        final currentBranches = branches.where((b) => b.isCurrent).toList();
-        final otherBranches = branches.where((b) => !b.isCurrent).toList();
+        final currentShopId =
+            ref.watch(licenseControllerProvider).license?.shopId;
+        final currentBranches = _resolveCurrentBranches(branches, currentShopId);
+        final currentShopSet = currentBranches.map((b) => b.shopId).toSet();
+        final otherBranches =
+            branches.where((b) => !currentShopSet.contains(b.shopId)).toList();
         return Column(
           children: [
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
@@ -467,6 +471,16 @@ class _BranchesBody extends ConsumerWidget {
         );
       },
     );
+  }
+
+  List<Branch> _resolveCurrentBranches(
+    List<Branch> branches,
+    String? currentShopId,
+  ) {
+    final explicitCurrent = branches.where((b) => b.isCurrent).toList();
+    if (explicitCurrent.isNotEmpty) return explicitCurrent;
+    if (currentShopId == null || currentShopId.isEmpty) return const [];
+    return branches.where((b) => b.shopId == currentShopId).toList();
   }
 
   Widget _buildHealthChip(
@@ -659,25 +673,25 @@ class _BranchesBody extends ConsumerWidget {
                     style: TextStyle(color: Theme.of(ctx).colorScheme.error),
                   ),
                 ),
-              Row(
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: AppTheme.space2,
+                runSpacing: AppTheme.space2,
                 children: [
                   TextButton(
                     onPressed: () =>
                         Navigator.of(ctx).pop(_BranchSwitchAction.cancel),
                     child: Text(l.commonCancel),
                   ),
-                  const Spacer(),
                   OutlinedButton(
                     onPressed: () =>
                         Navigator.of(ctx).pop(_BranchSwitchAction.syncFirst),
                     child: Text(l.branchesPreflightSyncFirst),
                   ),
-                  const SizedBox(width: AppTheme.space2),
                   FilledButton(
                     onPressed: allowSwitch
-                        ? () => Navigator.of(
-                            ctx,
-                          ).pop(_BranchSwitchAction.switchNow)
+                        ? () =>
+                            Navigator.of(ctx).pop(_BranchSwitchAction.switchNow)
                         : null,
                     child: Text(l.branchesPreflightSwitchNow),
                   ),
@@ -874,20 +888,25 @@ class _BranchesBody extends ConsumerWidget {
         action == _BranchSwitchAction.cancel) {
       return;
     }
+    var shouldContinueToSwitch = action == _BranchSwitchAction.switchNow;
     if (action == _BranchSwitchAction.syncFirst) {
       await ref.read(syncControllerProvider.notifier).sync();
+      final postSyncPreflight = await _runPreflight(ref);
       if (context.mounted) {
-        final syncState = ref.read(syncControllerProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              syncState.phase == SyncPhase.error ? l.syncError : l.syncIdle,
-            ),
-          ),
-        );
+        if (postSyncPreflight.pendingOutboxCount == 0 && postSyncPreflight.online) {
+          shouldContinueToSwitch = true;
+        } else {
+          final blockedReason = postSyncPreflight.pendingOutboxCount > 0
+              ? l.branchesPreflightNeedSync
+              : l.branchesPreflightNeedOnline;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(blockedReason)));
+        }
       }
-      return;
     }
+    if (!shouldContinueToSwitch) return;
+    if (!context.mounted) return;
 
     final currentStep = ValueNotifier<_BranchSwitchUiStep>(
       _BranchSwitchUiStep.checkingDataSafety,

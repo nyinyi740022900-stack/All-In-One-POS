@@ -6,58 +6,39 @@ import 'package:mm_pos/features/staff/staff_providers.dart';
 void main() {
   group('settings permission matrix (effective role)', () {
     ProviderContainer container({
-      required String localRole,
       String? backendRole,
     }) {
       return ProviderContainer(
         overrides: [
-          staffRoleProvider.overrideWith((ref) => Stream.value(localRole)),
           backendAccountRoleProvider.overrideWithValue(backendRole),
         ],
       );
     }
 
-    test('owner when local=owner and backend role is absent', () async {
-      final c = container(localRole: 'owner');
+    test('owner when backend role is absent', () async {
+      final c = container();
       addTearDown(c.dispose);
-      await c.read(staffRoleProvider.future);
       expect(c.read(isEffectiveOwnerProvider), isTrue);
       expect(c.read(canEditInventoryProvider), isTrue);
     });
 
-    test('staff when local=staff and backend role is absent', () async {
-      final c = container(localRole: 'staff');
+    test('staff when backend role is staff', () async {
+      final c = container(backendRole: 'staff');
       addTearDown(c.dispose);
-      await c.read(staffRoleProvider.future);
       expect(c.read(isEffectiveOwnerProvider), isFalse);
       expect(c.read(canEditInventoryProvider), isFalse);
     });
 
-    test('backend staff overrides local owner (most restrictive wins)',
-        () async {
-      final c = container(localRole: 'owner', backendRole: 'staff');
+    test('owner when backend role is owner', () async {
+      final c = container(backendRole: 'owner');
       addTearDown(c.dispose);
-      await c.read(staffRoleProvider.future);
-      expect(c.read(isEffectiveOwnerProvider), isFalse);
-      expect(c.read(canEditInventoryProvider), isFalse);
-    });
-
-    test('backend owner still follows local device mode', () async {
-      final owner = container(localRole: 'owner', backendRole: 'owner');
-      addTearDown(owner.dispose);
-      await owner.read(staffRoleProvider.future);
-      expect(owner.read(isEffectiveOwnerProvider), isTrue);
-
-      final staff = container(localRole: 'staff', backendRole: 'owner');
-      addTearDown(staff.dispose);
-      await staff.read(staffRoleProvider.future);
-      expect(staff.read(isEffectiveOwnerProvider), isFalse);
+      expect(c.read(isEffectiveOwnerProvider), isTrue);
+      expect(c.read(canEditInventoryProvider), isTrue);
     });
 
     test('unknown backend role is treated as staff-safe fallback', () async {
-      final c = container(localRole: 'owner', backendRole: 'admin');
+      final c = container(backendRole: 'admin');
       addTearDown(c.dispose);
-      await c.read(staffRoleProvider.future);
       expect(c.read(isEffectiveOwnerProvider), isFalse);
     });
   });

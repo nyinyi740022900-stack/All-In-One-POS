@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../account/account_providers.dart';
-import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'staff_repository.dart';
 
@@ -58,18 +57,17 @@ final activeStaffNameProvider = Provider<String?>((ref) {
 
 /// Role currently applied by the UI permission layer.
 ///
-/// Local device mode can lock a phone down to staff, while a real backend
-/// account may also itself be staff. We pick the more restrictive result:
-/// - backend 'staff' => always staff
-/// - backend 'owner' => follow local device mode
-/// - no backend role  => follow local device mode
+/// Source of truth is now backend account role (email-login invite model):
+/// - backend 'staff' => staff
+/// - backend 'owner' => owner
+/// - unknown backend role => staff-safe fallback
+/// - no backend role/session => owner fallback
 final effectiveRoleProvider = Provider<String>((ref) {
-  final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   final backendRole = ref.watch(backendAccountRoleProvider);
   if (backendRole == 'staff') return 'staff';
-  if (backendRole == 'owner') return localRole;
+  if (backendRole == 'owner') return 'owner';
   if (backendRole != null && backendRole.isNotEmpty) return 'staff';
-  return localRole;
+  return 'owner';
 });
 
 /// True when the effective permission role is owner. Owner controls should gate
@@ -88,20 +86,8 @@ final isOwnerProvider = Provider<bool>((ref) {
 final canEditInventoryProvider =
     Provider<bool>((ref) => ref.watch(isEffectiveOwnerProvider));
 
-/// Staff/Owner mode only matters once there's a second device to hand off to
-/// someone else — for a shop running just one device, switching that one
-/// phone into Staff mode has no real benefit and is just confusing extra
-/// settings. Hidden in that case, EXCEPT when the device is already in Staff
-/// mode (e.g. a shop released devices back down to one after using Staff
-/// mode) — then it stays visible so there's always a way back to Owner.
-final showStaffModeSectionProvider = Provider<bool>((ref) {
-  final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
-  if (role != 'owner') return true;
-  final deviceCount = ref.watch(shopDevicesProvider).valueOrNull
-          ?.where((d) => d.isBound).length ??
-      1;
-  return deviceCount > 1;
-});
+/// Device-local Staff mode is deprecated in favor of backend account invites.
+final showStaffModeSectionProvider = Provider<bool>((ref) => false);
 
 /// Switches the device's staff role and manages the owner PIN. Switching to
 /// 'staff' is always free (an owner locking the device down for a cashier);

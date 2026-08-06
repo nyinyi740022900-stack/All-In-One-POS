@@ -10,7 +10,6 @@ import 'package:mm_pos/domain/product_with_stock.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
-import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/features/sell/sell_screen.dart';
 
 void main() {
@@ -45,9 +44,6 @@ void main() {
           // The Orders tab is built eagerly by the IndexedStack shell; give it
           // a single-value stream so its Drift watch doesn't stay pending.
           ordersStreamProvider.overrideWith((ref) => Stream.value(<Order>[])),
-          // The router's role-based tab filter watches this — single-value
-          // so it doesn't leave a pending Drift stream under the fake clock.
-          staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
         ],
         child: const MmPosApp(),
       ),

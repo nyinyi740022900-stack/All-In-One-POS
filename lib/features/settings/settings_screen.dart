@@ -35,7 +35,6 @@ import '../suppliers/accounts_payable_providers.dart';
 import '../suppliers/accounts_payable_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 import '../staff/staff_providers.dart';
-import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
 import 'device_label_providers.dart';
@@ -205,16 +204,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _SupportTile(),
 
-          // Kept well away from the everyday settings above — this is where
-          // an owner locks the device into Staff mode (or switches back with
-          // the PIN), not something staff should stumble across while
-          // browsing Settings. Hidden entirely for a single-device shop (see
-          // showStaffModeSectionProvider) — Staff/Owner mode only matters
-          // once there's a second device to hand off to someone else.
-          if (ref.watch(showStaffModeSectionProvider)) ...[
-            _SectionHeader(l.settingsSectionOwnerTools),
-            const StaffModeCard(),
-          ],
         ],
       ),
     );

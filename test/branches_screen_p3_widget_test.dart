@@ -4,13 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/account/branch_repository.dart';
 import 'package:mm_pos/features/account/branches_screen.dart';
+import 'package:mm_pos/features/license/license_model.dart';
 import 'package:mm_pos/features/license/license_providers.dart';
+import 'package:mm_pos/features/license/license_status.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/l10n/app_localizations.dart';
 
 class _FakeLicenseController extends LicenseController {
-  _FakeLicenseController(super.ref) {
-    state = const LicenseState(loading: false);
+  _FakeLicenseController(
+    super.ref, {
+    CachedLicense? license,
+  }) {
+    state = LicenseState(loading: false, license: license);
   }
 
   @override
@@ -22,19 +27,40 @@ void main() {
     WidgetTester tester, {
     required bool online,
     required int pendingOutbox,
+    bool markCurrentInBranchList = true,
   }) async {
+    final now = DateTime.utc(2026, 1, 1);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           isPremiumProvider.overrideWith((ref) => true),
           isEffectiveOwnerProvider.overrideWith((ref) => true),
           licenseControllerProvider.overrideWith(
-            (ref) => _FakeLicenseController(ref),
+            (ref) => _FakeLicenseController(
+              ref,
+              license: CachedLicense(
+                key: 'K',
+                shopId: 'shop-main',
+                plan: LicensePlan.trial,
+                expiresAt: now.add(const Duration(days: 30)),
+                activatedAt: now,
+                lastVerifiedAt: now,
+                deviceId: 'device-1',
+              ),
+            ),
           ),
           branchesProvider.overrideWith(
-            (ref) async => const [
-              Branch(shopId: 'shop-main', label: 'Main', isCurrent: true),
-              Branch(shopId: 'shop-branch', label: 'Branch', isCurrent: false),
+            (ref) async => [
+              Branch(
+                shopId: 'shop-main',
+                label: 'Main',
+                isCurrent: markCurrentInBranchList,
+              ),
+              Branch(
+                shopId: 'shop-branch',
+                label: 'Branch',
+                isCurrent: false,
+              ),
             ],
           ),
           branchSwitchRecoveryProvider.overrideWith(
@@ -83,5 +109,16 @@ void main() {
   ) async {
     await pumpBranches(tester, online: false, pendingOutbox: 2);
     expect(find.text('Sync needed'), findsWidgets);
+  });
+
+  testWidgets('uses active license shop as current branch fallback', (tester) async {
+    await pumpBranches(
+      tester,
+      online: true,
+      pendingOutbox: 0,
+      markCurrentInBranchList: false,
+    );
+    expect(find.text('Pinned current branch'), findsOneWidget);
+    expect(find.text('Main'), findsWidgets);
   });
 }

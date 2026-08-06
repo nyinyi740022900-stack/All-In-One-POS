@@ -138,7 +138,7 @@ class LicenseRepository {
             await Supabase.instance.client.auth.refreshSession();
           } catch (_) {}
           await _settings.markTrialUsed();
-          return _save(lic);
+          return await _save(lic);
         }
       } catch (_) {/* fall back to a local trial */}
     }

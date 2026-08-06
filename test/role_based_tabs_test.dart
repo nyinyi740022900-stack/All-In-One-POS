@@ -11,13 +11,12 @@ import 'package:mm_pos/features/account/account_providers.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
-import 'package:mm_pos/features/staff/staff_providers.dart';
 
 /// Covers the router's role-based tab filtering: Analytics is hidden in Staff
 /// mode (business-sensitive), while Settings stays visible even for Staff (the
 /// only way back to Owner mode, via the PIN).
 void main() {
-  Future<void> pump(WidgetTester tester, String role, {String? backendRole}) async {
+  Future<void> pump(WidgetTester tester, {String? backendRole}) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -37,7 +36,6 @@ void main() {
           categoriesStreamProvider
               .overrideWith((ref) => Stream.value(<Category>[])),
           ordersStreamProvider.overrideWith((ref) => Stream.value(<Order>[])),
-          staffRoleProvider.overrideWith((ref) => Stream.value(role)),
           backendAccountRoleProvider.overrideWithValue(backendRole),
         ],
         child: const MmPosApp(),
@@ -47,22 +45,27 @@ void main() {
   }
 
   testWidgets('owner sees all 6 tabs including Analytics', (tester) async {
-    await pump(tester, 'owner');
+    await pump(tester, backendRole: 'owner');
     expect(find.byType(NavigationDestination), findsNWidgets(6));
   });
 
   testWidgets(
-      'staff sees 5 tabs — Analytics hidden, Settings still visible (PIN escape hatch)',
+      'staff sees 5 tabs — Analytics hidden, Settings still visible',
       (tester) async {
-    await pump(tester, 'staff');
+    await pump(tester, backendRole: 'staff');
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.byIcon(Icons.bar_chart), findsNothing);
     expect(find.byIcon(Icons.settings), findsOneWidget);
   });
 
   testWidgets(
-      'backend staff role overrides local owner mode (still 5 tabs)', (tester) async {
-    await pump(tester, 'owner', backendRole: 'staff');
+      'missing backend role falls back to owner (6 tabs)', (tester) async {
+    await pump(tester);
+    expect(find.byType(NavigationDestination), findsNWidgets(6));
+  });
+
+  testWidgets('backend staff role keeps 5 tabs', (tester) async {
+    await pump(tester, backendRole: 'staff');
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.byIcon(Icons.bar_chart), findsNothing);
   });
