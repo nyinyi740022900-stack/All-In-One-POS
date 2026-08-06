@@ -1,20 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers.dart';
-import '../../data/local/database.dart';
 import '../account/account_providers.dart';
 import '../printing/printing_providers.dart';
-import 'staff_repository.dart';
-
-final staffRepositoryProvider = Provider<StaffRepository>((ref) {
-  return StaffRepository(ref.watch(databaseProvider), ref.watch(shopIdProvider));
-});
-
-/// The shop's named staff roster (name + PIN profiles), shared across every
-/// device under the shop.
-final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
-  return ref.watch(staffRepositoryProvider).watchActiveMembers();
-});
 
 /// Role currently applied by the UI permission layer.
 ///

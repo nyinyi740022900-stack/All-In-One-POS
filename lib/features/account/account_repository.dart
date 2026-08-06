@@ -61,9 +61,8 @@ class StaffAccount {
       {required this.userId, required this.email, required this.banned});
 }
 
-/// Real email/password login for a shop's owner and staff — additive to the
-/// existing device-key activation + local PIN roster (`staff_repository.dart`),
-/// which are completely unaffected by this. See `activate` Edge Function's
+/// Real email/password login for a shop's owner and staff, layered onto the
+/// existing device-key activation flow. See `activate` Edge Function's
 /// `create_shop_login`/`invite_staff`/`revoke_staff` actions for the
 /// server-side half of this.
 ///

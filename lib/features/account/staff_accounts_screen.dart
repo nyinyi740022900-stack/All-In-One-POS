@@ -10,8 +10,8 @@ import 'account_providers.dart';
 import 'account_repository.dart';
 
 /// Owner-only view of invited real staff accounts (email/password login),
-/// additive to the device-local PIN roster in [StaffMembersScreen] — that
-/// screen and this one coexist as separate options in Settings.
+/// now the single staff-management surface after retiring the old
+/// device-local roster/PIN UI.
 class StaffAccountsScreen extends ConsumerWidget {
   const StaffAccountsScreen({super.key});
 
