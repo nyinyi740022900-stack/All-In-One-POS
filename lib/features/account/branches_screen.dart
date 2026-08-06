@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/sync/sync_providers.dart';
@@ -22,10 +23,14 @@ class BranchesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading ||
+        !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.branchesTitle)),
-        body: PremiumGate(featureName: l.branchesTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.branchesTitle,
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     return Scaffold(
@@ -70,11 +75,13 @@ class BranchesScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.branchesCreate)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.branchesCreate),
+          ),
         ],
       ),
     );
@@ -82,16 +89,19 @@ class BranchesScreen extends ConsumerWidget {
     name.dispose();
     if (submitted != true || !context.mounted) return;
     if (shopName.isEmpty) return;
-    final result =
-        await ref.read(branchRepositoryProvider).createBranch(shopName);
+    final result = await ref
+        .read(branchRepositoryProvider)
+        .createBranch(shopName);
     if (!context.mounted) return;
     if (result.ok) {
       ref.invalidate(branchesProvider);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.branchesCreated)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.branchesCreated)));
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
   }
 
@@ -106,8 +116,7 @@ class BranchesScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l.branchesLinkHint,
-                style: Theme.of(ctx).textTheme.bodySmall),
+            Text(l.branchesLinkHint, style: Theme.of(ctx).textTheme.bodySmall),
             const SizedBox(height: AppTheme.space2),
             TextField(
               controller: key,
@@ -122,11 +131,13 @@ class BranchesScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.branchesLink)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.branchesLink),
+          ),
         ],
       ),
     );
@@ -142,16 +153,204 @@ class BranchesScreen extends ConsumerWidget {
     if (!context.mounted) return;
     if (result.ok) {
       ref.invalidate(branchesProvider);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.branchesLinked)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.branchesLinked)));
     } else {
       final msg = switch (result.error) {
         'invalid_key' => l.branchesInvalidKey,
         _ => l.accountActionFailed,
       };
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
+  }
+}
+
+enum _BranchSwitchAction { cancel, syncFirst, switchNow }
+
+class _BranchPreflightInfo {
+  final int pendingOutboxCount;
+  final bool online;
+  final DateTime? lastSyncedAt;
+
+  const _BranchPreflightInfo({
+    required this.pendingOutboxCount,
+    required this.online,
+    required this.lastSyncedAt,
+  });
+}
+
+enum _BranchSwitchUiStep {
+  checkingDataSafety,
+  switchingAccountClaim,
+  refreshingSession,
+  clearingOldData,
+  syncingNewData,
+}
+
+class _SectionHint extends StatelessWidget {
+  const _SectionHint({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space3),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+      ),
+      child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
+    );
+  }
+}
+
+class _BranchCard extends StatelessWidget {
+  const _BranchCard({
+    required this.branch,
+    required this.pendingOutboxCount,
+    required this.lastSyncedText,
+    required this.healthChip,
+    required this.trailing,
+  });
+
+  final Branch branch;
+  final int pendingOutboxCount;
+  final String lastSyncedText;
+  final Widget healthChip;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final label = branch.label?.isNotEmpty == true
+        ? branch.label!
+        : branch.shopId;
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.space2),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  branch.isCurrent
+                      ? Icons.storefront
+                      : Icons.storefront_outlined,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        branch.shopId,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppTheme.space2),
+                healthChip,
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.branchesRowPending(pendingOutboxCount),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l.branchesRowLastSync(lastSyncedText),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Align(alignment: Alignment.centerRight, child: trailing),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CurrentBranchPinnedCard extends StatelessWidget {
+  const _CurrentBranchPinnedCard({
+    required this.branch,
+    required this.pendingOutboxCount,
+    required this.lastSyncedText,
+    required this.healthChip,
+  });
+
+  final Branch branch;
+  final int pendingOutboxCount;
+  final String lastSyncedText;
+  final Widget healthChip;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final label = branch.label?.isNotEmpty == true
+        ? branch.label!
+        : branch.shopId;
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.space2),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.push_pin_outlined),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Text(
+                    l.branchesPinnedCurrentTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                healthChip,
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 2),
+            Text(
+              branch.shopId,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.branchesPinnedCurrentHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.branchesRowPending(pendingOutboxCount),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l.branchesRowLastSync(lastSyncedText),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -160,6 +359,11 @@ class _BranchesBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final branchesAsync = ref.watch(branchesProvider);
+    final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
+    final pendingOutbox =
+        ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
+    final online = ref.watch(branchConnectivityProvider).valueOrNull ?? true;
+    final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(child: Text(l.accountActionFailed)),
@@ -172,125 +376,636 @@ class _BranchesBody extends ConsumerWidget {
             ),
           );
         }
-        return ListView.separated(
-          itemCount: branches.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) {
-            final b = branches[i];
-            return ListTile(
-              leading: Icon(
-                  b.isCurrent ? Icons.storefront : Icons.storefront_outlined),
-              title: Text(b.label?.isNotEmpty == true ? b.label! : b.shopId),
-              subtitle: Text(b.shopId),
-              trailing: b.isCurrent
-                  ? Chip(label: Text(l.branchesCurrent))
-                  : IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () => _confirmUnlink(context, ref, b),
+        final currentBranches = branches.where((b) => b.isCurrent).toList();
+        final otherBranches = branches.where((b) => !b.isCurrent).toList();
+        return Column(
+          children: [
+            if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  AppTheme.space6,
+                ),
+                children: [
+                  Text(
+                    l.branchesSectionCurrent,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  if (currentBranches.isEmpty)
+                    _SectionHint(message: l.branchesEmpty)
+                  else
+                    ...currentBranches.map(
+                      (b) => _CurrentBranchPinnedCard(
+                        branch: b,
+                        pendingOutboxCount: pendingOutbox,
+                        lastSyncedText: _formatLastSync(
+                          context,
+                          syncState.lastSyncedAt,
+                        ),
+                        healthChip: _buildHealthChip(
+                          context,
+                          online,
+                          pendingOutbox,
+                        ),
+                      ),
                     ),
-              onTap: b.isCurrent ? null : () => _confirmSwitch(context, ref, b),
-            );
-          },
+                  const SizedBox(height: AppTheme.space4),
+                  Text(
+                    l.branchesSectionOther,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  if (otherBranches.isEmpty)
+                    _SectionHint(message: l.branchesNoOther)
+                  else
+                    ...otherBranches.map(
+                      (b) => _BranchCard(
+                        branch: b,
+                        pendingOutboxCount: pendingOutbox,
+                        lastSyncedText: _formatLastSync(
+                          context,
+                          syncState.lastSyncedAt,
+                        ),
+                        healthChip: _buildHealthChip(
+                          context,
+                          online,
+                          pendingOutbox,
+                        ),
+                        trailing: Wrap(
+                          spacing: AppTheme.space2,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _confirmSwitch(context, ref, b),
+                              icon: const Icon(Icons.swap_horiz, size: 18),
+                              label: Text(l.branchesSwitch),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: () => _confirmUnlink(context, ref, b),
+                              style: FilledButton.styleFrom(
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.error,
+                              ),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                size: 18,
+                              ),
+                              label: Text(l.branchesUnlink),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
+  Widget _buildHealthChip(
+    BuildContext context,
+    bool online,
+    int pendingOutbox,
+  ) {
+    final l = AppLocalizations.of(context);
+    final safe = online && pendingOutbox == 0;
+    return Chip(
+      avatar: Icon(
+        safe ? Icons.verified_outlined : Icons.sync_problem_outlined,
+        size: 16,
+      ),
+      label: Text(
+        safe ? l.branchesHealthSafeSwitch : l.branchesHealthSyncNeeded,
+      ),
+    );
+  }
+
+  Widget _buildRecoveryBanner(
+    BuildContext context,
+    WidgetRef ref,
+    BranchSwitchRecoveryState recovery,
+  ) {
+    final l = AppLocalizations.of(context);
+    final hint = recovery.lastError == null
+        ? l.branchesRecoveryBody(recovery.toShopId)
+        : l.branchesRecoveryBodyWithError(
+            recovery.toShopId,
+            _switchErrorMessage(l, recovery.lastError),
+          );
+    return MaterialBanner(
+      content: Text(hint),
+      leading: const Icon(Icons.restore_outlined),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+          },
+          child: Text(l.branchesRecoveryDismiss),
+        ),
+        FilledButton(
+          onPressed: () => _retryPendingSync(context, ref, recovery),
+          child: Text(l.branchesRecoveryRetrySync),
+        ),
+      ],
+    );
+  }
+
+  Future<_BranchPreflightInfo> _runPreflight(WidgetRef ref) async {
+    final pending = await ref
+        .read(branchRepositoryProvider)
+        .pendingOutboxCount();
+    bool online = true;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      online = results.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      online = true;
+    }
+    final lastSyncedAt = ref.read(syncControllerProvider).lastSyncedAt;
+    return _BranchPreflightInfo(
+      pendingOutboxCount: pending,
+      online: online,
+      lastSyncedAt: lastSyncedAt,
+    );
+  }
+
+  String _formatLastSync(BuildContext context, DateTime? dt) {
+    final l = AppLocalizations.of(context);
+    if (dt == null) return l.syncNever;
+    final local = dt.toLocal();
+    final date = MaterialLocalizations.of(context).formatShortDate(local);
+    final time = MaterialLocalizations.of(
+      context,
+    ).formatTimeOfDay(TimeOfDay.fromDateTime(local));
+    return '$date $time';
+  }
+
+  String _branchSwitchStepLabel(AppLocalizations l, _BranchSwitchUiStep step) {
+    return switch (step) {
+      _BranchSwitchUiStep.checkingDataSafety =>
+        l.branchesSwitchStepCheckingDataSafety,
+      _BranchSwitchUiStep.switchingAccountClaim =>
+        l.branchesSwitchStepSwitchingAccountClaim,
+      _BranchSwitchUiStep.refreshingSession =>
+        l.branchesSwitchStepRefreshingSession,
+      _BranchSwitchUiStep.clearingOldData =>
+        l.branchesSwitchStepClearingOldData,
+      _BranchSwitchUiStep.syncingNewData => l.branchesSwitchStepSyncingNewData,
+    };
+  }
+
+  _BranchSwitchUiStep _mapRepoStep(BranchSwitchStep step) {
+    return switch (step) {
+      BranchSwitchStep.checkingDataSafety =>
+        _BranchSwitchUiStep.checkingDataSafety,
+      BranchSwitchStep.switchingAccountClaim =>
+        _BranchSwitchUiStep.switchingAccountClaim,
+      BranchSwitchStep.refreshingSession =>
+        _BranchSwitchUiStep.refreshingSession,
+      BranchSwitchStep.clearingOldData => _BranchSwitchUiStep.clearingOldData,
+    };
+  }
+
+  String _switchErrorMessage(AppLocalizations l, String? code) {
+    return switch (code) {
+      'branch_switch_pending_sync' => l.branchesPendingSync,
+      'network_error' => l.branchesNetworkRetry,
+      'auth_expired' => l.branchesAuthExpired,
+      'invalid_branch_state' => l.branchesInvalidState,
+      'not_linked' => l.branchesInvalidState,
+      'forbidden' => l.branchesInvalidState,
+      'post_switch_verify_failed' => l.branchesVerifyBody,
+      _ => l.accountActionFailed,
+    };
+  }
+
+  Future<_BranchSwitchAction?> _showPreflightDialog(
+    BuildContext context,
+    Branch b,
+    _BranchPreflightInfo info,
+  ) {
+    final l = AppLocalizations.of(context);
+    final branchLabel = b.label?.isNotEmpty == true ? b.label! : b.shopId;
+    final allowSwitch = info.pendingOutboxCount == 0 && info.online;
+    final networkText = info.online
+        ? l.branchesNetworkOnline
+        : l.branchesNetworkOffline;
+    return showModalBottomSheet<_BranchSwitchAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space4,
+            0,
+            AppTheme.space4,
+            AppTheme.space4,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l.branchesPreflightTitle(branchLabel),
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppTheme.space3),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.storefront_outlined),
+                title: Text(l.branchesPreflightTarget),
+                subtitle: Text('$branchLabel\n${b.shopId}'),
+              ),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.sync_problem_outlined),
+                title: Text(
+                  l.branchesPreflightPending(info.pendingOutboxCount),
+                ),
+              ),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(info.online ? Icons.wifi : Icons.wifi_off),
+                title: Text(l.branchesPreflightNetwork(networkText)),
+              ),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.history_outlined),
+                title: Text(
+                  l.branchesPreflightLastSync(
+                    _formatLastSync(ctx, info.lastSyncedAt),
+                  ),
+                ),
+              ),
+              if (!allowSwitch)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space2),
+                  child: Text(
+                    info.pendingOutboxCount > 0
+                        ? l.branchesPreflightNeedSync
+                        : l.branchesPreflightNeedOnline,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(_BranchSwitchAction.cancel),
+                    child: Text(l.commonCancel),
+                  ),
+                  const Spacer(),
+                  OutlinedButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(_BranchSwitchAction.syncFirst),
+                    child: Text(l.branchesPreflightSyncFirst),
+                  ),
+                  const SizedBox(width: AppTheme.space2),
+                  FilledButton(
+                    onPressed: allowSwitch
+                        ? () => Navigator.of(
+                            ctx,
+                          ).pop(_BranchSwitchAction.switchNow)
+                        : null,
+                    child: Text(l.branchesPreflightSwitchNow),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSwitchProgressDialog(
+    BuildContext context,
+    ValueNotifier<_BranchSwitchUiStep> currentStep,
+  ) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        final l = AppLocalizations.of(context);
+        final orderedSteps = _BranchSwitchUiStep.values;
+        return AlertDialog(
+          title: Text(l.branchesSwitchInProgressTitle),
+          content: ValueListenableBuilder<_BranchSwitchUiStep>(
+            valueListenable: currentStep,
+            builder: (context, activeStep, child) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < orderedSteps.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppTheme.space2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (i < activeStep.index)
+                          Icon(
+                            Icons.check_circle,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        else if (i == activeStep.index)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          Icon(
+                            Icons.radio_button_unchecked,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        const SizedBox(width: AppTheme.space2),
+                        Expanded(
+                          child: Text(
+                            _branchSwitchStepLabel(l, orderedSteps[i]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _runPostSwitchVerification(
+    BuildContext context,
+    WidgetRef ref,
+    String targetShopId,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final verify = await ref
+        .read(branchRepositoryProvider)
+        .verifyPostSwitch(targetShopId);
+    if (verify.ok) return true;
+    if (!context.mounted) return false;
+    final action = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.branchesVerifyTitle),
+        content: Text(l.branchesVerifyBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.branchesVerifyFinishBackground),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.branchesVerifyRetryNow),
+          ),
+        ],
+      ),
+    );
+    if (action == true) {
+      await ref.read(syncControllerProvider.notifier).sync();
+      final second = await ref
+          .read(branchRepositoryProvider)
+          .verifyPostSwitch(targetShopId);
+      return second.ok;
+    }
+    return false;
+  }
+
+  Future<void> _retryPendingSync(
+    BuildContext context,
+    WidgetRef ref,
+    BranchSwitchRecoveryState recovery,
+  ) async {
+    final l = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text(l.branchesRecoveryRetrySync),
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: AppTheme.space4),
+            Expanded(child: Text(l.branchesSwitchStepSyncingNewData)),
+          ],
+        ),
+      ),
+    );
+    await ref.read(syncControllerProvider.notifier).sync();
+    if (!context.mounted) return;
+    final ok = await _runPostSwitchVerification(
+      context,
+      ref,
+      recovery.toShopId,
+    );
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+      if (ok) {
+        await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryResolved)));
+      } else {
+        await ref
+            .read(branchRepositoryProvider)
+            .markSwitchNeedsSyncRetry(
+              toShopId: recovery.toShopId,
+              fromShopId: recovery.fromShopId,
+              token: recovery.token,
+              lastError: 'post_switch_verify_failed',
+            );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryStillPending)));
+      }
+    }
+  }
+
   Future<void> _confirmSwitch(
-      BuildContext context, WidgetRef ref, Branch b) async {
+    BuildContext context,
+    WidgetRef ref,
+    Branch b,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.branchesSwitchConfirmTitle),
         content: Text(
-            l.branchesSwitchConfirmBody(b.label?.isNotEmpty == true ? b.label! : b.shopId)),
+          l.branchesSwitchConfirmBody(
+            b.label?.isNotEmpty == true ? b.label! : b.shopId,
+          ),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.branchesSwitch)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.branchesSwitch),
+          ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    final result = await ref.read(branchRepositoryProvider).switchBranch(b.shopId);
+    final preflight = await _runPreflight(ref);
     if (!context.mounted) return;
-    Navigator.of(context, rootNavigator: true).pop();
-
-    if (result.ok && result.license != null) {
-      ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
-      ref.invalidate(branchesProvider);
-      // `switchBranch` already wiped this device's local data for the old
-      // shop — stay on a blocking, non-dismissible spinner (rather than
-      // firing sync() and popping immediately) until the new shop's first
-      // sync pass actually lands, so a user who taps straight into
-      // Sell/Inventory never sees a shop that looks permanently empty.
+    final action = await _showPreflightDialog(context, b, preflight);
+    if (!context.mounted ||
+        action == null ||
+        action == _BranchSwitchAction.cancel) {
+      return;
+    }
+    if (action == _BranchSwitchAction.syncFirst) {
+      await ref.read(syncControllerProvider.notifier).sync();
       if (context.mounted) {
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            content: Row(
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(width: AppTheme.space4),
-                Expanded(child: Text(l.branchesSwitchSyncing)),
-              ],
+        final syncState = ref.read(syncControllerProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              syncState.phase == SyncPhase.error ? l.syncError : l.syncIdle,
             ),
           ),
         );
       }
-      await ref.read(syncControllerProvider.notifier).sync();
-      if (context.mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l.branchesSwitched)));
-      }
       return;
     }
-    if (!context.mounted) return;
-    final msg = result.error == 'branch_switch_pending_sync'
-        ? l.branchesPendingSync
-        : l.accountActionFailed;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+    final currentStep = ValueNotifier<_BranchSwitchUiStep>(
+      _BranchSwitchUiStep.checkingDataSafety,
+    );
+    _showSwitchProgressDialog(context, currentStep);
+    try {
+      final existingRecovery = await ref
+          .read(branchRepositoryProvider)
+          .switchRecoveryState();
+      final recoveryToken = existingRecovery?.toShopId == b.shopId
+          ? existingRecovery?.token
+          : null;
+      final result = await ref
+          .read(branchRepositoryProvider)
+          .switchBranch(
+            b.shopId,
+            onStep: (step) => currentStep.value = _mapRepoStep(step),
+            idempotencyToken: recoveryToken,
+          );
+      if (!context.mounted) return;
+
+      if (result.ok && result.license != null) {
+        ref
+            .read(licenseControllerProvider.notifier)
+            .applyExternal(result.license!);
+        ref.invalidate(branchesProvider);
+        currentStep.value = _BranchSwitchUiStep.syncingNewData;
+        await ref.read(syncControllerProvider.notifier).sync();
+        if (!context.mounted) return;
+        final verificationOk = await _runPostSwitchVerification(
+          context,
+          ref,
+          b.shopId,
+        );
+        if (verificationOk) {
+          await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+        } else {
+          final fromShopId = existingRecovery?.fromShopId ?? '';
+          await ref
+              .read(branchRepositoryProvider)
+              .markSwitchNeedsSyncRetry(
+                toShopId: b.shopId,
+                fromShopId: fromShopId,
+                token: recoveryToken ?? existingRecovery?.token,
+                lastError: 'post_switch_verify_failed',
+              );
+        }
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                verificationOk
+                    ? l.branchesSwitched
+                    : l.branchesRecoveryStillPending,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      await ref
+          .read(branchRepositoryProvider)
+          .markSwitchNeedsSyncRetry(
+            toShopId: b.shopId,
+            fromShopId: existingRecovery?.fromShopId ?? '',
+            token: recoveryToken,
+            lastError: result.error,
+          );
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_switchErrorMessage(l, result.error))),
+        );
+      }
+    } finally {
+      currentStep.dispose();
+    }
   }
 
   Future<void> _confirmUnlink(
-      BuildContext context, WidgetRef ref, Branch b) async {
+    BuildContext context,
+    WidgetRef ref,
+    Branch b,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.branchesUnlinkConfirmTitle),
-        content: Text(l.branchesUnlinkConfirmBody(
-            b.label?.isNotEmpty == true ? b.label! : b.shopId)),
+        content: Text(
+          l.branchesUnlinkConfirmBody(
+            b.label?.isNotEmpty == true ? b.label! : b.shopId,
+          ),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.branchesUnlink)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.branchesUnlink),
+          ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
-    final success = await ref.read(branchRepositoryProvider).unlinkBranch(b.shopId);
+    final success = await ref
+        .read(branchRepositoryProvider)
+        .unlinkBranch(b.shopId);
     if (!context.mounted) return;
     if (success) {
       ref.invalidate(branchesProvider);
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
   }
 }

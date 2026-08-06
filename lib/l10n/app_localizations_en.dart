@@ -2575,6 +2575,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesEmpty => 'No branches linked yet.';
 
   @override
+  String get branchesSectionCurrent => 'Current branch';
+
+  @override
+  String get branchesSectionOther => 'Other branches';
+
+  @override
+  String get branchesNoOther => 'No other branches linked yet.';
+
+  @override
+  String get branchesPinnedCurrentTitle => 'Pinned current branch';
+
+  @override
+  String get branchesPinnedCurrentHint =>
+      'This device is currently scoped to this branch.';
+
+  @override
+  String get branchesHealthSafeSwitch => 'Safe to switch';
+
+  @override
+  String get branchesHealthSyncNeeded => 'Sync needed';
+
+  @override
+  String branchesRowPending(int count) {
+    return 'Pending local changes: $count';
+  }
+
+  @override
+  String branchesRowLastSync(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
   String get branchesCurrent => 'Current';
 
   @override
@@ -2598,6 +2630,116 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get branchesPendingSync =>
       'This device still has unsynced changes. Wait for sync to finish, then try again.';
+
+  @override
+  String branchesPreflightTitle(String label) {
+    return 'Ready to switch to \"$label\"?';
+  }
+
+  @override
+  String get branchesPreflightTarget => 'Target branch';
+
+  @override
+  String branchesPreflightPending(int count) {
+    return 'Pending local changes: $count';
+  }
+
+  @override
+  String branchesPreflightNetwork(String status) {
+    return 'Network: $status';
+  }
+
+  @override
+  String branchesPreflightLastSync(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String get branchesPreflightNeedSync =>
+      'Sync first before switching so no local changes are lost.';
+
+  @override
+  String get branchesPreflightNeedOnline =>
+      'You are offline. Connect to the internet before switching.';
+
+  @override
+  String get branchesPreflightSyncFirst => 'Sync first';
+
+  @override
+  String get branchesPreflightSwitchNow => 'Switch now';
+
+  @override
+  String get branchesSwitchInProgressTitle => 'Switching branch';
+
+  @override
+  String get branchesSwitchStepCheckingDataSafety => 'Checking data safety';
+
+  @override
+  String get branchesSwitchStepSwitchingAccountClaim =>
+      'Switching account claim';
+
+  @override
+  String get branchesSwitchStepRefreshingSession => 'Refreshing session';
+
+  @override
+  String get branchesSwitchStepClearingOldData => 'Clearing old shop data';
+
+  @override
+  String get branchesSwitchStepSyncingNewData => 'Syncing new branch data';
+
+  @override
+  String branchesRecoveryBody(String shopId) {
+    return 'Branch switch to $shopId was interrupted before setup completed. You can retry sync now.';
+  }
+
+  @override
+  String branchesRecoveryBodyWithError(String shopId, String error) {
+    return 'Branch switch to $shopId is still incomplete: $error.';
+  }
+
+  @override
+  String get branchesRecoveryRetrySync => 'Retry sync';
+
+  @override
+  String get branchesRecoveryDismiss => 'Dismiss';
+
+  @override
+  String get branchesRecoveryResolved => 'Branch setup completed.';
+
+  @override
+  String get branchesRecoveryStillPending =>
+      'Branch setup is still incomplete. You can retry from the banner.';
+
+  @override
+  String get branchesVerifyTitle => 'Finishing branch setup';
+
+  @override
+  String get branchesVerifyBody =>
+      'Some branch data still looks incomplete. Retry sync now, or finish in background and keep using the app.';
+
+  @override
+  String get branchesVerifyRetryNow => 'Retry now';
+
+  @override
+  String get branchesVerifyFinishBackground => 'Finish in background';
+
+  @override
+  String get branchesNetworkOnline => 'Online';
+
+  @override
+  String get branchesNetworkOffline => 'Offline';
+
+  @override
+  String get branchesNetworkRetry =>
+      'Internet connection looks unstable. Please retry.';
+
+  @override
+  String get branchesAuthExpired =>
+      'Your session expired. Please sign in again.';
+
+  @override
+  String get branchesInvalidState =>
+      'This branch is no longer linked or allowed for this account.';
 
   @override
   String get branchesUnlink => 'Unlink';

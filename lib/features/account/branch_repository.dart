@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/env.dart';
 import '../../data/local/database.dart';
@@ -11,8 +14,11 @@ class Branch {
   final String shopId;
   final String? label;
   final bool isCurrent;
-  const Branch(
-      {required this.shopId, required this.label, required this.isCurrent});
+  const Branch({
+    required this.shopId,
+    required this.label,
+    required this.isCurrent,
+  });
 }
 
 class BranchActionResult {
@@ -31,9 +37,105 @@ class BranchSwitchResult {
   final String? error;
   final CachedLicense? license;
   const BranchSwitchResult.success(this.license) : ok = true, error = null;
-  const BranchSwitchResult.failure(this.error)
-      : ok = false,
-        license = null;
+  const BranchSwitchResult.failure(this.error) : ok = false, license = null;
+}
+
+enum BranchSwitchStep {
+  checkingDataSafety,
+  switchingAccountClaim,
+  refreshingSession,
+  clearingOldData,
+}
+
+typedef BranchSwitchStepCallback = void Function(BranchSwitchStep step);
+
+class BranchSwitchRecoveryState {
+  final String token;
+  final String fromShopId;
+  final String toShopId;
+  final BranchSwitchStep step;
+  final DateTime startedAt;
+  final String? lastError;
+  final bool needsSyncRetry;
+
+  const BranchSwitchRecoveryState({
+    required this.token,
+    required this.fromShopId,
+    required this.toShopId,
+    required this.step,
+    required this.startedAt,
+    this.lastError,
+    this.needsSyncRetry = false,
+  });
+
+  BranchSwitchRecoveryState copyWith({
+    BranchSwitchStep? step,
+    String? lastError,
+    bool? needsSyncRetry,
+  }) {
+    return BranchSwitchRecoveryState(
+      token: token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: step ?? this.step,
+      startedAt: startedAt,
+      lastError: lastError,
+      needsSyncRetry: needsSyncRetry ?? this.needsSyncRetry,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'token': token,
+    'from_shop_id': fromShopId,
+    'to_shop_id': toShopId,
+    'step': step.name,
+    'started_at': startedAt.toUtc().toIso8601String(),
+    'last_error': lastError,
+    'needs_sync_retry': needsSyncRetry,
+  };
+
+  static BranchSwitchRecoveryState? fromJson(Map<String, dynamic> json) {
+    final token = json['token'] as String?;
+    final fromShopId = json['from_shop_id'] as String?;
+    final toShopId = json['to_shop_id'] as String?;
+    final stepName = json['step'] as String?;
+    final startedRaw = json['started_at'] as String?;
+    if (token == null ||
+        fromShopId == null ||
+        toShopId == null ||
+        stepName == null ||
+        startedRaw == null) {
+      return null;
+    }
+    final startedAt = DateTime.tryParse(startedRaw);
+    final step = BranchSwitchStep.values.where((e) => e.name == stepName);
+    if (startedAt == null || step.isEmpty) return null;
+    return BranchSwitchRecoveryState(
+      token: token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: step.first,
+      lastError: json['last_error'] as String?,
+      needsSyncRetry: json['needs_sync_retry'] as bool? ?? false,
+      startedAt: startedAt,
+    );
+  }
+}
+
+class BranchSwitchVerification {
+  final bool ok;
+  final bool shopMatchesTarget;
+  final bool profileReadable;
+  final bool categoryQueryOk;
+  final bool productQueryOk;
+
+  const BranchSwitchVerification({
+    required this.ok,
+    required this.shopMatchesTarget,
+    required this.profileReadable,
+    required this.categoryQueryOk,
+    required this.productQueryOk,
+  });
 }
 
 /// Lets a real-login owner (see `account_repository.dart`) group multiple
@@ -51,20 +153,108 @@ class BranchRepository {
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
 
+  Future<void> _saveRecoveryState(BranchSwitchRecoveryState state) =>
+      _settings.setBranchSwitchStateJson(jsonEncode(state.toJson()));
+
+  Future<BranchSwitchRecoveryState?> switchRecoveryState() async {
+    final raw = await _settings.branchSwitchStateJson();
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return BranchSwitchRecoveryState.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Stream<BranchSwitchRecoveryState?> watchSwitchRecoveryState() {
+    return _settings.watchBranchSwitchStateJson().map((raw) {
+      if (raw == null || raw.isEmpty) return null;
+      try {
+        return BranchSwitchRecoveryState.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  Future<void> clearSwitchRecoveryState() => _settings.clearBranchSwitchState();
+
+  Future<void> markSwitchNeedsSyncRetry({
+    required String toShopId,
+    required String fromShopId,
+    String? token,
+    String? lastError,
+  }) {
+    final state = BranchSwitchRecoveryState(
+      token: (token == null || token.isEmpty) ? const Uuid().v4() : token,
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      step: BranchSwitchStep.clearingOldData,
+      startedAt: DateTime.now(),
+      lastError: lastError,
+      needsSyncRetry: true,
+    );
+    return _saveRecoveryState(state);
+  }
+
+  Future<BranchSwitchVerification> verifyPostSwitch(String targetShopId) async {
+    final current = await _licenseRepository.current();
+    final shopMatchesTarget = current?.shopId == targetShopId;
+
+    bool profileReadable = false;
+    try {
+      await _settings.shopProfile(targetShopId);
+      profileReadable = true;
+    } catch (_) {}
+
+    bool categoryQueryOk = false;
+    try {
+      await _db.select(_db.categories).get();
+      categoryQueryOk = true;
+    } catch (_) {}
+
+    bool productQueryOk = false;
+    try {
+      await _db.select(_db.products).get();
+      productQueryOk = true;
+    } catch (_) {}
+
+    final ok =
+        shopMatchesTarget &&
+        profileReadable &&
+        categoryQueryOk &&
+        productQueryOk;
+    return BranchSwitchVerification(
+      ok: ok,
+      shopMatchesTarget: shopMatchesTarget,
+      profileReadable: profileReadable,
+      categoryQueryOk: categoryQueryOk,
+      productQueryOk: productQueryOk,
+    );
+  }
+
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
     try {
-      final res = await Supabase.instance.client.functions
-          .invoke('activate', body: {'action': 'list_branches'});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'list_branches'},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] != true) return const [];
       final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
       return branches
-          .map((b) => Branch(
-                shopId: b['shop_id'] as String,
-                label: b['label'] as String?,
-                isCurrent: b['is_current'] as bool? ?? false,
-              ))
+          .map(
+            (b) => Branch(
+              shopId: b['shop_id'] as String,
+              label: b['label'] as String?,
+              isCurrent: b['is_current'] as bool? ?? false,
+            ),
+          )
           .toList();
     } catch (_) {
       return const [];
@@ -77,8 +267,10 @@ class BranchRepository {
   Future<BranchActionResult> createBranch(String shopName) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'create_branch', 'shop_name': shopName});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'create_branch', 'shop_name': shopName},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) return const BranchActionResult.success();
       return BranchActionResult.failure(data['error'] as String?);
@@ -90,8 +282,10 @@ class BranchRepository {
   Future<BranchActionResult> linkBranch(String key, String label) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'link_branch', 'key': key, 'label': label});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'link_branch', 'key': key, 'label': label},
+      );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) return const BranchActionResult.success();
       return BranchActionResult.failure(data['error'] as String?);
@@ -103,13 +297,20 @@ class BranchRepository {
   Future<bool> unlinkBranch(String shopId) async {
     if (!Env.hasBackend) return false;
     try {
-      final res = await Supabase.instance.client.functions.invoke('activate',
-          body: {'action': 'unlink_branch', 'shop_id': shopId});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'unlink_branch', 'shop_id': shopId},
+      );
       final data = res.data as Map<String, dynamic>;
       return data['ok'] == true;
     } catch (_) {
       return false;
     }
+  }
+
+  Future<int> pendingOutboxCount() async {
+    final pending = await _db.select(_db.outbox).get();
+    return pending.length;
   }
 
   /// Switches this device to a different branch: checks the outbox is fully
@@ -119,25 +320,82 @@ class BranchRepository {
   /// clean for the new shop. Does NOT update `shopIdProvider`/trigger a
   /// resync itself — the caller applies the returned license via
   /// `LicenseController.applyExternal` and kicks `SyncController.sync()`.
-  Future<BranchSwitchResult> switchBranch(String shopId) async {
+  Future<BranchSwitchResult> switchBranch(
+    String shopId, {
+    BranchSwitchStepCallback? onStep,
+    String? idempotencyToken,
+  }) async {
+    final current = await _licenseRepository.current();
+    final fromShopId = current?.shopId ?? '';
+    final token = idempotencyToken ?? const Uuid().v4();
+    final startedAt = DateTime.now();
+    Future<void> saveStep(BranchSwitchStep step, {String? error}) async {
+      await _saveRecoveryState(
+        BranchSwitchRecoveryState(
+          token: token,
+          fromShopId: fromShopId,
+          toShopId: shopId,
+          step: step,
+          startedAt: startedAt,
+          lastError: error,
+          needsSyncRetry: false,
+        ),
+      );
+    }
+
+    await saveStep(BranchSwitchStep.checkingDataSafety);
+    onStep?.call(BranchSwitchStep.checkingDataSafety);
     if (!Env.hasBackend) {
       return const BranchSwitchResult.failure('no_backend');
     }
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentSession == null || auth.currentUser == null) {
+      return const BranchSwitchResult.failure('auth_expired');
+    }
     final pending = await _db.select(_db.outbox).get();
     if (pending.isNotEmpty) {
+      await saveStep(
+        BranchSwitchStep.checkingDataSafety,
+        error: 'branch_switch_pending_sync',
+      );
       return const BranchSwitchResult.failure('branch_switch_pending_sync');
     }
 
     Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions
-          .invoke('activate', body: {'action': 'switch_branch', 'shop_id': shopId});
+      await saveStep(BranchSwitchStep.switchingAccountClaim);
+      onStep?.call(BranchSwitchStep.switchingAccountClaim);
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {
+          'action': 'switch_branch',
+          'shop_id': shopId,
+          'switch_token': token,
+        },
+      );
       data = res.data as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('jwt') ||
+          msg.contains('unauthorized') ||
+          msg.contains('forbidden') ||
+          msg.contains('auth')) {
+        await saveStep(
+          BranchSwitchStep.switchingAccountClaim,
+          error: 'auth_expired',
+        );
+        return const BranchSwitchResult.failure('auth_expired');
+      }
+      await saveStep(
+        BranchSwitchStep.switchingAccountClaim,
+        error: 'network_error',
+      );
       return const BranchSwitchResult.failure('network_error');
     }
     if (data['ok'] != true) {
-      return BranchSwitchResult.failure(data['error'] as String?);
+      final error = data['error'] as String?;
+      await saveStep(BranchSwitchStep.switchingAccountClaim, error: error);
+      return BranchSwitchResult.failure(error);
     }
     final expiresAtRaw = data['expires_at'] as String?;
     if (expiresAtRaw == null) {
@@ -145,9 +403,16 @@ class BranchRepository {
     }
 
     try {
+      await saveStep(BranchSwitchStep.refreshingSession);
+      onStep?.call(BranchSwitchStep.refreshingSession);
       await Supabase.instance.client.auth.refreshSession();
-    } catch (_) {}
+    } catch (_) {
+      await saveStep(BranchSwitchStep.refreshingSession, error: 'auth_expired');
+      return const BranchSwitchResult.failure('auth_expired');
+    }
 
+    await saveStep(BranchSwitchStep.clearingOldData);
+    onStep?.call(BranchSwitchStep.clearingOldData);
     await _db.wipeSyncedData();
 
     final now = DateTime.now();
@@ -157,7 +422,8 @@ class BranchRepository {
       shopId: shopId,
       plan: _planFrom(data['plan'] as String? ?? 'monthly'),
       expiresAt: DateTime.parse(expiresAtRaw),
-      activatedAt: DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
+      activatedAt:
+          DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
       lastVerifiedAt: now,
       deviceId: deviceId,
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
@@ -169,7 +435,7 @@ class BranchRepository {
 }
 
 LicensePlan _planFrom(String s) => switch (s) {
-      'yearly' => LicensePlan.yearly,
-      'monthly' => LicensePlan.monthly,
-      _ => LicensePlan.trial,
-    };
+  'yearly' => LicensePlan.yearly,
+  'monthly' => LicensePlan.monthly,
+  _ => LicensePlan.trial,
+};

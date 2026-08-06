@@ -4784,6 +4784,60 @@ abstract class AppLocalizations {
   /// **'No branches linked yet.'**
   String get branchesEmpty;
 
+  /// No description provided for @branchesSectionCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current branch'**
+  String get branchesSectionCurrent;
+
+  /// No description provided for @branchesSectionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other branches'**
+  String get branchesSectionOther;
+
+  /// No description provided for @branchesNoOther.
+  ///
+  /// In en, this message translates to:
+  /// **'No other branches linked yet.'**
+  String get branchesNoOther;
+
+  /// No description provided for @branchesPinnedCurrentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned current branch'**
+  String get branchesPinnedCurrentTitle;
+
+  /// No description provided for @branchesPinnedCurrentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is currently scoped to this branch.'**
+  String get branchesPinnedCurrentHint;
+
+  /// No description provided for @branchesHealthSafeSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe to switch'**
+  String get branchesHealthSafeSwitch;
+
+  /// No description provided for @branchesHealthSyncNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync needed'**
+  String get branchesHealthSyncNeeded;
+
+  /// No description provided for @branchesRowPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending local changes: {count}'**
+  String branchesRowPending(int count);
+
+  /// No description provided for @branchesRowLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String branchesRowLastSync(String time);
+
   /// No description provided for @branchesCurrent.
   ///
   /// In en, this message translates to:
@@ -4825,6 +4879,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This device still has unsynced changes. Wait for sync to finish, then try again.'**
   String get branchesPendingSync;
+
+  /// No description provided for @branchesPreflightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to switch to \"{label}\"?'**
+  String branchesPreflightTitle(String label);
+
+  /// No description provided for @branchesPreflightTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target branch'**
+  String get branchesPreflightTarget;
+
+  /// No description provided for @branchesPreflightPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending local changes: {count}'**
+  String branchesPreflightPending(int count);
+
+  /// No description provided for @branchesPreflightNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network: {status}'**
+  String branchesPreflightNetwork(String status);
+
+  /// No description provided for @branchesPreflightLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String branchesPreflightLastSync(String time);
+
+  /// No description provided for @branchesPreflightNeedSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync first before switching so no local changes are lost.'**
+  String get branchesPreflightNeedSync;
+
+  /// No description provided for @branchesPreflightNeedOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Connect to the internet before switching.'**
+  String get branchesPreflightNeedOnline;
+
+  /// No description provided for @branchesPreflightSyncFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync first'**
+  String get branchesPreflightSyncFirst;
+
+  /// No description provided for @branchesPreflightSwitchNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch now'**
+  String get branchesPreflightSwitchNow;
+
+  /// No description provided for @branchesSwitchInProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching branch'**
+  String get branchesSwitchInProgressTitle;
+
+  /// No description provided for @branchesSwitchStepCheckingDataSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking data safety'**
+  String get branchesSwitchStepCheckingDataSafety;
+
+  /// No description provided for @branchesSwitchStepSwitchingAccountClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching account claim'**
+  String get branchesSwitchStepSwitchingAccountClaim;
+
+  /// No description provided for @branchesSwitchStepRefreshingSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing session'**
+  String get branchesSwitchStepRefreshingSession;
+
+  /// No description provided for @branchesSwitchStepClearingOldData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing old shop data'**
+  String get branchesSwitchStepClearingOldData;
+
+  /// No description provided for @branchesSwitchStepSyncingNewData.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing new branch data'**
+  String get branchesSwitchStepSyncingNewData;
+
+  /// No description provided for @branchesRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch switch to {shopId} was interrupted before setup completed. You can retry sync now.'**
+  String branchesRecoveryBody(String shopId);
+
+  /// No description provided for @branchesRecoveryBodyWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch switch to {shopId} is still incomplete: {error}.'**
+  String branchesRecoveryBodyWithError(String shopId, String error);
+
+  /// No description provided for @branchesRecoveryRetrySync.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry sync'**
+  String get branchesRecoveryRetrySync;
+
+  /// No description provided for @branchesRecoveryDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get branchesRecoveryDismiss;
+
+  /// No description provided for @branchesRecoveryResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch setup completed.'**
+  String get branchesRecoveryResolved;
+
+  /// No description provided for @branchesRecoveryStillPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch setup is still incomplete. You can retry from the banner.'**
+  String get branchesRecoveryStillPending;
+
+  /// No description provided for @branchesVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing branch setup'**
+  String get branchesVerifyTitle;
+
+  /// No description provided for @branchesVerifyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Some branch data still looks incomplete. Retry sync now, or finish in background and keep using the app.'**
+  String get branchesVerifyBody;
+
+  /// No description provided for @branchesVerifyRetryNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry now'**
+  String get branchesVerifyRetryNow;
+
+  /// No description provided for @branchesVerifyFinishBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish in background'**
+  String get branchesVerifyFinishBackground;
+
+  /// No description provided for @branchesNetworkOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get branchesNetworkOnline;
+
+  /// No description provided for @branchesNetworkOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get branchesNetworkOffline;
+
+  /// No description provided for @branchesNetworkRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet connection looks unstable. Please retry.'**
+  String get branchesNetworkRetry;
+
+  /// No description provided for @branchesAuthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Please sign in again.'**
+  String get branchesAuthExpired;
+
+  /// No description provided for @branchesInvalidState.
+  ///
+  /// In en, this message translates to:
+  /// **'This branch is no longer linked or allowed for this account.'**
+  String get branchesInvalidState;
 
   /// No description provided for @branchesUnlink.
   ///
