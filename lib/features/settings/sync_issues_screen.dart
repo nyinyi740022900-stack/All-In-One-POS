@@ -26,62 +26,69 @@ class SyncIssuesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.syncIssuesTitle(stuck.length))),
-      body: stuck.isEmpty
-          ? Center(child: Text(l.syncIssuesEmpty))
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppTheme.space4),
-              itemCount: stuck.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppTheme.space3),
-              itemBuilder: (context, i) {
-                final row = stuck[i];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.space4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${row.entityTable} · ${row.op}',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: AppTheme.space1),
-                        Text(l.syncIssuesAttempts(row.attempts)),
-                        Text(df.format(row.enqueuedAt)),
-                        if (row.lastError != null) ...[
-                          const SizedBox(height: AppTheme.space2),
-                          Text(
-                            row.lastError!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color:
-                                        Theme.of(context).colorScheme.error),
-                            maxLines: 4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: AppTheme.space3),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: isOwner
-                                ? () => _confirmDiscard(context, ref, row)
-                                : null,
-                            icon: const Icon(Icons.delete_outline),
-                            label: Text(l.syncIssuesDiscard),
-                          ),
+      body: ListView(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        children: [
+          if (stuck.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: AppTheme.space6),
+              child: Center(child: Text(l.syncIssuesEmpty)),
+            )
+          else ...[
+            for (final row in stuck) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${row.entityTable} · ${row.op}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppTheme.space1),
+                      Text(l.syncIssuesAttempts(row.attempts)),
+                      Text(df.format(row.enqueuedAt)),
+                      if (row.lastError != null) ...[
+                        const SizedBox(height: AppTheme.space2),
+                        Text(
+                          row.lastError!,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
+                      const SizedBox(height: AppTheme.space3),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: isOwner
+                              ? () => _confirmDiscard(context, ref, row)
+                              : null,
+                          icon: const Icon(Icons.delete_outline),
+                          label: Text(l.syncIssuesDiscard),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              const SizedBox(height: AppTheme.space3),
+            ],
+          ],
+        ],
+      ),
     );
   }
 
   Future<void> _confirmDiscard(
-      BuildContext context, WidgetRef ref, OutboxData row) async {
+    BuildContext context,
+    WidgetRef ref,
+    OutboxData row,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -90,11 +97,13 @@ class SyncIssuesScreen extends ConsumerWidget {
         content: Text(l.syncIssuesDiscardConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonDelete)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.commonDelete),
+          ),
         ],
       ),
     );
