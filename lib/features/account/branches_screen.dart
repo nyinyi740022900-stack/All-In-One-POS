@@ -644,91 +644,111 @@ class _BranchesBody extends ConsumerWidget {
         : l.branchesNetworkOffline;
     return showModalBottomSheet<_BranchSwitchAction>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.space4,
-            0,
-            AppTheme.space4,
-            AppTheme.space4,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l.branchesPreflightTitle(branchLabel),
-                style: Theme.of(ctx).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppTheme.space3),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.storefront_outlined),
-                title: Text(l.branchesPreflightTarget),
-                subtitle: Text('$branchLabel\n${b.shopId}'),
-              ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.sync_problem_outlined),
-                title: Text(
-                  l.branchesPreflightPending(info.pendingOutboxCount),
-                ),
-              ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(info.online ? Icons.wifi : Icons.wifi_off),
-                title: Text(l.branchesPreflightNetwork(networkText)),
-              ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.history_outlined),
-                title: Text(
-                  l.branchesPreflightLastSync(
-                    _formatLastSync(ctx, info.lastSyncedAt),
+        child: FractionallySizedBox(
+          heightFactor: 0.8,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              0,
+              AppTheme.space4,
+              AppTheme.space4,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l.branchesPreflightTitle(branchLabel),
+                          style: Theme.of(ctx).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppTheme.space3),
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.storefront_outlined),
+                          title: Text(l.branchesPreflightTarget),
+                          subtitle: Text('$branchLabel\n${b.shopId}'),
+                        ),
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.sync_problem_outlined),
+                          title: Text(
+                            l.branchesPreflightPending(info.pendingOutboxCount),
+                          ),
+                        ),
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading:
+                              Icon(info.online ? Icons.wifi : Icons.wifi_off),
+                          title: Text(l.branchesPreflightNetwork(networkText)),
+                        ),
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.history_outlined),
+                          title: Text(
+                            l.branchesPreflightLastSync(
+                              _formatLastSync(ctx, info.lastSyncedAt),
+                            ),
+                          ),
+                        ),
+                        if (!allowSwitch)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppTheme.space2,
+                            ),
+                            child: Text(
+                              info.pendingOutboxCount > 0
+                                  ? l.branchesPreflightNeedSync
+                                  : l.branchesPreflightNeedOnline,
+                              style: TextStyle(
+                                color: Theme.of(ctx).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (!allowSwitch)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppTheme.space2),
-                  child: Text(
-                    info.pendingOutboxCount > 0
-                        ? l.branchesPreflightNeedSync
-                        : l.branchesPreflightNeedOnline,
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                  ),
+                const SizedBox(height: AppTheme.space2),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(ctx).pop(_BranchSwitchAction.cancel),
+                      child: Text(l.commonCancel),
+                    ),
+                    const SizedBox(width: AppTheme.space2),
+                    OutlinedButton(
+                      onPressed: () =>
+                          Navigator.of(ctx).pop(_BranchSwitchAction.syncFirst),
+                      child: Text(l.branchesPreflightSyncFirst),
+                    ),
+                  ],
                 ),
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: AppTheme.space2,
-                runSpacing: AppTheme.space2,
-                children: [
-                  TextButton(
-                    onPressed: () =>
-                        Navigator.of(ctx).pop(_BranchSwitchAction.cancel),
-                    child: Text(l.commonCancel),
-                  ),
-                  OutlinedButton(
-                    onPressed: () =>
-                        Navigator.of(ctx).pop(_BranchSwitchAction.syncFirst),
-                    child: Text(l.branchesPreflightSyncFirst),
-                  ),
-                  FilledButton(
+                const SizedBox(height: AppTheme.space2),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
                     onPressed: allowSwitch
                         ? () =>
                             Navigator.of(ctx).pop(_BranchSwitchAction.switchNow)
                         : null,
                     child: Text(l.branchesPreflightSwitchNow),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
