@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/data/sync/sync_providers.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/account/branch_repository.dart';
 import 'package:mm_pos/features/account/branches_screen.dart';
@@ -40,7 +41,10 @@ void main() {
             ],
           ),
           branchSwitchRecoveryProvider.overrideWith(
-            (ref) => const Stream.empty(),
+            (ref) => Stream.value(null),
+          ),
+          stuckOutboxProvider.overrideWith(
+            (ref) => Stream.value(const []),
           ),
           pendingOutboxCountProvider.overrideWith(
             (ref) => Stream.value(pendingOutbox),
@@ -114,7 +118,10 @@ void main() {
             (ref) async => throw const BranchListException('network_error'),
           ),
           branchSwitchRecoveryProvider.overrideWith(
-            (ref) => const Stream.empty(),
+            (ref) => Stream.value(null),
+          ),
+          stuckOutboxProvider.overrideWith(
+            (ref) => Stream.value(const []),
           ),
           pendingOutboxCountProvider.overrideWith((ref) => Stream.value(0)),
           branchConnectivityProvider.overrideWith((ref) => Stream.value(true)),

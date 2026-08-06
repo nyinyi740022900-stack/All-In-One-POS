@@ -8,6 +8,7 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/domain/product_with_stock.dart';
 import 'package:mm_pos/features/account/account_providers.dart';
+import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
@@ -38,6 +39,10 @@ void main() {
               .overrideWith((ref) => Stream.value(<Category>[])),
           ordersStreamProvider.overrideWith((ref) => Stream.value(<Order>[])),
           staffRoleProvider.overrideWith((ref) => Stream.value(role)),
+          activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
           backendAccountRoleProvider.overrideWithValue(backendRole),
         ],
         child: const MmPosApp(),

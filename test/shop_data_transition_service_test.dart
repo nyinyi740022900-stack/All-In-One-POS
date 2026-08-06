@@ -68,4 +68,18 @@ void main() {
   test('assertSafeToClear allows empty outbox', () async {
     expect(await service.assertSafeToClear(), isNull);
   });
+
+  test(
+    'prepareShopSwitch wipes and reports future per-shop filename',
+    () async {
+      final prep = await service.prepareShopSwitch(
+        fromShopId: 'shop-a',
+        toShopId: 'shop-b',
+      );
+      expect(prep.fromShopId, 'shop-a');
+      expect(prep.toShopId, 'shop-b');
+      expect(prep.targetDbFileName, 'mm_pos_shop-b.sqlite');
+      expect(prep.usedWipeFallback, isTrue);
+    },
+  );
 }

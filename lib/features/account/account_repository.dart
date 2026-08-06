@@ -174,7 +174,15 @@ class AccountRepository {
       }
       return const AccountActionResult.failure('pending_sync');
     }
-    await _transition.clearShopScopedData();
+    final currentLic = await _licenseRepository.current();
+    final targetShopId =
+        Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
+            as String? ??
+        '';
+    await _transition.prepareShopSwitch(
+      fromShopId: currentLic?.shopId ?? '',
+      toShopId: targetShopId,
+    );
     return _claimDeviceSlot();
   }
 

@@ -2687,6 +2687,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesPreflightSwitchNow => 'Switch now';
 
   @override
+  String get branchesPreflightDetails => 'Details';
+
+  @override
+  String get branchesPreflightSummaryReady =>
+      'Online — ready to sync and switch.';
+
+  @override
+  String get branchesStuckBannerTitle =>
+      'Sync issues are blocking branch switch';
+
+  @override
+  String get branchesStuckBannerBody =>
+      'Resolve or discard stuck local changes before switching branches.';
+
+  @override
   String get branchesSwitchInProgressTitle => 'Switching branch';
 
   @override

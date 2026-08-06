@@ -73,23 +73,26 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   Future<void> _publish() async {
     final l = AppLocalizations.of(context);
     if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.storefrontNeedsName)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.storefrontNeedsName)));
       return;
     }
     setState(() => _busy = true);
     try {
-      await ref.read(storefrontRepositoryProvider).publish(
+      await ref
+          .read(storefrontRepositoryProvider)
+          .publish(
             displayName: _name.text.trim(),
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-            address:
-                _address.text.trim().isEmpty ? null : _address.text.trim(),
+            address: _address.text.trim().isEmpty ? null : _address.text.trim(),
           );
       ref.invalidate(myStorefrontProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -99,7 +102,9 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   Future<void> _saveProfile() async {
     setState(() => _busy = true);
     try {
-      await ref.read(storefrontRepositoryProvider).updateProfile(
+      await ref
+          .read(storefrontRepositoryProvider)
+          .updateProfile(
             displayName: _name.text.trim(),
             phone: _phone.text.trim(),
             address: _address.text.trim(),
@@ -112,13 +117,17 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       ref.invalidate(myStorefrontProvider);
       if (mounted) {
         final l = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l.storefrontProfileSaved)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.storefrontProfileSaved)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -126,20 +135,26 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   }
 
   Future<void> _pickLogo() async {
-    final res =
-        await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
     setState(() => _uploadingLogo = true);
     try {
       final ext = (file.extension ?? 'jpg').toLowerCase();
-      final url =
-          await ref.read(storefrontRepositoryProvider).uploadLogo(file.bytes!, ext);
+      final url = await ref
+          .read(storefrontRepositoryProvider)
+          .uploadLogo(file.bytes!, ext);
       if (mounted) setState(() => _logoUrl = url);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploadingLogo = false);
@@ -152,13 +167,20 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     if (!ref.watch(isEffectiveOwnerProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.storefrontTitle)),
-        body: const OwnerOnlyGate(child: SizedBox.shrink()),
+        body: const OwnerOnlyGate(
+          capability: OwnerCapability.storefront,
+          child: SizedBox.shrink(),
+        ),
       );
     }
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading ||
+        !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.storefrontTitle)),
-        body: PremiumGate(featureName: l.storefrontTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.storefrontTitle,
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final async = ref.watch(myStorefrontProvider);
@@ -215,7 +237,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
               ? const SizedBox(
                   height: 18,
                   width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Icon(Icons.public),
           label: Text(l.storefrontPublish),
         ),
@@ -240,10 +263,12 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                 ),
                 child: (_logoUrl ?? '').isEmpty
                     ? const Icon(Icons.storefront, size: 36)
-                    : Image.network(_logoUrl!,
+                    : Image.network(
+                        _logoUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) =>
-                            const Icon(Icons.broken_image_outlined)),
+                            const Icon(Icons.broken_image_outlined),
+                      ),
               ),
               const SizedBox(height: 8),
               TextButton.icon(
@@ -252,7 +277,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.add_a_photo_outlined, size: 18),
                 label: Text(l.storefrontLogoLabel),
               ),
@@ -263,8 +289,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         TextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
-          decoration:
-              InputDecoration(labelText: l.storefrontDisplayName),
+          decoration: InputDecoration(labelText: l.storefrontDisplayName),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -279,38 +304,38 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           decoration: InputDecoration(labelText: l.storefrontAddressShown),
         ),
         const Divider(height: 32),
-        Text(l.storefrontPaymentInfoTitle,
-            style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          l.storefrontPaymentInfoTitle,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: 4),
-        Text(l.storefrontPaymentInfoHint,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l.storefrontPaymentInfoHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: _kpayName,
           textCapitalization: TextCapitalization.words,
-          decoration:
-              InputDecoration(labelText: l.storefrontPayKpayName),
+          decoration: InputDecoration(labelText: l.storefrontPayKpayName),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _kpayNumber,
           keyboardType: TextInputType.phone,
-          decoration:
-              InputDecoration(labelText: l.storefrontPayKpayNumber),
+          decoration: InputDecoration(labelText: l.storefrontPayKpayNumber),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _waveName,
           textCapitalization: TextCapitalization.words,
-          decoration:
-              InputDecoration(labelText: l.storefrontPayWaveName),
+          decoration: InputDecoration(labelText: l.storefrontPayWaveName),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _waveNumber,
           keyboardType: TextInputType.phone,
-          decoration:
-              InputDecoration(labelText: l.storefrontPayWaveNumber),
+          decoration: InputDecoration(labelText: l.storefrontPayWaveNumber),
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
@@ -329,8 +354,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           },
         ),
         const SizedBox(height: 8),
-        Text(l.storefrontYourLink,
-            style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          l.storefrontYourLink,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         const SizedBox(height: 4),
         Card(
           child: ListTile(
@@ -339,24 +366,24 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
               icon: const Icon(Icons.copy),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: row.url));
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l.storefrontCopied)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l.storefrontCopied)));
               },
             ),
           ),
         ),
         const SizedBox(height: 8),
-        Text(l.storefrontShare,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(l.storefrontShare, style: Theme.of(context).textTheme.bodySmall),
         const Divider(height: 32),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.block),
           title: Text(l.storefrontBlockedCustomers),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const _BlockedCustomersScreen(),
-          )),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const _BlockedCustomersScreen()),
+          ),
         ),
       ],
     );
@@ -370,7 +397,10 @@ class _BlockedCustomersScreen extends ConsumerWidget {
   const _BlockedCustomersScreen();
 
   Future<void> _addBlock(
-      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+  ) async {
     final phone = TextEditingController();
     final reason = TextEditingController();
     final ok = await showDialog<bool>(
@@ -388,23 +418,28 @@ class _BlockedCustomersScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             TextField(
               controller: reason,
-              decoration:
-                  InputDecoration(labelText: l.storefrontBlockReasonOptional),
+              decoration: InputDecoration(
+                labelText: l.storefrontBlockReasonOptional,
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l.orderBlockCustomer)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.orderBlockCustomer),
+          ),
         ],
       ),
     );
     if (ok != true || phone.text.trim().isEmpty) return;
-    await ref.read(storefrontRepositoryProvider).block(
+    await ref
+        .read(storefrontRepositoryProvider)
+        .block(
           phone.text.trim(),
           reason: reason.text.trim().isEmpty ? null : reason.text.trim(),
         );

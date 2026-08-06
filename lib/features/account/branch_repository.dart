@@ -448,7 +448,10 @@ class BranchRepository {
 
     await saveStep(BranchSwitchStep.clearingOldData);
     onStep?.call(BranchSwitchStep.clearingOldData);
-    await _transition.clearShopScopedData();
+    await _transition.prepareShopSwitch(
+      fromShopId: fromShopId,
+      toShopId: shopId,
+    );
 
     final now = DateTime.now();
     final deviceId = await _settings.deviceId();

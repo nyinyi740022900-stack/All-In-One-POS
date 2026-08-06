@@ -4964,6 +4964,30 @@ abstract class AppLocalizations {
   /// **'Switch now'**
   String get branchesPreflightSwitchNow;
 
+  /// No description provided for @branchesPreflightDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get branchesPreflightDetails;
+
+  /// No description provided for @branchesPreflightSummaryReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Online — ready to sync and switch.'**
+  String get branchesPreflightSummaryReady;
+
+  /// No description provided for @branchesStuckBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync issues are blocking branch switch'**
+  String get branchesStuckBannerTitle;
+
+  /// No description provided for @branchesStuckBannerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve or discard stuck local changes before switching branches.'**
+  String get branchesStuckBannerBody;
+
   /// No description provided for @branchesSwitchInProgressTitle.
   ///
   /// In en, this message translates to:

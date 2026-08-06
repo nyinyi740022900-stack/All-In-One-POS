@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../account/account_providers.dart';
+import '../account/branch_providers.dart';
+import '../account/branch_repository.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
+import 'owner_permission.dart';
 import 'staff_repository.dart';
 
 /// Two device-local operating modes, not synced — set by the owner before
@@ -21,15 +24,20 @@ class SessionScope {
   final String localRole;
   final String? backendRole;
   final String effectiveRole;
+  final String? activeStaffId;
+  final BranchSwitchRecoveryState? switchState;
 
   const SessionScope({
     required this.shopId,
     required this.localRole,
     required this.backendRole,
     required this.effectiveRole,
+    required this.activeStaffId,
+    required this.switchState,
   });
 
   bool get isEffectiveOwner => effectiveRole == 'owner';
+  bool get hasPendingBranchSwitch => switchState != null;
 }
 
 final staffRoleProvider = StreamProvider<String>((ref) {
@@ -104,11 +112,15 @@ final sessionScopeProvider = Provider<SessionScope>((ref) {
   final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   final backendRole = ref.watch(backendAccountRoleProvider);
   final effectiveRole = ref.watch(effectiveRoleProvider);
+  final activeStaffId = ref.watch(activeStaffIdProvider).valueOrNull;
+  final switchState = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
   return SessionScope(
     shopId: shopId,
     localRole: localRole,
     backendRole: backendRole,
     effectiveRole: effectiveRole,
+    activeStaffId: activeStaffId,
+    switchState: switchState,
   );
 });
 
@@ -126,7 +138,10 @@ final isOwnerProvider = Provider<bool>((ref) {
 /// Alias kept for call-site clarity in the Inventory screen — Inventory
 /// add/edit is owner-only, same gate as everything else non-Sell/Orders.
 final canEditInventoryProvider = Provider<bool>(
-  (ref) => ref.watch(isEffectiveOwnerProvider),
+  (ref) => ownerPermissionPolicy.allows(
+    OwnerCapability.inventoryEdit,
+    isEffectiveOwner: ref.watch(isEffectiveOwnerProvider),
+  ),
 );
 
 /// Staff/Owner mode only matters once there's a second device to hand off to

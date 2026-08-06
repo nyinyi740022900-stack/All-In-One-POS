@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../staff/staff_ui.dart';
 import '../staff/staff_providers.dart';
 
 /// Lists outbox rows that have failed to push [kOutboxStuckThreshold]+ times
@@ -108,6 +109,14 @@ class SyncIssuesScreen extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
+    if (!context.mounted) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.syncIssuesDiscard,
+    )) {
+      return;
+    }
     await ref.read(syncControllerProvider.notifier).discardOutboxRow(row.seq);
   }
 }

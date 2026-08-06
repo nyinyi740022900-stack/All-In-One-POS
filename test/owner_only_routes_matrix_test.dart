@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/account/branches_screen.dart';
 import 'package:mm_pos/features/account/staff_accounts_screen.dart';
 import 'package:mm_pos/features/analytics/analytics_screen.dart';
@@ -25,6 +26,10 @@ void main() {
       ProviderScope(
         overrides: [
           staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+          activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
           isPremiumProvider.overrideWithValue(true),
           licenseControllerProvider
               .overrideWith((ref) => _FakeLicenseController(ref)),

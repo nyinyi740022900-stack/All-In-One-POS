@@ -2682,6 +2682,21 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesPreflightSwitchNow => 'ယခု ပြောင်းမည်';
 
   @override
+  String get branchesPreflightDetails => 'အသေးစိတ်';
+
+  @override
+  String get branchesPreflightSummaryReady =>
+      'Online — Sync လုပ်ပြီး ပြောင်းနိုင်ပါပြီ။';
+
+  @override
+  String get branchesStuckBannerTitle =>
+      'Sync ပြဿနာကြောင့် branch ပြောင်းမရသေးပါ';
+
+  @override
+  String get branchesStuckBannerBody =>
+      'Branch မပြောင်းခင် stuck local changes ကို ဖြေရှင်း (သို့) discard လုပ်ပါ။';
+
+  @override
   String get branchesSwitchInProgressTitle => 'ဆိုင်ခွဲ ပြောင်းနေသည်';
 
   @override

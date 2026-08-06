@@ -97,22 +97,26 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      final result =
-          await ref.read(licenseControllerProvider.notifier).activate(_key.text);
+      final result = await ref
+          .read(licenseControllerProvider.notifier)
+          .activate(_key.text);
       if (!result.ok) {
-        final msg = result.errorCode == 'invalid_key' ||
+        final msg =
+            result.errorCode == 'invalid_key' ||
                 result.errorCode == 'device_mismatch'
             ? l.licenseInvalidKey
             : result.errorCode == 'rate_limited'
-                ? l.licenseRateLimited
-                : l.licenseActivateFailed;
+            ? l.licenseRateLimited
+            : l.licenseActivateFailed;
         messenger.showSnackBar(SnackBar(content: Text(msg)));
       } else {
         // Apply the role the owner picked when generating this device's QR
         // (see DeviceProvisioning) — a no-op if this was a plain key (typed
         // manually, or an older QR with no role attached).
         if (_pendingRole != null) {
-          await ref.read(staffControllerProvider).applyProvisionedRole(
+          await ref
+              .read(staffControllerProvider)
+              .applyProvisionedRole(
                 _pendingRole!,
                 staffMemberId: _pendingStaffMemberId,
               );
@@ -133,7 +137,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   /// here and applied once activation succeeds.
   Future<void> _scanKey() async {
     final code = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
     if (code != null && code.isNotEmpty && mounted) {
       final provisioning = DeviceProvisioning.decode(code);
       setState(() {
@@ -153,11 +158,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         content: Text(l.licenseDeactivateConfirm),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.licenseDeactivate)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.licenseDeactivate),
+          ),
         ],
       ),
     );
@@ -171,10 +178,14 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      final ok =
-          await ref.read(licenseControllerProvider.notifier).startFreeTrial();
-      messenger.showSnackBar(SnackBar(
-          content: Text(ok ? l.licenseTrialStarted : l.licenseTrialUsed)));
+      final ok = await ref
+          .read(licenseControllerProvider.notifier)
+          .startFreeTrial();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(ok ? l.licenseTrialStarted : l.licenseTrialUsed),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -185,8 +196,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      final result =
-          await ref.read(licenseControllerProvider.notifier).refreshOnline();
+      final result = await ref
+          .read(licenseControllerProvider.notifier)
+          .refreshOnline();
       final String msg;
       if (result.ok) {
         msg = l.licenseRefreshed;
@@ -210,7 +222,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     if (!ref.watch(isEffectiveOwnerProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.settingsLicense)),
-        body: const OwnerOnlyGate(child: SizedBox.shrink()),
+        body: const OwnerOnlyGate(
+          capability: OwnerCapability.license,
+          child: SizedBox.shrink(),
+        ),
       );
     }
     final state = ref.watch(licenseControllerProvider);
@@ -237,14 +252,18 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               // key-request flow it can complete right now.
               onPressed: () =>
                   ref.read(accountRepositoryProvider).isSignedInWithRealAccount
-                      ? _showOnlineSubscribeDialog()
-                      : _showOfflineKeyDialog(),
-              icon: Icon(state.license?.plan == LicensePlan.free
-                  ? Icons.workspace_premium_outlined
-                  : Icons.autorenew),
-              label: Text(state.license?.plan == LicensePlan.free
-                  ? l.premiumUpgradeCta
-                  : l.licenseRenew),
+                  ? _showOnlineSubscribeDialog()
+                  : _showOfflineKeyDialog(),
+              icon: Icon(
+                state.license?.plan == LicensePlan.free
+                    ? Icons.workspace_premium_outlined
+                    : Icons.autorenew,
+              ),
+              label: Text(
+                state.license?.plan == LicensePlan.free
+                    ? l.premiumUpgradeCta
+                    : l.licenseRenew,
+              ),
             ),
             // A Free-plan shop that just paid for a first-time key (via the
             // Upgrade dialog above) has nowhere else to type/scan it in —
@@ -266,11 +285,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              Text(l.licenseHaveKeyTitle,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l.licenseHaveKeyTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppTheme.space1),
-              Text(l.licenseGetKey,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                l.licenseGetKey,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: AppTheme.space3),
               ..._buildKeyEntryFields(l),
             ],
@@ -284,13 +307,16 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.refresh),
                 label: Text(l.licenseCheckRenewal),
               ),
               const SizedBox(height: AppTheme.space1),
-              Text(l.licenseRenewHint,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                l.licenseRenewHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: AppTheme.space2),
               TextButton.icon(
                 onPressed: _confirmDeactivate,
@@ -309,11 +335,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const _DevicesSection(),
             ],
           ] else ...[
-            Text(l.licenseActivateTitle,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.licenseActivateTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: AppTheme.space1),
-            Text(l.licenseGetKey,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(l.licenseGetKey, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: AppTheme.space3),
             ..._buildKeyEntryFields(l),
             const SizedBox(height: AppTheme.space2),
@@ -326,11 +353,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const SizedBox(height: AppTheme.space5),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              Text(l.licenseNoKeyTitle,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l.licenseNoKeyTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppTheme.space1),
-              Text(l.licenseNoKeyHint,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                l.licenseNoKeyHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: AppTheme.space3),
               OutlinedButton.icon(
                 onPressed: _showOfflineKeyDialog,
@@ -369,7 +400,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : const Icon(Icons.check),
         label: Text(l.licenseActivateBtn),
       ),
@@ -404,13 +436,18 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   /// duplicated logic, just returning the picked/compressed bytes instead
   /// of mutating `State` fields, since these dialogs live inside a
   /// `StatefulBuilder`, not a full `ConsumerStatefulWidget`.
-  Future<({Uint8List bytes, String ext, String name})?> _pickPaymentProof() async {
-    final res = await FilePicker.platform
-        .pickFiles(type: FileType.image, withData: true);
+  Future<({Uint8List bytes, String ext, String name})?>
+  _pickPaymentProof() async {
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return null;
-    final c = compressImage(Uint8List.fromList(file.bytes!),
-        fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+    final c = compressImage(
+      Uint8List.fromList(file.bytes!),
+      fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
+    );
     return (bytes: c.bytes, ext: c.ext, name: file.name);
   }
 
@@ -421,7 +458,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   Future<String> _uploadPaymentProof(Uint8List bytes, String ext) async {
     final path =
         'proof-${DateTime.now().millisecondsSinceEpoch}-${bytes.length}.$ext';
-    await Supabase.instance.client.storage.from('payment-proofs').uploadBinary(
+    await Supabase.instance.client.storage
+        .from('payment-proofs')
+        .uploadBinary(
           path,
           bytes,
           fileOptions: const FileOptions(upsert: false),
@@ -478,17 +517,19 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           IconButton.filledTonal(
             onPressed: qty > 1
                 ? () => setLocal(() {
-                      setQty(qty - 1);
-                      amount.text =
-                          '${cfg.priceFor(plan, tier: tier) * (qty - 1)}';
-                    })
+                    setQty(qty - 1);
+                    amount.text =
+                        '${cfg.priceFor(plan, tier: tier) * (qty - 1)}';
+                  })
                 : null,
             icon: const Icon(Icons.remove),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
-            child: Text('$qty ${plan == 'yearly' ? l.unitYears : l.unitMonths}',
-                style: Theme.of(ctx).textTheme.titleMedium),
+            child: Text(
+              '$qty ${plan == 'yearly' ? l.unitYears : l.unitMonths}',
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
           ),
           IconButton.filledTonal(
             onPressed: () => setLocal(() {
@@ -503,10 +544,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       Text(
         '${Money(cfg.priceFor(plan, tier: tier)).withSymbol(cur)} × $qty = ${Money(cfg.priceFor(plan, tier: tier) * qty).withSymbol(cur)}',
         textAlign: TextAlign.center,
-        style: Theme.of(ctx)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(
+          ctx,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
       const SizedBox(height: AppTheme.space3),
       Wrap(
@@ -548,17 +588,19 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       else
         Row(
           children: [
-            const Icon(Icons.check_circle_outline,
-                color: Colors.green, size: 18),
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.green,
+              size: 18,
+            ),
             const SizedBox(width: AppTheme.space2),
             Expanded(
-              child: Text('${l.licensePaymentProofAttached}: ${getProofName()}',
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                '${l.licensePaymentProofAttached}: ${getProofName()}',
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: onRemoveProof,
-            ),
+            IconButton(icon: const Icon(Icons.close), onPressed: onRemoveProof),
           ],
         ),
       const SizedBox(height: AppTheme.space4),
@@ -573,19 +615,25 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.card_giftcard,
-                    size: 18, color: Theme.of(ctx).colorScheme.primary),
+                Icon(
+                  Icons.card_giftcard,
+                  size: 18,
+                  color: Theme.of(ctx).colorScheme.primary,
+                ),
                 const SizedBox(width: AppTheme.space2),
-                Text(l.referralHaveCode,
-                    style: Theme.of(ctx)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  l.referralHaveCode,
+                  style: Theme.of(
+                    ctx,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: AppTheme.space1),
-            Text(l.referralHaveCodeHint,
-                style: Theme.of(ctx).textTheme.bodySmall),
+            Text(
+              l.referralHaveCodeHint,
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
             const SizedBox(height: AppTheme.space2),
             TextField(
               controller: referral,
@@ -618,10 +666,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final cur = l.currencySymbol;
     // Prefill from the shop profile (blank for the default placeholder).
     final shopName = TextEditingController(
-        text: profile.name == 'My Shop' ? '' : profile.name);
+      text: profile.name == 'My Shop' ? '' : profile.name,
+    );
     final phone = TextEditingController();
-    final amount =
-        TextEditingController(text: '${cfg.priceFor('monthly', tier: tier)}');
+    final amount = TextEditingController(
+      text: '${cfg.priceFor('monthly', tier: tier)}',
+    );
     final txn = TextEditingController();
     final referral = TextEditingController();
     String method = 'kbzpay';
@@ -705,7 +755,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                         String? proofPath;
                         if (proofBytes != null) {
                           proofPath = await _uploadPaymentProof(
-                              proofBytes!, proofExt ?? 'jpg');
+                            proofBytes!,
+                            proofExt ?? 'jpg',
+                          );
                         }
                         await LicenseRequestService.submit(
                           shopId: ref
@@ -735,7 +787,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                       } catch (_) {
                         setLocal(() => busy = false);
                         messenger.showSnackBar(
-                            SnackBar(content: Text(l.licenseActivateFailed)));
+                          SnackBar(content: Text(l.licenseActivateFailed)),
+                        );
                       }
                     },
               child: Text(l.licenseGetKeyTitle),
@@ -767,9 +820,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     if (!mounted) return;
     const tier = 'online';
     final cur = l.currencySymbol;
-    final accountEmail = ref.read(accountRepositoryProvider).currentAccountEmail;
-    final amount =
-        TextEditingController(text: '${cfg.priceFor('monthly', tier: tier)}');
+    final accountEmail = ref
+        .read(accountRepositoryProvider)
+        .currentAccountEmail;
+    final amount = TextEditingController(
+      text: '${cfg.priceFor('monthly', tier: tier)}',
+    );
     final txn = TextEditingController();
     final referral = TextEditingController();
     String method = 'kbzpay';
@@ -792,8 +848,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               children: [
                 Card(
                   child: ListTile(
-                    leading:
-                        const Icon(Icons.verified_user, color: Colors.green),
+                    leading: const Icon(
+                      Icons.verified_user,
+                      color: Colors.green,
+                    ),
                     title: Text(profile.name),
                     subtitle: Text(accountEmail ?? ''),
                   ),
@@ -832,8 +890,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                   }),
                 ),
                 const SizedBox(height: AppTheme.space2),
-                Text(l.licenseOnlineApplyHint,
-                    style: Theme.of(ctx).textTheme.bodySmall),
+                Text(
+                  l.licenseOnlineApplyHint,
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -852,7 +912,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                         String? proofPath;
                         if (proofBytes != null) {
                           proofPath = await _uploadPaymentProof(
-                              proofBytes!, proofExt ?? 'jpg');
+                            proofBytes!,
+                            proofExt ?? 'jpg',
+                          );
                         }
                         await LicenseRequestService.submit(
                           shopId: ref
@@ -880,7 +942,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                       } catch (_) {
                         setLocal(() => busy = false);
                         messenger.showSnackBar(
-                            SnackBar(content: Text(l.licenseActivateFailed)));
+                          SnackBar(content: Text(l.licenseActivateFailed)),
+                        );
                       }
                     },
               child: Text(l.licenseSubscribe),
@@ -894,4 +957,3 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     referral.dispose();
   }
 }
-

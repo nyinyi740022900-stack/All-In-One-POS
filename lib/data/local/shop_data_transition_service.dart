@@ -14,6 +14,24 @@ class ShopTransitionPrecheck {
   bool get hasStuckWrites => stuckOutboxCount > 0;
 }
 
+/// Result of [ShopDataTransitionService.prepareShopSwitch].
+///
+/// Today [usedWipeFallback] is always true (single legacy DB). After
+/// per-shop cutover, a successful file swap would set it false.
+class ShopSwitchPreparation {
+  final String fromShopId;
+  final String toShopId;
+  final String targetDbFileName;
+  final bool usedWipeFallback;
+
+  const ShopSwitchPreparation({
+    required this.fromShopId,
+    required this.toShopId,
+    required this.targetDbFileName,
+    required this.usedWipeFallback,
+  });
+}
+
 /// Centralized guard for destructive local transitions (branch switch,
 /// account re-scope). Keeps all call sites on the same safety rules:
 /// - never clear local shop data while pending writes exist
@@ -41,4 +59,21 @@ class ShopDataTransitionService {
   }
 
   Future<void> clearShopScopedData() => _db.wipeSyncedData();
+
+  /// Single entry point for shop-scope switches. Computes the future
+  /// per-shop DB filename, then still wipes the active legacy DB until
+  /// [AppDatabase.usePerShopDbFiles] cutover lands.
+  Future<ShopSwitchPreparation> prepareShopSwitch({
+    required String fromShopId,
+    required String toShopId,
+  }) async {
+    final targetDbFileName = AppDatabase.fileNameForShop(toShopId);
+    await clearShopScopedData();
+    return ShopSwitchPreparation(
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+      targetDbFileName: targetDbFileName,
+      usedWipeFallback: !AppDatabase.usePerShopDbFiles,
+    );
+  }
 }

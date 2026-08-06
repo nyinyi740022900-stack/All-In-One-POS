@@ -135,7 +135,11 @@ class SettingsScreen extends ConsumerWidget {
               title: Text(l.staffAccountsTitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                if (!await requireOwnerPinReauth(context, ref) ||
+                if (!await requireOwnerPinReauth(
+                      context,
+                      ref,
+                      capability: OwnerCapability.staffAccounts,
+                    ) ||
                     !context.mounted) {
                   return;
                 }
@@ -151,7 +155,11 @@ class SettingsScreen extends ConsumerWidget {
               title: Text(l.branchesTitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                if (!await requireOwnerPinReauth(context, ref) ||
+                if (!await requireOwnerPinReauth(
+                      context,
+                      ref,
+                      capability: OwnerCapability.branches,
+                    ) ||
                     !context.mounted) {
                   return;
                 }
@@ -539,7 +547,13 @@ class _PricingTierTile extends ConsumerWidget {
     String newTier,
   ) async {
     final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.settingsSensitive,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,

@@ -18,16 +18,24 @@ class StaffAccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading ||
+        !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.staffAccountsTitle)),
-        body: PremiumGate(featureName: l.staffAccountsTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.staffAccountsTitle,
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     return Scaffold(
       appBar: AppBar(title: Text(l.staffAccountsTitle)),
-      body: OwnerOnlyGate(child: _StaffAccountsBody()),
+      body: OwnerOnlyGate(
+        capability: OwnerCapability.staffAccounts,
+        child: _StaffAccountsBody(),
+      ),
       floatingActionButton: OwnerOnlyGate(
+        capability: OwnerCapability.staffAccounts,
         child: Builder(
           builder: (context) => FloatingActionButton.extended(
             onPressed: () => _invite(context, ref),
@@ -64,11 +72,12 @@ class StaffAccountsScreen extends ConsumerWidget {
                 decoration: InputDecoration(
                   labelText: l.accountPassword,
                   suffixIcon: IconButton(
-                    icon: Icon(obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined),
-                    onPressed: () =>
-                        setDialogState(() => obscure = !obscure),
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
                   ),
                 ),
               ),
@@ -76,11 +85,13 @@ class StaffAccountsScreen extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l.commonCancel)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l.staffAccountsInvite)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.staffAccountsInvite),
+            ),
           ],
         ),
       ),
@@ -92,22 +103,23 @@ class StaffAccountsScreen extends ConsumerWidget {
         .inviteStaff(email.text.trim(), password.text);
     if (!context.mounted) return;
     if (result.ok) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
       ref.invalidate(staffAccountsProvider);
     } else {
       final msg = switch (result.error) {
         'email_taken' => l.accountEmailTaken,
         _ => l.accountActionFailed,
       };
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 }
 
 final staffAccountsProvider = FutureProvider.autoDispose<List<StaffAccount>>(
-    (ref) => ref.watch(accountRepositoryProvider).listStaffAccounts());
+  (ref) => ref.watch(accountRepositoryProvider).listStaffAccounts(),
+);
 
 class _StaffAccountsBody extends ConsumerWidget {
   @override
@@ -134,9 +146,9 @@ class _StaffAccountsBody extends ConsumerWidget {
             return ListTile(
               leading: Icon(s.banned ? Icons.person_off : Icons.person),
               title: Text(s.email),
-              subtitle: Text(s.banned
-                  ? l.staffAccountsRevoked
-                  : l.staffAccountsActive),
+              subtitle: Text(
+                s.banned ? l.staffAccountsRevoked : l.staffAccountsActive,
+              ),
               trailing: s.banned
                   ? null
                   : IconButton(
@@ -151,7 +163,10 @@ class _StaffAccountsBody extends ConsumerWidget {
   }
 
   Future<void> _confirmRevoke(
-      BuildContext context, WidgetRef ref, StaffAccount s) async {
+    BuildContext context,
+    WidgetRef ref,
+    StaffAccount s,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -160,22 +175,27 @@ class _StaffAccountsBody extends ConsumerWidget {
         content: Text(l.staffAccountsRevokeConfirmBody(s.email)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.staffAccountsRevoke)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.staffAccountsRevoke),
+          ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
-    final success = await ref.read(accountRepositoryProvider).revokeStaff(s.userId);
+    final success = await ref
+        .read(accountRepositoryProvider)
+        .revokeStaff(s.userId);
     if (!context.mounted) return;
     if (success) {
       ref.invalidate(staffAccountsProvider);
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
   }
 }

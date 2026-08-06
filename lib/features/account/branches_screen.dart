@@ -39,6 +39,7 @@ class BranchesScreen extends ConsumerWidget {
         title: Text(l.branchesTitle),
         actions: [
           OwnerOnlyGate(
+            capability: OwnerCapability.branches,
             child: Builder(
               builder: (context) => IconButton(
                 tooltip: l.branchesLink,
@@ -49,8 +50,12 @@ class BranchesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: OwnerOnlyGate(child: _BranchesBody()),
+      body: OwnerOnlyGate(
+        capability: OwnerCapability.branches,
+        child: _BranchesBody(),
+      ),
       floatingActionButton: OwnerOnlyGate(
+        capability: OwnerCapability.branches,
         child: Builder(
           builder: (context) => FloatingActionButton.extended(
             onPressed: () => _createBranch(context, ref),
@@ -64,7 +69,13 @@ class BranchesScreen extends ConsumerWidget {
 
   Future<void> _createBranch(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.branches,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     final name = TextEditingController();
     final submitted = await showDialog<bool>(
@@ -110,7 +121,13 @@ class BranchesScreen extends ConsumerWidget {
 
   Future<void> _linkBranch(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.branches,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     final key = TextEditingController();
     final label = TextEditingController();
@@ -369,6 +386,7 @@ class _BranchesBody extends ConsumerWidget {
     final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
     final pendingOutbox =
         ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
+    final stuckOutbox = ref.watch(stuckOutboxProvider).valueOrNull ?? const [];
     final online = ref.watch(branchConnectivityProvider).valueOrNull ?? true;
     final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
@@ -437,6 +455,7 @@ class _BranchesBody extends ConsumerWidget {
         }
         return Column(
           children: [
+            if (stuckOutbox.isNotEmpty) _buildStuckBanner(context),
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
             Expanded(
               child: ListView(
@@ -541,6 +560,42 @@ class _BranchesBody extends ConsumerWidget {
       label: Text(
         safe ? l.branchesHealthSafeSwitch : l.branchesHealthSyncNeeded,
       ),
+    );
+  }
+
+  Widget _buildStuckBanner(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return MaterialBanner(
+      backgroundColor: scheme.errorContainer,
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.branchesStuckBannerTitle,
+            style: TextStyle(
+              color: scheme.onErrorContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l.branchesStuckBannerBody,
+            style: TextStyle(color: scheme.onErrorContainer),
+          ),
+        ],
+      ),
+      leading: Icon(Icons.warning_amber_rounded, color: scheme.error),
+      actions: [
+        FilledButton(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen()));
+          },
+          child: Text(l.branchesSwitchFixSyncIssues),
+        ),
+      ],
     );
   }
 
@@ -668,6 +723,11 @@ class _BranchesBody extends ConsumerWidget {
     final networkText = info.online
         ? l.branchesNetworkOnline
         : l.branchesNetworkOffline;
+    final summaryStatus = !info.online
+        ? l.branchesPreflightNeedOnline
+        : (info.stuckOutboxCount > 0
+              ? l.branchesSwitchBlockedStuckOutbox
+              : l.branchesPreflightSummaryReady);
     return showModalBottomSheet<_BranchSwitchAction>(
       context: context,
       showDragHandle: true,
@@ -688,61 +748,64 @@ class _BranchesBody extends ConsumerWidget {
                 l.branchesPreflightTitle(branchLabel),
                 style: Theme.of(ctx).textTheme.titleMedium,
               ),
-              const SizedBox(height: AppTheme.space3),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.storefront_outlined),
-                title: Text(l.branchesPreflightTarget),
-                subtitle: Text('$branchLabel\n${b.shopId}'),
-              ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.sync_problem_outlined),
-                title: Text(
-                  l.branchesPreflightPending(info.pendingOutboxCount),
+              const SizedBox(height: AppTheme.space2),
+              Text(branchLabel, style: Theme.of(ctx).textTheme.titleSmall),
+              const SizedBox(height: AppTheme.space1),
+              Text(l.branchesPreflightNetwork(networkText)),
+              const SizedBox(height: AppTheme.space2),
+              Text(
+                summaryStatus,
+                style: TextStyle(
+                  color: canProceed ? null : Theme.of(ctx).colorScheme.error,
                 ),
               ),
-              if (info.stuckOutboxCount > 0)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.warning_amber_rounded,
-                    color: Theme.of(ctx).colorScheme.error,
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: Text(l.branchesPreflightDetails),
+                children: [
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.storefront_outlined),
+                    title: Text(l.branchesPreflightTarget),
+                    subtitle: Text(b.shopId),
                   ),
-                  title: Text(
-                    l.branchesPreflightStuck(info.stuckOutboxCount),
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.sync_problem_outlined),
+                    title: Text(
+                      l.branchesPreflightPending(info.pendingOutboxCount),
+                    ),
                   ),
-                ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(info.online ? Icons.wifi : Icons.wifi_off),
-                title: Text(l.branchesPreflightNetwork(networkText)),
+                  if (info.stuckOutboxCount > 0)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.warning_amber_rounded,
+                        color: Theme.of(ctx).colorScheme.error,
+                      ),
+                      title: Text(
+                        l.branchesPreflightStuck(info.stuckOutboxCount),
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.history_outlined),
+                    title: Text(
+                      l.branchesPreflightLastSync(
+                        _formatLastSync(ctx, info.lastSyncedAt),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.history_outlined),
-                title: Text(
-                  l.branchesPreflightLastSync(
-                    _formatLastSync(ctx, info.lastSyncedAt),
-                  ),
-                ),
-              ),
-              if (!canProceed)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppTheme.space2),
-                  child: Text(
-                    !info.online
-                        ? l.branchesPreflightNeedOnline
-                        : l.branchesSwitchBlockedStuckOutbox,
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                  ),
-                ),
               OverflowBar(
                 alignment: MainAxisAlignment.end,
                 overflowAlignment: OverflowBarAlignment.end,
@@ -924,7 +987,13 @@ class _BranchesBody extends ConsumerWidget {
     Branch b,
   ) async {
     final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.branches,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     final stuck = ref.read(stuckOutboxProvider).valueOrNull ?? const [];
     if (stuck.isNotEmpty) {
@@ -1103,7 +1172,13 @@ class _BranchesBody extends ConsumerWidget {
     Branch b,
   ) async {
     final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!await requireOwnerPinReauth(
+      context,
+      ref,
+      capability: OwnerCapability.branches,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,

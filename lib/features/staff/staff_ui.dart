@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import 'owner_permission.dart';
 import 'staff_members_screen.dart';
 import 'staff_providers.dart';
+
+export 'owner_permission.dart';
 
 String staffRoleLabel(AppLocalizations l, String role) {
   return role == 'owner' ? l.staffRoleOwner : l.staffRoleStaff;
@@ -14,12 +17,21 @@ String staffRoleLabel(AppLocalizations l, String role) {
 /// Wraps owner-only content. In staff mode it shows a lock placeholder
 /// instead of [child].
 class OwnerOnlyGate extends ConsumerWidget {
-  const OwnerOnlyGate({super.key, required this.child});
+  const OwnerOnlyGate({
+    super.key,
+    required this.child,
+    this.capability = OwnerCapability.branches,
+  });
   final Widget child;
+  final OwnerCapability capability;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(isEffectiveOwnerProvider)) return child;
+    final allowed = ownerPermissionPolicy.allows(
+      capability,
+      isEffectiveOwner: ref.watch(isEffectiveOwnerProvider),
+    );
+    if (allowed) return child;
     final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
@@ -112,8 +124,19 @@ Future<String?> promptPin(BuildContext context, String title) {
 }
 
 /// Extra confirmation for owner-sensitive actions (branch/account/tier
-/// changes). If no owner PIN is set, this returns true immediately.
-Future<bool> requireOwnerPinReauth(BuildContext context, WidgetRef ref) async {
+/// changes). If [capability] does not require PIN re-auth, or no owner PIN is
+/// set, this returns true immediately.
+Future<bool> requireOwnerPinReauth(
+  BuildContext context,
+  WidgetRef ref, {
+  required OwnerCapability capability,
+}) async {
+  final isOwner = ref.read(isEffectiveOwnerProvider);
+  if (!ownerPermissionPolicy.allows(capability, isEffectiveOwner: isOwner)) {
+    return false;
+  }
+  if (!ownerPermissionPolicy.requiresPinReauth(capability)) return true;
+
   final l = AppLocalizations.of(context);
   final ctrl = ref.read(staffControllerProvider);
   if (!await ctrl.hasPin()) return true;

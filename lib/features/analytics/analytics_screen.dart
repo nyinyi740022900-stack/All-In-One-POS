@@ -28,13 +28,20 @@ class AnalyticsScreen extends ConsumerWidget {
     if (!ref.watch(isEffectiveOwnerProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
-        body: const OwnerOnlyGate(child: SizedBox.shrink()),
+        body: const OwnerOnlyGate(
+          capability: OwnerCapability.analytics,
+          child: SizedBox.shrink(),
+        ),
       );
     }
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading ||
+        !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
-        body: PremiumGate(featureName: l.navAnalytics, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.navAnalytics,
+          child: const SizedBox.shrink(),
+        ),
       );
     }
 
@@ -49,9 +56,9 @@ class AnalyticsScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.summarize_outlined),
             tooltip: l.pnlTitle,
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PnlScreen(),
-            )),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const PnlScreen())),
           ),
         ],
       ),
@@ -62,14 +69,17 @@ class AnalyticsScreen extends ConsumerWidget {
             child: SegmentedButton<AnalyticsRange>(
               segments: [
                 ButtonSegment(
-                    value: AnalyticsRange.today,
-                    label: Text(l.analyticsRangeToday)),
+                  value: AnalyticsRange.today,
+                  label: Text(l.analyticsRangeToday),
+                ),
                 ButtonSegment(
-                    value: AnalyticsRange.week,
-                    label: Text(l.analyticsRangeWeek)),
+                  value: AnalyticsRange.week,
+                  label: Text(l.analyticsRangeWeek),
+                ),
                 ButtonSegment(
-                    value: AnalyticsRange.month,
-                    label: Text(l.analyticsRangeMonth)),
+                  value: AnalyticsRange.month,
+                  label: Text(l.analyticsRangeMonth),
+                ),
               ],
               selected: {range},
               onSelectionChanged: (s) =>
@@ -112,58 +122,67 @@ class _Dashboard extends StatelessWidget {
           childAspectRatio: 1.7,
           children: [
             _KpiCard(
-                label: l.analyticsRevenue,
-                value: Money(summary.revenue).withSymbol(cur),
-                icon: Icons.payments,
-                color: Colors.teal,
-                onTap: () => context.go('/invoices')),
+              label: l.analyticsRevenue,
+              value: Money(summary.revenue).withSymbol(cur),
+              icon: Icons.payments,
+              color: Colors.teal,
+              onTap: () => context.go('/invoices'),
+            ),
             _KpiCard(
-                label: l.analyticsProfit,
-                value: Money(summary.profit).withSymbol(cur),
-                icon: Icons.trending_up,
-                color: Colors.green),
+              label: l.analyticsProfit,
+              value: Money(summary.profit).withSymbol(cur),
+              icon: Icons.trending_up,
+              color: Colors.green,
+            ),
             _KpiCard(
-                label: l.analyticsExpenses,
-                value: Money(summary.expenses).withSymbol(cur),
-                icon: Icons.receipt_long,
-                color: Colors.deepOrange,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const ExpenseScreen()))),
+              label: l.analyticsExpenses,
+              value: Money(summary.expenses).withSymbol(cur),
+              icon: Icons.receipt_long,
+              color: Colors.deepOrange,
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+            ),
             _KpiCard(
-                label: l.analyticsNetProfit,
-                value: Money(summary.netProfit).withSymbol(cur),
-                icon: Icons.savings_outlined,
-                color: summary.netProfit >= 0 ? Colors.green : Colors.red,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const ExpenseScreen()))),
+              label: l.analyticsNetProfit,
+              value: Money(summary.netProfit).withSymbol(cur),
+              icon: Icons.savings_outlined,
+              color: summary.netProfit >= 0 ? Colors.green : Colors.red,
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+            ),
             _KpiCard(
-                label: l.analyticsSalesCount,
-                value: '${summary.salesCount}',
-                icon: Icons.receipt_long,
-                color: Colors.indigo,
-                onTap: () => context.go('/invoices')),
+              label: l.analyticsSalesCount,
+              value: '${summary.salesCount}',
+              icon: Icons.receipt_long,
+              color: Colors.indigo,
+              onTap: () => context.go('/invoices'),
+            ),
             if (trackStock)
               _KpiCard(
-                  label: l.analyticsStockValue,
-                  value: Money(summary.stockValue).withSymbol(cur),
-                  icon: Icons.inventory_2,
-                  color: Colors.orange,
-                  onTap: () => context.go('/inventory')),
+                label: l.analyticsStockValue,
+                value: Money(summary.stockValue).withSymbol(cur),
+                icon: Icons.inventory_2,
+                color: Colors.orange,
+                onTap: () => context.go('/inventory'),
+              ),
             _KpiCard(
-                label: l.analyticsCollected,
-                value: Money(summary.collected).withSymbol(cur),
-                icon: Icons.account_balance,
-                color: Colors.blueGrey,
-                onTap: () => context.go('/invoices')),
+              label: l.analyticsCollected,
+              value: Money(summary.collected).withSymbol(cur),
+              icon: Icons.account_balance,
+              color: Colors.blueGrey,
+              onTap: () => context.go('/invoices'),
+            ),
             _KpiCard(
-                label: l.analyticsCreditOutstanding,
-                value: Money(summary.creditOutstanding).withSymbol(cur),
-                icon: Icons.account_balance_wallet,
-                color: summary.creditOutstanding > 0
-                    ? Colors.red
-                    : Colors.green,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const CreditScreen()))),
+              label: l.analyticsCreditOutstanding,
+              value: Money(summary.creditOutstanding).withSymbol(cur),
+              icon: Icons.account_balance_wallet,
+              color: summary.creditOutstanding > 0 ? Colors.red : Colors.green,
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const CreditScreen())),
+            ),
           ],
         ),
         const SizedBox(height: AppTheme.space3),
@@ -176,12 +195,13 @@ class _Dashboard extends StatelessWidget {
 }
 
 class _KpiCard extends StatelessWidget {
-  const _KpiCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color,
-      this.onTap});
+  const _KpiCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
 
   final String label;
   final String value;
@@ -196,29 +216,34 @@ class _KpiCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space3),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(label,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelMedium),
+          padding: const EdgeInsets.all(AppTheme.space3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                ],
               ),
-            ]),
-            Text(value,
+              Text(
+                value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -242,8 +267,10 @@ class _RevenueChartCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l.analyticsDailyRevenue,
-                style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              l.analyticsDailyRevenue,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: AppTheme.space3),
             SizedBox(
               height: 160,
@@ -257,26 +284,33 @@ class _RevenueChartCard extends StatelessWidget {
                         gridData: const FlGridData(show: false),
                         titlesData: const FlTitlesData(
                           leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                           rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                           topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                           bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                         ),
                         barGroups: [
                           for (var i = 0; i < daily.length; i++)
-                            BarChartGroupData(x: i, barRods: [
-                              BarChartRodData(
-                                toY: daily[i].revenue.toDouble(),
-                                color: scheme.primary,
-                                width: daily.length > 14 ? 6 : 12,
-                                borderRadius:
-                                    const BorderRadius.vertical(
-                                        top: Radius.circular(3)),
-                              ),
-                            ]),
+                            BarChartGroupData(
+                              x: i,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: daily[i].revenue.toDouble(),
+                                  color: scheme.primary,
+                                  width: daily.length > 14 ? 6 : 12,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(3),
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -303,8 +337,10 @@ class _TopProductsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l.analyticsTopProducts,
-                style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              l.analyticsTopProducts,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: AppTheme.space2),
             if (top.isEmpty)
               Padding(
@@ -312,15 +348,19 @@ class _TopProductsCard extends StatelessWidget {
                 child: Text(l.analyticsNoData),
               )
             else
-              ...top.map((p) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: CircleAvatar(
-                        radius: 14, child: Text('${p.qty}')),
-                    title: Text(p.name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: Text(Money(p.revenue).withSymbol(cur)),
-                  )),
+              ...top.map(
+                (p) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: CircleAvatar(radius: 14, child: Text('${p.qty}')),
+                  title: Text(
+                    p.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(Money(p.revenue).withSymbol(cur)),
+                ),
+              ),
           ],
         ),
       ),
