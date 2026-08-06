@@ -50,6 +50,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final locale = ref.watch(localeControllerProvider);
+    final session = ref.watch(sessionScopeProvider);
+    final isOwner = session.isEffectiveOwner;
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(
@@ -59,103 +61,102 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.store),
             title: Text(l.settingsShop),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ShopProfileScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ShopProfileScreen()),
+            ),
           ),
-          if (ref.watch(isEffectiveOwnerProvider)) _TrackStockTile(),
+          if (isOwner) _TrackStockTile(),
           ListTile(
             leading: const Icon(Icons.point_of_sale_outlined),
             title: Text(l.cashRegisterTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const CashSessionScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CashSessionScreen()),
+            ),
           ),
           _CreditTile(),
           ListTile(
             leading: const Icon(Icons.people_outline),
             title: Text(l.customersTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const CustomersScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CustomersScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.receipt_long_outlined),
             title: Text(l.expensesTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ExpenseScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.local_shipping_outlined),
             title: Text(l.suppliersTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const SuppliersScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SuppliersScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.shopping_cart_outlined),
             title: Text(l.purchaseOrdersTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PurchaseOrdersScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PurchaseOrdersScreen()),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.credit_card_outlined),
             title: Text(l.paymentAccountsTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PaymentAccountsScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PaymentAccountsScreen()),
+            ),
           ),
           _AccountsPayableTile(),
           _EquityTile(),
-          if (ref.watch(isEffectiveOwnerProvider)) _StorefrontTile(),
+          if (isOwner) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
-          if (ref.watch(isEffectiveOwnerProvider)) _LicenseTile(),
+          if (isOwner) _LicenseTile(),
           ListTile(
             leading: const Icon(Icons.alternate_email),
             title: Text(l.accountShopLoginTitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ShopLoginScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
           ),
-          if (ref.watch(backendAccountRoleProvider) != null &&
-              ref.watch(isEffectiveOwnerProvider)) ...[
+          if (session.backendRole != null && isOwner) ...[
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: Text(l.staffAccountsTitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const StaffAccountsScreen(),
-              )),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StaffAccountsScreen()),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.store_mall_directory_outlined),
               title: Text(l.branchesTitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const BranchesScreen(),
-              )),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BranchesScreen())),
             ),
             _PricingTierTile(),
           ],
           _ReferralTile(),
-          if (ref.watch(isEffectiveOwnerProvider))
+          if (isOwner)
             ListTile(
               leading: const Icon(Icons.backup),
               title: Text(l.backupTitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const BackupScreen(),
-              )),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BackupScreen())),
             ),
 
           _SectionHeader(l.settingsSectionDevice),
@@ -180,17 +181,19 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.print),
             title: Text(l.settingsPrinter),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PrinterSettingsScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrinterSettingsScreen()),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.sell),
             title: Text(l.settingsLabelPrinter),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const LabelPrinterSettingsScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const LabelPrinterSettingsScreen(),
+              ),
+            ),
           ),
           _DeviceLabelTile(),
           _SyncTile(),
@@ -200,9 +203,9 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.help_outline),
             title: Text(l.settingsAppGuide),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const HelpGuideScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HelpGuideScreen())),
           ),
           _SupportTile(),
 
@@ -236,10 +239,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -303,8 +306,9 @@ class _SupportTile extends ConsumerWidget {
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: viber));
         if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(l.copied)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l.copied)));
         }
       },
     );
@@ -319,13 +323,15 @@ class _CreditTile extends ConsumerWidget {
     return ListTile(
       leading: const Icon(Icons.account_balance_wallet),
       title: Text(l.creditTitle),
-      subtitle: Text(total > 0
-          ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
-          : l.creditNoneDue),
+      subtitle: Text(
+        total > 0
+            ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
+            : l.creditNoneDue,
+      ),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const CreditScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const CreditScreen())),
     );
   }
 }
@@ -338,13 +344,15 @@ class _AccountsPayableTile extends ConsumerWidget {
     return ListTile(
       leading: const Icon(Icons.request_quote_outlined),
       title: Text(l.accountsPayableTitle),
-      subtitle: Text(total > 0
-          ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
-          : l.apNoneDue),
+      subtitle: Text(
+        total > 0
+            ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
+            : l.apNoneDue,
+      ),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const AccountsPayableScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AccountsPayableScreen())),
     );
   }
 }
@@ -357,9 +365,9 @@ class _EquityTile extends ConsumerWidget {
       leading: const Icon(Icons.savings_outlined),
       title: Text(l.equityTitle),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const OwnerEquityScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const OwnerEquityScreen())),
     );
   }
 }
@@ -386,8 +394,9 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
     if (!ref.read(pendingPlanDowngradeNoticeProvider)) return;
     ref.read(pendingPlanDowngradeNoticeProvider.notifier).state = false;
     final l = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.licenseDowngradedToFreeNotice)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.licenseDowngradedToFreeNotice)));
   }
 
   @override
@@ -401,24 +410,31 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
     });
     final licState = ref.watch(licenseControllerProvider);
     final status = licState.status;
-    final (String label, Color color) = licState.license?.plan == LicensePlan.free
+    final (
+      String label,
+      Color color,
+    ) = licState.license?.plan == LicensePlan.free
         ? (l.licensePlanFree, Theme.of(context).colorScheme.outline)
         : switch (status.kind) {
             LicenseStatusKind.active => (l.licenseStatusActive, Colors.green),
             LicenseStatusKind.grace => (l.licenseStatusGrace, Colors.orange),
-            LicenseStatusKind.expired =>
-              (l.licenseStatusExpired, Theme.of(context).colorScheme.error),
-            LicenseStatusKind.none =>
-              (l.licenseStatusNone, Theme.of(context).colorScheme.outline),
+            LicenseStatusKind.expired => (
+              l.licenseStatusExpired,
+              Theme.of(context).colorScheme.error,
+            ),
+            LicenseStatusKind.none => (
+              l.licenseStatusNone,
+              Theme.of(context).colorScheme.outline,
+            ),
           };
     return ListTile(
       leading: const Icon(Icons.key),
       title: Text(l.settingsLicense),
       subtitle: Text(label, style: TextStyle(color: color)),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const LicenseScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LicenseScreen())),
     );
   }
 }
@@ -431,7 +447,8 @@ class _PricingTierTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final tier = ref.watch(licenseControllerProvider).license?.tier ?? 'offline';
+    final tier =
+        ref.watch(licenseControllerProvider).license?.tier ?? 'offline';
     final isOnline = tier == 'online';
     final otherTier = isOnline ? 'offline' : 'online';
     return ListTile(
@@ -448,9 +465,11 @@ class _PricingTierTile extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => _confirmSwitch(context, ref, otherTier),
-            child: Text(otherTier == 'online'
-                ? l.pricingTierSwitchToOnline
-                : l.pricingTierSwitchToOffline),
+            child: Text(
+              otherTier == 'online'
+                  ? l.pricingTierSwitchToOnline
+                  : l.pricingTierSwitchToOffline,
+            ),
           ),
         ],
       ),
@@ -458,21 +477,29 @@ class _PricingTierTile extends ConsumerWidget {
   }
 
   Future<void> _showComparisonSheet(
-      BuildContext context, AppLocalizations l) async {
+    BuildContext context,
+    AppLocalizations l,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppTheme.space4, 0,
-              AppTheme.space4, AppTheme.space5),
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space4,
+            0,
+            AppTheme.space4,
+            AppTheme.space5,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l.pricingTierCompareTitle,
-                  style: Theme.of(ctx).textTheme.titleLarge),
+              Text(
+                l.pricingTierCompareTitle,
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
               const SizedBox(height: AppTheme.space4),
               _TierExplainCard(
                 icon: Icons.cloud_outlined,
@@ -493,41 +520,55 @@ class _PricingTierTile extends ConsumerWidget {
   }
 
   Future<void> _confirmSwitch(
-      BuildContext context, WidgetRef ref, String newTier) async {
+    BuildContext context,
+    WidgetRef ref,
+    String newTier,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(newTier == 'online'
-            ? l.pricingTierSwitchToOnline
-            : l.pricingTierSwitchToOffline),
+        title: Text(
+          newTier == 'online'
+              ? l.pricingTierSwitchToOnline
+              : l.pricingTierSwitchToOffline,
+        ),
         content: Text(l.pricingTierConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonOk)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.commonOk),
+          ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
-    final result =
-        await ref.read(accountRepositoryProvider).setPricingTier(newTier);
+    final result = await ref
+        .read(accountRepositoryProvider)
+        .setPricingTier(newTier);
     if (!context.mounted) return;
     if (result.ok && result.license != null) {
-      ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+      ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(result.license!);
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
   }
 }
 
 class _TierExplainCard extends StatelessWidget {
-  const _TierExplainCard(
-      {required this.icon, required this.title, required this.body});
+  const _TierExplainCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 
   final IconData icon;
   final String title;
@@ -547,13 +588,18 @@ class _TierExplainCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: AppTheme.space2),
-              Text(title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: AppTheme.space1),
@@ -574,9 +620,9 @@ class _StorefrontTile extends ConsumerWidget {
       leading: const Icon(Icons.storefront),
       title: Text(l.storefrontTitle),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const StorefrontScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const StorefrontScreen())),
     );
   }
 }
@@ -597,9 +643,9 @@ class _ReferralTile extends ConsumerWidget {
       leading: const Icon(Icons.card_giftcard),
       title: Text(l.referralTitle),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const ReferralScreen(),
-      )),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ReferralScreen())),
     );
   }
 }
@@ -638,27 +684,30 @@ class _SyncTile extends ConsumerWidget {
           trailing: sync.phase == SyncPhase.disabled
               ? null
               : (sync.phase == SyncPhase.syncing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : IconButton(
-                      icon: const Icon(Icons.sync),
-                      tooltip: l.syncNow,
-                      onPressed: () =>
-                          ref.read(syncControllerProvider.notifier).sync(),
-                    )),
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.sync),
+                        tooltip: l.syncNow,
+                        onPressed: () =>
+                            ref.read(syncControllerProvider.notifier).sync(),
+                      )),
         ),
         if (stuck.isNotEmpty)
           ListTile(
-            leading: Icon(Icons.warning_amber_rounded,
-                color: Theme.of(context).colorScheme.error),
+            leading: Icon(
+              Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
             title: Text(l.syncIssuesTitle(stuck.length)),
             subtitle: Text(l.syncIssuesSubtitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const SyncIssuesScreen(),
-            )),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen())),
           ),
       ],
     );
@@ -683,7 +732,10 @@ class _DeviceLabelTile extends ConsumerWidget {
   }
 
   Future<void> _editLabel(
-      BuildContext context, WidgetRef ref, String? current) async {
+    BuildContext context,
+    WidgetRef ref,
+    String? current,
+  ) async {
     final l = AppLocalizations.of(context);
     final controller = TextEditingController(text: current ?? '');
     final saved = await showDialog<bool>(

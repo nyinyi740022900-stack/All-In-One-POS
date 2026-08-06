@@ -17,31 +17,48 @@ final appRouter = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _ShellScaffold(shell: shell),
       branches: [
-        StatefulShellBranch(routes: [
-          GoRoute(path: '/sell', builder: (_, _) => const SellScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/sell', builder: (_, _) => const SellScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: '/inventory',
-              builder: (_, _) => const InventoryScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/orders', builder: (_, _) => const OrdersScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/invoices', builder: (_, _) => const InvoicesScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
+              builder: (_, _) => const InventoryScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/orders', builder: (_, _) => const OrdersScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/invoices',
+              builder: (_, _) => const InvoicesScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: '/analytics',
-              builder: (_, _) => const AnalyticsScreen()),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-              path: '/settings', builder: (_, _) => const SettingsScreen()),
-        ]),
+              builder: (_, _) => const AnalyticsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/settings',
+              builder: (_, _) => const SettingsScreen(),
+            ),
+          ],
+        ),
       ],
     ),
   ],
@@ -55,7 +72,7 @@ class _ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final isOwner = ref.watch(isEffectiveOwnerProvider);
+    final isOwner = ref.watch(sessionScopeProvider).isEffectiveOwner;
     // Tablet (wide) → rail; phone → bottom bar.
     final isWide = MediaQuery.sizeOf(context).width >= 640;
 
@@ -71,24 +88,29 @@ class _ShellScaffold extends ConsumerWidget {
       _Dest(4, Icons.bar_chart, l.navAnalytics, ownerOnly: true),
       _Dest(5, Icons.settings, l.navSettings),
     ];
-    final destinations =
-        allDestinations.where((d) => !d.ownerOnly || isOwner).toList();
+    final destinations = allDestinations
+        .where((d) => !d.ownerOnly || isOwner)
+        .toList();
 
-    var selectedIndex =
-        destinations.indexWhere((d) => d.branchIndex == shell.currentIndex);
+    var selectedIndex = destinations.indexWhere(
+      (d) => d.branchIndex == shell.currentIndex,
+    );
     if (selectedIndex < 0) {
       // The branch we were on just became hidden (e.g. an owner viewing
       // Analytics switched the device to Staff mode) — bounce to Sell rather
       // than crash the nav widget on an out-of-range selected index.
       selectedIndex = 0;
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => shell.goBranch(0, initialLocation: true));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => shell.goBranch(0, initialLocation: true),
+      );
     }
 
     void go(int filteredIndex) {
       final branchIndex = destinations[filteredIndex].branchIndex;
-      shell.goBranch(branchIndex,
-          initialLocation: branchIndex == shell.currentIndex);
+      shell.goBranch(
+        branchIndex,
+        initialLocation: branchIndex == shell.currentIndex,
+      );
     }
 
     if (isWide) {
@@ -133,5 +155,10 @@ class _Dest {
   final IconData icon;
   final String label;
   final bool ownerOnly;
-  const _Dest(this.branchIndex, this.icon, this.label, {this.ownerOnly = false});
+  const _Dest(
+    this.branchIndex,
+    this.icon,
+    this.label, {
+    this.ownerOnly = false,
+  });
 }

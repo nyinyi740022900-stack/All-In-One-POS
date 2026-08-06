@@ -14,12 +14,33 @@ import 'staff_repository.dart';
 /// use case for a small shop.
 const staffRoles = <String>['staff', 'owner'];
 
+/// Single snapshot of "who is this device acting as right now?" consumed by
+/// UI/permission gates, so branch/role/account checks don't drift apart.
+class SessionScope {
+  final String shopId;
+  final String localRole;
+  final String? backendRole;
+  final String effectiveRole;
+
+  const SessionScope({
+    required this.shopId,
+    required this.localRole,
+    required this.backendRole,
+    required this.effectiveRole,
+  });
+
+  bool get isEffectiveOwner => effectiveRole == 'owner';
+}
+
 final staffRoleProvider = StreamProvider<String>((ref) {
   return ref.watch(settingsRepositoryProvider).watchStaffRole();
 });
 
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {
-  return StaffRepository(ref.watch(databaseProvider), ref.watch(shopIdProvider));
+  return StaffRepository(
+    ref.watch(databaseProvider),
+    ref.watch(shopIdProvider),
+  );
 });
 
 /// The shop's named staff roster (name + PIN profiles), shared across every
@@ -30,12 +51,16 @@ final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
 
 /// A lightweight 1-second ticker so staff-mode UI can refresh countdown text
 /// (for owner PIN cooldown) without adding timers inside widgets.
-final ownerPinCooldownSecondsProvider = StreamProvider.autoDispose<int>((ref) async* {
+final ownerPinCooldownSecondsProvider = StreamProvider.autoDispose<int>((
+  ref,
+) async* {
   final ctrl = ref.watch(staffControllerProvider);
   await ctrl.primePinState();
   yield ctrl.ownerPinCooldownRemainingSeconds();
-  yield* Stream<int>.periodic(const Duration(seconds: 1),
-      (_) => ctrl.ownerPinCooldownRemainingSeconds());
+  yield* Stream<int>.periodic(
+    const Duration(seconds: 1),
+    (_) => ctrl.ownerPinCooldownRemainingSeconds(),
+  );
 });
 
 /// Which roster member is "using" this device right now — device-local, not
@@ -72,10 +97,24 @@ final effectiveRoleProvider = Provider<String>((ref) {
   return localRole;
 });
 
+/// Centralized session identity used by navigation and settings visibility.
+final sessionScopeProvider = Provider<SessionScope>((ref) {
+  final shopId = ref.watch(shopIdProvider);
+  final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
+  final backendRole = ref.watch(backendAccountRoleProvider);
+  final effectiveRole = ref.watch(effectiveRoleProvider);
+  return SessionScope(
+    shopId: shopId,
+    localRole: localRole,
+    backendRole: backendRole,
+    effectiveRole: effectiveRole,
+  );
+});
+
 /// True when the effective permission role is owner. Owner controls should gate
 /// on this (not on local mode alone).
 final isEffectiveOwnerProvider = Provider<bool>((ref) {
-  return ref.watch(effectiveRoleProvider) == 'owner';
+  return ref.watch(sessionScopeProvider).isEffectiveOwner;
 });
 
 /// Backward-compatible alias for existing call sites.
@@ -85,8 +124,9 @@ final isOwnerProvider = Provider<bool>((ref) {
 
 /// Alias kept for call-site clarity in the Inventory screen — Inventory
 /// add/edit is owner-only, same gate as everything else non-Sell/Orders.
-final canEditInventoryProvider =
-    Provider<bool>((ref) => ref.watch(isEffectiveOwnerProvider));
+final canEditInventoryProvider = Provider<bool>(
+  (ref) => ref.watch(isEffectiveOwnerProvider),
+);
 
 /// Staff/Owner mode only matters once there's a second device to hand off to
 /// someone else — for a shop running just one device, switching that one
@@ -97,8 +137,12 @@ final canEditInventoryProvider =
 final showStaffModeSectionProvider = Provider<bool>((ref) {
   final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   if (role != 'owner') return true;
-  final deviceCount = ref.watch(shopDevicesProvider).valueOrNull
-          ?.where((d) => d.isBound).length ??
+  final deviceCount =
+      ref
+          .watch(shopDevicesProvider)
+          .valueOrNull
+          ?.where((d) => d.isBound)
+          .length ??
       1;
   return deviceCount > 1;
 });
@@ -108,7 +152,7 @@ final showStaffModeSectionProvider = Provider<bool>((ref) {
 /// switching to 'owner' requires the correct PIN (or succeeds if none is set).
 class StaffController {
   StaffController(this._ref, {DateTime Function()? now})
-      : _now = now ?? DateTime.now;
+    : _now = now ?? DateTime.now;
   final Ref _ref;
   final DateTime Function() _now;
   int _ownerPinFailures = 0;
@@ -148,7 +192,8 @@ class StaffController {
   bool isValidOwnerPin(String pin) => RegExp(r'^\d{4,6}$').hasMatch(pin);
 
   Future<bool> hasPin() async =>
-      (await _ref.read(settingsRepositoryProvider).staffPinHash())?.isNotEmpty ??
+      (await _ref.read(settingsRepositoryProvider).staffPinHash())
+          ?.isNotEmpty ??
       false;
 
   Future<void> setPin(String pin) async {
@@ -176,7 +221,8 @@ class StaffController {
       if (lockExpired) {
         await repo.clearOwnerPinLockedUntil();
       }
-      if (_ownerPinLockedUntil != null && _now().isBefore(_ownerPinLockedUntil!)) {
+      if (_ownerPinLockedUntil != null &&
+          _now().isBefore(_ownerPinLockedUntil!)) {
         return false;
       }
       final ok = await repo.verifyStaffPin((pin ?? '').trim());
@@ -222,7 +268,10 @@ class StaffController {
   /// intended staff member at generation time. Called once, right after a
   /// successful activation that came from a role-carrying QR; a no-op for a
   /// plain key with no role attached.
-  Future<void> applyProvisionedRole(String role, {String? staffMemberId}) async {
+  Future<void> applyProvisionedRole(
+    String role, {
+    String? staffMemberId,
+  }) async {
     if (role != 'staff') return;
     final repo = _ref.read(settingsRepositoryProvider);
     if (staffMemberId != null && staffMemberId.isNotEmpty) {
@@ -232,5 +281,6 @@ class StaffController {
   }
 }
 
-final staffControllerProvider =
-    Provider<StaffController>((ref) => StaffController(ref));
+final staffControllerProvider = Provider<StaffController>(
+  (ref) => StaffController(ref),
+);
