@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/env.dart';
 import '../../data/local/database.dart';
+import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../license/license_model.dart';
 import '../license/license_repository.dart';
@@ -157,6 +158,9 @@ class BranchRepository {
   BranchRepository(this._db, this._licenseRepository, this._settings);
 
   final AppDatabase _db;
+  late final ShopDataTransitionService _transition = ShopDataTransitionService(
+    _db,
+  );
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
 
@@ -325,8 +329,7 @@ class BranchRepository {
   }
 
   Future<int> pendingOutboxCount() async {
-    final pending = await _db.select(_db.outbox).get();
-    return pending.length;
+    return (await _transition.precheck()).pendingOutboxCount;
   }
 
   /// Switches this device to a different branch: checks the outbox is fully
@@ -368,13 +371,13 @@ class BranchRepository {
     if (auth.currentSession == null || auth.currentUser == null) {
       return const BranchSwitchResult.failure('auth_expired');
     }
-    final pending = await _db.select(_db.outbox).get();
-    if (pending.isNotEmpty) {
-      await saveStep(
-        BranchSwitchStep.checkingDataSafety,
-        error: 'branch_switch_pending_sync',
-      );
-      return const BranchSwitchResult.failure('branch_switch_pending_sync');
+    final clearGuard = await _transition.assertSafeToClear();
+    if (clearGuard != null) {
+      final code = clearGuard == 'stuck_outbox'
+          ? 'stuck_outbox'
+          : 'branch_switch_pending_sync';
+      await saveStep(BranchSwitchStep.checkingDataSafety, error: code);
+      return BranchSwitchResult.failure(code);
     }
 
     Map<String, dynamic> data;
@@ -426,8 +429,7 @@ class BranchRepository {
       await saveStep(BranchSwitchStep.refreshingSession, error: 'auth_expired');
       return const BranchSwitchResult.failure('auth_expired');
     }
-    var refreshedShopId =
-        auth.currentUser?.appMetadata['shop_id'] as String?;
+    var refreshedShopId = auth.currentUser?.appMetadata['shop_id'] as String?;
     if (refreshedShopId != shopId) {
       try {
         await Supabase.instance.client.auth.refreshSession();
@@ -444,7 +446,7 @@ class BranchRepository {
 
     await saveStep(BranchSwitchStep.clearingOldData);
     onStep?.call(BranchSwitchStep.clearingOldData);
-    await _db.wipeSyncedData();
+    await _transition.clearShopScopedData();
 
     final now = DateTime.now();
     final deviceId = await _settings.deviceId();
@@ -466,8 +468,8 @@ class BranchRepository {
 }
 
 LicensePlan _planFrom(String s) => switch (s) {
-      'yearly' => LicensePlan.yearly,
-      'monthly' => LicensePlan.monthly,
-      'free' => LicensePlan.free,
-      _ => LicensePlan.trial,
-    };
+  'yearly' => LicensePlan.yearly,
+  'monthly' => LicensePlan.monthly,
+  'free' => LicensePlan.free,
+  _ => LicensePlan.trial,
+};

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../data/local/database.dart';
+import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../license/license_model.dart';
 import '../license/license_repository.dart';
@@ -18,14 +19,14 @@ class AccountActionResult {
   final CachedLicense? license;
   final bool needsWipeConfirmation;
   const AccountActionResult.success(this.userId, {this.license})
-      : ok = true,
-        error = null,
-        needsWipeConfirmation = false;
+    : ok = true,
+      error = null,
+      needsWipeConfirmation = false;
   const AccountActionResult.failure(this.error)
-      : ok = false,
-        userId = null,
-        license = null,
-        needsWipeConfirmation = false;
+    : ok = false,
+      userId = null,
+      license = null,
+      needsWipeConfirmation = false;
   // Signed in successfully, but this device was previously scoped to a
   // DIFFERENT shop — proceeding would wipe local data. The caller must show
   // an explicit confirmation and, if accepted, call
@@ -33,11 +34,11 @@ class AccountActionResult {
   // rather than leaving the device mid-session for a shop its local data
   // doesn't match.
   const AccountActionResult.needsWipeConfirmation()
-      : ok = false,
-        error = null,
-        userId = null,
-        license = null,
-        needsWipeConfirmation = true;
+    : ok = false,
+      error = null,
+      userId = null,
+      license = null,
+      needsWipeConfirmation = true;
 }
 
 /// Outcome of [AccountRepository.signupShop] — carries the freshly-minted
@@ -57,8 +58,11 @@ class StaffAccount {
   final String userId;
   final String email;
   final bool banned;
-  const StaffAccount(
-      {required this.userId, required this.email, required this.banned});
+  const StaffAccount({
+    required this.userId,
+    required this.email,
+    required this.banned,
+  });
 }
 
 /// Real email/password login for a shop's owner and staff — additive to the
@@ -78,6 +82,9 @@ class AccountRepository {
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
   final AppDatabase _db;
+  late final ShopDataTransitionService _transition = ShopDataTransitionService(
+    _db,
+  );
 
   bool get isSignedInWithRealAccount {
     final user = Supabase.instance.client.auth.currentUser;
@@ -115,13 +122,17 @@ class AccountRepository {
   ///   wiped (same safety check as a branch switch: never while unsynced
   ///   writes exist) before claiming a slot under the new shop.
   Future<AccountActionResult> signInAndClaimDevice(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');
     }
     try {
-      await Supabase.instance.client.auth
-          .signInWithPassword(email: email, password: password);
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
     } on AuthException catch (e) {
       return AccountActionResult.failure(e.message);
     } catch (_) {
@@ -131,7 +142,9 @@ class AccountRepository {
     final shopId =
         Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
             as String?;
-    if (shopId == null) return const AccountActionResult.failure('not_activated');
+    if (shopId == null) {
+      return const AccountActionResult.failure('not_activated');
+    }
 
     final currentLic = await _licenseRepository.current();
     if (currentLic != null && currentLic.shopId == shopId) {
@@ -154,11 +167,14 @@ class AccountRepository {
   /// unsynced writes exist) then claims a device slot under the now-signed-in
   /// account's shop.
   Future<AccountActionResult> confirmWipeAndClaimDevice() async {
-    final pending = await _db.select(_db.outbox).get();
-    if (pending.isNotEmpty) {
+    final clearGuard = await _transition.assertSafeToClear();
+    if (clearGuard != null) {
+      if (clearGuard == 'stuck_outbox') {
+        return const AccountActionResult.failure('stuck_outbox');
+      }
       return const AccountActionResult.failure('pending_sync');
     }
-    await _db.wipeSyncedData();
+    await _transition.clearShopScopedData();
     return _claimDeviceSlot();
   }
 
@@ -204,8 +220,10 @@ class AccountRepository {
     if (!Env.hasBackend) return const AccountActionResult.failure('no_backend');
     Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions
-          .invoke('activate', body: {'action': 'set_tier', 'tier': tier});
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'set_tier', 'tier': tier},
+      );
       data = res.data as Map<String, dynamic>;
     } catch (_) {
       return const AccountActionResult.failure('network_error');
@@ -214,7 +232,9 @@ class AccountRepository {
       return AccountActionResult.failure(data['error'] as String?);
     }
     final current = await _licenseRepository.current();
-    if (current == null) return const AccountActionResult.failure('not_activated');
+    if (current == null) {
+      return const AccountActionResult.failure('not_activated');
+    }
     final updated = current.copyWith(tier: tier);
     await _licenseRepository.saveExternal(updated);
     return AccountActionResult.success(null, license: updated);
@@ -229,7 +249,10 @@ class AccountRepository {
   /// right claims) and builds the resulting [CachedLicense] for the caller
   /// to apply via `LicenseController.applyExternal`.
   Future<SignupResult> signupShop(
-      String shopName, String email, String password) async {
+    String shopName,
+    String email,
+    String password,
+  ) async {
     if (!Env.hasBackend) return const SignupResult.failure('no_backend');
     final deviceId = await _settings.deviceId();
 
@@ -256,8 +279,10 @@ class AccountRepository {
     if (expiresAtRaw == null) return const SignupResult.failure('server_error');
 
     try {
-      await Supabase.instance.client.auth
-          .signInWithPassword(email: email, password: password);
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
     } on AuthException catch (e) {
       return SignupResult.failure(e.message);
     } catch (_) {
@@ -270,7 +295,8 @@ class AccountRepository {
       shopId: data['shop_id'] as String,
       plan: LicensePlan.trial,
       expiresAt: DateTime.parse(expiresAtRaw),
-      activatedAt: DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
+      activatedAt:
+          DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
       lastVerifiedAt: now,
       deviceId: deviceId,
       tier: data['tier'] as String? ?? 'online',
@@ -280,7 +306,9 @@ class AccountRepository {
   }
 
   Future<AccountActionResult> createShopLogin(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');
     }
@@ -308,8 +336,10 @@ class AccountRepository {
           final tierResult = await setPricingTier('online');
           if (tierResult.ok) updated = tierResult.license;
         }
-        return AccountActionResult.success(data['user_id'] as String?,
-            license: updated);
+        return AccountActionResult.success(
+          data['user_id'] as String?,
+          license: updated,
+        );
       }
       return AccountActionResult.failure(data['error'] as String?);
     } catch (_) {
@@ -317,19 +347,14 @@ class AccountRepository {
     }
   }
 
-  Future<AccountActionResult> inviteStaff(
-      String email, String password) async {
+  Future<AccountActionResult> inviteStaff(String email, String password) async {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');
     }
     try {
       final res = await Supabase.instance.client.functions.invoke(
         'activate',
-        body: {
-          'action': 'invite_staff',
-          'email': email,
-          'password': password,
-        },
+        body: {'action': 'invite_staff', 'email': email, 'password': password},
       );
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) {
@@ -352,11 +377,13 @@ class AccountRepository {
       if (data['ok'] != true) return const [];
       final staff = (data['staff'] as List).cast<Map<String, dynamic>>();
       return staff
-          .map((s) => StaffAccount(
-                userId: s['user_id'] as String,
-                email: s['email'] as String? ?? '',
-                banned: s['banned'] as bool? ?? false,
-              ))
+          .map(
+            (s) => StaffAccount(
+              userId: s['user_id'] as String,
+              email: s['email'] as String? ?? '',
+              banned: s['banned'] as bool? ?? false,
+            ),
+          )
           .toList();
     } catch (_) {
       return const [];

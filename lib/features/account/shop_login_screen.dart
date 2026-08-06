@@ -33,12 +33,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   }
 
   String _errorMessage(AppLocalizations l, String? code) => switch (code) {
-        'email_taken' => l.accountEmailTaken,
-        'not_activated' => l.accountNotActivated,
-        'no_backend' => l.accountNoBackend,
-        'pending_sync' => l.accountPendingSync,
-        _ => l.accountActionFailed,
-      };
+    'email_taken' => l.accountEmailTaken,
+    'not_activated' => l.accountNotActivated,
+    'no_backend' => l.accountNoBackend,
+    'pending_sync' => l.accountPendingSync,
+    'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
+    _ => l.accountActionFailed,
+  };
 
   Future<void> _createLogin() async {
     final l = AppLocalizations.of(context);
@@ -52,13 +53,16 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     setState(() => _busy = false);
     if (result.ok) {
       if (result.license != null) {
-        ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+        ref
+            .read(licenseControllerProvider.notifier)
+            .applyExternal(result.license!);
       }
       messenger.showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
       _password.clear();
     } else {
       messenger.showSnackBar(
-          SnackBar(content: Text(_errorMessage(l, result.error))));
+        SnackBar(content: Text(_errorMessage(l, result.error))),
+      );
     }
   }
 
@@ -81,11 +85,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
           content: Text(l.accountSignInWipeConfirmBody),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l.commonCancel)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l.accountSignIn)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.accountSignIn),
+            ),
           ],
         ),
       );
@@ -102,15 +108,18 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         return;
       }
       setState(() => _busy = true);
-      result =
-          await ref.read(accountRepositoryProvider).confirmWipeAndClaimDevice();
+      result = await ref
+          .read(accountRepositoryProvider)
+          .confirmWipeAndClaimDevice();
       if (!mounted) return;
     }
 
     setState(() => _busy = false);
     if (result.ok) {
       if (result.license != null) {
-        ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+        ref
+            .read(licenseControllerProvider.notifier)
+            .applyExternal(result.license!);
         ref.read(syncControllerProvider.notifier).sync();
       }
       ref.invalidate(backendAccountRoleProvider);
@@ -119,7 +128,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       setState(() {});
     } else {
       messenger.showSnackBar(
-          SnackBar(content: Text(_errorMessage(l, result.error))));
+        SnackBar(content: Text(_errorMessage(l, result.error))),
+      );
     }
   }
 
@@ -131,23 +141,28 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     // key-activated (Offline-tier) device's Premium is independent of any
     // auth session, so its sign-out keeps the generic wording.
     final license = ref.read(licenseControllerProvider).license;
-    final losesPremium = license != null &&
+    final losesPremium =
+        license != null &&
         license.tier == 'online' &&
         license.plan != LicensePlan.free;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.accountSignOutConfirmTitle),
-        content: Text(losesPremium
-            ? l.accountSignOutPremiumConfirmBody
-            : l.accountSignOutConfirmBody),
+        content: Text(
+          losesPremium
+              ? l.accountSignOutPremiumConfirmBody
+              : l.accountSignOutConfirmBody,
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.accountSignOut)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.accountSignOut),
+          ),
         ],
       ),
     );
@@ -155,7 +170,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     final result = await ref.read(accountRepositoryProvider).signOut();
     if (!mounted) return;
     if (result.license != null) {
-      ref.read(licenseControllerProvider.notifier).applyExternal(result.license!);
+      ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(result.license!);
     }
     ref.invalidate(backendAccountRoleProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
@@ -172,8 +189,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l.accountResetPasswordHint,
-                style: Theme.of(ctx).textTheme.bodySmall),
+            Text(
+              l.accountResetPasswordHint,
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
             const SizedBox(height: AppTheme.space3),
             TextField(
               controller: email,
@@ -185,8 +204,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
             onPressed: () async {
               if (email.text.trim().isEmpty) return;
@@ -209,8 +229,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     );
     email.dispose();
     if (sent == true && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.accountResetPasswordSent)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountResetPasswordSent)));
     }
   }
 
@@ -225,8 +246,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.space4),
         children: [
-          Text(l.accountShopLoginHint,
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            l.accountShopLoginHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: AppTheme.space4),
           if (signedIn)
             Card(
@@ -254,7 +277,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                 labelText: l.accountPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                      _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),

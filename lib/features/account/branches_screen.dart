@@ -631,6 +631,7 @@ class _BranchesBody extends ConsumerWidget {
   String _switchErrorMessage(AppLocalizations l, String? code) {
     return switch (code) {
       'branch_switch_pending_sync' => l.branchesPendingSync,
+      'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
       'network_error' => l.branchesNetworkRetry,
       'auth_expired' => l.branchesAuthExpired,
       'invalid_branch_state' => l.branchesInvalidState,
