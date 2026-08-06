@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../settings/sync_issues_screen.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../staff/staff_ui.dart';
@@ -900,6 +901,32 @@ class _BranchesBody extends ConsumerWidget {
     Branch b,
   ) async {
     final l = AppLocalizations.of(context);
+    final stuck = ref.read(stuckOutboxProvider).valueOrNull ?? const [];
+    if (stuck.isNotEmpty) {
+      final openIssues = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.branchesSwitchBlockedTitle),
+          content: Text(l.branchesSwitchBlockedStuckOutbox),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.branchesSwitchFixSyncIssues),
+            ),
+          ],
+        ),
+      );
+      if (openIssues == true && context.mounted) {
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen()));
+      }
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

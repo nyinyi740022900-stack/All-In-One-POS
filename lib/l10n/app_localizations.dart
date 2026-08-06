@@ -4874,6 +4874,24 @@ abstract class AppLocalizations {
   /// **'This replaces all local data on this device with \"{label}\"\'s data. Make sure everything is already synced first — this cannot be undone.'**
   String branchesSwitchConfirmBody(String label);
 
+  /// No description provided for @branchesSwitchBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix sync issues first'**
+  String get branchesSwitchBlockedTitle;
+
+  /// No description provided for @branchesSwitchBlockedStuckOutbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Some local changes are stuck and cannot be synced automatically yet. Resolve or discard them in Cloud sync before switching branches.'**
+  String get branchesSwitchBlockedStuckOutbox;
+
+  /// No description provided for @branchesSwitchFixSyncIssues.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Sync Issues'**
+  String get branchesSwitchFixSyncIssues;
+
   /// No description provided for @branchesPendingSync.
   ///
   /// In en, this message translates to:

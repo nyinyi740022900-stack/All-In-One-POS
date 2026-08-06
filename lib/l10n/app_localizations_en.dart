@@ -2628,6 +2628,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get branchesSwitchBlockedTitle => 'Fix sync issues first';
+
+  @override
+  String get branchesSwitchBlockedStuckOutbox =>
+      'Some local changes are stuck and cannot be synced automatically yet. Resolve or discard them in Cloud sync before switching branches.';
+
+  @override
+  String get branchesSwitchFixSyncIssues => 'Open Sync Issues';
+
+  @override
   String get branchesPendingSync =>
       'This device still has unsynced changes. Wait for sync to finish, then try again.';
 

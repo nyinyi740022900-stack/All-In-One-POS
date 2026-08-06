@@ -2623,6 +2623,16 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get branchesSwitchBlockedTitle => 'အရင် Sync ပြဿနာဖြေရှင်းပါ';
+
+  @override
+  String get branchesSwitchBlockedStuckOutbox =>
+      'Local ပြောင်းလဲမှုတချို့ sync အလိုအလျောက်မပြီးဘဲ ကပ်နေပါတယ်။ Branch မပြောင်းခင် Cloud sync ထဲကနေ ဖြေရှင်း (သို့) discard လုပ်ပါ။';
+
+  @override
+  String get branchesSwitchFixSyncIssues => 'Sync Issues ဖွင့်မည်';
+
+  @override
   String get branchesPendingSync =>
       'ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။';
 
