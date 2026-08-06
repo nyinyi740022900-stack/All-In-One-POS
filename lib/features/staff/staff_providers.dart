@@ -33,7 +33,8 @@ class SessionScope {
 }
 
 final staffRoleProvider = StreamProvider<String>((ref) {
-  return ref.watch(settingsRepositoryProvider).watchStaffRole();
+  final shopId = ref.watch(shopIdProvider);
+  return ref.watch(settingsRepositoryProvider).watchStaffRole(shopId);
 });
 
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {
@@ -166,8 +167,9 @@ class StaffController {
   Future<void> _ensurePinStateLoaded() async {
     if (_pinStateLoaded) return;
     final repo = _ref.read(settingsRepositoryProvider);
-    _ownerPinFailures = await repo.ownerPinFailedAttempts();
-    _ownerPinLockedUntil = await repo.ownerPinLockedUntil();
+    final shopId = _ref.read(shopIdProvider);
+    _ownerPinFailures = await repo.ownerPinFailedAttempts(shopId);
+    _ownerPinLockedUntil = await repo.ownerPinLockedUntil(shopId);
     _pinStateLoaded = true;
   }
 
@@ -192,7 +194,9 @@ class StaffController {
   bool isValidOwnerPin(String pin) => RegExp(r'^\d{4,6}$').hasMatch(pin);
 
   Future<bool> hasPin() async =>
-      (await _ref.read(settingsRepositoryProvider).staffPinHash())
+      (await _ref
+              .read(settingsRepositoryProvider)
+              .staffPinHash(_ref.read(shopIdProvider)))
           ?.isNotEmpty ??
       false;
 
@@ -201,12 +205,13 @@ class StaffController {
       throw ArgumentError('owner PIN must be 4-6 digits');
     }
     final repo = _ref.read(settingsRepositoryProvider);
-    await repo.setStaffPin(pin);
+    final shopId = _ref.read(shopIdProvider);
+    await repo.setStaffPin(shopId, pin);
     _ownerPinFailures = 0;
     _ownerPinLockedUntil = null;
     _pinStateLoaded = true;
-    await repo.clearOwnerPinFailedAttempts();
-    await repo.clearOwnerPinLockedUntil();
+    await repo.clearOwnerPinFailedAttempts(shopId);
+    await repo.clearOwnerPinLockedUntil(shopId);
   }
 
   /// Attempts to switch to [targetRole]. [pin] is required only when
@@ -216,34 +221,35 @@ class StaffController {
   Future<bool> switchRole(String targetRole, {String? pin}) async {
     await _ensurePinStateLoaded();
     final repo = _ref.read(settingsRepositoryProvider);
+    final shopId = _ref.read(shopIdProvider);
     if (targetRole == 'owner') {
       final lockExpired = _clearExpiredOwnerPinLock();
       if (lockExpired) {
-        await repo.clearOwnerPinLockedUntil();
+        await repo.clearOwnerPinLockedUntil(shopId);
       }
       if (_ownerPinLockedUntil != null &&
           _now().isBefore(_ownerPinLockedUntil!)) {
         return false;
       }
-      final ok = await repo.verifyStaffPin((pin ?? '').trim());
+      final ok = await repo.verifyStaffPin(shopId, (pin ?? '').trim());
       if (!ok) {
         _ownerPinFailures += 1;
-        await repo.setOwnerPinFailedAttempts(_ownerPinFailures);
+        await repo.setOwnerPinFailedAttempts(shopId, _ownerPinFailures);
         if (_ownerPinFailures >= _kMaxOwnerPinFailures) {
           _ownerPinFailures = 0;
           _ownerPinLockedUntil = _now().add(_kOwnerPinCooldown);
-          await repo.setOwnerPinFailedAttempts(0);
-          await repo.setOwnerPinLockedUntil(_ownerPinLockedUntil!);
+          await repo.setOwnerPinFailedAttempts(shopId, 0);
+          await repo.setOwnerPinLockedUntil(shopId, _ownerPinLockedUntil!);
         }
         return false;
       }
       _ownerPinFailures = 0;
       _ownerPinLockedUntil = null;
-      await repo.clearOwnerPinFailedAttempts();
-      await repo.clearOwnerPinLockedUntil();
+      await repo.clearOwnerPinFailedAttempts(shopId);
+      await repo.clearOwnerPinLockedUntil(shopId);
       await repo.setActiveStaffId('');
     }
-    await repo.setStaffRole(targetRole);
+    await repo.setStaffRole(shopId, targetRole);
     return true;
   }
 
@@ -255,8 +261,9 @@ class StaffController {
     final member = await staff.verifyPin(memberId, pin);
     if (member == null) return false;
     final repo = _ref.read(settingsRepositoryProvider);
+    final shopId = _ref.read(shopIdProvider);
     await repo.setActiveStaffId(member.id);
-    await repo.setStaffRole('staff');
+    await repo.setStaffRole(shopId, 'staff');
     return true;
   }
 
@@ -274,10 +281,11 @@ class StaffController {
   }) async {
     if (role != 'staff') return;
     final repo = _ref.read(settingsRepositoryProvider);
+    final shopId = _ref.read(shopIdProvider);
     if (staffMemberId != null && staffMemberId.isNotEmpty) {
       await repo.setActiveStaffId(staffMemberId);
     }
-    await repo.setStaffRole('staff');
+    await repo.setStaffRole(shopId, 'staff');
   }
 }
 

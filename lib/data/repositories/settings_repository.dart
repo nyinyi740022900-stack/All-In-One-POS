@@ -67,6 +67,17 @@ class SettingsRepository {
   String _shopKey(String base, String shopId) =>
       shopId.isEmpty ? base : '$base.$shopId';
 
+  Future<String?> _getShopScoped(
+    String baseKey,
+    String shopId, {
+    bool fallbackToLegacy = true,
+  }) async {
+    final scoped = await _get(_shopKey(baseKey, shopId));
+    if (scoped != null) return scoped;
+    if (!fallbackToLegacy || shopId.isEmpty) return null;
+    return _get(baseKey);
+  }
+
   Stream<PrinterConfig> watchPrinterConfig() {
     return _db.select(_db.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
@@ -179,14 +190,20 @@ class SettingsRepository {
   // ---- Staff role (device-local, not synced) -----------------------------
   // 'owner' (full access) or 'cashier' (restricted). Default owner: the shop
   // owner sets up the device, then hands it to staff in cashier mode.
-  Future<String> staffRole() async => (await _get(_kStaffRole)) ?? 'owner';
-  Future<void> setStaffRole(String role) => _set(_kStaffRole, role);
-  Stream<String> watchStaffRole() {
+  Future<String> staffRole(String shopId) async =>
+      (await _getShopScoped(_kStaffRole, shopId)) ?? 'owner';
+  Future<void> setStaffRole(String shopId, String role) =>
+      _set(_shopKey(_kStaffRole, shopId), role);
+  Stream<String> watchStaffRole(String shopId) {
     return _db.select(_db.appSettings).watch().map((rows) {
+      final scopedKey = _shopKey(_kStaffRole, shopId);
+      String? scoped;
+      String? legacy;
       for (final r in rows) {
-        if (r.key == _kStaffRole) return r.value;
+        if (r.key == scopedKey) scoped = r.value;
+        if (r.key == _kStaffRole) legacy = r.value;
       }
-      return 'owner';
+      return scoped ?? legacy ?? 'owner';
     });
   }
 
@@ -198,47 +215,58 @@ class SettingsRepository {
   /// The owner PIN hash (v1:sha256) required to leave staff mode.
   ///
   /// Legacy plaintext rows under [_kStaffPin] are auto-migrated on first read.
-  Future<String?> staffPinHash() async {
-    final hashed = await _get(_kStaffPinHash);
+  Future<String?> staffPinHash(String shopId) async {
+    final scopedHashKey = _shopKey(_kStaffPinHash, shopId);
+    final scopedLegacyKey = _shopKey(_kStaffPin, shopId);
+    final hashed = await _getShopScoped(_kStaffPinHash, shopId);
     if (hashed != null && hashed.isNotEmpty) return hashed;
 
-    final legacyPlain = await _get(_kStaffPin);
+    final legacyPlain = await _getShopScoped(_kStaffPin, shopId);
     if (legacyPlain == null || legacyPlain.isEmpty) return null;
     final migrated = _hashStaffPin(legacyPlain);
-    await _set(_kStaffPinHash, migrated);
-    await _delete(_kStaffPin);
+    await _set(scopedHashKey, migrated);
+    await _delete(scopedLegacyKey);
+    if (shopId.isNotEmpty) {
+      await _delete(_kStaffPin);
+    }
     return migrated;
   }
 
-  Future<void> setStaffPin(String pin) async {
-    await _set(_kStaffPinHash, _hashStaffPin(pin));
-    await _delete(_kStaffPin);
+  Future<void> setStaffPin(String shopId, String pin) async {
+    await _set(_shopKey(_kStaffPinHash, shopId), _hashStaffPin(pin));
+    await _delete(_shopKey(_kStaffPin, shopId));
+    if (shopId.isNotEmpty) {
+      await _delete(_kStaffPin);
+    }
   }
 
-  Future<bool> verifyStaffPin(String pin) async {
-    final saved = await staffPinHash();
+  Future<bool> verifyStaffPin(String shopId, String pin) async {
+    final saved = await staffPinHash(shopId);
     if (saved == null || saved.isEmpty) return true;
     return saved == _hashStaffPin(pin);
   }
 
-  Future<int> ownerPinFailedAttempts() async {
-    final raw = await _get(_kStaffPinFailedAttempts);
+  Future<int> ownerPinFailedAttempts(String shopId) async {
+    final raw = await _getShopScoped(_kStaffPinFailedAttempts, shopId);
     return int.tryParse(raw ?? '') ?? 0;
   }
 
-  Future<void> setOwnerPinFailedAttempts(int attempts) =>
-      _set(_kStaffPinFailedAttempts, '$attempts');
-  Future<void> clearOwnerPinFailedAttempts() =>
-      _delete(_kStaffPinFailedAttempts);
+  Future<void> setOwnerPinFailedAttempts(String shopId, int attempts) =>
+      _set(_shopKey(_kStaffPinFailedAttempts, shopId), '$attempts');
+  Future<void> clearOwnerPinFailedAttempts(String shopId) =>
+      _delete(_shopKey(_kStaffPinFailedAttempts, shopId));
 
-  Future<DateTime?> ownerPinLockedUntil() async {
-    final raw = await _get(_kStaffPinLockedUntil);
+  Future<DateTime?> ownerPinLockedUntil(String shopId) async {
+    final raw = await _getShopScoped(_kStaffPinLockedUntil, shopId);
     return raw == null ? null : DateTime.tryParse(raw);
   }
 
-  Future<void> setOwnerPinLockedUntil(DateTime until) =>
-      _set(_kStaffPinLockedUntil, until.toUtc().toIso8601String());
-  Future<void> clearOwnerPinLockedUntil() => _delete(_kStaffPinLockedUntil);
+  Future<void> setOwnerPinLockedUntil(String shopId, DateTime until) => _set(
+    _shopKey(_kStaffPinLockedUntil, shopId),
+    until.toUtc().toIso8601String(),
+  );
+  Future<void> clearOwnerPinLockedUntil(String shopId) =>
+      _delete(_shopKey(_kStaffPinLockedUntil, shopId));
 
   /// Which staff-roster member (see `StaffMembers`) is currently "using" this
   /// device — device-local, not synced (the roster itself is shared across
