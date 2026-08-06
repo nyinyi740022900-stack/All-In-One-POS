@@ -4,13 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/account/branch_repository.dart';
 import 'package:mm_pos/features/account/branches_screen.dart';
+import 'package:mm_pos/features/license/license_model.dart';
 import 'package:mm_pos/features/license/license_providers.dart';
+import 'package:mm_pos/features/license/license_status.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/l10n/app_localizations.dart';
 
 class _FakeLicenseController extends LicenseController {
-  _FakeLicenseController(super.ref) {
-    state = const LicenseState(loading: false);
+  _FakeLicenseController(super.ref, {CachedLicense? license}) {
+    state = LicenseState(loading: false, license: license);
   }
 
   @override
