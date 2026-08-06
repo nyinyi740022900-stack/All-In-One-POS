@@ -44,7 +44,6 @@ final syncTables = <SyncTableDef>[
   _creditPayments,
   _orders,
   _orderItems,
-  _staffMembers,
   _customers,
   _expenses,
   _cashSessions,
@@ -86,47 +85,6 @@ final _categories = SyncTableDef(
           shopId: Value(m['shop_id'] as String),
           name: Value(m['name'] as String),
           sort: Value(_int(m['sort'])),
-          createdAt: Value(_dt(m['created_at'])),
-          updatedAt: Value(updated),
-          isDeleted: Value(_bool(m['is_deleted'])),
-          dirty: const Value(false),
-        ));
-  },
-);
-
-// --- staff_members -----------------------------------------------------------
-final _staffMembers = SyncTableDef(
-  name: 'staff_members',
-  toRemote: (db, id) async {
-    final r = await (db.select(db.staffMembers)
-          ..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
-    if (r == null) return null;
-    return {
-      'id': r.id,
-      'shop_id': r.shopId,
-      'name': r.name,
-      'pin': r.pin,
-      'active': r.active,
-      'created_at': _iso(r.createdAt),
-      'updated_at': _iso(r.updatedAt),
-      'is_deleted': r.isDeleted,
-    };
-  },
-  upsertLocal: (db, m) async {
-    final id = m['id'] as String;
-    final updated = _dt(m['updated_at']);
-    final local = await (db.select(db.staffMembers)
-          ..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
-    await db.into(db.staffMembers).insertOnConflictUpdate(
-        StaffMembersCompanion(
-          id: Value(id),
-          shopId: Value(m['shop_id'] as String),
-          name: Value(m['name'] as String),
-          pin: Value(m['pin'] as String),
-          active: Value(_bool(m['active'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),

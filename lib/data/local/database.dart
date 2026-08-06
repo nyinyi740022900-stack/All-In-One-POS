@@ -34,7 +34,6 @@ bool isDuplicateColumnMigrationError(Object error) {
     CreditPayments,
     Orders,
     OrderItems,
-    StaffMembers,
     Customers,
     Expenses,
     CashSessions,
@@ -57,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,11 +104,6 @@ class AppDatabase extends _$AppDatabase {
           // pointing back at the sale it reverses.
           if (from < 10) {
             await _safeAddColumn(m, sales, sales.refundOfSaleId);
-          }
-          // v11: named staff profiles (so a sale can be attributed to whoever
-          // rang it up, not just a shared device PIN).
-          if (from < 11) {
-            await m.createTable(staffMembers);
           }
           // v12: customer directory — enter a name/phone/address once and
           // reuse it, instead of retyping free text on every invoice/order.
@@ -218,6 +212,13 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(supplierPayments);
             await m.createTable(equityEntries);
           }
+          // v27: retire the legacy local staff roster table. Staff identity is
+          // now account-based (staff accounts), so the old synced roster table
+          // is removed from local schema.
+          if (from < 27) {
+            await m.database
+                .customStatement('DROP TABLE IF EXISTS staff_members');
+          }
         },
       );
 
@@ -258,7 +259,6 @@ class AppDatabase extends _$AppDatabase {
       await delete(creditPayments).go();
       await delete(orders).go();
       await delete(orderItems).go();
-      await delete(staffMembers).go();
       await delete(customers).go();
       await delete(expenses).go();
       await delete(cashSessions).go();
@@ -273,12 +273,9 @@ class AppDatabase extends _$AppDatabase {
       await (delete(appSettings)
             ..where((s) => s.key.like('sync.cursor.%')))
           .go();
-      // `staffMembers` (this shop's roster) is wiped above, but which one
-      // was "active" is a separate device-local flag (SettingsRepository's
-      // `staff.active_id`) that otherwise survives a shop switch and would
-      // keep stamping new sales with a staff id from a roster that no
-      // longer exists locally (and likely doesn't exist under that id in
-      // the new shop either).
+      // Older app versions wrote a device-local `staff.active_id` flag.
+      // Clear it on every shop switch so stale local staff identity never
+      // leaks across shops after the staff-mode hard-cut.
       await (delete(appSettings)..where((s) => s.key.equals('staff.active_id')))
           .go();
     });
