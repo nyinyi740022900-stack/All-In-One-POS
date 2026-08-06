@@ -395,8 +395,39 @@ class _BranchesBody extends ConsumerWidget {
             ),
           );
         }
-        final currentBranches = branches.where((b) => b.isCurrent).toList();
-        final otherBranches = branches.where((b) => !b.isCurrent).toList();
+        final activeShopId = ref
+            .watch(licenseControllerProvider)
+            .license
+            ?.shopId;
+        var currentBranches = branches.where((b) => b.isCurrent).toList();
+        var otherBranches = branches.where((b) => !b.isCurrent).toList();
+
+        // Defensive UX fallback: if backend branch metadata is stale/missing,
+        // still pin the currently active shop so owners always know where this
+        // device is scoped and can reason about switching.
+        if (currentBranches.isEmpty &&
+            activeShopId != null &&
+            activeShopId.isNotEmpty) {
+          final fallback = otherBranches
+              .where((b) => b.shopId == activeShopId)
+              .toList(growable: false);
+          if (fallback.isNotEmpty) {
+            currentBranches = [
+              Branch(
+                shopId: fallback.first.shopId,
+                label: fallback.first.label,
+                isCurrent: true,
+              ),
+            ];
+            otherBranches = otherBranches
+                .where((b) => b.shopId != activeShopId)
+                .toList();
+          } else {
+            currentBranches = [
+              Branch(shopId: activeShopId, label: null, isCurrent: true),
+            ];
+          }
+        }
         return Column(
           children: [
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),

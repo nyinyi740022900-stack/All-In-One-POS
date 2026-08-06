@@ -640,6 +640,13 @@ async function handleListBranches(
     return json({ ok: false, error: "forbidden" }, 403);
   }
 
+  // Legacy owners may have no org_branches row for their currently active
+  // shop. Ensure it exists so "Current branch" never disappears from the list.
+  await admin.from("org_branches").upsert(
+    { owner_user_id: user.id, shop_id: shopId, label: "Home" },
+    { onConflict: "owner_user_id,shop_id", ignoreDuplicates: true },
+  );
+
   const { data, error } = await admin
     .from("org_branches")
     .select("shop_id, label")
@@ -648,11 +655,15 @@ async function handleListBranches(
   if (error) return json({ ok: false, error: "server_error" }, 500);
 
   // deno-lint-ignore no-explicit-any
-  const branches = (data as any[]).map((b) => ({
+  const rows = (data as any[]) ?? [];
+  const branches = rows.map((b) => ({
     shop_id: b.shop_id,
     label: b.label,
     is_current: b.shop_id === shopId,
   }));
+  if (!branches.some((b) => b.shop_id === shopId)) {
+    branches.unshift({ shop_id: shopId, label: "Home", is_current: true });
+  }
   return json({ ok: true, branches }, 200);
 }
 
@@ -699,6 +710,13 @@ async function handleSwitchBranch(
     return json({ ok: false, error: "forbidden" }, 403);
   }
   if (!targetShopId) return json({ ok: false, error: "bad_request" }, 400);
+
+  // Self-heal legacy state before any switch: pin the caller's current shop as
+  // a branch so they can always switch back later.
+  await admin.from("org_branches").upsert(
+    { owner_user_id: user.id, shop_id: shopId, label: "Home" },
+    { onConflict: "owner_user_id,shop_id", ignoreDuplicates: true },
+  );
 
   const { data: link, error: linkErr } = await admin
     .from("org_branches")
