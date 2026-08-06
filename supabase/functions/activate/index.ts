@@ -184,7 +184,12 @@ Deno.serve(async (req) => {
     return handleUnlinkBranch(admin, userData.user, body.shop_id ?? "");
   }
   if (action === "switch_branch") {
-    return handleSwitchBranch(admin, userData.user, body.shop_id ?? "");
+    return handleSwitchBranch(
+      admin,
+      userData.user,
+      body.shop_id ?? "",
+      body.switch_token ?? "",
+    );
   }
   if (action === "signup_shop") {
     return handleSignupShop(
@@ -699,10 +704,16 @@ async function handleUnlinkBranch(
 // can rebuild its local CachedLicense without a second round trip. The
 // client is responsible for wiping+resyncing local data after this succeeds
 // — this app's local DB isn't partitioned per shop.
+//
+// Optional switch_token: when present, successful responses are stored in
+// branch_switch_attempts and identical retries replay the same payload
+// (no second metadata write). Missing token keeps legacy one-shot behavior
+// for older clients.
 async function handleSwitchBranch(
   admin: AdminClient,
   user: SupabaseUser,
   targetShopId: string,
+  switchToken: string,
 ): Promise<Response> {
   const shopId = shopIdOf(user);
   if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
@@ -711,12 +722,45 @@ async function handleSwitchBranch(
   }
   if (!targetShopId) return json({ ok: false, error: "bad_request" }, 400);
 
+  const token = (switchToken ?? "").trim();
+  if (token) {
+    const { data: existing, error: existingErr } = await admin
+      .from("branch_switch_attempts")
+      .select("response_json, to_shop_id")
+      .eq("owner_user_id", user.id)
+      .eq("switch_token", token)
+      .maybeSingle();
+    if (existingErr) return json({ ok: false, error: "server_error" }, 500);
+    if (existing?.response_json) {
+      return json(existing.response_json as Record<string, unknown>, 200);
+    }
+  }
+
   // Self-heal legacy state before any switch: pin the caller's current shop as
   // a branch so they can always switch back later.
   await admin.from("org_branches").upsert(
     { owner_user_id: user.id, shop_id: shopId, label: "Home" },
     { onConflict: "owner_user_id,shop_id", ignoreDuplicates: true },
   );
+
+  // Already scoped to the target — treat as success (idempotent no-op) so a
+  // retry after a successful claim but failed client wipe/sync can continue.
+  if (shopId === targetShopId) {
+    const payload = await licensePayloadForShop(admin, targetShopId);
+    if (token) {
+      await admin.from("branch_switch_attempts").upsert(
+        {
+          owner_user_id: user.id,
+          switch_token: token,
+          from_shop_id: shopId,
+          to_shop_id: targetShopId,
+          response_json: payload,
+        },
+        { onConflict: "owner_user_id,switch_token" },
+      );
+    }
+    return json(payload, 200);
+  }
 
   const { data: link, error: linkErr } = await admin
     .from("org_branches")
@@ -732,6 +776,26 @@ async function handleSwitchBranch(
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
+  const payload = await licensePayloadForShop(admin, targetShopId);
+  if (token) {
+    await admin.from("branch_switch_attempts").upsert(
+      {
+        owner_user_id: user.id,
+        switch_token: token,
+        from_shop_id: shopId,
+        to_shop_id: targetShopId,
+        response_json: payload,
+      },
+      { onConflict: "owner_user_id,switch_token" },
+    );
+  }
+  return json(payload, 200);
+}
+
+async function licensePayloadForShop(
+  admin: AdminClient,
+  targetShopId: string,
+): Promise<Record<string, unknown>> {
   const { data: license } = await admin
     .from("licenses")
     .select("plan, expires_at, realtime_enabled, activated_at, tier")
@@ -740,7 +804,7 @@ async function handleSwitchBranch(
     .limit(1)
     .maybeSingle();
 
-  return json({
+  return {
     ok: true,
     shop_id: targetShopId,
     plan: license?.plan ?? "monthly",
@@ -748,7 +812,7 @@ async function handleSwitchBranch(
     realtime_enabled: license?.realtime_enabled === true,
     activated_at: license?.activated_at ?? null,
     tier: license?.tier ?? "offline",
-  }, 200);
+  };
 }
 
 const SIGNUP_TRIAL_MONTHS = 2;
