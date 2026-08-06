@@ -13,7 +13,6 @@ import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
-import '../staff/staff_providers.dart';
 import 'cart.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
@@ -180,7 +179,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         customerName: name.isEmpty ? null : name,
         customerPhone: phone.isEmpty ? null : phone,
         customerId: customerId,
-        staffId: ref.read(activeStaffIdProvider).valueOrNull,
+        staffId: null,
         deviceId: ref.read(deviceIdProvider).valueOrNull,
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );

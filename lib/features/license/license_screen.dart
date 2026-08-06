@@ -37,34 +37,19 @@ part 'license_widgets.dart';
 /// JSON blob when a role needs to travel with it.
 class DeviceProvisioning {
   final String key;
-  final String role;
-  final String? staffMemberId;
 
   const DeviceProvisioning({
     required this.key,
-    this.role = 'owner',
-    this.staffMemberId,
   });
 
-  String encode() {
-    if (role != 'staff') return key;
-    return jsonEncode({
-      'key': key,
-      'role': role,
-      if (staffMemberId != null) 'staff_id': staffMemberId,
-    });
-  }
+  String encode() => key;
 
   factory DeviceProvisioning.decode(String scanned) {
     try {
       final m = jsonDecode(scanned) as Map<String, dynamic>;
       final key = m['key'] as String?;
       if (key == null || key.isEmpty) return DeviceProvisioning(key: scanned);
-      return DeviceProvisioning(
-        key: key,
-        role: m['role'] as String? ?? 'owner',
-        staffMemberId: m['staff_id'] as String?,
-      );
+      return DeviceProvisioning(key: key);
     } catch (_) {
       return DeviceProvisioning(key: scanned);
     }
@@ -81,10 +66,6 @@ class LicenseScreen extends ConsumerStatefulWidget {
 class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   final _key = TextEditingController();
   bool _busy = false;
-  // Set when the scanned/entered key carried a role (see DeviceProvisioning)
-  // — applied once, right after a successful activation.
-  String? _pendingRole;
-  String? _pendingStaffMemberId;
 
   @override
   void dispose() {
@@ -108,17 +89,6 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 : l.licenseActivateFailed;
         messenger.showSnackBar(SnackBar(content: Text(msg)));
       } else {
-        // Apply the role the owner picked when generating this device's QR
-        // (see DeviceProvisioning) — a no-op if this was a plain key (typed
-        // manually, or an older QR with no role attached).
-        if (_pendingRole != null) {
-          await ref.read(staffControllerProvider).applyProvisionedRole(
-                _pendingRole!,
-                staffMemberId: _pendingStaffMemberId,
-              );
-          _pendingRole = null;
-          _pendingStaffMemberId = null;
-        }
         messenger.showSnackBar(SnackBar(content: Text(l.licenseActivated)));
         _key.clear();
       }
@@ -138,8 +108,6 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       final provisioning = DeviceProvisioning.decode(code);
       setState(() {
         _key.text = provisioning.key;
-        _pendingRole = provisioning.role;
-        _pendingStaffMemberId = provisioning.staffMemberId;
       });
     }
   }

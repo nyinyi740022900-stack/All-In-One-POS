@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
@@ -38,6 +35,8 @@ class SettingsRepository {
   static const _kStaffPin = 'staff.pin';
   static const _kStaffPinFailedAttempts = 'staff.pin_failed_attempts';
   static const _kStaffPinLockedUntil = 'staff.pin_locked_until';
+  static const _kActiveStaffId = 'staff.active_id';
+  static const _kStaffModeCleanupDone = 'migration.staff_mode_cleanup.v1';
 
   Future<String?> _get(String key) async {
     final row = await (_db.select(
@@ -176,88 +175,17 @@ class SettingsRepository {
     return id;
   }
 
-  // ---- Staff role (device-local, not synced) -----------------------------
-  // 'owner' (full access) or 'cashier' (restricted). Default owner: the shop
-  // owner sets up the device, then hands it to staff in cashier mode.
-  Future<String> staffRole() async => (await _get(_kStaffRole)) ?? 'owner';
-  Future<void> setStaffRole(String role) => _set(_kStaffRole, role);
-  Stream<String> watchStaffRole() {
-    return _db.select(_db.appSettings).watch().map((rows) {
-      for (final r in rows) {
-        if (r.key == _kStaffRole) return r.value;
-      }
-      return 'owner';
-    });
-  }
-
-  String _hashStaffPin(String pin) {
-    final digest = sha256.convert(utf8.encode('owner-pin:$pin'));
-    return 'v1:$digest';
-  }
-
-  /// The owner PIN hash (v1:sha256) required to leave staff mode.
-  ///
-  /// Legacy plaintext rows under [_kStaffPin] are auto-migrated on first read.
-  Future<String?> staffPinHash() async {
-    final hashed = await _get(_kStaffPinHash);
-    if (hashed != null && hashed.isNotEmpty) return hashed;
-
-    final legacyPlain = await _get(_kStaffPin);
-    if (legacyPlain == null || legacyPlain.isEmpty) return null;
-    final migrated = _hashStaffPin(legacyPlain);
-    await _set(_kStaffPinHash, migrated);
+  /// One-time cleanup for device-local Staff/PIN mode settings, deprecated
+  /// after moving role enforcement to backend account roles.
+  Future<void> cleanupDeprecatedStaffModeSettings() async {
+    if ((await _get(_kStaffModeCleanupDone)) == 'true') return;
+    await _delete(_kStaffRole);
+    await _delete(_kStaffPinHash);
     await _delete(_kStaffPin);
-    return migrated;
-  }
-
-  Future<void> setStaffPin(String pin) async {
-    await _set(_kStaffPinHash, _hashStaffPin(pin));
-    await _delete(_kStaffPin);
-  }
-
-  Future<bool> verifyStaffPin(String pin) async {
-    final saved = await staffPinHash();
-    if (saved == null || saved.isEmpty) return true;
-    return saved == _hashStaffPin(pin);
-  }
-
-  Future<int> ownerPinFailedAttempts() async {
-    final raw = await _get(_kStaffPinFailedAttempts);
-    return int.tryParse(raw ?? '') ?? 0;
-  }
-
-  Future<void> setOwnerPinFailedAttempts(int attempts) =>
-      _set(_kStaffPinFailedAttempts, '$attempts');
-  Future<void> clearOwnerPinFailedAttempts() =>
-      _delete(_kStaffPinFailedAttempts);
-
-  Future<DateTime?> ownerPinLockedUntil() async {
-    final raw = await _get(_kStaffPinLockedUntil);
-    return raw == null ? null : DateTime.tryParse(raw);
-  }
-
-  Future<void> setOwnerPinLockedUntil(DateTime until) =>
-      _set(_kStaffPinLockedUntil, until.toUtc().toIso8601String());
-  Future<void> clearOwnerPinLockedUntil() => _delete(_kStaffPinLockedUntil);
-
-  /// Which staff-roster member (see `StaffMembers`) is currently "using" this
-  /// device — device-local, not synced (the roster itself is shared across
-  /// devices; who's holding this particular phone right now is per-device).
-  /// Empty/null = no named staff selected (plain staff mode, pre-roster).
-  static const _kActiveStaffId = 'staff.active_id';
-  Future<String?> activeStaffId() async {
-    final v = await _get(_kActiveStaffId);
-    return (v == null || v.isEmpty) ? null : v;
-  }
-
-  Future<void> setActiveStaffId(String id) => _set(_kActiveStaffId, id);
-  Stream<String?> watchActiveStaffId() {
-    return _db.select(_db.appSettings).watch().map((rows) {
-      for (final r in rows) {
-        if (r.key == _kActiveStaffId) return r.value.isEmpty ? null : r.value;
-      }
-      return null;
-    });
+    await _delete(_kStaffPinFailedAttempts);
+    await _delete(_kStaffPinLockedUntil);
+    await _delete(_kActiveStaffId);
+    await _set(_kStaffModeCleanupDone, 'true');
   }
 
   Future<String?> licenseJson() => _get(_kLicense);

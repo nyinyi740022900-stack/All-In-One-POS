@@ -6,17 +6,6 @@ import '../account/account_providers.dart';
 import '../printing/printing_providers.dart';
 import 'staff_repository.dart';
 
-/// Two device-local operating modes, not synced — set by the owner before
-/// handing the phone to staff. Kept deliberately simple: 'staff' (Sell +
-/// Orders only) and 'owner' (everything). A finer-grained role tier was tried
-/// and folded back into this — extra roles added complexity without a clear
-/// use case for a small shop.
-const staffRoles = <String>['staff', 'owner'];
-
-final staffRoleProvider = StreamProvider<String>((ref) {
-  return ref.watch(settingsRepositoryProvider).watchStaffRole();
-});
-
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {
   return StaffRepository(ref.watch(databaseProvider), ref.watch(shopIdProvider));
 });
@@ -25,34 +14,6 @@ final staffRepositoryProvider = Provider<StaffRepository>((ref) {
 /// device under the shop.
 final staffMembersProvider = StreamProvider<List<StaffMember>>((ref) {
   return ref.watch(staffRepositoryProvider).watchActiveMembers();
-});
-
-/// A lightweight 1-second ticker so staff-mode UI can refresh countdown text
-/// (for owner PIN cooldown) without adding timers inside widgets.
-final ownerPinCooldownSecondsProvider = StreamProvider.autoDispose<int>((ref) async* {
-  final ctrl = ref.watch(staffControllerProvider);
-  await ctrl.primePinState();
-  yield ctrl.ownerPinCooldownRemainingSeconds();
-  yield* Stream<int>.periodic(const Duration(seconds: 1),
-      (_) => ctrl.ownerPinCooldownRemainingSeconds());
-});
-
-/// Which roster member is "using" this device right now — device-local, not
-/// synced. Null if no named staff is selected (plain staff mode).
-final activeStaffIdProvider = StreamProvider<String?>((ref) {
-  return ref.watch(settingsRepositoryProvider).watchActiveStaffId();
-});
-
-/// The active staff member's display name, for the Sell app bar badge —
-/// null if none selected (falls back to the generic "Staff" badge).
-final activeStaffNameProvider = Provider<String?>((ref) {
-  final id = ref.watch(activeStaffIdProvider).valueOrNull;
-  if (id == null) return null;
-  final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
-  for (final m in members) {
-    if (m.id == id) return m.name;
-  }
-  return null;
 });
 
 /// Role currently applied by the UI permission layer.
@@ -86,137 +47,7 @@ final isOwnerProvider = Provider<bool>((ref) {
 final canEditInventoryProvider =
     Provider<bool>((ref) => ref.watch(isEffectiveOwnerProvider));
 
-/// Device-local Staff mode is deprecated in favor of backend account invites.
-final showStaffModeSectionProvider = Provider<bool>((ref) => false);
-
-/// Switches the device's staff role and manages the owner PIN. Switching to
-/// 'staff' is always free (an owner locking the device down for a cashier);
-/// switching to 'owner' requires the correct PIN (or succeeds if none is set).
-class StaffController {
-  StaffController(this._ref, {DateTime Function()? now})
-      : _now = now ?? DateTime.now;
-  final Ref _ref;
-  final DateTime Function() _now;
-  int _ownerPinFailures = 0;
-  DateTime? _ownerPinLockedUntil;
-  bool _pinStateLoaded = false;
-  static const int _kMaxOwnerPinFailures = 5;
-  static const Duration _kOwnerPinCooldown = Duration(seconds: 30);
-
-  Future<void> primePinState() => _ensurePinStateLoaded();
-
-  Future<void> _ensurePinStateLoaded() async {
-    if (_pinStateLoaded) return;
-    final repo = _ref.read(settingsRepositoryProvider);
-    _ownerPinFailures = await repo.ownerPinFailedAttempts();
-    _ownerPinLockedUntil = await repo.ownerPinLockedUntil();
-    _pinStateLoaded = true;
-  }
-
-  bool _clearExpiredOwnerPinLock() {
-    final until = _ownerPinLockedUntil;
-    if (until != null && !_now().isBefore(until)) {
-      _ownerPinLockedUntil = null;
-      return true;
-    }
-    return false;
-  }
-
-  int ownerPinCooldownRemainingSeconds() {
-    _clearExpiredOwnerPinLock();
-    final until = _ownerPinLockedUntil;
-    if (until == null) return 0;
-    final ms = until.difference(_now()).inMilliseconds;
-    if (ms <= 0) return 0;
-    return ((ms + 999) ~/ 1000);
-  }
-
-  bool isValidOwnerPin(String pin) => RegExp(r'^\d{4,6}$').hasMatch(pin);
-
-  Future<bool> hasPin() async =>
-      (await _ref.read(settingsRepositoryProvider).staffPinHash())?.isNotEmpty ??
-      false;
-
-  Future<void> setPin(String pin) async {
-    if (!isValidOwnerPin(pin)) {
-      throw ArgumentError('owner PIN must be 4-6 digits');
-    }
-    final repo = _ref.read(settingsRepositoryProvider);
-    await repo.setStaffPin(pin);
-    _ownerPinFailures = 0;
-    _ownerPinLockedUntil = null;
-    _pinStateLoaded = true;
-    await repo.clearOwnerPinFailedAttempts();
-    await repo.clearOwnerPinLockedUntil();
-  }
-
-  /// Attempts to switch to [targetRole]. [pin] is required only when
-  /// switching to 'owner'. Returns false on a wrong PIN (role unchanged).
-  /// Switching to 'owner' always clears the active staff identity — no named
-  /// staff is "using" the device while it's in owner mode.
-  Future<bool> switchRole(String targetRole, {String? pin}) async {
-    await _ensurePinStateLoaded();
-    final repo = _ref.read(settingsRepositoryProvider);
-    if (targetRole == 'owner') {
-      final lockExpired = _clearExpiredOwnerPinLock();
-      if (lockExpired) {
-        await repo.clearOwnerPinLockedUntil();
-      }
-      if (_ownerPinLockedUntil != null && _now().isBefore(_ownerPinLockedUntil!)) {
-        return false;
-      }
-      final ok = await repo.verifyStaffPin((pin ?? '').trim());
-      if (!ok) {
-        _ownerPinFailures += 1;
-        await repo.setOwnerPinFailedAttempts(_ownerPinFailures);
-        if (_ownerPinFailures >= _kMaxOwnerPinFailures) {
-          _ownerPinFailures = 0;
-          _ownerPinLockedUntil = _now().add(_kOwnerPinCooldown);
-          await repo.setOwnerPinFailedAttempts(0);
-          await repo.setOwnerPinLockedUntil(_ownerPinLockedUntil!);
-        }
-        return false;
-      }
-      _ownerPinFailures = 0;
-      _ownerPinLockedUntil = null;
-      await repo.clearOwnerPinFailedAttempts();
-      await repo.clearOwnerPinLockedUntil();
-      await repo.setActiveStaffId('');
-    }
-    await repo.setStaffRole(targetRole);
-    return true;
-  }
-
-  /// Switches to Staff mode AS a specific named roster member — verifies
-  /// that member's own PIN (not the shared owner PIN). Returns false on a
-  /// wrong PIN.
-  Future<bool> switchToStaffMember(String memberId, String pin) async {
-    final staff = _ref.read(staffRepositoryProvider);
-    final member = await staff.verifyPin(memberId, pin);
-    if (member == null) return false;
-    final repo = _ref.read(settingsRepositoryProvider);
-    await repo.setActiveStaffId(member.id);
-    await repo.setStaffRole('staff');
-    return true;
-  }
-
-  /// Applies a role the OWNER already chose when generating this device's
-  /// activation QR (see `_DevicesSection`'s "Add a device" flow) — no PIN
-  /// check, since switching a device to plain Staff mode has never required
-  /// one (it's a device-lockdown action the owner takes, not an identity
-  /// claim), and the owner already deliberately picked this device's
-  /// intended staff member at generation time. Called once, right after a
-  /// successful activation that came from a role-carrying QR; a no-op for a
-  /// plain key with no role attached.
-  Future<void> applyProvisionedRole(String role, {String? staffMemberId}) async {
-    if (role != 'staff') return;
-    final repo = _ref.read(settingsRepositoryProvider);
-    if (staffMemberId != null && staffMemberId.isNotEmpty) {
-      await repo.setActiveStaffId(staffMemberId);
-    }
-    await repo.setStaffRole('staff');
-  }
-}
-
-final staffControllerProvider =
-    Provider<StaffController>((ref) => StaffController(ref));
+/// One-shot app migration hook for hard-cut removal of local staff/PIN mode.
+final staffModeCleanupProvider = FutureProvider<void>((ref) async {
+  await ref.watch(settingsRepositoryProvider).cleanupDeprecatedStaffModeSettings();
+});

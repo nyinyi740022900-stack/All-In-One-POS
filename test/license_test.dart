@@ -10,37 +10,26 @@ import 'package:mm_pos/features/license/license_status.dart';
 
 void main() {
   group('DeviceProvisioning', () {
-    test('an owner-role device encodes as a plain key (backward compatible '
-        'with manual entry / older scanners)', () {
+    test('encodes as a plain key (backward compatible with manual entry)', () {
       const p = DeviceProvisioning(key: 'MMPOS-AAAA-BBBB-CCCC');
       expect(p.encode(), 'MMPOS-AAAA-BBBB-CCCC');
     });
 
-    test('a staff-role device round-trips key + role + staffMemberId '
-        'through a QR-safe JSON encoding', () {
-      const p = DeviceProvisioning(
-        key: 'MMPOS-AAAA-BBBB-CCCC',
-        role: 'staff',
-        staffMemberId: 'staff-1',
-      );
-      final decoded = DeviceProvisioning.decode(p.encode());
-      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
-      expect(decoded.role, 'staff');
-      expect(decoded.staffMemberId, 'staff-1');
-    });
-
-    test('decoding a plain (non-JSON) key falls back to owner role', () {
+    test('decoding a plain (non-JSON) key returns the same key', () {
       final decoded = DeviceProvisioning.decode('MMPOS-AAAA-BBBB-CCCC');
       expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
-      expect(decoded.role, 'owner');
-      expect(decoded.staffMemberId, isNull);
+    });
+
+    test('decoding legacy role-carrying JSON still extracts key', () {
+      final decoded = DeviceProvisioning.decode(
+          '{"key":"MMPOS-AAAA-BBBB-CCCC","role":"staff","staff_id":"staff-1"}');
+      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
     });
 
     test('decoding garbage JSON with no key field falls back to treating '
         'the whole input as the key', () {
       final decoded = DeviceProvisioning.decode('{"foo":"bar"}');
       expect(decoded.key, '{"foo":"bar"}');
-      expect(decoded.role, 'owner');
     });
   });
 

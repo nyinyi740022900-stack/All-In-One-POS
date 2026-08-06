@@ -14,6 +14,7 @@ import 'features/account/reset_password_screen.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/printing/printing_providers.dart';
 import 'features/referral/referral_watcher.dart';
+import 'features/staff/staff_providers.dart';
 import 'l10n/app_localizations.dart';
 
 /// Whether the one-time first-run onboarding has been completed.
@@ -38,6 +39,8 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(recurringExpenseGeneratorProvider);
     // Seed the default payment accounts once per shop.
     ref.watch(paymentAccountSeederProvider);
+    // Hard-cut migration: remove deprecated device-local Staff/PIN settings.
+    ref.watch(staffModeCleanupProvider);
     // Listen for password-recovery deep links for the whole app lifetime.
     ref.watch(passwordRecoveryWatcherProvider);
 
