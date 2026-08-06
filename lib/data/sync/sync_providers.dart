@@ -12,13 +12,8 @@ import '../../features/license/license_providers.dart';
 import '../../features/license/license_status.dart';
 import '../../features/printing/printing_providers.dart';
 import '../local/database.dart';
+import 'outbox_constants.dart';
 import 'sync_engine.dart';
-
-/// An outbox row is treated as a likely "poison pill" (can never succeed,
-/// as opposed to just waiting its turn or a transient network blip) once
-/// it's failed this many times — surfaced via [stuckOutboxProvider] so it
-/// stops retrying forever invisibly behind an "Up to date" status.
-const kOutboxStuckThreshold = 3;
 
 /// Outbox rows that have failed to push at least [kOutboxStuckThreshold]
 /// times — see `SyncEngine._push`'s per-row error isolation for why a
@@ -40,12 +35,15 @@ class SyncState {
 
   const SyncState({required this.phase, this.lastSyncedAt, this.error});
 
-  SyncState copyWith({SyncPhase? phase, DateTime? lastSyncedAt, String? error}) =>
-      SyncState(
-        phase: phase ?? this.phase,
-        lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-        error: error,
-      );
+  SyncState copyWith({
+    SyncPhase? phase,
+    DateTime? lastSyncedAt,
+    String? error,
+  }) => SyncState(
+    phase: phase ?? this.phase,
+    lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    error: error,
+  );
 }
 
 /// The sync engine, available only when backend credentials are configured
@@ -68,15 +66,17 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   );
 });
 
-final syncControllerProvider =
-    StateNotifierProvider<SyncController, SyncState>((ref) {
-  return SyncController(ref);
-});
+final syncControllerProvider = StateNotifierProvider<SyncController, SyncState>(
+  (ref) {
+    return SyncController(ref);
+  },
+);
 
 class SyncController extends StateNotifier<SyncState> {
   SyncController(this._ref)
-      : super(SyncState(
-            phase: Env.hasBackend ? SyncPhase.idle : SyncPhase.disabled)) {
+    : super(
+        SyncState(phase: Env.hasBackend ? SyncPhase.idle : SyncPhase.disabled),
+      ) {
     if (Env.hasBackend) _init();
   }
 
@@ -105,9 +105,11 @@ class SyncController extends StateNotifier<SyncState> {
     // Safety-net periodic sync every 5 minutes — always runs, realtime or not.
     _periodic = Timer.periodic(const Duration(minutes: 5), (_) => sync());
 
-    _ref.listen<LicenseState>(licenseControllerProvider,
-        (_, next) => _updateRealtimeSubscription(next.license),
-        fireImmediately: true);
+    _ref.listen<LicenseState>(
+      licenseControllerProvider,
+      (_, next) => _updateRealtimeSubscription(next.license),
+      fireImmediately: true,
+    );
 
     unawaited(sync());
   }
@@ -189,7 +191,10 @@ class SyncController extends StateNotifier<SyncState> {
       }
       await engine.syncNow();
       state = state.copyWith(
-          phase: SyncPhase.idle, lastSyncedAt: DateTime.now(), error: null);
+        phase: SyncPhase.idle,
+        lastSyncedAt: DateTime.now(),
+        error: null,
+      );
     } catch (e) {
       state = state.copyWith(phase: SyncPhase.error, error: e.toString());
     } finally {

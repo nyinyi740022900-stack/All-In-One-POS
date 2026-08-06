@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
+import 'package:mm_pos/data/sync/outbox_constants.dart';
 import 'package:mm_pos/data/sync/sync_providers.dart';
 
 /// Regression coverage for the "poison pill" outbox bug: a row that fails
@@ -29,14 +30,18 @@ void main() {
   });
 
   Future<int> insertOutboxRow({int attempts = 0, String? lastError}) async {
-    return db.into(db.outbox).insert(OutboxCompanion.insert(
-          entityTable: 'products',
-          rowId: 'p1',
-          op: 'upsert',
-          payload: '{}',
-          attempts: Value(attempts),
-          lastError: Value(lastError),
-        ));
+    return db
+        .into(db.outbox)
+        .insert(
+          OutboxCompanion.insert(
+            entityTable: 'products',
+            rowId: 'p1',
+            op: 'upsert',
+            payload: '{}',
+            attempts: Value(attempts),
+            lastError: Value(lastError),
+          ),
+        );
   }
 
   test('a row below the stuck threshold does not appear', () async {
@@ -45,13 +50,15 @@ void main() {
     expect(rows, isEmpty);
   });
 
-  test('a row at or above the stuck threshold appears with its error',
-      () async {
-    await insertOutboxRow(attempts: kOutboxStuckThreshold, lastError: 'boom');
-    final rows = await container.read(stuckOutboxProvider.future);
-    expect(rows, hasLength(1));
-    expect(rows.single.lastError, 'boom');
-  });
+  test(
+    'a row at or above the stuck threshold appears with its error',
+    () async {
+      await insertOutboxRow(attempts: kOutboxStuckThreshold, lastError: 'boom');
+      final rows = await container.read(stuckOutboxProvider.future);
+      expect(rows, hasLength(1));
+      expect(rows.single.lastError, 'boom');
+    },
+  );
 
   test('discardOutboxRow removes exactly that row', () async {
     final seq = await insertOutboxRow(attempts: kOutboxStuckThreshold);
