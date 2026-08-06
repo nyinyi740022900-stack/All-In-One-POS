@@ -646,7 +646,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get productOnlineStockLimitHint =>
-      'ရွေးချယ်ခွင့် — ဒီပစ္စည်းကို Web storefront ကနေ ဘယ်နှစ်ခုအထိပဲ ရောင်းချမလဲ ဆိုတာ ဆိုင်ထဲက အစစ်လက်ကျန်နဲ့ သီးခြား ကန့်သတ်ပါ။ ကွက်လပ်ထားရင် ကန့်သတ်ချက် မရှိပါ။';
+      'အွန်လိုင်းအတွက် အကြံပြု — Web storefront ကနေ ဒီပစ္စည်း ဘယ်နှစ်ခုအထိ ရောင်းမလဲ သတ်မှတ်ပါ (ဆိုင်ထဲ လက်ကျန် လုံခြုံအောင်)။ ကွက်လပ် = ကန့်သတ် မရှိ။';
 
   @override
   String get productOnlineStockLimit => 'Online ရောင်းမည့် အများဆုံးအရေအတွက်';
@@ -1476,7 +1476,18 @@ class AppLocalizationsMy extends AppLocalizations {
       'ငွေစစ်ဆေးပြီး ၂၄ နာရီအတွင်း စတင်အသုံးပြုလို့ရပါမယ်။';
 
   @override
-  String get licenseFreeTrial => 'အခမဲ့ ၂ လ စမ်းသုံး';
+  String get licenseFreeTrial => 'အခမဲ့ စမ်းသုံးဖို့ Support ဆက်သွယ်';
+
+  @override
+  String get licensePlanTrial => 'အခမဲ့ စမ်းသုံး';
+
+  @override
+  String get licenseTrialContactHint =>
+      'Premium အခမဲ့ စမ်းသုံးမှုကို app ထဲက မယူရပါ — Support ကသာ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။';
+
+  @override
+  String get licenseTrialViberMissing =>
+      'Support Viber မသတ်မှတ်ရသေးပါ။ Settings → Support ရနိုင်မှ သုံးပါ၊ သို့မဟုတ် App Reference ID နဲ့ တခြားလမ်းက ဆက်သွယ်ပါ။';
 
   @override
   String get licenseTrialStarted => 'အခမဲ့ ၂ လ စမ်းသုံးမှု စတင်ပြီး';
@@ -2235,6 +2246,51 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ link ကို Facebook, Viber စသည်တွင် ဖောက်သည်များထံ မျှဝေပါ။';
 
   @override
+  String get storefrontShareAction => 'Link မျှဝေမည်';
+
+  @override
+  String storefrontShareText(String name, String url) {
+    return '$name\nဒီနေရာမှာ မှာယူပါ: $url';
+  }
+
+  @override
+  String get storefrontClosed =>
+      'ဒီဆိုင်သည် အွန်လိုင်း မှာယူမှု လက်မခံသေးပါ။ ဖွင့်ချိန်အတွင်း ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get storefrontProofRequired => 'မှာယူမီ လွှဲငွေ screenshot တွဲပေးပါ။';
+
+  @override
+  String get storefrontAttachProofRequired => 'ငွေလွှဲ screenshot တွဲပါ *';
+
+  @override
+  String get storefrontHoursTitle => 'ဖွင့်ချိန် (ရန်ကုန် အချိန်)';
+
+  @override
+  String get storefrontHoursEnabled => 'ဖွင့်ချိန်အတွင်းသာ မှာယူမှု လက်ခံမည်';
+
+  @override
+  String get storefrontHoursOpen => 'ဖွင့်ချိန်';
+
+  @override
+  String get storefrontHoursClose => 'ပိတ်ချိန်';
+
+  @override
+  String get storefrontRequireProof => 'လွှဲငွေ screenshot မဖြစ်မနေ လိုအပ်';
+
+  @override
+  String get storefrontRequireProofHint =>
+      'ဖွင့်ထားရင် ဘဏ်လွှဲ checkout မှာ ငွေလွှဲ အထောက်အထား တင်ရမည်။';
+
+  @override
+  String get storefrontOrderNotifTitle => 'Web မှာယူမှု အသစ်';
+
+  @override
+  String storefrontOrderNotifBody(int count) {
+    return 'Storefront မှာယူမှု အသစ် $count ခု — Orders ကို ဖွင့်ကြည့်ပါ။';
+  }
+
+  @override
   String get storefrontBlockedCustomers => 'ပိတ်ပင်ထားသော ဝယ်သူများ';
 
   @override
@@ -2512,7 +2568,15 @@ class AppLocalizationsMy extends AppLocalizations {
       'တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားကြည့်ပါ။';
 
   @override
-  String get staffAccountsTitle => 'ဝန်ထမ်း Account (Login)';
+  String get staffAccountsTitle => 'ဝန်ထမ်း Account (Email login)';
+
+  @override
+  String get staffAccountsSubtitle =>
+      'အွန်လိုင်း: ဝန်ထမ်းတစ်ဦးချင်းစီက မိမိ email + password နဲ့ login ဝင်သည်။';
+
+  @override
+  String get staffModeSubtitle =>
+      'ဒီဖုန်းအတွက်သာ: Owner PIN နဲ့ device ကို သော့ခတ်သည် (offline မှာလည်း အလုပ်လုပ်သည်)။';
 
   @override
   String get staffAccountsInvite => 'ဝန်ထမ်း ဖိတ်ခေါ်မည်';

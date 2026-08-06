@@ -10,6 +10,7 @@
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no }
+//   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
 // blind-filling bots; at most 5 attempts per (shop, IP) per 10 minutes
@@ -21,23 +22,64 @@
 // over a product's owner-set `online_stock_limit` (a deliberate cap,
 // independent of real stock, e.g. reserving only some units for online) IS
 // hard-rejected (409 `out_of_stock`) — see `sumOrderedByProduct`.
+// Opening hours (Asia/Yangon) and require_transfer_proof: see migration 0053.
 //
 // Deploy: supabase functions deploy storefront
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 // deno-lint-ignore no-explicit-any
 function json(body: any, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "content-type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-    },
+    headers: { "content-type": "application/json", ...CORS },
   });
+}
+
+function html(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/html; charset=utf-8", ...CORS },
+  });
+}
+
+/** Minutes from midnight in Asia/Yangon (UTC+6:30). */
+function yangonMinuteNow(): number {
+  const now = Date.now();
+  const yangon = new Date(now + 6.5 * 60 * 60 * 1000);
+  // Use UTC getters after offset so we don't depend on Deno host TZ.
+  return yangon.getUTCHours() * 60 + yangon.getUTCMinutes();
+}
+
+function isWithinHours(
+  hoursEnabled: boolean,
+  openMinute: number | null,
+  closeMinute: number | null,
+): boolean {
+  if (!hoursEnabled) return true;
+  if (openMinute == null || closeMinute == null) return true;
+  const now = yangonMinuteNow();
+  if (openMinute === closeMinute) return true; // 24h
+  if (openMinute < closeMinute) {
+    return now >= openMinute && now < closeMinute;
+  }
+  // Spans midnight (e.g. 22:00–06:00).
+  return now >= openMinute || now < closeMinute;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // deno-lint-ignore no-explicit-any
@@ -79,11 +121,55 @@ async function sumOrderedByProduct(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json({});
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, serviceKey);
+  const shopWebBase = "https://goldposmm-shop.vercel.app";
+
+  // Open Graph HTML for link previews (crawlers use GET).
+  if (req.method === "GET") {
+    const u = new URL(req.url);
+    if (u.searchParams.get("action") !== "og") {
+      return json({ error: "method_not_allowed" }, 405);
+    }
+    const slug = (u.searchParams.get("slug") ?? "").trim();
+    if (!slug) return html("<h1>Missing slug</h1>", 400);
+    const { data: sf } = await admin
+      .from("storefronts")
+      .select("display_name, phone, address, logo_url, enabled")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!sf || sf.enabled === false) {
+      return html("<h1>Shop not found</h1>", 404);
+    }
+    const title = escapeHtml(sf.display_name || slug);
+    const descParts = [sf.phone, sf.address].filter(Boolean);
+    const desc = escapeHtml(
+      descParts.length > 0
+        ? descParts.join(" · ")
+        : "Order online from this shop",
+    );
+    const pageUrl = `${shopWebBase}/${encodeURIComponent(slug)}`;
+    const image = sf.logo_url
+      ? escapeHtml(sf.logo_url as string)
+      : `${shopWebBase}/icons/Icon-512.png`;
+    return html(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<title>${title}</title>
+<meta name="description" content="${desc}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="${title}"/>
+<meta property="og:description" content="${desc}"/>
+<meta property="og:url" content="${pageUrl}"/>
+<meta property="og:image" content="${image}"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta http-equiv="refresh" content="0;url=${pageUrl}"/>
+</head><body><p><a href="${pageUrl}">${title}</a></p></body></html>`);
+  }
+
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   // deno-lint-ignore no-explicit-any
   let body: any;
@@ -103,6 +189,12 @@ Deno.serve(async (req) => {
     .eq("enabled", true)
     .maybeSingle();
   if (!sf) return json({ error: "not_found" }, 404);
+
+  const acceptingOrders = isWithinHours(
+    sf.hours_enabled === true,
+    sf.open_minute as number | null,
+    sf.close_minute as number | null,
+  );
 
   if (action === "catalog") {
     const { data: products, error } = await admin
@@ -137,12 +229,20 @@ Deno.serve(async (req) => {
         pay_wave: sf.pay_wave,
         pay_wave_name: sf.pay_wave_name,
         logo_url: sf.logo_url,
+        accepting_orders: acceptingOrders,
+        hours_enabled: sf.hours_enabled === true,
+        open_minute: sf.open_minute ?? null,
+        close_minute: sf.close_minute ?? null,
+        require_transfer_proof: sf.require_transfer_proof !== false,
       },
       products: productsOut,
     });
   }
 
   if (action === "submit_order") {
+    if (!acceptingOrders) {
+      return json({ error: "closed" }, 403);
+    }
     // Honeypot: a hidden field real customers never see or fill; only a
     // scripted form-filler touches it. Pretend success without writing
     // anything, so the bot gets no signal it was caught.
@@ -196,6 +296,12 @@ Deno.serve(async (req) => {
     const rawMethod = `${body.payment_method ?? ""}`.trim();
     const paymentMethod =
       rawMethod === "transfer" || rawMethod === "cod" ? rawMethod : null;
+
+    const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
+    const requireProof = sf.require_transfer_proof !== false;
+    if (paymentMethod === "transfer" && requireProof && !proofPath) {
+      return json({ error: "proof_required" }, 400);
+    }
 
     // Security: every line must name a real, active product belonging to
     // THIS shop, with a sane positive quantity. Price/name are never taken
@@ -313,7 +419,7 @@ Deno.serve(async (req) => {
       payment_status: "unpaid",
       payment_method: paymentMethod,
       note: (body.note ?? "").trim() || null,
-      payment_proof_path: (body.payment_proof_path ?? "").trim() || null,
+      payment_proof_path: proofPath,
       created_at: now,
       updated_at: now,
     });

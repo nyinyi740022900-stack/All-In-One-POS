@@ -173,22 +173,34 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
-  Future<void> _startTrial() async {
+  Future<void> _contactSupportForTrial() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    setState(() => _busy = true);
-    try {
-      final ok = await ref
-          .read(licenseControllerProvider.notifier)
-          .startFreeTrial();
+    final viber = ref.read(vendorConfigProvider).valueOrNull?.supportViber;
+    if (viber == null || viber.isEmpty) {
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(ok ? l.licenseTrialStarted : l.licenseTrialUsed),
-        ),
+        SnackBar(content: Text(l.licenseTrialViberMissing)),
       );
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      return;
     }
+    await Clipboard.setData(ClipboardData(text: viber));
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text('${l.copied}: Viber · $viber')),
+    );
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.licenseFreeTrial),
+        content: Text(l.licenseTrialContactHint),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.commonOk),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _refresh() async {
@@ -265,22 +277,19 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                     : l.licenseRenew,
               ),
             ),
-            // A Free-plan shop that just paid for a first-time key (via the
-            // Upgrade dialog above) has nowhere else to type/scan it in —
-            // Free is always `canSell`, so this branch is otherwise all this
-            // device ever sees; the key-entry fields below only render in
-            // the `else` (not-activated) branch further down. Same reasoning
-            // for the trial button — it used to live only in that `else`
-            // branch, making it permanently unreachable once a device is on
-            // Free plan (the primary path into Free plan in the first
-            // place), even though the trial is meant as Free plan's own
-            // try-Premium-for-free on-ramp.
+            // Free-plan try-Premium on-ramp: support-issued trial only (no
+            // in-app start_trial — closes delete/reinstall farming).
             if (state.license?.plan == LicensePlan.free) ...[
               const SizedBox(height: AppTheme.space2),
               OutlinedButton.icon(
-                onPressed: _busy ? null : _startTrial,
-                icon: const Icon(Icons.card_giftcard),
+                onPressed: _busy ? null : _contactSupportForTrial,
+                icon: const Icon(Icons.support_agent),
                 label: Text(l.licenseFreeTrial),
+              ),
+              const SizedBox(height: AppTheme.space1),
+              Text(
+                l.licenseTrialContactHint,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: AppTheme.space4),
               const Divider(),
@@ -345,9 +354,14 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             ..._buildKeyEntryFields(l),
             const SizedBox(height: AppTheme.space2),
             OutlinedButton.icon(
-              onPressed: _busy ? null : _startTrial,
-              icon: const Icon(Icons.card_giftcard),
+              onPressed: _busy ? null : _contactSupportForTrial,
+              icon: const Icon(Icons.support_agent),
               label: Text(l.licenseFreeTrial),
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.licenseTrialContactHint,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (Env.hasBackend) ...[
               const SizedBox(height: AppTheme.space5),

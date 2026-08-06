@@ -133,6 +133,7 @@ class SettingsScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: Text(l.staffAccountsTitle),
+              subtitle: Text(l.staffAccountsSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
                 if (!await requireOwnerPinReauth(

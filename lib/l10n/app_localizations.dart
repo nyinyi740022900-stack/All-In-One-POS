@@ -1289,7 +1289,7 @@ abstract class AppLocalizations {
   /// No description provided for @productOnlineStockLimitHint.
   ///
   /// In en, this message translates to:
-  /// **'Optional — cap how many of this product your web storefront may sell, separate from your real in-store stock. Leave blank for no cap.'**
+  /// **'Recommended for online sales: set how many units this product may sell on your web storefront (keeps walk-in stock safe). Leave blank for no online cap.'**
   String get productOnlineStockLimitHint;
 
   /// No description provided for @productOnlineStockLimit.
@@ -2837,8 +2837,26 @@ abstract class AppLocalizations {
   /// No description provided for @licenseFreeTrial.
   ///
   /// In en, this message translates to:
-  /// **'Start free 2-month trial'**
+  /// **'Ask support for a free trial'**
   String get licenseFreeTrial;
+
+  /// No description provided for @licensePlanTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial'**
+  String get licensePlanTrial;
+
+  /// No description provided for @licenseTrialContactHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.'**
+  String get licenseTrialContactHint;
+
+  /// No description provided for @licenseTrialViberMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.'**
+  String get licenseTrialViberMissing;
 
   /// No description provided for @licenseTrialStarted.
   ///
@@ -4184,6 +4202,84 @@ abstract class AppLocalizations {
   /// **'Share this link with customers on Facebook, Viber, etc.'**
   String get storefrontShare;
 
+  /// No description provided for @storefrontShareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share link'**
+  String get storefrontShareAction;
+
+  /// No description provided for @storefrontShareText.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\nOrder here: {url}'**
+  String storefrontShareText(String name, String url);
+
+  /// No description provided for @storefrontClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop is closed for online orders right now. Please try again during opening hours.'**
+  String get storefrontClosed;
+
+  /// No description provided for @storefrontProofRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please attach your transfer screenshot before placing the order.'**
+  String get storefrontProofRequired;
+
+  /// No description provided for @storefrontAttachProofRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach payment screenshot *'**
+  String get storefrontAttachProofRequired;
+
+  /// No description provided for @storefrontHoursTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening hours (Yangon time)'**
+  String get storefrontHoursTitle;
+
+  /// No description provided for @storefrontHoursEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Only accept orders during hours'**
+  String get storefrontHoursEnabled;
+
+  /// No description provided for @storefrontHoursOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens'**
+  String get storefrontHoursOpen;
+
+  /// No description provided for @storefrontHoursClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Closes'**
+  String get storefrontHoursClose;
+
+  /// No description provided for @storefrontRequireProof.
+  ///
+  /// In en, this message translates to:
+  /// **'Require transfer screenshot'**
+  String get storefrontRequireProof;
+
+  /// No description provided for @storefrontRequireProofHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, bank-transfer checkouts must upload a payment proof.'**
+  String get storefrontRequireProofHint;
+
+  /// No description provided for @storefrontOrderNotifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New web order'**
+  String get storefrontOrderNotifTitle;
+
+  /// No description provided for @storefrontOrderNotifBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new storefront order(s) — open Orders to review.'**
+  String storefrontOrderNotifBody(int count);
+
   /// No description provided for @storefrontBlockedCustomers.
   ///
   /// In en, this message translates to:
@@ -4679,8 +4775,20 @@ abstract class AppLocalizations {
   /// No description provided for @staffAccountsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Staff accounts (login)'**
+  /// **'Staff accounts (email login)'**
   String get staffAccountsTitle;
+
+  /// No description provided for @staffAccountsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online: each staff signs in with their own email and password.'**
+  String get staffAccountsSubtitle;
+
+  /// No description provided for @staffModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone only: lock the device with an owner PIN (works offline too).'**
+  String get staffModeSubtitle;
 
   /// No description provided for @staffAccountsInvite.
   ///

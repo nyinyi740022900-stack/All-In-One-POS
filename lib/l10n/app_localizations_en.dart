@@ -647,7 +647,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productOnlineStockLimitHint =>
-      'Optional — cap how many of this product your web storefront may sell, separate from your real in-store stock. Leave blank for no cap.';
+      'Recommended for online sales: set how many units this product may sell on your web storefront (keeps walk-in stock safe). Leave blank for no online cap.';
 
   @override
   String get productOnlineStockLimit => 'Online stock limit';
@@ -1474,7 +1474,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'We\'ll verify your payment and your access will begin within 24 hours.';
 
   @override
-  String get licenseFreeTrial => 'Start free 2-month trial';
+  String get licenseFreeTrial => 'Ask support for a free trial';
+
+  @override
+  String get licensePlanTrial => 'Free trial';
+
+  @override
+  String get licenseTrialContactHint =>
+      'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.';
+
+  @override
+  String get licenseTrialViberMissing =>
+      'Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.';
 
   @override
   String get licenseTrialStarted => 'Free 2-month trial started';
@@ -2242,6 +2253,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'Share this link with customers on Facebook, Viber, etc.';
 
   @override
+  String get storefrontShareAction => 'Share link';
+
+  @override
+  String storefrontShareText(String name, String url) {
+    return '$name\nOrder here: $url';
+  }
+
+  @override
+  String get storefrontClosed =>
+      'This shop is closed for online orders right now. Please try again during opening hours.';
+
+  @override
+  String get storefrontProofRequired =>
+      'Please attach your transfer screenshot before placing the order.';
+
+  @override
+  String get storefrontAttachProofRequired => 'Attach payment screenshot *';
+
+  @override
+  String get storefrontHoursTitle => 'Opening hours (Yangon time)';
+
+  @override
+  String get storefrontHoursEnabled => 'Only accept orders during hours';
+
+  @override
+  String get storefrontHoursOpen => 'Opens';
+
+  @override
+  String get storefrontHoursClose => 'Closes';
+
+  @override
+  String get storefrontRequireProof => 'Require transfer screenshot';
+
+  @override
+  String get storefrontRequireProofHint =>
+      'When on, bank-transfer checkouts must upload a payment proof.';
+
+  @override
+  String get storefrontOrderNotifTitle => 'New web order';
+
+  @override
+  String storefrontOrderNotifBody(int count) {
+    return '$count new storefront order(s) — open Orders to review.';
+  }
+
+  @override
   String get storefrontBlockedCustomers => 'Blocked customers';
 
   @override
@@ -2517,7 +2574,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountActionFailed => 'Something went wrong. Please try again.';
 
   @override
-  String get staffAccountsTitle => 'Staff accounts (login)';
+  String get staffAccountsTitle => 'Staff accounts (email login)';
+
+  @override
+  String get staffAccountsSubtitle =>
+      'Online: each staff signs in with their own email and password.';
+
+  @override
+  String get staffModeSubtitle =>
+      'This phone only: lock the device with an owner PIN (works offline too).';
 
   @override
   String get staffAccountsInvite => 'Invite staff';

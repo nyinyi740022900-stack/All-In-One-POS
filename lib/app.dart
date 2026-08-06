@@ -14,6 +14,7 @@ import 'features/account/reset_password_screen.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/printing/printing_providers.dart';
 import 'features/referral/referral_watcher.dart';
+import 'features/storefront/storefront_order_watcher.dart';
 import 'l10n/app_localizations.dart';
 
 /// Whether the one-time first-run onboarding has been completed.
@@ -34,6 +35,8 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(syncControllerProvider);
     // Poll for new referral commissions and fire the "earned" notification.
     ref.watch(referralWatcherProvider);
+    // Alert when storefront orders land via sync.
+    ref.watch(storefrontOrderWatcherProvider);
     // Auto-generate any due recurring-expense templates once per launch.
     ref.watch(recurringExpenseGeneratorProvider);
     // Seed the default payment accounts once per shop.

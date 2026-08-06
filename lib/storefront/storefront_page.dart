@@ -7,9 +7,11 @@ import '../core/image_util.dart';
 import '../features/invoices/invoice_capture.dart';
 import '../features/invoices/invoice_view.dart';
 import '../features/orders/myanmar_townships.dart';
+import '../features/storefront/storefront_repository.dart';
 import '../l10n/app_localizations.dart';
 import 'storefront_api.dart';
 import 'storefront_download.dart';
+import 'storefront_seo.dart';
 
 final _money = NumberFormat('#,##0', 'en_US');
 String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
@@ -95,6 +97,13 @@ class _StorefrontPageState extends State<StorefrontPage> {
       });
 
   Future<void> _checkout(Catalog catalog) async {
+    if (!catalog.info.acceptingOrders) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).storefrontClosed)),
+      );
+      return;
+    }
     final lines = _cart.entries
         .map((e) => OrderLine(
             e.key, _byId[e.key]!.name, _byId[e.key]!.price, e.value))
@@ -132,9 +141,27 @@ class _StorefrontPageState extends State<StorefrontPage> {
           }
           final catalog = snap.data!;
           _byId = {for (final p in catalog.products) p.id: p};
+          final name = catalog.info.displayName ?? widget.slug;
+          final desc = [
+            if ((catalog.info.phone ?? '').isNotEmpty) catalog.info.phone,
+            if ((catalog.info.address ?? '').isNotEmpty) catalog.info.address,
+          ].join(' · ');
+          updateStorefrontSeo(
+            title: name,
+            description: desc.isEmpty ? name : desc,
+            imageUrl: catalog.info.logoUrl,
+            pageUrl: '$storefrontBaseUrl/${widget.slug}',
+          );
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _ShopBanner(info: catalog.info)),
+              if (!catalog.info.acceptingOrders)
+                SliverToBoxAdapter(
+                  child: MaterialBanner(
+                    content: Text(l.storefrontClosed),
+                    actions: const [SizedBox.shrink()],
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.all(12),
                 sliver: SliverGrid(
@@ -169,7 +196,11 @@ class _StorefrontPageState extends State<StorefrontPage> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: FilledButton(
-                  onPressed: () => _future.then((c) => _checkout(c)),
+                  onPressed: () async {
+                    final c = await _future;
+                    if (!context.mounted) return;
+                    await _checkout(c);
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(l.storefrontCheckoutBar(_count, _ks(l, _total))),
@@ -456,6 +487,14 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty) return;
+    if (_paymentMethod == 'transfer' &&
+        widget.info.requireTransferProof &&
+        _proofBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).storefrontProofRequired)),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
       String? proofPath;
@@ -479,13 +518,18 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context);
-        final message = '$e'.contains('rate_limited')
+        final raw = '$e';
+        final message = raw.contains('rate_limited')
             ? l.storefrontRateLimited
-            : '$e'.contains('blocked')
+            : raw.contains('blocked')
                 ? l.storefrontBlocked
-                : '$e'.contains('out_of_stock')
+                : raw.contains('out_of_stock')
                     ? l.storefrontOutOfStock
-                    : '$e';
+                    : raw.contains('proof_required')
+                        ? l.storefrontProofRequired
+                        : raw.contains('closed')
+                            ? l.storefrontClosed
+                            : raw;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
       }
@@ -600,7 +644,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 onPressed: _pickProof,
                 icon: const Icon(Icons.upload_file),
                 label: Text(_proofName == null
-                    ? l.storefrontAttachProof
+                    ? (widget.info.requireTransferProof
+                        ? l.storefrontAttachProofRequired
+                        : l.storefrontAttachProof)
                     : l.storefrontProofAttached(_proofName!)),
               ),
             ] else

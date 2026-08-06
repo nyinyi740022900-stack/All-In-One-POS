@@ -27,15 +27,27 @@ class StoreInfo {
   final String? payWave;
   final String? payWaveName;
   final String? logoUrl;
-  const StoreInfo(
-      {this.displayName,
-      this.phone,
-      this.address,
-      this.payKpay,
-      this.payKpayName,
-      this.payWave,
-      this.payWaveName,
-      this.logoUrl});
+  final bool acceptingOrders;
+  final bool requireTransferProof;
+  final bool hoursEnabled;
+  final int? openMinute;
+  final int? closeMinute;
+
+  const StoreInfo({
+    this.displayName,
+    this.phone,
+    this.address,
+    this.payKpay,
+    this.payKpayName,
+    this.payWave,
+    this.payWaveName,
+    this.logoUrl,
+    this.acceptingOrders = true,
+    this.requireTransferProof = true,
+    this.hoursEnabled = false,
+    this.openMinute,
+    this.closeMinute,
+  });
 }
 
 class Catalog {
@@ -87,6 +99,11 @@ class StorefrontApi {
         payWave: s['pay_wave'] as String?,
         payWaveName: s['pay_wave_name'] as String?,
         logoUrl: s['logo_url'] as String?,
+        acceptingOrders: s['accepting_orders'] as bool? ?? true,
+        requireTransferProof: s['require_transfer_proof'] as bool? ?? true,
+        hoursEnabled: s['hours_enabled'] as bool? ?? false,
+        openMinute: (s['open_minute'] as num?)?.toInt(),
+        closeMinute: (s['close_minute'] as num?)?.toInt(),
       ),
       products,
     );

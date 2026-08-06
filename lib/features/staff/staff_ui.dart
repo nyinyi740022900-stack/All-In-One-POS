@@ -283,7 +283,10 @@ class StaffModeCard extends ConsumerWidget {
         ListTile(
           leading: Icon(isOwner ? Icons.verified_user : Icons.badge_outlined),
           title: Text(l.staffMode),
-          subtitle: Text(l.staffCurrentRole(staffRoleLabel(l, role))),
+          subtitle: Text(
+            '${l.staffModeSubtitle}\n${l.staffCurrentRole(staffRoleLabel(l, role))}',
+          ),
+          isThreeLine: true,
         ),
         for (final target in staffRoles)
           if (target != role)

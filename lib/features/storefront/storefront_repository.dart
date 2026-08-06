@@ -2,11 +2,18 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/env.dart';
 import '../../core/image_util.dart';
 
 /// Public base URL where the storefront web app is hosted. A shop's page is
 /// `$storefrontBaseUrl/<slug>`.
 const storefrontBaseUrl = 'https://goldposmm-shop.vercel.app';
+
+/// OG preview URL for Facebook/Viber crawlers (Edge Function HTML card).
+String storefrontOgUrl(String slug) {
+  final base = Env.supabaseUrl.replaceAll(RegExp(r'/+$'), '');
+  return '$base/functions/v1/storefront?action=og&slug=${Uri.encodeComponent(slug)}';
+}
 
 /// The shop's own storefront config (online-only; not part of Drift/sync).
 class StorefrontRow {
@@ -20,6 +27,11 @@ class StorefrontRow {
   final String? payWave;
   final String? payWaveName;
   final bool enabled;
+  final bool hoursEnabled;
+  final int? openMinute;
+  final int? closeMinute;
+  final bool requireTransferProof;
+
   const StorefrontRow({
     required this.slug,
     this.displayName,
@@ -31,9 +43,30 @@ class StorefrontRow {
     this.payWave,
     this.payWaveName,
     this.enabled = true,
+    this.hoursEnabled = false,
+    this.openMinute,
+    this.closeMinute,
+    this.requireTransferProof = true,
   });
 
   String get url => '$storefrontBaseUrl/$slug';
+
+  static StorefrontRow fromMap(Map<String, dynamic> m) => StorefrontRow(
+    slug: m['slug'] as String,
+    displayName: m['display_name'] as String?,
+    phone: m['phone'] as String?,
+    address: m['address'] as String?,
+    logoUrl: m['logo_url'] as String?,
+    payKpay: m['pay_kpay'] as String?,
+    payKpayName: m['pay_kpay_name'] as String?,
+    payWave: m['pay_wave'] as String?,
+    payWaveName: m['pay_wave_name'] as String?,
+    enabled: m['enabled'] as bool? ?? true,
+    hoursEnabled: m['hours_enabled'] as bool? ?? false,
+    openMinute: (m['open_minute'] as num?)?.toInt(),
+    closeMinute: (m['close_minute'] as num?)?.toInt(),
+    requireTransferProof: m['require_transfer_proof'] as bool? ?? true,
+  );
 }
 
 /// A phone number the owner has blocked from placing new storefront orders,
@@ -55,18 +88,7 @@ class StorefrontRepository {
     final rows = await _c.from('storefronts').select() as List;
     if (rows.isEmpty) return null;
     final m = (rows.first as Map).cast<String, dynamic>();
-    return StorefrontRow(
-      slug: m['slug'] as String,
-      displayName: m['display_name'] as String?,
-      phone: m['phone'] as String?,
-      address: m['address'] as String?,
-      logoUrl: m['logo_url'] as String?,
-      payKpay: m['pay_kpay'] as String?,
-      payKpayName: m['pay_kpay_name'] as String?,
-      payWave: m['pay_wave'] as String?,
-      payWaveName: m['pay_wave_name'] as String?,
-      enabled: m['enabled'] as bool? ?? true,
-    );
+    return StorefrontRow.fromMap(m);
   }
 
   /// Publishes (creates) the storefront if absent, generating a slug from the
@@ -78,13 +100,11 @@ class StorefrontRepository {
   }) async {
     final existing = await mine();
     if (existing != null) {
-      await _c
-          .from('storefronts')
-          .update({'enabled': true}).eq('shop_id', _shopId);
-      return StorefrontRow(
-          slug: existing.slug,
-          displayName: existing.displayName,
-          enabled: true);
+      await _c.from('storefronts').update({'enabled': true}).eq(
+        'shop_id',
+        _shopId,
+      );
+      return (await mine())!;
     }
     final slug =
         await _c.rpc('gen_storefront_slug', params: {'p_name': displayName})
@@ -97,13 +117,14 @@ class StorefrontRepository {
       'address': address,
       'enabled': true,
     });
-    return StorefrontRow(slug: slug, displayName: displayName, enabled: true);
+    return (await mine())!;
   }
 
   Future<void> setEnabled(bool enabled) async {
     await _c
         .from('storefronts')
-        .update({'enabled': enabled}).eq('shop_id', _shopId);
+        .update({'enabled': enabled})
+        .eq('shop_id', _shopId);
   }
 
   /// Updates display fields on an existing storefront (name/phone/address
@@ -120,6 +141,10 @@ class StorefrontRepository {
     String? payKpayName,
     String? payWave,
     String? payWaveName,
+    bool? hoursEnabled,
+    int? openMinute,
+    int? closeMinute,
+    bool? requireTransferProof,
   }) async {
     final patch = <String, dynamic>{
       'display_name': ?displayName,
@@ -130,6 +155,10 @@ class StorefrontRepository {
       'pay_kpay_name': ?payKpayName,
       'pay_wave': ?payWave,
       'pay_wave_name': ?payWaveName,
+      'hours_enabled': ?hoursEnabled,
+      'open_minute': ?openMinute,
+      'close_minute': ?closeMinute,
+      'require_transfer_proof': ?requireTransferProof,
     };
     if (patch.isEmpty) return;
     await _c.from('storefronts').update(patch).eq('shop_id', _shopId);
@@ -142,20 +171,27 @@ class StorefrontRepository {
     final path =
         'logo-$_shopId-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
     final storage = _c.storage.from('product-images');
-    await storage.uploadBinary(path, c.bytes,
-        fileOptions: const FileOptions(upsert: true));
+    await storage.uploadBinary(
+      path,
+      c.bytes,
+      fileOptions: const FileOptions(upsert: true),
+    );
     return storage.getPublicUrl(path);
   }
 
   Future<List<BlockedCustomer>> listBlocked() async {
-    final rows = await _c
-        .from('storefront_blocklist')
-        .select()
-        .eq('shop_id', _shopId)
-        .order('created_at', ascending: false) as List;
+    final rows =
+        await _c
+                .from('storefront_blocklist')
+                .select()
+                .eq('shop_id', _shopId)
+                .order('created_at', ascending: false)
+            as List;
     return rows
         .map((e) => (e as Map).cast<String, dynamic>())
-        .map((m) => BlockedCustomer(m['phone'] as String, m['reason'] as String?))
+        .map(
+          (m) => BlockedCustomer(m['phone'] as String, m['reason'] as String?),
+        )
         .toList();
   }
 

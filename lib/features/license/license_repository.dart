@@ -105,56 +105,11 @@ class LicenseRepository {
     )).then((v) => v!);
   }
 
-  /// Grants a one-time free 2-month trial. When online it goes through the
-  /// `start_trial` Edge Function (server-tracked per device, so it can't be
-  /// farmed by reinstalling, and stamps the shop_id claim for sync); offline it
-  /// falls back to a local trial.
-  Future<CachedLicense?> startFreeTrial(String shopId) async {
-    if (await _settings.trialUsed()) return null;
-    final deviceId = await _settings.deviceId();
-    final now = DateTime.now();
-
-    if (Env.hasBackend) {
-      try {
-        final profile = await _settings.shopProfile(shopId);
-        final res = await Supabase.instance.client.functions.invoke(
-          'start_trial',
-          body: {'device_id': deviceId, 'shop_name': profile.name},
-        );
-        final data = res.data as Map<String, dynamic>;
-        if (data['ok'] == true) {
-          final lic = CachedLicense(
-            key: data['key'] as String,
-            shopId: data['shop_id'] as String,
-            plan: LicensePlan.trial,
-            expiresAt: DateTime.parse(data['expires_at'] as String),
-            activatedAt: DateTime.parse(
-                (data['activated_at'] ?? now.toIso8601String()) as String),
-            lastVerifiedAt: now,
-            deviceId: deviceId,
-            tier: data['tier'] as String? ?? 'offline',
-          );
-          try {
-            await Supabase.instance.client.auth.refreshSession();
-          } catch (_) {}
-          await _settings.markTrialUsed();
-          return _save(lic);
-        }
-      } catch (_) {/* fall back to a local trial */}
-    }
-
-    final lic = await _save(CachedLicense(
-      key: 'FREE-TRIAL',
-      shopId: 'trial-${deviceId.replaceAll('-', '').substring(0, 10)}',
-      plan: LicensePlan.trial,
-      expiresAt: now.add(const Duration(days: 60)),
-      activatedAt: now,
-      lastVerifiedAt: now,
-      deviceId: deviceId,
-    ));
-    await _settings.markTrialUsed();
-    return lic;
-  }
+  /// Self-serve in-app trial is disabled (delete/reinstall farming). Premium
+  /// trials are issued by support as a normal license key; the caller should
+  /// direct the owner to Viber with their App Reference ID. Kept as a no-op
+  /// so older UI call sites fail closed instead of minting a local trial.
+  Future<CachedLicense?> startFreeTrial(String shopId) async => null;
 
   /// Enters the Free plan from scratch — no key, no account, no network call.
   /// Core POS features (Sell/Inventory/etc.) work immediately and forever;

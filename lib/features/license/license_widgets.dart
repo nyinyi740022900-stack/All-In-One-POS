@@ -3,7 +3,7 @@ part of 'license_screen.dart';
 String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
       LicensePlan.yearly => l.licensePlanYearly,
       LicensePlan.monthly => l.licensePlanMonthly,
-      LicensePlan.trial => l.licenseFreeTrial,
+      LicensePlan.trial => l.licensePlanTrial,
       LicensePlan.free => l.licensePlanFree,
     };
 

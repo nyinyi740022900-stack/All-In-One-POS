@@ -221,7 +221,7 @@
   "productTierPricesHint": "Optional — leave blank to use the sale price for that tier.",
   "productWholesalePrice": "Wholesale price",
   "productVipPrice": "VIP price",
-  "productOnlineStockLimitHint": "Optional — cap how many of this product your web storefront may sell, separate from your real in-store stock. Leave blank for no cap.",
+  "productOnlineStockLimitHint": "Recommended for online sales: set how many units this product may sell on your web storefront (keeps walk-in stock safe). Leave blank for no online cap.",
   "productOnlineStockLimit": "Online stock limit",
   "productBarcode": "Barcode",
   "productSku": "SKU",
@@ -499,7 +499,10 @@
   "@licenseExpiringSoon": { "placeholders": { "days": { "type": "int" } } },
   "licenseThankYouTitle": "Thank you!",
   "licenseThankYou24h": "We'll verify your payment and your access will begin within 24 hours.",
-  "licenseFreeTrial": "Start free 2-month trial",
+  "licenseFreeTrial": "Ask support for a free trial",
+  "licensePlanTrial": "Free trial",
+  "licenseTrialContactHint": "Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.",
+  "licenseTrialViberMissing": "Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.",
   "licenseTrialStarted": "Free 2-month trial started",
   "licenseTrialUsed": "Free trial already used on this device.",
   "licenseRefId": "App Reference ID",
@@ -758,6 +761,30 @@
   "storefrontLogoLabel": "Shop logo",
   "storefrontProfileSaved": "Saved",
   "storefrontShare": "Share this link with customers on Facebook, Viber, etc.",
+  "storefrontShareAction": "Share link",
+  "storefrontShareText": "{name}\nOrder here: {url}",
+  "@storefrontShareText": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "url": { "type": "String" }
+    }
+  },
+  "storefrontClosed": "This shop is closed for online orders right now. Please try again during opening hours.",
+  "storefrontProofRequired": "Please attach your transfer screenshot before placing the order.",
+  "storefrontAttachProofRequired": "Attach payment screenshot *",
+  "storefrontHoursTitle": "Opening hours (Yangon time)",
+  "storefrontHoursEnabled": "Only accept orders during hours",
+  "storefrontHoursOpen": "Opens",
+  "storefrontHoursClose": "Closes",
+  "storefrontRequireProof": "Require transfer screenshot",
+  "storefrontRequireProofHint": "When on, bank-transfer checkouts must upload a payment proof.",
+  "storefrontOrderNotifTitle": "New web order",
+  "storefrontOrderNotifBody": "{count} new storefront order(s) — open Orders to review.",
+  "@storefrontOrderNotifBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "storefrontBlockedCustomers": "Blocked customers",
   "storefrontNoBlockedCustomers": "No one is blocked.",
   "storefrontUnblock": "Unblock",
@@ -849,7 +876,9 @@
   "accountPendingSync": "This device still has unsynced changes. Wait for sync to finish, then try again.",
   "accountActionFailed": "Something went wrong. Please try again.",
 
-  "staffAccountsTitle": "Staff accounts (login)",
+  "staffAccountsTitle": "Staff accounts (email login)",
+  "staffAccountsSubtitle": "Online: each staff signs in with their own email and password.",
+  "staffModeSubtitle": "This phone only: lock the device with an owner PIN (works offline too).",
   "staffAccountsInvite": "Invite staff",
   "staffAccountsEmpty": "No staff accounts yet. Invite one with an email and password so they can sign in on their own device.",
   "staffAccountsActive": "Active",

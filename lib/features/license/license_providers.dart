@@ -143,14 +143,9 @@ class LicenseController extends StateNotifier<LicenseState> {
     return true;
   }
 
-  /// Starts the one-time free 2-month trial. Returns false if already used.
-  Future<bool> startFreeTrial() async {
-    final lic = await _repo.startFreeTrial(_ref.read(shopIdProvider));
-    if (lic == null) return false;
-    await _reopenShopDbIfNeeded(lic.shopId);
-    _apply(lic);
-    return true;
-  }
+  /// Self-serve trial is disabled — always returns false. Use support-issued
+  /// keys via [activate] instead.
+  Future<bool> startFreeTrial() async => false;
 
   /// Re-checks the license online (same key + device) to pick up an extension
   /// an admin approved after a renewal payment. Reuses `activate`, which

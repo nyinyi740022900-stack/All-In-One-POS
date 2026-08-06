@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -44,6 +45,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   bool _uploadingLogo = false;
   String? _logoUrl;
   bool _initializedFromRow = false;
+  bool _hoursEnabled = false;
+  int _openMinute = 9 * 60;
+  int _closeMinute = 18 * 60;
+  bool _requireProof = true;
 
   @override
   void dispose() {
@@ -68,6 +73,33 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     _kpayNumber.text = row.payKpay ?? '';
     _waveName.text = row.payWaveName ?? '';
     _waveNumber.text = row.payWave ?? '';
+    _hoursEnabled = row.hoursEnabled;
+    _openMinute = row.openMinute ?? 9 * 60;
+    _closeMinute = row.closeMinute ?? 18 * 60;
+    _requireProof = row.requireTransferProof;
+  }
+
+  String _fmtMinute(int m) {
+    final h = m ~/ 60;
+    final min = m % 60;
+    return '${h.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickMinute({required bool open}) async {
+    final initial = TimeOfDay(
+      hour: (open ? _openMinute : _closeMinute) ~/ 60,
+      minute: (open ? _openMinute : _closeMinute) % 60,
+    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    setState(() {
+      final m = picked.hour * 60 + picked.minute;
+      if (open) {
+        _openMinute = m;
+      } else {
+        _closeMinute = m;
+      }
+    });
   }
 
   Future<void> _publish() async {
@@ -113,6 +145,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             payKpay: _kpayNumber.text.trim(),
             payWaveName: _waveName.text.trim(),
             payWave: _waveNumber.text.trim(),
+            hoursEnabled: _hoursEnabled,
+            openMinute: _openMinute,
+            closeMinute: _closeMinute,
+            requireTransferProof: _requireProof,
           );
       ref.invalidate(myStorefrontProvider);
       if (mounted) {
@@ -337,6 +373,38 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(labelText: l.storefrontPayWaveNumber),
         ),
+        const Divider(height: 32),
+        Text(
+          l.storefrontHoursTitle,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.storefrontHoursEnabled),
+          value: _hoursEnabled,
+          onChanged: (v) => setState(() => _hoursEnabled = v),
+        ),
+        if (_hoursEnabled) ...[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.storefrontHoursOpen),
+            trailing: Text(_fmtMinute(_openMinute)),
+            onTap: () => _pickMinute(open: true),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.storefrontHoursClose),
+            trailing: Text(_fmtMinute(_closeMinute)),
+            onTap: () => _pickMinute(open: false),
+          ),
+        ],
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.storefrontRequireProof),
+          subtitle: Text(l.storefrontRequireProofHint),
+          value: _requireProof,
+          onChanged: (v) => setState(() => _requireProof = v),
+        ),
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: _busy ? null : _saveProfile,
@@ -372,6 +440,19 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
               },
             ),
           ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          onPressed: () async {
+            final name = (_name.text.trim().isEmpty)
+                ? (row.displayName ?? l.storefrontShopFallbackName)
+                : _name.text.trim();
+            await SharePlus.instance.share(
+              ShareParams(text: l.storefrontShareText(name, row.url)),
+            );
+          },
+          icon: const Icon(Icons.share_outlined),
+          label: Text(l.storefrontShareAction),
         ),
         const SizedBox(height: 8),
         Text(l.storefrontShare, style: Theme.of(context).textTheme.bodySmall),

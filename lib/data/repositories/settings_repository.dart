@@ -55,6 +55,7 @@ class SettingsRepository {
   static const _kReceiptFooter = 'receipt.footer';
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
+  static const _kStorefrontSeenOrderMs = 'storefront.seen_order_ms';
   static const _kBranchSwitchState = 'branch.switch.state';
   static const _kStaffRole = 'staff.role';
   static const _kStaffPinHash = 'staff.pin_hash';
@@ -351,6 +352,16 @@ class SettingsRepository {
 
   Future<void> setReferralSeenEarned(int value) =>
       _set(_kReferralSeenEarned, '$value');
+
+  /// Watermark of the newest storefront-channel order `createdAt` already
+  /// notified for [shopId]. null = never checked (baseline silently).
+  Future<int?> storefrontSeenOrderCreatedMs(String shopId) async {
+    final v = await _get(_shopKey(_kStorefrontSeenOrderMs, shopId));
+    return v == null ? null : int.tryParse(v);
+  }
+
+  Future<void> setStorefrontSeenOrderCreatedMs(String shopId, int ms) =>
+      _set(_shopKey(_kStorefrontSeenOrderMs, shopId), '$ms');
 
   /// Persisted branch-switch recovery marker (feature/account scoped JSON).
   Future<String?> branchSwitchStateJson() => _get(_kBranchSwitchState);
