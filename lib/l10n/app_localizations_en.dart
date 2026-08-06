@@ -870,7 +870,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — pay via KBZPay/WavePay for a license key, or subscribe under your Shop Login account.\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device, and to subscribe online instead of using a key. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — pay via KBZPay/WavePay for a license key, or subscribe under your Shop Login account.\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device, and to subscribe online instead of using a key. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Staff accounts\" and \"Branches\" — manage invited staff logins and switch this device between branches under the same owner account.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -2059,7 +2059,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderFilterPayment => 'Payment';
 
   @override
-  String get staffMode => 'Staff mode';
+  String get staffMode => 'Staff';
 
   @override
   String get staffRoleOwner => 'Owner';
@@ -2107,11 +2107,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffOwnerOnly => 'Owner only';
 
   @override
-  String get staffOwnerOnlyDesc =>
-      'Switch to Owner mode (Settings) to view this.';
+  String get staffOwnerOnlyDesc => 'This screen requires an Owner account.';
 
   @override
-  String get staffBadge => 'Staff mode';
+  String get staffBadge => 'Staff';
 
   @override
   String get staffManageMembers => 'Manage staff';
@@ -2377,18 +2376,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardActivateNow => 'Activate a license key';
 
   @override
-  String get onboardStaffTitle => 'Owner and Staff modes';
+  String get onboardStaffTitle => 'Owner and Staff accounts';
 
   @override
   String get onboardStaffBody =>
-      'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.';
+      'Access is controlled by account roles. Owners and staff sign in with their own email and password; this app no longer uses device-local Staff mode or Owner PIN switching.';
 
   @override
   String get accountShopLoginTitle => 'Shop login';
 
   @override
   String get accountShopLoginHint =>
-      'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.';
+      'Optional: sign in with an email and password to reach this shop from another device. Access permissions are controlled by your account role (owner or staff).';
 
   @override
   String get accountEmail => 'Email';
@@ -2448,7 +2447,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountSignOutConfirmBody =>
-      'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.';
+      'You\'ll need your email and password again to sign back in. Account-role permissions apply again after sign-in.';
 
   @override
   String get accountSignInWipeConfirmTitle =>

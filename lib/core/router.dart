@@ -62,7 +62,7 @@ class _ShellScaffold extends ConsumerWidget {
     // branchIndex matches the StatefulShellBranch order above (fixed —
     // filtering only changes which of these show, never their identity).
     // Analytics is business-sensitive and owner-only; Settings always stays
-    // visible even in Staff mode — it's the only way back to Owner (PIN).
+    // visible so account/session controls remain reachable for all roles.
     final allDestinations = <_Dest>[
       _Dest(0, Icons.point_of_sale, l.navSell),
       _Dest(1, Icons.inventory_2, l.navInventory),
@@ -77,9 +77,9 @@ class _ShellScaffold extends ConsumerWidget {
     var selectedIndex =
         destinations.indexWhere((d) => d.branchIndex == shell.currentIndex);
     if (selectedIndex < 0) {
-      // The branch we were on just became hidden (e.g. an owner viewing
-      // Analytics switched the device to Staff mode) — bounce to Sell rather
-      // than crash the nav widget on an out-of-range selected index.
+      // The branch we were on just became hidden (e.g. role changed from owner
+      // to staff after auth refresh) — bounce to Sell rather than crash the
+      // nav widget on an out-of-range selected index.
       selectedIndex = 0;
       WidgetsBinding.instance
           .addPostFrameCallback((_) => shell.goBranch(0, initialLocation: true));

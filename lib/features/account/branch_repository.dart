@@ -252,24 +252,29 @@ class BranchRepository {
 
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
-    final res = await Supabase.instance.client.functions.invoke(
-      'activate',
-      body: {'action': 'list_branches'},
-    );
-    final data = res.data as Map<String, dynamic>;
-    if (data['ok'] != true) {
-      throw BranchListException((data['error'] as String?) ?? 'server_error');
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'list_branches'},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] != true) {
+        throw BranchListException((data['error'] as String?) ?? 'server_error');
+      }
+      final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
+      return branches
+          .map(
+            (b) => Branch(
+              shopId: b['shop_id'] as String,
+              label: b['label'] as String?,
+              isCurrent: b['is_current'] as bool? ?? false,
+            ),
+          )
+          .toList();
+    } catch (e) {
+      if (e is BranchListException) rethrow;
+      throw const BranchListException('network_error');
     }
-    final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
-    return branches
-        .map(
-          (b) => Branch(
-            shopId: b['shop_id'] as String,
-            label: b['label'] as String?,
-            isCurrent: b['is_current'] as bool? ?? false,
-          ),
-        )
-        .toList();
   }
 
   /// Mints a brand new branch from just a name — no separate license key
@@ -420,6 +425,21 @@ class BranchRepository {
     } catch (_) {
       await saveStep(BranchSwitchStep.refreshingSession, error: 'auth_expired');
       return const BranchSwitchResult.failure('auth_expired');
+    }
+    var refreshedShopId =
+        auth.currentUser?.appMetadata['shop_id'] as String?;
+    if (refreshedShopId != shopId) {
+      try {
+        await Supabase.instance.client.auth.refreshSession();
+        refreshedShopId = auth.currentUser?.appMetadata['shop_id'] as String?;
+      } catch (_) {}
+    }
+    if (refreshedShopId != shopId) {
+      await saveStep(
+        BranchSwitchStep.refreshingSession,
+        error: 'invalid_branch_state',
+      );
+      return const BranchSwitchResult.failure('invalid_branch_state');
     }
 
     await saveStep(BranchSwitchStep.clearingOldData);

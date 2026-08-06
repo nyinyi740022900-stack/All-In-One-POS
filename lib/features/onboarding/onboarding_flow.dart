@@ -12,8 +12,9 @@ import '../printing/printing_providers.dart';
 
 /// First-run, one-time flow: mode choice (Offline/Online), welcome +
 /// language, shop profile + license/trial (Offline) or a self-serve signup
-/// (Online), and an Owner/Staff-mode primer. Shown once per install (gated
-/// by `SettingsRepository.onboardingComplete`); never re-shown after.
+/// (Online), and a brief owner/staff account-role primer. Shown once per
+/// install (gated by `SettingsRepository.onboardingComplete`); never re-shown
+/// after.
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key, required this.onDone});
   final VoidCallback onDone;

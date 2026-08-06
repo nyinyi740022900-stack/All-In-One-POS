@@ -870,7 +870,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း စသဖြင့်)။ Premium features (Analytics၊ Suppliers၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — KBZPay/WavePay နဲ့ License key ဝယ်နိုင်တယ်၊ ဒါမှမဟုတ် Shop Login account နဲ့ subscribe လုပ်နိုင်ပါတယ်။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့နဲ့ Key အစား Online subscribe လုပ်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း စသဖြင့်)။ Premium features (Analytics၊ Suppliers၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — KBZPay/WavePay နဲ့ License key ဝယ်နိုင်တယ်၊ ဒါမှမဟုတ် Shop Login account နဲ့ subscribe လုပ်နိုင်ပါတယ်။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့နဲ့ Key အစား Online subscribe လုပ်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Staff accounts\" နှင့် \"Branches\" — ဝန်ထမ်း account များ စီမံရန်၊ owner account တစ်ခုတည်းအောက်က branch များကြား ဒီ device ကို ပြောင်းသုံးရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -2063,7 +2063,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderFilterPayment => 'ငွေပေးချေမှု';
 
   @override
-  String get staffMode => 'ဝန်ထမ်း mode';
+  String get staffMode => 'ဝန်ထမ်း';
 
   @override
   String get staffRoleOwner => 'ပိုင်ရှင်';
@@ -2112,10 +2112,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get staffOwnerOnlyDesc =>
-      'ဒါကို ကြည့်ရန် Owner mode (Settings) သို့ ပြောင်းပါ။';
+      'ဒီ screen ကို Owner account နဲ့သာ ကြည့်နိုင်ပါတယ်။';
 
   @override
-  String get staffBadge => 'ဝန်ထမ်း mode';
+  String get staffBadge => 'ဝန်ထမ်း';
 
   @override
   String get staffManageMembers => 'ဝန်ထမ်းများ စီမံရန်';
@@ -2383,18 +2383,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardActivateNow => 'License key ချက်ချင်း activate';
 
   @override
-  String get onboardStaffTitle => 'Owner နှင့် Staff Mode';
+  String get onboardStaffTitle => 'Owner နှင့် Staff Accounts';
 
   @override
   String get onboardStaffBody =>
-      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။';
+      'အသုံးပြုခွင့်ကို account role နဲ့ ထိန်းပါတယ်။ Owner နဲ့ Staff တို့က ကိုယ်ပိုင် email/password နဲ့ဝင်ရောက်အသုံးပြုရပြီး ဒီ app မှာ device-local Staff mode (သို့) Owner PIN switch ကို မသုံးတော့ပါ။';
 
   @override
   String get accountShopLoginTitle => 'ဆိုင် Login';
 
   @override
   String get accountShopLoginHint =>
-      'ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
+      'ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login အသုံးပြုနိုင်ပါတယ်။ အသုံးပြုခွင့်တွေကို account role (owner/staff) နဲ့ပဲ စီမံပါတယ်။';
 
   @override
   String get accountEmail => 'အီးမေးလ်';
@@ -2454,7 +2454,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountSignOutConfirmBody =>
-      'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။ Device-key activation နဲ့ local PIN quick-switch ကို ဒါက မထိခိုက်ပါ။';
+      'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။ ပြန်ဝင်ပြီးနောက် permission ကို account role အတိုင်း ပြန်လည်သတ်မှတ်ပါမယ်။';
 
   @override
   String get accountSignInWipeConfirmTitle =>
