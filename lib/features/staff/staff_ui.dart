@@ -27,11 +27,16 @@ class OwnerOnlyGate extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock_outline,
-                size: 56, color: Theme.of(context).colorScheme.outlineVariant),
+            Icon(
+              Icons.lock_outline,
+              size: 56,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             const SizedBox(height: 12),
-            Text(l.staffOwnerOnly,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.staffOwnerOnly,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
             Text(l.staffOwnerOnlyDesc, textAlign: TextAlign.center),
           ],
@@ -62,8 +67,10 @@ class StaffBadge extends ConsumerWidget {
         children: [
           const Icon(Icons.badge_outlined, size: 14),
           const SizedBox(width: 4),
-          Text(name ?? l.staffBadge,
-              style: Theme.of(context).textTheme.labelSmall),
+          Text(
+            name ?? l.staffBadge,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
         ],
       ),
     );
@@ -104,6 +111,24 @@ Future<String?> promptPin(BuildContext context, String title) {
   );
 }
 
+/// Extra confirmation for owner-sensitive actions (branch/account/tier
+/// changes). If no owner PIN is set, this returns true immediately.
+Future<bool> requireOwnerPinReauth(BuildContext context, WidgetRef ref) async {
+  final l = AppLocalizations.of(context);
+  final ctrl = ref.read(staffControllerProvider);
+  if (!await ctrl.hasPin()) return true;
+  if (!context.mounted) return false;
+  final pin = await promptPin(context, l.staffEnterPin);
+  if (pin == null || pin.isEmpty || !context.mounted) return false;
+  final ok = await ctrl.verifyOwnerPin(pin);
+  if (!ok && context.mounted) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+  }
+  return ok;
+}
+
 /// Settings section to switch between Owner and Staff mode, and manage the
 /// owner PIN. Switching to Staff is free; switching to Owner prompts for the
 /// PIN. Deliberately just two modes — a finer-grained role tier was tried and
@@ -112,14 +137,18 @@ class StaffModeCard extends ConsumerWidget {
   const StaffModeCard({super.key});
 
   Future<void> _switchTo(
-      BuildContext context, WidgetRef ref, String target) async {
+    BuildContext context,
+    WidgetRef ref,
+    String target,
+  ) async {
     final l = AppLocalizations.of(context);
     final ctrl = ref.read(staffControllerProvider);
     if (target == 'owner') {
       final cooldown = ctrl.ownerPinCooldownRemainingSeconds();
       if (cooldown > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l.staffPinTryAgainIn(cooldown))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.staffPinTryAgainIn(cooldown))));
         return;
       }
     }
@@ -134,8 +163,9 @@ class StaffModeCard extends ConsumerWidget {
         if (pickedId == _skipNamedStaff) {
           final ok = await ctrl.switchRole('staff');
           if (!ok && context.mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
           }
           return;
         }
@@ -143,8 +173,9 @@ class StaffModeCard extends ConsumerWidget {
         if (pin == null || !context.mounted) return;
         final ok = await ctrl.switchToStaffMember(pickedId, pin);
         if (!ok && context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
         }
         return;
       }
@@ -159,11 +190,13 @@ class StaffModeCard extends ConsumerWidget {
     final ok = await ctrl.switchRole(target, pin: pin);
     if (!ok && context.mounted) {
       final remaining = ctrl.ownerPinCooldownRemainingSeconds();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(
-              content: Text(remaining > 0
-                  ? l.staffPinTryAgainIn(remaining)
-                  : l.staffWrongPin)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            remaining > 0 ? l.staffPinTryAgainIn(remaining) : l.staffWrongPin,
+          ),
+        ),
+      );
     }
   }
 
@@ -173,7 +206,9 @@ class StaffModeCard extends ConsumerWidget {
   /// fall back to plain (unnamed) Staff mode. Returns the member id, the
   /// [_skipNamedStaff] sentinel, or null if dismissed without a choice.
   Future<String?> _pickStaffMemberId(
-      BuildContext context, List<StaffMember> members) {
+    BuildContext context,
+    List<StaffMember> members,
+  ) {
     final l = AppLocalizations.of(context);
     return showModalBottomSheet<String>(
       context: context,
@@ -185,8 +220,10 @@ class StaffModeCard extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(l.staffWhoAreYou,
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              child: Text(
+                l.staffWhoAreYou,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
             ),
             const SizedBox(height: 8),
             for (final m in members)
@@ -213,7 +250,7 @@ class StaffModeCard extends ConsumerWidget {
     final ctrl = ref.watch(staffControllerProvider);
     final ownerCooldown =
         ref.watch(ownerPinCooldownSecondsProvider).valueOrNull ??
-            ctrl.ownerPinCooldownRemainingSeconds();
+        ctrl.ownerPinCooldownRemainingSeconds();
     final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
     final isOwner = role == 'owner';
 
@@ -228,9 +265,11 @@ class StaffModeCard extends ConsumerWidget {
         for (final target in staffRoles)
           if (target != role)
             ListTile(
-              leading: Icon(target == 'owner'
-                  ? Icons.lock_open_outlined
-                  : Icons.badge_outlined),
+              leading: Icon(
+                target == 'owner'
+                    ? Icons.lock_open_outlined
+                    : Icons.badge_outlined,
+              ),
               title: Text(l.staffSwitchTo(staffRoleLabel(l, target))),
               subtitle: target == 'owner' && ownerCooldown > 0
                   ? Text(l.staffPinTryAgainIn(ownerCooldown))
@@ -250,13 +289,15 @@ class StaffModeCard extends ConsumerWidget {
               try {
                 await ref.read(staffControllerProvider).setPin(pin);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text(l.staffPinSaved)));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(l.staffPinSaved)));
                 }
               } on ArgumentError {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
                 }
               }
             },
@@ -266,9 +307,9 @@ class StaffModeCard extends ConsumerWidget {
             leading: const Icon(Icons.groups_outlined),
             title: Text(l.staffManageMembers),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const StaffMembersScreen(),
-            )),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StaffMembersScreen()),
+            ),
           ),
       ],
     );

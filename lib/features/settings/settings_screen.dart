@@ -134,17 +134,31 @@ class SettingsScreen extends ConsumerWidget {
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: Text(l.staffAccountsTitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StaffAccountsScreen()),
-              ),
+              onTap: () async {
+                if (!await requireOwnerPinReauth(context, ref) ||
+                    !context.mounted) {
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const StaffAccountsScreen(),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.store_mall_directory_outlined),
               title: Text(l.branchesTitle),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const BranchesScreen())),
+              onTap: () async {
+                if (!await requireOwnerPinReauth(context, ref) ||
+                    !context.mounted) {
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const BranchesScreen()),
+                );
+              },
             ),
             _PricingTierTile(),
           ],
@@ -525,6 +539,8 @@ class _PricingTierTile extends ConsumerWidget {
     String newTier,
   ) async {
     final l = AppLocalizations.of(context);
+    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

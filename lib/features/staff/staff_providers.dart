@@ -200,6 +200,12 @@ class StaffController {
           ?.isNotEmpty ??
       false;
 
+  Future<bool> verifyOwnerPin(String pin) {
+    return _ref
+        .read(settingsRepositoryProvider)
+        .verifyStaffPin(_ref.read(shopIdProvider), pin.trim());
+  }
+
   Future<void> setPin(String pin) async {
     if (!isValidOwnerPin(pin)) {
       throw ArgumentError('owner PIN must be 4-6 digits');

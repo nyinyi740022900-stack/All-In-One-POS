@@ -64,6 +64,8 @@ class BranchesScreen extends ConsumerWidget {
 
   Future<void> _createBranch(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!context.mounted) return;
     final name = TextEditingController();
     final submitted = await showDialog<bool>(
       context: context,
@@ -108,6 +110,8 @@ class BranchesScreen extends ConsumerWidget {
 
   Future<void> _linkBranch(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!context.mounted) return;
     final key = TextEditingController();
     final label = TextEditingController();
     final submitted = await showDialog<bool>(
@@ -901,6 +905,8 @@ class _BranchesBody extends ConsumerWidget {
     Branch b,
   ) async {
     final l = AppLocalizations.of(context);
+    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!context.mounted) return;
     final stuck = ref.read(stuckOutboxProvider).valueOrNull ?? const [];
     if (stuck.isNotEmpty) {
       final openIssues = await showDialog<bool>(
@@ -1078,6 +1084,8 @@ class _BranchesBody extends ConsumerWidget {
     Branch b,
   ) async {
     final l = AppLocalizations.of(context);
+    if (!await requireOwnerPinReauth(context, ref)) return;
+    if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
