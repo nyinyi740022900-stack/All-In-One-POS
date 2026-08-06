@@ -10,6 +10,10 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
     ref.watch(licenseRepositoryProvider),
     ref.watch(settingsRepositoryProvider),
     ref.watch(databaseProvider),
+    onShopDbSwap: (toShopId) async {
+      final session = ref.read(databaseSessionProvider);
+      await session?.reopenForShop(toShopId);
+    },
   );
 });
 

@@ -51,7 +51,10 @@ bool isDuplicateColumnMigrationError(Object error) {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_open());
+  AppDatabase() : super(_openDefault());
+
+  /// Opens (or creates) a database at an explicit [file] path.
+  AppDatabase.forFile(File file) : super(_openFile(file));
 
   /// For tests: inject an in-memory executor.
   AppDatabase.forTesting(super.executor);
@@ -257,9 +260,10 @@ class AppDatabase extends _$AppDatabase {
   /// it does NOT touch the outbox itself, so an unsynced write would
   /// otherwise be silently discarded along with everything else.
   ///
-  /// Cutover note: [fileNameForShop] / [pathForShop] exist so a future
-  /// per-shop SQLite swap can replace this wipe. Until that cutover,
-  /// production still opens [kLegacyDbFileName] only.
+  /// Wipes synced business tables in **this** database file. Used by the
+  /// legacy shared-DB branch/account path and by restore/import. Does not
+  /// delete other shops' SQLite files when [usePerShopDbFiles] is on —
+  /// shop switch uses [DatabaseSession.reopenForShop] instead.
   Future<void> wipeSyncedData() {
     return transaction(() async {
       await delete(categories).go();
@@ -301,12 +305,17 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// Legacy single-file DB used by all shops until per-shop cutover.
+  /// Legacy single-file DB used before per-shop cutover (and as a temporary
+  /// pre-activation file when no shopId exists yet).
   static const kLegacyDbFileName = 'mm_pos.sqlite';
 
-  /// When true, [_open] would use [fileNameForShop]. Kept false: wipe path
-  /// remains the production branch-switch strategy.
-  static const usePerShopDbFiles = false;
+  /// Device-global settings sidecar (printer, locale, license cache, …).
+  static const kDeviceDbFileName = 'mm_pos_device.sqlite';
+
+  /// When true, each shop has its own SQLite file and branch switch reopens
+  /// that file instead of wiping the shared DB. Device-global keys live in
+  /// [kDeviceDbFileName] (see [SettingsRepository.isDeviceGlobalKey]).
+  static const usePerShopDbFiles = true;
 
   static String sanitizeShopIdForFile(String shopId) =>
       shopId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
@@ -322,20 +331,34 @@ class AppDatabase extends _$AppDatabase {
   static String legacyDbPath(String documentsDir) =>
       p.join(documentsDir, kLegacyDbFileName);
 
-  static QueryExecutor _open() {
+  static QueryExecutor _openDefault() {
     return LazyDatabase(() async {
       final dir = await getApplicationDocumentsDirectory();
-      final fileName = usePerShopDbFiles
-          ? fileNameForShop('') // unused until cutover wires active shopId
-          : kLegacyDbFileName;
-      final file = File(p.join(dir.path, fileName));
-      // Work around old Android sqlite; keep tmpdir set for large ops.
-      if (Platform.isAndroid) {
-        await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
-      }
-      final cachebase = (await getTemporaryDirectory()).path;
-      sqlite3.tempDirectory = cachebase;
-      return NativeDatabase.createInBackground(file);
+      final file = File(p.join(dir.path, kLegacyDbFileName));
+      return _nativeExecutor(file);
     });
+  }
+
+  static QueryExecutor _openFile(File file) {
+    return LazyDatabase(() async {
+      final target = file.path.isEmpty
+          ? File(
+              p.join(
+                (await getApplicationDocumentsDirectory()).path,
+                kLegacyDbFileName,
+              ),
+            )
+          : file;
+      return _nativeExecutor(target);
+    });
+  }
+
+  static Future<QueryExecutor> _nativeExecutor(File file) async {
+    if (Platform.isAndroid) {
+      await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
+    }
+    final cachebase = (await getTemporaryDirectory()).path;
+    sqlite3.tempDirectory = cachebase;
+    return NativeDatabase.createInBackground(file);
   }
 }

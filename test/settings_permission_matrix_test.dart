@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/features/account/account_providers.dart';
+import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 
 void main() {
@@ -13,6 +14,11 @@ void main() {
         overrides: [
           staffRoleProvider.overrideWith((ref) => Stream.value(localRole)),
           backendAccountRoleProvider.overrideWithValue(backendRole),
+          // sessionScope also watches these — don't open a real SQLite file.
+          activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
         ],
       );
     }

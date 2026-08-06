@@ -9,6 +9,7 @@ import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/domain/product_with_stock.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
+import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/features/sell/sell_screen.dart';
@@ -48,6 +49,10 @@ void main() {
           // The router's role-based tab filter watches this — single-value
           // so it doesn't leave a pending Drift stream under the fake clock.
           staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
+          activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
         ],
         child: const MmPosApp(),
       ),

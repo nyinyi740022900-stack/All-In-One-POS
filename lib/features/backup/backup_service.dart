@@ -7,12 +7,13 @@ import 'package:path_provider/path_provider.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/settings_repository.dart';
 
-/// Import/export of the shop's business data as a single JSON file.
+/// Import/export of the **active shop's** business data as a single JSON file.
 ///
 /// The backup covers the ledger tables (products, sales, stock, credit, …) but
 /// deliberately excludes device-local state — `app_settings` (device id,
-/// license cache, printer config) and the `outbox` — so restoring a backup on
-/// the same device never clobbers its identity or pending sync queue.
+/// license cache, printer config — including the device sidecar after
+/// per-shop cutover) and the `outbox` — so restoring a backup on the same
+/// device never clobbers its identity or pending sync queue.
 class BackupService {
   BackupService(this._db, this._settings);
 

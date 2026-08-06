@@ -148,14 +148,17 @@ class BranchSwitchVerification {
 
 /// Lets a real-login owner (see `account_repository.dart`) group multiple
 /// shop_ids they own as "branches" and switch which one this device is
-/// scoped to. Switching wipes and resyncs local data — this app's local
-/// Drift DB isn't partitioned per shop, so an in-place claim swap alone
-/// would leave stale rows and a sync cursor pointed at the wrong shop's
-/// high-water mark. See the `org_branches` migration + the `activate`
-/// Edge Function's `link_branch`/`list_branches`/`unlink_branch`/
-/// `switch_branch` actions for the server-side half of this.
+/// scoped to. With [AppDatabase.usePerShopDbFiles], switch closes the
+/// current shop SQLite file and opens the target's (no wipe). Legacy mode
+/// still wipes the shared DB then resyncs. See `org_branches` + `activate`
+/// `link_branch`/`list_branches`/`unlink_branch`/`switch_branch`.
 class BranchRepository {
-  BranchRepository(this._db, this._licenseRepository, this._settings);
+  BranchRepository(
+    this._db,
+    this._licenseRepository,
+    this._settings, {
+    this.onShopDbSwap,
+  });
 
   final AppDatabase _db;
   late final ShopDataTransitionService _transition = ShopDataTransitionService(
@@ -163,6 +166,10 @@ class BranchRepository {
   );
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
+
+  /// When per-shop DB files are on: reopen the target shop file after
+  /// [ShopDataTransitionService.prepareShopSwitch] (which skips wipe).
+  final Future<void> Function(String toShopId)? onShopDbSwap;
 
   Future<void> _saveRecoveryState(BranchSwitchRecoveryState state) =>
       _settings.setBranchSwitchStateJson(jsonEncode(state.toJson()));
@@ -448,10 +455,13 @@ class BranchRepository {
 
     await saveStep(BranchSwitchStep.clearingOldData);
     onStep?.call(BranchSwitchStep.clearingOldData);
-    await _transition.prepareShopSwitch(
+    final prep = await _transition.prepareShopSwitch(
       fromShopId: fromShopId,
       toShopId: shopId,
     );
+    if (!prep.usedWipeFallback) {
+      await onShopDbSwap?.call(shopId);
+    }
 
     final now = DateTime.now();
     final deviceId = await _settings.deviceId();
@@ -467,6 +477,7 @@ class BranchRepository {
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
       tier: data['tier'] as String? ?? 'offline',
     );
+    // license.json is device-global (sidecar) — safe after shop DB reopen.
     await _licenseRepository.saveExternal(lic);
     return BranchSwitchResult.success(lic);
   }

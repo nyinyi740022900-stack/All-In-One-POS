@@ -102,6 +102,23 @@ lib/
 
 - Store money as **integer minor units? No** — MMK has no widely used minor unit; store as integer **kyat** (`int`). A `Money` value object wraps `int amountKyat`. All arithmetic in integers to avoid float drift. Display with thousands separators.
 
+### 4.4 Per-shop SQLite + device sidecar (locked)
+
+**Decision (2026-08-06):** cut over from a single `mm_pos.sqlite` to:
+
+| File | Holds |
+|---|---|
+| `mm_pos_device.sqlite` | Device-global settings only: printer/label, `device.id`, `license.json`, `app.locale`, onboarding, `branch.switch.state`, vendor config cache, etc. (`SettingsRepository.isDeviceGlobalKey`) |
+| `mm_pos_<shopId>.sqlite` | Synced business tables + shop-scoped settings (receipt header, track_stock, staff role/PIN keys, sync cursors, …) |
+
+**Branch / account switch:** close current shop DB → open target shop file (create empty if missing) → Riverpod rebinds via `DatabaseSession` → incremental sync. **Do not wipe** other shops' files.
+
+**Account wipe-and-claim (sign into a different shop's account):** same as switch — reopen target shop file; leave other shop files on disk. Outbox precheck still runs on the *from* shop before close.
+
+**Legacy migrate (one-shot on open):** if `mm_pos.sqlite` exists and sidecar/shop files are missing, copy device keys → sidecar, copy file → `mm_pos_<currentShopId>.sqlite` (strip device keys from the shop copy), rename legacy to `mm_pos.sqlite.bak`.
+
+**Deferred:** making `switch_token` required on `activate` (optional until old clients are gone).
+
 ---
 
 ## 5. Data Model (v1)
@@ -308,6 +325,7 @@ project's existing convention for UI-only changes.
 
 ## 12. Change Log
 
+| 2026-08-06 | 74 | **Priority C cutover (C2–C5): per-shop SQLite + device sidecar.** Locked design in §4.4. `DatabaseSession` opens `mm_pos_device.sqlite` + `mm_pos_<shopId>.sqlite` (`usePerShopDbFiles=true`); one-shot legacy migrate from `mm_pos.sqlite`. `SettingsRepository` routes device-global keys to the sidecar. Branch/account switch and Free-plan entry **reopen** the target shop file (no wipe of other shops); `prepareShopSwitch` skips wipe when the flag is on. Activation rebinds the shop DB. Backup still exports the *active* shop ledger (unchanged). Tests: migrator + path/transition updates. `switch_token` remains optional (#73). Real-device A→B→A smoke deferred. |
 | 2026-08-06 | 73 | **`switch_token` server-side idempotency for `switch_branch`.** New migration `0052_branch_switch_attempts` (owner-scoped RLS) stores successful switch payloads keyed by `(owner_user_id, switch_token)`. `activate` `handleSwitchBranch` now accepts optional `switch_token`: replay returns the stored JSON; first success upserts the attempt; missing token keeps legacy behavior for older clients. Also treats already-on-target as idempotent success. Client already sent the token (#55). Deploy: `db push` + `functions deploy activate`. |
 | 2026-08-06 | 72 | **Ops: redeployed `activate` Edge Function + pushed local main (11 commits) to origin.** Ships the legacy `org_branches` self-heal from #62 (`list_branches` / `switch_branch` upsert current shop) to production project `gnikispsurwrmkspuisj`, and publishes branch/role Priority A–C leftover commits through `438ca72`. No schema migration. |
 | 2026-08-06 | 71 | **Priority C foundation: per-shop SQLite path helpers + `prepareShopSwitch` (wipe cutover deferred).** Added `AppDatabase.fileNameForShop`/`pathForShop`/`legacyDbPath` with `usePerShopDbFiles=false` so production still opens `mm_pos.sqlite`. `ShopDataTransitionService.prepareShopSwitch` computes the future target filename then still wipes via `clearShopScopedData`; branch/account switch call sites now go through that API. Tests: `app_database_shop_path_test`, extended `shop_data_transition_service_test`. Explicitly **defers** multi-file DB cutover / dropping wipe. Validation: analyze + targeted tests. |

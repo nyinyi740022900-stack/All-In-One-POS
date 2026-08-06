@@ -7,7 +7,10 @@ import '../invoices/receipt_formatter.dart';
 import 'printer_service.dart';
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
-  return SettingsRepository(ref.watch(databaseProvider));
+  return SettingsRepository(
+    ref.watch(databaseProvider),
+    deviceDb: ref.watch(deviceDatabaseProvider),
+  );
 });
 
 final printerServiceProvider = Provider<PrinterService>((ref) {

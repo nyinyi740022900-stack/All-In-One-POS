@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/env.dart';
 import '../../core/providers.dart';
+import '../../data/local/database.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import 'license_repository.dart';
@@ -92,7 +93,10 @@ class LicenseController extends StateNotifier<LicenseState> {
 
   Future<ActivationResult> activate(String key) async {
     final result = await _repo.activate(key);
-    if (result.ok) _apply(result.license);
+    if (result.ok && result.license != null) {
+      await _reopenShopDbIfNeeded(result.license!.shopId);
+      _apply(result.license);
+    }
     return result;
   }
 
@@ -121,17 +125,20 @@ class LicenseController extends StateNotifier<LicenseState> {
   /// device that already has real synced data under a DIFFERENT shop: never
   /// silently mixes data under the new Free shopId. Refuses (returns false)
   /// if there are unsynced writes — same check `BranchRepository.switchBranch`
-  /// uses — and wipes local data first if actually switching shops, exactly
-  /// like a branch switch would.
+  /// uses. Legacy shared-DB mode wipes; per-shop mode reopens the Free
+  /// shop file and leaves other shops' files intact.
   Future<bool> continueFree() async {
     final current = await _repo.current();
     if (current != null) {
       final db = _ref.read(databaseProvider);
       final pending = await db.select(db.outbox).get();
       if (pending.isNotEmpty) return false;
-      await db.wipeSyncedData();
+      if (!AppDatabase.usePerShopDbFiles) {
+        await db.wipeSyncedData();
+      }
     }
     final lic = await _repo.startFreePlan();
+    await _reopenShopDbIfNeeded(lic.shopId);
     _apply(lic);
     return true;
   }
@@ -140,6 +147,7 @@ class LicenseController extends StateNotifier<LicenseState> {
   Future<bool> startFreeTrial() async {
     final lic = await _repo.startFreeTrial(_ref.read(shopIdProvider));
     if (lic == null) return false;
+    await _reopenShopDbIfNeeded(lic.shopId);
     _apply(lic);
     return true;
   }
@@ -168,7 +176,15 @@ class LicenseController extends StateNotifier<LicenseState> {
   /// Applies a [CachedLicense] that was already persisted elsewhere (e.g. by
   /// [LicenseRepository.saveExternal] after a branch switch) — same
   /// shopId-binding + status recompute `activate()`/`load()` already do.
+  /// Callers that switch shops must reopen the shop DB *before* this when
+  /// [AppDatabase.usePerShopDbFiles] is on (branch/account repos do).
   void applyExternal(CachedLicense lic) => _apply(lic);
+
+  Future<void> _reopenShopDbIfNeeded(String shopId) async {
+    if (!AppDatabase.usePerShopDbFiles || shopId.isEmpty) return;
+    final session = _ref.read(databaseSessionProvider);
+    await session?.reopenForShop(shopId);
+  }
 
   void _apply(CachedLicense? lic) {
     final status = computeLicenseStatus(

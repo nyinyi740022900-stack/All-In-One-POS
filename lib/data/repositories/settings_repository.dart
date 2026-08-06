@@ -12,11 +12,34 @@ import '../local/database.dart';
 /// Device-scoped key/value settings (not synced). Backs printer config,
 /// shop receipt header/footer, etc.
 class SettingsRepository {
-  SettingsRepository(this._db, {FlutterSecureStorage? secureStorage})
-    : _secure = secureStorage ?? const FlutterSecureStorage();
+  SettingsRepository(
+    this._db, {
+    AppDatabase? deviceDb,
+    FlutterSecureStorage? secureStorage,
+  }) : _deviceDb = deviceDb ?? _db,
+       _secure = secureStorage ?? const FlutterSecureStorage();
 
   final AppDatabase _db;
+  final AppDatabase _deviceDb;
   final FlutterSecureStorage _secure;
+
+  /// Keys that live on the device sidecar after Priority C cutover.
+  static bool isDeviceGlobalKey(String key) {
+    if (key == 'device.id' ||
+        key == 'license.json' ||
+        key == 'license.trial_used' ||
+        key == 'onboarding.done' ||
+        key == 'app.locale' ||
+        key == 'referral.seen_earned' ||
+        key == 'branch.switch.state' ||
+        key == 'vendor.config.json') {
+      return true;
+    }
+    return key.startsWith('printer.') || key.startsWith('label_printer.');
+  }
+
+  AppDatabase _dbForKey(String key) =>
+      isDeviceGlobalKey(key) ? _deviceDb : _db;
 
   static const _kPaperSize = 'printer.paper_size';
   static const _kPdfPaperSize = 'printer.pdf_paper_size';
@@ -40,22 +63,25 @@ class SettingsRepository {
   static const _kStaffPinLockedUntil = 'staff.pin_locked_until';
 
   Future<String?> _get(String key) async {
-    final row = await (_db.select(
-      _db.appSettings,
+    final db = _dbForKey(key);
+    final row = await (db.select(
+      db.appSettings,
     )..where((s) => s.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
   Future<void> _set(String key, String value) {
-    return _db
-        .into(_db.appSettings)
+    final db = _dbForKey(key);
+    return db
+        .into(db.appSettings)
         .insertOnConflictUpdate(
           AppSettingsCompanion(key: Value(key), value: Value(value)),
         );
   }
 
   Future<void> _delete(String key) {
-    return (_db.delete(_db.appSettings)..where((s) => s.key.equals(key))).go();
+    final db = _dbForKey(key);
+    return (db.delete(db.appSettings)..where((s) => s.key.equals(key))).go();
   }
 
   /// Composes a per-shop settings key. An empty [shopId] (the
@@ -79,7 +105,7 @@ class SettingsRepository {
   }
 
   Stream<PrinterConfig> watchPrinterConfig() {
-    return _db.select(_db.appSettings).watch().map((rows) {
+    return _deviceDb.select(_deviceDb.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
       return PrinterConfig(
         paper: map[_kPaperSize] == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
@@ -125,7 +151,7 @@ class SettingsRepository {
   );
 
   Stream<LabelPrinterConfig> watchLabelPrinterConfig() {
-    return _db.select(_db.appSettings).watch().map((rows) {
+    return _deviceDb.select(_deviceDb.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
       return LabelPrinterConfig(
         size: _labelSizeFromKey(map[_kLabelSize]),

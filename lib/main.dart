@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/env.dart';
+import 'core/providers.dart';
+import 'data/local/database_session.dart';
 
 Future<void> main() async {
   // With a Sentry DSN configured, run inside Sentry so uncaught errors are
@@ -57,7 +59,19 @@ Future<void> _bootstrap() async {
       }
     }
 
-    runApp(const ProviderScope(child: MmPosApp()));
+    final session = await DatabaseSession.open();
+
+    runApp(
+      ProviderScope(
+        overrides: [
+          databaseSessionProvider.overrideWith((ref) {
+            ref.onDispose(session.disposeSessions);
+            return session;
+          }),
+        ],
+        child: const MmPosApp(),
+      ),
+    );
   }, (error, stack) {
     debugPrint('Uncaught zone error: $error');
     if (Env.hasCrashReporting) {

@@ -11,6 +11,10 @@ final branchRepositoryProvider = Provider<BranchRepository>((ref) {
     ref.watch(databaseProvider),
     ref.watch(licenseRepositoryProvider),
     ref.watch(settingsRepositoryProvider),
+    onShopDbSwap: (toShopId) async {
+      final session = ref.read(databaseSessionProvider);
+      await session?.reopenForShop(toShopId);
+    },
   );
 });
 

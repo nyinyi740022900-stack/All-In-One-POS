@@ -77,7 +77,12 @@ class StaffAccount {
 /// after a successful password sign-in, reusing that machinery as-is rather
 /// than duplicating it.
 class AccountRepository {
-  AccountRepository(this._licenseRepository, this._settings, this._db);
+  AccountRepository(
+    this._licenseRepository,
+    this._settings,
+    this._db, {
+    this.onShopDbSwap,
+  });
 
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
@@ -85,6 +90,10 @@ class AccountRepository {
   late final ShopDataTransitionService _transition = ShopDataTransitionService(
     _db,
   );
+
+  /// See [BranchRepository.onShopDbSwap]. Account wipe-and-claim opens the
+  /// target shop file and leaves other shops' SQLite files on disk.
+  final Future<void> Function(String toShopId)? onShopDbSwap;
 
   bool get isSignedInWithRealAccount {
     final user = Supabase.instance.client.auth.currentUser;
@@ -118,9 +127,9 @@ class AccountRepository {
   ///   re-signing in after a sign-out) — nothing to claim or resync.
   /// - This device was previously activated for a DIFFERENT shop (e.g. a
   ///   device-key-activated shop's owner signing into a different real
-  ///   account) — the local DB isn't partitioned per shop, so it must be
-  ///   wiped (same safety check as a branch switch: never while unsynced
-  ///   writes exist) before claiming a slot under the new shop.
+  ///   account) — reopen that account's shop SQLite file (legacy mode:
+  ///   wipe the shared DB) after the same outbox safety check as a
+  ///   branch switch, then claim a slot under the new shop.
   Future<AccountActionResult> signInAndClaimDevice(
     String email,
     String password,
@@ -163,9 +172,9 @@ class AccountRepository {
   /// Call only after the caller has shown the wipe-confirmation dialog
   /// prompted by [signInAndClaimDevice] returning
   /// [AccountActionResult.needsWipeConfirmation] and the user accepted.
-  /// Wipes local data (same safety check as a branch switch: never while
-  /// unsynced writes exist) then claims a device slot under the now-signed-in
-  /// account's shop.
+  /// Legacy: wipes the shared DB. Per-shop cutover: reopens the account's
+  /// shop file (other shops' files are kept). Never while unsynced writes
+  /// exist on the *current* shop DB.
   Future<AccountActionResult> confirmWipeAndClaimDevice() async {
     final clearGuard = await _transition.assertSafeToClear();
     if (clearGuard != null) {
@@ -179,10 +188,13 @@ class AccountRepository {
         Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
             as String? ??
         '';
-    await _transition.prepareShopSwitch(
+    final prep = await _transition.prepareShopSwitch(
       fromShopId: currentLic?.shopId ?? '',
       toShopId: targetShopId,
     );
+    if (!prep.usedWipeFallback && targetShopId.isNotEmpty) {
+      await onShopDbSwap?.call(targetShopId);
+    }
     return _claimDeviceSlot();
   }
 

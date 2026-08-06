@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/license/license_screen.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/l10n/app_localizations.dart';
@@ -11,6 +12,12 @@ void main() {
       ProviderScope(
         overrides: [
           staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+          activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
+          // Avoid AsyncLoading→owner default briefly opening the real body.
+          isEffectiveOwnerProvider.overrideWithValue(false),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

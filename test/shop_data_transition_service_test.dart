@@ -70,8 +70,16 @@ void main() {
   });
 
   test(
-    'prepareShopSwitch wipes and reports future per-shop filename',
+    'prepareShopSwitch skips wipe when usePerShopDbFiles (reports target file)',
     () async {
+      await db.into(db.categories).insert(
+            CategoriesCompanion.insert(
+              id: 'c1',
+              shopId: 'shop-a',
+              name: 'Keep',
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
       final prep = await service.prepareShopSwitch(
         fromShopId: 'shop-a',
         toShopId: 'shop-b',
@@ -79,7 +87,11 @@ void main() {
       expect(prep.fromShopId, 'shop-a');
       expect(prep.toShopId, 'shop-b');
       expect(prep.targetDbFileName, 'mm_pos_shop-b.sqlite');
-      expect(prep.usedWipeFallback, isTrue);
+      expect(prep.usedWipeFallback, isFalse);
+      expect(AppDatabase.usePerShopDbFiles, isTrue);
+      // Shared in-memory DB is not wiped — reopen path owns isolation.
+      final cats = await db.select(db.categories).get();
+      expect(cats, isNotEmpty);
     },
   );
 }
