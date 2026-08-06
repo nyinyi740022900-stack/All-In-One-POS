@@ -889,6 +889,8 @@
   "branchesPreflightTarget": "ပြောင်းမည့် ဆိုင်ခွဲ",
   "branchesPreflightPending": "မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: {count}",
   "@branchesPreflightPending": { "placeholders": { "count": { "type": "int" } } },
+  "branchesPreflightStuck": "Manual ဖြေရှင်းရန်လိုသော stuck change: {count}",
+  "@branchesPreflightStuck": { "placeholders": { "count": { "type": "int" } } },
   "branchesPreflightNetwork": "Network: {status}",
   "@branchesPreflightNetwork": { "placeholders": { "status": { "type": "String" } } },
   "branchesPreflightLastSync": "နောက်ဆုံး sync: {time}",

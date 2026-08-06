@@ -896,6 +896,8 @@
   "branchesPreflightTarget": "Target branch",
   "branchesPreflightPending": "Pending local changes: {count}",
   "@branchesPreflightPending": { "placeholders": { "count": { "type": "int" } } },
+  "branchesPreflightStuck": "Stuck changes needing manual action: {count}",
+  "@branchesPreflightStuck": { "placeholders": { "count": { "type": "int" } } },
   "branchesPreflightNetwork": "Network: {status}",
   "@branchesPreflightNetwork": { "placeholders": { "status": { "type": "String" } } },
   "branchesPreflightLastSync": "Last synced: {time}",

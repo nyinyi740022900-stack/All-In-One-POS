@@ -175,11 +175,13 @@ enum _BranchSwitchAction { cancel, syncAndSwitch }
 
 class _BranchPreflightInfo {
   final int pendingOutboxCount;
+  final int stuckOutboxCount;
   final bool online;
   final DateTime? lastSyncedAt;
 
   const _BranchPreflightInfo({
     required this.pendingOutboxCount,
+    required this.stuckOutboxCount,
     required this.online,
     required this.lastSyncedAt,
   });
@@ -573,9 +575,9 @@ class _BranchesBody extends ConsumerWidget {
   }
 
   Future<_BranchPreflightInfo> _runPreflight(WidgetRef ref) async {
-    final pending = await ref
+    final transition = await ref
         .read(branchRepositoryProvider)
-        .pendingOutboxCount();
+        .transitionPrecheck();
     bool online = true;
     try {
       final results = await Connectivity().checkConnectivity();
@@ -585,7 +587,8 @@ class _BranchesBody extends ConsumerWidget {
     }
     final lastSyncedAt = ref.read(syncControllerProvider).lastSyncedAt;
     return _BranchPreflightInfo(
-      pendingOutboxCount: pending,
+      pendingOutboxCount: transition.pendingOutboxCount,
+      stuckOutboxCount: transition.stuckOutboxCount,
       online: online,
       lastSyncedAt: lastSyncedAt,
     );
@@ -661,7 +664,7 @@ class _BranchesBody extends ConsumerWidget {
   ) {
     final l = AppLocalizations.of(context);
     final branchLabel = b.label?.isNotEmpty == true ? b.label! : b.shopId;
-    final canProceed = info.online;
+    final canProceed = info.online && info.stuckOutboxCount == 0;
     final networkText = info.online
         ? l.branchesNetworkOnline
         : l.branchesNetworkOffline;
@@ -701,6 +704,19 @@ class _BranchesBody extends ConsumerWidget {
                   l.branchesPreflightPending(info.pendingOutboxCount),
                 ),
               ),
+              if (info.stuckOutboxCount > 0)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Theme.of(ctx).colorScheme.error,
+                  ),
+                  title: Text(
+                    l.branchesPreflightStuck(info.stuckOutboxCount),
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
@@ -717,11 +733,13 @@ class _BranchesBody extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (!info.online)
+              if (!canProceed)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.space2),
                   child: Text(
-                    l.branchesPreflightNeedOnline,
+                    !info.online
+                        ? l.branchesPreflightNeedOnline
+                        : l.branchesSwitchBlockedStuckOutbox,
                     style: TextStyle(color: Theme.of(ctx).colorScheme.error),
                   ),
                 ),

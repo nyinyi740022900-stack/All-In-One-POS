@@ -332,6 +332,8 @@ class BranchRepository {
     return (await _transition.precheck()).pendingOutboxCount;
   }
 
+  Future<ShopTransitionPrecheck> transitionPrecheck() => _transition.precheck();
+
   /// Switches this device to a different branch: checks the outbox is fully
   /// drained (never wipes unsynced writes), calls `switch_branch`, refreshes
   /// the session so the new shop_id claim lands in the JWT, then wipes every

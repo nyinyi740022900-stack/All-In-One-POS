@@ -4916,6 +4916,12 @@ abstract class AppLocalizations {
   /// **'Pending local changes: {count}'**
   String branchesPreflightPending(int count);
 
+  /// No description provided for @branchesPreflightStuck.
+  ///
+  /// In en, this message translates to:
+  /// **'Stuck changes needing manual action: {count}'**
+  String branchesPreflightStuck(int count);
+
   /// No description provided for @branchesPreflightNetwork.
   ///
   /// In en, this message translates to:

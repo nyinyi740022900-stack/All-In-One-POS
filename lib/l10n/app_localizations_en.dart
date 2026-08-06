@@ -2655,6 +2655,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String branchesPreflightStuck(int count) {
+    return 'Stuck changes needing manual action: $count';
+  }
+
+  @override
   String branchesPreflightNetwork(String status) {
     return 'Network: $status';
   }

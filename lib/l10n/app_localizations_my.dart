@@ -2650,6 +2650,11 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String branchesPreflightStuck(int count) {
+    return 'Manual ဖြေရှင်းရန်လိုသော stuck change: $count';
+  }
+
+  @override
   String branchesPreflightNetwork(String status) {
     return 'Network: $status';
   }
