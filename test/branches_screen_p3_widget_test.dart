@@ -84,4 +84,49 @@ void main() {
     await pumpBranches(tester, online: false, pendingOutbox: 2);
     expect(find.text('Sync needed'), findsWidgets);
   });
+
+  testWidgets('shows generic action-failed state when branch list errors', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 1, 1);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isPremiumProvider.overrideWith((ref) => true),
+          isEffectiveOwnerProvider.overrideWith((ref) => true),
+          licenseControllerProvider.overrideWith(
+            (ref) => _FakeLicenseController(
+              ref,
+              license: CachedLicense(
+                key: 'K',
+                shopId: 'shop-main',
+                plan: LicensePlan.trial,
+                expiresAt: now.add(const Duration(days: 30)),
+                activatedAt: now,
+                lastVerifiedAt: now,
+                deviceId: 'device-1',
+              ),
+            ),
+          ),
+          branchesProvider.overrideWith((ref) async {
+            throw Exception('network_error');
+          }),
+          branchSwitchRecoveryProvider.overrideWith(
+            (ref) => const Stream.empty(),
+          ),
+          pendingOutboxCountProvider.overrideWith((ref) => Stream.value(0)),
+          branchConnectivityProvider.overrideWith((ref) => Stream.value(true)),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const BranchesScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final l = AppLocalizations.of(tester.element(find.byType(BranchesScreen)));
+    expect(find.text(l.accountActionFailed), findsOneWidget);
+  });
 }

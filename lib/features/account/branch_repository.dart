@@ -28,6 +28,11 @@ class BranchActionResult {
   const BranchActionResult.failure(this.error) : ok = false;
 }
 
+class BranchListException implements Exception {
+  final String code;
+  const BranchListException(this.code);
+}
+
 /// A switch's outcome carries the freshly-built [CachedLicense] for the
 /// target branch (from the `switch_branch` response) so the caller can apply
 /// it via [LicenseController.applyExternal] — this repository deliberately
@@ -124,6 +129,7 @@ class BranchSwitchRecoveryState {
 
 class BranchSwitchVerification {
   final bool ok;
+  final bool claimMatchesTarget;
   final bool shopMatchesTarget;
   final bool profileReadable;
   final bool categoryQueryOk;
@@ -131,6 +137,7 @@ class BranchSwitchVerification {
 
   const BranchSwitchVerification({
     required this.ok,
+    required this.claimMatchesTarget,
     required this.shopMatchesTarget,
     required this.profileReadable,
     required this.categoryQueryOk,
@@ -204,6 +211,10 @@ class BranchRepository {
   Future<BranchSwitchVerification> verifyPostSwitch(String targetShopId) async {
     final current = await _licenseRepository.current();
     final shopMatchesTarget = current?.shopId == targetShopId;
+    final claimShopId =
+        Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
+            as String?;
+    final claimMatchesTarget = claimShopId == targetShopId;
 
     bool profileReadable = false;
     try {
@@ -213,23 +224,25 @@ class BranchRepository {
 
     bool categoryQueryOk = false;
     try {
-      await _db.select(_db.categories).get();
-      categoryQueryOk = true;
+      final rows = await _db.select(_db.categories).get();
+      categoryQueryOk = rows.every((r) => r.shopId == targetShopId);
     } catch (_) {}
 
     bool productQueryOk = false;
     try {
-      await _db.select(_db.products).get();
-      productQueryOk = true;
+      final rows = await _db.select(_db.products).get();
+      productQueryOk = rows.every((r) => r.shopId == targetShopId);
     } catch (_) {}
 
     final ok =
+        claimMatchesTarget &&
         shopMatchesTarget &&
         profileReadable &&
         categoryQueryOk &&
         productQueryOk;
     return BranchSwitchVerification(
       ok: ok,
+      claimMatchesTarget: claimMatchesTarget,
       shopMatchesTarget: shopMatchesTarget,
       profileReadable: profileReadable,
       categoryQueryOk: categoryQueryOk,
@@ -239,26 +252,24 @@ class BranchRepository {
 
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
-    try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'list_branches'},
-      );
-      final data = res.data as Map<String, dynamic>;
-      if (data['ok'] != true) return const [];
-      final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
-      return branches
-          .map(
-            (b) => Branch(
-              shopId: b['shop_id'] as String,
-              label: b['label'] as String?,
-              isCurrent: b['is_current'] as bool? ?? false,
-            ),
-          )
-          .toList();
-    } catch (_) {
-      return const [];
+    final res = await Supabase.instance.client.functions.invoke(
+      'activate',
+      body: {'action': 'list_branches'},
+    );
+    final data = res.data as Map<String, dynamic>;
+    if (data['ok'] != true) {
+      throw BranchListException((data['error'] as String?) ?? 'server_error');
     }
+    final branches = (data['branches'] as List).cast<Map<String, dynamic>>();
+    return branches
+        .map(
+          (b) => Branch(
+            shopId: b['shop_id'] as String,
+            label: b['label'] as String?,
+            isCurrent: b['is_current'] as bool? ?? false,
+          ),
+        )
+        .toList();
   }
 
   /// Mints a brand new branch from just a name — no separate license key
@@ -435,7 +446,8 @@ class BranchRepository {
 }
 
 LicensePlan _planFrom(String s) => switch (s) {
-  'yearly' => LicensePlan.yearly,
-  'monthly' => LicensePlan.monthly,
-  _ => LicensePlan.trial,
-};
+      'yearly' => LicensePlan.yearly,
+      'monthly' => LicensePlan.monthly,
+      'free' => LicensePlan.free,
+      _ => LicensePlan.trial,
+    };

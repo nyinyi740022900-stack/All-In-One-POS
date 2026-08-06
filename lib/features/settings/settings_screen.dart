@@ -127,7 +127,7 @@ class SettingsScreen extends ConsumerWidget {
               builder: (_) => const ShopLoginScreen(),
             )),
           ),
-          if (ref.read(accountRepositoryProvider).isSignedInWithRealAccount &&
+          if (ref.watch(backendAccountRoleProvider) != null &&
               ref.watch(isEffectiveOwnerProvider)) ...[
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
