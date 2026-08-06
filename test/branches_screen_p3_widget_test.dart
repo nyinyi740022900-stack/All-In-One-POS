@@ -87,7 +87,7 @@ void main() {
     expect(find.text('Sync needed'), findsWidgets);
   });
 
-  testWidgets('shows generic action-failed state when branch list errors', (
+  testWidgets('shows network retry state when branch list errors', (
     tester,
   ) async {
     final now = DateTime.utc(2026, 1, 1);
@@ -110,9 +110,9 @@ void main() {
               ),
             ),
           ),
-          branchesProvider.overrideWith((ref) async {
-            throw Exception('network_error');
-          }),
+          branchesProvider.overrideWith(
+            (ref) async => throw const BranchListException('network_error'),
+          ),
           branchSwitchRecoveryProvider.overrideWith(
             (ref) => const Stream.empty(),
           ),
@@ -129,6 +129,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     final l = AppLocalizations.of(tester.element(find.byType(BranchesScreen)));
-    expect(find.text(l.accountActionFailed), findsOneWidget);
+    expect(find.text(l.branchesNetworkRetry), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, l.syncNow), findsOneWidget);
   });
 }

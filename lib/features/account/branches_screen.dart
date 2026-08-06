@@ -366,7 +366,26 @@ class _BranchesBody extends ConsumerWidget {
     final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => Center(child: Text(l.accountActionFailed)),
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _branchListErrorMessage(l, error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTheme.space2),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(branchesProvider),
+                icon: const Icon(Icons.refresh),
+                label: Text(l.syncNow),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (branches) {
         if (branches.isEmpty) {
           return Center(
@@ -584,6 +603,18 @@ class _BranchesBody extends ConsumerWidget {
       'post_switch_verify_failed' => l.branchesVerifyBody,
       _ => l.accountActionFailed,
     };
+  }
+
+  String _branchListErrorMessage(AppLocalizations l, Object error) {
+    if (error is BranchListException) {
+      return switch (error.code) {
+        'auth_expired' => l.branchesAuthExpired,
+        'network_error' => l.branchesNetworkRetry,
+        'forbidden' || 'not_linked' => l.branchesInvalidState,
+        _ => l.accountActionFailed,
+      };
+    }
+    return l.accountActionFailed;
   }
 
   Future<_BranchSwitchAction?> _showPreflightDialog(
