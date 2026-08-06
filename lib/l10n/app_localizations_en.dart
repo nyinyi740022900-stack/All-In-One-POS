@@ -2663,6 +2663,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'You are offline. Connect to the internet before switching.';
 
   @override
+  String get branchesPreflightSyncAndSwitch => 'Sync and switch';
+
+  @override
   String get branchesPreflightSyncFirst => 'Sync first';
 
   @override

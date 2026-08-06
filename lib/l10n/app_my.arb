@@ -892,6 +892,7 @@
   "@branchesPreflightLastSync": { "placeholders": { "time": { "type": "String" } } },
   "branchesPreflightNeedSync": "local data မပျောက်အောင် အရင် Sync လုပ်ပြီးမှ ပြောင်းပါ။",
   "branchesPreflightNeedOnline": "လက်ရှိ Offline ဖြစ်နေပါတယ်။ branch ပြောင်းရန် internet ချိတ်ပါ။",
+  "branchesPreflightSyncAndSwitch": "Sync လုပ်ပြီး ပြောင်းမည်",
   "branchesPreflightSyncFirst": "အရင် Sync လုပ်မည်",
   "branchesPreflightSwitchNow": "ယခု ပြောင်းမည်",
   "branchesSwitchInProgressTitle": "ဆိုင်ခွဲ ပြောင်းနေသည်",

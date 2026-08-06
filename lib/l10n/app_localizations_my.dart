@@ -2658,6 +2658,9 @@ class AppLocalizationsMy extends AppLocalizations {
       'လက်ရှိ Offline ဖြစ်နေပါတယ်။ branch ပြောင်းရန် internet ချိတ်ပါ။';
 
   @override
+  String get branchesPreflightSyncAndSwitch => 'Sync လုပ်ပြီး ပြောင်းမည်';
+
+  @override
   String get branchesPreflightSyncFirst => 'အရင် Sync လုပ်မည်';
 
   @override

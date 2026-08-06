@@ -166,7 +166,7 @@ class BranchesScreen extends ConsumerWidget {
   }
 }
 
-enum _BranchSwitchAction { cancel, syncFirst, switchNow }
+enum _BranchSwitchAction { cancel, syncAndSwitch }
 
 class _BranchPreflightInfo {
   final int pendingOutboxCount;
@@ -624,7 +624,7 @@ class _BranchesBody extends ConsumerWidget {
   ) {
     final l = AppLocalizations.of(context);
     final branchLabel = b.label?.isNotEmpty == true ? b.label! : b.shopId;
-    final allowSwitch = info.pendingOutboxCount == 0 && info.online;
+    final canProceed = info.online;
     final networkText = info.online
         ? l.branchesNetworkOnline
         : l.branchesNetworkOffline;
@@ -680,37 +680,32 @@ class _BranchesBody extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (!allowSwitch)
+              if (!info.online)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.space2),
                   child: Text(
-                    info.pendingOutboxCount > 0
-                        ? l.branchesPreflightNeedSync
-                        : l.branchesPreflightNeedOnline,
+                    l.branchesPreflightNeedOnline,
                     style: TextStyle(color: Theme.of(ctx).colorScheme.error),
                   ),
                 ),
-              Row(
+              OverflowBar(
+                alignment: MainAxisAlignment.end,
+                overflowAlignment: OverflowBarAlignment.end,
+                overflowSpacing: AppTheme.space2,
+                spacing: AppTheme.space2,
                 children: [
                   TextButton(
                     onPressed: () =>
                         Navigator.of(ctx).pop(_BranchSwitchAction.cancel),
                     child: Text(l.commonCancel),
                   ),
-                  const Spacer(),
-                  OutlinedButton(
-                    onPressed: () =>
-                        Navigator.of(ctx).pop(_BranchSwitchAction.syncFirst),
-                    child: Text(l.branchesPreflightSyncFirst),
-                  ),
-                  const SizedBox(width: AppTheme.space2),
                   FilledButton(
-                    onPressed: allowSwitch
+                    onPressed: canProceed
                         ? () => Navigator.of(
                             ctx,
-                          ).pop(_BranchSwitchAction.switchNow)
+                          ).pop(_BranchSwitchAction.syncAndSwitch)
                         : null,
-                    child: Text(l.branchesPreflightSwitchNow),
+                    child: Text(l.branchesPreflightSyncAndSwitch),
                   ),
                 ],
               ),
@@ -905,19 +900,39 @@ class _BranchesBody extends ConsumerWidget {
         action == _BranchSwitchAction.cancel) {
       return;
     }
-    if (action == _BranchSwitchAction.syncFirst) {
+    if (action == _BranchSwitchAction.syncAndSwitch) {
       await ref.read(syncControllerProvider.notifier).sync();
-      if (context.mounted) {
-        final syncState = ref.read(syncControllerProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+      if (!context.mounted) return;
+      final syncState = ref.read(syncControllerProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            syncState.phase == SyncPhase.error ? l.syncError : l.syncIdle,
+          ),
+        ),
+      );
+      final refreshed = await _runPreflight(ref);
+      if (!context.mounted) return;
+      if (refreshed.pendingOutboxCount > 0 || !refreshed.online) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l.branchesSwitchInProgressTitle),
             content: Text(
-              syncState.phase == SyncPhase.error ? l.syncError : l.syncIdle,
+              refreshed.pendingOutboxCount > 0
+                  ? l.branchesPreflightNeedSync
+                  : l.branchesPreflightNeedOnline,
             ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.commonOk),
+              ),
+            ],
           ),
         );
+        return;
       }
-      return;
     }
 
     final currentStep = ValueNotifier<_BranchSwitchUiStep>(

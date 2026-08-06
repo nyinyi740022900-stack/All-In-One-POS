@@ -4922,6 +4922,12 @@ abstract class AppLocalizations {
   /// **'You are offline. Connect to the internet before switching.'**
   String get branchesPreflightNeedOnline;
 
+  /// No description provided for @branchesPreflightSyncAndSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync and switch'**
+  String get branchesPreflightSyncAndSwitch;
+
   /// No description provided for @branchesPreflightSyncFirst.
   ///
   /// In en, this message translates to:

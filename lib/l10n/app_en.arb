@@ -899,6 +899,7 @@
   "@branchesPreflightLastSync": { "placeholders": { "time": { "type": "String" } } },
   "branchesPreflightNeedSync": "Sync first before switching so no local changes are lost.",
   "branchesPreflightNeedOnline": "You are offline. Connect to the internet before switching.",
+  "branchesPreflightSyncAndSwitch": "Sync and switch",
   "branchesPreflightSyncFirst": "Sync first",
   "branchesPreflightSwitchNow": "Switch now",
   "branchesSwitchInProgressTitle": "Switching branch",
