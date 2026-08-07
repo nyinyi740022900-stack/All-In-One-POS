@@ -52,6 +52,10 @@ class PaymentAccountRepository {
   /// existing sales (`Sales.paymentMethod`/`Payments.method` already
   /// storing e.g. `'kbzpay'`) keep resolving to the same account with no
   /// data migration needed.
+  ///
+  /// Ids are **per-shop codes**, not global UUIDs. Locally (one shop DB
+  /// file) `id` is unique; on Supabase the PK is `(shop_id, id)` so every
+  /// branch can own its own `kbzpay` row (migration `0054`).
   static const defaultAccounts = {
     'kbzpay': 'KBZPay',
     'wavepay': 'WavePay',

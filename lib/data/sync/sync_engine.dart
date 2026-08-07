@@ -7,7 +7,8 @@ import 'sync_mappers.dart';
 
 /// Transport abstraction so the engine can be unit-tested with a fake backend.
 abstract class SyncRemote {
-  Future<void> upsert(String table, Map<String, dynamic> row);
+  Future<void> upsert(String table, Map<String, dynamic> row,
+      {String? onConflict});
   Future<void> markDeleted(String table, String id, DateTime updatedAt);
 
   /// Rows for [shopId] changed strictly after [since] (all rows if null),
@@ -22,8 +23,9 @@ class SupabaseSyncRemote implements SyncRemote {
   final SupabaseClient _client;
 
   @override
-  Future<void> upsert(String table, Map<String, dynamic> row) async {
-    await _client.from(table).upsert(row);
+  Future<void> upsert(String table, Map<String, dynamic> row,
+      {String? onConflict}) async {
+    await _client.from(table).upsert(row, onConflict: onConflict);
   }
 
   @override
@@ -126,7 +128,13 @@ class SyncEngine {
               item.entityTable, item.rowId, DateTime.now());
         } else {
           final row = await def.toRemote(db, item.rowId);
-          if (row != null) await remote.upsert(item.entityTable, row);
+          if (row != null) {
+            await remote.upsert(
+              item.entityTable,
+              row,
+              onConflict: def.onConflict,
+            );
+          }
         }
         await _removeOutbox(item.seq);
         count++;

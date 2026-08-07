@@ -37,7 +37,6 @@ import '../suppliers/accounts_payable_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
-import 'sync_issues_screen.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
 import 'device_label_providers.dart';
@@ -689,7 +688,6 @@ class _SyncTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final sync = ref.watch(syncControllerProvider);
-    final stuck = ref.watch(stuckOutboxProvider).valueOrNull ?? const [];
 
     final (String status, IconData icon) = switch (sync.phase) {
       SyncPhase.disabled => (l.syncDisabled, Icons.cloud_off),
@@ -730,19 +728,9 @@ class _SyncTile extends ConsumerWidget {
                             ref.read(syncControllerProvider.notifier).sync(),
                       )),
         ),
-        if (stuck.isNotEmpty)
-          ListTile(
-            leading: Icon(
-              Icons.warning_amber_rounded,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: Text(l.syncIssuesTitle(stuck.length)),
-            subtitle: Text(l.syncIssuesSubtitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen())),
-          ),
+        // Sync Issues is intentionally NOT listed here — poison-pill
+        // remediation is an owner escape hatch from Branches when switch
+        // is blocked, not an everyday Settings warning for cashiers.
       ],
     );
   }

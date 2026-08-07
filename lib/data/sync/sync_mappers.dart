@@ -18,10 +18,15 @@ class SyncTableDef {
   final Future<void> Function(AppDatabase db, Map<String, dynamic> remote)
       upsertLocal;
 
+  /// PostgREST `on_conflict` target. Null → table primary key (usually `id`).
+  /// Use `shop_id,id` when the remote PK is composite (payment_accounts).
+  final String? onConflict;
+
   const SyncTableDef({
     required this.name,
     required this.toRemote,
     required this.upsertLocal,
+    this.onConflict,
   });
 }
 
@@ -998,6 +1003,7 @@ final _suppliers = SyncTableDef(
 // --- payment_accounts -------------------------------------------------------
 final _paymentAccounts = SyncTableDef(
   name: 'payment_accounts',
+  onConflict: 'shop_id,id',
   toRemote: (db, id) async {
     final r = await (db.select(db.paymentAccounts)
           ..where((t) => t.id.equals(id)))

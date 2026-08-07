@@ -10,8 +10,12 @@ class FakeSyncRemote implements SyncRemote {
   final Map<String, Map<String, Map<String, dynamic>>> store = {};
 
   @override
-  Future<void> upsert(String table, Map<String, dynamic> row) async {
-    (store[table] ??= {})[row['id'] as String] = Map.of(row);
+  Future<void> upsert(String table, Map<String, dynamic> row,
+      {String? onConflict}) async {
+    final key = onConflict == 'shop_id,id'
+        ? '${row['shop_id']}|${row['id']}'
+        : row['id'] as String;
+    (store[table] ??= {})[key] = Map.of(row);
   }
 
   @override
@@ -48,9 +52,10 @@ class PartialFailRemote extends FakeSyncRemote {
   final String failTable;
 
   @override
-  Future<void> upsert(String table, Map<String, dynamic> row) async {
+  Future<void> upsert(String table, Map<String, dynamic> row,
+      {String? onConflict}) async {
     if (table == failTable) throw Exception('boom');
-    return super.upsert(table, row);
+    return super.upsert(table, row, onConflict: onConflict);
   }
 }
 
