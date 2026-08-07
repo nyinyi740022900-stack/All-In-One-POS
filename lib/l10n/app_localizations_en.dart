@@ -2766,11 +2766,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get branchesStuckBannerTitle =>
-      'Sync issues are blocking branch switch';
+      'Finish syncing before switching branches';
 
   @override
   String get branchesStuckBannerBody =>
-      'Resolve or discard stuck local changes before switching branches.';
+      'Tap Sync now below. Uploads will retry automatically — you should not need to delete anything.';
+
+  @override
+  String get branchesStuckBannerSyncNow => 'Sync now';
 
   @override
   String get branchesSwitchInProgressTitle => 'Switching branch';

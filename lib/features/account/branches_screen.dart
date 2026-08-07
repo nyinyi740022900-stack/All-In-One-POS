@@ -455,7 +455,7 @@ class _BranchesBody extends ConsumerWidget {
         }
         return Column(
           children: [
-            if (stuckOutbox.isNotEmpty) _buildStuckBanner(context),
+            if (stuckOutbox.isNotEmpty) _buildStuckBanner(context, ref),
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
             Expanded(
               child: ListView(
@@ -563,7 +563,7 @@ class _BranchesBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildStuckBanner(BuildContext context) {
+  Widget _buildStuckBanner(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     // Do not use MaterialBanner as a Column child — its intrinsic layout
@@ -605,12 +605,21 @@ class _BranchesBody extends ConsumerWidget {
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const SyncIssuesScreen(),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  await ref.read(syncControllerProvider.notifier).sync();
+                  if (!context.mounted) return;
+                  final stuck = ref.read(stuckOutboxProvider).valueOrNull ??
+                      const [];
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(
+                      stuck.isEmpty
+                          ? l.syncIdle
+                          : l.branchesStuckBannerBody,
+                    ),
                   ));
                 },
-                child: Text(l.branchesSwitchFixSyncIssues),
+                child: Text(l.branchesStuckBannerSyncNow),
               ),
             ),
           ],

@@ -105,9 +105,34 @@ class SyncEngine {
   late final Map<String, SyncTableDef> _byName;
 
   Future<SyncResult> syncNow() async {
+    // Known heal: payment_accounts once used a global PK on `id` (`kbzpay`
+    // etc.), so branch B's upsert hit RLS 42501 forever. Migration 0054 made
+    // the PK `(shop_id, id)` — reset those stuck counters so Sync Now retries
+    // and succeeds without asking anyone to Discard.
+    await _resetPaymentAccountsRlsFailures();
     final pushed = await _push();
     final pulled = await _pull();
     return SyncResult(pushed, pulled);
+  }
+
+  Future<void> _resetPaymentAccountsRlsFailures() async {
+    final items = await (db.select(db.outbox)
+          ..where((o) => o.entityTable.equals('payment_accounts')))
+        .get();
+    for (final item in items) {
+      if (!_isPaymentAccountsRlsError(item.lastError)) continue;
+      await (db.update(db.outbox)..where((o) => o.seq.equals(item.seq)))
+          .write(const OutboxCompanion(
+        attempts: Value(0),
+        lastError: Value(null),
+      ));
+    }
+  }
+
+  static bool _isPaymentAccountsRlsError(String? lastError) {
+    if (lastError == null || lastError.isEmpty) return false;
+    final lower = lastError.toLowerCase();
+    return lower.contains('row-level security') || lower.contains('42501');
   }
 
   Future<int> _push() async {

@@ -2759,12 +2759,14 @@ class AppLocalizationsMy extends AppLocalizations {
       'Online — Sync လုပ်ပြီး ပြောင်းနိုင်ပါပြီ။';
 
   @override
-  String get branchesStuckBannerTitle =>
-      'Sync ပြဿနာကြောင့် branch ပြောင်းမရသေးပါ';
+  String get branchesStuckBannerTitle => 'Branch မပြောင်းခင် Sync လုပ်ပါ';
 
   @override
   String get branchesStuckBannerBody =>
-      'Branch မပြောင်းခင် stuck local changes ကို ဖြေရှင်း (သို့) discard လုပ်ပါ။';
+      'အောက်က Sync now ကို နှိပ်ပါ။ စနစ်က အလိုအလျောက် ပြန်တင်ပေးမယ် — ဘာမှ ဖျက်စရာ မလိုပါ။';
+
+  @override
+  String get branchesStuckBannerSyncNow => 'Sync now';
 
   @override
   String get branchesSwitchInProgressTitle => 'ဆိုင်ခွဲ ပြောင်းနေသည်';

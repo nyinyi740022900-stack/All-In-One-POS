@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -241,5 +242,42 @@ void main() {
     await engine.syncNow(); // push delete
 
     expect(remote.store['products']![id]!['is_deleted'], true);
+  });
+
+  test(
+      'payment_accounts RLS failures are reset and succeed on Sync Now '
+      '(no Discard required after shop-scoped PK)', () async {
+    final now = DateTime.now();
+    await db.into(db.paymentAccounts).insert(
+          PaymentAccountsCompanion.insert(
+            id: 'kbzpay',
+            shopId: 'shop-1',
+            name: 'KBZPay',
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    await db.into(db.outbox).insert(
+          OutboxCompanion.insert(
+            entityTable: 'payment_accounts',
+            rowId: 'kbzpay',
+            op: 'upsert',
+            payload: '{}',
+            attempts: const Value(12),
+            lastError: const Value(
+              'PostgresException(message: new row violates '
+              'row-level security policy for table "payment_accounts", '
+              'code: 42501)',
+            ),
+          ),
+        );
+
+    final result = await engine.syncNow();
+    expect(result.pushed, greaterThanOrEqualTo(1));
+    expect(await db.select(db.outbox).get(), isEmpty);
+    expect(
+      remote.store['payment_accounts']!['shop-1|kbzpay']!['name'],
+      'KBZPay',
+    );
   });
 }

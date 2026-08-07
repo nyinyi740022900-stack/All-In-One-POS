@@ -5099,14 +5099,20 @@ abstract class AppLocalizations {
   /// No description provided for @branchesStuckBannerTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sync issues are blocking branch switch'**
+  /// **'Finish syncing before switching branches'**
   String get branchesStuckBannerTitle;
 
   /// No description provided for @branchesStuckBannerBody.
   ///
   /// In en, this message translates to:
-  /// **'Resolve or discard stuck local changes before switching branches.'**
+  /// **'Tap Sync now below. Uploads will retry automatically — you should not need to delete anything.'**
   String get branchesStuckBannerBody;
+
+  /// No description provided for @branchesStuckBannerSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get branchesStuckBannerSyncNow;
 
   /// No description provided for @branchesSwitchInProgressTitle.
   ///
