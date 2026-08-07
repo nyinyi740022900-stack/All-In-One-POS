@@ -80,6 +80,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellEmptyCart => 'No items yet. Tap a product to add.';
 
   @override
+  String get ordersSelectHint => 'Select an order';
+
+  @override
+  String get invoicesSelectHint => 'Select an invoice';
+
+  @override
   String get sellCheckout => 'Checkout';
 
   @override

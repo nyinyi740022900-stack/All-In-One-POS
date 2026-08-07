@@ -10,6 +10,7 @@ import '../features/sell/sell_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/staff/staff_providers.dart';
 import '../l10n/app_localizations.dart';
+import 'layout.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/sell',
@@ -73,8 +74,8 @@ class _ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final isOwner = ref.watch(sessionScopeProvider).isEffectiveOwner;
-    // Tablet (wide) → rail; phone → bottom bar.
-    final isWide = MediaQuery.sizeOf(context).width >= 640;
+    // Tablet (medium+) → rail; phone → bottom bar.
+    final wide = isMediumPlus(context);
 
     // branchIndex matches the StatefulShellBranch order above (fixed —
     // filtering only changes which of these show, never their identity).
@@ -113,7 +114,7 @@ class _ShellScaffold extends ConsumerWidget {
       );
     }
 
-    if (isWide) {
+    if (wide) {
       return Scaffold(
         body: Row(
           children: [

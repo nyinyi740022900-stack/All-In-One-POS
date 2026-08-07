@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
@@ -186,55 +187,137 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ),
               Expanded(
-                child: ListView.separated(
-                  itemCount: products.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final p = products[i];
-                    return ListTile(
-                      title: Text(p.product.name),
-                      subtitle: Text(
-                          Money(p.product.salePrice).withSymbol(currency)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.qr_code_2),
-                            tooltip: l.inventoryPrintLabel,
-                            onPressed: () => showLabelPrintDialog(
-                              context,
-                              ref,
-                              data: LabelData(
-                                name: p.product.name,
-                                // Always the ASCII 'Ks' so it prints cleanly
-                                // via native (non-raster) text commands.
-                                priceText:
-                                    Money(p.product.salePrice).withSymbol('Ks'),
-                                barcode: labelBarcodeFor(p.product),
+                child: isMediumPlus(context)
+                    ? GridView.builder(
+                        padding: const EdgeInsets.all(AppTheme.space3),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 300,
+                          mainAxisSpacing: AppTheme.space3,
+                          crossAxisSpacing: AppTheme.space3,
+                          childAspectRatio: 2.2,
+                        ),
+                        itemCount: products.length,
+                        itemBuilder: (context, i) {
+                          final p = products[i];
+                          return Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: canEdit ? () => _openEditor(p) : null,
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppTheme.space3),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            p.product.name,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall,
+                                          ),
+                                          Text(Money(p.product.salePrice)
+                                              .withSymbol(currency)),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.qr_code_2),
+                                      tooltip: l.inventoryPrintLabel,
+                                      onPressed: () => showLabelPrintDialog(
+                                        context,
+                                        ref,
+                                        data: LabelData(
+                                          name: p.product.name,
+                                          priceText: Money(p.product.salePrice)
+                                              .withSymbol('Ks'),
+                                          barcode: labelBarcodeFor(p.product),
+                                        ),
+                                      ),
+                                    ),
+                                    if (trackStock && canEdit)
+                                      IconButton(
+                                        icon: const Icon(
+                                            Icons.add_box_outlined),
+                                        tooltip: l.inventoryUpdateStock,
+                                        onPressed: () =>
+                                            showStockAdjustDialog(
+                                          context,
+                                          ref,
+                                          productId: p.product.id,
+                                          productName: p.product.name,
+                                          currentQuantity: p.quantity,
+                                        ),
+                                      ),
+                                    if (trackStock)
+                                      _StockBadge(
+                                        quantity: p.quantity,
+                                        low: p.isLowStock,
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          if (trackStock && canEdit)
-                            IconButton(
-                              icon: const Icon(Icons.add_box_outlined),
-                              tooltip: l.inventoryUpdateStock,
-                              onPressed: () => showStockAdjustDialog(
-                                context,
-                                ref,
-                                productId: p.product.id,
-                                productName: p.product.name,
-                                currentQuantity: p.quantity,
-                              ),
+                          );
+                        },
+                      )
+                    : ListView.separated(
+                        itemCount: products.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, i) {
+                          final p = products[i];
+                          return ListTile(
+                            title: Text(p.product.name),
+                            subtitle: Text(Money(p.product.salePrice)
+                                .withSymbol(currency)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.qr_code_2),
+                                  tooltip: l.inventoryPrintLabel,
+                                  onPressed: () => showLabelPrintDialog(
+                                    context,
+                                    ref,
+                                    data: LabelData(
+                                      name: p.product.name,
+                                      // Always the ASCII 'Ks' so it prints
+                                      // cleanly via native text commands.
+                                      priceText: Money(p.product.salePrice)
+                                          .withSymbol('Ks'),
+                                      barcode: labelBarcodeFor(p.product),
+                                    ),
+                                  ),
+                                ),
+                                if (trackStock && canEdit)
+                                  IconButton(
+                                    icon: const Icon(Icons.add_box_outlined),
+                                    tooltip: l.inventoryUpdateStock,
+                                    onPressed: () => showStockAdjustDialog(
+                                      context,
+                                      ref,
+                                      productId: p.product.id,
+                                      productName: p.product.name,
+                                      currentQuantity: p.quantity,
+                                    ),
+                                  ),
+                                if (trackStock)
+                                  _StockBadge(
+                                      quantity: p.quantity,
+                                      low: p.isLowStock),
+                              ],
                             ),
-                          if (trackStock)
-                            _StockBadge(
-                                quantity: p.quantity, low: p.isLowStock),
-                        ],
+                            onTap: canEdit ? () => _openEditor(p) : null,
+                          );
+                        },
                       ),
-                      onTap: canEdit ? () => _openEditor(p) : null,
-                    );
-                  },
-                ),
               ),
             ],
           );

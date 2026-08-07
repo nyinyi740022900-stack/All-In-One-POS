@@ -60,30 +60,25 @@ Stable URL: https://goldposmm-invoices.vercel.app. No backend changes ship with
 this one — it activates via the existing `activate` function and reads
 `sales`/`sale_items`/`storefronts` directly, so redeploying it is web-build-only.
 
-## 3d. Desktop (macOS/Windows) — Phase 2, slice 1, in progress
-The *real* POS (Sell/Inventory/Orders, not just Invoices) as a native desktop
-app — `macos/`/`windows/` platform folders scaffolded via
-`flutter create --platforms=macos,windows .`, same `lib/main.dart` entry point
-as mobile, no Drift/wasm needed (native `NativeDatabase` already works on
-desktop). Run/build:
+## 3d. Desktop — Windows POS (macOS deferred)
+Full POS on **Windows** (Sell/Inventory/Orders + native Drift). macOS
+scaffolding exists but is **out of scope** (blank-window; not prioritized).
+
+**Build gate (from this Mac):** GitHub Actions
+[`.github/workflows/windows_desktop.yml`](../../.github/workflows/windows_desktop.yml)
+— `windows-latest`, uploads `GoldPOSMM-windows-<sha>`. Optional secrets:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`.
+
+Docs: [`docs/windows/`](../../docs/windows/). Human smoke on a Windows PC
+only after CI is green (`docs/windows/SMOKE.md`).
+
 ```bash
-flutter run -d macos --release --dart-define-from-file=env.local.json
+# On a Windows machine only (not on macOS):
+flutter build windows --release --dart-define-from-file=env.local.json
 ```
-⚠️ In **debug** mode you may see a `RenderBox was not laid out` /
-`mouse_tracker.dart` assertion loop right at launch — this is a known
-debug-only Flutter-desktop artifact (stripped in `--release`), not a real bug;
-verify with `--release` before concluding something is broken.
 
-Windows: `flutter build windows` **refuses to run on a non-Windows host** —
-there is no way to build, let alone test, the Windows target from a Mac. It
-needs an actual Windows machine or a CI runner (e.g. GitHub Actions
-`windows-latest`) — not yet set up.
-
-No GUI-automation/screenshot tool exists for native desktop windows in this
-harness — verification here is necessarily code-level (`flutter analyze` +
-`flutter test` + process-stability from logs), not visual/interactive. Actual
-onboarding → license activation → feature walkthrough needs a human at a
-real, display-attached machine.
+Invoices-only on any computer: Phase 1 web companion
+`https://goldposmm-invoices.vercel.app` (no local DB).
 
 ## 4. App → iPhone (wireless)
 ```bash
@@ -93,6 +88,57 @@ Run in the background; wait for "Flutter run key commands", then kill the
 process (app stays installed). If it fails with "Could not run … on iPhone",
 the phone is locked/asleep OR a native plugin failed to compile — check the log
 for `Swift Compiler Error` before assuming it's the device.
+
+## 5. App Store / TestFlight (IPA)
+Kit: `docs/app_store/` (listing copy, privacy nutrition, review notes, smoke
+checklist). Privacy Policy (live): https://goldposmm-legal.vercel.app  
+Redeploy policy HTML:
+```bash
+cd docs/app_store/privacy && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
+```
+
+Bump `pubspec.yaml` build (`+N`) before every upload — see
+`docs/app_store/VERSIONING.md`.
+
+```bash
+# 1) Archive + export (needs Apple Distribution via Automatic signing / team F8KLK8L5SY)
+#    If export fails (“No signing certificate iOS Distribution”), see
+#    docs/app_store/DISTRIBUTION_SIGNING.md — archive is still at
+#    build/ios/archive/Runner.xcarchive for Xcode Organizer upload.
+flutter build ipa --release --dart-define-from-file=env.local.json \
+  --export-options-plist=ios/ExportOptions.plist
+
+# 2) Upload to App Store Connect (requires App Store Connect API key — ACCOUNT.md)
+export APP_STORE_CONNECT_KEY_ID=…
+export APP_STORE_CONNECT_ISSUER_ID=…
+export APP_STORE_CONNECT_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_….p8
+./tool/upload_ios_ipa.sh
+
+# 3) TestFlight → Internal smoke (`docs/app_store/TESTFLIGHT_SMOKE.md`)
+# 4) Listing + Submit (`LISTING.md`, `SUBMIT.md`) — first public release: Manual release
+```
+
+## 6. Play Store (AAB)
+Kit: `docs/play_store/` (signing, listing, Data safety, internal test, submit).
+Privacy Policy: https://goldposmm-legal.vercel.app  
+Package: `com.mmpos.mm_pos` (do not change).
+
+```bash
+# 1) One-time: create upload keystore + android/key.properties
+#    (see docs/play_store/SIGNING.md — never commit .jks / key.properties)
+
+# 2) Bump pubspec build (+N), then:
+flutter build appbundle --release --dart-define-from-file=env.local.json
+# → build/app/outputs/bundle/release/app-release.aab
+
+# 3) Play Console → Internal testing → upload AAB → smoke
+#    (docs/play_store/INTERNAL_TEST.md)
+# 4) Listing + Data safety + production
+#    (LISTING.md, DATA_SAFETY.md, SUBMIT.md) — prefer staged rollout first
+```
+
+Without `android/key.properties`, release assemble/bundle **fails on purpose**
+(no debug-key fallback).
 
 ## Notes
 - The auto-mode safety classifier may still block prod writes even with the

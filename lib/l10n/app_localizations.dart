@@ -236,6 +236,18 @@ abstract class AppLocalizations {
   /// **'No items yet. Tap a product to add.'**
   String get sellEmptyCart;
 
+  /// No description provided for @ordersSelectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an order'**
+  String get ordersSelectHint;
+
+  /// No description provided for @invoicesSelectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an invoice'**
+  String get invoicesSelectHint;
+
   /// No description provided for @sellCheckout.
   ///
   /// In en, this message translates to:

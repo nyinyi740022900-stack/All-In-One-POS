@@ -1,0 +1,93 @@
+# Build the Windows desktop POS (Phase 2).
+#
+# Flutter cannot cross-compile Windows from macOS — this workflow is the
+# primary compile gate until a human smoke-tests on a Windows PC.
+#
+# Optional repo secrets (usable Release artifact):
+#   SUPABASE_URL, SUPABASE_ANON_KEY, SENTRY_DSN
+# Missing secrets → empty dart-defines (app runs offline-only).
+
+name: Windows desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'windows/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'lib/l10n/**'
+      - '.github/workflows/windows_desktop.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'windows/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'lib/l10n/**'
+      - '.github/workflows/windows_desktop.yml'
+
+concurrency:
+  group: windows-desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: flutter build windows
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Write dart-defines
+        shell: pwsh
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          $defines = @{
+            SUPABASE_URL = $env:SUPABASE_URL
+            SUPABASE_ANON_KEY = $env:SUPABASE_ANON_KEY
+            SENTRY_DSN = $env:SENTRY_DSN
+          }
+          $defines | ConvertTo-Json -Compress | Set-Content -Path env.ci.json -Encoding utf8
+          Write-Host "Wrote env.ci.json (secret values redacted)"
+
+      - name: Build Windows release
+        run: flutter build windows --release --dart-define-from-file=env.ci.json
+
+      - name: Stage Release folder
+        shell: pwsh
+        run: |
+          $src = "build/windows/x64/runner/Release"
+          if (-not (Test-Path $src)) { throw "Missing $src" }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item -Recurse -Force $src dist/GoldPOSMM-windows
+          Get-ChildItem dist/GoldPOSMM-windows | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoldPOSMM-windows-${{ github.sha }}
+          path: dist/GoldPOSMM-windows
+          if-no-files-found: error
+          retention-days: 14

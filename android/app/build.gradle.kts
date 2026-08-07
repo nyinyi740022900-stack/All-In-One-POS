@@ -4,6 +4,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+// Play upload signing — see docs/play_store/SIGNING.md and key.properties.example.
+// Absent key.properties → release assemble/bundle tasks fail (no silent debug signing).
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasReleaseKeystore = keystorePropertiesFile.exists().also { exists ->
+    if (exists) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
+}
+
 android {
     namespace = "com.mmpos.mm_pos"
     // Bumped to 36: newer plugins (flutter_plugin_android_lifecycle via
@@ -19,21 +32,50 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Production application id — do not change (sideload + Play installs).
         applicationId = "com.mmpos.mm_pos"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // If key.properties is missing, leave unsigned and fail in the
+            // release task hook below — debug builds stay unaffected.
+        }
+    }
+}
+
+tasks.configureEach {
+    val isReleaseArtifact =
+        name.startsWith("assembleRelease") ||
+            name.startsWith("bundleRelease") ||
+            name.startsWith("signRelease")
+    if (isReleaseArtifact) {
+        doFirst {
+            if (!hasReleaseKeystore) {
+                throw GradleException(
+                    "Missing android/key.properties — copy key.properties.example, " +
+                        "create an upload keystore, then rebuild. " +
+                        "See docs/play_store/SIGNING.md",
+                )
+            }
         }
     }
 }

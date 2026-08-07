@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collection/collection.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
-import 'package:collection/collection.dart';
-
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
@@ -38,8 +38,6 @@ class SellScreen extends ConsumerWidget {
     if (ok == true) ref.read(cartProvider.notifier).clear();
   }
 
-  /// Opens the camera scanner, then adds the matching product to the cart. If
-  /// no product carries that barcode, drops it into the search box instead.
   Future<void> _scanAndAdd(
       BuildContext context, WidgetRef ref, AppLocalizations l) async {
     final code = await Navigator.of(context).push<String>(
@@ -61,6 +59,13 @@ class SellScreen extends ConsumerWidget {
     }
   }
 
+  void _openCheckout(BuildContext context) {
+    showAppModal<void>(
+      context: context,
+      builder: (_) => const CheckoutSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -71,7 +76,6 @@ class SellScreen extends ConsumerWidget {
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final licState = ref.watch(licenseControllerProvider);
     final readOnly = licState.status.isReadOnly && !licState.loading;
-    // Remind daily when the license expires within 5 days (still sellable).
     final expiresAt = licState.status.expiresAt;
     final daysLeft = expiresAt?.difference(DateTime.now()).inDays;
     final expiringSoon = !licState.loading &&
@@ -79,6 +83,120 @@ class SellScreen extends ConsumerWidget {
         daysLeft != null &&
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);
+    final split = isMediumPlus(context);
+    final tileExtent = split ? 210.0 : 180.0;
+    final trailFlex = widthClassOf(context) == AppWidthClass.expanded ? 38 : 42;
+    final leadFlex = 100 - trailFlex;
+
+    Widget banners() => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (expiringSoon && !readOnly)
+              Material(
+                color: const Color(0xFFFFF3CD),
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const LicenseScreen())),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.space3),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber,
+                            color: Color(0xFF8A6D00)),
+                        const SizedBox(width: AppTheme.space2),
+                        Expanded(
+                          child: Text(
+                            l.licenseExpiringSoon(daysLeftShown),
+                            style: const TextStyle(color: Color(0xFF8A6D00)),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right,
+                            color: Color(0xFF8A6D00)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (readOnly)
+              Material(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space3),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock,
+                          color:
+                              Theme.of(context).colorScheme.onErrorContainer),
+                      const SizedBox(width: AppTheme.space2),
+                      Expanded(
+                        child: Text(
+                          l.licenseReadOnly,
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+
+    final productPane = Column(
+      children: [
+        banners(),
+        const _SellCategoryFilterBar(),
+        Expanded(
+          child: products.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+            data: (_) {
+              if (filtered.isEmpty) {
+                final searching =
+                    ref.read(sellSearchProvider).trim().isNotEmpty ||
+                        ref.read(sellCategoryProvider) != null;
+                return Center(
+                    child: Text(searching
+                        ? l.inventoryNoResults
+                        : l.inventoryEmpty));
+              }
+              return GridView.builder(
+                padding: const EdgeInsets.all(AppTheme.space3),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: tileExtent,
+                  mainAxisSpacing: AppTheme.space3,
+                  crossAxisSpacing: AppTheme.space3,
+                  childAspectRatio: 1.1,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (context, i) {
+                  final p = filtered[i];
+                  return _ProductCard(
+                    name: p.product.name,
+                    price: Money(p.product.salePrice).withSymbol(currency),
+                    outOfStock: trackStock && p.quantity <= 0,
+                    onTap: () {
+                      final ok = ref.read(cartProvider.notifier).addProduct(
+                            p.product,
+                            maxQty: trackStock ? p.quantity : null,
+                          );
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(l.sellStockCap(p.quantity)),
+                          duration: const Duration(seconds: 1),
+                        ));
+                      }
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -113,117 +231,148 @@ class SellScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          if (expiringSoon && !readOnly)
-            Material(
-              color: const Color(0xFFFFF3CD),
-              child: InkWell(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const LicenseScreen())),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.space3),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber, color: Color(0xFF8A6D00)),
-                      const SizedBox(width: AppTheme.space2),
-                      Expanded(
-                        child: Text(
-                          l.licenseExpiringSoon(daysLeftShown),
-                          style: const TextStyle(color: Color(0xFF8A6D00)),
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Color(0xFF8A6D00)),
-                    ],
+      body: split
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: leadFlex, child: productPane),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  flex: trailFlex,
+                  child: _CartPanel(
+                    onCheckout: () => _openCheckout(context),
+                    onClear: () => _confirmClear(context, ref, l),
                   ),
                 ),
-              ),
-            ),
-          if (readOnly)
-            Material(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                child: Row(
-                  children: [
-                    Icon(Icons.lock,
-                        color: Theme.of(context).colorScheme.onErrorContainer),
-                    const SizedBox(width: AppTheme.space2),
-                    Expanded(
-                      child: Text(
-                        l.licenseReadOnly,
-                        style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onErrorContainer),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          const _SellCategoryFilterBar(),
-          Expanded(
-            child: products.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
-              data: (_) {
-                if (filtered.isEmpty) {
-                  final searching =
-                      ref.read(sellSearchProvider).trim().isNotEmpty ||
-                          ref.read(sellCategoryProvider) != null;
-                  return Center(
-                      child: Text(searching
-                          ? l.inventoryNoResults
-                          : l.inventoryEmpty));
-                }
-                return GridView.builder(
-            padding: const EdgeInsets.all(AppTheme.space3),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 180,
-              mainAxisSpacing: AppTheme.space3,
-              crossAxisSpacing: AppTheme.space3,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: filtered.length,
-            itemBuilder: (context, i) {
-              final p = filtered[i];
-              return _ProductCard(
-                name: p.product.name,
-                price: Money(p.product.salePrice).withSymbol(currency),
-                outOfStock: trackStock && p.quantity <= 0,
-                onTap: () {
-                  final ok = ref.read(cartProvider.notifier).addProduct(
-                        p.product,
-                        maxQty: trackStock ? p.quantity : null,
-                      );
-                  if (!ok) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(l.sellStockCap(p.quantity)),
-                      duration: const Duration(seconds: 1),
-                    ));
-                  }
-                },
-              );
-            },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: cart.isEmpty
+              ],
+            )
+          : productPane,
+      bottomNavigationBar: split || cart.isEmpty
           ? null
           : _CartBar(
               itemCount: cart.itemCount,
               total: cart.total.withSymbol(currency),
-              onCheckout: () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                showDragHandle: true,
-                builder: (_) => const CheckoutSheet(),
+              onCheckout: () => _openCheckout(context),
+            ),
+    );
+  }
+}
+
+class _CartPanel extends ConsumerWidget {
+  const _CartPanel({required this.onCheckout, required this.onClear});
+
+  final VoidCallback onCheckout;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final cart = ref.watch(cartProvider);
+    final currency = l.currencySymbol;
+    final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
+    final stockById = <String, int>{
+      for (final p in ref.watch(productsStreamProvider).valueOrNull ?? const [])
+        p.product.id: p.quantity,
+    };
+
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(l.sellCart,
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                if (!cart.isEmpty)
+                  TextButton(onPressed: onClear, child: Text(l.sellClear)),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: cart.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(l.sellEmptyCart,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: cart.lines.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final line = cart.lines[i];
+                      return ListTile(
+                        dense: true,
+                        title: Text(line.product.name, maxLines: 2),
+                        subtitle: Text(
+                          cart.lineTotalFor(line).withSymbol(currency),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.remove),
+                              onPressed: () => ref
+                                  .read(cartProvider.notifier)
+                                  .decrement(line.product.id),
+                            ),
+                            Text('${line.qty}'),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.add),
+                              onPressed: () {
+                                final ok =
+                                    ref.read(cartProvider.notifier).increment(
+                                          line.product.id,
+                                          maxQty: trackStock
+                                              ? stockById[line.product.id]
+                                              : null,
+                                        );
+                                if (!ok) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Text(l.sellStockCap(
+                                        stockById[line.product.id] ?? 0)),
+                                    duration: const Duration(seconds: 1),
+                                  ));
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          if (!cart.isEmpty) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: FilledButton(
+                onPressed: onCheckout,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${l.sellCheckout}  (${cart.itemCount})'),
+                    Text(cart.total.withSymbol(currency),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -310,8 +459,7 @@ class _ProductCard extends StatelessWidget {
                       color: scheme.primary, fontWeight: FontWeight.bold)),
               if (outOfStock)
                 Text('0',
-                    style: TextStyle(
-                        color: scheme.error, fontSize: 11)),
+                    style: TextStyle(color: scheme.error, fontSize: 11)),
             ],
           ),
         ),

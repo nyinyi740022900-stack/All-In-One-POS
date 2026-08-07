@@ -48,6 +48,11 @@ app.*.map.json
 # Local Supabase credentials (keep the anon key out of source control)
 env.local.json
 
+# Android Play upload signing (never commit)
+android/key.properties
+*.jks
+*.keystore
+
 # Personal Claude Code settings (per-developer deploy permissions, etc.)
 .claude/settings.local.json
 .claude/launch.json

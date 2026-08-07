@@ -1,0 +1,7 @@
+# Copy to android/key.properties (gitignored) and fill in real values.
+# See docs/play_store/SIGNING.md
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=goldposmm_upload
+storeFile=/Users/YOU/goldposmm-upload.jks

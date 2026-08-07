@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
@@ -65,9 +66,8 @@ class CustomerAutocomplete extends ConsumerWidget {
               icon: const Icon(Icons.contacts_outlined),
               tooltip: l.checkoutPickCustomer,
               onPressed: () async {
-                final picked = await showModalBottomSheet<Customer>(
+                final picked = await showAppModal<Customer>(
                   context: context,
-                  isScrollControlled: true,
                   builder: (_) => CustomerPickerSheet(customers: customers),
                 );
                 if (picked != null) onSelected(picked);

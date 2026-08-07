@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
@@ -48,10 +49,8 @@ class OrderEditorSheet extends ConsumerStatefulWidget {
     Order? order,
     List<OrderItem>? existingItems,
   }) {
-    return showModalBottomSheet<void>(
+    return showAppModal<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => OrderEditorSheet(order: order, existingItems: existingItems),
     );
   }

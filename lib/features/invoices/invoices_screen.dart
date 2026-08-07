@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
@@ -18,10 +19,17 @@ final invoiceFilterProvider =
     StateProvider<InvoiceFilter>((ref) => InvoiceFilter.all);
 final invoiceSearchProvider = StateProvider<String>((ref) => '');
 
-class InvoicesScreen extends ConsumerWidget {
+class InvoicesScreen extends ConsumerStatefulWidget {
   const InvoicesScreen({super.key});
 
-  Future<void> _scan(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<InvoicesScreen> createState() => _InvoicesScreenState();
+}
+
+class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
+  String? _selectedSaleId;
+
+  Future<void> _scan() async {
     final code = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
     if (code != null && code.isNotEmpty) {
@@ -30,14 +38,14 @@ class InvoicesScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final sales = ref.watch(salesStreamProvider);
     final filter = ref.watch(invoiceFilterProvider);
     final query = ref.watch(invoiceSearchProvider).trim().toLowerCase();
     final owedBySale = ref.watch(creditOwedBySaleProvider);
     final currency = l.currencySymbol;
-    // Owed after repayments have been allocated to this invoice.
+    final split = isMediumPlus(context);
     int owedOf(Sale s) => owedBySale[s.id] ?? (s.total - s.paid);
 
     return Scaffold(
@@ -66,22 +74,33 @@ class InvoicesScreen extends ConsumerWidget {
                     s.invoiceNo.toLowerCase().contains(query) ||
                     (s.customerName?.toLowerCase().contains(query) ?? false) ||
                     (s.customerPhone?.toLowerCase().contains(query) ?? false) ||
-                    // A Social Order converted to this sale was handed to
-                    // the customer as an invoice showing the *order*
-                    // number (generated before conversion, unrelated to
-                    // this sale's own invoiceNo) — `note` carries
-                    // "Order {orderNo}" (see OrdersRepository.convertToSale),
-                    // so searching/scanning that original number still
-                    // finds the sale here.
                     (s.note?.toLowerCase().contains(query) ?? false))
                 .toList();
           }
-          return Column(
+
+          if (_selectedSaleId != null &&
+              !list.any((s) => s.id == _selectedSaleId)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _selectedSaleId = null);
+            });
+          }
+
+          void openSale(Sale s) {
+            if (split) {
+              setState(() => _selectedSaleId = s.id);
+            } else {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => InvoiceDetailScreen(saleId: s.id),
+              ));
+            }
+          }
+
+          final listPane = Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppTheme.space3,
                     AppTheme.space3, AppTheme.space3, 0),
-                child: _InvoiceSearchField(onScan: () => _scan(context, ref)),
+                child: _InvoiceSearchField(onScan: _scan),
               ),
               Padding(
                 padding: const EdgeInsets.all(AppTheme.space3),
@@ -122,7 +141,13 @@ class InvoicesScreen extends ConsumerWidget {
                             if (s.customerPhone?.trim().isNotEmpty ?? false)
                               s.customerPhone!.trim(),
                           ].join(' · ');
+                          final selected =
+                              split && s.id == _selectedSaleId;
                           return ListTile(
+                            selected: selected,
+                            selectedTileColor: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
                             title: Row(
                               children: [
                                 Flexible(child: Text(s.invoiceNo)),
@@ -132,7 +157,8 @@ class InvoicesScreen extends ConsumerWidget {
                                 ] else if (isCredit) ...[
                                   const SizedBox(width: 6),
                                   _CreditBadge(
-                                      settled: owed <= 0, label: l.paymentCredit),
+                                      settled: owed <= 0,
+                                      label: l.paymentCredit),
                                 ],
                               ],
                             ),
@@ -157,18 +183,41 @@ class InvoicesScreen extends ConsumerWidget {
                                         Money(owed).withSymbol(currency)),
                                     style: TextStyle(
                                         fontSize: 12,
-                                        color:
-                                            Theme.of(context).colorScheme.error),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error),
                                   ),
                               ],
                             ),
-                            onTap: () =>
-                                Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) =>
-                                  InvoiceDetailScreen(saleId: s.id),
-                            )),
+                            onTap: () => openSale(s),
                           );
                         },
+                      ),
+              ),
+            ],
+          );
+
+          if (!split) return listPane;
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: widthClassOf(context) == AppWidthClass.expanded
+                    ? 42
+                    : 45,
+                child: listPane,
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: widthClassOf(context) == AppWidthClass.expanded
+                    ? 58
+                    : 55,
+                child: _selectedSaleId == null
+                    ? Center(child: Text(l.invoicesSelectHint))
+                    : InvoiceDetailScreen(
+                        saleId: _selectedSaleId!,
+                        embedded: true,
                       ),
               ),
             ],

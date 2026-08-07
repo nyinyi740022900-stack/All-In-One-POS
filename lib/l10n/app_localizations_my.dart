@@ -81,6 +81,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellEmptyCart => 'ပစ္စည်းမရှိသေးပါ။ ထည့်ရန် ပစ္စည်းကို နှိပ်ပါ။';
 
   @override
+  String get ordersSelectHint => 'အော်ဒါတစ်ခု ရွေးပါ';
+
+  @override
+  String get invoicesSelectHint => 'ငွေတောင်းခံလွှာတစ်ခု ရွေးပါ';
+
+  @override
   String get sellCheckout => 'ငွေရှင်း';
 
   @override

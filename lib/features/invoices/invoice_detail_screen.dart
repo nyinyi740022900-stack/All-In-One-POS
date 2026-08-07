@@ -15,9 +15,16 @@ import '../sell/sales_providers.dart';
 import '../settings/device_label_providers.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
-  const InvoiceDetailScreen({super.key, required this.saleId});
+  const InvoiceDetailScreen({
+    super.key,
+    required this.saleId,
+    this.embedded = false,
+  });
 
   final String saleId;
+
+  /// Inline pane on tablets — no route AppBar back affordance needed.
+  final bool embedded;
 
   Future<void> _refund(BuildContext context, WidgetRef ref, String no) async {
     final l = AppLocalizations.of(context);
@@ -60,7 +67,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.invoiceDetail)),
+      appBar: embedded
+          ? AppBar(
+              title: Text(l.invoiceDetail),
+              automaticallyImplyLeading: false,
+            )
+          : AppBar(title: Text(l.invoiceDetail)),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(l.commonUnexpectedError)),

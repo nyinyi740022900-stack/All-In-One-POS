@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
@@ -17,15 +18,20 @@ import 'orders_providers.dart';
 /// Read-only order view with pipeline actions (edit, move, convert, cancel,
 /// delete). Reads the live order from the stream so it reflects edits/moves.
 class OrderDetailSheet extends ConsumerWidget {
-  const OrderDetailSheet({super.key, required this.orderId});
+  const OrderDetailSheet({
+    super.key,
+    required this.orderId,
+    this.embedded = false,
+  });
 
   final String orderId;
 
+  /// When true, render as an inline pane (no sheet chrome / close that pops).
+  final bool embedded;
+
   static Future<void> show(BuildContext context, String orderId) {
-    return showModalBottomSheet<void>(
+    return showAppModal<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => OrderDetailSheet(orderId: orderId),
     );
   }
@@ -71,13 +77,14 @@ class OrderDetailSheet extends ConsumerWidget {
                 // Explicit close — the content can be tall enough (items +
                 // payment proof photo + delivery section) that the sheet's
                 // drag-handle swipe-to-dismiss isn't an obvious way out.
-                IconButton(
-                  tooltip: MaterialLocalizations.of(context)
-                      .closeButtonTooltip,
-                  icon: const Icon(Icons.close),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                if (!embedded)
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(context)
+                        .closeButtonTooltip,
+                    icon: const Icon(Icons.close),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
               ],
             ),
             const SizedBox(height: 4),
@@ -282,7 +289,7 @@ class OrderDetailSheet extends ConsumerWidget {
 
   Future<void> _convert(BuildContext context, WidgetRef ref, Order o) async {
     final l = AppLocalizations.of(context);
-    final method = await showModalBottomSheet<String>(
+    final method = await showAppModal<String>(
       context: context,
       showDragHandle: true,
       builder: (_) => SafeArea(

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>MM POS</string>
+	<string>GoldPOSMM</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -67,11 +67,17 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>This app connects to your Bluetooth receipt printer to print invoices.</string>
+	<string>GoldPOSMM connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>This app connects to your Bluetooth receipt printer to print invoices.</string>
+	<string>GoldPOSMM connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to scan product barcodes.</string>
+	<string>GoldPOSMM uses the camera to scan product barcodes and license QR codes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GoldPOSMM needs photo access so you can attach payment proofs, expense receipts, and product images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GoldPOSMM may save exported receipts or reports to your photo library when you choose to share them.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

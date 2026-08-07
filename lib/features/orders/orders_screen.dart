@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
@@ -11,18 +12,71 @@ import 'orders_providers.dart';
 import 'orders_repository.dart';
 
 /// The Social Orders list: a flat, newest-first list filtered by search /
-/// channel / payment / status. Replaced the earlier horizontally-scrolling
-/// Kanban board — with the pipeline collapsed to just New/Delivered (see
-/// [orderStatuses]), a board's per-column layout no longer earned its
-/// complexity; a simple filterable list reads faster on a phone screen.
-class OrdersScreen extends ConsumerWidget {
+/// channel / payment / status. On medium+ widths, master–detail shows the
+/// selected order inline; phones still open [OrderDetailSheet].
+class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends ConsumerState<OrdersScreen> {
+  String? _selectedOrderId;
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ordersAsync = ref.watch(ordersStreamProvider);
     final filtered = ref.watch(filteredOrdersListProvider);
+    final split = isMediumPlus(context);
+
+    if (_selectedOrderId != null &&
+        !filtered.any((o) => o.id == _selectedOrderId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedOrderId = null);
+      });
+    }
+
+    void openOrder(Order order) {
+      if (split) {
+        setState(() => _selectedOrderId = order.id);
+      } else {
+        OrderDetailSheet.show(context, order.id);
+      }
+    }
+
+    final listBody = ordersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+      data: (all) {
+        if (all.isEmpty) {
+          return _EmptyState(
+              icon: Icons.dashboard_customize_outlined,
+              message: l.ordersEmpty);
+        }
+        return Column(
+          children: [
+            const _FilterHeader(),
+            Expanded(
+              child: filtered.isEmpty
+                  ? _EmptyState(
+                      icon: Icons.search_off, message: l.ordersNoMatch)
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) => _OrderCard(
+                        order: filtered[i],
+                        selected:
+                            split && filtered[i].id == _selectedOrderId,
+                        onTap: () => openOrder(filtered[i]),
+                      ),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l.ordersTitle)),
@@ -31,34 +85,33 @@ class OrdersScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: Text(l.orderNew),
       ),
-      body: ordersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
-        data: (all) {
-          // Nothing in the DB at all → the first-run empty state (no filters).
-          if (all.isEmpty) {
-            return _EmptyState(
-                icon: Icons.dashboard_customize_outlined,
-                message: l.ordersEmpty);
-          }
-          return Column(
-            children: [
-              const _FilterHeader(),
-              Expanded(
-                child: filtered.isEmpty
-                    ? _EmptyState(
-                        icon: Icons.search_off, message: l.ordersNoMatch)
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, i) =>
-                            _OrderCard(order: filtered[i]),
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: split
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: widthClassOf(context) == AppWidthClass.expanded
+                      ? 42
+                      : 45,
+                  child: listBody,
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  flex: widthClassOf(context) == AppWidthClass.expanded
+                      ? 58
+                      : 55,
+                  child: _selectedOrderId == null
+                      ? _EmptyState(
+                          icon: Icons.receipt_long_outlined,
+                          message: l.ordersSelectHint)
+                      : OrderDetailSheet(
+                          orderId: _selectedOrderId!,
+                          embedded: true,
+                        ),
+                ),
+              ],
+            )
+          : listBody,
     );
   }
 }
@@ -202,21 +255,29 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order});
+  const _OrderCard({
+    required this.order,
+    required this.onTap,
+    this.selected = false,
+  });
   final Order order;
+  final VoidCallback onTap;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final sym = l.currencySymbol;
     final total = order.itemsTotal + order.deliveryFee;
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Card(
         margin: EdgeInsets.zero,
+        color: selected ? scheme.secondaryContainer : null,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => OrderDetailSheet.show(context, order.id),
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(

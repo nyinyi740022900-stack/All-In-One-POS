@@ -1,7 +1,7 @@
 name: mm_pos
 description: "Offline-first POS for Myanmar retailers."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.12.2

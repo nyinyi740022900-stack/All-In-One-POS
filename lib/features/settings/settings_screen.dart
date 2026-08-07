@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/env.dart';
+import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
@@ -54,7 +55,8 @@ class SettingsScreen extends ConsumerWidget {
     final isOwner = session.isEffectiveOwner;
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsTitle)),
-      body: ListView(
+      body: ContentWidth(
+        child: ListView(
         children: [
           _SectionHeader(l.settingsSectionBusiness),
           ListTile(
@@ -243,6 +245,7 @@ class SettingsScreen extends ConsumerWidget {
             const StaffModeCard(),
           ],
         ],
+      ),
       ),
     );
   }
