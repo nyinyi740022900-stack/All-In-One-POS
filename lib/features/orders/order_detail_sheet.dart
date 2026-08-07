@@ -36,6 +36,14 @@ class OrderDetailSheet extends ConsumerWidget {
     );
   }
 
+  /// Pop only when this sheet was shown as a modal. When [embedded] in a
+  /// master–detail pane, a bare [Navigator.pop] would hit the shell branch
+  /// navigator and break tab navigation.
+  void _closeIfModal(BuildContext context) {
+    if (embedded) return;
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -83,7 +91,7 @@ class OrderDetailSheet extends ConsumerWidget {
                         .closeButtonTooltip,
                     icon: const Icon(Icons.close),
                     visualDensity: VisualDensity.compact,
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => _closeIfModal(context),
                   ),
               ],
             ),
@@ -190,7 +198,7 @@ class OrderDetailSheet extends ConsumerWidget {
                     onPressed: o.saleId != null
                         ? null
                         : () {
-                            Navigator.of(context).pop();
+                            _closeIfModal(context);
                             OrderEditorSheet.show(context,
                                 order: o, existingItems: items);
                           },
@@ -327,7 +335,6 @@ class OrderDetailSheet extends ConsumerWidget {
     );
     if (method == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    final nav = Navigator.of(context);
     final repo = ref.read(ordersRepositoryProvider);
     await repo.convertToSale(o.id, paymentMethod: method);
     final saved = await repo.getOrder(o.id);
@@ -335,7 +342,7 @@ class OrderDetailSheet extends ConsumerWidget {
     if (!context.mounted) return;
     messenger.showSnackBar(
         SnackBar(content: Text(l.orderConverted(sale.invoiceNo))));
-    nav.pop();
+    _closeIfModal(context);
   }
 
   /// Marking an order Return used to be a pure label change — it never
@@ -405,9 +412,8 @@ class OrderDetailSheet extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    final nav = Navigator.of(context);
     await ref.read(ordersRepositoryProvider).deleteOrder(orderId);
-    if (context.mounted) nav.pop();
+    if (context.mounted) _closeIfModal(context);
   }
 
   Future<void> _blockCustomer(BuildContext context, WidgetRef ref,
