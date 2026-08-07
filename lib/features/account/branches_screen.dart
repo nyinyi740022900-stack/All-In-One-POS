@@ -566,36 +566,56 @@ class _BranchesBody extends ConsumerWidget {
   Widget _buildStuckBanner(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    return MaterialBanner(
-      backgroundColor: scheme.errorContainer,
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.branchesStuckBannerTitle,
-            style: TextStyle(
-              color: scheme.onErrorContainer,
-              fontWeight: FontWeight.w600,
+    // Do not use MaterialBanner as a Column child — its intrinsic layout
+    // collapses content width to ~0 and wraps one character per line.
+    return Material(
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.warning_amber_rounded, color: scheme.error),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.branchesStuckBannerTitle,
+                        style: TextStyle(
+                          color: scheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l.branchesStuckBannerBody,
+                        style: TextStyle(color: scheme.onErrorContainer),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            l.branchesStuckBannerBody,
-            style: TextStyle(color: scheme.onErrorContainer),
-          ),
-        ],
-      ),
-      leading: Icon(Icons.warning_amber_rounded, color: scheme.error),
-      actions: [
-        FilledButton(
-          onPressed: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen()));
-          },
-          child: Text(l.branchesSwitchFixSyncIssues),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const SyncIssuesScreen(),
+                  ));
+                },
+                child: Text(l.branchesSwitchFixSyncIssues),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -611,21 +631,48 @@ class _BranchesBody extends ConsumerWidget {
             recovery.toShopId,
             _switchErrorMessage(l, recovery.lastError),
           );
-    return MaterialBanner(
-      content: Text(hint),
-      leading: const Icon(Icons.restore_outlined),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
-          },
-          child: Text(l.branchesRecoveryDismiss),
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.restore_outlined, color: scheme.onSecondaryContainer),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hint,
+                    style: TextStyle(color: scheme.onSecondaryContainer),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    await ref
+                        .read(branchRepositoryProvider)
+                        .clearSwitchRecoveryState();
+                  },
+                  child: Text(l.branchesRecoveryDismiss),
+                ),
+                FilledButton(
+                  onPressed: () => _retryPendingSync(context, ref, recovery),
+                  child: Text(l.branchesRecoveryRetrySync),
+                ),
+              ],
+            ),
+          ],
         ),
-        FilledButton(
-          onPressed: () => _retryPendingSync(context, ref, recovery),
-          child: Text(l.branchesRecoveryRetrySync),
-        ),
-      ],
+      ),
     );
   }
 
