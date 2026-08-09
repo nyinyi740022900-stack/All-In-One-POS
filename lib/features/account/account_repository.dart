@@ -423,4 +423,36 @@ class AccountRepository {
       return false;
     }
   }
+
+  /// Permanently deletes the signed-in owner's online account (and owned
+  /// shops' cloud data). Caller must pass the account password. On success
+  /// the local device should wipe shop data and enter Free plan.
+  Future<AccountActionResult> deleteAccount(String password) async {
+    if (!Env.hasBackend) {
+      return const AccountActionResult.failure('no_backend');
+    }
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    if (currentAccountRole != 'owner') {
+      return const AccountActionResult.failure('forbidden');
+    }
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'delete_account', 'password': password},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] != true) {
+        return AccountActionResult.failure(data['error'] as String?);
+      }
+      // Auth user is gone — local sign-out may fail; ignore.
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+      return const AccountActionResult.success(null);
+    } catch (_) {
+      return const AccountActionResult.failure('network_error');
+    }
+  }
 }

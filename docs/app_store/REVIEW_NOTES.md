@@ -20,7 +20,10 @@ If no demo credentials are listed below for this submission, Free-plan Sell / In
 - Camera is used for barcode / license QR scan; Simulator may skip.
 
 ## Business model / IAP
-Premium licensing is sold **outside** Apple In-App Purchase (Support / bank transfer / online subscribe on our backend). The App unlocks POS tools for operating a **physical retail shop**, not unlocking digital content for consumption. There are no IAP products in this binary.
+Premium licensing is arranged **outside** the App (Support / bank transfer / license key). The App does **not** collect payment, payment proofs, or KBZPay/WavePay details for Premium. Renew/Upgrade and trial CTAs copy the Support Viber number and ask the owner to send their App Reference ID. There are no IAP products in this binary. The App unlocks POS tools for operating a **physical retail shop**.
+
+## Account deletion
+Signed-in shop **owners** can delete their online account in Settings → Shop Login → Delete account (password confirm). This removes Auth users for owned shops and associated cloud shop data; the device returns to Free plan.
 
 ## Locale
 Default UI language is Myanmar; toggle to English in Settings.

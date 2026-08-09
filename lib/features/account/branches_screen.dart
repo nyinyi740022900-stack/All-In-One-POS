@@ -378,9 +378,19 @@ class _CurrentBranchPinnedCard extends StatelessWidget {
   }
 }
 
-class _BranchesBody extends ConsumerWidget {
+class _BranchesBody extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BranchesBody> createState() => _BranchesBodyState();
+}
+
+class _BranchesBodyState extends ConsumerState<_BranchesBody> {
+  /// True while a switch flow is running — disables Switch/Unlink so a second
+  /// tap doesn't stack, and gives immediate feedback before dialogs appear.
+  bool _switchInFlight = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final l = AppLocalizations.of(context);
     final branchesAsync = ref.watch(branchesProvider);
     final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
@@ -515,12 +525,24 @@ class _BranchesBody extends ConsumerWidget {
                           spacing: AppTheme.space2,
                           children: [
                             OutlinedButton.icon(
-                              onPressed: () => _confirmSwitch(context, ref, b),
-                              icon: const Icon(Icons.swap_horiz, size: 18),
+                              onPressed: _switchInFlight
+                                  ? null
+                                  : () => _confirmSwitch(context, ref, b),
+                              icon: _switchInFlight
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.swap_horiz, size: 18),
                               label: Text(l.branchesSwitch),
                             ),
                             FilledButton.tonalIcon(
-                              onPressed: () => _confirmUnlink(context, ref, b),
+                              onPressed: _switchInFlight
+                                  ? null
+                                  : () => _confirmUnlink(context, ref, b),
                               style: FilledButton.styleFrom(
                                 foregroundColor: Theme.of(
                                   context,
@@ -1042,6 +1064,20 @@ class _BranchesBody extends ConsumerWidget {
     WidgetRef ref,
     Branch b,
   ) async {
+    if (_switchInFlight) return;
+    setState(() => _switchInFlight = true);
+    try {
+      await _confirmSwitchBody(context, ref, b);
+    } finally {
+      if (mounted) setState(() => _switchInFlight = false);
+    }
+  }
+
+  Future<void> _confirmSwitchBody(
+    BuildContext context,
+    WidgetRef ref,
+    Branch b,
+  ) async {
     final l = AppLocalizations.of(context);
     if (!await requireOwnerPinReauth(
       context,
@@ -1108,46 +1144,54 @@ class _BranchesBody extends ConsumerWidget {
         action == _BranchSwitchAction.cancel) {
       return;
     }
-    if (action == _BranchSwitchAction.syncAndSwitch) {
-      await ref.read(syncControllerProvider.notifier).sync();
-      if (!context.mounted) return;
-      final syncState = ref.read(syncControllerProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            syncState.phase == SyncPhase.error ? l.syncError : l.syncIdle,
-          ),
-        ),
-      );
-      final refreshed = await _runPreflight(ref);
-      if (!context.mounted) return;
-      if (refreshed.pendingOutboxCount > 0 || !refreshed.online) {
-        await showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l.branchesSwitchInProgressTitle),
-            content: Text(
-              refreshed.pendingOutboxCount > 0
-                  ? l.branchesPreflightNeedSync
-                  : l.branchesPreflightNeedOnline,
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(l.commonOk),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-    }
 
+    // Show progress BEFORE sync/switch awaits so the user never sees a blank
+    // second after dismissing the preflight sheet (showDialog paints next frame).
     final currentStep = ValueNotifier<_BranchSwitchUiStep>(
       _BranchSwitchUiStep.checkingDataSafety,
     );
     _showSwitchProgressDialog(context, currentStep);
+    await WidgetsBinding.instance.endOfFrame;
+    await Future<void>.delayed(Duration.zero);
+    if (!context.mounted) {
+      currentStep.dispose();
+      return;
+    }
+
     try {
+      if (action == _BranchSwitchAction.syncAndSwitch) {
+        await ref.read(syncControllerProvider.notifier).sync();
+        if (!context.mounted) return;
+        final syncState = ref.read(syncControllerProvider);
+        final refreshed = await _runPreflight(ref);
+        if (!context.mounted) return;
+        if (refreshed.pendingOutboxCount > 0 ||
+            !refreshed.online ||
+            syncState.phase == SyncPhase.error) {
+          Navigator.of(context, rootNavigator: true).pop();
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(l.branchesSwitchInProgressTitle),
+              content: Text(
+                syncState.phase == SyncPhase.error
+                    ? l.syncError
+                    : (refreshed.pendingOutboxCount > 0
+                        ? l.branchesPreflightNeedSync
+                        : l.branchesPreflightNeedOnline),
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l.commonOk),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+      }
+
       final existingRecovery = await ref
           .read(branchRepositoryProvider)
           .switchRecoveryState();

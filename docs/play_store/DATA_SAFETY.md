@@ -10,7 +10,7 @@ Declare collection for app functionality. No ads / no cross-app tracking.
 | Other user-generated content | Yes (shop catalog, sales) | Sync to our backend for the shop | App functionality |
 | Crash logs | Yes if Sentry DSN in build | Crash vendor | Analytics / stability |
 
-**Security practices:** Data encrypted in transit (HTTPS). Users can request deletion via Support.
+**Security practices:** Data encrypted in transit (HTTPS). Online account owners can delete their account in-app (Settings → Shop Login → Delete account). Users may also contact Support.
 
 **Premium / payments:** Not sold through Google Play Billing. External license for physical retail POS software — declare accordingly in the Payments / subscriptions questionnaire.
 

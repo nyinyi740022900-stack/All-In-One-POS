@@ -41,4 +41,4 @@ That means **device Development signing works**, but **App Store distribution is
 Still required for `tool/upload_ios_ipa.sh` — see [ACCOUNT.md](ACCOUNT.md).
 
 ## Icons
-Flutter validated the archive but warned the **App Icon / Launch Image look like placeholders**. Replace marketing artwork in `ios/Runner/Assets.xcassets/AppIcon.appiconset/` (and Android mipmaps) with final GoldPOSMM branding before public submit — 1024×1024 must not be the default Flutter logo.
+App icons are the GoldPOSMM teal + gold receipt mark (`assets/branding/app_icon_1024.png` → iOS AppIcon + Android mipmaps). Re-check Launch Image / splash if Xcode still warns about placeholders before public submit.

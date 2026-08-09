@@ -38,6 +38,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     'no_backend' => l.accountNoBackend,
     'pending_sync' => l.accountPendingSync,
     'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
+    'wrong_password' => l.accountDeleteWrongPassword,
+    'forbidden' => l.accountDeleteOwnerOnly,
     _ => l.accountActionFailed,
   };
 
@@ -179,6 +181,100 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     setState(() {});
   }
 
+  Future<void> _deleteAccount() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final account = ref.read(accountRepositoryProvider);
+    if (account.currentAccountRole != 'owner') {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.accountDeleteOwnerOnly)),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.accountDeleteConfirmTitle),
+        content: Text(l.accountDeleteConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.accountDeleteAccount),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final password = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.accountDeleteAccount),
+        content: TextField(
+          controller: password,
+          obscureText: true,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: l.accountDeletePasswordLabel,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.accountDeleteAccount),
+          ),
+        ],
+      ),
+    );
+    final pwd = password.text;
+    password.dispose();
+    if (ok != true || pwd.isEmpty || !mounted) return;
+
+    setState(() => _busy = true);
+    final result = await ref
+        .read(accountRepositoryProvider)
+        .deleteAccount(pwd);
+    if (!mounted) return;
+
+    if (!result.ok) {
+      setState(() => _busy = false);
+      messenger.showSnackBar(
+        SnackBar(content: Text(_errorMessage(l, result.error))),
+      );
+      return;
+    }
+
+    // Cloud account gone — local Free plan + wipe so this device is clean.
+    final entered = await ref
+        .read(licenseControllerProvider.notifier)
+        .continueFree();
+    if (!entered) {
+      // Pending outbox blocked Free entry — still clear license cache best-effort.
+      await ref.read(licenseControllerProvider.notifier).deactivate();
+    }
+    ref.invalidate(backendAccountRoleProvider);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteSuccess)));
+    setState(() {});
+  }
+
   Future<void> _showForgotPasswordDialog() async {
     final l = AppLocalizations.of(context);
     final email = TextEditingController(text: _email.text.trim());
@@ -253,14 +349,43 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
           const SizedBox(height: AppTheme.space4),
           if (signedIn)
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.verified_user, color: Colors.green),
-                title: Text(account.currentAccountEmail ?? ''),
-                subtitle: Text(account.currentAccountRole ?? ''),
-                trailing: TextButton(
-                  onPressed: _signOut,
-                  child: Text(l.accountSignOut),
-                ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(
+                      Icons.verified_user,
+                      color: Colors.green,
+                    ),
+                    title: Text(account.currentAccountEmail ?? ''),
+                    subtitle: Text(account.currentAccountRole ?? ''),
+                    trailing: TextButton(
+                      onPressed: _busy ? null : _signOut,
+                      child: Text(l.accountSignOut),
+                    ),
+                  ),
+                  if (account.currentAccountRole == 'owner')
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppTheme.space4,
+                        0,
+                        AppTheme.space4,
+                        AppTheme.space3,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _busy ? null : _deleteAccount,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                          ),
+                          icon: const Icon(Icons.delete_forever_outlined),
+                          label: Text(l.accountDeleteAccount),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             )
           else ...[

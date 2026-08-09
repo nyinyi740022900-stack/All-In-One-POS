@@ -876,7 +876,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း စသဖြင့်)။ Premium features (Analytics၊ Suppliers၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — KBZPay/WavePay နဲ့ License key ဝယ်နိုင်တယ်၊ ဒါမှမဟုတ် Shop Login account နဲ့ subscribe လုပ်နိုင်ပါတယ်။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့နဲ့ Key အစား Online subscribe လုပ်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း စသဖြင့်)။ Premium features (Analytics၊ Suppliers၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1454,7 +1454,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseNoKeyHint =>
-      'KBZPay/WavePay နဲ့ ပေးချေပြီး license key ကို ပို့ပေးပါမယ်။';
+      'App Reference ID နဲ့ Support Viber ကို ဆက်သွယ်ပါ — license key ပို့ပေးပါမယ်။ ပြီးရင် အောက်မှာ activate လုပ်ပါ။';
+
+  @override
+  String get licenseContactSupportTitle => 'Support ဆက်သွယ်ရန်';
+
+  @override
+  String get licensePremiumContactHint =>
+      'Premium ကို app အပြင် Support က ဖွင့်ပေးသည် (license key သို့မဟုတ် Online account)။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
 
   @override
   String get licenseSubscribe => 'Subscribe';
@@ -1522,7 +1529,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseRenewHint =>
-      'KPay/WavePay နဲ့ ပေးချေပြီး မှတ်တမ်းတင်ပြီးရင်၊ admin ကို approve ခိုင်းပါ။ ပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ။';
+      'Support က သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ (သို့မဟုတ် key အသစ် activate လုပ်ပါ)။';
 
   @override
   String get deviceSectionTitle => 'Device များ';
@@ -2531,6 +2538,33 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountSignOut => 'ထွက်မည်';
+
+  @override
+  String get accountDeleteAccount => 'အကောင့် ဖျက်မည်';
+
+  @override
+  String get accountDeleteConfirmTitle => 'အကောင့် ဖျက်မလား?';
+
+  @override
+  String get accountDeleteConfirmBody =>
+      'Online ဆိုင်အကောင့်၊ ဤဆိုင်၏ staff login များ၊ ပိုင်ဆိုင်သော shop များ၏ cloud ဒေတာကို အပြီးဖျက်မည်။ ဤဖုန်းသည် Free plan သို့ ပြန်သွားမည်။ ပြန်မရနိုင်ပါ။';
+
+  @override
+  String get accountDeletePasswordLabel => 'စကားဝှက်ဖြင့် အတည်ပြုပါ';
+
+  @override
+  String get accountDeleteSuccess =>
+      'အကောင့် ဖျက်ပြီးပါပြီ — Free plan သို့ ပြောင်းထားသည်။';
+
+  @override
+  String get accountDeleteFailed =>
+      'အကောင့် မဖျက်နိုင်ပါ။ စကားဝှက်နှင့် အင်တာနက် စစ်ပါ။';
+
+  @override
+  String get accountDeleteWrongPassword => 'စကားဝှက် မှားနေသည်။';
+
+  @override
+  String get accountDeleteOwnerOnly => 'ဆိုင်ပိုင်ရှင်သာ အကောင့် ဖျက်နိုင်သည်။';
 
   @override
   String get accountSignedIn => 'ဝင်ရောက်ပြီးပါပြီ။';

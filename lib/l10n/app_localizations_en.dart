@@ -876,7 +876,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — pay via KBZPay/WavePay for a license key, or subscribe under your Shop Login account.\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device, and to subscribe online instead of using a key. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -1452,7 +1452,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseNoKeyHint =>
-      'Pay via KBZPay/WavePay and we\'ll send your license key.';
+      'Contact Support on Viber with your App Reference ID — they will send a license key. Then activate it below.';
+
+  @override
+  String get licenseContactSupportTitle => 'Contact Support';
+
+  @override
+  String get licensePremiumContactHint =>
+      'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.';
 
   @override
   String get licenseSubscribe => 'Subscribe';
@@ -1519,7 +1526,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseRenewHint =>
-      'After paying (KPay/WavePay) and recording it, ask the admin to approve, then tap Check for renewal.';
+      'After Support extends your license, tap Check for renewal (or activate a new key).';
 
   @override
   String get deviceSectionTitle => 'Devices';
@@ -2538,6 +2545,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountSignOut => 'Sign out';
+
+  @override
+  String get accountDeleteAccount => 'Delete account';
+
+  @override
+  String get accountDeleteConfirmTitle => 'Delete your account?';
+
+  @override
+  String get accountDeleteConfirmBody =>
+      'This permanently deletes your online shop account, staff logins for this shop, and cloud data for shops you own. This device will return to the Free plan. This cannot be undone.';
+
+  @override
+  String get accountDeletePasswordLabel => 'Confirm with your password';
+
+  @override
+  String get accountDeleteSuccess =>
+      'Account deleted. You\'re on the Free plan.';
+
+  @override
+  String get accountDeleteFailed =>
+      'Could not delete account. Check your password and connection.';
+
+  @override
+  String get accountDeleteWrongPassword => 'Wrong password.';
+
+  @override
+  String get accountDeleteOwnerOnly =>
+      'Only the shop owner can delete the account.';
 
   @override
   String get accountSignedIn => 'Signed in.';

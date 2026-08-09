@@ -71,6 +71,13 @@
 //                                                 affects the *suggested*
 //                                                 renewal price only, never
 //                                                 shop_id/session/data
+//   delete_account { password }               -> owner-role caller permanently
+//                                                 deletes their Auth users
+//                                                 (owner+staff) for owned
+//                                                 shops, licenses, and
+//                                                 best-effort shop-scoped
+//                                                 cloud rows — App Store /
+//                                                 Play account-deletion
 //
 // activate flow:
 //  1. Authenticate the caller (anonymous or otherwise) from the JWT.
@@ -118,6 +125,7 @@ Deno.serve(async (req) => {
     shop_id?: string;
     shop_name?: string;
     tier?: string;
+    switch_token?: string;
   };
   try {
     body = await req.json();
@@ -202,6 +210,15 @@ Deno.serve(async (req) => {
   }
   if (action === "set_tier") {
     return handleSetTier(admin, userData.user, body.tier ?? "");
+  }
+  if (action === "delete_account") {
+    return handleDeleteAccount(
+      admin,
+      userData.user,
+      body.password ?? "",
+      supabaseUrl,
+      anonKey,
+    );
   }
 
   const key = (body.key ?? "").trim();
@@ -889,6 +906,116 @@ async function handleSignupShop(
     activated_at: license.activated_at,
     tier: "online",
   }, 200);
+}
+
+/// Owner-only account deletion (App Store 5.1.1(v) / Play). Re-checks password,
+/// wipes shop-scoped cloud rows best-effort, deletes licenses + org links, then
+/// deletes Auth users for those shops (staff + owner).
+async function handleDeleteAccount(
+  admin: AdminClient,
+  user: SupabaseUser,
+  password: string,
+  supabaseUrl: string,
+  anonKey: string,
+): Promise<Response> {
+  if (roleOf(user) !== "owner") {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  const email = user.email ?? "";
+  if (!email || !password) {
+    return json({ ok: false, error: "bad_request" }, 400);
+  }
+
+  const verify = createClient(supabaseUrl, anonKey);
+  const { error: authErr } = await verify.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (authErr) {
+    return json({ ok: false, error: "wrong_password" }, 200);
+  }
+
+  const shopIds = new Set<string>([shopId]);
+  const { data: branches } = await admin
+    .from("org_branches")
+    .select("shop_id")
+    .eq("owner_user_id", user.id);
+  for (const row of branches ?? []) {
+    if (row.shop_id) shopIds.add(row.shop_id as string);
+  }
+
+  // Leaf → root-ish. Failures are ignored so a missing table never blocks
+  // auth deletion (the required privacy outcome).
+  const shopTables = [
+    "sale_items",
+    "payments",
+    "credit_payments",
+    "order_items",
+    "purchase_order_items",
+    "stock_movements",
+    "stock_levels",
+    "sales",
+    "orders",
+    "purchase_orders",
+    "expenses",
+    "cash_sessions",
+    "supplier_payments",
+    "equity_entries",
+    "recurring_expenses",
+    "license_payments",
+    "license_events",
+    "license_requests",
+    "products",
+    "categories",
+    "customers",
+    "suppliers",
+    "staff_members",
+    "device_labels",
+    "payment_accounts",
+    "storefront_blocklist",
+    "storefronts",
+    "branch_switch_attempts",
+    "licenses",
+  ];
+
+  for (const sid of shopIds) {
+    for (const table of shopTables) {
+      try {
+        await admin.from(table).delete().eq("shop_id", sid);
+      } catch {
+        /* best-effort */
+      }
+    }
+    try {
+      await admin.from("org_branches").delete().eq("shop_id", sid);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  const { data: listed } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  // deno-lint-ignore no-explicit-any
+  const toDelete = ((listed?.users ?? []) as any[]).filter((u) =>
+    shopIds.has(shopIdOf(u) ?? "")
+  );
+  // Delete staff first, owner (caller) last.
+  toDelete.sort((a, b) =>
+    (a.id === user.id ? 1 : 0) - (b.id === user.id ? 1 : 0)
+  );
+  for (const u of toDelete) {
+    try {
+      await admin.auth.admin.deleteUser(u.id);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  return json({ ok: true }, 200);
 }
 
 function json(body: unknown, status: number): Response {

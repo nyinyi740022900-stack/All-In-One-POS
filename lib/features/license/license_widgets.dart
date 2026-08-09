@@ -36,62 +36,6 @@ class _RefIdTile extends ConsumerWidget {
   }
 }
 
-class _PayToCard extends StatelessWidget {
-  const _PayToCard({required this.config, required this.method});
-
-  final VendorConfig config;
-  final String method;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final (String name, String number) = switch (method) {
-      'kbzpay' => (config.kbzName, config.kbzNumber),
-      'wavepay' => (config.waveName, config.waveNumber),
-      _ => ('', ''),
-    };
-    if (number.isEmpty) return const SizedBox(height: AppTheme.space2);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: AppTheme.space2),
-      child: Card(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.space3),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.licensePayTo,
-                        style: Theme.of(context).textTheme.labelSmall),
-                    const SizedBox(height: 2),
-                    Text('${paymentLabel(l, method)} · $number',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    if (name.isNotEmpty) Text(name),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: l.commonCopy,
-                icon: const Icon(Icons.copy),
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: number));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l.copied)));
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Lists the shop's device slots and lets the owner add or release one.
 /// Devices are meaningless offline/on a trial — the caller only shows this
 /// once the shop has a real paid key (see build() in license_screen.dart).

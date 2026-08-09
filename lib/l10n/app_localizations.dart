@@ -1715,7 +1715,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — pay via KBZPay/WavePay for a license key, or subscribe under your Shop Login account.\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device, and to subscribe online instead of using a key. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -2801,8 +2801,20 @@ abstract class AppLocalizations {
   /// No description provided for @licenseNoKeyHint.
   ///
   /// In en, this message translates to:
-  /// **'Pay via KBZPay/WavePay and we\'ll send your license key.'**
+  /// **'Contact Support on Viber with your App Reference ID — they will send a license key. Then activate it below.'**
   String get licenseNoKeyHint;
+
+  /// No description provided for @licenseContactSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Support'**
+  String get licenseContactSupportTitle;
+
+  /// No description provided for @licensePremiumContactHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.'**
+  String get licensePremiumContactHint;
 
   /// No description provided for @licenseSubscribe.
   ///
@@ -2915,7 +2927,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseRenewHint.
   ///
   /// In en, this message translates to:
-  /// **'After paying (KPay/WavePay) and recording it, ask the admin to approve, then tap Check for renewal.'**
+  /// **'After Support extends your license, tap Check for renewal (or activate a new key).'**
   String get licenseRenewHint;
 
   /// No description provided for @deviceSectionTitle.
@@ -4711,6 +4723,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get accountSignOut;
+
+  /// No description provided for @accountDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get accountDeleteAccount;
+
+  /// No description provided for @accountDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get accountDeleteConfirmTitle;
+
+  /// No description provided for @accountDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your online shop account, staff logins for this shop, and cloud data for shops you own. This device will return to the Free plan. This cannot be undone.'**
+  String get accountDeleteConfirmBody;
+
+  /// No description provided for @accountDeletePasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm with your password'**
+  String get accountDeletePasswordLabel;
+
+  /// No description provided for @accountDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted. You\'re on the Free plan.'**
+  String get accountDeleteSuccess;
+
+  /// No description provided for @accountDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete account. Check your password and connection.'**
+  String get accountDeleteFailed;
+
+  /// No description provided for @accountDeleteWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get accountDeleteWrongPassword;
+
+  /// No description provided for @accountDeleteOwnerOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the shop owner can delete the account.'**
+  String get accountDeleteOwnerOnly;
 
   /// No description provided for @accountSignedIn.
   ///
