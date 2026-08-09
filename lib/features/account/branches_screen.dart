@@ -1008,6 +1008,36 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
       );
       final refreshed = await _runPreflight(ref);
       if (!context.mounted) return;
+      // syncUntilDrained's retries can themselves push a genuinely-failing
+      // row's attempts past kOutboxStuckThreshold — route straight to the
+      // same "Fix Sync Issues" escape hatch the top-of-flow check offers,
+      // instead of a dead-end "sync first" message the owner can never get
+      // past by retrying Switch again.
+      if (refreshed.stuckOutboxCount > 0) {
+        final openIssues = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l.branchesSwitchBlockedTitle),
+            content: Text(l.branchesSwitchBlockedStuckOutbox),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.branchesSwitchFixSyncIssues),
+              ),
+            ],
+          ),
+        );
+        if (openIssues == true && context.mounted) {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const SyncIssuesScreen()));
+        }
+        return;
+      }
       if (refreshed.pendingOutboxCount > 0 || !refreshed.online) {
         await showDialog<void>(
           context: context,
