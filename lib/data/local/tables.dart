@@ -580,10 +580,14 @@ class Outbox extends Table {
   IntColumn get attempts => integer().withDefault(const Constant(0))();
 
   /// The exception message from the most recent failed push attempt, if
-  /// any — lets a permanently-failing row ("poison pill": bad payload,
-  /// schema drift, an RLS rule the row no longer satisfies) surface as
-  /// something visible and actionable, instead of silently retrying
-  /// forever behind an otherwise-accurate "Up to date" sync status (see
-  /// `SyncEngine._push`'s per-row error isolation).
+  /// any — used for auto-heal classification (RLS / unique) and Support
+  /// diagnostics after quarantine (see `SyncEngine._push`).
   TextColumn get lastError => text().nullable()();
+
+  /// Permanently-failing rows are quarantined after [kOutboxStuckThreshold]
+  /// attempts so they no longer block branch switch / pending counts.
+  /// Local entity data is kept; `sync_force_apply` converges them without
+  /// asking the owner to Discard or call Support.
+  BoolColumn get quarantined =>
+      boolean().withDefault(const Constant(false))();
 }

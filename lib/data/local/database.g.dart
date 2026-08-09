@@ -17238,6 +17238,21 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _quarantinedMeta = const VerificationMeta(
+    'quarantined',
+  );
+  @override
+  late final GeneratedColumn<bool> quarantined = GeneratedColumn<bool>(
+    'quarantined',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("quarantined" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     seq,
@@ -17248,6 +17263,7 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
     enqueuedAt,
     attempts,
     lastError,
+    quarantined,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -17317,6 +17333,15 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
         lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
       );
     }
+    if (data.containsKey('quarantined')) {
+      context.handle(
+        _quarantinedMeta,
+        quarantined.isAcceptableOrUnknown(
+          data['quarantined']!,
+          _quarantinedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -17358,6 +17383,10 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
         DriftSqlType.string,
         data['${effectivePrefix}last_error'],
       ),
+      quarantined: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}quarantined'],
+      )!,
     );
   }
 
@@ -17381,12 +17410,15 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
   final int attempts;
 
   /// The exception message from the most recent failed push attempt, if
-  /// any — lets a permanently-failing row ("poison pill": bad payload,
-  /// schema drift, an RLS rule the row no longer satisfies) surface as
-  /// something visible and actionable, instead of silently retrying
-  /// forever behind an otherwise-accurate "Up to date" sync status (see
-  /// `SyncEngine._push`'s per-row error isolation).
+  /// any — used for auto-heal classification (RLS / unique) and Support
+  /// diagnostics after quarantine (see `SyncEngine._push`).
   final String? lastError;
+
+  /// Permanently-failing rows are quarantined after [kOutboxStuckThreshold]
+  /// attempts so they no longer block branch switch / pending counts.
+  /// Local entity data is kept (dirty uncleared); Support investigates via
+  /// Sentry — owners are never asked to Discard.
+  final bool quarantined;
   const OutboxData({
     required this.seq,
     required this.entityTable,
@@ -17396,6 +17428,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     required this.enqueuedAt,
     required this.attempts,
     this.lastError,
+    required this.quarantined,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -17410,6 +17443,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     if (!nullToAbsent || lastError != null) {
       map['last_error'] = Variable<String>(lastError);
     }
+    map['quarantined'] = Variable<bool>(quarantined);
     return map;
   }
 
@@ -17425,6 +17459,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       lastError: lastError == null && nullToAbsent
           ? const Value.absent()
           : Value(lastError),
+      quarantined: Value(quarantined),
     );
   }
 
@@ -17442,6 +17477,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       enqueuedAt: serializer.fromJson<DateTime>(json['enqueuedAt']),
       attempts: serializer.fromJson<int>(json['attempts']),
       lastError: serializer.fromJson<String?>(json['lastError']),
+      quarantined: serializer.fromJson<bool>(json['quarantined']),
     );
   }
   @override
@@ -17456,6 +17492,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       'enqueuedAt': serializer.toJson<DateTime>(enqueuedAt),
       'attempts': serializer.toJson<int>(attempts),
       'lastError': serializer.toJson<String?>(lastError),
+      'quarantined': serializer.toJson<bool>(quarantined),
     };
   }
 
@@ -17468,6 +17505,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     DateTime? enqueuedAt,
     int? attempts,
     Value<String?> lastError = const Value.absent(),
+    bool? quarantined,
   }) => OutboxData(
     seq: seq ?? this.seq,
     entityTable: entityTable ?? this.entityTable,
@@ -17477,6 +17515,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     enqueuedAt: enqueuedAt ?? this.enqueuedAt,
     attempts: attempts ?? this.attempts,
     lastError: lastError.present ? lastError.value : this.lastError,
+    quarantined: quarantined ?? this.quarantined,
   );
   OutboxData copyWithCompanion(OutboxCompanion data) {
     return OutboxData(
@@ -17492,6 +17531,9 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           : this.enqueuedAt,
       attempts: data.attempts.present ? data.attempts.value : this.attempts,
       lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      quarantined: data.quarantined.present
+          ? data.quarantined.value
+          : this.quarantined,
     );
   }
 
@@ -17505,7 +17547,8 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           ..write('payload: $payload, ')
           ..write('enqueuedAt: $enqueuedAt, ')
           ..write('attempts: $attempts, ')
-          ..write('lastError: $lastError')
+          ..write('lastError: $lastError, ')
+          ..write('quarantined: $quarantined')
           ..write(')'))
         .toString();
   }
@@ -17520,6 +17563,7 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     enqueuedAt,
     attempts,
     lastError,
+    quarantined,
   );
   @override
   bool operator ==(Object other) =>
@@ -17532,7 +17576,8 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           other.payload == this.payload &&
           other.enqueuedAt == this.enqueuedAt &&
           other.attempts == this.attempts &&
-          other.lastError == this.lastError);
+          other.lastError == this.lastError &&
+          other.quarantined == this.quarantined);
 }
 
 class OutboxCompanion extends UpdateCompanion<OutboxData> {
@@ -17544,6 +17589,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
   final Value<DateTime> enqueuedAt;
   final Value<int> attempts;
   final Value<String?> lastError;
+  final Value<bool> quarantined;
   const OutboxCompanion({
     this.seq = const Value.absent(),
     this.entityTable = const Value.absent(),
@@ -17553,6 +17599,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     this.enqueuedAt = const Value.absent(),
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
+    this.quarantined = const Value.absent(),
   });
   OutboxCompanion.insert({
     this.seq = const Value.absent(),
@@ -17563,6 +17610,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     this.enqueuedAt = const Value.absent(),
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
+    this.quarantined = const Value.absent(),
   }) : entityTable = Value(entityTable),
        rowId = Value(rowId),
        op = Value(op),
@@ -17576,6 +17624,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     Expression<DateTime>? enqueuedAt,
     Expression<int>? attempts,
     Expression<String>? lastError,
+    Expression<bool>? quarantined,
   }) {
     return RawValuesInsertable({
       if (seq != null) 'seq': seq,
@@ -17586,6 +17635,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
       if (enqueuedAt != null) 'enqueued_at': enqueuedAt,
       if (attempts != null) 'attempts': attempts,
       if (lastError != null) 'last_error': lastError,
+      if (quarantined != null) 'quarantined': quarantined,
     });
   }
 
@@ -17598,6 +17648,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     Value<DateTime>? enqueuedAt,
     Value<int>? attempts,
     Value<String?>? lastError,
+    Value<bool>? quarantined,
   }) {
     return OutboxCompanion(
       seq: seq ?? this.seq,
@@ -17608,6 +17659,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
       enqueuedAt: enqueuedAt ?? this.enqueuedAt,
       attempts: attempts ?? this.attempts,
       lastError: lastError ?? this.lastError,
+      quarantined: quarantined ?? this.quarantined,
     );
   }
 
@@ -17638,6 +17690,9 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     if (lastError.present) {
       map['last_error'] = Variable<String>(lastError.value);
     }
+    if (quarantined.present) {
+      map['quarantined'] = Variable<bool>(quarantined.value);
+    }
     return map;
   }
 
@@ -17651,7 +17706,8 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
           ..write('payload: $payload, ')
           ..write('enqueuedAt: $enqueuedAt, ')
           ..write('attempts: $attempts, ')
-          ..write('lastError: $lastError')
+          ..write('lastError: $lastError, ')
+          ..write('quarantined: $quarantined')
           ..write(')'))
         .toString();
   }
@@ -25926,6 +25982,7 @@ typedef $$OutboxTableCreateCompanionBuilder =
       Value<DateTime> enqueuedAt,
       Value<int> attempts,
       Value<String?> lastError,
+      Value<bool> quarantined,
     });
 typedef $$OutboxTableUpdateCompanionBuilder =
     OutboxCompanion Function({
@@ -25937,6 +25994,7 @@ typedef $$OutboxTableUpdateCompanionBuilder =
       Value<DateTime> enqueuedAt,
       Value<int> attempts,
       Value<String?> lastError,
+      Value<bool> quarantined,
     });
 
 class $$OutboxTableFilterComposer
@@ -25985,6 +26043,11 @@ class $$OutboxTableFilterComposer
 
   ColumnFilters<String> get lastError => $composableBuilder(
     column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get quarantined => $composableBuilder(
+    column: $table.quarantined,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -26037,6 +26100,11 @@ class $$OutboxTableOrderingComposer
     column: $table.lastError,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get quarantined => $composableBuilder(
+    column: $table.quarantined,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OutboxTableAnnotationComposer
@@ -26075,6 +26143,11 @@ class $$OutboxTableAnnotationComposer
 
   GeneratedColumn<String> get lastError =>
       $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<bool> get quarantined => $composableBuilder(
+    column: $table.quarantined,
+    builder: (column) => column,
+  );
 }
 
 class $$OutboxTableTableManager
@@ -26113,6 +26186,7 @@ class $$OutboxTableTableManager
                 Value<DateTime> enqueuedAt = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
+                Value<bool> quarantined = const Value.absent(),
               }) => OutboxCompanion(
                 seq: seq,
                 entityTable: entityTable,
@@ -26122,6 +26196,7 @@ class $$OutboxTableTableManager
                 enqueuedAt: enqueuedAt,
                 attempts: attempts,
                 lastError: lastError,
+                quarantined: quarantined,
               ),
           createCompanionCallback:
               ({
@@ -26133,6 +26208,7 @@ class $$OutboxTableTableManager
                 Value<DateTime> enqueuedAt = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
+                Value<bool> quarantined = const Value.absent(),
               }) => OutboxCompanion.insert(
                 seq: seq,
                 entityTable: entityTable,
@@ -26142,6 +26218,7 @@ class $$OutboxTableTableManager
                 enqueuedAt: enqueuedAt,
                 attempts: attempts,
                 lastError: lastError,
+                quarantined: quarantined,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

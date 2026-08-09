@@ -6,7 +6,6 @@ enum OwnerCapability {
   staffAccounts,
   license,
   storefront,
-  syncIssuesDiscard,
   inventoryEdit,
   settingsSensitive,
 }
@@ -31,7 +30,6 @@ class OwnerPermissionPolicy {
       case OwnerCapability.branches:
       case OwnerCapability.staffAccounts:
       case OwnerCapability.settingsSensitive:
-      case OwnerCapability.syncIssuesDiscard:
         return true;
       case OwnerCapability.analytics:
       case OwnerCapability.license:

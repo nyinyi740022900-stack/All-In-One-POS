@@ -26,7 +26,10 @@ void main() {
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    await SettingsRepository(db).markOnboardingComplete();
+    final settings = SettingsRepository(db);
+    await settings.markOnboardingComplete();
+    await settings.setOperatingMode(SettingsRepository.operatingModeOffline);
+    await settings.confirmOperatingMode();
 
     await tester.pumpWidget(
       ProviderScope(

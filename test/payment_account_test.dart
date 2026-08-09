@@ -1,5 +1,8 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
+import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/accounts/payment_account_repository.dart';
 
 Payment _payment(String method, int amount) => Payment(
@@ -113,6 +116,43 @@ void main() {
         accountId: 'kbzpay',
       );
       expect(result, 15000);
+    });
+  });
+
+  group('ensureDefaultsSeeded', () {
+    late AppDatabase db;
+    late SettingsRepository settings;
+    late PaymentAccountRepository repo;
+
+    setUp(() {
+      db = AppDatabase.forTesting(NativeDatabase.memory());
+      settings = SettingsRepository(db);
+      repo = PaymentAccountRepository(db, 'shop-1', settings);
+    });
+
+    tearDown(() async => db.close());
+
+    test('does not enqueue when default accounts already exist', () async {
+      final now = DateTime(2026, 8, 1);
+      for (final entry in PaymentAccountRepository.defaultAccounts.entries) {
+        await db.into(db.paymentAccounts).insert(
+              PaymentAccountsCompanion.insert(
+                id: entry.key,
+                shopId: 'shop-1',
+                name: entry.value,
+                updatedAt: Value(now),
+                dirty: const Value(false),
+              ),
+            );
+      }
+
+      await repo.ensureDefaultsSeeded();
+
+      final outbox = await db.select(db.outbox).get();
+      expect(outbox, isEmpty);
+      expect(await settings.paymentAccountsSeeded('shop-1'), isTrue);
+      final accounts = await db.select(db.paymentAccounts).get();
+      expect(accounts.every((a) => !a.dirty), isTrue);
     });
   });
 }

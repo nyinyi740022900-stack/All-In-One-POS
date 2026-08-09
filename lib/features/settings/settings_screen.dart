@@ -8,8 +8,9 @@ import '../../core/env.dart';
 import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
-import '../../core/theme/app_theme.dart';
+import '../../data/repositories/settings_repository.dart';
 import '../../data/sync/sync_providers.dart';
+import '../account/branch_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
@@ -19,7 +20,6 @@ import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
 import '../referral/referral_screen.dart';
 import '../../core/money.dart';
-import '../account/account_providers.dart';
 import '../account/branches_screen.dart';
 import '../account/shop_login_screen.dart';
 import '../account/staff_accounts_screen.dart';
@@ -39,6 +39,7 @@ import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
+import '../onboarding/operating_mode_providers.dart';
 import 'device_label_providers.dart';
 import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
@@ -118,19 +119,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _AccountsPayableTile(),
           _EquityTile(),
-          if (isOwner) _StorefrontTile(),
+          if (isOwner && ref.watch(isOnlineModeProvider)) _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
           if (isOwner) _LicenseTile(),
-          ListTile(
-            leading: const Icon(Icons.alternate_email),
-            title: Text(l.accountShopLoginTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
-          ),
-          if (session.backendRole != null && isOwner) ...[
+          if (ref.watch(isOnlineModeProvider))
+            ListTile(
+              leading: const Icon(Icons.alternate_email),
+              title: Text(l.accountShopLoginTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
+              ),
+            ),
+          if (ref.watch(isOnlineModeProvider) &&
+              session.backendRole != null &&
+              isOwner) ...[
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: Text(l.staffAccountsTitle),
@@ -170,7 +174,6 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            _PricingTierTile(),
           ],
           _ReferralTile(),
           if (isOwner)
@@ -220,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           _DeviceLabelTile(),
-          _SyncTile(),
+          if (ref.watch(isOnlineModeProvider)) _SyncTile(),
 
           _SectionHeader(l.settingsSectionHelp),
           ListTile(
@@ -452,193 +455,23 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
               Theme.of(context).colorScheme.outline,
             ),
           };
+    final mode = ref.watch(operatingModeProvider).valueOrNull;
+    final modeLabel = mode == SettingsRepository.operatingModeOnline
+        ? l.operatingModeOnline
+        : mode == SettingsRepository.operatingModeOffline
+            ? l.operatingModeOffline
+            : null;
     return ListTile(
       leading: const Icon(Icons.key),
       title: Text(l.settingsLicense),
-      subtitle: Text(label, style: TextStyle(color: color)),
+      subtitle: Text(
+        modeLabel == null ? label : '$label · ${l.operatingModeLabel}: $modeLabel',
+        style: TextStyle(color: color),
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const LicenseScreen())),
-    );
-  }
-}
-
-/// Self-service switch between Offline/Online pricing tier — fixed at
-/// shop-creation time otherwise (see `CachedLicense.tier`), so a shop that
-/// wants to actually change which price applies needs this. Only affects
-/// the *suggested* amount on the next renewal request, never shopId/data.
-class _PricingTierTile extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final tier =
-        ref.watch(licenseControllerProvider).license?.tier ?? 'offline';
-    final isOnline = tier == 'online';
-    final otherTier = isOnline ? 'offline' : 'online';
-    return ListTile(
-      leading: const Icon(Icons.price_change_outlined),
-      title: Text(l.pricingTierTitle),
-      subtitle: Text(isOnline ? l.pricingTierOnline : l.pricingTierOffline),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: l.pricingTierWhatsTheDifference,
-            onPressed: () => _showComparisonSheet(context, l),
-          ),
-          TextButton(
-            onPressed: () => _confirmSwitch(context, ref, otherTier),
-            child: Text(
-              otherTier == 'online'
-                  ? l.pricingTierSwitchToOnline
-                  : l.pricingTierSwitchToOffline,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showComparisonSheet(
-    BuildContext context,
-    AppLocalizations l,
-  ) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.space4,
-            0,
-            AppTheme.space4,
-            AppTheme.space5,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l.pricingTierCompareTitle,
-                style: Theme.of(ctx).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppTheme.space4),
-              _TierExplainCard(
-                icon: Icons.cloud_outlined,
-                title: l.pricingTierOnline,
-                body: l.pricingTierOnlineExplain,
-              ),
-              const SizedBox(height: AppTheme.space3),
-              _TierExplainCard(
-                icon: Icons.smartphone_outlined,
-                title: l.pricingTierOffline,
-                body: l.pricingTierOfflineExplain,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmSwitch(
-    BuildContext context,
-    WidgetRef ref,
-    String newTier,
-  ) async {
-    final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(
-      context,
-      ref,
-      capability: OwnerCapability.settingsSensitive,
-    )) {
-      return;
-    }
-    if (!context.mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          newTier == 'online'
-              ? l.pricingTierSwitchToOnline
-              : l.pricingTierSwitchToOffline,
-        ),
-        content: Text(l.pricingTierConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.commonOk),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !context.mounted) return;
-    final result = await ref
-        .read(accountRepositoryProvider)
-        .setPricingTier(newTier);
-    if (!context.mounted) return;
-    if (result.ok && result.license != null) {
-      ref
-          .read(licenseControllerProvider.notifier)
-          .applyExternal(result.license!);
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
-    }
-  }
-}
-
-class _TierExplainCard extends StatelessWidget {
-  const _TierExplainCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.space3),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: AppTheme.space2),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space1),
-          Text(body, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
     );
   }
 }
@@ -688,13 +521,24 @@ class _SyncTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final sync = ref.watch(syncControllerProvider);
+    final pending =
+        ref.watch(pendingOutboxCountProvider).valueOrNull ??
+        sync.pendingOutboxCount;
+    final stuckCount =
+        (ref.watch(stuckOutboxProvider).valueOrNull ?? const []).length;
+    final effectiveStuck =
+        stuckCount > 0 ? stuckCount : sync.stuckOutboxCount;
 
     final (String status, IconData icon) = switch (sync.phase) {
       SyncPhase.disabled => (l.syncDisabled, Icons.cloud_off),
       SyncPhase.syncing => (l.syncSyncing, Icons.cloud_sync),
-      SyncPhase.idle => (l.syncIdle, Icons.cloud_done),
       SyncPhase.offline => (l.syncOffline, Icons.cloud_off),
       SyncPhase.error => (sync.error ?? l.syncError, Icons.error_outline),
+      SyncPhase.idle => effectiveStuck > 0
+          ? (l.syncHasIssues, Icons.warning_amber_rounded)
+          : (pending > 0
+                ? (l.syncPendingUploads, Icons.cloud_upload_outlined)
+                : (l.syncIdle, Icons.cloud_done)),
     };
 
     final lastSynced = sync.lastSyncedAt != null
@@ -724,8 +568,9 @@ class _SyncTile extends ConsumerWidget {
                     : IconButton(
                         icon: const Icon(Icons.sync),
                         tooltip: l.syncNow,
-                        onPressed: () =>
-                            ref.read(syncControllerProvider.notifier).sync(),
+                        onPressed: () => ref
+                            .read(syncControllerProvider.notifier)
+                            .sync(force: true),
                       )),
         ),
         // Sync Issues is intentionally NOT listed here — poison-pill

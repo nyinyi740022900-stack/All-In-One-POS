@@ -4,15 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
+import 'package:mm_pos/data/local/shop_data_transition_service.dart';
 import 'package:mm_pos/data/sync/outbox_constants.dart';
 import 'package:mm_pos/data/sync/sync_providers.dart';
 
-/// Regression coverage for the "poison pill" outbox bug: a row that fails
-/// to push forever retried silently behind an accurate "Up to date" status,
-/// permanently blocking anything that requires a fully-drained outbox (e.g.
-/// `BranchRepository.switchBranch`) with no way for the owner to see why or
-/// resolve it. See `stuckOutboxProvider`'s doc comment and the Sync Issues
-/// screen (`sync_issues_screen.dart`) this backs.
+/// Poison outbox rows are quarantined (not Discard'd) so branch switch is
+/// never blocked — see SyncEngine quarantine + Sync Issues Support path.
 void main() {
   late AppDatabase db;
   late ProviderContainer container;
@@ -29,10 +26,12 @@ void main() {
     await db.close();
   });
 
-  Future<int> insertOutboxRow({int attempts = 0, String? lastError}) async {
-    return db
-        .into(db.outbox)
-        .insert(
+  Future<int> insertOutboxRow({
+    int attempts = 0,
+    String? lastError,
+    bool quarantined = false,
+  }) async {
+    return db.into(db.outbox).insert(
           OutboxCompanion.insert(
             entityTable: 'products',
             rowId: 'p1',
@@ -40,6 +39,7 @@ void main() {
             payload: '{}',
             attempts: Value(attempts),
             lastError: Value(lastError),
+            quarantined: Value(quarantined),
           ),
         );
   }
@@ -51,7 +51,7 @@ void main() {
   });
 
   test(
-    'a row at or above the stuck threshold appears with its error',
+    'a non-quarantined row at the stuck threshold appears',
     () async {
       await insertOutboxRow(attempts: kOutboxStuckThreshold, lastError: 'boom');
       final rows = await container.read(stuckOutboxProvider.future);
@@ -60,15 +60,26 @@ void main() {
     },
   );
 
-  test('discardOutboxRow removes exactly that row', () async {
-    final seq = await insertOutboxRow(attempts: kOutboxStuckThreshold);
-    await insertOutboxRow(attempts: 0); // an unrelated, healthy row
+  test('quarantined rows are excluded from stuck and pending counts', () async {
+    await insertOutboxRow(
+      attempts: kOutboxStuckThreshold,
+      lastError: 'boom',
+      quarantined: true,
+    );
+    await insertOutboxRow(attempts: 0);
 
-    final controller = container.read(syncControllerProvider.notifier);
-    await controller.discardOutboxRow(seq);
+    final stuck = await container.read(stuckOutboxProvider.future);
+    expect(stuck, isEmpty);
 
-    final remaining = await db.select(db.outbox).get();
-    expect(remaining, hasLength(1));
-    expect(remaining.single.seq, isNot(seq));
+    final quarantined = await container.read(quarantinedOutboxProvider.future);
+    expect(quarantined, hasLength(1));
+
+    final pending = await container.read(pendingOutboxRowsProvider.future);
+    expect(pending, hasLength(1));
+    expect(pending.single.quarantined, isFalse);
+
+    final precheck = await ShopDataTransitionService(db).precheck();
+    expect(precheck.pendingOutboxCount, 1);
+    expect(precheck.stuckOutboxCount, 0);
   });
 }

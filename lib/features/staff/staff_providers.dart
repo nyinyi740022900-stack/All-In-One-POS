@@ -6,6 +6,7 @@ import '../account/account_providers.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
 import '../license/license_providers.dart';
+import '../onboarding/operating_mode_providers.dart';
 import '../printing/printing_providers.dart';
 import 'owner_permission.dart';
 import 'staff_repository.dart';
@@ -92,14 +93,19 @@ final activeStaffNameProvider = Provider<String?>((ref) {
 
 /// Role currently applied by the UI permission layer.
 ///
-/// Local device mode can lock a phone down to staff, while a real backend
-/// account may also itself be staff. We pick the more restrictive result:
+/// Online mode: backend account role only (email staff/owner) — device PIN
+/// mode is ignored.
+/// Offline mode: more-restrictive of local device mode + backend:
 /// - backend 'staff' => always staff
 /// - backend 'owner' => follow local device mode
 /// - no backend role  => follow local device mode
 final effectiveRoleProvider = Provider<String>((ref) {
-  final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   final backendRole = ref.watch(backendAccountRoleProvider);
+  if (ref.watch(isOnlineModeProvider)) {
+    if (backendRole == 'staff') return 'staff';
+    return 'owner';
+  }
+  final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   if (backendRole == 'staff') return 'staff';
   if (backendRole == 'owner') return localRole;
   if (backendRole != null && backendRole.isNotEmpty) return 'staff';
@@ -144,13 +150,10 @@ final canEditInventoryProvider = Provider<bool>(
   ),
 );
 
-/// Staff/Owner mode only matters once there's a second device to hand off to
-/// someone else — for a shop running just one device, switching that one
-/// phone into Staff mode has no real benefit and is just confusing extra
-/// settings. Hidden in that case, EXCEPT when the device is already in Staff
-/// mode (e.g. a shop released devices back down to one after using Staff
-/// mode) — then it stays visible so there's always a way back to Owner.
+/// Staff/Owner device-PIN mode is Offline-only. Online shops use email staff
+/// accounts instead. Still shown Offline when multi-device or already in staff.
 final showStaffModeSectionProvider = Provider<bool>((ref) {
+  if (ref.watch(isOnlineModeProvider)) return false;
   final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   if (role != 'owner') return true;
   final deviceCount =

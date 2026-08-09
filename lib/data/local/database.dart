@@ -60,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -232,6 +232,14 @@ class AppDatabase extends _$AppDatabase {
       // issues screen).
       if (from < 27) {
         await _safeAddColumn(m, outbox, outbox.lastError);
+      }
+      // v28: quarantine poison outbox rows so branch switch is not blocked
+      // and owners never need Discard (#92).
+      if (from < 28) {
+        await _safeAddColumn(m, outbox, outbox.quarantined);
+        await m.database.customStatement(
+          'UPDATE outbox SET quarantined = 1 WHERE attempts >= 3',
+        );
       }
     },
   );

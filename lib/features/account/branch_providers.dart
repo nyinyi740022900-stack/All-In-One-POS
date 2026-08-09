@@ -15,6 +15,9 @@ final branchRepositoryProvider = Provider<BranchRepository>((ref) {
       final session = ref.read(databaseSessionProvider);
       await session?.reopenForShop(toShopId);
     },
+    onLicenseReady: (lic) async {
+      ref.read(licenseControllerProvider.notifier).applyExternal(lic);
+    },
   );
 });
 
@@ -29,7 +32,9 @@ final branchSwitchRecoveryProvider =
 
 final pendingOutboxCountProvider = StreamProvider.autoDispose<int>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.select(db.outbox).watch().map((rows) => rows.length);
+  return (db.select(db.outbox)..where((o) => o.quarantined.equals(false)))
+      .watch()
+      .map((rows) => rows.length);
 });
 
 final branchConnectivityProvider = StreamProvider.autoDispose<bool>((

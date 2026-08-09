@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/data/sync/force_apply.dart';
+import 'package:mm_pos/data/sync/outbox_constants.dart';
 import 'package:mm_pos/data/sync/sync_engine.dart';
 
 /// In-memory fake backend: store[table][id] = row map.
@@ -20,12 +22,41 @@ class FakeSyncRemote implements SyncRemote {
   }
 
   @override
-  Future<void> markDeleted(String table, String id, DateTime updatedAt) async {
+  Future<void> markDeleted(
+    String table,
+    String id,
+    DateTime updatedAt, {
+    String? shopId,
+  }) async {
     final row = store[table]?[id];
     if (row != null) {
+      if (shopId != null &&
+          shopId.isNotEmpty &&
+          row['shop_id'] != null &&
+          row['shop_id'] != shopId) {
+        return;
+      }
       row['is_deleted'] = true;
       row['updated_at'] = updatedAt.toUtc().toIso8601String();
     }
+  }
+
+  @override
+  Future<ForceApplyResult> forceApply({
+    required String table,
+    required String op,
+    required String id,
+    Map<String, dynamic>? row,
+    String? onConflict,
+  }) async {
+    if (op == 'delete') {
+      await markDeleted(table, id, DateTime.now(), shopId: row?['shop_id'] as String?);
+      return const ForceApplyResult(ForceApplyStatus.applied);
+    }
+    if (row != null) {
+      await upsert(table, row, onConflict: onConflict);
+    }
+    return const ForceApplyResult(ForceApplyStatus.applied);
   }
 
   @override
@@ -57,6 +88,26 @@ class PartialFailRemote extends FakeSyncRemote {
       {String? onConflict}) async {
     if (table == failTable) throw Exception('boom');
     return super.upsert(table, row, onConflict: onConflict);
+  }
+
+  @override
+  Future<ForceApplyResult> forceApply({
+    required String table,
+    required String op,
+    required String id,
+    Map<String, dynamic>? row,
+    String? onConflict,
+  }) async {
+    if (table == failTable) {
+      return const ForceApplyResult(ForceApplyStatus.transient, detail: 'boom');
+    }
+    return super.forceApply(
+      table: table,
+      op: op,
+      id: id,
+      row: row,
+      onConflict: onConflict,
+    );
   }
 }
 
@@ -280,4 +331,212 @@ void main() {
       'KBZPay',
     );
   });
+
+  test('any table RLS 42501 outbox row is reset then retried on Sync Now',
+      () async {
+    final now = DateTime.now();
+    await db.into(db.categories).insert(
+          CategoriesCompanion.insert(
+            id: 'cat-1',
+            shopId: 'shop-1',
+            name: 'Drinks',
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    await db.into(db.outbox).insert(
+          OutboxCompanion.insert(
+            entityTable: 'categories',
+            rowId: 'cat-1',
+            op: 'upsert',
+            payload: '{}',
+            attempts: const Value(9),
+            lastError: const Value(
+              'PostgresException(message: new row violates '
+              'row-level security policy for table "categories", '
+              'code: 42501)',
+            ),
+          ),
+        );
+
+    final result = await engine.syncNow();
+    expect(result.pushed, greaterThanOrEqualTo(1));
+    expect(await db.select(db.outbox).get(), isEmpty);
+  });
+
+  test(
+    'payment_accounts outbox is dropped when remote already has the row',
+    () async {
+      final now = DateTime.now();
+      await db.into(db.paymentAccounts).insert(
+            PaymentAccountsCompanion.insert(
+              id: 'kbzpay',
+              shopId: 'shop-1',
+              name: 'KBZPay',
+              createdAt: Value(now),
+              updatedAt: Value(now),
+              dirty: const Value(true),
+            ),
+          );
+      await db.into(db.outbox).insert(
+            OutboxCompanion.insert(
+              entityTable: 'payment_accounts',
+              rowId: 'kbzpay',
+              op: 'upsert',
+              payload: '{}',
+              attempts: const Value(1),
+              lastError: const Value(
+                'PostgresException(message: new row violates '
+                'row-level security policy for table "payment_accounts", '
+                'code: 42501)',
+              ),
+            ),
+          );
+      remote.store['payment_accounts'] = {
+        'shop-1|kbzpay': {
+          'id': 'kbzpay',
+          'shop_id': 'shop-1',
+          'name': 'KBZPay',
+          'opening_balance': 0,
+          'created_at': now.toUtc().toIso8601String(),
+          'updated_at': now.toUtc().toIso8601String(),
+          'is_deleted': false,
+        },
+      };
+
+      await engine.syncNow();
+      expect(await db.select(db.outbox).get(), isEmpty);
+      final local = await (db.select(db.paymentAccounts)
+            ..where((t) => t.id.equals('kbzpay')))
+          .getSingle();
+      expect(local.dirty, isFalse);
+    },
+  );
+
+  test(
+    'categories outbox is dropped when remote already has the row',
+    () async {
+      final now = DateTime.now();
+      await db.into(db.categories).insert(
+            CategoriesCompanion.insert(
+              id: 'cat-1',
+              shopId: 'shop-1',
+              name: 'Drinks',
+              createdAt: Value(now),
+              updatedAt: Value(now),
+              dirty: const Value(true),
+            ),
+          );
+      await db.into(db.outbox).insert(
+            OutboxCompanion.insert(
+              entityTable: 'categories',
+              rowId: 'cat-1',
+              op: 'upsert',
+              payload: '{}',
+              attempts: const Value(1),
+              lastError: const Value('duplicate key value violates unique constraint'),
+            ),
+          );
+      remote.store['categories'] = {
+        'cat-1': {
+          'id': 'cat-1',
+          'shop_id': 'shop-1',
+          'name': 'Drinks',
+          'sort': 0,
+          'created_at': now.toUtc().toIso8601String(),
+          'updated_at': now.toUtc().toIso8601String(),
+          'is_deleted': false,
+        },
+      };
+
+      await engine.syncNow();
+      expect(await db.select(db.outbox).get(), isEmpty);
+      final local = await (db.select(db.categories)
+            ..where((t) => t.id.equals('cat-1')))
+          .getSingle();
+      expect(local.dirty, isFalse);
+    },
+  );
+
+  test(
+    'unknown push failures quarantine after stuck threshold',
+    () async {
+      final failRemote = PartialFailRemote('products');
+      engine = SyncEngine(
+        db: db,
+        remote: failRemote,
+        settings: settings,
+        shopId: 'shop-1',
+      );
+      final now = DateTime.now();
+      await db.into(db.products).insert(
+            ProductsCompanion.insert(
+              id: 'p-poison',
+              shopId: 'shop-1',
+              name: 'Poison',
+              salePrice: const Value(1),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+      await db.into(db.outbox).insert(
+            OutboxCompanion.insert(
+              entityTable: 'products',
+              rowId: 'p-poison',
+              op: 'upsert',
+              payload: '{}',
+              attempts: Value(kOutboxStuckThreshold - 1),
+              lastError: const Value('boom'),
+            ),
+          );
+
+      await engine.syncNow();
+      final rows = await db.select(db.outbox).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.quarantined, isTrue);
+      expect(rows.single.attempts, kOutboxStuckThreshold);
+
+      final active = await (db.select(db.outbox)
+            ..where((o) => o.quarantined.equals(false)))
+          .get();
+      expect(active, isEmpty);
+    },
+  );
+
+  test(
+    'forceApply clears quarantined row without user Discard',
+    () async {
+      final now = DateTime.now();
+      await db.into(db.products).insert(
+            ProductsCompanion.insert(
+              id: 'p-held',
+              shopId: 'shop-1',
+              name: 'Held',
+              salePrice: const Value(5),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+              dirty: const Value(true),
+            ),
+          );
+      await db.into(db.outbox).insert(
+            OutboxCompanion.insert(
+              entityTable: 'products',
+              rowId: 'p-held',
+              op: 'upsert',
+              payload: '{}',
+              attempts: Value(kOutboxStuckThreshold),
+              lastError: const Value('boom'),
+              quarantined: const Value(true),
+            ),
+          );
+
+      await engine.syncNow();
+      expect(await db.select(db.outbox).get(), isEmpty);
+      expect(remote.store['products']!['p-held']!['name'], 'Held');
+      final local = await (db.select(db.products)
+            ..where((t) => t.id.equals('p-held')))
+          .getSingle();
+      expect(local.dirty, isFalse);
+    },
+  );
 }

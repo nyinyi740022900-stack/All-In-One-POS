@@ -10,6 +10,8 @@ import '../../core/env.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../account/account_providers.dart';
+import '../onboarding/operating_mode_providers.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import '../sell/barcode_scanner_screen.dart';
@@ -166,18 +168,28 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
-  Future<void> _contactSupportForTrial() => _contactSupport(
-        title: AppLocalizations.of(context).licenseFreeTrial,
-        body: AppLocalizations.of(context).licenseTrialContactHint,
-      );
+  Future<void> _contactSupportForTrial() {
+    final l = AppLocalizations.of(context);
+    final online = ref.read(isOnlineModeProvider);
+    return _contactSupport(
+      title: l.licenseFreeTrial,
+      body: online ? l.licenseTrialContactHintOnline : l.licenseTrialContactHint,
+    );
+  }
 
   /// Premium renew/upgrade is Support-only (no in-app KBZPay/WavePay/proof) —
   /// store billing compliance: digital unlock must not solicit external pay
   /// inside the binary.
-  Future<void> _contactSupportForPremium() => _contactSupport(
-        title: AppLocalizations.of(context).licenseContactSupportTitle,
-        body: AppLocalizations.of(context).licensePremiumContactHint,
-      );
+  Future<void> _contactSupportForPremium() {
+    final l = AppLocalizations.of(context);
+    final online = ref.read(isOnlineModeProvider);
+    return _contactSupport(
+      title: l.licenseContactSupportTitle,
+      body: online
+          ? l.licensePremiumContactHintOnline
+          : l.licensePremiumContactHint,
+    );
+  }
 
   Future<void> _contactSupport({
     required String title,
@@ -251,6 +263,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
     final state = ref.watch(licenseControllerProvider);
     final status = state.status;
+    final online = ref.watch(isOnlineModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsLicense)),
@@ -259,7 +272,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         children: [
           _StatusCard(status: status),
           const SizedBox(height: AppTheme.space2),
-          _RefIdTile(),
+          if (online) const _AccountEmailTile() else const _RefIdTile(),
           const SizedBox(height: AppTheme.space4),
           if (status.canSell) ...[
             FilledButton.icon(
@@ -277,9 +290,20 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             ),
             const SizedBox(height: AppTheme.space1),
             Text(
-              l.licensePremiumContactHint,
+              online
+                  ? l.licensePremiumContactHintOnline
+                  : l.licensePremiumContactHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (online) ...[
+              const SizedBox(height: AppTheme.space1),
+              Text(
+                l.licenseOnlineApplyHint,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
             // Free-plan try-Premium on-ramp: support-issued trial only (no
             // in-app start_trial — closes delete/reinstall farming).
             if (state.license?.plan == LicensePlan.free) ...[
@@ -291,23 +315,29 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               ),
               const SizedBox(height: AppTheme.space1),
               Text(
-                l.licenseTrialContactHint,
+                online
+                    ? l.licenseTrialContactHintOnline
+                    : l.licenseTrialContactHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: AppTheme.space4),
-              const Divider(),
-              const SizedBox(height: AppTheme.space2),
-              Text(
-                l.licenseHaveKeyTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppTheme.space1),
-              Text(
-                l.licenseGetKey,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppTheme.space3),
-              ..._buildKeyEntryFields(l),
+              // Offline Free: redeem a device license key. Online Free: account
+              // Premium only — never show key entry (looks like Offline).
+              if (!online) ...[
+                const SizedBox(height: AppTheme.space4),
+                const Divider(),
+                const SizedBox(height: AppTheme.space2),
+                Text(
+                  l.licenseHaveKeyTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  l.licenseGetKey,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppTheme.space3),
+                ..._buildKeyEntryFields(l),
+              ],
             ],
             // Nothing to check/deactivate for the Free plan — there's no key
             // or subscription behind it, just a local marker.
@@ -326,7 +356,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               ),
               const SizedBox(height: AppTheme.space1),
               Text(
-                l.licenseRenewHint,
+                online ? l.licenseRenewHintOnline : l.licenseRenewHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: AppTheme.space2),
@@ -336,16 +366,44 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 label: Text(l.licenseDeactivate),
               ),
             ],
-            // A trial's or the Free plan's shop_id is derived from this one
-            // device's id, so "another device under the same shop" isn't a
-            // coherent idea until the shop is on a real paid key.
+            // Offline paid: device-key slots. Online paid: list + sign-in hint
+            // (no key QR — that is the Offline add-device model).
             if (state.license?.plan != LicensePlan.trial &&
                 state.license?.plan != LicensePlan.free) ...[
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              const _DevicesSection(),
+              _DevicesSection(onlineMode: online),
             ],
+          ] else if (online) ...[
+            // Online without canSell: recover via Support on the account —
+            // never push Offline key typing as the primary path.
+            Text(
+              l.licenseContactSupportTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.licensePremiumContactHintOnline,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.licenseOnlineApplyHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            FilledButton.icon(
+              onPressed: _busy ? null : _contactSupportForPremium,
+              icon: const Icon(Icons.support_agent),
+              label: Text(l.licenseContactSupportTitle),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _refresh,
+              icon: const Icon(Icons.refresh),
+              label: Text(l.licenseCheckRenewal),
+            ),
           ] else ...[
             Text(
               l.licenseActivateTitle,

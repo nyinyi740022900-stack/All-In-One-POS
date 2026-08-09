@@ -26,8 +26,12 @@ void main() {
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    // Skip first-run onboarding — this test verifies the main tabbed shell.
-    await SettingsRepository(db).markOnboardingComplete();
+    // Skip first-run onboarding + mode migrate — this test verifies the main
+    // tabbed shell.
+    final settings = SettingsRepository(db);
+    await settings.markOnboardingComplete();
+    await settings.setOperatingMode(SettingsRepository.operatingModeOffline);
+    await settings.confirmOperatingMode();
 
     await tester.pumpWidget(
       ProviderScope(

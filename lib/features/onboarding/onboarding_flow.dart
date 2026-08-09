@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../account/auth_password_field.dart';
+import '../account/forgot_password_dialog.dart';
+import '../account/password_strength.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
 import '../printing/printing_providers.dart';
+import 'operating_mode_providers.dart';
 
-/// First-run, one-time flow: mode choice (Offline/Online), welcome +
-/// language, shop profile + license/trial (Offline) or a self-serve signup
-/// (Online), and an Owner/Staff-mode primer. Shown once per install (gated
-/// by `SettingsRepository.onboardingComplete`); never re-shown after.
+/// First-run, one-time flow: compare Online/Offline → ack → choose (locked),
+/// then Offline license/Free path or Online sign-in/register. Gated by
+/// `SettingsRepository.onboardingComplete`.
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key, required this.onDone});
   final VoidCallback onDone;
@@ -26,20 +30,19 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   final _controller = PageController();
   int _page = 0;
   String? _mode;
-  bool _signupDone = false;
+  bool _authDone = false;
 
-  static const _onlineSignupPageIndex = 2;
+  static const _onlineAuthPageIndex = 2;
 
   List<Widget> get _pages {
-    if (_mode == 'online') {
+    if (_mode == SettingsRepository.operatingModeOnline) {
       return [
         _ModeChoicePage(onChoose: _chooseMode),
         _WelcomePage(),
-        _OnlineSignupPage(onSignedUp: () => setState(() => _signupDone = true)),
-        _StaffModePage(),
+        _OnlineAuthPage(onAuthenticated: () => setState(() => _authDone = true)),
       ];
     }
-    if (_mode == 'offline') {
+    if (_mode == SettingsRepository.operatingModeOffline) {
       return [
         _ModeChoicePage(onChoose: _chooseMode),
         _WelcomePage(),
@@ -53,7 +56,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
 
   bool get _nextDisabled =>
       _mode == null ||
-      (_mode == 'online' && _page == _onlineSignupPageIndex && !_signupDone);
+      (_mode == SettingsRepository.operatingModeOnline &&
+          _page == _onlineAuthPageIndex &&
+          !_authDone);
 
   @override
   void dispose() {
@@ -61,10 +66,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     super.dispose();
   }
 
-  void _chooseMode(String mode) {
+  Future<void> _chooseMode(String mode) async {
+    await lockOperatingMode(ref, mode);
+    if (!mounted) return;
     setState(() => _mode = mode);
-    Future.microtask(() => _controller.nextPage(
-        duration: const Duration(milliseconds: 250), curve: Curves.easeOut));
+    await _controller.nextPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   void _next(int pageCount) {
@@ -73,11 +82,15 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       return;
     }
     _controller.nextPage(
-        duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   Future<void> _finish() async {
     await ref.read(settingsRepositoryProvider).markOnboardingComplete();
+    ref.invalidate(operatingModeProvider);
+    ref.invalidate(operatingModeConfirmedProvider);
     widget.onDone();
   }
 
@@ -85,74 +98,52 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final pages = _pages;
+    final hideNext = _mode == null;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            if (_mode != 'online')
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: TextButton(
-                    onPressed: _finish,
-                    child: Text(l.onboardSkip),
-                  ),
-                ),
-              ),
             Expanded(
               child: PageView(
                 controller: _controller,
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
                 children: pages,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  for (var i = 0; i < pages.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: i == _page
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.outlineVariant,
+            if (!hideNext)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < pages.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: i == _page
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: FilledButton(
+                        onPressed:
+                            _nextDisabled ? null : () => _next(pages.length),
+                        child: Text(_page == pages.length - 1
+                            ? l.onboardGetStarted
+                            : l.onboardNext),
+                      ),
                     ),
-                  const Spacer(),
-                  // A Row's non-flex children (this button) are always given
-                  // an *unbounded* width to report their own natural size —
-                  // completely normal Flex behavior. On this app's very
-                  // first-ever frame in some environments (seen on both iOS
-                  // and Android emulators, not on a real device), the
-                  // button's internal Text/tap-target sizing has computed an
-                  // infinite intrinsic width instead of falling back to its
-                  // content width, crashing this whole screen permanently
-                  // (the exception aborts the frame and nothing schedules a
-                  // repaint afterwards). Capping the button's own max width
-                  // gives it a concrete, finite constraint no matter what its
-                  // internals compute, without changing how it looks in the
-                  // normal case (its natural width is far below this cap).
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 220),
-                    child: FilledButton(
-                      onPressed: _nextDisabled
-                          ? null
-                          : () => _next(pages.length),
-                      child: Text(_page == pages.length - 1
-                          ? l.onboardGetStarted
-                          : l.onboardNext),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -182,16 +173,20 @@ class _OnboardPage extends StatelessWidget {
         children: [
           Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
-          Text(body,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           if (extra != null) ...[const SizedBox(height: 20), extra!],
         ],
       ),
@@ -199,41 +194,87 @@ class _OnboardPage extends StatelessWidget {
   }
 }
 
-/// First page: Offline (device-key activation, unchanged) vs Online (real
-/// shop account, registration required before entering the app). Tapping
-/// either card both records the choice and advances — there's no separate
-/// Next step for this page.
-class _ModeChoicePage extends StatelessWidget {
+/// Compare Online vs Offline, require ack, then choose (locks permanently).
+class _ModeChoicePage extends StatefulWidget {
   const _ModeChoicePage({required this.onChoose});
-  final ValueChanged<String> onChoose;
+  final Future<void> Function(String mode) onChoose;
+
+  @override
+  State<_ModeChoicePage> createState() => _ModeChoicePageState();
+}
+
+class _ModeChoicePageState extends State<_ModeChoicePage> {
+  bool _acked = false;
+  bool _busy = false;
+
+  Future<void> _pick(String mode) async {
+    if (!_acked || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onChoose(mode);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+    final enabled = _acked && !_busy;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l.onboardModeTitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          _ModeCard(
-            icon: Icons.wifi_off,
-            title: l.onboardModeOfflineTitle,
-            body: l.onboardModeOfflineBody,
-            onTap: () => onChoose('offline'),
+          Text(
+            l.onboardModeCompareTitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
-          _ModeCard(
+          const SizedBox(height: 8),
+          Text(
+            l.onboardModeChooseHint,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 20),
+          _CompareCard(
             icon: Icons.cloud_outlined,
             title: l.onboardModeOnlineTitle,
-            body: l.onboardModeOnlineBody,
-            onTap: () => onChoose('online'),
+            body: l.onboardModeOnlineBullets,
+          ),
+          const SizedBox(height: 12),
+          _CompareCard(
+            icon: Icons.wifi_off,
+            title: l.onboardModeOfflineTitle,
+            body: l.onboardModeOfflineBullets,
+          ),
+          const SizedBox(height: 16),
+          CheckboxListTile(
+            value: _acked,
+            onChanged: _busy
+                ? null
+                : (v) => setState(() => _acked = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.onboardModeAckLabel),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: enabled
+                ? () => _pick(SettingsRepository.operatingModeOnline)
+                : null,
+            child: Text(l.onboardModeOnlineTitle),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: enabled
+                ? () => _pick(SettingsRepository.operatingModeOffline)
+                : null,
+            child: Text(l.onboardModeOfflineTitle),
           ),
         ],
       ),
@@ -241,47 +282,43 @@ class _ModeChoicePage extends StatelessWidget {
   }
 }
 
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({
+class _CompareCard extends StatelessWidget {
+  const _CompareCard({
     required this.icon,
     required this.title,
     required this.body,
-    required this.onTap,
   });
   final IconData icon;
   final String title;
   final String body;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(body, style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(body, style: Theme.of(context).textTheme.bodySmall),
+                ],
               ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -398,9 +435,6 @@ class _LicensePage extends ConsumerWidget {
             label: Text(l.onboardActivateNow),
           ),
           const SizedBox(height: 8),
-          // No key yet: enter the app immediately on the Free plan (Sell +
-          // Inventory work forever, no signup/network call at all) — a real
-          // key can be added later from Settings without losing any data.
           TextButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
@@ -418,31 +452,35 @@ class _LicensePage extends ConsumerWidget {
   }
 }
 
-/// Online path's signup — collects shop name (skipping the separate
-/// `_ShopProfilePage`, since it's asked here instead) + a real email +
-/// password, then calls `AccountRepository.signupShop()`. Blocks the
-/// parent's Next button until signup actually succeeds — this page IS the
-/// registration gate, not a shortcut past it.
-class _OnlineSignupPage extends ConsumerStatefulWidget {
-  const _OnlineSignupPage({required this.onSignedUp});
-  final VoidCallback onSignedUp;
+/// Online path: Register (signup) or Sign in — blocks Next until authenticated.
+class _OnlineAuthPage extends ConsumerStatefulWidget {
+  const _OnlineAuthPage({required this.onAuthenticated});
+  final VoidCallback onAuthenticated;
 
   @override
-  ConsumerState<_OnlineSignupPage> createState() => _OnlineSignupPageState();
+  ConsumerState<_OnlineAuthPage> createState() => _OnlineAuthPageState();
 }
 
-class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
+class _OnlineAuthPageState extends ConsumerState<_OnlineAuthPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
   final _shopName = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
   bool _busy = false;
   bool _done = false;
-  bool _obscure = true;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+  }
+
+  @override
   void dispose() {
+    _tabs.dispose();
     _shopName.dispose();
     _email.dispose();
     _password.dispose();
@@ -453,6 +491,9 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
   String _errorMessage(AppLocalizations l, String? code) => switch (code) {
         'email_taken' => l.accountEmailTaken,
         'no_backend' => l.accountNoBackend,
+        'not_activated' => l.accountNotActivated,
+        'pending_sync' => l.accountPendingSync,
+        'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
         _ => l.accountActionFailed,
       };
 
@@ -482,7 +523,67 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
         _busy = false;
         _done = true;
       });
-      widget.onSignedUp();
+      widget.onAuthenticated();
+    } else {
+      setState(() {
+        _busy = false;
+        _error = _errorMessage(l, result.error);
+      });
+    }
+  }
+
+  Future<void> _signIn() async {
+    final l = AppLocalizations.of(context);
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    var result = await ref
+        .read(accountRepositoryProvider)
+        .signInAndClaimDevice(_email.text.trim(), _password.text);
+    if (!mounted) return;
+
+    if (result.needsWipeConfirmation) {
+      setState(() => _busy = false);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.accountSignInWipeConfirmTitle),
+          content: Text(l.accountSignInWipeConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.accountSignIn),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (confirmed != true) {
+        await Supabase.instance.client.auth.signOut();
+        return;
+      }
+      setState(() => _busy = true);
+      result = await ref
+          .read(accountRepositoryProvider)
+          .confirmWipeAndClaimDevice();
+      if (!mounted) return;
+    }
+
+    if (result.ok && result.license != null) {
+      ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(result.license!);
+      setState(() {
+        _busy = false;
+        _done = true;
+      });
+      widget.onAuthenticated();
     } else {
       setState(() {
         _busy = false;
@@ -494,67 +595,123 @@ class _OnlineSignupPageState extends ConsumerState<_OnlineSignupPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return SingleChildScrollView(
-      child: _OnboardPage(
+    if (_done) {
+      return _OnboardPage(
         icon: Icons.cloud_done_outlined,
         title: l.onboardOnlineTitle,
-        body: l.onboardOnlineBody,
-        extra: _done
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green),
-                  const SizedBox(width: 8),
-                  Flexible(child: Text(l.onboardOnlineDone)),
-                ],
-              )
-            : Column(
-                children: [
-                  TextField(
-                    controller: _shopName,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(labelText: l.shopName),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(labelText: l.accountEmail),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: l.accountPassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+        body: l.onboardOnlineSignedIn,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabs,
+            tabs: [
+              Tab(text: l.onboardOnlineTabRegister),
+              Tab(text: l.onboardOnlineTabSignIn),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    children: [
+                      Text(l.onboardOnlineBody,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _shopName,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(labelText: l.shopName),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration:
+                            InputDecoration(labelText: l.accountEmail),
+                      ),
+                      const SizedBox(height: 12),
+                      AuthPasswordField(
+                        controller: _password,
+                        labelText: l.accountPassword,
+                        autofillHints: const [AutofillHints.newPassword],
+                      ),
+                      PasswordStrengthMeter(controller: _password),
+                      const SizedBox(height: 12),
+                      AuthPasswordField(
+                        controller: _confirmPassword,
+                        labelText: l.accountConfirmPassword,
+                        autofillHints: const [AutofillHints.newPassword],
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(_error!,
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error)),
+                      ],
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _busy ? null : _signup,
+                        child: Text(l.onboardOnlineCreateAccount),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _confirmPassword,
-                    obscureText: _obscure,
-                    decoration:
-                        InputDecoration(labelText: l.accountConfirmPassword),
+                ),
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    children: [
+                      Text(l.onboardOnlineSignInBody,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration:
+                            InputDecoration(labelText: l.accountEmail),
+                      ),
+                      const SizedBox(height: 12),
+                      AuthPasswordField(
+                        controller: _password,
+                        labelText: l.accountPassword,
+                        autofillHints: const [AutofillHints.password],
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => showForgotPasswordDialog(context,
+                                  prefillEmail: _email.text.trim()),
+                          child: Text(l.accountForgotPassword),
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(_error!,
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error)),
+                      ],
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _busy ? null : _signIn,
+                        child: Text(l.accountSignIn),
+                      ),
+                    ],
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_error!,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.error)),
-                  ],
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _busy ? null : _signup,
-                    child: Text(l.onboardOnlineCreateAccount),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

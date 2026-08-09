@@ -155,4 +155,43 @@ void main() {
       expect(await repo.ownerPinLockedUntil('shop-branch'), lockBranch.toUtc());
     });
   });
+
+  group('operating mode + daily gate', () {
+    test('mode and confirm are device-global and lock once', () async {
+      expect(await repo.operatingMode(), isNull);
+      expect(await repo.operatingModeConfirmed(), isFalse);
+
+      await repo.setOperatingMode(SettingsRepository.operatingModeOnline);
+      await repo.confirmOperatingMode();
+
+      expect(await repo.operatingMode(), 'online');
+      expect(await repo.operatingModeConfirmed(), isTrue);
+      expect(
+        SettingsRepository.isDeviceGlobalKey('operating.mode'),
+        isTrue,
+      );
+      expect(
+        SettingsRepository.isDeviceGlobalKey('operating.mode_confirmed'),
+        isTrue,
+      );
+    });
+
+    test('daily gate ymd and skip are isolated per shop', () async {
+      await repo.markDailyGateComplete(
+        'shop-main',
+        ymd: '2026-08-09',
+        skippedOpen: true,
+      );
+      await repo.markDailyGateComplete(
+        'shop-branch',
+        ymd: '2026-08-10',
+        skippedOpen: false,
+      );
+
+      expect(await repo.dailyGateYmd('shop-main'), '2026-08-09');
+      expect(await repo.dailyGateSkippedOpen('shop-main'), isTrue);
+      expect(await repo.dailyGateYmd('shop-branch'), '2026-08-10');
+      expect(await repo.dailyGateSkippedOpen('shop-branch'), isFalse);
+    });
+  });
 }

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/data/sync/force_apply.dart';
 import 'package:mm_pos/data/sync/sync_engine.dart';
 
 /// Shared in-memory fake backend for a multi-device scenario — the same
@@ -21,12 +22,41 @@ class _SharedFakeRemote implements SyncRemote {
   }
 
   @override
-  Future<void> markDeleted(String table, String id, DateTime updatedAt) async {
+  Future<void> markDeleted(
+    String table,
+    String id,
+    DateTime updatedAt, {
+    String? shopId,
+  }) async {
     final row = store[table]?[id];
     if (row != null) {
+      if (shopId != null &&
+          shopId.isNotEmpty &&
+          row['shop_id'] != null &&
+          row['shop_id'] != shopId) {
+        return;
+      }
       row['is_deleted'] = true;
       row['updated_at'] = updatedAt.toUtc().toIso8601String();
     }
+  }
+
+  @override
+  Future<ForceApplyResult> forceApply({
+    required String table,
+    required String op,
+    required String id,
+    Map<String, dynamic>? row,
+    String? onConflict,
+  }) async {
+    if (op == 'delete') {
+      await markDeleted(table, id, DateTime.now());
+      return const ForceApplyResult(ForceApplyStatus.applied);
+    }
+    if (row != null) {
+      await upsert(table, row, onConflict: onConflict);
+    }
+    return const ForceApplyResult(ForceApplyStatus.applied);
   }
 
   @override

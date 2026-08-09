@@ -147,6 +147,12 @@ class PaymentAccountRepository {
     final now = DateTime.now();
     await _db.transaction(() async {
       for (final entry in defaultAccounts.entries) {
+        final existing = await getAccount(entry.key);
+        if (existing != null) {
+          // Already present (pulled from cloud or prior seed) — do not
+          // dirty/enqueue or branch switch will see phantom pending uploads.
+          continue;
+        }
         await _db.into(_db.paymentAccounts).insertOnConflictUpdate(
               PaymentAccountsCompanion(
                 id: Value(entry.key),

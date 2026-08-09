@@ -1462,6 +1462,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.';
 
   @override
+  String get licensePremiumContactHintOnline =>
+      'Premium for Online shops is unlocked on your shop account by Support (no license key to type). Copy the Viber number, send the email you use to sign in, and ask to upgrade or renew. No payment is collected inside this app.';
+
+  @override
   String get licenseSubscribe => 'Subscribe';
 
   @override
@@ -1497,6 +1501,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.';
 
   @override
+  String get licenseTrialContactHintOnline =>
+      'Free Premium trials for Online shops are issued by Support only. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.';
+
+  @override
   String get licenseTrialViberMissing =>
       'Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.';
 
@@ -1508,6 +1516,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseRefId => 'App Reference ID';
+
+  @override
+  String get licenseAccountEmail => 'Shop account email';
+
+  @override
+  String get licenseAccountEmailMissing =>
+      'Sign in under Shop login so Support can find your account.';
 
   @override
   String get licenseRequestSent =>
@@ -1529,7 +1544,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'After Support extends your license, tap Check for renewal (or activate a new key).';
 
   @override
+  String get licenseRenewHintOnline =>
+      'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).';
+
+  @override
   String get deviceSectionTitle => 'Devices';
+
+  @override
+  String get deviceAddOnlineHint =>
+      'To use another phone, sign in with the same shop email and password (Settings → Shop login). No license-key QR is used in Online mode.';
+
+  @override
+  String get premiumFeatureBodyOnline =>
+      'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Online Premium subscription on your shop account.';
 
   @override
   String deviceCount(int used, int free) {
@@ -1807,6 +1834,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncIdle => 'Up to date';
 
   @override
+  String get syncPendingUploads => 'Pending uploads';
+
+  @override
+  String get syncHasIssues => 'Sync retrying — open Branches if needed';
+
+  @override
   String get syncSyncing => 'Syncing…';
 
   @override
@@ -1834,39 +1867,32 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Sync issues',
-      one: 'Sync issue',
+      other: 'Sync status',
+      one: 'Sync status',
     );
     return '$_temp0';
   }
 
   @override
-  String get syncIssuesSubtitle =>
-      'One or more changes couldn\'t be synced — tap to review';
+  String get syncIssuesEmpty => 'Nothing waiting — sync is clear.';
 
   @override
-  String get syncIssuesEmpty => 'No sync issues.';
+  String get syncIssuesBackgroundHint =>
+      'Background sync finishes any held uploads automatically. If you were offline, they complete when you are back online. Tap Sync now to retry now.';
 
   @override
-  String syncIssuesAttempts(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Failed $count times',
-      one: 'Failed $count time',
-    );
-    return '$_temp0';
+  String syncIssuesPendingHint(int count) {
+    return '$count upload(s) still retrying — tap Sync now.';
   }
 
   @override
-  String get syncIssuesDiscard => 'Discard';
+  String syncIssuesQuarantinedRow(String table) {
+    return 'Finishing: $table';
+  }
 
   @override
-  String get syncIssuesDiscardConfirmTitle => 'Discard this change?';
-
-  @override
-  String get syncIssuesDiscardConfirmBody =>
-      'This local change will never sync to the cloud and cannot be recovered afterward. Only discard it if it\'s blocking you (e.g. from switching branches) and you\'ve confirmed it\'s safe to lose.';
+  String get syncIssuesQuarantinedHeld =>
+      'Kept on this device until cloud sync completes automatically.';
 
   @override
   String get navOrders => 'Orders';
@@ -2512,6 +2538,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountPasswordMismatch => 'Passwords don\'t match';
 
   @override
+  String get passwordStrengthWeak => 'Weak';
+
+  @override
+  String get passwordStrengthFair => 'Fair';
+
+  @override
+  String get passwordStrengthGood => 'Good';
+
+  @override
+  String get passwordStrengthStrong => 'Strong';
+
+  @override
   String get accountForgotPassword => 'Forgot password?';
 
   @override
@@ -2659,26 +2697,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesCreated => 'Branch created.';
 
   @override
-  String get branchesLink => 'Link with a key';
-
-  @override
-  String get branchesLinkHint =>
-      'For a shop that already exists separately (e.g. bought its own license key elsewhere). To start a fresh branch, use \"Create a new branch\" instead.';
-
-  @override
-  String get branchesKeyLabel => 'License key';
-
-  @override
-  String get branchesLabelField => 'Branch name';
-
-  @override
-  String get branchesLinked => 'Branch linked.';
-
-  @override
-  String get branchesInvalidKey => 'That license key wasn\'t found.';
-
-  @override
-  String get branchesEmpty => 'No branches linked yet.';
+  String get branchesEmpty => 'No branches yet.';
 
   @override
   String get branchesSectionCurrent => 'Current branch';
@@ -2704,7 +2723,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String branchesRowPending(int count) {
-    return 'Pending local changes: $count';
+    return 'This device — pending uploads: $count';
   }
 
   @override
@@ -2738,10 +2757,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get branchesSwitchBlockedStuckOutbox =>
-      'Some local changes are stuck and cannot be synced automatically yet. Resolve or discard them in Cloud sync before switching branches.';
+      'Some uploads are still retrying. Tap Sync now, wait a moment, then try switching again.';
 
   @override
-  String get branchesSwitchFixSyncIssues => 'Open Sync Issues';
+  String get branchesSwitchFixSyncIssues => 'View sync status';
 
   @override
   String get branchesPendingSync =>
@@ -2762,7 +2781,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String branchesPreflightStuck(int count) {
-    return 'Stuck changes needing manual action: $count';
+    return 'Uploads still retrying: $count';
   }
 
   @override
@@ -2778,6 +2797,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get branchesPreflightNeedSync =>
       'Sync first before switching so no local changes are lost.';
+
+  @override
+  String branchesSwitchUploadFailed(int count) {
+    return 'Could not upload $count local change(s) yet. Tap Sync now and try switching again. Held items finish automatically in the background and do not block switching.';
+  }
 
   @override
   String get branchesPreflightNeedOnline =>
@@ -2805,10 +2829,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get branchesStuckBannerBody =>
-      'Tap Sync now below. Uploads will retry automatically — you should not need to delete anything.';
+      'Tap Sync now to retry uploads. Held items finish automatically and do not block switching branches.';
 
   @override
   String get branchesStuckBannerSyncNow => 'Sync now';
+
+  @override
+  String get branchesStuckBannerReview => 'View sync status';
+
+  @override
+  String get branchesQuarantineBannerTitle =>
+      'Some uploads are finishing in the background';
+
+  @override
+  String get branchesQuarantineBannerBody =>
+      'They stay on this device and do not block switching branches. Sync will complete them automatically.';
+
+  @override
+  String get branchesQuarantineBannerOpen => 'View sync status';
 
   @override
   String get branchesSwitchInProgressTitle => 'Switching branch';
@@ -2824,7 +2862,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesSwitchStepRefreshingSession => 'Refreshing session';
 
   @override
-  String get branchesSwitchStepClearingOldData => 'Clearing old shop data';
+  String get branchesSwitchStepClearingOldData => 'Opening this shop\'s data';
 
   @override
   String get branchesSwitchStepSyncingNewData => 'Syncing new branch data';
@@ -3002,6 +3040,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create a shop account with your email. Get a 2-month free trial, and manage staff and branches from Settings.';
 
   @override
+  String get onboardModeCompareTitle =>
+      'Online vs Offline — read before choosing';
+
+  @override
+  String get onboardModeAckLabel => 'I have read the differences';
+
+  @override
+  String get onboardModeChooseHint =>
+      'This choice is permanent on this device. You cannot switch later in Settings.';
+
+  @override
+  String get onboardModeOnlineBullets =>
+      '• Sign in with email on any device\n• Staff accounts, branches, and cloud sync\n• Free plan available; Premium unlocks more online features';
+
+  @override
+  String get onboardModeOfflineBullets =>
+      '• Sell without an account or internet\n• License key lives on this device\n• Free plan available; Premium via a key — no multi-device account features';
+
+  @override
   String get onboardOnlineTitle => 'Create your shop account';
 
   @override
@@ -3014,6 +3071,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardOnlineCreateAccount => 'Create shop account';
+
+  @override
+  String get onboardOnlineSignInTitle => 'Sign in to your shop';
+
+  @override
+  String get onboardOnlineSignInBody =>
+      'Use the email and password for an existing shop account.';
+
+  @override
+  String get onboardOnlineTabRegister => 'Register';
+
+  @override
+  String get onboardOnlineTabSignIn => 'Sign in';
+
+  @override
+  String get onboardOnlineSignedIn => 'Signed in. You can continue.';
+
+  @override
+  String get modeMigrateTitle => 'Confirm how this shop works';
+
+  @override
+  String get modeMigrateBody =>
+      'GoldPOSMM now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.';
+
+  @override
+  String get modeMigrateSuggestOnline =>
+      'Suggested: Online (account / cloud features)';
+
+  @override
+  String get modeMigrateSuggestOffline =>
+      'Suggested: Offline (this device + license key)';
+
+  @override
+  String get modeMigrateConfirm => 'Confirm and continue';
+
+  @override
+  String get dailyGateTitle => 'Start today\'s shop';
+
+  @override
+  String get dailyGateAccountStep => 'Account';
+
+  @override
+  String get dailyGateRoleStep => 'Who is using this device';
+
+  @override
+  String get dailyGateBranchStep => 'Branch';
+
+  @override
+  String get dailyGateOpeningStep => 'Opening amount';
+
+  @override
+  String get dailyGateContinue => 'Continue';
+
+  @override
+  String get dailyGateSkipOpening => 'Skip opening amount';
+
+  @override
+  String get dailyGateRoleOwner => 'Owner';
+
+  @override
+  String get dailyGateRoleStaff => 'Staff';
+
+  @override
+  String get dailyGateOpeningHint =>
+      'Enter the cash in the drawer, or skip if you are not tracking the till today.';
+
+  @override
+  String get operatingModeLabel => 'Shop mode';
+
+  @override
+  String get operatingModeOnline => 'Online';
+
+  @override
+  String get operatingModeOffline => 'Offline';
 
   @override
   String get currencySymbol => 'Ks';

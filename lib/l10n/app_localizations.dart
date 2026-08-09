@@ -2816,6 +2816,12 @@ abstract class AppLocalizations {
   /// **'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.'**
   String get licensePremiumContactHint;
 
+  /// No description provided for @licensePremiumContactHintOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium for Online shops is unlocked on your shop account by Support (no license key to type). Copy the Viber number, send the email you use to sign in, and ask to upgrade or renew. No payment is collected inside this app.'**
+  String get licensePremiumContactHintOnline;
+
   /// No description provided for @licenseSubscribe.
   ///
   /// In en, this message translates to:
@@ -2876,6 +2882,12 @@ abstract class AppLocalizations {
   /// **'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.'**
   String get licenseTrialContactHint;
 
+  /// No description provided for @licenseTrialContactHintOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Premium trials for Online shops are issued by Support only. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.'**
+  String get licenseTrialContactHintOnline;
+
   /// No description provided for @licenseTrialViberMissing.
   ///
   /// In en, this message translates to:
@@ -2899,6 +2911,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'App Reference ID'**
   String get licenseRefId;
+
+  /// No description provided for @licenseAccountEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop account email'**
+  String get licenseAccountEmail;
+
+  /// No description provided for @licenseAccountEmailMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in under Shop login so Support can find your account.'**
+  String get licenseAccountEmailMissing;
 
   /// No description provided for @licenseRequestSent.
   ///
@@ -2930,11 +2954,29 @@ abstract class AppLocalizations {
   /// **'After Support extends your license, tap Check for renewal (or activate a new key).'**
   String get licenseRenewHint;
 
+  /// No description provided for @licenseRenewHintOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).'**
+  String get licenseRenewHintOnline;
+
   /// No description provided for @deviceSectionTitle.
   ///
   /// In en, this message translates to:
   /// **'Devices'**
   String get deviceSectionTitle;
+
+  /// No description provided for @deviceAddOnlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To use another phone, sign in with the same shop email and password (Settings → Shop login). No license-key QR is used in Online mode.'**
+  String get deviceAddOnlineHint;
+
+  /// No description provided for @premiumFeatureBodyOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Online Premium subscription on your shop account.'**
+  String get premiumFeatureBodyOnline;
 
   /// No description provided for @deviceCount.
   ///
@@ -3404,6 +3446,18 @@ abstract class AppLocalizations {
   /// **'Up to date'**
   String get syncIdle;
 
+  /// No description provided for @syncPendingUploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending uploads'**
+  String get syncPendingUploads;
+
+  /// No description provided for @syncHasIssues.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync retrying — open Branches if needed'**
+  String get syncHasIssues;
+
   /// No description provided for @syncSyncing.
   ///
   /// In en, this message translates to:
@@ -3449,44 +3503,38 @@ abstract class AppLocalizations {
   /// No description provided for @syncIssuesTitle.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{Sync issue} other{Sync issues}}'**
+  /// **'{count, plural, one{Sync status} other{Sync status}}'**
   String syncIssuesTitle(int count);
-
-  /// No description provided for @syncIssuesSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'One or more changes couldn\'t be synced — tap to review'**
-  String get syncIssuesSubtitle;
 
   /// No description provided for @syncIssuesEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No sync issues.'**
+  /// **'Nothing waiting — sync is clear.'**
   String get syncIssuesEmpty;
 
-  /// No description provided for @syncIssuesAttempts.
+  /// No description provided for @syncIssuesBackgroundHint.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{Failed {count} time} other{Failed {count} times}}'**
-  String syncIssuesAttempts(int count);
+  /// **'Background sync finishes any held uploads automatically. If you were offline, they complete when you are back online. Tap Sync now to retry now.'**
+  String get syncIssuesBackgroundHint;
 
-  /// No description provided for @syncIssuesDiscard.
+  /// No description provided for @syncIssuesPendingHint.
   ///
   /// In en, this message translates to:
-  /// **'Discard'**
-  String get syncIssuesDiscard;
+  /// **'{count} upload(s) still retrying — tap Sync now.'**
+  String syncIssuesPendingHint(int count);
 
-  /// No description provided for @syncIssuesDiscardConfirmTitle.
+  /// No description provided for @syncIssuesQuarantinedRow.
   ///
   /// In en, this message translates to:
-  /// **'Discard this change?'**
-  String get syncIssuesDiscardConfirmTitle;
+  /// **'Finishing: {table}'**
+  String syncIssuesQuarantinedRow(String table);
 
-  /// No description provided for @syncIssuesDiscardConfirmBody.
+  /// No description provided for @syncIssuesQuarantinedHeld.
   ///
   /// In en, this message translates to:
-  /// **'This local change will never sync to the cloud and cannot be recovered afterward. Only discard it if it\'s blocking you (e.g. from switching branches) and you\'ve confirmed it\'s safe to lose.'**
-  String get syncIssuesDiscardConfirmBody;
+  /// **'Kept on this device until cloud sync completes automatically.'**
+  String get syncIssuesQuarantinedHeld;
 
   /// No description provided for @navOrders.
   ///
@@ -4658,6 +4706,30 @@ abstract class AppLocalizations {
   /// **'Passwords don\'t match'**
   String get accountPasswordMismatch;
 
+  /// No description provided for @passwordStrengthWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get passwordStrengthWeak;
+
+  /// No description provided for @passwordStrengthFair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair'**
+  String get passwordStrengthFair;
+
+  /// No description provided for @passwordStrengthGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get passwordStrengthGood;
+
+  /// No description provided for @passwordStrengthStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get passwordStrengthStrong;
+
   /// No description provided for @accountForgotPassword.
   ///
   /// In en, this message translates to:
@@ -4922,46 +4994,10 @@ abstract class AppLocalizations {
   /// **'Branch created.'**
   String get branchesCreated;
 
-  /// No description provided for @branchesLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Link with a key'**
-  String get branchesLink;
-
-  /// No description provided for @branchesLinkHint.
-  ///
-  /// In en, this message translates to:
-  /// **'For a shop that already exists separately (e.g. bought its own license key elsewhere). To start a fresh branch, use \"Create a new branch\" instead.'**
-  String get branchesLinkHint;
-
-  /// No description provided for @branchesKeyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'License key'**
-  String get branchesKeyLabel;
-
-  /// No description provided for @branchesLabelField.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch name'**
-  String get branchesLabelField;
-
-  /// No description provided for @branchesLinked.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch linked.'**
-  String get branchesLinked;
-
-  /// No description provided for @branchesInvalidKey.
-  ///
-  /// In en, this message translates to:
-  /// **'That license key wasn\'t found.'**
-  String get branchesInvalidKey;
-
   /// No description provided for @branchesEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No branches linked yet.'**
+  /// **'No branches yet.'**
   String get branchesEmpty;
 
   /// No description provided for @branchesSectionCurrent.
@@ -5009,7 +5045,7 @@ abstract class AppLocalizations {
   /// No description provided for @branchesRowPending.
   ///
   /// In en, this message translates to:
-  /// **'Pending local changes: {count}'**
+  /// **'This device — pending uploads: {count}'**
   String branchesRowPending(int count);
 
   /// No description provided for @branchesRowLastSync.
@@ -5063,13 +5099,13 @@ abstract class AppLocalizations {
   /// No description provided for @branchesSwitchBlockedStuckOutbox.
   ///
   /// In en, this message translates to:
-  /// **'Some local changes are stuck and cannot be synced automatically yet. Resolve or discard them in Cloud sync before switching branches.'**
+  /// **'Some uploads are still retrying. Tap Sync now, wait a moment, then try switching again.'**
   String get branchesSwitchBlockedStuckOutbox;
 
   /// No description provided for @branchesSwitchFixSyncIssues.
   ///
   /// In en, this message translates to:
-  /// **'Open Sync Issues'**
+  /// **'View sync status'**
   String get branchesSwitchFixSyncIssues;
 
   /// No description provided for @branchesPendingSync.
@@ -5099,7 +5135,7 @@ abstract class AppLocalizations {
   /// No description provided for @branchesPreflightStuck.
   ///
   /// In en, this message translates to:
-  /// **'Stuck changes needing manual action: {count}'**
+  /// **'Uploads still retrying: {count}'**
   String branchesPreflightStuck(int count);
 
   /// No description provided for @branchesPreflightNetwork.
@@ -5119,6 +5155,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sync first before switching so no local changes are lost.'**
   String get branchesPreflightNeedSync;
+
+  /// No description provided for @branchesSwitchUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upload {count} local change(s) yet. Tap Sync now and try switching again. Held items finish automatically in the background and do not block switching.'**
+  String branchesSwitchUploadFailed(int count);
 
   /// No description provided for @branchesPreflightNeedOnline.
   ///
@@ -5165,7 +5207,7 @@ abstract class AppLocalizations {
   /// No description provided for @branchesStuckBannerBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap Sync now below. Uploads will retry automatically — you should not need to delete anything.'**
+  /// **'Tap Sync now to retry uploads. Held items finish automatically and do not block switching branches.'**
   String get branchesStuckBannerBody;
 
   /// No description provided for @branchesStuckBannerSyncNow.
@@ -5173,6 +5215,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sync now'**
   String get branchesStuckBannerSyncNow;
+
+  /// No description provided for @branchesStuckBannerReview.
+  ///
+  /// In en, this message translates to:
+  /// **'View sync status'**
+  String get branchesStuckBannerReview;
+
+  /// No description provided for @branchesQuarantineBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some uploads are finishing in the background'**
+  String get branchesQuarantineBannerTitle;
+
+  /// No description provided for @branchesQuarantineBannerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They stay on this device and do not block switching branches. Sync will complete them automatically.'**
+  String get branchesQuarantineBannerBody;
+
+  /// No description provided for @branchesQuarantineBannerOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'View sync status'**
+  String get branchesQuarantineBannerOpen;
 
   /// No description provided for @branchesSwitchInProgressTitle.
   ///
@@ -5201,7 +5267,7 @@ abstract class AppLocalizations {
   /// No description provided for @branchesSwitchStepClearingOldData.
   ///
   /// In en, this message translates to:
-  /// **'Clearing old shop data'**
+  /// **'Opening this shop\'s data'**
   String get branchesSwitchStepClearingOldData;
 
   /// No description provided for @branchesSwitchStepSyncingNewData.
@@ -5498,6 +5564,36 @@ abstract class AppLocalizations {
   /// **'Create a shop account with your email. Get a 2-month free trial, and manage staff and branches from Settings.'**
   String get onboardModeOnlineBody;
 
+  /// No description provided for @onboardModeCompareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online vs Offline — read before choosing'**
+  String get onboardModeCompareTitle;
+
+  /// No description provided for @onboardModeAckLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I have read the differences'**
+  String get onboardModeAckLabel;
+
+  /// No description provided for @onboardModeChooseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This choice is permanent on this device. You cannot switch later in Settings.'**
+  String get onboardModeChooseHint;
+
+  /// No description provided for @onboardModeOnlineBullets.
+  ///
+  /// In en, this message translates to:
+  /// **'• Sign in with email on any device\n• Staff accounts, branches, and cloud sync\n• Free plan available; Premium unlocks more online features'**
+  String get onboardModeOnlineBullets;
+
+  /// No description provided for @onboardModeOfflineBullets.
+  ///
+  /// In en, this message translates to:
+  /// **'• Sell without an account or internet\n• License key lives on this device\n• Free plan available; Premium via a key — no multi-device account features'**
+  String get onboardModeOfflineBullets;
+
   /// No description provided for @onboardOnlineTitle.
   ///
   /// In en, this message translates to:
@@ -5521,6 +5617,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create shop account'**
   String get onboardOnlineCreateAccount;
+
+  /// No description provided for @onboardOnlineSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your shop'**
+  String get onboardOnlineSignInTitle;
+
+  /// No description provided for @onboardOnlineSignInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the email and password for an existing shop account.'**
+  String get onboardOnlineSignInBody;
+
+  /// No description provided for @onboardOnlineTabRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get onboardOnlineTabRegister;
+
+  /// No description provided for @onboardOnlineTabSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get onboardOnlineTabSignIn;
+
+  /// No description provided for @onboardOnlineSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in. You can continue.'**
+  String get onboardOnlineSignedIn;
+
+  /// No description provided for @modeMigrateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm how this shop works'**
+  String get modeMigrateTitle;
+
+  /// No description provided for @modeMigrateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'GoldPOSMM now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.'**
+  String get modeMigrateBody;
+
+  /// No description provided for @modeMigrateSuggestOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested: Online (account / cloud features)'**
+  String get modeMigrateSuggestOnline;
+
+  /// No description provided for @modeMigrateSuggestOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested: Offline (this device + license key)'**
+  String get modeMigrateSuggestOffline;
+
+  /// No description provided for @modeMigrateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and continue'**
+  String get modeMigrateConfirm;
+
+  /// No description provided for @dailyGateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start today\'s shop'**
+  String get dailyGateTitle;
+
+  /// No description provided for @dailyGateAccountStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get dailyGateAccountStep;
+
+  /// No description provided for @dailyGateRoleStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is using this device'**
+  String get dailyGateRoleStep;
+
+  /// No description provided for @dailyGateBranchStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch'**
+  String get dailyGateBranchStep;
+
+  /// No description provided for @dailyGateOpeningStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening amount'**
+  String get dailyGateOpeningStep;
+
+  /// No description provided for @dailyGateContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get dailyGateContinue;
+
+  /// No description provided for @dailyGateSkipOpening.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip opening amount'**
+  String get dailyGateSkipOpening;
+
+  /// No description provided for @dailyGateRoleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get dailyGateRoleOwner;
+
+  /// No description provided for @dailyGateRoleStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get dailyGateRoleStaff;
+
+  /// No description provided for @dailyGateOpeningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the cash in the drawer, or skip if you are not tracking the till today.'**
+  String get dailyGateOpeningHint;
+
+  /// No description provided for @operatingModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop mode'**
+  String get operatingModeLabel;
+
+  /// No description provided for @operatingModeOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get operatingModeOnline;
+
+  /// No description provided for @operatingModeOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get operatingModeOffline;
 
   /// No description provided for @currencySymbol.
   ///

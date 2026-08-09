@@ -8,6 +8,9 @@ import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_status.dart';
 import 'account_providers.dart';
+import 'auth_password_field.dart';
+import 'forgot_password_dialog.dart';
+import 'password_strength.dart';
 
 /// Real email/password login for the shop, additive to the existing
 /// device-key activation (which stays exactly as-is). Lets the owner create
@@ -19,16 +22,22 @@ class ShopLoginScreen extends ConsumerStatefulWidget {
   ConsumerState<ShopLoginScreen> createState() => _ShopLoginScreenState();
 }
 
-class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
+    with SingleTickerProviderStateMixin {
+  late final _tabs = TabController(length: 2, vsync: this);
+  final _createEmail = TextEditingController();
+  final _createPassword = TextEditingController();
+  final _signInEmail = TextEditingController();
+  final _signInPassword = TextEditingController();
   bool _busy = false;
-  bool _obscure = true;
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    _tabs.dispose();
+    _createEmail.dispose();
+    _createPassword.dispose();
+    _signInEmail.dispose();
+    _signInPassword.dispose();
     super.dispose();
   }
 
@@ -46,11 +55,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   Future<void> _createLogin() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    if (_createEmail.text.trim().isEmpty || _createPassword.text.isEmpty) {
+      return;
+    }
     setState(() => _busy = true);
     final result = await ref
         .read(accountRepositoryProvider)
-        .createShopLogin(_email.text.trim(), _password.text);
+        .createShopLogin(_createEmail.text.trim(), _createPassword.text);
     if (!mounted) return;
     setState(() => _busy = false);
     if (result.ok) {
@@ -60,7 +71,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
             .applyExternal(result.license!);
       }
       messenger.showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
-      _password.clear();
+      _createPassword.clear();
+      setState(() {});
     } else {
       messenger.showSnackBar(
         SnackBar(content: Text(_errorMessage(l, result.error))),
@@ -71,11 +83,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    if (_signInEmail.text.trim().isEmpty || _signInPassword.text.isEmpty) {
+      return;
+    }
     setState(() => _busy = true);
     var result = await ref
         .read(accountRepositoryProvider)
-        .signInAndClaimDevice(_email.text.trim(), _password.text);
+        .signInAndClaimDevice(_signInEmail.text.trim(), _signInPassword.text);
     if (!mounted) return;
 
     if (result.needsWipeConfirmation) {
@@ -126,7 +140,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       }
       ref.invalidate(backendAccountRoleProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
-      _password.clear();
+      _signInPassword.clear();
       setState(() {});
     } else {
       messenger.showSnackBar(
@@ -275,62 +289,6 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     setState(() {});
   }
 
-  Future<void> _showForgotPasswordDialog() async {
-    final l = AppLocalizations.of(context);
-    final email = TextEditingController(text: _email.text.trim());
-    final sent = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.accountResetPasswordTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l.accountResetPasswordHint,
-              style: Theme.of(ctx).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppTheme.space3),
-            TextField(
-              controller: email,
-              autofocus: true,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(labelText: l.accountEmail),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (email.text.trim().isEmpty) return;
-              try {
-                await Supabase.instance.client.auth.resetPasswordForEmail(
-                  email.text.trim(),
-                  redirectTo: 'mmpos://login-callback',
-                );
-              } catch (_) {
-                // Supabase deliberately doesn't reveal whether the email
-                // exists — show the same "check your email" outcome either
-                // way rather than leaking account existence via an error.
-              }
-              if (ctx.mounted) Navigator.pop(ctx, true);
-            },
-            child: Text(l.accountResetPasswordSend),
-          ),
-        ],
-      ),
-    );
-    email.dispose();
-    if (sent == true && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.accountResetPasswordSent)));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -389,43 +347,78 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
               ),
             )
           else ...[
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(labelText: l.accountEmail),
+            TabBar(
+              controller: _tabs,
+              tabs: [
+                Tab(text: l.onboardOnlineTabRegister),
+                Tab(text: l.onboardOnlineTabSignIn),
+              ],
             ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: _password,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: l.accountPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+            const SizedBox(height: AppTheme.space4),
+            SizedBox(
+              height: 260,
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _createEmail,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(labelText: l.accountEmail),
+                        ),
+                        const SizedBox(height: AppTheme.space2),
+                        AuthPasswordField(
+                          controller: _createPassword,
+                          labelText: l.accountPassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                        ),
+                        PasswordStrengthMeter(controller: _createPassword),
+                        const SizedBox(height: AppTheme.space2),
+                        FilledButton(
+                          onPressed: _busy ? null : _createLogin,
+                          child: Text(l.accountCreateShopLogin),
+                        ),
+                      ],
+                    ),
                   ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
+                  SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _signInEmail,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(labelText: l.accountEmail),
+                        ),
+                        const SizedBox(height: AppTheme.space2),
+                        AuthPasswordField(
+                          controller: _signInPassword,
+                          labelText: l.accountPassword,
+                          autofillHints: const [AutofillHints.password],
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _busy
+                                ? null
+                                : () => showForgotPasswordDialog(
+                                    context,
+                                    prefillEmail: _signInEmail.text.trim(),
+                                  ),
+                            child: Text(l.accountForgotPassword),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space2),
+                        OutlinedButton(
+                          onPressed: _busy ? null : _signIn,
+                          child: Text(l.accountSignIn),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _busy ? null : _showForgotPasswordDialog,
-                child: Text(l.accountForgotPassword),
-              ),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            FilledButton(
-              onPressed: _busy ? null : _createLogin,
-              child: Text(l.accountCreateShopLogin),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            OutlinedButton(
-              onPressed: _busy ? null : _signIn,
-              child: Text(l.accountSignIn),
             ),
           ],
         ],

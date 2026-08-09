@@ -26,8 +26,14 @@ synced tables — otherwise core tables go default-deny. See the 0012 lesson.)
 supabase functions deploy admin --project-ref gnikispsurwrmkspuisj
 supabase functions deploy activate --project-ref gnikispsurwrmkspuisj
 supabase functions deploy start_trial --project-ref gnikispsurwrmkspuisj
+supabase functions deploy storefront --project-ref gnikispsurwrmkspuisj
+supabase functions deploy sync_force_apply --project-ref gnikispsurwrmkspuisj
 ```
 Secrets (rarely): `supabase secrets set NAME=value --project-ref ...`.
+
+`sync_force_apply` — authenticated shop-scoped outbox heal (service role
+upsert after JWT `shop_id` check). Required for self-healing sync (#93);
+without it, quarantined rows stay held until the next deploy.
 
 ## 3. Admin web → Vercel
 ```bash

@@ -12,12 +12,10 @@ import '../staff/staff_ui.dart';
 import 'branch_providers.dart';
 import 'branch_repository.dart';
 
-/// Lets a real-login owner list, create, link, unlink, and switch between
-/// branches (each its own shop_id/license) they own. Owner-only — see
-/// OwnerOnlyGate. Creating a branch (just a name, no key) is the primary
-/// path — this is a cloud account, so a new branch should be as easy as
-/// naming it; linking an already-existing separate shop by its key stays
-/// available as a secondary, less prominent action.
+/// Lets a real-login owner list, create, unlink, and switch between branches
+/// (each its own shop_id/license) they own. Owner-only — see OwnerOnlyGate.
+/// Creating a branch (just a name, no key) is the only in-app add path for
+/// the online/email model; a second device sees the same list after login.
 class BranchesScreen extends ConsumerWidget {
   const BranchesScreen({super.key});
 
@@ -35,21 +33,7 @@ class BranchesScreen extends ConsumerWidget {
       );
     }
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.branchesTitle),
-        actions: [
-          OwnerOnlyGate(
-            capability: OwnerCapability.branches,
-            child: Builder(
-              builder: (context) => IconButton(
-                tooltip: l.branchesLink,
-                icon: const Icon(Icons.key_outlined),
-                onPressed: () => _linkBranch(context, ref),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(l.branchesTitle)),
       body: OwnerOnlyGate(
         capability: OwnerCapability.branches,
         child: _BranchesBody(),
@@ -118,74 +102,6 @@ class BranchesScreen extends ConsumerWidget {
       ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
   }
-
-  Future<void> _linkBranch(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    if (!await requireOwnerPinReauth(
-      context,
-      ref,
-      capability: OwnerCapability.branches,
-    )) {
-      return;
-    }
-    if (!context.mounted) return;
-    final key = TextEditingController();
-    final label = TextEditingController();
-    final submitted = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.branchesLink),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l.branchesLinkHint, style: Theme.of(ctx).textTheme.bodySmall),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: key,
-              decoration: InputDecoration(labelText: l.branchesKeyLabel),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: label,
-              decoration: InputDecoration(labelText: l.branchesLabelField),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.branchesLink),
-          ),
-        ],
-      ),
-    );
-    final keyText = key.text.trim();
-    final labelText = label.text.trim();
-    key.dispose();
-    label.dispose();
-    if (submitted != true || !context.mounted) return;
-    if (keyText.isEmpty) return;
-    final result = await ref
-        .read(branchRepositoryProvider)
-        .linkBranch(keyText, labelText);
-    if (!context.mounted) return;
-    if (result.ok) {
-      ref.invalidate(branchesProvider);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.branchesLinked)));
-    } else {
-      final msg = switch (result.error) {
-        'invalid_key' => l.branchesInvalidKey,
-        _ => l.accountActionFailed,
-      };
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-    }
-  }
 }
 
 enum _BranchSwitchAction { cancel, syncAndSwitch }
@@ -237,6 +153,7 @@ class _BranchCard extends StatelessWidget {
     required this.lastSyncedText,
     required this.healthChip,
     required this.trailing,
+    this.showDevicePending = false,
   });
 
   final Branch branch;
@@ -244,6 +161,9 @@ class _BranchCard extends StatelessWidget {
   final String lastSyncedText;
   final Widget healthChip;
   final Widget trailing;
+  /// When true, pending count is this device's active-shop outbox (not the
+  /// other branch's cloud state).
+  final bool showDevicePending;
 
   @override
   Widget build(BuildContext context) {
@@ -290,11 +210,13 @@ class _BranchCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppTheme.space2),
-            Text(
-              l.branchesRowPending(pendingOutboxCount),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 2),
+            if (showDevicePending) ...[
+              Text(
+                l.branchesRowPending(pendingOutboxCount),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 2),
+            ],
             Text(
               l.branchesRowLastSync(lastSyncedText),
               style: Theme.of(context).textTheme.bodySmall,
@@ -397,6 +319,8 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     final pendingOutbox =
         ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
     final stuckOutbox = ref.watch(stuckOutboxProvider).valueOrNull ?? const [];
+    final quarantined =
+        ref.watch(quarantinedOutboxProvider).valueOrNull ?? const [];
     final online = ref.watch(branchConnectivityProvider).valueOrNull ?? true;
     final syncState = ref.watch(syncControllerProvider);
     return branchesAsync.when(
@@ -466,6 +390,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
         return Column(
           children: [
             if (stuckOutbox.isNotEmpty) _buildStuckBanner(context, ref),
+            if (quarantined.isNotEmpty) _buildQuarantineBanner(context),
             if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
             Expanded(
               child: ListView(
@@ -519,8 +444,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                         healthChip: _buildHealthChip(
                           context,
                           online,
+                          // Health for other cards is about switch safety on
+                          // *this* device — still use device pending, but do
+                          // not list the pending count on the other card.
                           pendingOutbox,
                         ),
+                        showDevicePending: false,
                         trailing: Wrap(
                           spacing: AppTheme.space2,
                           children: [
@@ -624,24 +553,94 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               ],
             ),
             const SizedBox(height: 8),
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SyncIssuesScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(l.branchesStuckBannerReview),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await ref
+                        .read(syncControllerProvider.notifier)
+                        .sync(force: true);
+                    if (!context.mounted) return;
+                    final stuck =
+                        ref.read(stuckOutboxProvider).valueOrNull ?? const [];
+                    messenger.showSnackBar(SnackBar(
+                      content: Text(
+                        stuck.isEmpty
+                            ? l.syncIdle
+                            : l.branchesStuckBannerBody,
+                      ),
+                    ));
+                  },
+                  child: Text(l.branchesStuckBannerSyncNow),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuarantineBanner(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.branchesQuarantineBannerTitle,
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l.branchesQuarantineBannerBody,
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  await ref.read(syncControllerProvider.notifier).sync();
-                  if (!context.mounted) return;
-                  final stuck = ref.read(stuckOutboxProvider).valueOrNull ??
-                      const [];
-                  messenger.showSnackBar(SnackBar(
-                    content: Text(
-                      stuck.isEmpty
-                          ? l.syncIdle
-                          : l.branchesStuckBannerBody,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SyncIssuesScreen(),
                     ),
-                  ));
+                  );
                 },
-                child: Text(l.branchesStuckBannerSyncNow),
+                child: Text(l.branchesQuarantineBannerOpen),
               ),
             ),
           ],
@@ -998,7 +997,8 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
       ),
     );
     if (action == true) {
-      await ref.read(syncControllerProvider.notifier).sync();
+      await ref.read(syncControllerProvider.notifier).sync(force: true);
+      if (!context.mounted) return false;
       final second = await ref
           .read(branchRepositoryProvider)
           .verifyPostSwitch(targetShopId);
@@ -1027,7 +1027,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
         ),
       ),
     );
-    await ref.read(syncControllerProvider.notifier).sync();
+    await ref.read(syncControllerProvider.notifier).sync(force: true);
     if (!context.mounted) return;
     final ok = await _runPostSwitchVerification(
       context,
@@ -1159,107 +1159,136 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     }
 
     try {
-      if (action == _BranchSwitchAction.syncAndSwitch) {
-        await ref.read(syncControllerProvider.notifier).sync();
-        if (!context.mounted) return;
-        final syncState = ref.read(syncControllerProvider);
-        final refreshed = await _runPreflight(ref);
-        if (!context.mounted) return;
-        if (refreshed.pendingOutboxCount > 0 ||
-            !refreshed.online ||
-            syncState.phase == SyncPhase.error) {
-          Navigator.of(context, rootNavigator: true).pop();
-          await showDialog<void>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text(l.branchesSwitchInProgressTitle),
-              content: Text(
-                syncState.phase == SyncPhase.error
-                    ? l.syncError
-                    : (refreshed.pendingOutboxCount > 0
-                        ? l.branchesPreflightNeedSync
-                        : l.branchesPreflightNeedOnline),
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(l.commonOk),
+      final sync = ref.read(syncControllerProvider.notifier);
+      sync.pauseBackgroundSync();
+      try {
+        if (action == _BranchSwitchAction.syncAndSwitch) {
+          final drained = await sync.drainForSwitch();
+          if (!context.mounted) return;
+          final syncState = ref.read(syncControllerProvider);
+          final refreshed = await _runPreflight(ref);
+          if (!context.mounted) return;
+          final pending = refreshed.pendingOutboxCount > 0
+              ? refreshed.pendingOutboxCount
+              : drained.pending;
+          final stuck = refreshed.stuckOutboxCount > 0
+              ? refreshed.stuckOutboxCount
+              : drained.stuck;
+          if (pending > 0 ||
+              stuck > 0 ||
+              !refreshed.online ||
+              syncState.phase == SyncPhase.error) {
+            Navigator.of(context, rootNavigator: true).pop();
+            await showDialog<void>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(l.branchesSwitchInProgressTitle),
+                content: Text(
+                  syncState.phase == SyncPhase.error
+                      ? l.syncError
+                      : (!refreshed.online
+                          ? l.branchesPreflightNeedOnline
+                          : (pending > 0
+                              ? l.branchesSwitchUploadFailed(pending)
+                              : l.branchesPreflightStuck(stuck))),
                 ),
-              ],
-            ),
+                actions: [
+                  if (pending > 0 || stuck > 0)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SyncIssuesScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(l.branchesStuckBannerReview),
+                    ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(l.commonOk),
+                  ),
+                ],
+              ),
+            );
+            return;
+          }
+        }
+
+        final existingRecovery = await ref
+            .read(branchRepositoryProvider)
+            .switchRecoveryState();
+        final recoveryToken = existingRecovery?.toShopId == b.shopId
+            ? existingRecovery?.token
+            : null;
+        final result = await ref
+            .read(branchRepositoryProvider)
+            .switchBranch(
+              b.shopId,
+              onStep: (step) => currentStep.value = _mapRepoStep(step),
+              idempotencyToken: recoveryToken,
+            );
+        if (!context.mounted) return;
+
+        if (result.ok && result.license != null) {
+          // onLicenseReady already applied; keep applyExternal for tests /
+          // older call sites that skip the callback.
+          ref
+              .read(licenseControllerProvider.notifier)
+              .applyExternal(result.license!);
+          ref.invalidate(branchesProvider);
+          currentStep.value = _BranchSwitchUiStep.syncingNewData;
+          await sync.sync(force: true);
+          if (!context.mounted) return;
+          final verificationOk = await _runPostSwitchVerification(
+            context,
+            ref,
+            b.shopId,
           );
+          if (verificationOk) {
+            await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
+          } else {
+            final fromShopId = existingRecovery?.fromShopId ?? '';
+            await ref
+                .read(branchRepositoryProvider)
+                .markSwitchNeedsSyncRetry(
+                  toShopId: b.shopId,
+                  fromShopId: fromShopId,
+                  token: recoveryToken ?? existingRecovery?.token,
+                  lastError: 'post_switch_verify_failed',
+                );
+          }
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  verificationOk
+                      ? l.branchesSwitched
+                      : l.branchesRecoveryStillPending,
+                ),
+              ),
+            );
+          }
           return;
         }
-      }
-
-      final existingRecovery = await ref
-          .read(branchRepositoryProvider)
-          .switchRecoveryState();
-      final recoveryToken = existingRecovery?.toShopId == b.shopId
-          ? existingRecovery?.token
-          : null;
-      final result = await ref
-          .read(branchRepositoryProvider)
-          .switchBranch(
-            b.shopId,
-            onStep: (step) => currentStep.value = _mapRepoStep(step),
-            idempotencyToken: recoveryToken,
-          );
-      if (!context.mounted) return;
-
-      if (result.ok && result.license != null) {
-        ref
-            .read(licenseControllerProvider.notifier)
-            .applyExternal(result.license!);
-        ref.invalidate(branchesProvider);
-        currentStep.value = _BranchSwitchUiStep.syncingNewData;
-        await ref.read(syncControllerProvider.notifier).sync();
-        if (!context.mounted) return;
-        final verificationOk = await _runPostSwitchVerification(
-          context,
-          ref,
-          b.shopId,
-        );
-        if (verificationOk) {
-          await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
-        } else {
-          final fromShopId = existingRecovery?.fromShopId ?? '';
-          await ref
-              .read(branchRepositoryProvider)
-              .markSwitchNeedsSyncRetry(
-                toShopId: b.shopId,
-                fromShopId: fromShopId,
-                token: recoveryToken ?? existingRecovery?.token,
-                lastError: 'post_switch_verify_failed',
-              );
-        }
+        await ref
+            .read(branchRepositoryProvider)
+            .markSwitchNeedsSyncRetry(
+              toShopId: b.shopId,
+              fromShopId: existingRecovery?.fromShopId ?? '',
+              token: recoveryToken,
+              lastError: result.error,
+            );
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                verificationOk
-                    ? l.branchesSwitched
-                    : l.branchesRecoveryStillPending,
-              ),
-            ),
+            SnackBar(content: Text(_switchErrorMessage(l, result.error))),
           );
         }
-        return;
-      }
-      await ref
-          .read(branchRepositoryProvider)
-          .markSwitchNeedsSyncRetry(
-            toShopId: b.shopId,
-            fromShopId: existingRecovery?.fromShopId ?? '',
-            token: recoveryToken,
-            lastError: result.error,
-          );
-      if (context.mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_switchErrorMessage(l, result.error))),
-        );
+      } finally {
+        sync.resumeBackgroundSync();
       }
     } finally {
       currentStep.dispose();

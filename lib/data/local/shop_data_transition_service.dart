@@ -35,7 +35,9 @@ class ShopDataTransitionService {
   final AppDatabase _db;
 
   Future<ShopTransitionPrecheck> precheck() async {
-    final rows = await _db.select(_db.outbox).get();
+    final rows = await (_db.select(_db.outbox)
+          ..where((o) => o.quarantined.equals(false)))
+        .get();
     final stuckCount = rows
         .where((r) => r.attempts >= kOutboxStuckThreshold)
         .length;

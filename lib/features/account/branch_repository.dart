@@ -135,6 +135,8 @@ class BranchSwitchVerification {
   final bool profileReadable;
   final bool categoryQueryOk;
   final bool productQueryOk;
+  final bool outboxClear;
+  final bool catalogReady;
 
   const BranchSwitchVerification({
     required this.ok,
@@ -143,6 +145,8 @@ class BranchSwitchVerification {
     required this.profileReadable,
     required this.categoryQueryOk,
     required this.productQueryOk,
+    required this.outboxClear,
+    required this.catalogReady,
   });
 }
 
@@ -158,6 +162,7 @@ class BranchRepository {
     this._licenseRepository,
     this._settings, {
     this.onShopDbSwap,
+    this.onLicenseReady,
   });
 
   final AppDatabase _db;
@@ -170,6 +175,10 @@ class BranchRepository {
   /// When per-shop DB files are on: reopen the target shop file after
   /// [ShopDataTransitionService.prepareShopSwitch] (which skips wipe).
   final Future<void> Function(String toShopId)? onShopDbSwap;
+
+  /// Called immediately after license save + DB swap so [shopIdProvider]
+  /// matches the new shop before any post-switch sync.
+  final Future<void> Function(CachedLicense license)? onLicenseReady;
 
   Future<void> _saveRecoveryState(BranchSwitchRecoveryState state) =>
       _settings.setBranchSwitchStateJson(jsonEncode(state.toJson()));
@@ -233,24 +242,63 @@ class BranchRepository {
       profileReadable = true;
     } catch (_) {}
 
-    bool categoryQueryOk = false;
+    var categoryQueryOk = false;
+    var localCategoryCount = 0;
     try {
       final rows = await _db.select(_db.categories).get();
+      localCategoryCount = rows.length;
       categoryQueryOk = rows.every((r) => r.shopId == targetShopId);
     } catch (_) {}
 
-    bool productQueryOk = false;
+    var productQueryOk = false;
+    var localProductCount = 0;
     try {
       final rows = await _db.select(_db.products).get();
+      localProductCount = rows.length;
       productQueryOk = rows.every((r) => r.shopId == targetShopId);
     } catch (_) {}
+
+    final pendingOutbox = await (_db.select(_db.outbox)
+          ..where((o) => o.quarantined.equals(false)))
+        .get();
+    final outboxClear = pendingOutbox.isEmpty;
+
+    // Empty local catalog is only OK when the server also has no catalog for
+    // this shop (brand-new branch). If remote has rows but local is empty,
+    // post-switch pull did not finish — do not treat as success.
+    var catalogReady = true;
+    final localCatalogEmpty = localCategoryCount == 0 && localProductCount == 0;
+    if (localCatalogEmpty && Env.hasBackend) {
+      try {
+        final remoteCats = await Supabase.instance.client
+            .from('categories')
+            .select('id')
+            .eq('shop_id', targetShopId)
+            .limit(1);
+        final remoteProds = await Supabase.instance.client
+            .from('products')
+            .select('id')
+            .eq('shop_id', targetShopId)
+            .limit(1);
+        final remoteHasCatalog =
+            (remoteCats as List).isNotEmpty || (remoteProds as List).isNotEmpty;
+        catalogReady = !remoteHasCatalog;
+      } catch (_) {
+        // Only fail when we *observe* remote catalog with empty local.
+        // Offline / probe error: allow empty new branch; incomplete pull
+        // still fails once online (remoteHasCatalog → false).
+        catalogReady = true;
+      }
+    }
 
     final ok =
         claimMatchesTarget &&
         shopMatchesTarget &&
         profileReadable &&
         categoryQueryOk &&
-        productQueryOk;
+        productQueryOk &&
+        outboxClear &&
+        catalogReady;
     return BranchSwitchVerification(
       ok: ok,
       claimMatchesTarget: claimMatchesTarget,
@@ -258,6 +306,8 @@ class BranchRepository {
       profileReadable: profileReadable,
       categoryQueryOk: categoryQueryOk,
       productQueryOk: productQueryOk,
+      outboxClear: outboxClear,
+      catalogReady: catalogReady,
     );
   }
 
@@ -289,8 +339,7 @@ class BranchRepository {
   }
 
   /// Mints a brand new branch from just a name — no separate license key
-  /// needed. The primary way to add a branch (see `link_branch` for the
-  /// secondary case of registering an already-existing separate shop).
+  /// needed. The only in-app way to add a branch under an online account.
   Future<BranchActionResult> createBranch(String shopName) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
@@ -307,6 +356,8 @@ class BranchRepository {
   }
 
   Future<BranchActionResult> linkBranch(String key, String label) async {
+    // Kept for Support/legacy tooling; not exposed in the Branches UI
+    // (online accounts add branches via [createBranch] only).
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
       final res = await Supabase.instance.client.functions.invoke(
@@ -342,12 +393,12 @@ class BranchRepository {
   Future<ShopTransitionPrecheck> transitionPrecheck() => _transition.precheck();
 
   /// Switches this device to a different branch: checks the outbox is fully
-  /// drained (never wipes unsynced writes), calls `switch_branch`, refreshes
-  /// the session so the new shop_id claim lands in the JWT, then wipes every
-  /// synced local table and resets sync cursors so the next pull starts
-  /// clean for the new shop. Does NOT update `shopIdProvider`/trigger a
-  /// resync itself — the caller applies the returned license via
-  /// `LicenseController.applyExternal` and kicks `SyncController.sync()`.
+  /// drained (never leaves unsynced writes behind), calls `switch_branch`,
+  /// refreshes the session so the new shop_id claim lands in the JWT, then
+  /// reopens the target shop DB (or wipes in legacy mode). Invokes
+  /// [onLicenseReady] before returning so shopId + license bind atomically
+  /// with the DB file. Caller should still pause background sync around the
+  /// whole critical section and run a post-switch pull.
   Future<BranchSwitchResult> switchBranch(
     String shopId, {
     BranchSwitchStepCallback? onStep,
@@ -479,6 +530,7 @@ class BranchRepository {
     );
     // license.json is device-global (sidecar) — safe after shop DB reopen.
     await _licenseRepository.saveExternal(lic);
+    await onLicenseReady?.call(lic);
     return BranchSwitchResult.success(lic);
   }
 }

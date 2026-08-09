@@ -1464,6 +1464,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'Premium ကို app အပြင် Support က ဖွင့်ပေးသည် (license key သို့မဟုတ် Online account)။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
 
   @override
+  String get licensePremiumContactHintOnline =>
+      'Online ဆိုင်အတွက် Premium ကို Support က သင့် shop account ပေါ်မှာ ဖွင့်ပေးသည် (license key ရိုက်စရာမလို)။ Viber နံပါတ် ကူးပြီး sign-in သုံးတဲ့ email ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
+
+  @override
   String get licenseSubscribe => 'Subscribe';
 
   @override
@@ -1499,6 +1503,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'Premium အခမဲ့ စမ်းသုံးမှုကို app ထဲက မယူရပါ — Support ကသာ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။';
 
   @override
+  String get licenseTrialContactHintOnline =>
+      'Online ဆိုင်အတွက် Premium အခမဲ့ စမ်းသုံးမှုကို Support ကသာ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး shop account email ပို့ကာ အဲဒီ account ပေါ် trial တောင်းပါ — key ရိုက်စရာမလိုပါ။';
+
+  @override
   String get licenseTrialViberMissing =>
       'Support Viber မသတ်မှတ်ရသေးပါ။ Settings → Support ရနိုင်မှ သုံးပါ၊ သို့မဟုတ် App Reference ID နဲ့ တခြားလမ်းက ဆက်သွယ်ပါ။';
 
@@ -1511,6 +1519,13 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseRefId => 'App Reference ID';
+
+  @override
+  String get licenseAccountEmail => 'ဆိုင် account email';
+
+  @override
+  String get licenseAccountEmailMissing =>
+      'Support က ရှာနိုင်အောင် Settings → ဆိုင် Login မှာ sign in ဝင်ထားပါ။';
 
   @override
   String get licenseRequestSent =>
@@ -1532,7 +1547,19 @@ class AppLocalizationsMy extends AppLocalizations {
       'Support က သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ (သို့မဟုတ် key အသစ် activate လုပ်ပါ)။';
 
   @override
+  String get licenseRenewHintOnline =>
+      'Support က Online subscription သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ — Premium က account ပေါ် အလိုအလျောက် သက်ရောက်ပါတယ် (key မလို)။';
+
+  @override
   String get deviceSectionTitle => 'Device များ';
+
+  @override
+  String get deviceAddOnlineHint =>
+      'ဖုန်းနောက်တစ်လုံး သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → ဆိုင် Login)။ Online mode မှာ license-key QR မသုံးပါ။';
+
+  @override
+  String get premiumFeatureBodyOnline =>
+      'Free plan ဖြစ်နေပါတယ် — ရောင်းချနှင့် ကုန်ပစ္စည်း ဆက်သုံးနိုင်ပြီး ဤ feature အတွက် Online Premium subscription လိုအပ်ပါတယ်။';
 
   @override
   String deviceCount(int used, int free) {
@@ -1812,6 +1839,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get syncIdle => 'အသစ်ဖြစ်နေသည်';
 
   @override
+  String get syncPendingUploads => 'တင်ရန် ကျန်ရှိနေသည်';
+
+  @override
+  String get syncHasIssues =>
+      'Sync ပြန်ကြိုးစားနေသည် — လိုရင် Branches ဖွင့်ပါ';
+
+  @override
   String get syncSyncing => 'sync လုပ်နေသည်…';
 
   @override
@@ -1836,30 +1870,29 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String syncIssuesTitle(int count) {
-    return 'Sync ပြဿနာ $count ခု';
+    return 'Sync အခြေအနေ ($count)';
   }
 
   @override
-  String get syncIssuesSubtitle =>
-      'ပြောင်းလဲမှု တစ်ချို့ sync မဖြစ်နိုင်ခဲ့ပါ — ကြည့်ရှုရန် နှိပ်ပါ';
+  String get syncIssuesEmpty => 'စောင့်ဆိုင်းနေသည် မရှိ — sync ရှင်းပါပြီ။';
 
   @override
-  String get syncIssuesEmpty => 'Sync ပြဿနာ မရှိပါ။';
+  String get syncIssuesBackgroundHint =>
+      'Held uploads ကို background sync က အလိုအလျောက် ပြီးစေပါတယ်။ Offline ဖြစ်ခဲ့ရင် online ပြန်ရောက်မှ ပြီးပါမယ်။ ယခု ပြန်လုပ်ချင်ရင် Sync now နှိပ်ပါ။';
 
   @override
-  String syncIssuesAttempts(int count) {
-    return '$count ကြိမ် ကြိုးစားခဲ့ပြီး မအောင်မြင်ပါ';
+  String syncIssuesPendingHint(int count) {
+    return 'Upload $count ခု ပြန်ကြိုးစားနေဆဲ — Sync now နှိပ်ပါ။';
   }
 
   @override
-  String get syncIssuesDiscard => 'ဖျက်ပစ်မည်';
+  String syncIssuesQuarantinedRow(String table) {
+    return 'ပြီးဆုံးနေသည်: $table';
+  }
 
   @override
-  String get syncIssuesDiscardConfirmTitle => 'ဒီပြောင်းလဲမှုကို ဖျက်ပစ်မလား?';
-
-  @override
-  String get syncIssuesDiscardConfirmBody =>
-      'ဒီ local ပြောင်းလဲမှုက cloud ကို ဘယ်တော့မှ sync ဖြစ်မှာ မဟုတ်တော့ဘဲ ပြန်ရယူလို့လည်း မရနိုင်တော့ပါ။ ဒါက သင့်ကို ပိတ်ဆို့နေရင် (ဥပမာ ဆိုင်ခွဲ switch မလုပ်နိုင်ဘူးဆိုရင်) ပြီးတော့ ဆုံးရှုံးလည်း ပြဿနာမရှိဘူးလို့ သေချာမှသာ ဖျက်ပစ်ပါ။';
+  String get syncIssuesQuarantinedHeld =>
+      'Cloud sync အလိုအလျောက် ပြီးသည်အထိ ဒီစက်မှာ ထားထားသည်။';
 
   @override
   String get navOrders => 'အော်ဒါ';
@@ -2505,6 +2538,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountPasswordMismatch => 'စကားဝှက်များ မတူညီပါ';
 
   @override
+  String get passwordStrengthWeak => 'အားနည်း';
+
+  @override
+  String get passwordStrengthFair => 'အလယ်အလတ်';
+
+  @override
+  String get passwordStrengthGood => 'ကောင်း';
+
+  @override
+  String get passwordStrengthStrong => 'ကြံ့ခိုင်';
+
+  @override
   String get accountForgotPassword => 'စကားဝှက် မေ့နေပါသလား?';
 
   @override
@@ -2652,26 +2697,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesCreated => 'ဆိုင်ခွဲ ဖန်တီးပြီးပါပြီ။';
 
   @override
-  String get branchesLink => 'Key နဲ့ ချိတ်ဆက်မည်';
-
-  @override
-  String get branchesLinkHint =>
-      'ဟိုးအရင်ကတည်းက Key သီးသန့်ဝယ်ထားပြီးသား ဆိုင်ခွဲအတွက်ပါ။ ဆိုင်ခွဲ အသစ်တစ်ခု စတင်ချင်ရင် \"ဆိုင်ခွဲ အသစ် ဖန်တီးမည်\" ကို သုံးပါ။';
-
-  @override
-  String get branchesKeyLabel => 'License Key';
-
-  @override
-  String get branchesLabelField => 'ဆိုင်ခွဲအမည်';
-
-  @override
-  String get branchesLinked => 'ဆိုင်ခွဲ ချိတ်ဆက်ပြီးပါပြီ။';
-
-  @override
-  String get branchesInvalidKey => 'ဒီ License Key ကို ရှာမတွေ့ပါ။';
-
-  @override
-  String get branchesEmpty => 'ဆိုင်ခွဲ မချိတ်ဆက်ရသေးပါ။';
+  String get branchesEmpty => 'ဆိုင်ခွဲ မရှိသေးပါ။';
 
   @override
   String get branchesSectionCurrent => 'လက်ရှိ ဆိုင်ခွဲ';
@@ -2697,7 +2723,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String branchesRowPending(int count) {
-    return 'မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: $count';
+    return 'ဒီစက် — တင်မရသေးသော uploads: $count';
   }
 
   @override
@@ -2731,10 +2757,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get branchesSwitchBlockedStuckOutbox =>
-      'Local ပြောင်းလဲမှုတချို့ sync အလိုအလျောက်မပြီးဘဲ ကပ်နေပါတယ်။ Branch မပြောင်းခင် Cloud sync ထဲကနေ ဖြေရှင်း (သို့) discard လုပ်ပါ။';
+      'Upload တချို့ ပြန်ကြိုးစားနေဆဲပါ။ Sync now နှိပ်ပြီး ခဏစောင့်ကာ ပြန် switch ပါ။';
 
   @override
-  String get branchesSwitchFixSyncIssues => 'Sync Issues ဖွင့်မည်';
+  String get branchesSwitchFixSyncIssues => 'Sync အခြေအနေ ကြည့်မည်';
 
   @override
   String get branchesPendingSync =>
@@ -2755,7 +2781,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String branchesPreflightStuck(int count) {
-    return 'Manual ဖြေရှင်းရန်လိုသော stuck change: $count';
+    return 'ပြန်ကြိုးစားနေသော uploads: $count';
   }
 
   @override
@@ -2771,6 +2797,11 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get branchesPreflightNeedSync =>
       'local data မပျောက်အောင် အရင် Sync လုပ်ပြီးမှ ပြောင်းပါ။';
+
+  @override
+  String branchesSwitchUploadFailed(int count) {
+    return 'Local ပြောင်းလဲမှု $count ခု မတင်ရသေးပါ။ Sync now နှိပ်ပြီး ပြန် switch ပါ။ ထိန်းထားသော items က background မှာ အလိုအလျောက် ပြီးပြီး switch မပိတ်ပါ။';
+  }
 
   @override
   String get branchesPreflightNeedOnline =>
@@ -2797,10 +2828,24 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get branchesStuckBannerBody =>
-      'အောက်က Sync now ကို နှိပ်ပါ။ စနစ်က အလိုအလျောက် ပြန်တင်ပေးမယ် — ဘာမှ ဖျက်စရာ မလိုပါ။';
+      'Sync now နှိပ်ပြီး ပြန်တင်ပါ။ ထိန်းထားသော items က အလိုအလျောက် ပြီးပြီး branch ပြောင်းခြင်းကို မပိတ်ပါ။';
 
   @override
   String get branchesStuckBannerSyncNow => 'Sync now';
+
+  @override
+  String get branchesStuckBannerReview => 'Sync အခြေအနေ ကြည့်မည်';
+
+  @override
+  String get branchesQuarantineBannerTitle =>
+      'Upload အချို့ background မှာ ပြီးဆုံးနေသည်';
+
+  @override
+  String get branchesQuarantineBannerBody =>
+      'ဒီစက်မှာ ကျန်ပြီး branch ပြောင်းခြင်းကို မပိတ်ပါ။ Sync က အလိုအလျောက် ပြီးစေပါမယ်။';
+
+  @override
+  String get branchesQuarantineBannerOpen => 'Sync အခြေအနေ ကြည့်မည်';
 
   @override
   String get branchesSwitchInProgressTitle => 'ဆိုင်ခွဲ ပြောင်းနေသည်';
@@ -2818,8 +2863,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'Session ကို ပြန်လည်ပြင်ဆင်နေသည်';
 
   @override
-  String get branchesSwitchStepClearingOldData =>
-      'ဆိုင်ဟောင်း data ဖယ်ရှားနေသည်';
+  String get branchesSwitchStepClearingOldData => 'ဒီဆိုင်ရဲ့ data ဖွင့်နေသည်';
 
   @override
   String get branchesSwitchStepSyncingNewData =>
@@ -2992,6 +3036,24 @@ class AppLocalizationsMy extends AppLocalizations {
       'Email နဲ့ ဆိုင် Account ဖန်တီးပါ။ 2လ အခမဲ့ စမ်းသုံးခွင့်ရမယ်၊ Settings ကနေ ဝန်ထမ်းနဲ့ ဆိုင်ခွဲတွေကို စီမံနိုင်ပါတယ်။';
 
   @override
+  String get onboardModeCompareTitle => 'Online နဲ့ Offline — မရွေးခင် ဖတ်ပါ';
+
+  @override
+  String get onboardModeAckLabel => 'ကွာခြားချက်ကို ဖတ်ပြီးပါပြီ';
+
+  @override
+  String get onboardModeChooseHint =>
+      'ဒီရွေးချယ်မှုက ဒီစက်ပေါ်မှာ အမြဲတမ်းပါ။ Settings ထဲကနေ နောက်မှ ပြောင်းလို့ မရပါ။';
+
+  @override
+  String get onboardModeOnlineBullets =>
+      '• Device မရွေး email နဲ့ ဝင်နိုင်\n• ဝန်ထမ်းအကောင့်၊ ဆိုင်ခွဲ၊ cloud sync\n• Free ရပါတယ်။ Premium က online feature ပိုဖွင့်ပေး';
+
+  @override
+  String get onboardModeOfflineBullets =>
+      '• Account / အင်တာနက် မလိုဘဲ ရောင်းနိုင်\n• License key က ဒီစက်ပေါ်မှာ\n• Free ရပါတယ်။ Premium က key နဲ့ — multi-device account feature မပါ';
+
+  @override
   String get onboardOnlineTitle => 'ဆိုင် Account ဖန်တီးပါ';
 
   @override
@@ -3004,6 +3066,80 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardOnlineCreateAccount => 'ဆိုင် Account ဖန်တီးမည်';
+
+  @override
+  String get onboardOnlineSignInTitle => 'ဆိုင် Account သို့ ဝင်မည်';
+
+  @override
+  String get onboardOnlineSignInBody =>
+      'ရှိပြီးသားဆိုင်၏ email နဲ့ password ကို သုံးပါ။';
+
+  @override
+  String get onboardOnlineTabRegister => 'မှတ်ပုံတင်';
+
+  @override
+  String get onboardOnlineTabSignIn => 'ဝင်မည်';
+
+  @override
+  String get onboardOnlineSignedIn => 'ဝင်ရောက်ပြီးပါပြီ။ ဆက်လုပ်နိုင်ပါတယ်။';
+
+  @override
+  String get modeMigrateTitle => 'ဆိုင်အလုပ်လုပ်ပုံကို အတည်ပြုပါ';
+
+  @override
+  String get modeMigrateBody =>
+      'GoldPOSMM က Online သို့မဟုတ် Offline mode ကို အမြဲတမ်း သတ်မှတ်အသုံးပြုပါသည်။ တစ်ကြိမ်သာ အတည်ပြုပါ — အက်ပ်ထဲကနေ နောက်မှ ပြောင်းလို့ မရပါ။';
+
+  @override
+  String get modeMigrateSuggestOnline =>
+      'အကြံပြုချက်: Online (account / cloud)';
+
+  @override
+  String get modeMigrateSuggestOffline =>
+      'အကြံပြုချက်: Offline (ဒီစက် + license key)';
+
+  @override
+  String get modeMigrateConfirm => 'အတည်ပြုပြီး ဆက်မည်';
+
+  @override
+  String get dailyGateTitle => 'ဒီနေ့ဆိုင် စသုံးမည်';
+
+  @override
+  String get dailyGateAccountStep => 'Account';
+
+  @override
+  String get dailyGateRoleStep => 'ဒီစက်ကို ဘယ်သူသုံးမလဲ';
+
+  @override
+  String get dailyGateBranchStep => 'ဆိုင်ခွဲ';
+
+  @override
+  String get dailyGateOpeningStep => 'ဖွင့်ငွေ';
+
+  @override
+  String get dailyGateContinue => 'ဆက်မည်';
+
+  @override
+  String get dailyGateSkipOpening => 'ဖွင့်ငွေ ကျော်မည်';
+
+  @override
+  String get dailyGateRoleOwner => 'ပိုင်ရှင်';
+
+  @override
+  String get dailyGateRoleStaff => 'ဝန်ထမ်း';
+
+  @override
+  String get dailyGateOpeningHint =>
+      'ငွေကိုက်ထဲရှိငွေ ထည့်ပါ။ ဒီနေ့ till မလိုက်ဘူးဆိုရင် ကျော်နိုင်ပါတယ်။';
+
+  @override
+  String get operatingModeLabel => 'ဆိုင် mode';
+
+  @override
+  String get operatingModeOnline => 'Online';
+
+  @override
+  String get operatingModeOffline => 'Offline';
 
   @override
   String get currencySymbol => 'ကျပ်';

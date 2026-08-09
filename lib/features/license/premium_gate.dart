@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../onboarding/operating_mode_providers.dart';
 import 'license_providers.dart';
 import 'license_screen.dart';
 
@@ -26,13 +27,20 @@ class PremiumGate extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (licState.isPremium) return child;
-    return _PremiumPaywall(featureName: featureName);
+    return _PremiumPaywall(
+      featureName: featureName,
+      onlineMode: ref.watch(isOnlineModeProvider),
+    );
   }
 }
 
 class _PremiumPaywall extends StatelessWidget {
-  const _PremiumPaywall({required this.featureName});
+  const _PremiumPaywall({
+    required this.featureName,
+    required this.onlineMode,
+  });
   final String featureName;
+  final bool onlineMode;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +58,10 @@ class _PremiumPaywall extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium,
                 textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.space2),
-            Text(l.premiumFeatureBody, textAlign: TextAlign.center),
+            Text(
+              onlineMode ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppTheme.space4),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -72,11 +83,15 @@ class _PremiumPaywall extends StatelessWidget {
 Future<void> showPremiumRequiredDialog(
     BuildContext context, String featureName) {
   final l = AppLocalizations.of(context);
+  final online =
+      ProviderScope.containerOf(context).read(isOnlineModeProvider);
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(l.premiumFeatureTitle(featureName)),
-      content: Text(l.premiumFeatureBody),
+      content: Text(
+        online ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
+      ),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx), child: Text(l.commonCancel)),

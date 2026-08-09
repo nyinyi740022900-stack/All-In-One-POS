@@ -24,7 +24,6 @@ void main() {
       OwnerCapability.branches,
       OwnerCapability.staffAccounts,
       OwnerCapability.settingsSensitive,
-      OwnerCapability.syncIssuesDiscard,
     };
     for (final capability in OwnerCapability.values) {
       expect(

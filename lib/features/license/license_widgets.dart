@@ -8,7 +8,10 @@ String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
     };
 
 /// Shows the unique App Reference ID / Shop Code (the admin extends by this).
+/// Offline / device-key model only — Online uses [_AccountEmailTile] instead.
 class _RefIdTile extends ConsumerWidget {
+  const _RefIdTile();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -36,11 +39,52 @@ class _RefIdTile extends ConsumerWidget {
   }
 }
 
+/// Online Support identity — shop account email, not a device license key.
+class _AccountEmailTile extends ConsumerWidget {
+  const _AccountEmailTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    String? email;
+    try {
+      email = ref.watch(accountRepositoryProvider).currentAccountEmail;
+    } catch (_) {
+      email = null;
+    }
+    final text = (email != null && email.isNotEmpty)
+        ? email
+        : l.licenseAccountEmailMissing;
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: ListTile(
+        leading: const Icon(Icons.alternate_email),
+        title: Text(l.licenseAccountEmail),
+        subtitle: Text(text),
+        trailing: email != null && email.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.copy),
+                tooltip: l.commonCopy,
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: email!));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(l.copied)));
+                  }
+                },
+              )
+            : null,
+      ),
+    );
+  }
+}
+
 /// Lists the shop's device slots and lets the owner add or release one.
-/// Devices are meaningless offline/on a trial — the caller only shows this
-/// once the shop has a real paid key (see build() in license_screen.dart).
+/// Offline: add via license-key QR. Online: sign-in on the other phone (no QR).
 class _DevicesSection extends ConsumerWidget {
-  const _DevicesSection();
+  const _DevicesSection({this.onlineMode = false});
+
+  final bool onlineMode;
 
   Future<void> _addDevice(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
@@ -233,11 +277,20 @@ class _DevicesSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                OutlinedButton.icon(
-                  onPressed: () => _addDevice(context, ref),
-                  icon: const Icon(Icons.add),
-                  label: Text(l.deviceAdd),
-                ),
+                if (onlineMode)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppTheme.space2),
+                    child: Text(
+                      l.deviceAddOnlineHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => _addDevice(context, ref),
+                    icon: const Icon(Icons.add),
+                    label: Text(l.deviceAdd),
+                  ),
               ],
             );
           },

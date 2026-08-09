@@ -29,6 +29,8 @@ class SettingsRepository {
         key == 'license.json' ||
         key == 'license.trial_used' ||
         key == 'onboarding.done' ||
+        key == 'operating.mode' ||
+        key == 'operating.mode_confirmed' ||
         key == 'app.locale' ||
         key == 'referral.seen_earned' ||
         key == 'branch.switch.state' ||
@@ -341,6 +343,57 @@ class SettingsRepository {
   Future<bool> onboardingComplete() async =>
       (await _get(_kOnboardingDone)) == 'true';
   Future<void> markOnboardingComplete() => _set(_kOnboardingDone, 'true');
+
+  /// Permanent Online vs Offline shell for this install. Chosen once at
+  /// onboarding (or the one-time migrate screen) and never switched in-app.
+  static const _kOperatingMode = 'operating.mode';
+  static const _kOperatingModeConfirmed = 'operating.mode_confirmed';
+  static const operatingModeOnline = 'online';
+  static const operatingModeOffline = 'offline';
+
+  Future<String?> operatingMode() => _get(_kOperatingMode);
+
+  Future<void> setOperatingMode(String mode) {
+    assert(
+      mode == operatingModeOnline || mode == operatingModeOffline,
+      'operating mode must be online|offline',
+    );
+    return _set(_kOperatingMode, mode);
+  }
+
+  Future<bool> operatingModeConfirmed() async =>
+      (await _get(_kOperatingModeConfirmed)) == 'true';
+
+  Future<void> confirmOperatingMode() =>
+      _set(_kOperatingModeConfirmed, 'true');
+
+  /// Online daily shop-entry gate: calendar day (local yyyy-MM-dd) when the
+  /// account → role → branch → open/Skip flow last finished for [shopId].
+  static const _kDailyGateYmd = 'daily.gate.ymd';
+  static const _kDailyGateSkippedOpen = 'daily.gate.skipped_open';
+
+  Future<String?> dailyGateYmd(String shopId) =>
+      _get(_shopKey(_kDailyGateYmd, shopId));
+
+  Future<void> setDailyGateYmd(String shopId, String ymd) =>
+      _set(_shopKey(_kDailyGateYmd, shopId), ymd);
+
+  Future<bool> dailyGateSkippedOpen(String shopId) async =>
+      (await _get(_shopKey(_kDailyGateSkippedOpen, shopId))) == 'true';
+
+  Future<void> setDailyGateSkippedOpen(String shopId, bool skipped) {
+    final key = _shopKey(_kDailyGateSkippedOpen, shopId);
+    return skipped ? _set(key, 'true') : _delete(key);
+  }
+
+  Future<void> markDailyGateComplete(
+    String shopId, {
+    required String ymd,
+    required bool skippedOpen,
+  }) async {
+    await setDailyGateYmd(shopId, ymd);
+    await setDailyGateSkippedOpen(shopId, skippedOpen);
+  }
 
   /// Watermark of the referral commission total (Ks) already seen by the user.
   /// null = never checked, so the first check establishes a baseline silently
