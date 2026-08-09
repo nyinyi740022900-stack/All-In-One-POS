@@ -9,6 +9,7 @@ import 'data/sync/sync_providers.dart';
 import 'features/accounts/payment_account_providers.dart';
 import 'features/expenses/recurring_expense_providers.dart';
 import 'features/license/license_providers.dart';
+import 'features/account/branch_switch_recovery_watcher.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
 import 'features/onboarding/onboarding_flow.dart';
@@ -43,6 +44,9 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(paymentAccountSeederProvider);
     // Listen for password-recovery deep links for the whole app lifetime.
     ref.watch(passwordRecoveryWatcherProvider);
+    // Auto-resolve an interrupted branch switch without the owner needing
+    // to reopen Settings > Branches.
+    ref.watch(branchSwitchRecoveryWatcherProvider);
 
     // Shown once per install, before the tabbed shell. Loading reads as
     // "done" so the (effectively instant) first Drift read never flashes

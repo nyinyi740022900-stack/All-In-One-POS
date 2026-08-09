@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/account/branch_switch_recovery_banner.dart';
 import '../features/analytics/analytics_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/invoices/invoices_screen.dart';
@@ -116,29 +117,41 @@ class _ShellScaffold extends ConsumerWidget {
 
     if (wide) {
       return Scaffold(
-        body: Row(
+        body: Column(
           children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: go,
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                for (final d in destinations)
-                  NavigationRailDestination(
-                    icon: Icon(d.icon),
-                    label: Text(d.label),
+            const BranchSwitchRecoveryBanner(),
+            Expanded(
+              child: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: selectedIndex,
+                    onDestinationSelected: go,
+                    labelType: NavigationRailLabelType.all,
+                    destinations: [
+                      for (final d in destinations)
+                        NavigationRailDestination(
+                          icon: Icon(d.icon),
+                          label: Text(d.label),
+                        ),
+                    ],
                   ),
-              ],
+                  const VerticalDivider(width: 1),
+                  Expanded(child: shell),
+                ],
+              ),
             ),
-            const VerticalDivider(width: 1),
-            Expanded(child: shell),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: shell,
+      body: Column(
+        children: [
+          const BranchSwitchRecoveryBanner(),
+          Expanded(child: shell),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: go,

@@ -2795,6 +2795,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branchesSwitchStepSyncingNewData => 'Syncing new branch data';
 
   @override
+  String branchesSyncingRemaining(int count) {
+    return 'Syncing… $count remaining';
+  }
+
+  @override
   String branchesRecoveryBody(String shopId) {
     return 'Branch switch to $shopId was interrupted before setup completed. You can retry sync now.';
   }

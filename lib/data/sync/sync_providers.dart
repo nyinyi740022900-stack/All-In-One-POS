@@ -202,6 +202,32 @@ class SyncController extends StateNotifier<SyncState> {
     }
   }
 
+  /// Runs [sync] up to [maxAttempts] times, waiting [backoff] between
+  /// attempts, until the outbox is drained. Stops early on success or on a
+  /// genuine stuck row (see [stuckOutboxProvider]) — no point retrying a
+  /// poison pill. Used by the branch-switch flow so a single flaky network
+  /// blip self-heals instead of surfacing as a full failure dialog.
+  Future<bool> syncUntilDrained({
+    int maxAttempts = 3,
+    List<Duration> backoff = const [
+      Duration(seconds: 2),
+      Duration(seconds: 5),
+      Duration(seconds: 10),
+    ],
+  }) async {
+    final db = _ref.read(databaseProvider);
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await sync();
+      final pending = await db.select(db.outbox).get();
+      final stuck = pending.where(
+        (o) => o.attempts >= kOutboxStuckThreshold,
+      );
+      if (pending.isEmpty || stuck.isNotEmpty) return pending.isEmpty;
+      if (attempt < backoff.length) await Future.delayed(backoff[attempt]);
+    }
+    return false;
+  }
+
   @override
   void dispose() {
     _connSub?.cancel();

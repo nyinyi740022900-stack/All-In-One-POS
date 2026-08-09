@@ -5150,6 +5150,12 @@ abstract class AppLocalizations {
   /// **'Syncing new branch data'**
   String get branchesSwitchStepSyncingNewData;
 
+  /// No description provided for @branchesSyncingRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing… {count} remaining'**
+  String branchesSyncingRemaining(int count);
+
   /// No description provided for @branchesRecoveryBody.
   ///
   /// In en, this message translates to:

@@ -949,6 +949,8 @@
   "branchesSwitchStepRefreshingSession": "Refreshing session",
   "branchesSwitchStepClearingOldData": "Clearing old shop data",
   "branchesSwitchStepSyncingNewData": "Syncing new branch data",
+  "branchesSyncingRemaining": "Syncing… {count} remaining",
+  "@branchesSyncingRemaining": { "placeholders": { "count": { "type": "int" } } },
   "branchesRecoveryBody": "Branch switch to {shopId} was interrupted before setup completed. You can retry sync now.",
   "@branchesRecoveryBody": { "placeholders": { "shopId": { "type": "String" } } },
   "branchesRecoveryBodyWithError": "Branch switch to {shopId} is still incomplete: {error}.",

@@ -2792,6 +2792,11 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဆိုင်အသစ် data Sync လုပ်နေသည်';
 
   @override
+  String branchesSyncingRemaining(int count) {
+    return 'Sync လုပ်နေသည်… $count ကျန်နေသည်';
+  }
+
+  @override
   String branchesRecoveryBody(String shopId) {
     return '$shopId သို့ branch ပြောင်းခြင်း လုပ်ငန်းစဉ် မပြီးသေးပါ။ Sync ကို ထပ်စမ်းနိုင်ပါတယ်။';
   }

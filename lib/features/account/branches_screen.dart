@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -11,6 +13,7 @@ import '../license/premium_gate.dart';
 import '../staff/staff_ui.dart';
 import 'branch_providers.dart';
 import 'branch_repository.dart';
+import 'branch_switch_recovery_banner.dart';
 
 /// Lets a real-login owner list, create, link, unlink, and switch between
 /// branches (each its own shop_id/license) they own. Owner-only — see
@@ -378,17 +381,42 @@ class _CurrentBranchPinnedCard extends StatelessWidget {
   }
 }
 
-class _BranchesBody extends ConsumerWidget {
+class _BranchesBody extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BranchesBody> createState() => _BranchesBodyState();
+}
+
+class _BranchesBodyState extends ConsumerState<_BranchesBody> {
+  bool _triedProactiveSync = false;
+
+  /// Pre-drains the outbox as soon as the owner opens the Branches list,
+  /// rather than waiting for them to tap Switch — so by the time they pick a
+  /// branch, the preflight check is more likely to already read "ready".
+  /// Opportunistic and silent: a single pass, no dialog, no retry — the
+  /// gated preflight before an actual switch still re-checks and drains
+  /// properly via `syncUntilDrained`. Takes the already-watched pending
+  /// count/online state from [build] instead of re-querying the repository,
+  /// so this stays test-overridable via the same providers the rest of the
+  /// screen reads.
+  void _maybeStartProactiveSync(int pendingOutbox, bool online) {
+    if (_triedProactiveSync || pendingOutbox == 0 || !online) return;
+    _triedProactiveSync = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(syncControllerProvider.notifier).sync());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final branchesAsync = ref.watch(branchesProvider);
-    final recovery = ref.watch(branchSwitchRecoveryProvider).valueOrNull;
     final pendingOutbox =
         ref.watch(pendingOutboxCountProvider).valueOrNull ?? 0;
     final stuckOutbox = ref.watch(stuckOutboxProvider).valueOrNull ?? const [];
     final online = ref.watch(branchConnectivityProvider).valueOrNull ?? true;
     final syncState = ref.watch(syncControllerProvider);
+    _maybeStartProactiveSync(pendingOutbox, online);
     return branchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(
@@ -456,7 +484,6 @@ class _BranchesBody extends ConsumerWidget {
         return Column(
           children: [
             if (stuckOutbox.isNotEmpty) _buildStuckBanner(context, ref),
-            if (recovery != null) _buildRecoveryBanner(context, ref, recovery),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
@@ -628,63 +655,6 @@ class _BranchesBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecoveryBanner(
-    BuildContext context,
-    WidgetRef ref,
-    BranchSwitchRecoveryState recovery,
-  ) {
-    final l = AppLocalizations.of(context);
-    final hint = recovery.lastError == null
-        ? l.branchesRecoveryBody(recovery.toShopId)
-        : l.branchesRecoveryBodyWithError(
-            recovery.toShopId,
-            _switchErrorMessage(l, recovery.lastError),
-          );
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.restore_outlined, color: scheme.onSecondaryContainer),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    hint,
-                    style: TextStyle(color: scheme.onSecondaryContainer),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            OverflowBar(
-              alignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () async {
-                    await ref
-                        .read(branchRepositoryProvider)
-                        .clearSwitchRecoveryState();
-                  },
-                  child: Text(l.branchesRecoveryDismiss),
-                ),
-                FilledButton(
-                  onPressed: () => _retryPendingSync(context, ref, recovery),
-                  child: Text(l.branchesRecoveryRetrySync),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<_BranchPreflightInfo> _runPreflight(WidgetRef ref) async {
     final transition = await ref
         .read(branchRepositoryProvider)
@@ -739,20 +709,6 @@ class _BranchesBody extends ConsumerWidget {
       BranchSwitchStep.refreshingSession =>
         _BranchSwitchUiStep.refreshingSession,
       BranchSwitchStep.clearingOldData => _BranchSwitchUiStep.clearingOldData,
-    };
-  }
-
-  String _switchErrorMessage(AppLocalizations l, String? code) {
-    return switch (code) {
-      'branch_switch_pending_sync' => l.branchesPendingSync,
-      'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
-      'network_error' => l.branchesNetworkRetry,
-      'auth_expired' => l.branchesAuthExpired,
-      'invalid_branch_state' => l.branchesInvalidState,
-      'not_linked' => l.branchesInvalidState,
-      'forbidden' => l.branchesInvalidState,
-      'post_switch_verify_failed' => l.branchesVerifyBody,
-      _ => l.accountActionFailed,
     };
   }
 
@@ -932,9 +888,30 @@ class _BranchesBody extends ConsumerWidget {
                           ),
                         const SizedBox(width: AppTheme.space2),
                         Expanded(
-                          child: Text(
-                            _branchSwitchStepLabel(l, orderedSteps[i]),
-                          ),
+                          child:
+                              (orderedSteps[i] ==
+                                      _BranchSwitchUiStep.syncingNewData &&
+                                  i == activeStep.index)
+                              ? Consumer(
+                                  builder: (context, ref, _) {
+                                    final pending =
+                                        ref
+                                            .watch(pendingOutboxCountProvider)
+                                            .valueOrNull ??
+                                        0;
+                                    return Text(
+                                      pending > 0
+                                          ? l.branchesSyncingRemaining(pending)
+                                          : _branchSwitchStepLabel(
+                                              l,
+                                              orderedSteps[i],
+                                            ),
+                                    );
+                                  },
+                                )
+                              : Text(
+                                  _branchSwitchStepLabel(l, orderedSteps[i]),
+                                ),
                         ),
                       ],
                     ),
@@ -945,96 +922,6 @@ class _BranchesBody extends ConsumerWidget {
         );
       },
     );
-  }
-
-  Future<bool> _runPostSwitchVerification(
-    BuildContext context,
-    WidgetRef ref,
-    String targetShopId,
-  ) async {
-    final l = AppLocalizations.of(context);
-    final verify = await ref
-        .read(branchRepositoryProvider)
-        .verifyPostSwitch(targetShopId);
-    if (verify.ok) return true;
-    if (!context.mounted) return false;
-    final action = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.branchesVerifyTitle),
-        content: Text(l.branchesVerifyBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l.branchesVerifyFinishBackground),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l.branchesVerifyRetryNow),
-          ),
-        ],
-      ),
-    );
-    if (action == true) {
-      await ref.read(syncControllerProvider.notifier).sync();
-      final second = await ref
-          .read(branchRepositoryProvider)
-          .verifyPostSwitch(targetShopId);
-      return second.ok;
-    }
-    return false;
-  }
-
-  Future<void> _retryPendingSync(
-    BuildContext context,
-    WidgetRef ref,
-    BranchSwitchRecoveryState recovery,
-  ) async {
-    final l = AppLocalizations.of(context);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: Text(l.branchesRecoveryRetrySync),
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: AppTheme.space4),
-            Expanded(child: Text(l.branchesSwitchStepSyncingNewData)),
-          ],
-        ),
-      ),
-    );
-    await ref.read(syncControllerProvider.notifier).sync();
-    if (!context.mounted) return;
-    final ok = await _runPostSwitchVerification(
-      context,
-      ref,
-      recovery.toShopId,
-    );
-    if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-      if (ok) {
-        await ref.read(branchRepositoryProvider).clearSwitchRecoveryState();
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryResolved)));
-      } else {
-        await ref
-            .read(branchRepositoryProvider)
-            .markSwitchNeedsSyncRetry(
-              toShopId: recovery.toShopId,
-              fromShopId: recovery.fromShopId,
-              token: recovery.token,
-              lastError: 'post_switch_verify_failed',
-            );
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l.branchesRecoveryStillPending)));
-      }
-    }
   }
 
   Future<void> _confirmSwitch(
@@ -1109,7 +996,7 @@ class _BranchesBody extends ConsumerWidget {
       return;
     }
     if (action == _BranchSwitchAction.syncAndSwitch) {
-      await ref.read(syncControllerProvider.notifier).sync();
+      await ref.read(syncControllerProvider.notifier).syncUntilDrained();
       if (!context.mounted) return;
       final syncState = ref.read(syncControllerProvider);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1169,9 +1056,9 @@ class _BranchesBody extends ConsumerWidget {
             .applyExternal(result.license!);
         ref.invalidate(branchesProvider);
         currentStep.value = _BranchSwitchUiStep.syncingNewData;
-        await ref.read(syncControllerProvider.notifier).sync();
+        await ref.read(syncControllerProvider.notifier).syncUntilDrained();
         if (!context.mounted) return;
-        final verificationOk = await _runPostSwitchVerification(
+        final verificationOk = await runPostSwitchVerification(
           context,
           ref,
           b.shopId,
@@ -1214,7 +1101,7 @@ class _BranchesBody extends ConsumerWidget {
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_switchErrorMessage(l, result.error))),
+          SnackBar(content: Text(switchErrorMessage(l, result.error))),
         );
       }
     } finally {
