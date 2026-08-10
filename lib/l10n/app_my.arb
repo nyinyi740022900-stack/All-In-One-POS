@@ -360,6 +360,7 @@
   "printerTestPrint": "စမ်းထုတ်",
   "printerNone": "ပရင်တာ မရွေးရသေးပါ",
   "printerPaired": "ချိတ်ဆက်ထားသော စက်များ",
+  "printerNoDevicesFound": "ချိတ်ဆက်ထားသော ဘလူးတုသ် စက်များ မတွေ့ပါ။",
   "printSuccess": "ပရင့်ထုတ်ပြီးပါပြီ",
   "printFailed": "ပရင့်ထုတ်၍ မရပါ",
   "bluetoothOff": "Bluetooth ပိတ်ထားသည်။ ဖွင့်ပြီး ပရင်တာ ချိတ်ဆက်ပါ။",

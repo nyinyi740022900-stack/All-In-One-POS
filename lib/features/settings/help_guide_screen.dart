@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Static, offline, bilingual walkthrough of what each of the app's six main
@@ -23,10 +24,15 @@ class HelpGuideScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l.helpGuideTitle)),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space2,
+              AppTheme.space4,
+              AppTheme.space3,
+            ),
             child: Text(
               l.helpGuideIntro,
               style: Theme.of(context)
@@ -41,10 +47,20 @@ class HelpGuideScreen extends StatelessWidget {
               title: Text(title),
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.space4,
+                    0,
+                    AppTheme.space4,
+                    AppTheme.space4,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(body, style: const TextStyle(height: 1.5)),
+                    child: Text(
+                      body,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(height: 1.5),
+                    ),
                   ),
                 ),
               ],

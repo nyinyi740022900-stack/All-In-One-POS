@@ -8,6 +8,7 @@ import '../../core/env.dart';
 import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/sync/sync_providers.dart';
 import '../account/branch_providers.dart';
@@ -263,7 +264,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space4,
+        AppTheme.space5,
+        AppTheme.space4,
+        AppTheme.space2,
+      ),
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -438,17 +444,18 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
     });
     final licState = ref.watch(licenseControllerProvider);
     final status = licState.status;
+    final colors = AppColors.of(context);
     final (
       String label,
       Color color,
     ) = licState.license?.plan == LicensePlan.free
         ? (l.licensePlanFree, Theme.of(context).colorScheme.outline)
         : switch (status.kind) {
-            LicenseStatusKind.active => (l.licenseStatusActive, Colors.green),
-            LicenseStatusKind.grace => (l.licenseStatusGrace, Colors.orange),
+            LicenseStatusKind.active => (l.licenseStatusActive, colors.success),
+            LicenseStatusKind.grace => (l.licenseStatusGrace, colors.warning),
             LicenseStatusKind.expired => (
               l.licenseStatusExpired,
-              Theme.of(context).colorScheme.error,
+              colors.danger,
             ),
             LicenseStatusKind.none => (
               l.licenseStatusNone,

@@ -392,14 +392,15 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
 
     final (String label, Color color, IconData icon) = switch (status.kind) {
       LicenseStatusKind.active =>
-        (l.licenseStatusActive, Colors.green, Icons.verified),
+        (l.licenseStatusActive, colors.success, Icons.verified),
       LicenseStatusKind.grace =>
-        (l.licenseStatusGrace, Colors.orange, Icons.timelapse),
+        (l.licenseStatusGrace, colors.warning, Icons.timelapse),
       LicenseStatusKind.expired =>
-        (l.licenseStatusExpired, scheme.error, Icons.error),
+        (l.licenseStatusExpired, colors.danger, Icons.error),
       LicenseStatusKind.none =>
         (l.licenseStatusNone, scheme.outline, Icons.info_outline),
     };

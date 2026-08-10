@@ -1074,6 +1074,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printerPaired => 'Paired devices';
 
   @override
+  String get printerNoDevicesFound => 'No paired Bluetooth devices found.';
+
+  @override
   String get printSuccess => 'Printed successfully';
 
   @override

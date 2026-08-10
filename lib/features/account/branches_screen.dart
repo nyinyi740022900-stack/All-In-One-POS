@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/sync_issues_screen.dart';
@@ -195,7 +196,7 @@ class _BranchCard extends StatelessWidget {
                         label,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppTheme.space1),
                       Text(
                         branch.shopId,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -215,7 +216,7 @@ class _BranchCard extends StatelessWidget {
                 l.branchesRowPending(pendingOutboxCount),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppTheme.space1),
             ],
             Text(
               l.branchesRowLastSync(lastSyncedText),
@@ -271,7 +272,7 @@ class _CurrentBranchPinnedCard extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.space2),
             Text(label, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppTheme.space1),
             Text(
               branch.shopId,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -288,7 +289,7 @@ class _CurrentBranchPinnedCard extends StatelessWidget {
               l.branchesRowPending(pendingOutboxCount),
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppTheme.space1),
             Text(
               l.branchesRowLastSync(lastSyncedText),
               style: Theme.of(context).textTheme.bodySmall,
@@ -331,11 +332,18 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: AppColors.of(context).muted,
+              ),
+              const SizedBox(height: AppTheme.space3),
               Text(
                 _branchListErrorMessage(l, error),
                 textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: AppTheme.space2),
+              const SizedBox(height: AppTheme.space4),
               OutlinedButton.icon(
                 onPressed: () => ref.invalidate(branchesProvider),
                 icon: const Icon(Icons.refresh),
@@ -347,10 +355,11 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
       ),
       data: (branches) {
         if (branches.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space5),
-              child: Text(l.branchesEmpty, textAlign: TextAlign.center),
+          return Padding(
+            padding: const EdgeInsets.all(AppTheme.space5),
+            child: EmptyStateView(
+              icon: Icons.store_mall_directory_outlined,
+              title: l.branchesEmpty,
             ),
           );
         }
@@ -522,7 +531,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     return Material(
       color: scheme.errorContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space2,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -530,7 +544,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.warning_amber_rounded, color: scheme.error),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,7 +556,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppTheme.space1),
                       Text(
                         l.branchesStuckBannerBody,
                         style: TextStyle(color: scheme.onErrorContainer),
@@ -552,7 +566,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             OverflowBar(
               alignment: MainAxisAlignment.end,
               children: [
@@ -599,7 +613,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     return Material(
       color: scheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space2,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -607,7 +626,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline, color: scheme.primary),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -619,7 +638,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppTheme.space1),
                       Text(
                         l.branchesQuarantineBannerBody,
                         style: TextStyle(color: scheme.onSurfaceVariant),
@@ -629,7 +648,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -665,7 +684,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     return Material(
       color: scheme.secondaryContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space3,
+          AppTheme.space2,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -673,7 +697,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.restore_outlined, color: scheme.onSecondaryContainer),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Text(
                     hint,
@@ -682,7 +706,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             OverflowBar(
               alignment: MainAxisAlignment.end,
               children: [

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -51,7 +52,10 @@ class SyncIssuesScreen extends ConsumerWidget {
           if (quarantined.isEmpty && pending.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: AppTheme.space4),
-              child: Center(child: Text(l.syncIssuesEmpty)),
+              child: EmptyStateView(
+                icon: Icons.cloud_done_outlined,
+                title: l.syncIssuesEmpty,
+              ),
             )
           else
             for (final row in quarantined) ...[

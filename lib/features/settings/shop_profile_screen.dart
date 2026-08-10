@@ -191,7 +191,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                   errorBuilder: (_, _, _) =>
                       const Icon(Icons.broken_image_outlined)),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppTheme.space3),
         Expanded(
           child: OutlinedButton.icon(
             onPressed: _uploadingLogo ? null : _pickLogo,

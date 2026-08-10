@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'staff_providers.dart';
@@ -117,13 +118,20 @@ class StaffMembersScreen extends ConsumerWidget {
       ),
       body: members.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => Padding(
+          padding: const EdgeInsets.all(AppTheme.space5),
+          child: EmptyStateView(
+            icon: Icons.error_outline,
+            title: l.commonUnexpectedError,
+          ),
+        ),
         data: (list) {
           if (list.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space5),
-                child: Text(l.staffMembersEmpty, textAlign: TextAlign.center),
+            return Padding(
+              padding: const EdgeInsets.all(AppTheme.space5),
+              child: EmptyStateView(
+                icon: Icons.badge_outlined,
+                title: l.staffMembersEmpty,
               ),
             );
           }

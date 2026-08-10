@@ -365,6 +365,7 @@
   "printerTestPrint": "Test print",
   "printerNone": "No printer selected",
   "printerPaired": "Paired devices",
+  "printerNoDevicesFound": "No paired Bluetooth devices found.",
   "printSuccess": "Printed successfully",
   "printFailed": "Print failed",
   "bluetoothOff": "Bluetooth is off. Turn it on and pair your printer.",

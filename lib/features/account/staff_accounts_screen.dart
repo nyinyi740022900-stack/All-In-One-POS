@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -128,13 +129,20 @@ class _StaffAccountsBody extends ConsumerWidget {
     final staffAsync = ref.watch(staffAccountsProvider);
     return staffAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => Center(child: Text(l.accountActionFailed)),
+      error: (_, _) => Padding(
+        padding: const EdgeInsets.all(AppTheme.space5),
+        child: EmptyStateView(
+          icon: Icons.error_outline,
+          title: l.accountActionFailed,
+        ),
+      ),
       data: (staff) {
         if (staff.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space5),
-              child: Text(l.staffAccountsEmpty, textAlign: TextAlign.center),
+          return Padding(
+            padding: const EdgeInsets.all(AppTheme.space5),
+            child: EmptyStateView(
+              icon: Icons.people_outline,
+              title: l.staffAccountsEmpty,
             ),
           );
         }

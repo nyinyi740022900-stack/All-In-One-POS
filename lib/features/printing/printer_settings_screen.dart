@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
 import 'printer_service.dart';
@@ -133,7 +134,10 @@ class _PrinterSettingsScreenState
           if (config != null && config.hasPrinter)
             Card(
               child: ListTile(
-                leading: const Icon(Icons.print, color: Colors.green),
+                leading: Icon(
+                  Icons.print,
+                  color: AppColors.of(context).success,
+                ),
                 title: Text(config.name ?? config.mac!),
                 subtitle: Text(config.mac!),
                 trailing: _testing
@@ -149,7 +153,15 @@ class _PrinterSettingsScreenState
               ),
             ),
 
-          if (_devices != null)
+          if (_devices != null && _devices!.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: AppTheme.space4),
+              child: EmptyStateView(
+                icon: Icons.bluetooth_disabled,
+                title: l.printerNoDevicesFound,
+              ),
+            )
+          else if (_devices != null)
             ...(_devices!.map((d) => ListTile(
                   leading: const Icon(Icons.bluetooth),
                   title: Text(d.name.isEmpty ? d.mac : d.name),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/core/theme/app_theme.dart';
 import 'package:mm_pos/data/sync/sync_providers.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/account/branch_repository.dart';
@@ -54,6 +55,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const BranchesScreen(),
@@ -127,6 +129,7 @@ void main() {
           branchConnectivityProvider.overrideWith((ref) => Stream.value(true)),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

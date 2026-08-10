@@ -2084,6 +2084,12 @@ abstract class AppLocalizations {
   /// **'Paired devices'**
   String get printerPaired;
 
+  /// No description provided for @printerNoDevicesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No paired Bluetooth devices found.'**
+  String get printerNoDevicesFound;
+
   /// No description provided for @printSuccess.
   ///
   /// In en, this message translates to:

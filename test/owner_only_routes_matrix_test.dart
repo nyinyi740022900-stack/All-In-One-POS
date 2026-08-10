@@ -33,6 +33,12 @@ void main() {
           isPremiumProvider.overrideWithValue(true),
           licenseControllerProvider
               .overrideWith((ref) => _FakeLicenseController(ref)),
+          // Avoid AsyncLoading→owner default briefly opening the real body
+          // (same race documented in license_screen_staff_lock_test.dart) —
+          // without this, LicenseScreen's real body flashes open for one
+          // frame and reaches _StatusCard, which needs AppColors registered
+          // on the theme; this test's plain MaterialApp has no theme set.
+          isEffectiveOwnerProvider.overrideWithValue(false),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
