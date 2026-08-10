@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'inventory_providers.dart';
 
@@ -42,7 +43,7 @@ class StockHistoryScreen extends ConsumerWidget {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(20),
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppTheme.space2),
             child: Center(
               child: Text(productName,
                   style: Theme.of(context).textTheme.bodySmall),
@@ -55,7 +56,10 @@ class StockHistoryScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (list) {
           if (list.isEmpty) {
-            return Center(child: Text(l.stockHistoryEmpty));
+            return EmptyStateView(
+              icon: Icons.history,
+              title: l.stockHistoryEmpty,
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
@@ -64,7 +68,9 @@ class StockHistoryScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               final m = list[i];
               final positive = m.qtyDelta > 0;
-              final color = positive ? Colors.green : Theme.of(context).colorScheme.error;
+              final color = positive
+                  ? AppColors.of(context).success
+                  : Theme.of(context).colorScheme.error;
               return ListTile(
                 leading: Icon(stockMovementTypeIcon(m.type)),
                 title: Text(stockMovementTypeLabel(l, m.type)),
@@ -76,7 +82,10 @@ class StockHistoryScreen extends ConsumerWidget {
                 ),
                 trailing: Text(
                   '${positive ? '+' : ''}${m.qtyDelta}',
-                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(color: color, fontWeight: FontWeight.bold),
                 ),
               );
             },

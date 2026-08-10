@@ -9,6 +9,7 @@ import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/repositories/demo_seed.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
@@ -167,8 +168,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           if (products.isEmpty) {
             final searching =
                 ref.read(inventorySearchProvider).trim().isNotEmpty;
-            return Center(
-              child: Text(searching ? l.inventoryNoResults : l.inventoryEmpty),
+            return EmptyStateView(
+              icon: searching
+                  ? Icons.search_off
+                  : Icons.inventory_2_outlined,
+              title: searching ? l.inventoryNoResults : l.inventoryEmpty,
             );
           }
           return Column(
@@ -181,9 +185,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       horizontal: AppTheme.space4, vertical: AppTheme.space2),
                   child: Text(
                     '${l.inventoryLowStock}: $lowCount',
-                    style: TextStyle(
-                        color:
-                            Theme.of(context).colorScheme.onErrorContainer),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onErrorContainer),
                   ),
                 ),
               Expanded(
@@ -385,13 +388,17 @@ class _StockBadge extends StatelessWidget {
     final bg = low ? scheme.errorContainer : scheme.secondaryContainer;
     final fg = low ? scheme.onErrorContainer : scheme.onSecondaryContainer;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space3, vertical: AppTheme.space1),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text('$quantity',
-          style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge
+              ?.copyWith(color: fg, fontWeight: FontWeight.w600)),
     );
   }
 }

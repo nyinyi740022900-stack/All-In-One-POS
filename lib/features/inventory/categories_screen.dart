@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'inventory_providers.dart';
@@ -25,7 +26,10 @@ class CategoriesScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (list) {
           if (list.isEmpty) {
-            return Center(child: Text(l.categoriesEmpty));
+            return EmptyStateView(
+              icon: Icons.label_outline,
+              title: l.categoriesEmpty,
+            );
           }
           return ListView.separated(
             itemCount: list.length,

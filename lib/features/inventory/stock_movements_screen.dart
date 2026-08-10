@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'inventory_providers.dart';
 import 'stock_history_screen.dart';
@@ -114,7 +115,10 @@ class StockMovementsScreen extends ConsumerWidget {
           ),
           Expanded(
             child: movements.isEmpty
-                ? Center(child: Text(l.stockHistoryEmpty))
+                ? EmptyStateView(
+                    icon: Icons.history,
+                    title: l.stockHistoryEmpty,
+                  )
                 : ListView.separated(
                     itemCount: movements.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
@@ -123,7 +127,7 @@ class StockMovementsScreen extends ConsumerWidget {
                       final m = mp.movement;
                       final positive = m.qtyDelta > 0;
                       final color = positive
-                          ? Colors.green
+                          ? AppColors.of(context).success
                           : Theme.of(context).colorScheme.error;
                       return ListTile(
                         leading: Icon(stockMovementTypeIcon(m.type)),
@@ -140,8 +144,11 @@ class StockMovementsScreen extends ConsumerWidget {
                         ),
                         trailing: Text(
                           '${positive ? '+' : ''}${m.qtyDelta}',
-                          style: TextStyle(
-                              color: color, fontWeight: FontWeight.bold),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                  color: color, fontWeight: FontWeight.bold),
                         ),
                       );
                     },
