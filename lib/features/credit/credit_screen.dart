@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
@@ -47,7 +48,7 @@ class CreditScreen extends ConsumerWidget {
               children: [
                 Text(l.creditTotalOutstanding,
                     style: Theme.of(context).textTheme.labelMedium),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppTheme.space1),
                 Text(Money(total).withSymbol(currency),
                     style: Theme.of(context)
                         .textTheme
@@ -79,13 +80,17 @@ class CreditScreen extends ConsumerWidget {
           ),
           Expanded(
             child: customers.isEmpty
-                ? Center(child: Text(l.creditEmpty))
+                ? EmptyStateView(
+                    icon: Icons.credit_score_outlined,
+                    title: l.creditEmpty,
+                  )
                 : ListView.separated(
                     itemCount: customers.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final c = customers[i];
                       final settled = c.outstanding <= 0;
+                      final colors = AppColors.of(context);
                       return ListTile(
                         leading: const CircleAvatar(child: Icon(Icons.person)),
                         title: Text(c.name),
@@ -94,12 +99,12 @@ class CreditScreen extends ConsumerWidget {
                             ? Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.check_circle,
-                                      color: Colors.green, size: 18),
-                                  const SizedBox(width: 4),
+                                  Icon(Icons.check_circle,
+                                      color: colors.success, size: 18),
+                                  const SizedBox(width: AppTheme.space1),
                                   Text(l.creditSettled,
-                                      style: const TextStyle(
-                                          color: Colors.green,
+                                      style: TextStyle(
+                                          color: colors.success,
                                           fontWeight: FontWeight.bold)),
                                 ],
                               )
@@ -107,7 +112,7 @@ class CreditScreen extends ConsumerWidget {
                                 Money(c.outstanding).withSymbol(currency),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.error,
+                                  color: colors.danger,
                                 ),
                               ),
                         onTap: () => Navigator.of(context).push(
@@ -165,6 +170,7 @@ class CreditCustomerScreen extends ConsumerWidget {
             .toList();
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(customerName)),
@@ -191,8 +197,8 @@ class CreditCustomerScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: customer.outstanding > 0
-                              ? Theme.of(context).colorScheme.error
-                              : Colors.green,
+                              ? colors.danger
+                              : colors.success,
                         ),
                   ),
                 ],
@@ -214,9 +220,7 @@ class CreditCustomerScreen extends ConsumerWidget {
                     ? Money(owed).withSymbol(currency)
                     : l.creditSettled,
                 style: TextStyle(
-                    color: owed > 0
-                        ? Theme.of(context).colorScheme.error
-                        : Colors.green),
+                    color: owed > 0 ? colors.danger : colors.success),
               ),
             );
           }),
@@ -227,7 +231,7 @@ class CreditCustomerScreen extends ConsumerWidget {
             ...repayments.map((p) => ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  leading: Icon(Icons.check_circle, color: colors.success),
                   title: Text('+${Money(p.amount).withSymbol(currency)}'),
                   subtitle: Text(
                       '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),

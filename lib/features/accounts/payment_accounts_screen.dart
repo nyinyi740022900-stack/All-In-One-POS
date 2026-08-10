@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -127,22 +128,37 @@ class PaymentAccountsScreen extends ConsumerWidget {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : accounts.isEmpty
-              ? Center(child: Text(l.paymentAccountsEmpty))
+              ? EmptyStateView(
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: l.paymentAccountsEmpty,
+                  actionLabel: l.paymentAccountAdd,
+                  onAction: () => _openEditor(context, ref),
+                )
               : ListView.separated(
                   itemCount: accounts.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     final a = accounts[i];
                     final balance = ref.watch(accountBalanceProvider(a));
+                    final colors = AppColors.of(context);
                     return ListTile(
                       leading: const CircleAvatar(
                           child: Icon(Icons.account_balance_wallet_outlined)),
                       title: Text(a.name),
-                      subtitle: Text(balance.when(
-                        data: (v) => Money(v).withSymbol(l.currencySymbol),
-                        loading: () => '…',
-                        error: (_, _) => '—',
-                      )),
+                      subtitle: Text(
+                        balance.when(
+                          data: (v) => Money(v).withSymbol(l.currencySymbol),
+                          loading: () => '…',
+                          error: (_, _) => '—',
+                        ),
+                        style: TextStyle(
+                          color: balance.when(
+                            data: (v) => v < 0 ? colors.danger : null,
+                            loading: () => null,
+                            error: (_, _) => null,
+                          ),
+                        ),
+                      ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _confirmDelete(context, ref, a),

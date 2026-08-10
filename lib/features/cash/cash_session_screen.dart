@@ -156,11 +156,12 @@ class _OpenCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.lock_open, color: Colors.green),
+                Icon(Icons.lock_open, color: AppColors.of(context).success),
                 const SizedBox(width: AppTheme.space2),
                 Text(l.cashRegisterOpen,
-                    style: const TextStyle(
-                        color: Colors.green, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: AppColors.of(context).success,
+                        fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: AppTheme.space2),
@@ -203,7 +204,7 @@ class _OpenCard extends ConsumerWidget {
 
   Widget _kv(BuildContext context, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -239,7 +240,7 @@ class _HistoryTile extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         closing == null ? Icons.lock_open : Icons.lock_outline,
-        color: closing == null ? Colors.green : null,
+        color: closing == null ? AppColors.of(context).success : null,
       ),
       title: Text(df.format(session.openedAt)),
       subtitle: Text(
@@ -269,14 +270,13 @@ class _HistoryTile extends ConsumerWidget {
                           child: CircularProgressIndicator(strokeWidth: 2));
                     }
                     final variance = closing - snap.data!;
+                    final colors = AppColors.of(context);
                     return Text(
                       _varianceText(l, variance),
-                      style: TextStyle(
-                        color: variance == 0
-                            ? Colors.green
-                            : Theme.of(context).colorScheme.error,
-                        fontSize: 12,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                variance == 0 ? colors.success : colors.danger,
+                          ),
                     );
                   },
                 ),
@@ -448,7 +448,7 @@ class _AmountDialogState extends State<_AmountDialog> {
             ),
           ),
           if (widget.warningText != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             Text(widget.warningText!,
                 style: Theme.of(context).textTheme.bodySmall),
           ],

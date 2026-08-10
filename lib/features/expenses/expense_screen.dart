@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/image_util.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
@@ -209,7 +210,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
               children: [
                 Text(l.expensesTotal,
                     style: Theme.of(context).textTheme.labelMedium),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppTheme.space1),
                 Text(Money(total).withSymbol(cur),
                     style: Theme.of(context)
                         .textTheme
@@ -220,7 +221,10 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
           ),
           Expanded(
             child: expenses.isEmpty
-                ? Center(child: Text(l.expensesEmpty))
+                ? EmptyStateView(
+                    icon: Icons.receipt_long_outlined,
+                    title: l.expensesEmpty,
+                  )
                 : ListView.separated(
                     itemCount: expenses.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
@@ -562,13 +566,13 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
               ),
             if (_receiptPhotoPath != null && !photoExists)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: AppTheme.space1),
                 child: Text(l.expenseReceiptPhotoMissing,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error)),
+                        color: AppColors.of(context).danger)),
               ),
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppTheme.space1),
               child: Text(l.expenseReceiptPhotoHint,
                   style: Theme.of(context).textTheme.bodySmall),
             ),
@@ -580,7 +584,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
           TextButton(
             onPressed: _saving ? null : _delete,
             style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error),
+                foregroundColor: AppColors.of(context).danger),
             child: Text(l.commonDelete),
           ),
         TextButton(

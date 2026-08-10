@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'expense_repository.dart';
@@ -27,11 +28,9 @@ class RecurringExpensesScreen extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
       body: templates.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space5),
-                child: Text(l.recurringExpenseEmpty, textAlign: TextAlign.center),
-              ),
+          ? EmptyStateView(
+              icon: Icons.repeat,
+              title: l.recurringExpenseEmpty,
             )
           : ListView.separated(
               itemCount: templates.length,
@@ -227,7 +226,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
           TextButton(
             onPressed: _saving ? null : _delete,
             child: Text(l.commonDelete,
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                style: TextStyle(color: AppColors.of(context).danger)),
           ),
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context),

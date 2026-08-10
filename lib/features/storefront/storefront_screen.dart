@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/providers.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -236,10 +238,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
 
   Widget _publishForm(AppLocalizations l) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.space4),
       children: [
         Text(l.storefrontDesc),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.space4),
         TextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
@@ -248,7 +250,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTheme.space3),
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
@@ -257,7 +259,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTheme.space3),
         TextField(
           controller: _address,
           maxLines: 2,
@@ -266,7 +268,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.space4),
         FilledButton.icon(
           onPressed: _busy ? null : _publish,
           icon: _busy
@@ -284,7 +286,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
 
   Widget _manageView(AppLocalizations l, StorefrontRow row) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.space4),
       children: [
         Center(
           child: Column(
@@ -306,7 +308,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                             const Icon(Icons.broken_image_outlined),
                       ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.space2),
               TextButton.icon(
                 onPressed: _uploadingLogo ? null : _pickLogo,
                 icon: _uploadingLogo
@@ -321,59 +323,59 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _name,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: l.storefrontDisplayName),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(labelText: l.storefrontPhoneShown),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _address,
           maxLines: 2,
           decoration: InputDecoration(labelText: l.storefrontAddressShown),
         ),
-        const Divider(height: 32),
+        const Divider(height: AppTheme.space6),
         Text(
           l.storefrontPaymentInfoTitle,
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppTheme.space1),
         Text(
           l.storefrontPaymentInfoHint,
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _kpayName,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: l.storefrontPayKpayName),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _kpayNumber,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(labelText: l.storefrontPayKpayNumber),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _waveName,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: l.storefrontPayWaveName),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextField(
           controller: _waveNumber,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(labelText: l.storefrontPayWaveNumber),
         ),
-        const Divider(height: 32),
+        const Divider(height: AppTheme.space6),
         Text(
           l.storefrontHoursTitle,
           style: Theme.of(context).textTheme.titleSmall,
@@ -405,13 +407,13 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           value: _requireProof,
           onChanged: (v) => setState(() => _requireProof = v),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTheme.space3),
         FilledButton.icon(
           onPressed: _busy ? null : _saveProfile,
           icon: const Icon(Icons.check),
           label: Text(l.commonSave),
         ),
-        const Divider(height: 32),
+        const Divider(height: AppTheme.space6),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(l.storefrontEnabled),
@@ -421,12 +423,12 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             ref.invalidate(myStorefrontProvider);
           },
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         Text(
           l.storefrontYourLink,
           style: Theme.of(context).textTheme.labelLarge,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppTheme.space1),
         Card(
           child: ListTile(
             title: Text(row.url),
@@ -441,7 +443,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         FilledButton.tonalIcon(
           onPressed: () async {
             final name = (_name.text.trim().isEmpty)
@@ -454,9 +456,9 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           icon: const Icon(Icons.share_outlined),
           label: Text(l.storefrontShareAction),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         Text(l.storefrontShare, style: Theme.of(context).textTheme.bodySmall),
-        const Divider(height: 32),
+        const Divider(height: AppTheme.space6),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.block),
@@ -496,7 +498,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(labelText: l.customerPhone),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
               controller: reason,
               decoration: InputDecoration(
@@ -542,7 +544,10 @@ class _BlockedCustomersScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (rows) {
           if (rows.isEmpty) {
-            return Center(child: Text(l.storefrontNoBlockedCustomers));
+            return EmptyStateView(
+              icon: Icons.block,
+              title: l.storefrontNoBlockedCustomers,
+            );
           }
           return ListView.separated(
             itemCount: rows.length,

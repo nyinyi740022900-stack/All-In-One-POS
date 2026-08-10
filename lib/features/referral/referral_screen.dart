@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
@@ -103,9 +104,9 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
         child: summaryAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => ListView(children: [
-            Padding(
-              padding: const EdgeInsets.all(AppTheme.space4),
-              child: Text(l.referralEmpty),
+            EmptyStateView(
+              icon: Icons.card_giftcard_outlined,
+              title: l.referralEmpty,
             ),
           ]),
           data: (s) => ListView(
@@ -188,7 +189,7 @@ class _WalletCard extends StatelessWidget {
               children: [
                 Icon(Icons.storefront,
                     size: 16, color: theme.colorScheme.onPrimaryContainer),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppTheme.space1),
                 Text('${l.referralActiveShops}: ${summary.activeReferrals}',
                     style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onPrimaryContainer)),
@@ -366,9 +367,17 @@ class _ReferredList extends ConsumerWidget {
         padding: EdgeInsets.all(AppTheme.space3),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (_, _) => Text(l.referralEmpty),
+      error: (_, _) => EmptyStateView(
+        icon: Icons.storefront_outlined,
+        title: l.referralEmpty,
+      ),
       data: (shops) {
-        if (shops.isEmpty) return Text(l.referralEmpty);
+        if (shops.isEmpty) {
+          return EmptyStateView(
+            icon: Icons.storefront_outlined,
+            title: l.referralEmpty,
+          );
+        }
         final df = DateFormat.yMMMd();
         return Column(
           children: [

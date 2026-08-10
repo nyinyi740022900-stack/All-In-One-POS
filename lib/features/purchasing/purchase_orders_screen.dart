@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -17,8 +19,8 @@ String poStatusLabel(AppLocalizations l, String status) => switch (status) {
     };
 
 Color? poStatusColor(BuildContext context, String status) => switch (status) {
-      'received' => Colors.green,
-      'cancelled' => Theme.of(context).colorScheme.error,
+      'received' => AppColors.of(context).success,
+      'cancelled' => AppColors.of(context).danger,
       _ => null,
     };
 
@@ -52,7 +54,14 @@ class PurchaseOrdersScreen extends ConsumerWidget {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : orders.isEmpty
-              ? Center(child: Text(l.purchaseOrdersEmpty))
+              ? EmptyStateView(
+                  icon: Icons.local_shipping_outlined,
+                  title: l.purchaseOrdersEmpty,
+                  actionLabel: l.poCreate,
+                  onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const PurchaseOrderEditorScreen(),
+                  )),
+                )
               : ListView.separated(
                   itemCount: orders.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
@@ -69,9 +78,11 @@ class PurchaseOrdersScreen extends ConsumerWidget {
                           Text(Money(po.itemsTotal).withSymbol(l.currencySymbol)),
                           Text(
                             poStatusLabel(l, po.status),
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: poStatusColor(context, po.status)),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: poStatusColor(context, po.status)),
                           ),
                         ],
                       ),

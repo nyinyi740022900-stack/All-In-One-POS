@@ -239,7 +239,7 @@ class _PurchaseOrderEditorScreenState
               }
             },
             child: Text(l.commonDelete,
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                style: TextStyle(color: AppColors.of(context).danger)),
           ),
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),

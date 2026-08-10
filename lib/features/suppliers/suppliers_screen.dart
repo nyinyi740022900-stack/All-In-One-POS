@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -41,7 +42,7 @@ class SuppliersScreen extends ConsumerWidget {
               Text(
                 l.supplierDeleteConfirmApWarning(
                     s.name, Money(outstanding).withSymbol(currency)),
-                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                style: TextStyle(color: AppColors.of(ctx).danger),
               ),
             ],
           ],
@@ -165,7 +166,12 @@ class SuppliersScreen extends ConsumerWidget {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : suppliers.isEmpty
-              ? Center(child: Text(l.suppliersEmpty))
+              ? EmptyStateView(
+                  icon: Icons.local_shipping_outlined,
+                  title: l.suppliersEmpty,
+                  actionLabel: l.supplierAdd,
+                  onAction: () => _openEditor(context, ref),
+                )
               : ListView.separated(
                   itemCount: suppliers.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),

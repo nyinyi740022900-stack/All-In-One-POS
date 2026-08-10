@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/phone_validator.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
@@ -170,7 +171,12 @@ class CustomersScreen extends ConsumerWidget {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : customers.isEmpty
-              ? Center(child: Text(l.customersEmpty))
+              ? EmptyStateView(
+                  icon: Icons.people_outline,
+                  title: l.customersEmpty,
+                  actionLabel: l.customerAdd,
+                  onAction: () => _openEditor(context, ref),
+                )
               : ListView.separated(
                   itemCount: customers.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
@@ -197,10 +203,10 @@ class CustomersScreen extends ConsumerWidget {
                         children: [
                           if (owed > 0)
                             Padding(
-                              padding: const EdgeInsets.only(right: 4),
+                              padding:
+                                  const EdgeInsets.only(right: AppTheme.space1),
                               child: Icon(Icons.account_balance_wallet,
-                                  size: 18,
-                                  color: Theme.of(context).colorScheme.error),
+                                  size: 18, color: AppColors.of(context).danger),
                             ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline),

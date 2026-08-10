@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
@@ -52,7 +53,7 @@ class AccountsPayableScreen extends ConsumerWidget {
               children: [
                 Text(l.apOutstanding,
                     style: Theme.of(context).textTheme.labelMedium),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppTheme.space1),
                 Text(Money(total).withSymbol(currency),
                     style: Theme.of(context)
                         .textTheme
@@ -86,13 +87,17 @@ class AccountsPayableScreen extends ConsumerWidget {
           ),
           Expanded(
             child: balances.isEmpty
-                ? Center(child: Text(l.apEmpty))
+                ? EmptyStateView(
+                    icon: Icons.local_shipping_outlined,
+                    title: l.apEmpty,
+                  )
                 : ListView.separated(
                     itemCount: balances.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final b = balances[i];
                       final settled = b.outstanding <= 0;
+                      final colors = AppColors.of(context);
                       return ListTile(
                         leading: const CircleAvatar(
                             child: Icon(Icons.local_shipping_outlined)),
@@ -101,12 +106,12 @@ class AccountsPayableScreen extends ConsumerWidget {
                             ? Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.check_circle,
-                                      color: Colors.green, size: 18),
-                                  const SizedBox(width: 4),
+                                  Icon(Icons.check_circle,
+                                      color: colors.success, size: 18),
+                                  const SizedBox(width: AppTheme.space1),
                                   Text(l.creditSettled,
-                                      style: const TextStyle(
-                                          color: Colors.green,
+                                      style: TextStyle(
+                                          color: colors.success,
                                           fontWeight: FontWeight.bold)),
                                 ],
                               )
@@ -114,7 +119,7 @@ class AccountsPayableScreen extends ConsumerWidget {
                                 Money(b.outstanding).withSymbol(currency),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.error,
+                                  color: colors.danger,
                                 ),
                               ),
                         onTap: () => Navigator.of(context).push(
@@ -163,6 +168,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
         .toList();
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(supplierName)),
@@ -189,8 +195,8 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: balance.outstanding > 0
-                              ? Theme.of(context).colorScheme.error
-                              : Colors.green,
+                              ? colors.danger
+                              : colors.success,
                         ),
                   ),
                 ],
@@ -214,7 +220,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
             ...payments.map((p) => ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  leading: Icon(Icons.check_circle, color: colors.success),
                   title: Text('-${Money(p.amount).withSymbol(currency)}'),
                   subtitle: Text(
                       '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
