@@ -7,6 +7,7 @@ import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_status.dart';
+import '../onboarding/operating_mode_providers.dart';
 import 'account_providers.dart';
 import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
@@ -191,6 +192,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           .applyExternal(result.license!);
     }
     ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(onlineDailyGateNeededProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() {});
   }
@@ -283,6 +285,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       await ref.read(licenseControllerProvider.notifier).deactivate();
     }
     ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(onlineDailyGateNeededProvider);
     if (!mounted) return;
     setState(() => _busy = false);
     messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteSuccess)));

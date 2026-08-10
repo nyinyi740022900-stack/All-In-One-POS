@@ -36,6 +36,17 @@ final onlineDailyGateNeededProvider = FutureProvider<bool>((ref) async {
   if (mode != SettingsRepository.operatingModeOnline) return false;
   final confirmed = await ref.watch(operatingModeConfirmedProvider.future);
   if (!confirmed) return false;
+  // Signed out on an Online-mode device has no valid identity to run the
+  // shell with (Online role = backend email role) — always re-run the gate,
+  // regardless of whether today's gate already completed.
+  var signedIn = true;
+  try {
+    signedIn = ref.watch(accountRepositoryProvider).isSignedInWithRealAccount;
+  } catch (_) {
+    // Supabase not initialized (e.g. some test harnesses) — assume signed
+    // in so this check is a no-op rather than a false "gate needed".
+  }
+  if (!signedIn) return true;
   final shopId = ref.watch(shopIdProvider);
   if (shopId.isEmpty) return true;
   final ymd = await ref

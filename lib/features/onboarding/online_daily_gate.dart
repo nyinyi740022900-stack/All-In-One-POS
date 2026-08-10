@@ -149,10 +149,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
   }
 
   Future<void> _pickBranch(Branch branch) async {
-    if (branch.isCurrent) {
-      await _enterOpeningStep();
-      return;
-    }
+    if (branch.isCurrent) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -166,7 +163,6 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
           .applyExternal(result.license!);
       ref.read(syncControllerProvider.notifier).sync();
       setState(() => _busy = false);
-      await _enterOpeningStep();
     } else {
       setState(() {
         _busy = false;
@@ -193,22 +189,6 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
     if (!mounted) return;
     setState(() => _busy = false);
     await _finish(skippedOpen: false);
-  }
-
-  /// Opening float is a Premium Cash Register concern — Free Online skips it.
-  /// An already-open session also completes the gate without opening another.
-  Future<void> _enterOpeningStep() async {
-    if (!ref.read(isPremiumProvider)) {
-      await _finish(skippedOpen: true);
-      return;
-    }
-    final existing = ref.read(currentCashSessionProvider).valueOrNull;
-    if (existing != null) {
-      await _finish(skippedOpen: false);
-      return;
-    }
-    if (!mounted) return;
-    setState(() => _step = 3);
   }
 
   @override
@@ -255,16 +235,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
   }
 
   Widget _buildStep(AppLocalizations l) {
-    switch (_step) {
-      case 0:
-        return _accountStep(l);
-      case 1:
-        return _roleStep(l);
-      case 2:
-        return _branchStep(l);
-      default:
-        return _openingStep(l);
-    }
+    return _step == 0 ? _accountStep(l) : _detailsStep(l);
   }
 
   Widget _accountStep(AppLocalizations l) {
@@ -325,63 +296,50 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
     );
   }
 
-  Widget _roleStep(AppLocalizations l) {
+  /// Role + branch (if more than one) + opening amount (if Premium and no
+  /// session is already open today) — all on one page, one final button.
+  Widget _detailsStep(AppLocalizations l) {
     final role = ref.watch(backendAccountRoleProvider) ?? 'owner';
     final email = ref.watch(accountRepositoryProvider).currentAccountEmail;
     final isStaff = role == 'staff';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(l.dailyGateRoleStep,
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 16),
-        ListTile(
-          leading: Icon(isStaff ? Icons.badge_outlined : Icons.verified_user),
-          title: Text(
-              isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner),
-          subtitle: email == null ? null : Text(email),
-        ),
-        const Spacer(),
-        FilledButton(
-          onPressed: () async {
-            final branches =
-                await ref.read(branchRepositoryProvider).listBranches();
-            if (!mounted) return;
-            if (branches.length <= 1) {
-              await _enterOpeningStep();
-            } else {
-              setState(() => _step = 2);
-            }
-          },
-          child: Text(l.dailyGateContinue),
-        ),
-      ],
-    );
-  }
+    final branchesAsync = ref.watch(branchesProvider);
+    final premium = ref.watch(isPremiumProvider);
+    final existingSession =
+        ref.watch(currentCashSessionProvider).valueOrNull;
+    final needsOpening = premium && existingSession == null;
 
-  Widget _branchStep(AppLocalizations l) {
-    final async = ref.watch(branchesProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(l.dailyGateBranchStep,
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        Expanded(
-          child: async.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => Text(l.accountActionFailed),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l.dailyGateRoleStep,
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading:
+                Icon(isStaff ? Icons.badge_outlined : Icons.verified_user),
+            title:
+                Text(isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner),
+            subtitle: email == null ? null : Text(email),
+          ),
+          branchesAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => const SizedBox.shrink(),
             data: (branches) {
-              if (branches.isEmpty) {
-                return FilledButton(
-                  onPressed: _enterOpeningStep,
-                  child: Text(l.dailyGateContinue),
-                );
-              }
-              return ListView(
+              if (branches.length <= 1) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SizedBox(height: 8),
+                  Text(l.dailyGateBranchStep,
+                      style: Theme.of(context).textTheme.titleMedium),
                   for (final b in branches)
                     ListTile(
+                      contentPadding: EdgeInsets.zero,
                       title: Text(b.label?.isNotEmpty == true
                           ? b.label!
                           : b.shopId),
@@ -395,38 +353,40 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
               );
             },
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _openingStep(AppLocalizations l) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(l.dailyGateOpeningStep,
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Text(l.dailyGateOpeningHint,
-            style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _opening,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(labelText: l.cashOpeningAmount),
-        ),
-        const Spacer(),
-        FilledButton(
-          onPressed: _busy ? null : _openRegister,
-          child: Text(l.cashOpenRegister),
-        ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: _busy ? null : () => _finish(skippedOpen: true),
-          child: Text(l.dailyGateSkipOpening),
-        ),
-      ],
+          if (needsOpening) ...[
+            const SizedBox(height: 8),
+            Text(l.dailyGateOpeningStep,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(l.dailyGateOpeningHint,
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _opening,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(labelText: l.cashOpeningAmount),
+            ),
+          ],
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy
+                ? null
+                : needsOpening
+                    ? _openRegister
+                    : () => _finish(skippedOpen: existingSession == null),
+            child:
+                Text(needsOpening ? l.cashOpenRegister : l.dailyGateContinue),
+          ),
+          if (needsOpening) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _busy ? null : () => _finish(skippedOpen: true),
+              child: Text(l.dailyGateSkipOpening),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
