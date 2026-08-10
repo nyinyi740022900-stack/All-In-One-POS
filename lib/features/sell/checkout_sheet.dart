@@ -406,9 +406,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                 const SizedBox(height: AppTheme.space2),
                 Text(
                   l.checkoutTierPricingApplied(_tierLabel(l, cart.customerTier!)),
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: 12),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary),
                 ),
               ],
             ],
@@ -439,10 +438,13 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
   Widget _row(String label, String value, {bool bold = false}) {
     final style = bold
-        ? const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+        ? Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.bold)
         : null;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(label, style: style), Text(value, style: style)],
@@ -471,7 +473,7 @@ class _CartLineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -532,7 +534,7 @@ class _DiscountField extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         children: [
           Expanded(child: Text(l.sellDiscount)),

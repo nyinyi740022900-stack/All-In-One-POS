@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Full-screen camera barcode scanner. Pops with the first decoded value.
@@ -62,14 +63,14 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             height: 160,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.white70, width: 2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTheme.radius),
             ),
           ),
           Positioned(
             bottom: 48,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space3, vertical: AppTheme.space2),
               color: Colors.black54,
               child: Text(l.scanHint,
                   style: const TextStyle(color: Colors.white)),

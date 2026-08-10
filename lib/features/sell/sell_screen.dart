@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
@@ -93,7 +94,7 @@ class SellScreen extends ConsumerWidget {
           children: [
             if (expiringSoon && !readOnly)
               Material(
-                color: const Color(0xFFFFF3CD),
+                color: AppColors.of(context).warning.withValues(alpha: 0.12),
                 child: InkWell(
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const LicenseScreen())),
@@ -101,17 +102,18 @@ class SellScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(AppTheme.space3),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning_amber,
-                            color: Color(0xFF8A6D00)),
+                        Icon(Icons.warning_amber,
+                            color: AppColors.of(context).warning),
                         const SizedBox(width: AppTheme.space2),
                         Expanded(
                           child: Text(
                             l.licenseExpiringSoon(daysLeftShown),
-                            style: const TextStyle(color: Color(0xFF8A6D00)),
+                            style:
+                                TextStyle(color: AppColors.of(context).warning),
                           ),
                         ),
-                        const Icon(Icons.chevron_right,
-                            color: Color(0xFF8A6D00)),
+                        Icon(Icons.chevron_right,
+                            color: AppColors.of(context).warning),
                       ],
                     ),
                   ),
@@ -157,10 +159,10 @@ class SellScreen extends ConsumerWidget {
                 final searching =
                     ref.read(sellSearchProvider).trim().isNotEmpty ||
                         ref.read(sellCategoryProvider) != null;
-                return Center(
-                    child: Text(searching
-                        ? l.inventoryNoResults
-                        : l.inventoryEmpty));
+                return EmptyStateView(
+                  icon: searching ? Icons.search_off : Icons.inventory_2_outlined,
+                  title: searching ? l.inventoryNoResults : l.inventoryEmpty,
+                );
               }
               return GridView.builder(
                 padding: const EdgeInsets.all(AppTheme.space3),
@@ -281,7 +283,8 @@ class _CartPanel extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+            padding: const EdgeInsets.fromLTRB(AppTheme.space4,
+                AppTheme.space3, AppTheme.space2, AppTheme.space2),
             child: Row(
               children: [
                 Expanded(
@@ -296,16 +299,13 @@ class _CartPanel extends ConsumerWidget {
           const Divider(height: 1),
           Expanded(
             child: cart.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(l.sellEmptyCart,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                    ),
+                ? EmptyStateView(
+                    icon: Icons.shopping_cart_outlined,
+                    title: l.sellEmptyCart,
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppTheme.space2),
                     itemCount: cart.lines.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, i) {
@@ -357,7 +357,7 @@ class _CartPanel extends ConsumerWidget {
           if (!cart.isEmpty) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppTheme.space3),
               child: FilledButton(
                 onPressed: onCheckout,
                 child: Row(
@@ -459,7 +459,10 @@ class _ProductCard extends StatelessWidget {
                       color: scheme.primary, fontWeight: FontWeight.bold)),
               if (outOfStock)
                 Text('0',
-                    style: TextStyle(color: scheme.error, fontSize: 11)),
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: scheme.error)),
             ],
           ),
         ),
