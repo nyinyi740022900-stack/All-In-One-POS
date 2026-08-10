@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -22,7 +23,7 @@ class OwnerEquityScreen extends ConsumerWidget {
   Widget _row(BuildContext context, String label, int amount, String currency,
       {bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -59,6 +60,7 @@ class OwnerEquityScreen extends ConsumerWidget {
     final entries = ref.watch(equityEntriesProvider).valueOrNull ?? const [];
     final summaryAsync = ref.watch(equitySummaryProvider);
     final df = DateFormat('yyyy-MM-dd');
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l.equityTitle)),
@@ -89,7 +91,10 @@ class OwnerEquityScreen extends ConsumerWidget {
           ),
           Expanded(
             child: entries.isEmpty
-                ? Center(child: Text(l.equityEmpty))
+                ? EmptyStateView(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: l.equityEmpty,
+                  )
                 : ListView.separated(
                     itemCount: entries.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
@@ -99,18 +104,15 @@ class OwnerEquityScreen extends ConsumerWidget {
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: isContribution
-                              ? Colors.green.withValues(alpha: 0.15)
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .error
-                                  .withValues(alpha: 0.15),
+                              ? colors.success.withValues(alpha: 0.15)
+                              : colors.danger.withValues(alpha: 0.15),
                           child: Icon(
                             isContribution
                                 ? Icons.add_circle_outline
                                 : Icons.remove_circle_outline,
                             color: isContribution
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.error,
+                                ? colors.success
+                                : colors.danger,
                           ),
                         ),
                         title: Text(isContribution
@@ -128,8 +130,8 @@ class OwnerEquityScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: isContribution
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.error,
+                                ? colors.success
+                                : colors.danger,
                           ),
                         ),
                         onLongPress: () => _confirmDelete(context, ref, e),

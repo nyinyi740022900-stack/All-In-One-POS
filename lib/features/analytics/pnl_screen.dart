@@ -167,7 +167,9 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       {bool bold = false, bool indent = false, Color? color}) {
     return Padding(
       padding: EdgeInsets.only(
-          left: indent ? AppTheme.space4 : 0, top: 2, bottom: 2),
+          left: indent ? AppTheme.space4 : 0,
+          top: AppTheme.space1,
+          bottom: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -234,8 +236,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         error: (_, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (p) {
           final netColor = p.netProfit < 0
-              ? Theme.of(context).colorScheme.error
-              : Colors.green;
+              ? AppColors.of(context).danger
+              : AppColors.of(context).success;
           return Column(
             children: [
               Expanded(

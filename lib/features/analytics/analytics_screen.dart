@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
@@ -109,6 +110,7 @@ class _Dashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final cur = l.currencySymbol;
+    final colors = AppColors.of(context);
 
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
@@ -147,7 +149,7 @@ class _Dashboard extends StatelessWidget {
               label: l.analyticsNetProfit,
               value: Money(summary.netProfit).withSymbol(cur),
               icon: Icons.savings_outlined,
-              color: summary.netProfit >= 0 ? Colors.green : Colors.red,
+              color: summary.netProfit >= 0 ? colors.success : colors.danger,
               onTap: () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
@@ -178,7 +180,9 @@ class _Dashboard extends StatelessWidget {
               label: l.analyticsCreditOutstanding,
               value: Money(summary.creditOutstanding).withSymbol(cur),
               icon: Icons.account_balance_wallet,
-              color: summary.creditOutstanding > 0 ? Colors.red : Colors.green,
+              color: summary.creditOutstanding > 0
+                  ? colors.danger
+                  : colors.success,
               onTap: () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const CreditScreen())),
@@ -224,7 +228,7 @@ class _KpiCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppTheme.space2),
                   Expanded(
                     child: Text(
                       label,
@@ -275,7 +279,10 @@ class _RevenueChartCard extends StatelessWidget {
             SizedBox(
               height: 160,
               child: maxY == 0
-                  ? Center(child: Text(l.analyticsNoData))
+                  ? EmptyStateView(
+                      icon: Icons.bar_chart_outlined,
+                      title: l.analyticsNoData,
+                    )
                   : BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
@@ -343,9 +350,9 @@ class _TopProductsCard extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.space2),
             if (top.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppTheme.space3),
-                child: Text(l.analyticsNoData),
+              EmptyStateView(
+                icon: Icons.leaderboard_outlined,
+                title: l.analyticsNoData,
               )
             else
               ...top.map(
