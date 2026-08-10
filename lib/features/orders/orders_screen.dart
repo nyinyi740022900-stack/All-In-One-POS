@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/layout.dart';
 import '../../core/money.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'order_detail_sheet.dart';
@@ -51,24 +53,31 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
       data: (all) {
         if (all.isEmpty) {
-          return _EmptyState(
-              icon: Icons.dashboard_customize_outlined,
-              message: l.ordersEmpty);
+          return EmptyStateView(
+            icon: Icons.dashboard_customize_outlined,
+            title: l.ordersEmpty,
+          );
         }
         return Column(
           children: [
             const _FilterHeader(),
             Expanded(
               child: filtered.isEmpty
-                  ? _EmptyState(
-                      icon: Icons.search_off, message: l.ordersNoMatch)
+                  ? EmptyStateView(
+                      icon: Icons.search_off,
+                      title: l.ordersNoMatch,
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppTheme.space3,
+                        AppTheme.space1,
+                        AppTheme.space3,
+                        AppTheme.space3,
+                      ),
                       itemCount: filtered.length,
                       itemBuilder: (context, i) => _OrderCard(
                         order: filtered[i],
-                        selected:
-                            split && filtered[i].id == _selectedOrderId,
+                        selected: split && filtered[i].id == _selectedOrderId,
                         onTap: () => openOrder(filtered[i]),
                       ),
                     ),
@@ -101,9 +110,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                       ? 58
                       : 55,
                   child: _selectedOrderId == null
-                      ? _EmptyState(
+                      ? EmptyStateView(
                           icon: Icons.receipt_long_outlined,
-                          message: l.ordersSelectHint)
+                          title: l.ordersSelectHint,
+                        )
                       : OrderDetailSheet(
                           orderId: _selectedOrderId!,
                           embedded: true,
@@ -150,7 +160,8 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final active = ref.watch(ordersFilterActiveProvider) ||
+    final active =
+        ref.watch(ordersFilterActiveProvider) ||
         ref.watch(orderStatusFilterProvider) != null;
     final channel = ref.watch(orderChannelFilterProvider);
     final payment = ref.watch(orderPaymentFilterProvider);
@@ -159,7 +170,12 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
     final cancelledCount = (grouped['cancelled'] ?? const []).length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space3,
+        AppTheme.space2,
+        AppTheme.space3,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -178,10 +194,9 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
                   : null,
               border: const OutlineInputBorder(),
             ),
-            onChanged: (v) =>
-                ref.read(orderSearchProvider.notifier).state = v,
+            onChanged: (v) => ref.read(orderSearchProvider.notifier).state = v,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -191,35 +206,36 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
                     label:
                         '${orderStatusLabel(l, s)} (${(grouped[s] ?? const []).length})',
                     selected: status == s,
-                    onSelected: () => ref
-                        .read(orderStatusFilterProvider.notifier)
-                        .state = (status == s ? null : s),
+                    onSelected: () =>
+                        ref.read(orderStatusFilterProvider.notifier).state =
+                            (status == s ? null : s),
                   ),
                 if (cancelledCount > 0)
                   _FilterChip(
-                    label: '${orderStatusLabel(l, 'cancelled')} ($cancelledCount)',
+                    label:
+                        '${orderStatusLabel(l, 'cancelled')} ($cancelledCount)',
                     selected: status == 'cancelled',
-                    onSelected: () => ref
-                        .read(orderStatusFilterProvider.notifier)
-                        .state = (status == 'cancelled' ? null : 'cancelled'),
+                    onSelected: () =>
+                        ref.read(orderStatusFilterProvider.notifier).state =
+                            (status == 'cancelled' ? null : 'cancelled'),
                   ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppTheme.space3),
                 for (final c in orderChannels)
                   _FilterChip(
                     label: orderChannelLabel(l, c),
                     selected: channel == c,
-                    onSelected: () => ref
-                        .read(orderChannelFilterProvider.notifier)
-                        .state = (channel == c ? null : c),
+                    onSelected: () =>
+                        ref.read(orderChannelFilterProvider.notifier).state =
+                            (channel == c ? null : c),
                   ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppTheme.space3),
                 for (final p in const ['unpaid', 'paid'])
                   _FilterChip(
                     label: orderPaymentLabel(l, p),
                     selected: payment == p,
-                    onSelected: () => ref
-                        .read(orderPaymentFilterProvider.notifier)
-                        .state = (payment == p ? null : p),
+                    onSelected: () =>
+                        ref.read(orderPaymentFilterProvider.notifier).state =
+                            (payment == p ? null : p),
                   ),
               ],
             ),
@@ -243,7 +259,7 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.only(right: AppTheme.space2),
       child: ChoiceChip(
         label: Text(label),
         selected: selected,
@@ -271,51 +287,67 @@ class _OrderCard extends StatelessWidget {
     final total = order.itemsTotal + order.deliveryFee;
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppTheme.space2),
       child: Card(
         margin: EdgeInsets.zero,
         color: selected ? scheme.secondaryContainer : null,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppTheme.radius),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppTheme.space3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(orderChannelIcon(order.channel),
-                        size: 14, color: Theme.of(context).colorScheme.outline),
-                    const SizedBox(width: 4),
+                    Icon(
+                      orderChannelIcon(order.channel),
+                      size: 14,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    const SizedBox(width: AppTheme.space1),
                     Expanded(
-                      child: Text(order.customerName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      child: Text(
+                        order.customerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     _StatusDot(status: order.status),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(order.orderNo,
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  order.orderNo,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppTheme.space2),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(Money(total).withSymbol(sym),
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      Money(total).withSymbol(sym),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     _PayDot(status: order.paymentStatus),
                   ],
                 ),
                 if ((order.deliveryCarrier ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppTheme.space1),
                   Row(
                     children: [
-                      Icon(Icons.local_shipping_outlined,
-                          size: 12, color: Theme.of(context).colorScheme.outline),
-                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.local_shipping_outlined,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(width: AppTheme.space1),
                       Expanded(
                         child: Text(
                           order.deliveryCarrier!,
@@ -348,13 +380,15 @@ class _StatusDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: AppTheme.space2,
+          height: AppTheme.space2,
           decoration: BoxDecoration(color: c, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
-        Text(orderStatusLabel(l, status),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: c)),
+        const SizedBox(width: AppTheme.space1),
+        Text(
+          orderStatusLabel(l, status),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: c),
+        ),
       ],
     );
   }
@@ -368,41 +402,19 @@ class _PayDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final color = switch (status) {
-      'paid' => Colors.green,
+      'paid' => AppColors.of(context).success,
       _ => Theme.of(context).colorScheme.outline,
     };
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.circle, size: 8, color: color),
-        const SizedBox(width: 4),
-        Text(orderPaymentLabel(l, status),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color)),
+        Icon(Icons.circle, size: AppTheme.space2, color: color),
+        const SizedBox(width: AppTheme.space1),
+        Text(
+          orderPaymentLabel(l, status),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+        ),
       ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon,
-              size: 56, color: Theme.of(context).colorScheme.outlineVariant),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(message, textAlign: TextAlign.center),
-          ),
-        ],
-      ),
     );
   }
 }

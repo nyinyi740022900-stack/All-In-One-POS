@@ -35,26 +35,29 @@ class InvoiceDetailScreen extends ConsumerWidget {
         content: Text(l.invoiceRefundConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l.invoiceRefund)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.invoiceRefund),
+          ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
 
     try {
-      final result =
-          await ref.read(salesRepositoryProvider).refundSale(saleId);
+      final result = await ref.read(salesRepositoryProvider).refundSale(saleId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.invoiceRefundSuccess(result.invoiceNo))));
+        SnackBar(content: Text(l.invoiceRefundSuccess(result.invoiceNo))),
+      );
     } on StateError {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.invoiceAlreadyRefunded)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.invoiceAlreadyRefunded)));
     }
   }
 
@@ -100,11 +103,13 @@ class InvoiceDetailScreen extends ConsumerWidget {
               Row(
                 children: [
                   Flexible(
-                    child: Text(s.invoiceNo,
-                        style: Theme.of(context).textTheme.titleLarge),
+                    child: Text(
+                      s.invoiceNo,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
                   if (isRefund || refundRow != null) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppTheme.space2),
                     _RefundBadge(label: l.invoiceRefunded),
                   ],
                 ],
@@ -112,17 +117,18 @@ class InvoiceDetailScreen extends ConsumerWidget {
               Text(DateFormat('yyyy-MM-dd HH:mm').format(s.finalizedAt)),
               if (isRefund)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(s.note ?? '',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  padding: const EdgeInsets.only(top: AppTheme.space1),
+                  child: Text(
+                    s.note ?? '',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
               if (s.customerName != null && s.customerName!.trim().isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: AppTheme.space2),
                   child: _row(context, l.receiptCustomer, s.customerName!),
                 ),
-              if (s.customerPhone != null &&
-                  s.customerPhone!.trim().isNotEmpty)
+              if (s.customerPhone != null && s.customerPhone!.trim().isNotEmpty)
                 _row(context, l.receiptPhone, s.customerPhone!),
               if (s.deliveryAddress != null &&
                   s.deliveryAddress!.trim().isNotEmpty)
@@ -130,17 +136,21 @@ class InvoiceDetailScreen extends ConsumerWidget {
               const Divider(height: AppTheme.space5),
               ...d.items.map((it) {
                 final itemDiscount = lineDiscountOf(
-                    unitPrice: it.priceSnapshot,
-                    qty: it.qty,
-                    lineTotal: it.lineTotal);
+                  unitPrice: it.priceSnapshot,
+                  qty: it.qty,
+                  lineTotal: it.lineTotal,
+                );
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppTheme.space1,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                            '${it.nameSnapshot}\n${it.qty} x ${Money(it.priceSnapshot).formatted}'),
+                          '${it.nameSnapshot}\n${it.qty} x ${Money(it.priceSnapshot).formatted}',
+                        ),
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -149,9 +159,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                           if (itemDiscount > 0)
                             Text(
                               '-${Money(itemDiscount).withSymbol(currency)}',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.error),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
                             ),
                         ],
                       ),
@@ -160,33 +171,61 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 );
               }),
               const Divider(height: AppTheme.space5),
-              _row(context, l.sellSubtotal,
-                  Money(s.subtotal).withSymbol(currency)),
+              _row(
+                context,
+                l.sellSubtotal,
+                Money(s.subtotal).withSymbol(currency),
+              ),
               if (s.discount > 0)
-                _row(context, l.sellDiscount,
-                    '-${Money(s.discount).withSymbol(currency)}'),
-              _row(context, l.commonTotal, Money(s.total).withSymbol(currency),
-                  bold: true),
-              _row(context, l.sellPaymentMethod,
-                  paymentLabel(l, s.paymentMethod, accounts: accounts)),
+                _row(
+                  context,
+                  l.sellDiscount,
+                  '-${Money(s.discount).withSymbol(currency)}',
+                ),
+              _row(
+                context,
+                l.commonTotal,
+                Money(s.total).withSymbol(currency),
+                bold: true,
+              ),
+              _row(
+                context,
+                l.sellPaymentMethod,
+                paymentLabel(l, s.paymentMethod, accounts: accounts),
+              ),
               if (thisOwed > 0) ...[
-                _row(context, l.creditDeposit,
-                    Money(s.paid).withSymbol(currency)),
-                _row(context, l.creditBalanceDue,
-                    Money(thisOwed).withSymbol(currency),
-                    bold: true),
+                _row(
+                  context,
+                  l.creditDeposit,
+                  Money(s.paid).withSymbol(currency),
+                ),
+                _row(
+                  context,
+                  l.creditBalanceDue,
+                  Money(thisOwed).withSymbol(currency),
+                  bold: true,
+                ),
               ],
               if (previousBalance > 0) ...[
-                _row(context, l.creditPreviousBalance,
-                    Money(previousBalance).withSymbol(currency)),
-                _row(context, l.creditTotalBalanceDue,
-                    Money(totalOutstanding).withSymbol(currency),
-                    bold: true),
+                _row(
+                  context,
+                  l.creditPreviousBalance,
+                  Money(previousBalance).withSymbol(currency),
+                ),
+                _row(
+                  context,
+                  l.creditTotalBalanceDue,
+                  Money(totalOutstanding).withSymbol(currency),
+                  bold: true,
+                ),
               ],
               if (s.deviceId != null)
-                _row(context, l.invoiceDevice,
-                    ref.watch(deviceLabelMapProvider)[s.deviceId] ??
-                        l.invoiceDeviceUnnamed),
+                _row(
+                  context,
+                  l.invoiceDevice,
+                  ref.watch(deviceLabelMapProvider)[s.deviceId] ??
+                      l.invoiceDeviceUnnamed,
+                ),
               const SizedBox(height: AppTheme.space5),
               Center(
                 child: BarcodeWidget(
@@ -199,8 +238,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.space5),
               FilledButton.icon(
-                onPressed: () => printSaleReceipt(context, ref,
-                    sale: s, items: d.items),
+                onPressed: () =>
+                    printSaleReceipt(context, ref, sale: s, items: d.items),
                 icon: const Icon(Icons.print),
                 label: Text(l.invoiceReprint),
               ),
@@ -219,14 +258,25 @@ class InvoiceDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _row(BuildContext context, String label, String value,
-      {bool bold = false}) {
-    final style = bold ? const TextStyle(fontWeight: FontWeight.bold) : null;
+  Widget _row(
+    BuildContext context,
+    String label,
+    String value, {
+    bool bold = false,
+  }) {
+    final style = bold
+        ? Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)
+        : null;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: style), Text(value, style: style)],
+        children: [
+          Text(label, style: style),
+          Text(value, style: style),
+        ],
       ),
     );
   }
@@ -240,12 +290,18 @@ class _RefundBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: AppTheme.space1,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
     );
   }
 }

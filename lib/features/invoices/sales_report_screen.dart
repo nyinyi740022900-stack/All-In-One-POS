@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -43,15 +44,22 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       lastDate: now,
       initialDateRange: start != null && end != null
           ? DateTimeRange(
-              start: start, end: end.subtract(const Duration(days: 1)))
+              start: start,
+              end: end.subtract(const Duration(days: 1)),
+            )
           : null,
     );
     if (picked == null) return;
-    ref.read(salesReportStartDateProvider.notifier).state =
-        DateTime(picked.start.year, picked.start.month, picked.start.day);
+    ref.read(salesReportStartDateProvider.notifier).state = DateTime(
+      picked.start.year,
+      picked.start.month,
+      picked.start.day,
+    );
     ref.read(salesReportEndDateProvider.notifier).state = DateTime(
-            picked.end.year, picked.end.month, picked.end.day)
-        .add(const Duration(days: 1));
+      picked.end.year,
+      picked.end.month,
+      picked.end.day,
+    ).add(const Duration(days: 1));
   }
 
   String _rangeLabel(AppLocalizations l, DateTime? start, DateTime? end) {
@@ -132,14 +140,20 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     }
   }
 
-  Future<void> _printBluetooth(SalesReport report, String rangeLabel,
-      String mac, PaperSize paper) async {
+  Future<void> _printBluetooth(
+    SalesReport report,
+    String rangeLabel,
+    String mac,
+    PaperSize paper,
+  ) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _printing = true);
     try {
       final profile = await ref.read(shopProfileProvider.future);
-      final result = await ref.read(printerServiceProvider).printReport(
+      final result = await ref
+          .read(printerServiceProvider)
+          .printReport(
             report,
             profile.name,
             paper: paper,
@@ -149,8 +163,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             totalLabel: l.salesReportTotal,
             noSalesLabel: l.salesReportEmpty,
           );
-      messenger.showSnackBar(SnackBar(
-          content: Text(result.ok ? l.printSuccess : l.printFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+      );
     } finally {
       if (mounted) setState(() => _printing = false);
     }
@@ -159,10 +174,14 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
+    if (ref.watch(licenseControllerProvider).loading ||
+        !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.salesReportTitle)),
-        body: PremiumGate(featureName: l.salesReportTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.salesReportTitle,
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final sym = l.currencySymbol;
@@ -196,8 +215,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppTheme.space4,
-                AppTheme.space3, AppTheme.space4, AppTheme.space2),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space3,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -209,10 +232,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                     Text(l.salesReportCount(report.rows.length)),
                     Text(
                       Money(report.total).withSymbol(sym),
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -221,7 +243,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           ),
           Expanded(
             child: report.rows.isEmpty
-                ? Center(child: Text(l.salesReportEmpty))
+                ? EmptyStateView(
+                    icon: Icons.summarize_outlined,
+                    title: l.salesReportEmpty,
+                  )
                 : ListView.separated(
                     itemCount: report.rows.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
@@ -234,15 +259,20 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                       ].join(' · ');
                       return ListTile(
                         title: Text(r.invoiceNo),
-                        subtitle: Text(detail,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                          detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         trailing: Text(
                           Money(r.amount).withSymbol(sym),
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: r.isRefund
-                                  ? Theme.of(context).colorScheme.error
-                                  : null),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: r.isRefund
+                                    ? Theme.of(context).colorScheme.error
+                                    : null,
+                              ),
                         ),
                       );
                     },
@@ -260,21 +290,29 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                       child: FilledButton.icon(
                         onPressed: _printing
                             ? null
-                            : () => _printBluetooth(report, rangeLabel,
-                                printerConfig.mac!, printerConfig.paper),
+                            : () => _printBluetooth(
+                                report,
+                                rangeLabel,
+                                printerConfig.mac!,
+                                printerConfig.paper,
+                              ),
                         icon: _printing
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Icon(Icons.print_outlined),
                         label: Text(l.salesReportPrintBluetooth),
                       ),
                     )
                   else
-                    Text(l.salesReportNoPrinter,
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      l.salesReportNoPrinter,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   const SizedBox(height: AppTheme.space2),
                   SizedBox(
                     width: double.infinity,
@@ -286,7 +324,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(l.salesReportExportPdf),
                     ),
@@ -295,13 +334,15 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed:
-                          _exportingCsv ? null : () => _exportCsv(report),
+                      onPressed: _exportingCsv
+                          ? null
+                          : () => _exportCsv(report),
                       icon: _exportingCsv
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.table_chart_outlined),
                       label: Text(l.salesReportExportCsv),
                     ),

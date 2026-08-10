@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
@@ -15,8 +16,9 @@ import 'sales_report_screen.dart';
 
 enum InvoiceFilter { all, credit }
 
-final invoiceFilterProvider =
-    StateProvider<InvoiceFilter>((ref) => InvoiceFilter.all);
+final invoiceFilterProvider = StateProvider<InvoiceFilter>(
+  (ref) => InvoiceFilter.all,
+);
 final invoiceSearchProvider = StateProvider<String>((ref) => '');
 
 class InvoicesScreen extends ConsumerStatefulWidget {
@@ -31,7 +33,8 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
 
   Future<void> _scan() async {
     final code = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
     if (code != null && code.isNotEmpty) {
       ref.read(invoiceSearchProvider.notifier).state = code;
     }
@@ -55,9 +58,9 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
           IconButton(
             tooltip: l.salesReportTitle,
             icon: const Icon(Icons.summarize_outlined),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const SalesReportScreen(),
-            )),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SalesReportScreen()),
+            ),
           ),
         ],
       ),
@@ -70,11 +73,15 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
               : all;
           if (query.isNotEmpty) {
             list = list
-                .where((s) =>
-                    s.invoiceNo.toLowerCase().contains(query) ||
-                    (s.customerName?.toLowerCase().contains(query) ?? false) ||
-                    (s.customerPhone?.toLowerCase().contains(query) ?? false) ||
-                    (s.note?.toLowerCase().contains(query) ?? false))
+                .where(
+                  (s) =>
+                      s.invoiceNo.toLowerCase().contains(query) ||
+                      (s.customerName?.toLowerCase().contains(query) ??
+                          false) ||
+                      (s.customerPhone?.toLowerCase().contains(query) ??
+                          false) ||
+                      (s.note?.toLowerCase().contains(query) ?? false),
+                )
                 .toList();
           }
 
@@ -89,17 +96,23 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
             if (split) {
               setState(() => _selectedSaleId = s.id);
             } else {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => InvoiceDetailScreen(saleId: s.id),
-              ));
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => InvoiceDetailScreen(saleId: s.id),
+                ),
+              );
             }
           }
 
           final listPane = Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppTheme.space3,
-                    AppTheme.space3, AppTheme.space3, 0),
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  AppTheme.space3,
+                  0,
+                ),
                 child: _InvoiceSearchField(onScan: _scan),
               ),
               Padding(
@@ -109,24 +122,27 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                     ChoiceChip(
                       label: Text(l.invoiceFilterAll),
                       selected: filter == InvoiceFilter.all,
-                      onSelected: (_) => ref
-                          .read(invoiceFilterProvider.notifier)
-                          .state = InvoiceFilter.all,
+                      onSelected: (_) =>
+                          ref.read(invoiceFilterProvider.notifier).state =
+                              InvoiceFilter.all,
                     ),
                     const SizedBox(width: AppTheme.space2),
                     ChoiceChip(
                       label: Text(l.invoiceFilterCredit),
                       selected: filter == InvoiceFilter.credit,
-                      onSelected: (_) => ref
-                          .read(invoiceFilterProvider.notifier)
-                          .state = InvoiceFilter.credit,
+                      onSelected: (_) =>
+                          ref.read(invoiceFilterProvider.notifier).state =
+                              InvoiceFilter.credit,
                     ),
                   ],
                 ),
               ),
               Expanded(
                 child: list.isEmpty
-                    ? Center(child: Text(l.invoicesEmpty))
+                    ? EmptyStateView(
+                        icon: Icons.receipt_long_outlined,
+                        title: l.invoicesEmpty,
+                      )
                     : ListView.separated(
                         itemCount: list.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
@@ -141,32 +157,33 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                             if (s.customerPhone?.trim().isNotEmpty ?? false)
                               s.customerPhone!.trim(),
                           ].join(' · ');
-                          final selected =
-                              split && s.id == _selectedSaleId;
+                          final selected = split && s.id == _selectedSaleId;
                           return ListTile(
                             selected: selected,
-                            selectedTileColor: Theme.of(context)
-                                .colorScheme
-                                .secondaryContainer,
+                            selectedTileColor: Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
                             title: Row(
                               children: [
                                 Flexible(child: Text(s.invoiceNo)),
                                 if (isRefund) ...[
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: AppTheme.space2),
                                   _RefundBadge(label: l.invoiceRefunded),
                                 ] else if (isCredit) ...[
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: AppTheme.space2),
                                   _CreditBadge(
-                                      settled: owed <= 0,
-                                      label: l.paymentCredit),
+                                    settled: owed <= 0,
+                                    label: l.paymentCredit,
+                                  ),
                                 ],
                               ],
                             ),
                             subtitle: Text(
                               customerBits.isNotEmpty
                                   ? '${DateFormat('yyyy-MM-dd HH:mm').format(s.finalizedAt)} · $customerBits'
-                                  : DateFormat('yyyy-MM-dd HH:mm')
-                                      .format(s.finalizedAt),
+                                  : DateFormat(
+                                      'yyyy-MM-dd HH:mm',
+                                    ).format(s.finalizedAt),
                             ),
                             trailing: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -174,18 +191,20 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                               children: [
                                 Text(
                                   Money(s.total).withSymbol(currency),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                                 if (isCredit && owed > 0)
                                   Text(
                                     l.invoiceOwed(
-                                        Money(owed).withSymbol(currency)),
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error),
+                                      Money(owed).withSymbol(currency),
+                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                        ),
                                   ),
                               ],
                             ),
@@ -203,18 +222,17 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                flex: widthClassOf(context) == AppWidthClass.expanded
-                    ? 42
-                    : 45,
+                flex: widthClassOf(context) == AppWidthClass.expanded ? 42 : 45,
                 child: listPane,
               ),
               const VerticalDivider(width: 1),
               Expanded(
-                flex: widthClassOf(context) == AppWidthClass.expanded
-                    ? 58
-                    : 55,
+                flex: widthClassOf(context) == AppWidthClass.expanded ? 58 : 55,
                 child: _selectedSaleId == null
-                    ? Center(child: Text(l.invoicesSelectHint))
+                    ? EmptyStateView(
+                        icon: Icons.receipt_outlined,
+                        title: l.invoicesSelectHint,
+                      )
                     : InvoiceDetailScreen(
                         saleId: _selectedSaleId!,
                         embedded: true,
@@ -235,14 +253,22 @@ class _CreditBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = settled ? Colors.green : Theme.of(context).colorScheme.error;
+    final color = settled
+        ? AppColors.of(context).success
+        : Theme.of(context).colorScheme.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: AppTheme.space1,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
     );
   }
 }
@@ -255,12 +281,18 @@ class _RefundBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: AppTheme.space1,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
     );
   }
 }
