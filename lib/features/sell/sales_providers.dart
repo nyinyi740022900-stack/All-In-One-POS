@@ -38,6 +38,15 @@ final refundOfProvider =
 final sellSearchProvider = StateProvider<String>((ref) => '');
 final sellCategoryProvider = StateProvider<String?>((ref) => null);
 
+/// Shared by [sellProductsProvider] and [sellCategoryCountsProvider] so the
+/// chip counts can never disagree with the grid they describe.
+bool _matchesSellQuery(Product prod, String q) {
+  if (q.isEmpty) return true;
+  return prod.name.toLowerCase().contains(q) ||
+      (prod.sku?.toLowerCase().contains(q) ?? false) ||
+      (prod.barcode?.toLowerCase().contains(q) ?? false);
+}
+
 /// Products shown on the Sell grid, filtered by the current search query
 /// (name / sku / barcode) and selected category.
 final sellProductsProvider = Provider<List<ProductWithStock>>((ref) {
@@ -46,11 +55,28 @@ final sellProductsProvider = Provider<List<ProductWithStock>>((ref) {
   final categoryId = ref.watch(sellCategoryProvider);
 
   return all.where((p) {
-    final prod = p.product;
-    if (categoryId != null && prod.categoryId != categoryId) return false;
-    if (q.isEmpty) return true;
-    return prod.name.toLowerCase().contains(q) ||
-        (prod.sku?.toLowerCase().contains(q) ?? false) ||
-        (prod.barcode?.toLowerCase().contains(q) ?? false);
+    if (categoryId != null && p.product.categoryId != categoryId) return false;
+    return _matchesSellQuery(p.product, q);
   }).toList();
+});
+
+/// How many products each category chip would show if tapped, keyed by
+/// category id — with `null` holding the "All" total. Counted against the
+/// *current search*, not the whole catalogue, so a chip never promises rows
+/// the grid won't show. Derived in a provider (rather than folded inside the
+/// filter bar's `build`) so it recomputes only when products or the query
+/// actually change.
+final sellCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
+  final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
+  final q = ref.watch(sellSearchProvider).trim().toLowerCase();
+  final counts = <String?, int>{};
+  var total = 0;
+  for (final p in all) {
+    if (!_matchesSellQuery(p.product, q)) continue;
+    total++;
+    final id = p.product.categoryId;
+    if (id != null) counts[id] = (counts[id] ?? 0) + 1;
+  }
+  counts[null] = total;
+  return counts;
 });

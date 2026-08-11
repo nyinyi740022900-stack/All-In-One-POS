@@ -112,6 +112,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellConfirm => 'Confirm sale';
 
   @override
+  String get sellDecreaseQty => 'Decrease quantity';
+
+  @override
+  String get sellIncreaseQty => 'Increase quantity';
+
+  @override
   String get sellClear => 'Clear';
 
   @override
@@ -628,6 +634,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryNoResults => 'No products match your search.';
+
+  @override
+  String get inventoryOutOfStock => 'Out of stock';
+
+  @override
+  String get inventoryOutOfStockBadge => 'Sold out';
 
   @override
   String get productName => 'Product name';
@@ -2536,6 +2548,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountConfirmPassword => 'Confirm password';
+
+  @override
+  String get accountShowPassword => 'Show password';
+
+  @override
+  String get accountHidePassword => 'Hide password';
 
   @override
   String get accountPasswordMismatch => 'Passwords don\'t match';

@@ -113,6 +113,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellConfirm => 'ရောင်းချမှုအတည်ပြု';
 
   @override
+  String get sellDecreaseQty => 'အရေအတွက် လျှော့ရန်';
+
+  @override
+  String get sellIncreaseQty => 'အရေအတွက် တိုးရန်';
+
+  @override
   String get sellClear => 'ရှင်းမည်';
 
   @override
@@ -627,6 +633,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get inventoryNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။';
+
+  @override
+  String get inventoryOutOfStock => 'ကုန်ပစ္စည်း ကုန်သွားပါပြီ';
+
+  @override
+  String get inventoryOutOfStockBadge => 'ကုန်ပြီ';
 
   @override
   String get productName => 'ပစ္စည်းအမည်';
@@ -2537,6 +2549,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountConfirmPassword => 'စကားဝှက် အတည်ပြုပါ';
+
+  @override
+  String get accountShowPassword => 'စကားဝှက် ပြရန်';
+
+  @override
+  String get accountHidePassword => 'စကားဝှက် ဖျောက်ရန်';
 
   @override
   String get accountPasswordMismatch => 'စကားဝှက်များ မတူညီပါ';

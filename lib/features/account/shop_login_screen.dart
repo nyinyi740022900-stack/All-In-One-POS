@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -25,15 +27,24 @@ class ShopLoginScreen extends ConsumerStatefulWidget {
 
 class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(length: 2, vsync: this);
+  late final _tabs = TabController(length: 2, vsync: this)
+    ..addListener(_onTabChanged);
   final _createEmail = TextEditingController();
   final _createPassword = TextEditingController();
   final _signInEmail = TextEditingController();
   final _signInPassword = TextEditingController();
   bool _busy = false;
 
+  // No TabBarView here (a fixed-height one clipped Myanmar labels that wrap
+  // to two lines) — the tab body is switched manually, sized to content via
+  // AnimatedSize, so this just triggers a rebuild on tab tap.
+  void _onTabChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _tabs.removeListener(_onTabChanged);
     _tabs.dispose();
     _createEmail.dispose();
     _createPassword.dispose();
@@ -235,13 +246,11 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.accountDeleteAccount),
-        content: TextField(
+        content: AuthPasswordField(
           controller: password,
-          obscureText: true,
+          labelText: l.accountDeletePasswordLabel,
+          autofillHints: const [AutofillHints.password],
           autofocus: true,
-          decoration: InputDecoration(
-            labelText: l.accountDeletePasswordLabel,
-          ),
         ),
         actions: [
           TextButton(
@@ -292,6 +301,77 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     setState(() {});
   }
 
+  Widget _registerForm(AppLocalizations l) {
+    return Column(
+      key: const ValueKey('register'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _createEmail,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(labelText: l.accountEmail),
+        ),
+        const SizedBox(height: AppTheme.space3),
+        AuthPasswordField(
+          controller: _createPassword,
+          labelText: l.accountPassword,
+          autofillHints: const [AutofillHints.newPassword],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _busy ? null : _createLogin(),
+        ),
+        PasswordStrengthMeter(controller: _createPassword),
+        const SizedBox(height: AppTheme.space3),
+        FilledButton(
+          onPressed: _busy ? null : _createLogin,
+          child: Text(l.accountCreateShopLogin),
+        ),
+      ],
+    );
+  }
+
+  Widget _signInForm(AppLocalizations l) {
+    return Column(
+      key: const ValueKey('signIn'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _signInEmail,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(labelText: l.accountEmail),
+        ),
+        const SizedBox(height: AppTheme.space3),
+        AuthPasswordField(
+          controller: _signInPassword,
+          labelText: l.accountPassword,
+          autofillHints: const [AutofillHints.password],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _busy ? null : _signIn(),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _busy
+                ? null
+                : () => showForgotPasswordDialog(
+                    context,
+                    prefillEmail: _signInEmail.text.trim(),
+                  ),
+            child: Text(l.accountForgotPassword),
+          ),
+        ),
+        const SizedBox(height: AppTheme.space2),
+        FilledButton(
+          onPressed: _busy ? null : _signIn,
+          child: Text(l.accountSignIn),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -300,131 +380,97 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
 
     return Scaffold(
       appBar: AppBar(title: Text(l.accountShopLoginTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTheme.space4),
-        children: [
-          Text(
-            l.accountShopLoginHint,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: AppTheme.space4),
-          if (signedIn)
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.verified_user,
-                      color: Colors.green,
-                    ),
-                    title: Text(account.currentAccountEmail ?? ''),
-                    subtitle: Text(account.currentAccountRole ?? ''),
-                    trailing: TextButton(
-                      onPressed: _busy ? null : _signOut,
-                      child: Text(l.accountSignOut),
-                    ),
-                  ),
-                  if (account.currentAccountRole == 'owner')
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppTheme.space4,
-                        0,
-                        AppTheme.space4,
-                        AppTheme.space3,
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _busy ? null : _deleteAccount,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(
-                              context,
-                            ).colorScheme.error,
-                          ),
-                          icon: const Icon(Icons.delete_forever_outlined),
-                          label: Text(l.accountDeleteAccount),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            )
-          else ...[
-            TabBar(
-              controller: _tabs,
-              tabs: [
-                Tab(text: l.onboardOnlineTabRegister),
-                Tab(text: l.onboardOnlineTabSignIn),
-              ],
+      body: ContentWidth(
+        maxWidth: 480,
+        child: ListView(
+          padding: const EdgeInsets.all(AppTheme.space4),
+          children: [
+            if (!signedIn) ...[
+              const Center(child: BrandHero(size: 56)),
+              const SizedBox(height: AppTheme.space4),
+            ],
+            Text(
+              l.accountShopLoginHint,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: AppTheme.space4),
-            SizedBox(
-              height: 260,
-              child: TabBarView(
-                controller: _tabs,
-                children: [
-                  SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _createEmail,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(labelText: l.accountEmail),
-                        ),
-                        const SizedBox(height: AppTheme.space2),
-                        AuthPasswordField(
-                          controller: _createPassword,
-                          labelText: l.accountPassword,
-                          autofillHints: const [AutofillHints.newPassword],
-                        ),
-                        PasswordStrengthMeter(controller: _createPassword),
-                        const SizedBox(height: AppTheme.space2),
-                        FilledButton(
-                          onPressed: _busy ? null : _createLogin,
-                          child: Text(l.accountCreateShopLogin),
-                        ),
-                      ],
+            if (signedIn)
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        Icons.verified_user,
+                        color: AppColors.of(context).success,
+                      ),
+                      title: Text(account.currentAccountEmail ?? ''),
+                      subtitle: Text(account.currentAccountRole ?? ''),
+                      trailing: TextButton(
+                        onPressed: _busy ? null : _signOut,
+                        child: Text(l.accountSignOut),
+                      ),
                     ),
-                  ),
-                  SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _signInEmail,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(labelText: l.accountEmail),
+                    if (account.currentAccountRole == 'owner')
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppTheme.space4,
+                          0,
+                          AppTheme.space4,
+                          AppTheme.space3,
                         ),
-                        const SizedBox(height: AppTheme.space2),
-                        AuthPasswordField(
-                          controller: _signInPassword,
-                          labelText: l.accountPassword,
-                          autofillHints: const [AutofillHints.password],
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: _busy
-                                ? null
-                                : () => showForgotPasswordDialog(
-                                    context,
-                                    prefillEmail: _signInEmail.text.trim(),
-                                  ),
-                            child: Text(l.accountForgotPassword),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _busy ? null : _deleteAccount,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.error,
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                            icon: const Icon(Icons.delete_forever_outlined),
+                            label: Text(l.accountDeleteAccount),
                           ),
                         ),
-                        const SizedBox(height: AppTheme.space2),
-                        OutlinedButton(
-                          onPressed: _busy ? null : _signIn,
-                          child: Text(l.accountSignIn),
-                        ),
-                      ],
-                    ),
+                      ),
+                  ],
+                ),
+              )
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TabBar(
+                        controller: _tabs,
+                        tabs: [
+                          Tab(text: l.onboardOnlineTabRegister),
+                          Tab(text: l.onboardOnlineTabSignIn),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.space4),
+                      // No `TabBarView` — a fixed-height one clipped
+                      // Myanmar labels that wrap to two lines. AnimatedSize
+                      // lets each tab's body claim exactly the height it
+                      // needs in either language.
+                      AnimatedSize(
+                        duration: AppTheme.motionMedium,
+                        curve: AppTheme.curveStandard,
+                        alignment: Alignment.topCenter,
+                        child: _tabs.index == 0
+                            ? _registerForm(l)
+                            : _signInForm(l),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }

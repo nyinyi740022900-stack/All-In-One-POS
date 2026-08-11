@@ -54,18 +54,20 @@ class PasswordStrengthMeter extends StatelessWidget {
         }
         final l = AppLocalizations.of(context);
         final scheme = Theme.of(context).colorScheme;
+        final colors = AppColors.of(context);
+        // Semantic tokens, not raw `Colors.orange/amber/green`: the raw
+        // palette wasn't contrast-checked against either surface, and its
+        // amber step sat in the gold band this brand deliberately avoids.
+        // "good" reuses the warning tone at a wider fill rather than adding a
+        // fourth hue nobody else in the app uses.
         final (filled, color, label) = switch (strength) {
           PasswordStrength.empty => (0, scheme.outlineVariant, ''),
-          PasswordStrength.weak => (1, scheme.error, l.passwordStrengthWeak),
-          PasswordStrength.fair => (
-            2,
-            Colors.orange,
-            l.passwordStrengthFair,
-          ),
-          PasswordStrength.good => (3, Colors.amber, l.passwordStrengthGood),
+          PasswordStrength.weak => (1, colors.danger, l.passwordStrengthWeak),
+          PasswordStrength.fair => (2, colors.warning, l.passwordStrengthFair),
+          PasswordStrength.good => (3, colors.warning, l.passwordStrengthGood),
           PasswordStrength.strong => (
             4,
-            Colors.green,
+            colors.success,
             l.passwordStrengthStrong,
           ),
         };

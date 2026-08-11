@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../account/auth_password_field.dart';
 import '../account/forgot_password_dialog.dart';
@@ -113,21 +116,21 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
             ),
             if (!hideNext)
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppTheme.space5),
                 child: Row(
                   children: [
                     for (var i = 0; i < pages.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: i == _page
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.outlineVariant,
-                          ),
+                      AnimatedContainer(
+                        duration: AppTheme.motionFast,
+                        margin: const EdgeInsets.only(right: AppTheme.space2),
+                        width: i == _page ? 20 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusFull),
+                          color: i == _page
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outlineVariant,
                         ),
                       ),
                     const Spacer(),
@@ -166,29 +169,29 @@ class _OnboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 24),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (extra != null) ...[const SizedBox(height: 20), extra!],
-        ],
+    return ContentWidth(
+      maxWidth: 480,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: AppTheme.space5),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (extra != null) ...[const SizedBox(height: AppTheme.space5), extra!],
+          ],
+        ),
       ),
     );
   }
@@ -221,62 +224,67 @@ class _ModeChoicePageState extends State<_ModeChoicePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final enabled = _acked && !_busy;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l.onboardModeCompareTitle,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l.onboardModeChooseHint,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 20),
-          _CompareCard(
-            icon: Icons.cloud_outlined,
-            title: l.onboardModeOnlineTitle,
-            body: l.onboardModeOnlineBullets,
-          ),
-          const SizedBox(height: 12),
-          _CompareCard(
-            icon: Icons.wifi_off,
-            title: l.onboardModeOfflineTitle,
-            body: l.onboardModeOfflineBullets,
-          ),
-          const SizedBox(height: 16),
-          CheckboxListTile(
-            value: _acked,
-            onChanged: _busy
-                ? null
-                : (v) => setState(() => _acked = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.onboardModeAckLabel),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: enabled
-                ? () => _pick(SettingsRepository.operatingModeOnline)
-                : null,
-            child: Text(l.onboardModeOnlineTitle),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: enabled
-                ? () => _pick(SettingsRepository.operatingModeOffline)
-                : null,
-            child: Text(l.onboardModeOfflineTitle),
-          ),
-        ],
+    return ContentWidth(
+      maxWidth: 480,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space5,
+          vertical: AppTheme.space4,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(child: BrandHero(size: 64)),
+            const SizedBox(height: AppTheme.space5),
+            Text(
+              l.onboardModeCompareTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.onboardModeChooseHint,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space5),
+            _CompareCard(
+              icon: Icons.cloud_outlined,
+              title: l.onboardModeOnlineTitle,
+              body: l.onboardModeOnlineBullets,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            _CompareCard(
+              icon: Icons.wifi_off,
+              title: l.onboardModeOfflineTitle,
+              body: l.onboardModeOfflineBullets,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            CheckboxListTile(
+              value: _acked,
+              onChanged: _busy
+                  ? null
+                  : (v) => setState(() => _acked = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: Text(l.onboardModeAckLabel),
+            ),
+            const SizedBox(height: AppTheme.space3),
+            FilledButton(
+              onPressed: enabled
+                  ? () => _pick(SettingsRepository.operatingModeOnline)
+                  : null,
+              child: Text(l.onboardModeOnlineTitle),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton(
+              onPressed: enabled
+                  ? () => _pick(SettingsRepository.operatingModeOffline)
+                  : null,
+              child: Text(l.onboardModeOfflineTitle),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -296,24 +304,18 @@ class _CompareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.space4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.space3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: AppTheme.space1),
                   Text(body, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
@@ -325,23 +327,45 @@ class _CompareCard extends StatelessWidget {
   }
 }
 
+/// The very first screen a new owner sees, so it gets the [BrandHero] lockup
+/// rather than delegating to [_OnboardPage]'s generic Material icon.
 class _WelcomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final locale = ref.watch(localeControllerProvider);
-    return _OnboardPage(
-      icon: Icons.storefront,
-      title: l.onboardWelcomeTitle,
-      body: l.onboardWelcomeBody,
-      extra: SegmentedButton<String>(
-        segments: [
-          ButtonSegment(value: 'my', label: Text(l.languageMyanmar)),
-          ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
-        ],
-        selected: {locale},
-        onSelectionChanged: (s) =>
-            ref.read(localeControllerProvider.notifier).set(s.first),
+    return ContentWidth(
+      maxWidth: 480,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const BrandHero(showName: false),
+            const SizedBox(height: AppTheme.space5),
+            Text(
+              l.onboardWelcomeTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              l.onboardWelcomeBody,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppTheme.space5),
+            SegmentedButton<String>(
+              segments: [
+                ButtonSegment(value: 'my', label: Text(l.languageMyanmar)),
+                ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
+              ],
+              selected: {locale},
+              onSelectionChanged: (s) =>
+                  ref.read(localeControllerProvider.notifier).set(s.first),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -390,28 +414,30 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
       _phone.text = async.value!.phone ?? '';
       _hydrated = true;
     }
-    return SingleChildScrollView(
-      child: _OnboardPage(
-        icon: Icons.store_outlined,
-        title: l.onboardShopTitle,
-        body: l.onboardShopBody,
-        extra: Column(
-          children: [
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(labelText: l.shopName),
-              onChanged: (_) => _save(),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phone,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(labelText: l.shopPhone),
-              onChanged: (_) => _save(),
-            ),
-          ],
-        ),
+    return _OnboardPage(
+      icon: Icons.store_outlined,
+      title: l.onboardShopTitle,
+      body: l.onboardShopBody,
+      extra: Column(
+        children: [
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            autofillHints: const [AutofillHints.organizationName],
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(labelText: l.shopName),
+            onChanged: (_) => _save(),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+            autofillHints: const [AutofillHints.telephoneNumber],
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(labelText: l.shopPhone),
+            onChanged: (_) => _save(),
+          ),
+        ],
       ),
     );
   }
@@ -434,7 +460,7 @@ class _LicensePage extends ConsumerWidget {
             icon: const Icon(Icons.key_outlined),
             label: Text(l.onboardActivateNow),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           TextButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
@@ -602,116 +628,132 @@ class _OnlineAuthPageState extends ConsumerState<_OnlineAuthPage>
         body: l.onboardOnlineSignedIn,
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(
-        children: [
-          TabBar(
-            controller: _tabs,
-            tabs: [
-              Tab(text: l.onboardOnlineTabRegister),
-              Tab(text: l.onboardOnlineTabSignIn),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
+    return ContentWidth(
+      maxWidth: 480,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
+        child: Column(
+          children: [
+            TabBar(
               controller: _tabs,
-              children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Column(
-                    children: [
-                      Text(l.onboardOnlineBody,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _shopName,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: InputDecoration(labelText: l.shopName),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration:
-                            InputDecoration(labelText: l.accountEmail),
-                      ),
-                      const SizedBox(height: 12),
-                      AuthPasswordField(
-                        controller: _password,
-                        labelText: l.accountPassword,
-                        autofillHints: const [AutofillHints.newPassword],
-                      ),
-                      PasswordStrengthMeter(controller: _password),
-                      const SizedBox(height: 12),
-                      AuthPasswordField(
-                        controller: _confirmPassword,
-                        labelText: l.accountConfirmPassword,
-                        autofillHints: const [AutofillHints.newPassword],
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error)),
-                      ],
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _busy ? null : _signup,
-                        child: Text(l.onboardOnlineCreateAccount),
-                      ),
-                    ],
-                  ),
-                ),
-                SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Column(
-                    children: [
-                      Text(l.onboardOnlineSignInBody,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration:
-                            InputDecoration(labelText: l.accountEmail),
-                      ),
-                      const SizedBox(height: 12),
-                      AuthPasswordField(
-                        controller: _password,
-                        labelText: l.accountPassword,
-                        autofillHints: const [AutofillHints.password],
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _busy
-                              ? null
-                              : () => showForgotPasswordDialog(context,
-                                  prefillEmail: _email.text.trim()),
-                          child: Text(l.accountForgotPassword),
-                        ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error)),
-                      ],
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _busy ? null : _signIn,
-                        child: Text(l.accountSignIn),
-                      ),
-                    ],
-                  ),
-                ),
+              tabs: [
+                Tab(text: l.onboardOnlineTabRegister),
+                Tab(text: l.onboardOnlineTabSignIn),
               ],
             ),
-          ),
-        ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppTheme.space4,
+                    ),
+                    child: Column(
+                      children: [
+                        Text(l.onboardOnlineBody,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        const SizedBox(height: AppTheme.space4),
+                        TextField(
+                          controller: _shopName,
+                          textCapitalization: TextCapitalization.words,
+                          autofillHints: const [
+                            AutofillHints.organizationName,
+                          ],
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(labelText: l.shopName),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
+                        TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          textInputAction: TextInputAction.next,
+                          decoration:
+                              InputDecoration(labelText: l.accountEmail),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
+                        AuthPasswordField(
+                          controller: _password,
+                          labelText: l.accountPassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          textInputAction: TextInputAction.next,
+                        ),
+                        PasswordStrengthMeter(controller: _password),
+                        const SizedBox(height: AppTheme.space3),
+                        AuthPasswordField(
+                          controller: _confirmPassword,
+                          labelText: l.accountConfirmPassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _busy ? null : _signup(),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: AppTheme.space3),
+                          InlineErrorBanner(message: _error!),
+                        ],
+                        const SizedBox(height: AppTheme.space4),
+                        FilledButton(
+                          onPressed: _busy ? null : _signup,
+                          child: Text(l.onboardOnlineCreateAccount),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppTheme.space4,
+                    ),
+                    child: Column(
+                      children: [
+                        Text(l.onboardOnlineSignInBody,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        const SizedBox(height: AppTheme.space4),
+                        TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          textInputAction: TextInputAction.next,
+                          decoration:
+                              InputDecoration(labelText: l.accountEmail),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
+                        AuthPasswordField(
+                          controller: _password,
+                          labelText: l.accountPassword,
+                          autofillHints: const [AutofillHints.password],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _busy ? null : _signIn(),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _busy
+                                ? null
+                                : () => showForgotPasswordDialog(context,
+                                    prefillEmail: _email.text.trim()),
+                            child: Text(l.accountForgotPassword),
+                          ),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: AppTheme.space2),
+                          InlineErrorBanner(message: _error!),
+                        ],
+                        const SizedBox(height: AppTheme.space3),
+                        FilledButton(
+                          onPressed: _busy ? null : _signIn,
+                          child: Text(l.accountSignIn),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

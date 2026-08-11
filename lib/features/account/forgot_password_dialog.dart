@@ -30,6 +30,8 @@ Future<void> showForgotPasswordDialog(
             controller: email,
             autofocus: true,
             keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            textInputAction: TextInputAction.done,
             decoration: InputDecoration(labelText: l.accountEmail),
           ),
         ],

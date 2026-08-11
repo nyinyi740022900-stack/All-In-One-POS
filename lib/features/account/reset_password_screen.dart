@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import 'auth_password_field.dart';
 import 'password_recovery_watcher.dart';
 
 /// Shown full-screen (via `app.dart`'s `builder:` override) when a
@@ -21,7 +23,6 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
-  bool _obscure = true;
   bool _busy = false;
   String? _error;
 
@@ -61,36 +62,33 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Scaffold(
+    return AuthScaffold(
       appBar: AppBar(title: Text(l.accountResetPasswordTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTheme.space4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          const BrandHero(size: 64),
+          const SizedBox(height: AppTheme.space5),
+          AuthPasswordField(
             controller: _password,
-            obscureText: _obscure,
+            labelText: l.accountResetPasswordNewLabel,
+            autofillHints: const [AutofillHints.newPassword],
+            textInputAction: TextInputAction.next,
             autofocus: true,
-            decoration: InputDecoration(
-              labelText: l.accountResetPasswordNewLabel,
-              suffixIcon: IconButton(
-                icon: Icon(_obscure
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
           ),
-          const SizedBox(height: AppTheme.space2),
-          TextField(
+          const SizedBox(height: AppTheme.space3),
+          AuthPasswordField(
             controller: _confirmPassword,
-            obscureText: _obscure,
-            decoration: InputDecoration(labelText: l.accountConfirmPassword),
+            labelText: l.accountConfirmPassword,
+            autofillHints: const [AutofillHints.newPassword],
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _save(),
           ),
           if (_error != null) ...[
-            const SizedBox(height: AppTheme.space2),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            const SizedBox(height: AppTheme.space3),
+            InlineErrorBanner(message: _error!),
           ],
-          const SizedBox(height: AppTheme.space4),
+          const SizedBox(height: AppTheme.space5),
           FilledButton(
             onPressed: _busy ? null : _save,
             child: Text(l.accountResetPasswordSave),

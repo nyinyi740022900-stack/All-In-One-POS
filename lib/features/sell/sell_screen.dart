@@ -85,7 +85,13 @@ class SellScreen extends ConsumerWidget {
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);
     final split = isMediumPlus(context);
-    final tileExtent = split ? 210.0 : 180.0;
+    // Sized so a phone keeps **three** columns now that each tile carries a
+    // photo band: `SliverGridDelegateWithMaxCrossAxisExtent` counts the
+    // cross-axis spacing into the extent, so the old 180 gave only two
+    // 183pt-wide tiles on a 402pt phone — a shop-window layout, not a
+    // counter one. 132 lands on three ~118pt tiles (still 2 on a small
+    // 320pt phone), 168 on four in the tablet split view.
+    final tileExtent = split ? 168.0 : 132.0;
     final trailFlex = widthClassOf(context) == AppWidthClass.expanded ? 38 : 42;
     final leadFlex = 100 - trailFlex;
 
@@ -94,7 +100,10 @@ class SellScreen extends ConsumerWidget {
           children: [
             if (expiringSoon && !readOnly)
               Material(
-                color: AppColors.of(context).warning.withValues(alpha: 0.12),
+                // Soft-fill tier (see AppColors) rather than an ad-hoc alpha
+                // wash — 12% of a bright orange over a near-black dark
+                // surface came out muddy and unreadable.
+                color: AppColors.of(context).warningSurface,
                 child: InkWell(
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const LicenseScreen())),
@@ -108,8 +117,8 @@ class SellScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             l.licenseExpiringSoon(daysLeftShown),
-                            style:
-                                TextStyle(color: AppColors.of(context).warning),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.of(context).warning),
                           ),
                         ),
                         Icon(Icons.chevron_right,
@@ -121,22 +130,20 @@ class SellScreen extends ConsumerWidget {
               ),
             if (readOnly)
               Material(
-                color: Theme.of(context).colorScheme.errorContainer,
+                // Same soft-fill banner language as the expiry warning above,
+                // so the two never look like different kinds of component.
+                color: AppColors.of(context).dangerSurface,
                 child: Padding(
                   padding: const EdgeInsets.all(AppTheme.space3),
                   child: Row(
                     children: [
-                      Icon(Icons.lock,
-                          color:
-                              Theme.of(context).colorScheme.onErrorContainer),
+                      Icon(Icons.lock, color: AppColors.of(context).danger),
                       const SizedBox(width: AppTheme.space2),
                       Expanded(
                         child: Text(
                           l.licenseReadOnly,
-                          style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.of(context).danger),
                         ),
                       ),
                     ],
@@ -170,7 +177,14 @@ class SellScreen extends ConsumerWidget {
                   maxCrossAxisExtent: tileExtent,
                   mainAxisSpacing: AppTheme.space3,
                   crossAxisSpacing: AppTheme.space3,
-                  childAspectRatio: 1.1,
+                  // Portrait, not the old near-square 1.1. The tile now
+                  // carries a photo band *plus* two lines of name plus a
+                  // price; at 1.1 the image band collapsed to a sliver.
+                  // 0.68 leaves the photo band a near-square top half at
+                  // default text scale (the two-line name + price block below
+                  // it is a fixed height) while keeping three columns on a
+                  // phone — density the counter can't afford to lose.
+                  childAspectRatio: 0.68,
                 ),
                 itemCount: filtered.length,
                 itemBuilder: (context, i) {
@@ -178,6 +192,7 @@ class SellScreen extends ConsumerWidget {
                   return _ProductCard(
                     name: p.product.name,
                     price: Money(p.product.salePrice).withSymbol(currency),
+                    imageUrl: p.product.imageUrl,
                     outOfStock: trackStock && p.quantity <= 0,
                     onTap: () {
                       final ok = ref.read(cartProvider.notifier).addProduct(
@@ -312,9 +327,20 @@ class _CartPanel extends ConsumerWidget {
                       final line = cart.lines[i];
                       return ListTile(
                         dense: true,
+                        // Same mark as the grid tile the seller just tapped —
+                        // the fastest way to confirm the right thing landed
+                        // in the cart without re-reading the name.
+                        leading: ProductThumb(
+                          name: line.product.name,
+                          imageUrl: line.product.imageUrl,
+                          size: 44,
+                          radius: AppTheme.radiusSm,
+                        ),
                         title: Text(line.product.name, maxLines: 2),
-                        subtitle: Text(
+                        subtitle: MoneyText(
                           cart.lineTotalFor(line).withSymbol(currency),
+                          style: Theme.of(context).textTheme.bodySmall,
+                          textAlign: TextAlign.left,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -326,7 +352,17 @@ class _CartPanel extends ConsumerWidget {
                                   .read(cartProvider.notifier)
                                   .decrement(line.product.id),
                             ),
-                            Text('${line.qty}'),
+                            SizedBox(
+                              width: 24,
+                              child: Text(
+                                '${line.qty}',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontFeatures: AppTheme.tabularFigures,
+                                    ),
+                              ),
+                            ),
                             IconButton(
                               visualDensity: VisualDensity.compact,
                               icon: const Icon(Icons.add),
@@ -364,8 +400,13 @@ class _CartPanel extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('${l.sellCheckout}  (${cart.itemCount})'),
-                    Text(cart.total.withSymbol(currency),
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      cart.total.withSymbol(currency),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: AppTheme.tabularFigures,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -377,6 +418,16 @@ class _CartPanel extends ConsumerWidget {
   }
 }
 
+/// Horizontal category scroller above the grid.
+///
+/// Audited against the reference set this pass: a bare `ChoiceChip` row told
+/// the seller nothing about what was behind each chip, and lived in a fixed
+/// `SizedBox(height: 48)` — a single-line box around translated labels, which
+/// is exactly the thing that clips a two-line Myanmar category name at 1.3x
+/// text scale. Now each chip carries its item count (so an empty category is
+/// visible before it's tapped), the chips are padded to a thumb-sized target,
+/// and the bar sizes to its content with a hairline separating it from the
+/// grid.
 class _SellCategoryFilterBar extends ConsumerWidget {
   const _SellCategoryFilterBar();
 
@@ -387,84 +438,260 @@ class _SellCategoryFilterBar extends ConsumerWidget {
         ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
     if (categories.isEmpty) return const SizedBox.shrink();
     final selected = ref.watch(sellCategoryProvider);
+    final counts = ref.watch(sellCategoryCountsProvider);
 
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppTheme.space2),
-            child: ChoiceChip(
-              label: Text(l.categoryAll),
-              selected: selected == null,
-              onSelected: (_) =>
-                  ref.read(sellCategoryProvider.notifier).state = null,
-            ),
-          ),
-          for (final c in categories)
-            Padding(
-              padding: const EdgeInsets.only(right: AppTheme.space2),
-              child: ChoiceChip(
-                label: Text(c.name),
-                selected: selected == c.id,
-                onSelected: (_) =>
-                    ref.read(sellCategoryProvider.notifier).state = c.id,
+    Widget chip({
+      required String label,
+      required int count,
+      required bool isSelected,
+      required VoidCallback onTap,
+    }) => Padding(
+      padding: const EdgeInsets.only(right: AppTheme.space2),
+      child: ChoiceChip(
+        showCheckmark: false,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space3,
+          vertical: AppTheme.space2,
+        ),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            const SizedBox(width: AppTheme.space2),
+            Text(
+              '$count',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontFeatures: AppTheme.tabularFigures,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.onPrimaryContainer
+                    : AppColors.of(context).muted,
               ),
             ),
-        ],
+          ],
+        ),
+        selected: isSelected,
+        onSelected: (_) => onTap(),
       ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      // Stretch, not the default centre: a horizontal scroller shrink-wraps
+      // its content, so a short chip row would sit centred in the bar instead
+      // of starting on the same left rule as the grid below it.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space3,
+            AppTheme.space2,
+            AppTheme.space3,
+            AppTheme.space2,
+          ),
+          child: Row(
+            children: [
+              chip(
+                label: l.categoryAll,
+                count: counts[null] ?? 0,
+                isSelected: selected == null,
+                onTap: () =>
+                    ref.read(sellCategoryProvider.notifier).state = null,
+              ),
+              for (final c in categories)
+                chip(
+                  label: c.name,
+                  count: counts[c.id] ?? 0,
+                  isSelected: selected == c.id,
+                  onTap: () =>
+                      ref.read(sellCategoryProvider.notifier).state = c.id,
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+      ],
     );
   }
 }
 
-class _ProductCard extends StatelessWidget {
+/// A tappable product tile: **photo band on top, name and price below** — the
+/// structure every POS reference converges on, and the thing this grid was
+/// missing entirely (it used to render a name and a price with a blank
+/// flexible gap above them, shaped exactly like a photo slot nobody had
+/// filled).
+///
+/// Products with no photo — most of them, in a shop that typed its catalogue
+/// in by hand — get a tonal initials plate from [ProductThumb] rather than an
+/// empty box, so the grid reads as deliberate whether or not anyone ever
+/// pointed a camera at the stock.
+///
+/// Bumps down briefly on tap — the one micro-interaction that matters most on
+/// this screen: instant tactile confirmation that "add to cart" registered,
+/// since the cart panel/bar can be out of the shopkeeper's eye line while
+/// they're keying in the next item.
+class _ProductCard extends StatefulWidget {
   const _ProductCard({
     required this.name,
     required this.price,
+    required this.imageUrl,
     required this.outOfStock,
     required this.onTap,
   });
 
   final String name;
   final String price;
+  final String? imageUrl;
   final bool outOfStock;
   final VoidCallback onTap;
 
   @override
+  State<_ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<_ProductCard> {
+  bool _pressed = false;
+
+  void _bump() {
+    // Out of stock still calls through: the cart caps the line at 0 and the
+    // caller answers with the "only N left" snackbar. Swallowing the tap here
+    // (as this used to) left a card that ripples under your finger and then
+    // does nothing at all — the worst possible answer at a counter.
+    if (!widget.outOfStock) {
+      setState(() => _pressed = true);
+      Future.delayed(AppTheme.motionFast, () {
+        if (mounted) setState(() => _pressed = false);
+      });
+    }
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.space3),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AppColors.of(context);
+    return AnimatedScale(
+      scale: _pressed ? 0.96 : 1.0,
+      duration: AppTheme.motionFast,
+      curve: AppTheme.curveEmphasized,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: _bump,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // The photo band takes whatever the text block leaves, rather
+              // than a fixed fraction — so a long Myanmar name or a 1.3x text
+              // scale shrinks the image instead of overflowing the tile.
               Expanded(
-                child: Text(
-                  name,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ProductThumb(
+                      name: widget.name,
+                      imageUrl: widget.imageUrl,
+                      radius: 0,
+                      dimmed: widget.outOfStock,
+                    ),
+                    if (widget.outOfStock)
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.space2),
+                          child: const _OutOfStockBadge(),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppTheme.space2),
-              Text(price,
-                  style: TextStyle(
-                      color: scheme.primary, fontWeight: FontWeight.bold)),
-              if (outOfStock)
-                Text('0',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(color: scheme.error)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space3,
+                  AppTheme.space2,
+                  AppTheme.space3,
+                  AppTheme.space3,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Always exactly two lines tall, even for a one-word
+                    // name. Without this the text block's height varied per
+                    // tile, so the photo band above it did too and the names
+                    // in a row started at three different heights — the same
+                    // class of raggedness as a price column that doesn't line
+                    // up. Reserved from the *scaled* font size, so it grows
+                    // with the user's text-size setting instead of clipping
+                    // a longer Myanmar name at 1.3x.
+                    SizedBox(
+                      height: MediaQuery.textScalerOf(context).scale(
+                            theme.textTheme.titleSmall?.fontSize ?? 14,
+                          ) *
+                          (theme.textTheme.titleSmall?.height ?? 1.4) *
+                          2,
+                      child: Text(
+                        widget.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: widget.outOfStock
+                              ? colors.muted
+                              : scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space1),
+                    MoneyText(
+                      widget.price,
+                      style: theme.textTheme.titleSmall,
+                      color: widget.outOfStock ? colors.muted : scheme.primary,
+                      emphasis: true,
+                      textAlign: TextAlign.left,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Soft-fill danger pill laid over the product photo. Moved off the old
+/// one-line red caption under the price: on a tile that now carries an image,
+/// a caption competes with the price for the eye, while a badge on the image
+/// is read before either.
+class _OutOfStockBadge extends StatelessWidget {
+  const _OutOfStockBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.dangerSurface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXs),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space2,
+          vertical: 2,
+        ),
+        child: Text(
+          // The compact wording, not `inventoryOutOfStock`: the full Myanmar
+          // string ("ကုန်ပစ္စည်း ကုန်သွားပါပြီ") is ~2x the English one and wrapped
+          // to two lines, turning a corner badge into a panel covering half
+          // the photo. Truncating it wasn't an option either — this is the
+          // label that explains why the tile won't sell.
+          AppLocalizations.of(context).inventoryOutOfStockBadge,
+          maxLines: 2,
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: colors.danger),
         ),
       ),
     );
@@ -485,17 +712,30 @@ class _CartBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space3),
-        child: FilledButton(
-          onPressed: onCheckout,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('${l.sellCheckout}  ($itemCount)'),
-              Text(total, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
+    final brightness = Theme.of(context).brightness;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: AppTheme.dockedBarShadow(brightness),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space3),
+          child: FilledButton(
+            onPressed: onCheckout,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${l.sellCheckout}  ($itemCount)'),
+                Text(
+                  total,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: AppTheme.tabularFigures,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

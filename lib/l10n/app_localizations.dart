@@ -296,6 +296,18 @@ abstract class AppLocalizations {
   /// **'Confirm sale'**
   String get sellConfirm;
 
+  /// No description provided for @sellDecreaseQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease quantity'**
+  String get sellDecreaseQty;
+
+  /// No description provided for @sellIncreaseQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase quantity'**
+  String get sellIncreaseQty;
+
   /// No description provided for @sellClear.
   ///
   /// In en, this message translates to:
@@ -1255,6 +1267,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No products match your search.'**
   String get inventoryNoResults;
+
+  /// No description provided for @inventoryOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get inventoryOutOfStock;
+
+  /// Compact form of inventoryOutOfStock for the badge laid over a product tile's photo — must stay short enough to sit on one line inside a phone-width grid tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold out'**
+  String get inventoryOutOfStockBadge;
 
   /// No description provided for @productName.
   ///
@@ -4705,6 +4729,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm password'**
   String get accountConfirmPassword;
+
+  /// No description provided for @accountShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get accountShowPassword;
+
+  /// No description provided for @accountHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get accountHidePassword;
 
   /// No description provided for @accountPasswordMismatch.
   ///

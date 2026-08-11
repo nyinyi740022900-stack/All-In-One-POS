@@ -72,8 +72,8 @@ class MmPosApp extends ConsumerWidget {
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(localeCode: localeCode),
+      darkTheme: AppTheme.dark(localeCode: localeCode),
       locale: Locale(localeCode),
       // Force the chosen locale — never fall back to the device/system locale.
       localeResolutionCallback: (_, _) => Locale(localeCode),

@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -32,3 +34,21 @@ String paymentLabel(AppLocalizations l, String method,
       return account?.name ?? l.paymentCash;
   }
 }
+
+/// The glyph that goes with [paymentLabel] for the same method code. Payment
+/// choice is one of the highest-frequency taps in a sale and it happens while
+/// a customer is waiting, so the options carry an icon as well as a label:
+/// the shape is recognizable at a glance and in bad light, which matters more
+/// than reading a word — especially for Myanmar labels, which are longer and
+/// harder to scan than their English equivalents.
+///
+/// Grouped by *kind of money movement*, not by brand, so a custom account the
+/// shop adds later still lands somewhere sensible instead of needing its own
+/// icon: cash in hand, a phone wallet, pay-later, cash-on-delivery, other.
+IconData paymentIcon(String method) => switch (method) {
+  'cash' => Icons.payments_outlined,
+  'kbzpay' || 'wavepay' || 'ayapay' || 'cbpay' => Icons.smartphone_outlined,
+  'credit' => Icons.schedule_outlined,
+  'cod' => Icons.local_shipping_outlined,
+  _ => Icons.account_balance_wallet_outlined,
+};
