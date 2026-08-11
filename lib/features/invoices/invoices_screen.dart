@@ -22,7 +22,13 @@ final invoiceFilterProvider = StateProvider<InvoiceFilter>(
 final invoiceSearchProvider = StateProvider<String>((ref) => '');
 
 class InvoicesScreen extends ConsumerStatefulWidget {
-  const InvoicesScreen({super.key});
+  const InvoicesScreen({super.key, this.embedded = false});
+
+  /// When true, builds only the list / master–detail body — no [Scaffold] or
+  /// [AppBar] (the sales-report action moves to the host) — so
+  /// `OrdersInvoicesHubScreen` can host it under its own chrome as a sub-tab.
+  /// Default (false) keeps the original standalone full-screen behaviour.
+  final bool embedded;
 
   @override
   ConsumerState<InvoicesScreen> createState() => _InvoicesScreenState();
@@ -51,20 +57,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     final split = isMediumPlus(context);
     int owedOf(Sale s) => owedBySale[s.id] ?? (s.total - s.paid);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l.navInvoices),
-        actions: [
-          IconButton(
-            tooltip: l.salesReportTitle,
-            icon: const Icon(Icons.summarize_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SalesReportScreen()),
-            ),
-          ),
-        ],
-      ),
-      body: sales.when(
+    final body = sales.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
         data: (all) {
@@ -241,7 +234,24 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
             ],
           );
         },
+      );
+
+    if (widget.embedded) return body;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l.navInvoices),
+        actions: [
+          IconButton(
+            tooltip: l.salesReportTitle,
+            icon: const Icon(Icons.summarize_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SalesReportScreen()),
+            ),
+          ),
+        ],
       ),
+      body: body,
     );
   }
 }

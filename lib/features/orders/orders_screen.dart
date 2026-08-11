@@ -17,7 +17,13 @@ import 'orders_repository.dart';
 /// channel / payment / status. On medium+ widths, master–detail shows the
 /// selected order inline; phones still open [OrderDetailSheet].
 class OrdersScreen extends ConsumerStatefulWidget {
-  const OrdersScreen({super.key});
+  const OrdersScreen({super.key, this.embedded = false});
+
+  /// When true, builds only the list / master–detail body — no [Scaffold],
+  /// [AppBar] or FAB — so `OrdersInvoicesHubScreen` can host it under its own
+  /// chrome as a sub-tab. Default (false) keeps the original standalone
+  /// full-screen behaviour.
+  final bool embedded;
 
   @override
   ConsumerState<OrdersScreen> createState() => _OrdersScreenState();
@@ -87,6 +93,33 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       },
     );
 
+    final body = split
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: widthClassOf(context) == AppWidthClass.expanded ? 42 : 45,
+                child: listBody,
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: widthClassOf(context) == AppWidthClass.expanded ? 58 : 55,
+                child: _selectedOrderId == null
+                    ? EmptyStateView(
+                        icon: Icons.receipt_long_outlined,
+                        title: l.ordersSelectHint,
+                      )
+                    : OrderDetailSheet(
+                        orderId: _selectedOrderId!,
+                        embedded: true,
+                      ),
+              ),
+            ],
+          )
+        : listBody;
+
+    if (widget.embedded) return body;
+
     return Scaffold(
       appBar: AppBar(title: Text(l.ordersTitle)),
       floatingActionButton: FloatingActionButton.extended(
@@ -94,34 +127,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         icon: const Icon(Icons.add),
         label: Text(l.orderNew),
       ),
-      body: split
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: widthClassOf(context) == AppWidthClass.expanded
-                      ? 42
-                      : 45,
-                  child: listBody,
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  flex: widthClassOf(context) == AppWidthClass.expanded
-                      ? 58
-                      : 55,
-                  child: _selectedOrderId == null
-                      ? EmptyStateView(
-                          icon: Icons.receipt_long_outlined,
-                          title: l.ordersSelectHint,
-                        )
-                      : OrderDetailSheet(
-                          orderId: _selectedOrderId!,
-                          embedded: true,
-                        ),
-                ),
-              ],
-            )
-          : listBody,
+      body: body,
     );
   }
 }

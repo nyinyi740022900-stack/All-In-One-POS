@@ -15,7 +15,7 @@ import 'package:mm_pos/features/staff/staff_providers.dart';
 import 'package:mm_pos/features/sell/sell_screen.dart';
 
 void main() {
-  testWidgets('app boots to the sell screen with 6-tab bottom navigation',
+  testWidgets('app boots to the sell screen with 5-tab bottom navigation',
       (tester) async {
     // Phone-sized viewport so the responsive shell uses the bottom
     // NavigationBar (the default 800x600 surface shows the tablet rail).
@@ -47,8 +47,11 @@ void main() {
           trackStockProvider.overrideWith((ref) => Stream.value(true)),
           categoriesStreamProvider
               .overrideWith((ref) => Stream.value(<Category>[])),
-          // The Orders tab is built eagerly by the IndexedStack shell; give it
-          // a single-value stream so its Drift watch doesn't stay pending.
+          // The Orders/Invoices hub is built eagerly by the IndexedStack
+          // shell, and its TabBarView builds the Orders sub-tab (index 0)
+          // right away; give it a single-value stream so its Drift watch
+          // doesn't stay pending. The Invoices sub-tab is NOT built until
+          // selected, so `salesStreamProvider` needs no override here.
           ordersStreamProvider.overrideWith((ref) => Stream.value(<Order>[])),
           // The router's role-based tab filter watches this — single-value
           // so it doesn't leave a pending Drift stream under the fake clock.
@@ -65,6 +68,7 @@ void main() {
 
     expect(find.byType(SellScreen), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(6));
+    // 5, not 6: Orders + Invoices share one destination (sub-tabs in the hub).
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
   });
 }

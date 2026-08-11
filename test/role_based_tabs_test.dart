@@ -54,24 +54,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('owner sees all 6 tabs including Analytics', (tester) async {
+  // Counts are 5/4 (not 6/5) since Orders + Invoices merged into a single
+  // destination with sub-tabs inside the hub screen.
+  testWidgets('owner sees all 5 tabs including Analytics', (tester) async {
     await pump(tester, 'owner');
-    expect(find.byType(NavigationDestination), findsNWidgets(6));
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byIcon(Icons.bar_chart), findsOneWidget);
   });
 
   testWidgets(
-      'staff sees 5 tabs — Analytics hidden, Settings still visible (PIN escape hatch)',
+      'staff sees 4 tabs — Analytics hidden, Settings still visible (PIN escape hatch)',
       (tester) async {
     await pump(tester, 'staff');
-    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(find.byIcon(Icons.bar_chart), findsNothing);
     expect(find.byIcon(Icons.settings), findsOneWidget);
   });
 
   testWidgets(
-      'backend staff role overrides local owner mode (still 5 tabs)', (tester) async {
+      'backend staff role overrides local owner mode (still 4 tabs)', (tester) async {
     await pump(tester, 'owner', backendRole: 'staff');
-    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(find.byIcon(Icons.bar_chart), findsNothing);
   });
 }

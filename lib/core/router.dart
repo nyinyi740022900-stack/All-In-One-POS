@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/analytics/analytics_screen.dart';
 import '../features/inventory/inventory_screen.dart';
-import '../features/invoices/invoices_screen.dart';
-import '../features/orders/orders_screen.dart';
+import '../features/orders/orders_invoices_hub_screen.dart';
 import '../features/sell/sell_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/staff/staff_providers.dart';
@@ -31,16 +30,24 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(path: '/orders', builder: (_, _) => const OrdersScreen()),
-          ],
-        ),
+        // Orders + Invoices share ONE bottom-nav destination (sub-tabs inside
+        // the hub), so they share ONE branch — but keep both URLs, so existing
+        // deep links (analytics_screen.dart's `context.go('/invoices')`) still
+        // land on the Invoices sub-tab specifically. The first route is the
+        // branch's initial location.
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: '/orders',
+              builder: (_, _) => const OrdersInvoicesHubScreen(
+                initialTab: OrdersInvoicesHubScreen.ordersTab,
+              ),
+            ),
+            GoRoute(
               path: '/invoices',
-              builder: (_, _) => const InvoicesScreen(),
+              builder: (_, _) => const OrdersInvoicesHubScreen(
+                initialTab: OrdersInvoicesHubScreen.invoicesTab,
+              ),
             ),
           ],
         ),
@@ -79,15 +86,17 @@ class _ShellScaffold extends ConsumerWidget {
 
     // branchIndex matches the StatefulShellBranch order above (fixed —
     // filtering only changes which of these show, never their identity).
+    // Five destinations: Orders is the umbrella for the Orders/Invoices hub
+    // (sub-tabs inside), which is why `receipt_long` — "a record of a
+    // transaction" — covers both halves better than either list's own icon.
     // Analytics is business-sensitive and owner-only; Settings always stays
     // visible even in Staff mode — it's the only way back to Owner (PIN).
     final allDestinations = <_Dest>[
       _Dest(0, Icons.point_of_sale, l.navSell),
       _Dest(1, Icons.inventory_2, l.navInventory),
-      _Dest(2, Icons.dashboard_customize_outlined, l.navOrders),
-      _Dest(3, Icons.receipt_long, l.navInvoices),
-      _Dest(4, Icons.bar_chart, l.navAnalytics, ownerOnly: true),
-      _Dest(5, Icons.settings, l.navSettings),
+      _Dest(2, Icons.receipt_long, l.navOrders),
+      _Dest(3, Icons.bar_chart, l.navAnalytics, ownerOnly: true),
+      _Dest(4, Icons.settings, l.navSettings),
     ];
     final destinations = allDestinations
         .where((d) => !d.ownerOnly || isOwner)
