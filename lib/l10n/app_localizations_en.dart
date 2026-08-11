@@ -63,6 +63,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCopy => 'Copy';
 
   @override
+  String get commonMore => 'More actions';
+
+  @override
   String get copied => 'Copied';
 
   @override
@@ -763,6 +766,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stockHistoryEmpty => 'No stock movements yet.';
+
+  @override
+  String get stockHistoryEmptyFiltered =>
+      'Some movements may be hidden by the type or date filters.';
+
+  @override
+  String get stockHistoryShowAll => 'Show all movements';
 
   @override
   String get stockHistoryPickDateRange => 'Pick date range';

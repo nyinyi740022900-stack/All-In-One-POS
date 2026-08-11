@@ -10,7 +10,19 @@ import 'stock_history_screen.dart';
 
 /// Every movement type a shop's stock ledger can have, in the order shown
 /// as filter chips.
-const _allMovementTypes = ['purchase', 'adjustment', 'sale', 'return'];
+///
+/// `opening` is in this list even though it isn't in the *default* selection:
+/// it was missing entirely before, so an opening-balance row could only be
+/// seen by de-selecting every chip (the provider treats an empty set as "no
+/// type filter"). That made the chip row a lie — ticking all of them still
+/// hid rows — and left the new "show all" action unable to do what it says.
+const _allMovementTypes = [
+  'purchase',
+  'adjustment',
+  'sale',
+  'return',
+  'opening',
+];
 
 /// Shop-wide stock movement history (Inventory tab's "Stock history" icon) —
 /// unlike [StockHistoryScreen], which is scoped to one product from its
@@ -55,6 +67,11 @@ class StockMovementsScreen extends ConsumerWidget {
     final end = ref.watch(movementEndDateProvider);
     final types = ref.watch(movementTypeFilterProvider);
     final df = DateFormat('yyyy-MM-dd HH:mm');
+    // Any filter that could be hiding rows — a date range, or a type set
+    // that isn't "everything" (which includes the default).
+    final narrowed = start != null ||
+        end != null ||
+        !_allMovementTypes.every(types.contains);
 
     return Scaffold(
       appBar: AppBar(
@@ -115,9 +132,26 @@ class StockMovementsScreen extends ConsumerWidget {
           ),
           Expanded(
             child: movements.isEmpty
+                // The filters *start* narrowed (restocks + adjustments only,
+                // by design), and a date range narrows them further — so a
+                // bare "no stock history" was routinely telling the owner
+                // their ledger was empty when it was only hidden, with no
+                // way out of the dead end. Say which, and offer the way out.
                 ? EmptyStateView(
-                    icon: Icons.history,
+                    icon: narrowed ? Icons.filter_alt_off_outlined : Icons.history,
                     title: l.stockHistoryEmpty,
+                    message: narrowed ? l.stockHistoryEmptyFiltered : null,
+                    actionLabel: narrowed ? l.stockHistoryShowAll : null,
+                    onAction: narrowed
+                        ? () {
+                            ref.read(movementTypeFilterProvider.notifier).state =
+                                _allMovementTypes.toSet();
+                            ref.read(movementStartDateProvider.notifier).state =
+                                null;
+                            ref.read(movementEndDateProvider.notifier).state =
+                                null;
+                          }
+                        : null,
                   )
                 : ListView.separated(
                     itemCount: movements.length,
@@ -139,16 +173,19 @@ class StockMovementsScreen extends ConsumerWidget {
                             df.format(m.createdAt),
                             if ((m.note ?? '').isNotEmpty) m.note!,
                           ].join(' · '),
-                          maxLines: 1,
+                          // Two lines, not one: the Myanmar movement labels
+                          // ("ပြင်ဆင်ခြင်း", "အဝယ်စာရင်း") plus a 16-character
+                          // timestamp already fill a phone line by
+                          // themselves, so a single line ellipsized away the
+                          // shopkeeper's own note every time they wrote one.
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: Text(
+                        trailing: MoneyText(
                           '${positive ? '+' : ''}${m.qtyDelta}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(
-                                  color: color, fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleSmall,
+                          color: color,
+                          emphasis: true,
                         ),
                       );
                     },

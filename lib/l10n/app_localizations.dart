@@ -206,6 +206,12 @@ abstract class AppLocalizations {
   /// **'Copy'**
   String get commonCopy;
 
+  /// No description provided for @commonMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get commonMore;
+
   /// No description provided for @copied.
   ///
   /// In en, this message translates to:
@@ -1507,6 +1513,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No stock movements yet.'**
   String get stockHistoryEmpty;
+
+  /// No description provided for @stockHistoryEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'Some movements may be hidden by the type or date filters.'**
+  String get stockHistoryEmptyFiltered;
+
+  /// No description provided for @stockHistoryShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all movements'**
+  String get stockHistoryShowAll;
 
   /// No description provided for @stockHistoryPickDateRange.
   ///

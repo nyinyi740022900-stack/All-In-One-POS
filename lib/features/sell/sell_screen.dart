@@ -418,16 +418,9 @@ class _CartPanel extends ConsumerWidget {
   }
 }
 
-/// Horizontal category scroller above the grid.
-///
-/// Audited against the reference set this pass: a bare `ChoiceChip` row told
-/// the seller nothing about what was behind each chip, and lived in a fixed
-/// `SizedBox(height: 48)` — a single-line box around translated labels, which
-/// is exactly the thing that clips a two-line Myanmar category name at 1.3x
-/// text scale. Now each chip carries its item count (so an empty category is
-/// visible before it's tapped), the chips are padded to a thumb-sized target,
-/// and the bar sizes to its content with a hairline separating it from the
-/// grid.
+/// Sell's binding of the shared [CategoryFilterBar] — the chip row itself now
+/// lives in `core/widgets/app_widgets.dart` so Inventory shows the identical
+/// control over the identical catalogue instead of its own bare-chip variant.
 class _SellCategoryFilterBar extends ConsumerWidget {
   const _SellCategoryFilterBar();
 
@@ -437,79 +430,23 @@ class _SellCategoryFilterBar extends ConsumerWidget {
     final categories =
         ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
     if (categories.isEmpty) return const SizedBox.shrink();
-    final selected = ref.watch(sellCategoryProvider);
     final counts = ref.watch(sellCategoryCountsProvider);
 
-    Widget chip({
-      required String label,
-      required int count,
-      required bool isSelected,
-      required VoidCallback onTap,
-    }) => Padding(
-      padding: const EdgeInsets.only(right: AppTheme.space2),
-      child: ChoiceChip(
-        showCheckmark: false,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.space3,
-          vertical: AppTheme.space2,
+    return CategoryFilterBar(
+      selectedId: ref.watch(sellCategoryProvider),
+      onSelected: (id) => ref.read(sellCategoryProvider.notifier).state = id,
+      options: [
+        CategoryFilterOption(
+          id: null,
+          label: l.categoryAll,
+          count: counts[null] ?? 0,
         ),
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label),
-            const SizedBox(width: AppTheme.space2),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontFeatures: AppTheme.tabularFigures,
-                color: isSelected
-                    ? Theme.of(context).colorScheme.onPrimaryContainer
-                    : AppColors.of(context).muted,
-              ),
-            ),
-          ],
-        ),
-        selected: isSelected,
-        onSelected: (_) => onTap(),
-      ),
-    );
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      // Stretch, not the default centre: a horizontal scroller shrink-wraps
-      // its content, so a short chip row would sit centred in the bar instead
-      // of starting on the same left rule as the grid below it.
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.space3,
-            AppTheme.space2,
-            AppTheme.space3,
-            AppTheme.space2,
+        for (final c in categories)
+          CategoryFilterOption(
+            id: c.id,
+            label: c.name,
+            count: counts[c.id] ?? 0,
           ),
-          child: Row(
-            children: [
-              chip(
-                label: l.categoryAll,
-                count: counts[null] ?? 0,
-                isSelected: selected == null,
-                onTap: () =>
-                    ref.read(sellCategoryProvider.notifier).state = null,
-              ),
-              for (final c in categories)
-                chip(
-                  label: c.name,
-                  count: counts[c.id] ?? 0,
-                  isSelected: selected == c.id,
-                  onTap: () =>
-                      ref.read(sellCategoryProvider.notifier).state = c.id,
-                ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
       ],
     );
   }

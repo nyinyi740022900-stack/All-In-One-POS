@@ -229,6 +229,109 @@ class _InitialsPlate extends StatelessWidget {
   }
 }
 
+/// One chip in a [CategoryFilterBar] — a category (or the "All" pseudo-
+/// category, which carries a null [id]) plus how many products sit behind it.
+class CategoryFilterOption {
+  const CategoryFilterOption({
+    required this.id,
+    required this.label,
+    required this.count,
+  });
+
+  /// Category id; `null` is the "All" chip.
+  final String? id;
+  final String label;
+  final int count;
+}
+
+/// Horizontal category scroller shown above a product grid/list.
+///
+/// Shared between Sell and Inventory on purpose: they filter the *same*
+/// catalogue by the *same* categories, so a chip row that looks and behaves
+/// differently between the two tabs is just two half-finished versions of one
+/// control. (Sell's was rebuilt in the A2 pass and Inventory's was left as the
+/// original bare `ChoiceChip` row in a fixed `SizedBox(height: 48)` — this is
+/// that fix, applied once instead of copied.)
+///
+/// Two decisions worth keeping:
+/// * **Each chip carries its count**, so an empty category is visible before
+///   it is tapped rather than after.
+/// * **The bar sizes to its content.** A fixed single-line height is what
+///   clips a two-line Myanmar category name at 1.3x text scale.
+class CategoryFilterBar extends StatelessWidget {
+  const CategoryFilterBar({
+    super.key,
+    required this.options,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final List<CategoryFilterOption> options;
+  final String? selectedId;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (options.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    final muted = AppColors.of(context).muted;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      // Stretch, not the default centre: a horizontal scroller shrink-wraps
+      // its content, so a short chip row would sit centred in the bar instead
+      // of starting on the same left rule as the grid below it.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space3,
+            AppTheme.space2,
+            AppTheme.space3,
+            AppTheme.space2,
+          ),
+          child: Row(
+            children: [
+              for (final option in options)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppTheme.space2),
+                  child: ChoiceChip(
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.space3,
+                      vertical: AppTheme.space2,
+                    ),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(option.label),
+                        const SizedBox(width: AppTheme.space2),
+                        Text(
+                          '${option.count}',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontFeatures: AppTheme.tabularFigures,
+                                color: option.id == selectedId
+                                    ? scheme.onPrimaryContainer
+                                    : muted,
+                              ),
+                        ),
+                      ],
+                    ),
+                    selected: option.id == selectedId,
+                    onSelected: (_) => onSelected(option.id),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+      ],
+    );
+  }
+}
+
 /// A section title with optional trailing action (e.g. "See all"). Keeps
 /// list-of-sections screens (Settings, Analytics, Sell cart summary) from
 /// each hand-rolling their own heading style.

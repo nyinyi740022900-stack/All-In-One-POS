@@ -64,6 +64,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonCopy => 'ကူးယူ';
 
   @override
+  String get commonMore => 'အခြား လုပ်ဆောင်ချက်များ';
+
+  @override
   String get copied => 'ကူးယူပြီး';
 
   @override
@@ -763,6 +766,13 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get stockHistoryEmpty => 'လက်ကျန်ပြောင်းလဲမှု မရှိသေးပါ။';
+
+  @override
+  String get stockHistoryEmptyFiltered =>
+      'အမျိုးအစား သို့မဟုတ် ရက်စွဲ စစ်ထုတ်မှုကြောင့် အချို့ မှတ်တမ်းများ ပျောက်နေနိုင်ပါသည်။';
+
+  @override
+  String get stockHistoryShowAll => 'မှတ်တမ်းအားလုံး ပြရန်';
 
   @override
   String get stockHistoryPickDateRange => 'ရက်စွဲအပိုင်းအခြား ရွေးရန်';

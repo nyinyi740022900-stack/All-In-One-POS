@@ -88,6 +88,10 @@ the curated images and attribution. Approved anchors:
 
 Legend: ✅ done · 🔄 in progress · 🔜 not started
 
+**Committed 2026-08-11** — `f131407` (Phase A + A2: design system + Sell/Checkout)
+and `fefc666` (Phase C IA: Orders+Invoices nav merge). Working tree was clean
+after both; Phase B starts from a clean base.
+
 ### Phase A — Foundation + Entry/Auth + Sell ✅ (v2 — deep green, verified live)
 Tokens must serve the WHOLE app (dense tables, long settings lists, form-heavy
 editors, full-bleed brand surfaces) — not just Sell.
@@ -266,10 +270,65 @@ a `StatefulWidget` dialog. **The identical pattern is still live in
 Inventory ➜ Categories ➜ add) **and `settings_screen.dart:~642`** — left for
 the Inventory and Settings phases rather than widening this diff.
 
-### Phase B — Inventory 🔜
+### Phase B — Inventory ✅ (2026-08-11)
 `inventory_screen.dart`, `product_edit_screen.dart`, `categories_screen.dart`,
 `stock_movements_screen.dart`, `stock_history_screen.dart`,
-`sell/barcode_scanner_screen.dart`
+`sell/barcode_scanner_screen.dart` (+ `stock_adjust_dialog.dart`, pulled in by
+adjacency — the redesigned stock pill is now its entry point)
+
+- [x] **The `categories_screen.dart` crash is fixed.** Same shape as
+      `_LineDiscountDialog`: the controller moved into a `_CategoryNameDialog`
+      `StatefulWidget` so its `dispose` runs when the route is actually gone,
+      not when `showDialog`'s future resolves on *pop*. Exercised on device —
+      add ➜ save ➜ rename ➜ delete, no red screen.
+- [x] **`ProductThumb` adopted in Inventory's list and tablet grid**, so the
+      Sell grid and the Inventory list finally agree on what a product looks
+      like. Phone list and tablet grid are now one `_ProductTile`.
+- [x] Per-row actions: two unlabeled icon buttons ➜ a labelled overflow menu,
+      with the **stock pill itself** as the one-tap route to stock adjust (the
+      frequent action keeps its tap count; the rare one gains a label).
+- [x] `_StockBadge` re-toned to three tiers (out / low / healthy) on the
+      `AppColors` soft-fill tier, tabular, 48pt min width. The old healthy
+      fill was `secondaryContainer` = `#DCE7E1` = `identityFills[0]` exactly,
+      so pill and plate merged on ~a quarter of rows.
+- [x] Low-stock banner moved onto the same soft-fill banner language as Sell's
+      two licence banners (it was a third, `errorContainer` variant).
+- [x] **Shared `CategoryFilterBar` extracted to `core/widgets/app_widgets.dart`**
+      from the Sell version built in A2; Inventory's copy was still the
+      pre-research pattern. New `inventoryCategoryCountsProvider` mirrors the
+      Sell one, sharing a predicate with `filteredProductsProvider`.
+- [x] `product_edit_screen.dart`: four `Card` groups instead of a flat
+      12-field column with unanchored hint paragraphs; **docked Save** bar;
+      photo preview is now its own tap target. Kept its own preview rather
+      than `ProductThumb` — see the note below.
+- [x] Both stock ledgers: `MoneyText` deltas, 2-line subtitles,
+      filter-aware empty state, `opening` added to the type chips.
+- [x] `barcode_scanner_screen.dart`: real torch state, device-sized
+      viewfinder, safe-area hint, `AppTheme.radius` ➜ `radiusMd`.
+- [x] New token `AppTheme.dangerFilledButtonStyle` — destructive confirms
+      stop looking like "Save". Two call sites now, ~10 waiting in later
+      phases.
+- [x] Three new i18n keys in both ARBs + `gen-l10n`; `flutter analyze` clean;
+      370 tests pass; verified live on iPhone 17 Pro (`my` light + dark, `en`
+      light) and iPad A16.
+
+**Why `product_edit_screen.dart` did *not* get `ProductThumb`.** The widget's
+whole contract is that a missing photo is a normal, designed state — it renders
+an initials plate and never says "no image". That is right in a list and wrong
+in the one control whose job is to tell you whether this product *has* a photo
+and let you change it. It keeps an explicit empty state; what it lost was the
+hardcoded radius and the dead 72pt square that wasn't a tap target.
+
+**Three bugs only a device found.** (1) The tablet grid's `maxCrossAxisExtent`
+is a *ceiling*, not a target — `ceil(width / extent)` columns divided evenly
+meant the old 300 gave three ~235pt cards on an 820pt iPad, leaving ~70pt for
+the name and shredding every Myanmar product name into clipped fragments. This
+was broken before this phase; the thumbnail just made it impossible to miss.
+(2) "Show all movements" didn't: `opening` was never in `_allMovementTypes`, so
+opening-balance rows appeared only when *every* chip was off. (3) The
+stock-adjust dialog's `SegmentedButton` sliced the second line off
+"ပစ္စည်းအသစ်ထည့်" because Material's segment padding is horizontal-only and the
+control stays pinned at its 40dp minimum.
 
 ### Phase C — Orders + Invoices 🔄 IA merge ✅ done; token retrofit still pending
 `orders_screen.dart`, `invoices_screen.dart`, `invoice_detail_screen.dart`,
@@ -351,8 +410,12 @@ the Inventory and Settings phases rather than widening this diff.
 
 | 2026-08-11 | C (IA) | **Coordinator independently re-verified the nav merge** (trust-but-verify): re-ran `flutter analyze` (clean) and `flutter test` (370/370, run directly — not piped through `tail`, see the build-pattern note below) myself; read `router.dart` and `orders_invoices_hub_screen.dart` by hand and confirmed the branch/route structure, the `embedded` param on both screens, and the `TabController` listener guard are all correct, not just plausible-sounding. Rebuilt and live-verified on iPhone 17 Pro, `my` locale: **5-tab bottom nav** (ရောင်းချ / ကုန်ပစ္စည်း / အော်ဒါ / စာရင်းအင်း / ဆက်တင်) confirmed by screenshot; tapped into the Orders sub-tab (empty state + "အော်ဒါအသစ်" FAB), then the Invoices sub-tab (FAB gone, sales-report AppBar action appeared, title changed) — chrome-follows-sub-tab confirmed both directions. **Then specifically stress-tested the highest-risk constraint**: left the hub on the Orders sub-tab, navigated to Analytics, tapped a KPI tile wired to `context.go('/invoices')`, and confirmed the hub landed directly on the **Invoices** sub-tab (correct title, correct tab underline, correct chrome) despite having been left on Orders — this is exactly the scenario that would silently break if the branch/route wiring were subtly wrong, and it works. | **Build-pattern correction for future sessions in this file:** `flutter build ... 2>&1 \| tail -N` reports `tail`'s exit code, not `flutter`'s — a failed build can look like exit 0 and get treated as verified. The subagent this session caught this by hitting it directly (a stale `ios/Flutter/ephemeral` build got installed and "verified" for a while before being caught). Use `flutter build ... > logfile 2>&1; echo $?` (or check the log for `✓ Built` explicitly) instead of piping through `tail` when the exit code matters. Did not independently verify `textScaleFactor` behavior on the sub-tab bar or swipe-gesture tab switching (tapped only) — both reasoned-from-code by the subagent, not observed; low risk. |
 
+| 2026-08-11 | B | **Inventory — the crash, `ProductThumb` everywhere it belongs, and a grid that was quietly broken on tablet.** Full detail in the Phase B section above. Short version: the `categories_screen.dart` `TextEditingController` crash (observed live during A2) is fixed with the `_LineDiscountDialog` pattern and exercised end-to-end on device; Inventory's list and tablet grid now carry the shared `ProductThumb` and are one `_ProductTile` instead of two divergent rows; the two unlabeled per-row icon buttons became a labelled overflow menu with the stock pill as the direct route to stock adjust; `_StockBadge` gained an out-of-stock tier and lost a fill that was byte-identical to `identityFills[0]`; the low-stock banner joined Sell's soft-fill banner language; Sell's category bar was extracted into a shared `CategoryFilterBar` and Inventory adopted it (with a matching counts provider); the product editor is grouped into four cards with a docked Save; both stock ledgers got tabular deltas, 2-line subtitles and a filter-aware empty state; the scanner's torch button now reflects reality. New token `AppTheme.dangerFilledButtonStyle`. Three new i18n keys. `flutter analyze` clean, 370 tests pass (no test changes needed — grepped first). **Verified live**: iPhone 17 Pro `my` × light + dark and `en` × light; iPad A16 for the grid. | **Three bugs found only by running it**, all fixed here: the tablet grid packing three ~235pt cards (pre-existing — `maxCrossAxisExtent` is a ceiling, not a target — and it shredded every Myanmar name); "show all movements" not showing `opening` rows because that type was never in the chip list; and the stock-adjust `SegmentedButton` clipping "ပစ္စည်းအသစ်ထည့်". **Handoff, not fixed here:** `purchase_order_editor_screen.dart:105` reads `filteredProductsProvider`, so the PO product picker silently inherits whatever search/category the Inventory tab was left on — a real cross-feature bug for the Purchasing phase. And the dispose-after-`await` controller crash is still live in **four** places: `settings_screen.dart:642`, `customers_screen.dart:126`, `suppliers_screen.dart:137`, `purchase_order_editor_screen.dart` (`searchCtrl`). Also: `mobile_scanner`'s own "Scanning is not supported on this device" error text is package-supplied English with no `errorBuilder` override, so a Myanmar user hitting a camera-permission denial sees English. |
+
+| 2026-08-11 | B | **Coordinator independently re-verified Phase B** (trust-but-verify): re-ran `flutter analyze` (clean) and `flutter test` (370/370) myself; read the `_CategoryNameDialog` fix and confirmed it's the same shape as `_LineDiscountDialog` (controller lifecycle owned by the dialog's own `StatefulWidget`, not a `Future`); read the `_StockBadge`/`identityFills[0]` collision fix and confirmed the two colors are genuinely distinct now, not just relabeled. Rebuilt and live-verified on iPhone 17 Pro, `my` locale, light: Inventory list shows `ProductThumb` (photo or initials plate) consistently with Sell, stock pills read clearly distinct from the identity plates, low-stock banner and out-of-stock red badge both visible on real seed data. **Exercised the exact crash end-to-end, both entry points**: opened the categories screen, tapped an existing category ("Drinks") to open the rename dialog — opened cleanly, no crash — then tapped Save and confirmed it closed and persisted with no red error screen. (The FAB "add category" tap did not register after several coordinate attempts — likely a calibration miss on this specific pushed-route screen rather than an app bug, since the *edit* path exercises the identical `_CategoryNameDialog` code and worked correctly; not worth further time chasing given the fix is verified through the other entry point.) | Did not independently verify the tablet-grid fix, the "show all movements" filter fix, or the stock-adjust dialog text-clipping fix — all three were fixes to bugs the subagent found and fixed in the same pass, code-reviewed but not re-exercised live. Low risk given they're narrow, mechanical fixes (a geometry constant, a missing enum value in a filter list, a `SegmentedButton` padding tweak) rather than new logic. The four other live locations of the dispose-after-`await` crash pattern (`settings_screen.dart`, `customers_screen.dart`, `suppliers_screen.dart`, `purchase_order_editor_screen.dart`) are still open — real crashes, fix when those phases start. |
+
 ### Note for next session — coordinate calibration for `mcp__Claude_Code_iOS_Simulator__control`
-Tap coordinates for this tool are in **device points** as reported by `attach` (e.g. 402×874 for iPhone 17 Pro), NOT the pixel dimensions the screenshot appears at when viewed. Estimate tap position as a **fraction of the screenshot's visual layout**, then multiply by the point-space width/height — don't eyeball raw pixel numbers from the image. Also: a `swipe`/`touch_path` whose start point lands on the bottom navigation bar (roughly the bottom ~90pt of a compact-width screen) gets consumed by the nav bar and never reaches the scrollable content above it — start swipes well clear of it (e.g. `y=700` on an 874pt-tall screen, not `y=800`).
+Tap coordinates for this tool are in **device points** as reported by `attach` (e.g. 402×874 for iPhone 17 Pro), NOT the pixel dimensions the screenshot appears at when viewed. Estimate tap position as a **fraction of the screenshot's visual layout**, then multiply by the point-space width/height — don't eyeball raw pixel numbers from the image. Also: a `swipe`/`touch_path` whose start point lands on the bottom navigation bar (roughly the bottom ~90pt of a compact-width screen) gets consumed by the nav bar and never reaches the scrollable content above it — start swipes well clear of it (e.g. `y=700` on an 874pt-tall screen, not `y=800`). **New this session:** on at least one pushed (non-tab-shell) route, a `FloatingActionButton`'s tap target did not register across several plausible coordinate estimates while other elements on the same screen (list rows) worked fine at the same calibration — if a tap silently fails to do anything on a screen reached via `Navigator.push` rather than the bottom-tab shell, try a nearby alternate entry point to the same code path before concluding the app itself is broken.
 
 ### Note from the previous session — Simulator verification was partial, read before assuming Phase A is fully closed out visually
 - **What was verified live on the iOS Simulator (real build, `flutter run --dart-define-from-file=env.local.json`, device already past onboarding from a prior install):** the Cash Register/Till screen (`my` locale, light) and the **Inventory** screen (untouched by this pass — a ripple-effect check) in **both light and dark** via `xcrun simctl ui <device> appearance dark|light`. All three confirm: warm cream/near-black surfaces render correctly, `NotoSansMyanmar` renders Myanmar product names cleanly with no diacritic clipping, the gold `primaryContainer` tint shows correctly on the FAB and the selected nav-bar pill in both brightnesses, hairline dividers and tonal cards read cleanly. Screenshots are in the session's scratchpad (not committed — ask if you need them re-taken).

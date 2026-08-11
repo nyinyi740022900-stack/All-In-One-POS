@@ -36,17 +36,34 @@ class StockHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final movements = ref.watch(stockMovementsProvider(productId));
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall;
+    // The bar used to be a hard `Size.fromHeight(20)` around a `bodySmall`
+    // line that is 13 x 1.55 = 20.2pt *before* its 8pt padding and before any
+    // text scaling — so the product name was clipped on every visit, and a
+    // long Myanmar name at 1.3x lost most of itself. Sized from the real
+    // (scaled) line box instead, with room for the second line those names
+    // routinely need.
+    final lineHeight = MediaQuery.textScalerOf(context)
+            .scale(subtitleStyle?.fontSize ?? 13) *
+        (subtitleStyle?.height ?? 1.55);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l.stockHistoryTitle),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20),
+          preferredSize: Size.fromHeight(lineHeight * 2 + AppTheme.space2),
           child: Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.space2),
-            child: Center(
-              child: Text(productName,
-                  style: Theme.of(context).textTheme.bodySmall),
+            padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4, 0, AppTheme.space4, AppTheme.space2),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Text(
+                productName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: subtitleStyle,
+              ),
             ),
           ),
         ),
@@ -80,12 +97,14 @@ class StockHistoryScreen extends ConsumerWidget {
                     if ((m.note ?? '').isNotEmpty) m.note!,
                   ].join(' · '),
                 ),
-                trailing: Text(
+                // Tabular: this is a right-aligned column of signed
+                // quantities, and proportional digits make "+1 / +12 / -100"
+                // wobble against each other line to line.
+                trailing: MoneyText(
                   '${positive ? '+' : ''}${m.qtyDelta}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(color: color, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleSmall,
+                  color: color,
+                  emphasis: true,
                 ),
               );
             },

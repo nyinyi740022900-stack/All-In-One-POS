@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
@@ -132,6 +133,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             child: Text(l.commonCancel),
           ),
           FilledButton(
+            style: AppTheme.dangerFilledButtonStyle(ctx),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l.commonDelete),
           ),
@@ -190,65 +192,87 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppTheme.space4),
-          children: [
-            if (Env.hasBackend) ...[
-              _photoField(l),
-              _gap,
+        child: ContentWidth(
+          child: ListView(
+            padding: const EdgeInsets.all(AppTheme.space4),
+            children: [
+              // Grouped, not one flat 12-field column. The old form ran
+              // photo ➜ name ➜ prices ➜ an unanchored hint paragraph ➜ more
+              // prices ➜ another hint ➜ stock ➜ barcode ➜ SKU ➜ category as
+              // a single undifferentiated stack, so the two explanatory
+              // paragraphs floated between fields with nothing to attach
+              // themselves to. Each card is now one idea, and each hint sits
+              // inside the card it explains.
+              _group([
+                if (Env.hasBackend) _photoField(l),
+                _field(_name, l.productName,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? l.validationRequired
+                        : null),
+                _categoryDropdown(l),
+              ]),
+              _group([
+                _field(_salePrice, l.productPrice, number: true),
+                _field(_costPrice, l.productCost, number: true),
+                Text(l.productTierPricesHint,
+                    style: Theme.of(context).textTheme.bodySmall),
+                _field(_wholesalePrice, l.productWholesalePrice, number: true),
+                _field(_vipPrice, l.productVipPrice, number: true),
+              ]),
+              _group([
+                if (trackStock) ...[
+                  _field(_quantity, l.productQuantity, number: true),
+                  _field(_reorder, l.productReorderLevel, number: true),
+                ],
+                Text(l.productOnlineStockLimitHint,
+                    style: Theme.of(context).textTheme.bodySmall),
+                _field(_onlineStockLimit, l.productOnlineStockLimit,
+                    number: true),
+                if (trackStock && isEdit)
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => StockHistoryScreen(
+                        productId: widget.existing!.product.id,
+                        productName: widget.existing!.product.name,
+                      ),
+                    )),
+                    icon: const Icon(Icons.history),
+                    label: Text(l.productViewStockHistory),
+                  ),
+              ]),
+              _group([
+                _field(_barcode, l.productBarcode,
+                    number: true,
+                    // A real EAN-13 barcode is 13 digits; the shared 9-digit
+                    // cap below exists for *money* fields and was silently
+                    // truncating anything typed in by hand here.
+                    maxLength: 20,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner),
+                      tooltip: l.scanBarcode,
+                      onPressed: _scanBarcode,
+                    )),
+                _field(_sku, l.productSku),
+              ]),
             ],
-            _field(_name, l.productName,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l.validationRequired : null),
-            _gap,
-            _field(_salePrice, l.productPrice, number: true),
-            _gap,
-            _field(_costPrice, l.productCost, number: true),
-            _gap,
-            Text(l.productTierPricesHint,
-                style: Theme.of(context).textTheme.bodySmall),
-            _gap,
-            _field(_wholesalePrice, l.productWholesalePrice, number: true),
-            _gap,
-            _field(_vipPrice, l.productVipPrice, number: true),
-            _gap,
-            Text(l.productOnlineStockLimitHint,
-                style: Theme.of(context).textTheme.bodySmall),
-            _gap,
-            _field(_onlineStockLimit, l.productOnlineStockLimit, number: true),
-            _gap,
-            if (trackStock) ...[
-              _field(_quantity, l.productQuantity, number: true),
-              _gap,
-              _field(_reorder, l.productReorderLevel, number: true),
-              _gap,
-              if (isEdit) ...[
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => StockHistoryScreen(
-                      productId: widget.existing!.product.id,
-                      productName: widget.existing!.product.name,
-                    ),
-                  )),
-                  icon: const Icon(Icons.history),
-                  label: Text(l.productViewStockHistory),
-                ),
-                _gap,
-              ],
-            ],
-            _field(_barcode, l.productBarcode,
-                number: true,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  tooltip: l.scanBarcode,
-                  onPressed: _scanBarcode,
-                )),
-            _gap,
-            _field(_sku, l.productSku),
-            _gap,
-            _categoryDropdown(l),
-            const SizedBox(height: AppTheme.space5),
-            FilledButton.icon(
+          ),
+        ),
+      ),
+      // Docked, like the checkout sheet's confirm bar: this form is a dozen
+      // fields long in English and longer in Myanmar, and the primary action
+      // used to sit at the bottom of that scroll — reachable only after
+      // scrolling past everything, including on the tall tablet layout where
+      // the whole form fits and the button still hid below the fold.
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: AppTheme.dockedBarShadow(Theme.of(context).brightness),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space3),
+            child: FilledButton.icon(
               onPressed: _saving ? null : _save,
               icon: _saving
                   ? const SizedBox(
@@ -258,7 +282,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                   : const Icon(Icons.check),
               label: Text(l.commonSave),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -266,23 +290,60 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
   static const _gap = SizedBox(height: AppTheme.space3);
 
+  /// One card = one group of related fields, evenly spaced.
+  Widget _group(List<Widget> fields) {
+    if (fields.isEmpty) return const SizedBox.shrink();
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.space3),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < fields.length; i++) ...[
+              if (i > 0) _gap,
+              fields[i],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The editable photo slot.
+  ///
+  /// Deliberately **not** [ProductThumb]: that widget's whole contract is
+  /// that a missing photo is a normal, designed state (it renders an initials
+  /// plate and never says "no image"), which is right in a list and wrong in
+  /// the one place whose job is to tell you whether this product has a photo
+  /// and let you change it. So it keeps an explicit empty state — but the
+  /// preview is now the tap target too, instead of a dead 72pt square next to
+  /// the only button that did anything.
   Widget _photoField(AppLocalizations l) {
+    final scheme = Theme.of(context).colorScheme;
+    final hasImage = (_imageUrl ?? '').isEmpty == false;
     return Row(
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
+        InkWell(
+          onTap: _uploading ? null : _pickImage,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: Container(
+            width: 72,
+            height: 72,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: !hasImage
+                ? Icon(Icons.image_outlined, color: scheme.onSurfaceVariant)
+                : Image.network(_imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Icon(
+                        Icons.broken_image_outlined,
+                        color: scheme.onSurfaceVariant)),
           ),
-          child: (_imageUrl ?? '').isEmpty
-              ? const Icon(Icons.image_outlined)
-              : Image.network(_imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      const Icon(Icons.broken_image_outlined)),
         ),
         const SizedBox(width: AppTheme.space3),
         Expanded(
@@ -323,6 +384,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   Widget _field(TextEditingController c, String label,
       {bool number = false,
       Widget? suffixIcon,
+      int? maxLength,
       String? Function(String?)? validator}) {
     return TextFormField(
       controller: c,
@@ -334,13 +396,17 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             horizontal: AppTheme.space4, vertical: AppTheme.space4),
       ),
       keyboardType: number ? TextInputType.number : TextInputType.text,
+      // Every field here is followed by another one — hand the keyboard a
+      // "next" key instead of a newline it can't use.
+      textInputAction: TextInputAction.next,
       // 9 digits comfortably covers any real kyat price/quantity while
       // guarding against a fat-fingered huge number losing precision on the
-      // admin web (dart2js) build, where numbers are JS doubles.
+      // admin web (dart2js) build, where numbers are JS doubles. Fields that
+      // are numeric but aren't money (barcodes) pass their own [maxLength].
       inputFormatters: number
           ? [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              LengthLimitingTextInputFormatter(maxLength ?? 9),
             ]
           : null,
       validator: validator,

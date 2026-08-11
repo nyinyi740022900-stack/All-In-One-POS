@@ -321,6 +321,22 @@ class AppTheme {
   /// success checkmark) — use sparingly, not for routine navigation.
   static const Curve curveEmphasized = Curves.easeOutBack;
 
+  /// The confirm button in a **destructive** dialog (delete a product, a
+  /// category, an expense…). Those dialogs previously used a plain
+  /// [FilledButton], i.e. the same brand-green affirmative used for "Save" —
+  /// so the button that erases a row looked exactly like the button that
+  /// keeps one, and the only thing distinguishing them was the label. Sitting
+  /// next to a neutral "Cancel", green also reads as the *safe* choice.
+  /// Kept here rather than in each screen so every delete confirm in the app
+  /// converges on one treatment as later phases pick it up.
+  static ButtonStyle dangerFilledButtonStyle(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return FilledButton.styleFrom(
+      backgroundColor: scheme.error,
+      foregroundColor: scheme.onError,
+    );
+  }
+
   // ---------------------------------------------------------------------
   // Tabular figures — every money/qty column in this app is a POS ledger;
   // proportional digits make price columns visibly wobble as amounts

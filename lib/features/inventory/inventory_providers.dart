@@ -22,6 +22,15 @@ final productsStreamProvider =
 /// Selected category filter for the inventory list (null = all categories).
 final inventoryCategoryProvider = StateProvider<String?>((ref) => null);
 
+/// Shared by [filteredProductsProvider] and [inventoryCategoryCountsProvider]
+/// so a chip's count can never disagree with the list it describes.
+bool _matchesInventoryQuery(Product prod, String q) {
+  if (q.isEmpty) return true;
+  return prod.name.toLowerCase().contains(q) ||
+      (prod.sku?.toLowerCase().contains(q) ?? false) ||
+      (prod.barcode?.toLowerCase().contains(q) ?? false);
+}
+
 /// Products filtered by the current search query (name / sku / barcode) and
 /// the selected category.
 final filteredProductsProvider = Provider<List<ProductWithStock>>((ref) {
@@ -30,13 +39,29 @@ final filteredProductsProvider = Provider<List<ProductWithStock>>((ref) {
   final categoryId = ref.watch(inventoryCategoryProvider);
 
   return all.where((p) {
-    final prod = p.product;
-    if (categoryId != null && prod.categoryId != categoryId) return false;
-    if (q.isEmpty) return true;
-    return prod.name.toLowerCase().contains(q) ||
-        (prod.sku?.toLowerCase().contains(q) ?? false) ||
-        (prod.barcode?.toLowerCase().contains(q) ?? false);
+    if (categoryId != null && p.product.categoryId != categoryId) return false;
+    return _matchesInventoryQuery(p.product, q);
   }).toList();
+});
+
+/// How many products each category chip would show if tapped, keyed by
+/// category id — `null` holds the "All" total. Counted against the *current
+/// search* (not the whole catalogue) so a chip never promises rows the list
+/// won't show. Mirrors `sellCategoryCountsProvider`; both feed the shared
+/// `CategoryFilterBar`.
+final inventoryCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
+  final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
+  final q = ref.watch(inventorySearchProvider).trim().toLowerCase();
+  final counts = <String?, int>{};
+  var total = 0;
+  for (final p in all) {
+    if (!_matchesInventoryQuery(p.product, q)) continue;
+    total++;
+    final id = p.product.categoryId;
+    if (id != null) counts[id] = (counts[id] ?? 0) + 1;
+  }
+  counts[null] = total;
+  return counts;
 });
 
 final lowStockCountProvider = Provider<int>((ref) {

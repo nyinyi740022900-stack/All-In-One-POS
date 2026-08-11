@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'inventory_providers.dart';
 
@@ -142,11 +143,21 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.productName,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+                style: Theme.of(context).textTheme.titleSmall),
             Text(l.stockAdjustCurrentStock(widget.currentQuantity),
                 style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             SegmentedButton<_Mode>(
+              // Material's default segment padding is horizontal-only, so
+              // the segment height stays pinned at its 40dp minimum — and
+              // "ပစ္စည်းအသစ်ထည့်" wraps to two lines (~41pt) and gets its
+              // second line sliced off by the segment border. Observed live
+              // in the `my` locale. Vertical padding lets the control grow
+              // to whatever the translated label needs.
+              style: SegmentedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.space3, vertical: AppTheme.space2),
+              ),
               segments: [
                 ButtonSegment(
                     value: _Mode.restock,
@@ -157,7 +168,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               selected: {_mode},
               onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             TextField(
               controller: _qtyController,
               keyboardType:
@@ -172,7 +183,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               ),
             ),
             if (_mode == _Mode.restock) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.space3),
               TextField(
                 controller: _unitCostController,
                 keyboardType: TextInputType.number,
@@ -187,7 +198,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               ),
             ],
             if (_mode == _Mode.adjust) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.space3),
               DropdownButtonFormField<_Reason>(
                 initialValue: _reason,
                 decoration: InputDecoration(labelText: l.stockAdjustReason),
@@ -198,7 +209,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
                 onChanged: (r) => setState(() => _reason = r ?? _reason),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             TextField(
               controller: _noteController,
               decoration: InputDecoration(labelText: l.stockAdjustNote),

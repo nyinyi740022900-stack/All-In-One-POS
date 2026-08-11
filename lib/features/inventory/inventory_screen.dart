@@ -177,147 +177,65 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           }
           return Column(
             children: [
-              if (trackStock && lowCount > 0)
-                Container(
-                  width: double.infinity,
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.space4, vertical: AppTheme.space2),
-                  child: Text(
-                    '${l.inventoryLowStock}: $lowCount',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer),
-                  ),
-                ),
+              if (trackStock && lowCount > 0) _LowStockBanner(count: lowCount),
               Expanded(
                 child: isMediumPlus(context)
                     ? GridView.builder(
                         padding: const EdgeInsets.all(AppTheme.space3),
                         gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
+                            SliverGridDelegateWithMaxCrossAxisExtent(
+                          // **Not** the old 300. `maxCrossAxisExtent` is a
+                          // ceiling, not a target: the delegate takes
+                          // `ceil(width / extent)` columns and divides evenly,
+                          // so 300 on an 820pt iPad produced three ~235pt
+                          // cards — and a card that narrow leaves ~70pt for
+                          // the name once the thumbnail, stock pill and menu
+                          // have taken their fixed widths, which shredded
+                          // every Myanmar product name into two clipped
+                          // fragments and wrapped "300 ကျပ်" onto two lines.
+                          // (Seen on a real iPad, not reasoned about: the old
+                          // 300 was equally broken, the thumbnail just made
+                          // it visible.) 440 forces two ~360pt cards on this
+                          // iPad and never divides below ~300pt on anything
+                          // wider.
+                          maxCrossAxisExtent: 440,
                           mainAxisSpacing: AppTheme.space3,
                           crossAxisSpacing: AppTheme.space3,
-                          childAspectRatio: 2.2,
+                          // A fixed row height derived from the type scale
+                          // beats `childAspectRatio`, which ties the row's
+                          // height to how many columns happened to fit and
+                          // therefore breaks at exactly one window width.
+                          mainAxisExtent: _gridTileHeight(context),
                         ),
                         itemCount: products.length,
                         itemBuilder: (context, i) {
                           final p = products[i];
                           return Card(
                             clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: canEdit ? () => _openEditor(p) : null,
-                              child: Padding(
-                                padding: const EdgeInsets.all(AppTheme.space3),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            p.product.name,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall,
-                                          ),
-                                          Text(Money(p.product.salePrice)
-                                              .withSymbol(currency)),
-                                        ],
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.qr_code_2),
-                                      tooltip: l.inventoryPrintLabel,
-                                      onPressed: () => showLabelPrintDialog(
-                                        context,
-                                        ref,
-                                        data: LabelData(
-                                          name: p.product.name,
-                                          priceText: Money(p.product.salePrice)
-                                              .withSymbol('Ks'),
-                                          barcode: labelBarcodeFor(p.product),
-                                        ),
-                                      ),
-                                    ),
-                                    if (trackStock && canEdit)
-                                      IconButton(
-                                        icon: const Icon(
-                                            Icons.add_box_outlined),
-                                        tooltip: l.inventoryUpdateStock,
-                                        onPressed: () =>
-                                            showStockAdjustDialog(
-                                          context,
-                                          ref,
-                                          productId: p.product.id,
-                                          productName: p.product.name,
-                                          currentQuantity: p.quantity,
-                                        ),
-                                      ),
-                                    if (trackStock)
-                                      _StockBadge(
-                                        quantity: p.quantity,
-                                        low: p.isLowStock,
-                                      ),
-                                  ],
-                                ),
-                              ),
+                            child: _ProductTile(
+                              p: p,
+                              currency: currency,
+                              trackStock: trackStock,
+                              canEdit: canEdit,
+                              onOpen: () => _openEditor(p),
                             ),
                           );
                         },
                       )
                     : ListView.separated(
+                        // Clears the extended FAB, which otherwise sits on
+                        // top of the last row's overflow menu.
+                        padding: const EdgeInsets.only(bottom: 88),
                         itemCount: products.length,
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, i) {
                           final p = products[i];
-                          return ListTile(
-                            title: Text(p.product.name),
-                            subtitle: Text(Money(p.product.salePrice)
-                                .withSymbol(currency)),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.qr_code_2),
-                                  tooltip: l.inventoryPrintLabel,
-                                  onPressed: () => showLabelPrintDialog(
-                                    context,
-                                    ref,
-                                    data: LabelData(
-                                      name: p.product.name,
-                                      // Always the ASCII 'Ks' so it prints
-                                      // cleanly via native text commands.
-                                      priceText: Money(p.product.salePrice)
-                                          .withSymbol('Ks'),
-                                      barcode: labelBarcodeFor(p.product),
-                                    ),
-                                  ),
-                                ),
-                                if (trackStock && canEdit)
-                                  IconButton(
-                                    icon: const Icon(Icons.add_box_outlined),
-                                    tooltip: l.inventoryUpdateStock,
-                                    onPressed: () => showStockAdjustDialog(
-                                      context,
-                                      ref,
-                                      productId: p.product.id,
-                                      productName: p.product.name,
-                                      currentQuantity: p.quantity,
-                                    ),
-                                  ),
-                                if (trackStock)
-                                  _StockBadge(
-                                      quantity: p.quantity,
-                                      low: p.isLowStock),
-                              ],
-                            ),
-                            onTap: canEdit ? () => _openEditor(p) : null,
+                          return _ProductTile(
+                            p: p,
+                            currency: currency,
+                            trackStock: trackStock,
+                            canEdit: canEdit,
+                            onOpen: () => _openEditor(p),
                           );
                         },
                       ),
@@ -333,7 +251,23 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 }
 
-/// Horizontal "All + categories" filter chips. Hidden when no categories exist.
+/// Height of one tablet grid cell: whichever is taller, the 48pt thumbnail or
+/// a two-line name over a price line, plus the tile's own padding and the
+/// `Card`'s default 4pt margin. Measured off the *scaled* type scale so a
+/// shopkeeper running large text gets a taller row instead of a clipped one.
+double _gridTileHeight(BuildContext context) {
+  final text = Theme.of(context).textTheme;
+  final scaler = MediaQuery.textScalerOf(context);
+  double line(TextStyle? s, double fallbackSize) =>
+      scaler.scale(s?.fontSize ?? fallbackSize) * (s?.height ?? 1.4);
+  final textBlock = line(text.titleSmall, 14) * 2 + line(text.bodyMedium, 14);
+  final content = textBlock > 48 ? textBlock : 48.0;
+  return content + AppTheme.space2 * 2 + 8;
+}
+
+/// Inventory's binding of the shared [CategoryFilterBar] — the same control
+/// Sell shows over the same catalogue, with per-chip counts. Hidden when the
+/// shop has no categories.
 class _CategoryFilterBar extends ConsumerWidget {
   const _CategoryFilterBar();
 
@@ -343,62 +277,277 @@ class _CategoryFilterBar extends ConsumerWidget {
     final categories =
         ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
     if (categories.isEmpty) return const SizedBox.shrink();
-    final selected = ref.watch(inventoryCategoryProvider);
+    final counts = ref.watch(inventoryCategoryCountsProvider);
 
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppTheme.space2),
-            child: ChoiceChip(
-              label: Text(l.categoryAll),
-              selected: selected == null,
-              onSelected: (_) =>
-                  ref.read(inventoryCategoryProvider.notifier).state = null,
-            ),
+    return CategoryFilterBar(
+      selectedId: ref.watch(inventoryCategoryProvider),
+      onSelected: (id) =>
+          ref.read(inventoryCategoryProvider.notifier).state = id,
+      options: [
+        CategoryFilterOption(
+          id: null,
+          label: l.categoryAll,
+          count: counts[null] ?? 0,
+        ),
+        for (final c in categories)
+          CategoryFilterOption(
+            id: c.id,
+            label: c.name,
+            count: counts[c.id] ?? 0,
           ),
-          for (final c in categories)
-            Padding(
-              padding: const EdgeInsets.only(right: AppTheme.space2),
-              child: ChoiceChip(
-                label: Text(c.name),
-                selected: selected == c.id,
-                onSelected: (_) =>
-                    ref.read(inventoryCategoryProvider.notifier).state = c.id,
+      ],
+    );
+  }
+}
+
+/// One product in the Inventory list (phone) or grid (tablet) — the same
+/// widget in both, so the two layouts can't drift apart.
+///
+/// **Carries the shared [ProductThumb].** Inventory lists the *same products*
+/// the Sell grid does, but rendered them as bare text with no mark at all, so
+/// the two tabs disagreed about what a product looks like. Same photo-or-
+/// initials-plate, same stable [AppColors.identityTone] color as Sell's grid
+/// tile and the checkout cart line.
+///
+/// **The two per-row icon buttons moved into a labelled overflow menu.** A
+/// thumbnail + a two-line Myanmar name + a stock pill + two 48dp icon buttons
+/// does not fit a 402pt phone; something had to give, and the two things that
+/// gave the least were the unlabeled glyphs — on a touch device their
+/// `tooltip:` is effectively invisible, so "print label" and "update stock"
+/// were being distinguished by icon shape alone. In the menu they are icon
+/// *plus* translated label. The frequent one (update stock) also stays one tap
+/// away: the stock pill itself is the control, since the number you want to
+/// change is the obvious thing to press.
+class _ProductTile extends ConsumerWidget {
+  const _ProductTile({
+    required this.p,
+    required this.currency,
+    required this.trackStock,
+    required this.canEdit,
+    required this.onOpen,
+  });
+
+  final ProductWithStock p;
+  final String currency;
+  final bool trackStock;
+  final bool canEdit;
+  final VoidCallback onOpen;
+
+  void _adjustStock(BuildContext context, WidgetRef ref) => showStockAdjustDialog(
+        context,
+        ref,
+        productId: p.product.id,
+        productName: p.product.name,
+        currentQuantity: p.quantity,
+      );
+
+  void _printLabel(BuildContext context, WidgetRef ref) => showLabelPrintDialog(
+        context,
+        ref,
+        data: LabelData(
+          name: p.product.name,
+          // Always the ASCII 'Ks' so it prints cleanly via native text
+          // commands.
+          priceText: Money(p.product.salePrice).withSymbol('Ks'),
+          barcode: labelBarcodeFor(p.product),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final outOfStock = trackStock && p.quantity <= 0;
+
+    return InkWell(
+      onTap: canEdit ? onOpen : null,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppTheme.space4, AppTheme.space2, AppTheme.space2, AppTheme.space2),
+        child: Row(
+          children: [
+            ProductThumb(
+              name: p.product.name,
+              imageUrl: p.product.imageUrl,
+              size: 48,
+              radius: AppTheme.radiusSm,
+              dimmed: outOfStock,
+            ),
+            const SizedBox(width: AppTheme.space3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    p.product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  // Left-aligned but still tabular: prices all start on the
+                  // same rule down the list, so the digits line up as a
+                  // column. Neutral, not the brand green Sell uses — on this
+                  // screen the accent belongs to the "Add product" FAB, and
+                  // the figure that needs to catch the eye is the stock
+                  // count, not the price.
+                  MoneyText(
+                    Money(p.product.salePrice).withSymbol(currency),
+                    style: theme.textTheme.bodyMedium,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    textAlign: TextAlign.left,
+                  ),
+                ],
               ),
             ),
-        ],
+            if (trackStock) ...[
+              const SizedBox(width: AppTheme.space2),
+              _StockBadge(
+                quantity: p.quantity,
+                low: p.isLowStock,
+                onTap: canEdit ? () => _adjustStock(context, ref) : null,
+              ),
+            ],
+            PopupMenuButton<void>(
+              tooltip: l.commonMore,
+              icon: const Icon(Icons.more_vert),
+              itemBuilder: (_) => [
+                if (trackStock && canEdit)
+                  PopupMenuItem<void>(
+                    onTap: () => _adjustStock(context, ref),
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.add_box_outlined),
+                      title: Text(l.inventoryUpdateStock),
+                    ),
+                  ),
+                PopupMenuItem<void>(
+                  onTap: () => _printLabel(context, ref),
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.qr_code_2),
+                    title: Text(l.inventoryPrintLabel),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// The stock figure as a pill, and — when the user may edit — the control
+/// that changes it.
+///
+/// Three tiers rather than the old two, so "none left" and "getting low" stop
+/// looking identical: **out of stock** takes the danger soft-fill (matching
+/// Sell's out-of-stock badge, which already treats `qty <= 0` as the hard
+/// stop), **low stock** takes warning, and a healthy count is neutral. The
+/// old healthy fill was `secondaryContainer`, which in the current palette is
+/// `#DCE7E1` — byte-for-byte the same sage as `identityFills[0]`, so a sage
+/// product plate and the pill beside it merged into one shape on roughly a
+/// quarter of all rows.
 class _StockBadge extends StatelessWidget {
-  const _StockBadge({required this.quantity, required this.low});
+  const _StockBadge({required this.quantity, required this.low, this.onTap});
 
   final int quantity;
   final bool low;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final bg = low ? scheme.errorContainer : scheme.secondaryContainer;
-    final fg = low ? scheme.onErrorContainer : scheme.onSecondaryContainer;
-    return Container(
+    final (Color bg, Color fg) = quantity <= 0
+        ? (colors.dangerSurface, colors.danger)
+        : low
+            ? (colors.warningSurface, colors.warning)
+            : (scheme.surfaceContainerHigh, scheme.onSurfaceVariant);
+
+    final pill = Container(
+      // A floor wide enough for three digits so single- and triple-digit
+      // counts share one right edge down the list.
+      constraints: const BoxConstraints(minWidth: 48),
       padding: const EdgeInsets.symmetric(
           horizontal: AppTheme.space3, vertical: AppTheme.space1),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
-      child: Text('$quantity',
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(color: fg, fontWeight: FontWeight.w600)),
+      child: Text(
+        '$quantity',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: fg,
+              fontFeatures: AppTheme.tabularFigures,
+            ),
+      ),
+    );
+
+    if (onTap == null) {
+      return Semantics(label: '${l.productQuantity}: $quantity', child: pill);
+    }
+    return Tooltip(
+      message: l.inventoryUpdateStock,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        child: Semantics(
+          button: true,
+          label: '${l.inventoryUpdateStock}, ${l.productQuantity}: $quantity',
+          excludeSemantics: true,
+          // The pill itself is ~30pt tall; this keeps the *target* at 48.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Center(widthFactor: 1, child: pill),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "N products are low on stock" strip above the list.
+///
+/// Was a full-bleed `errorContainer` block with bare text — a third banner
+/// language in an app that had already converged on the [AppColors] soft-fill
+/// tier for Sell's two licence banners. Low stock is a *warning* (the shop can
+/// still sell), so it takes the warning fill; the danger fill stays reserved
+/// for the rows that have actually run out.
+class _LowStockBanner extends StatelessWidget {
+  const _LowStockBanner({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    return Container(
+      width: double.infinity,
+      color: colors.warningSurface,
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space4, vertical: AppTheme.space3),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, size: 20, color: colors.warning),
+          const SizedBox(width: AppTheme.space2),
+          Expanded(
+            child: Text(
+              '${l.inventoryLowStock}: $count',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: colors.warning),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

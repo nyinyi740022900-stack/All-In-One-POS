@@ -20,6 +20,7 @@
   "commonNo": "မဟုတ်ပါ",
   "commonTotal": "စုစုပေါင်း",
   "commonCopy": "ကူးယူ",
+  "commonMore": "အခြား လုပ်ဆောင်ချက်များ",
   "copied": "ကူးယူပြီး",
 
   "sellTitle": "ရောင်းချ",
@@ -256,6 +257,8 @@
   "stockReasonOther": "အခြား",
   "stockHistoryTitle": "လက်ကျန်မှတ်တမ်း",
   "stockHistoryEmpty": "လက်ကျန်ပြောင်းလဲမှု မရှိသေးပါ။",
+  "stockHistoryEmptyFiltered": "အမျိုးအစား သို့မဟုတ် ရက်စွဲ စစ်ထုတ်မှုကြောင့် အချို့ မှတ်တမ်းများ ပျောက်နေနိုင်ပါသည်။",
+  "stockHistoryShowAll": "မှတ်တမ်းအားလုံး ပြရန်",
   "stockHistoryPickDateRange": "ရက်စွဲအပိုင်းအခြား ရွေးရန်",
   "stockHistoryClearDateRange": "ရက်စွဲအပိုင်းအခြား ရှင်းရန်",
   "stockMovementOpening": "အစပိုင်း လက်ကျန်",
