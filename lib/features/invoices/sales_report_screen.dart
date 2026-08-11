@@ -18,6 +18,20 @@ import 'sales_report_data.dart';
 import 'sales_report_pdf.dart';
 import 'sales_report_providers.dart';
 
+/// In-button progress at exactly the size of the icon it replaces, so a
+/// button doesn't change width the moment it starts working. Was repeated
+/// three times inline.
+class _ButtonSpinner extends StatelessWidget {
+  const _ButtonSpinner();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    width: 18,
+    height: 18,
+    child: CircularProgressIndicator(strokeWidth: 2),
+  );
+}
+
 /// Date-range sales report — reachable from the Invoices screen. Prints on
 /// whatever the shop actually has: the paired Bluetooth thermal printer
 /// (condensed list), or a real A4/A5 document shared out (AirPrint on the
@@ -214,29 +228,42 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       ),
       body: Column(
         children: [
-          Padding(
+          // The answer to "how much did we take in this period" is the whole
+          // point of this screen, so it gets a tonal header band and the
+          // biggest type on it — it used to be a `titleMedium` sharing a plain
+          // row with the row count.
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             padding: const EdgeInsets.fromLTRB(
               AppTheme.space4,
               AppTheme.space3,
               AppTheme.space4,
-              AppTheme.space2,
+              AppTheme.space3,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(rangeLabel, style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: AppTheme.space1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(l.salesReportCount(report.rows.length)),
-                    Text(
-                      Money(report.total).withSymbol(sym),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        rangeLabel,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    ),
-                  ],
+                      Text(
+                        l.salesReportCount(report.rows.length),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppTheme.space3),
+                MoneyText(
+                  Money(report.total).withSymbol(sym),
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  emphasis: true,
                 ),
               ],
             ),
@@ -246,6 +273,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 ? EmptyStateView(
                     icon: Icons.summarize_outlined,
                     title: l.salesReportEmpty,
+                    // Which period came up empty is the one thing that makes
+                    // this state actionable ("ah — wrong date range").
+                    message: rangeLabel,
                   )
                 : ListView.separated(
                     itemCount: report.rows.length,
@@ -258,96 +288,122 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                         if (r.address.isNotEmpty) r.address,
                       ].join(' · ');
                       return ListTile(
-                        title: Text(r.invoiceNo),
+                        title: Row(
+                          children: [
+                            Flexible(child: Text(r.invoiceNo)),
+                            if (r.isRefund) ...[
+                              const SizedBox(width: AppTheme.space2),
+                              // Same pill as the Invoices list marks a
+                              // reversal with, so a refund looks the same
+                              // everywhere in the hub.
+                              StatusPill(
+                                label: l.invoiceRefunded,
+                                tone: StatusTone.critical,
+                              ),
+                            ],
+                          ],
+                        ),
                         subtitle: Text(
                           detail,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: Text(
+                        trailing: MoneyText(
                           Money(r.amount).withSymbol(sym),
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: r.isRefund
-                                    ? Theme.of(context).colorScheme.error
-                                    : null,
-                              ),
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          emphasis: true,
+                          color: r.isRefund
+                              ? AppColors.of(context).danger
+                              : null,
                         ),
                       );
                     },
                   ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space4),
-              child: Column(
-                children: [
-                  if (printerConfig != null && printerConfig.hasPrinter)
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _printing
-                            ? null
-                            : () => _printBluetooth(
-                                report,
-                                rangeLabel,
-                                printerConfig.mac!,
-                                printerConfig.paper,
-                              ),
-                        icon: _printing
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+          // Docked action bar: this is a long scrolling list, so the three
+          // exports are pinned chrome rather than something you scroll to.
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              boxShadow: AppTheme.dockedBarShadow(
+                Theme.of(context).brightness,
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space4),
+                child: Column(
+                  children: [
+                    if (printerConfig != null && printerConfig.hasPrinter)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _printing
+                              ? null
+                              : () => _printBluetooth(
+                                  report,
+                                  rangeLabel,
+                                  printerConfig.mac!,
+                                  printerConfig.paper,
                                 ),
-                              )
-                            : const Icon(Icons.print_outlined),
-                        label: Text(l.salesReportPrintBluetooth),
+                          icon: _printing
+                              ? const _ButtonSpinner()
+                              : const Icon(Icons.print_outlined),
+                          label: Text(l.salesReportPrintBluetooth),
+                        ),
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.print_disabled_outlined,
+                            size: 18,
+                            color: AppColors.of(context).muted,
+                          ),
+                          const SizedBox(width: AppTheme.space2),
+                          Expanded(
+                            child: Text(
+                              l.salesReportNoPrinter,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  else
-                    Text(
-                      l.salesReportNoPrinter,
-                      style: Theme.of(context).textTheme.bodySmall,
+                    const SizedBox(height: AppTheme.space2),
+                    // Two peer actions side by side rather than a stack of
+                    // three full-width buttons, which read as three primary
+                    // actions and pushed the list up by ~160pt.
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _exporting
+                                ? null
+                                : () => _exportPdf(report, rangeLabel),
+                            icon: _exporting
+                                ? const _ButtonSpinner()
+                                : const Icon(Icons.picture_as_pdf_outlined),
+                            label: Text(l.salesReportExportPdf),
+                          ),
+                        ),
+                        const SizedBox(width: AppTheme.space2),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _exportingCsv
+                                ? null
+                                : () => _exportCsv(report),
+                            icon: _exportingCsv
+                                ? const _ButtonSpinner()
+                                : const Icon(Icons.table_chart_outlined),
+                            label: Text(l.salesReportExportCsv),
+                          ),
+                        ),
+                      ],
                     ),
-                  const SizedBox(height: AppTheme.space2),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _exporting
-                          ? null
-                          : () => _exportPdf(report, rangeLabel),
-                      icon: _exporting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.picture_as_pdf_outlined),
-                      label: Text(l.salesReportExportPdf),
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.space2),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _exportingCsv
-                          ? null
-                          : () => _exportCsv(report),
-                      icon: _exportingCsv
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.table_chart_outlined),
-                      label: Text(l.salesReportExportCsv),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

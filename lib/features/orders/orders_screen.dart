@@ -323,7 +323,11 @@ class _OrderCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _StatusDot(status: order.status),
+                    StatusPill(
+                      label: orderStatusLabel(l, order.status),
+                      tone: orderStatusTone(order.status),
+                      showDot: true,
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppTheme.space1),
@@ -374,32 +378,11 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-class _StatusDot extends StatelessWidget {
-  const _StatusDot({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = orderStatusColor(status);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: AppTheme.space2,
-          height: AppTheme.space2,
-          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: AppTheme.space1),
-        Text(
-          orderStatusLabel(l, status),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: c),
-        ),
-      ],
-    );
-  }
-}
-
+/// The card's payment line — deliberately the *lighter* of the two status
+/// marks on an order card. The pipeline status gets the full [StatusPill]
+/// (it's the thing the shopkeeper acts on); payment stays a dot + label in
+/// the same tone, so a card that is both `new` and `unpaid` reads as one
+/// signal with a footnote rather than two competing pastel plates.
 class _PayDot extends StatelessWidget {
   const _PayDot({required this.status});
   final String status;
@@ -407,10 +390,7 @@ class _PayDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final color = switch (status) {
-      'paid' => AppColors.of(context).success,
-      _ => Theme.of(context).colorScheme.outline,
-    };
+    final color = orderPaymentTone(status).colors(AppColors.of(context)).on;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

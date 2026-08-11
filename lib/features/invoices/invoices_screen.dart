@@ -161,12 +161,21 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                 Flexible(child: Text(s.invoiceNo)),
                                 if (isRefund) ...[
                                   const SizedBox(width: AppTheme.space2),
-                                  _RefundBadge(label: l.invoiceRefunded),
+                                  StatusPill(
+                                    label: l.invoiceRefunded,
+                                    tone: StatusTone.critical,
+                                  ),
                                 ] else if (isCredit) ...[
                                   const SizedBox(width: AppTheme.space2),
-                                  _CreditBadge(
-                                    settled: owed <= 0,
+                                  // `isCredit` is `owed > 0`, so this pill
+                                  // only ever marks an *outstanding* credit
+                                  // sale — money still to collect, which is
+                                  // routine follow-up (attention), not an
+                                  // error (the old badge painted it
+                                  // `colorScheme.error` red).
+                                  StatusPill(
                                     label: l.paymentCredit,
+                                    tone: StatusTone.attention,
                                   ),
                                 ],
                               ],
@@ -256,56 +265,6 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
   }
 }
 
-class _CreditBadge extends StatelessWidget {
-  const _CreditBadge({required this.settled, required this.label});
-  final bool settled;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = settled
-        ? AppColors.of(context).success
-        : Theme.of(context).colorScheme.error;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.space2,
-        vertical: AppTheme.space1,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-      ),
-    );
-  }
-}
-
-class _RefundBadge extends StatelessWidget {
-  const _RefundBadge({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.error;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.space2,
-        vertical: AppTheme.space1,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-      ),
-    );
-  }
-}
 
 class _InvoiceSearchField extends ConsumerStatefulWidget {
   const _InvoiceSearchField({required this.onScan});

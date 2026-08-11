@@ -2,6 +2,9 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
+
 class InvoiceItemData {
   final String name;
   final int qty;
@@ -325,21 +328,25 @@ class InvoiceView extends StatelessWidget {
     );
   }
 
+  /// The one place this document reads the app's palette — and it reads the
+  /// **light** one explicitly ([AppColors.onLightDocument]), not
+  /// `AppColors.of(context)`. This card is captured to PNG from inside the
+  /// live app's Overlay, so a shopkeeper on a dark-mode phone would otherwise
+  /// send the customer a white invoice carrying a near-black badge with a
+  /// pale-green label on it.
+  ///
+  /// Was `Colors.green` / `Colors.orange` / `Colors.redAccent` at 12% alpha —
+  /// three Material defaults that matched nothing else in the product.
   Widget _paymentBadge() {
-    final (label, color) = switch (data.paymentStatus) {
-      'paid' => ('PAID', Colors.green),
-      'partial' => ('PARTIAL', Colors.orange),
-      _ => ('UNPAID', Colors.redAccent),
+    final (label, tone) = switch (data.paymentStatus) {
+      'paid' => ('PAID', StatusTone.positive),
+      'partial' => ('PARTIAL', StatusTone.attention),
+      _ => ('UNPAID', StatusTone.critical),
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontWeight: FontWeight.bold, fontSize: 11)),
+    return StatusPill(
+      label: label,
+      tone: tone,
+      palette: AppColors.onLightDocument,
     );
   }
 }

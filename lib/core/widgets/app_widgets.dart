@@ -60,8 +60,134 @@ class EmptyStateView extends StatelessWidget {
   }
 }
 
-/// The visual anchor for a product — its photo when one exists, and a
-/// **designed initial-letter plate** when one doesn't.
+/// What a [StatusPill] is *saying*, not what colour it is — screens pick the
+/// meaning and the pill owns the palette. Four tones, because that is how many
+/// distinct answers a shopkeeper needs at a glance:
+///
+/// * [positive] — settled, done, nothing to do (paid, delivered, in stock);
+/// * [attention] — open, waiting on someone, needs an action (new order,
+///   unpaid, low stock). Deliberately **not** [critical]: most of a shop's
+///   day is spent in this state and a red list is a list nobody reads;
+/// * [critical] — money or stock is actually wrong (refunded, overdue, out of
+///   stock);
+/// * [neutral] — real but finished-with (cancelled, archived, inactive).
+enum StatusTone { positive, attention, critical, neutral }
+
+extension StatusToneColors on StatusTone {
+  /// Resolves to a `(fill, on)` pair from the [AppColors] soft-fill tier.
+  /// Pass the palette rather than a [BuildContext] so the fixed-light
+  /// document surfaces can hand over [AppColors.onLightDocument].
+  ({Color fill, Color on}) colors(AppColors palette) => switch (this) {
+    StatusTone.positive => (
+      fill: palette.successSurface,
+      on: palette.success,
+    ),
+    StatusTone.attention => (
+      fill: palette.warningSurface,
+      on: palette.warning,
+    ),
+    StatusTone.critical => (fill: palette.dangerSurface, on: palette.danger),
+    StatusTone.neutral => (fill: palette.neutralSurface, on: palette.muted),
+  };
+}
+
+/// The app's one status pill: a **soft pastel fill with a solid-colour label**
+/// (and an optional dot or icon in the same solid colour).
+///
+/// This is the pattern the whole Orders + Invoices hub converges on. Before
+/// it, every screen hand-rolled its own — `Colors.green.withValues(alpha:
+/// 0.12)` at radius 10 in the order sheet, `Colors.redAccent` at 0.12/radius
+/// 20 on the invoice document, `colorScheme.error` at 0.12/radius 4 in the
+/// invoice list — five near-identical widgets with five different fills, three
+/// radii, and two of them mixing an alpha wash over a near-black dark surface
+/// (which goes muddy, not pastel). The [AppColors] soft-fill tier exists
+/// precisely so the fill is a *designed* colour rather than an alpha guess.
+///
+/// **Pastel fill, saturated label** is the deliberate half of it: a wall of
+/// solid-green/solid-red pills fights the one primary CTA on the screen for
+/// attention, while the pastel plate stays quiet at list scale and the solid
+/// label keeps the text itself at full contrast.
+///
+/// Myanmar safety: no fixed height and no ellipsis — a status word runs
+/// ~20-40% longer in Myanmar and stacks diacritics, so the pill grows with its
+/// text (up to two lines) instead of clipping it.
+class StatusPill extends StatelessWidget {
+  const StatusPill({
+    super.key,
+    required this.label,
+    required this.tone,
+    this.icon,
+    this.showDot = false,
+    this.palette,
+  });
+
+  final String label;
+  final StatusTone tone;
+
+  /// Optional leading glyph, drawn in the tone's solid colour. Mutually
+  /// exclusive with [showDot] (an icon *is* the marker).
+  final IconData? icon;
+
+  /// Draws a small solid dot before the label — the lighter-weight marker for
+  /// pills that sit in a dense list row where an icon would be one shape too
+  /// many.
+  final bool showDot;
+
+  /// Overrides the palette this pill reads. Only for theme-independent
+  /// document surfaces — see [AppColors.onLightDocument].
+  final AppColors? palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = tone.colors(palette ?? AppColors.of(context));
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.fill,
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: tokens.on),
+            const SizedBox(width: AppTheme.space1),
+          ] else if (showDot) ...[
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: tokens.on,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppTheme.space1),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: tokens.on),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The visual anchor for a catalogue or directory row — a product's photo when
+/// one exists, and a **designed initial-letter plate** when one doesn't.
+///
+/// Also used for people (the customer directory), where there is never a photo
+/// at all: the plate is then the entire point — a stable colour + initial per
+/// customer beats 200 identical grey person-icons in a list you scan by eye.
 ///
 /// Shared on purpose: the Sell grid, the checkout sheet's cart lines and the
 /// tablet cart panel all show the same product, so they must show the same
@@ -489,12 +615,20 @@ class SummaryRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: style),
+          // Flexible, because a Myanmar label runs ~20-40% longer than its
+          // English source ("Total balance due" ➜ "စုစုပေါင်း ကျန်ငွေ
+          // (ပေးရမည်)") and an unflexed label in a `Row` overflows the page
+          // instead of wrapping.
+          Flexible(child: Text(label, style: style)),
+          const SizedBox(width: AppTheme.space3),
           if (isMoney)
             MoneyText(value, style: style, emphasis: emphasis, color: color)
           else
-            Text(value, style: style),
+            // A non-money value can be a whole phrase (a payment-account name,
+            // a device label), so it wraps rather than pushing the row wide.
+            Flexible(child: Text(value, style: style, textAlign: TextAlign.end)),
         ],
       ),
     );

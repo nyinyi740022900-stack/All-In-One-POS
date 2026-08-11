@@ -21,6 +21,7 @@
   "commonTotal": "စုစုပေါင်း",
   "commonCopy": "ကူးယူ",
   "commonMore": "အခြား လုပ်ဆောင်ချက်များ",
+  "commonClear": "ရှင်းလင်းရန်",
   "copied": "ကူးယူပြီး",
 
   "sellTitle": "ရောင်းချ",
@@ -144,6 +145,7 @@
   "equityDeleteConfirmBody": "ဒီလုပ်ဆောင်ချက်ကို ပြန်ပြင်လို့ မရပါ။",
   "customersTitle": "ဖောက်သည်များ",
   "customersEmpty": "ဖောက်သည် မထည့်ရသေးပါ။ ပထမဆုံး ဖောက်သည်ထည့်ပါ။",
+  "customersNoMatch": "ရှာဖွေမှုနှင့် ကိုက်ညီသည့် ဖောက်သည် မရှိပါ။",
   "customersSearchHint": "အမည် သို့မဟုတ် ဖုန်းနံပါတ် ရှာပါ",
   "customerAdd": "ဖောက်သည်ထည့်ရန်",
   "customerEdit": "ဖောက်သည်ပြင်ရန်",

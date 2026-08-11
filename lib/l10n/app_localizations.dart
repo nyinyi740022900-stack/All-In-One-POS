@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get commonMore;
 
+  /// No description provided for @commonClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get commonClear;
+
   /// No description provided for @copied.
   ///
   /// In en, this message translates to:
@@ -889,6 +895,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No customers yet. Add your first customer.'**
   String get customersEmpty;
+
+  /// No description provided for @customersNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers match that search.'**
+  String get customersNoMatch;
 
   /// No description provided for @customersSearchHint.
   ///

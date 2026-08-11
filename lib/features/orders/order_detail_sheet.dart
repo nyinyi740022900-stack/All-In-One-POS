@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/layout.dart';
 import '../../core/money.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
@@ -80,7 +82,11 @@ class OrderDetailSheet extends ConsumerWidget {
                 Text(o.orderNo,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
-                _StatusChip(status: o.status),
+                StatusPill(
+                  label: orderStatusLabel(l, o.status),
+                  tone: orderStatusTone(o.status),
+                  showDot: true,
+                ),
                 const SizedBox(width: 4),
                 // Explicit close — the content can be tall enough (items +
                 // payment proof photo + delivery section) that the sheet's
@@ -137,8 +143,10 @@ class OrderDetailSheet extends ConsumerWidget {
                     if (it.lowStockAtOrder) ...[
                       Tooltip(
                         message: l.orderLowStockAtOrder,
+                        // Warning, not error: the item was low when the order
+                        // came in, which is something to check, not a failure.
                         child: Icon(Icons.warning_amber_rounded,
-                            size: 16, color: Theme.of(context).colorScheme.error),
+                            size: 16, color: AppColors.of(context).warning),
                       ),
                       const SizedBox(width: 4),
                     ],
@@ -184,9 +192,10 @@ class OrderDetailSheet extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    Icon(Icons.check_circle,
+                        color: AppColors.of(context).success, size: 18),
                     const SizedBox(width: 6),
-                    Text(l.orderAlreadySale),
+                    Expanded(child: Text(l.orderAlreadySale)),
                   ],
                 ),
               ),
@@ -245,11 +254,17 @@ class OrderDetailSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
+            // Destructive, but *not* a status: it takes the solid danger tone
+            // (from the palette, so dark mode gets the lighter red that
+            // actually reads on near-black) and no soft fill — a pastel plate
+            // here would make deleting an order look like a state badge.
             TextButton.icon(
               onPressed: () => _confirmDelete(context, ref),
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              label: Text(l.orderDelete,
-                  style: const TextStyle(color: Colors.red)),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.of(context).danger,
+              ),
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l.orderDelete),
             ),
           ],
         ),
@@ -552,9 +567,12 @@ class _PaymentSection extends ConsumerWidget {
               _PaymentMethodChip(method: o.paymentMethod!),
               const SizedBox(width: 8),
             ],
-            _PaymentStatusBadge(
-              paid: isPaid,
+            StatusPill(
               label: isPaid ? l.orderPayPaid : l.orderAwaitingPayment,
+              tone: orderPaymentTone(isPaid ? 'paid' : 'unpaid'),
+              icon: isPaid
+                  ? Icons.check_circle_outline
+                  : Icons.schedule_outlined,
             ),
           ],
         ),
@@ -592,30 +610,16 @@ class _PaymentSection extends ConsumerWidget {
   }
 }
 
-class _PaymentStatusBadge extends StatelessWidget {
-  const _PaymentStatusBadge({required this.paid, required this.label});
-  final bool paid;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = paid ? Colors.green : Colors.orange;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontWeight: FontWeight.w600, fontSize: 12)),
-    );
-  }
-}
-
 /// Small pill for "Bank transfer" vs "Cash on delivery" — these need visibly
 /// different shop workflows (review a screenshot vs collect cash at the
 /// door), so it sits right next to the payment status, not buried in notes.
+///
+/// Not a [StatusPill]: a payment *method* is a fact about the order, not a
+/// status, so it deliberately takes the neutral `secondaryContainer` chip
+/// treatment rather than one of the four semantic tones — otherwise "Cash on
+/// delivery" would look like a state the shopkeeper has to resolve. It does
+/// share the pill's geometry (stadium radius, token padding) so the two read
+/// as one row of pills rather than two unrelated boxes.
 class _PaymentMethodChip extends StatelessWidget {
   const _PaymentMethodChip({required this.method});
   final String method;
@@ -626,40 +630,31 @@ class _PaymentMethodChip extends StatelessWidget {
     final isCod = method == 'cod';
     final label = isCod ? l.orderPaymentCod : l.orderPaymentTransfer;
     final icon = isCod ? Icons.local_shipping_outlined : Icons.account_balance_outlined;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13),
-          const SizedBox(width: 4),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          Icon(icon, size: 13, color: scheme.onSecondaryContainer),
+          const SizedBox(width: AppTheme.space1),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              style: Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(color: scheme.onSecondaryContainer),
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = orderStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(orderStatusLabel(l, status),
-          style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
@@ -734,8 +729,8 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
         children: [
           Row(
             children: [
-              const Icon(Icons.local_shipping_outlined,
-                  color: Colors.green, size: 18),
+              Icon(Icons.local_shipping_outlined,
+                  color: AppColors.of(context).success, size: 18),
               const SizedBox(width: 6),
               Expanded(
                   child: Text(

@@ -22,6 +22,7 @@
   "commonTotal": "Total",
   "commonCopy": "Copy",
   "commonMore": "More actions",
+  "commonClear": "Clear",
   "copied": "Copied",
 
   "sellTitle": "Sell",
@@ -148,6 +149,7 @@
   "creditRepaymentSaved": "Repayment recorded",
   "customersTitle": "Customers",
   "customersEmpty": "No customers yet. Add your first customer.",
+  "customersNoMatch": "No customers match that search.",
   "customersSearchHint": "Search name or phone",
   "customerAdd": "Add customer",
   "customerEdit": "Edit customer",

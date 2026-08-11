@@ -66,6 +66,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonMore => 'More actions';
 
   @override
+  String get commonClear => 'Clear';
+
+  @override
   String get copied => 'Copied';
 
   @override
@@ -433,6 +436,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customersEmpty => 'No customers yet. Add your first customer.';
+
+  @override
+  String get customersNoMatch => 'No customers match that search.';
 
   @override
   String get customersSearchHint => 'Search name or phone';

@@ -9,11 +9,14 @@ import 'package:flutter/material.dart';
 /// * the **solid** tone ([success]/[warning]/[danger]) — for text, icons and
 ///   thin rules directly on a page surface;
 /// * the **soft fill** tone ([successSurface]/[warningSurface]/
-///   [dangerSurface]) — a pastel wash meant to be used *as a background* with
-///   the matching solid tone as its foreground (every pair below is verified
-///   ≥4.5:1 against each other). This is the tier status pills and inline
-///   banners should use instead of `someColor.withValues(alpha: 0.12)`, which
-///   produces a muddy, unpredictable result over a near-black dark surface.
+///   [dangerSurface]/[neutralSurface]) — a pastel wash meant to be used *as a
+///   background* with the matching solid tone as its foreground (every pair
+///   below is verified ≥4.5:1 against each other). This is the tier status
+///   pills and inline banners should use instead of
+///   `someColor.withValues(alpha: 0.12)`, which produces a muddy,
+///   unpredictable result over a near-black dark surface. `StatusPill` in
+///   `core/widgets/app_widgets.dart` is the component built on it — prefer
+///   that over reaching for these directly.
 ///
 /// **[success] must stay visually distinct from [ColorScheme.primary]**, which
 /// is now itself green: primary is a *deep, blue-leaning forest* (hue ~157°),
@@ -30,6 +33,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.successSurface,
     required this.warningSurface,
     required this.dangerSurface,
+    required this.neutralSurface,
     required this.identityFills,
     required this.identityOnFills,
   });
@@ -47,6 +51,16 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// Pastel fill paired with [danger] as its foreground (≥4.5:1).
   final Color dangerSurface;
+
+  /// Quiet fill paired with [muted] as its foreground (4.6:1 light / 5.3:1
+  /// dark) — the *fourth* tier of the soft-fill set, for a status that is
+  /// neither good nor bad but **done with**: a cancelled order, a voided
+  /// invoice, an inactive account. Without it, a pill component has to fall
+  /// back to `ColorScheme.surfaceContainerHigh`, which means the one widget
+  /// resolving status colors needs a [ColorScheme] as well as an [AppColors]
+  /// — and can then no longer be pointed at a fixed palette for the
+  /// theme-independent document surfaces (see [onLightDocument]).
+  final Color neutralSurface;
 
   /// Tonal fills for **identity tiles** — the initial-letter plate shown
   /// wherever a product has no photo (Sell grid card, checkout/cart rows).
@@ -93,6 +107,20 @@ class AppColors extends ThemeExtension<AppColors> {
   static AppColors of(BuildContext context) =>
       Theme.of(context).extension<AppColors>()!;
 
+  /// The **light** semantic palette, resolved without a [BuildContext].
+  ///
+  /// Only for the deliberately theme-independent "document" surfaces —
+  /// `InvoiceView`, which paints a fixed-width white invoice card that gets
+  /// captured as a PNG to share with a customer (and is also rendered by the
+  /// web invoice page). That widget lives inside the app's own [Overlay]
+  /// during capture, so `AppColors.of(context)` there returns the *dark*
+  /// palette whenever the shopkeeper's phone is in dark mode — which would
+  /// stamp a near-black pastel and a pale-green label onto a white document.
+  /// Everything that actually renders as app chrome must use [of].
+  static final AppColors onLightDocument = AppColors._forBrightness(
+    Brightness.light,
+  );
+
   factory AppColors._forBrightness(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     return AppColors(
@@ -114,6 +142,12 @@ class AppColors extends ThemeExtension<AppColors> {
           ? const Color(0xFF3A2410)
           : const Color(0xFFFDECD9),
       dangerSurface: dark ? const Color(0xFF3A1A17) : const Color(0xFFFBE3E1),
+      // Matches the surface ramp's `surfaceContainerHigh` step in each
+      // brightness, so a "done with" pill reads as a recess in the page
+      // rather than a fifth colour nobody chose.
+      neutralSurface: dark
+          ? const Color(0xFF242C28)
+          : const Color(0xFFE5EAE7),
       // sage · teal · slate-blue · lilac — see [identityFills].
       identityFills: dark
           ? const [
@@ -153,6 +187,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? successSurface,
     Color? warningSurface,
     Color? dangerSurface,
+    Color? neutralSurface,
     List<Color>? identityFills,
     List<Color>? identityOnFills,
   }) => AppColors(
@@ -163,6 +198,7 @@ class AppColors extends ThemeExtension<AppColors> {
     successSurface: successSurface ?? this.successSurface,
     warningSurface: warningSurface ?? this.warningSurface,
     dangerSurface: dangerSurface ?? this.dangerSurface,
+    neutralSurface: neutralSurface ?? this.neutralSurface,
     identityFills: identityFills ?? this.identityFills,
     identityOnFills: identityOnFills ?? this.identityOnFills,
   );
@@ -185,6 +221,7 @@ class AppColors extends ThemeExtension<AppColors> {
       successSurface: Color.lerp(successSurface, other.successSurface, t)!,
       warningSurface: Color.lerp(warningSurface, other.warningSurface, t)!,
       dangerSurface: Color.lerp(dangerSurface, other.dangerSurface, t)!,
+      neutralSurface: Color.lerp(neutralSurface, other.neutralSurface, t)!,
     );
   }
 }

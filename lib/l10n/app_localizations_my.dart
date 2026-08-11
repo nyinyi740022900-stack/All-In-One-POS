@@ -67,6 +67,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonMore => 'အခြား လုပ်ဆောင်ချက်များ';
 
   @override
+  String get commonClear => 'ရှင်းလင်းရန်';
+
+  @override
   String get copied => 'ကူးယူပြီး';
 
   @override
@@ -428,6 +431,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get customersEmpty => 'ဖောက်သည် မထည့်ရသေးပါ။ ပထမဆုံး ဖောက်သည်ထည့်ပါ။';
+
+  @override
+  String get customersNoMatch => 'ရှာဖွေမှုနှင့် ကိုက်ညီသည့် ဖောက်သည် မရှိပါ။';
 
   @override
   String get customersSearchHint => 'အမည် သို့မဟုတ် ဖုန်းနံပါတ် ရှာပါ';
