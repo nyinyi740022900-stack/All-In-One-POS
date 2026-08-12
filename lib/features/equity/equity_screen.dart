@@ -24,24 +24,10 @@ class OwnerEquityScreen extends ConsumerWidget {
       {bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: bold
-                  ? Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)
-                  : Theme.of(context).textTheme.bodyMedium),
-          Text(Money(amount).withSymbol(currency),
-              style: bold
-                  ? Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)
-                  : Theme.of(context).textTheme.bodyMedium),
-        ],
+      child: SummaryRow(
+        label,
+        Money(amount).withSymbol(currency),
+        emphasis: bold,
       ),
     );
   }
@@ -102,18 +88,13 @@ class OwnerEquityScreen extends ConsumerWidget {
                       final e = entries[i];
                       final isContribution = e.type == equityTypeContribution;
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isContribution
-                              ? colors.success.withValues(alpha: 0.15)
-                              : colors.danger.withValues(alpha: 0.15),
-                          child: Icon(
-                            isContribution
-                                ? Icons.add_circle_outline
-                                : Icons.remove_circle_outline,
-                            color: isContribution
-                                ? colors.success
-                                : colors.danger,
-                          ),
+                        leading: IconAvatar(
+                          icon: isContribution
+                              ? Icons.add_circle_outline
+                              : Icons.remove_circle_outline,
+                          tone: isContribution
+                              ? StatusTone.positive
+                              : StatusTone.critical,
                         ),
                         title: Text(isContribution
                             ? l.equityContribution
@@ -125,14 +106,10 @@ class OwnerEquityScreen extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: Text(
+                        trailing: MoneyText(
                           '${isContribution ? '+' : '-'}${Money(e.amount).withSymbol(cur)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isContribution
-                                ? colors.success
-                                : colors.danger,
-                          ),
+                          emphasis: true,
+                          color: isContribution ? colors.success : colors.danger,
                         ),
                         onLongPress: () => _confirmDelete(context, ref, e),
                       );
@@ -157,6 +134,7 @@ class OwnerEquityScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.commonDelete)),
         ],

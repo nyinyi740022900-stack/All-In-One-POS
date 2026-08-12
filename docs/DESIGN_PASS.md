@@ -357,15 +357,19 @@ control stays pinned at its 40dp minimum.
       (name/phone/address) fixed with the same `_LineDiscountDialog`/
       `_CategoryNameDialog` pattern — exercised end-to-end live.
 
-### Phase D — Analytics + Money 🔄 PARTIAL — Analytics + P&L done, 5 files not started
+### Phase D — Analytics + Money ✅ all 8 files done
 `analytics_screen.dart`, `pnl_screen.dart`, `credit_screen.dart`,
 `cash_session_screen.dart`, `expense_screen.dart`,
 `recurring_expenses_screen.dart`, `equity_screen.dart`,
 `payment_accounts_screen.dart`
 
-**Second consecutive subagent run in this phase to hit the account's monthly
-API spend limit mid-task** (see the session log entry below) — read that
-before assuming this phase can be finished the same way the others were.
+**This phase was finished by the coordinator directly, not a subagent.**
+After two consecutive subagent runs hit the account's monthly API spend
+limit (see the two session-log entries below), the remaining 5 files were
+done by the main session itself on the Sonnet model rather than risking a
+third Opus subagent failure — `.claude/agents/ui-ux-designer.md` was also
+switched from `model: opus` to `model: sonnet` at this point, so future
+design-pass work defaults to the cheaper model.
 
 - [x] Shared component upgrades in `core/widgets/app_widgets.dart`:
       `StatCard` rebuilt (icon plate + label + tabular `MoneyText` via
@@ -386,15 +390,50 @@ before assuming this phase can be finished the same way the others were.
       eye to skip the one line that matters — explicitly made to agree with
       Analytics' now-identical call); `ButtonSpinner` replaces two duplicated
       inline spinners; bare error text became `EmptyStateView`.
-- [x] `credit_screen.dart` — **partial only**: the total-outstanding figure
-      converted to `MoneyText`. Nothing else in this file was reached.
-- [ ] `cash_session_screen.dart`, `expense_screen.dart`,
-      `recurring_expenses_screen.dart`, `equity_screen.dart`,
-      `payment_accounts_screen.dart` — **not started**, no diff exists for
-      any of these files. Whether the pastel `StatusPill` fits
-      `cash_session_screen.dart`'s open/closed state or
-      `payment_accounts_screen.dart`'s positive/negative balance is still an
-      open question for whoever picks this up.
+- [x] `credit_screen.dart` — the total-outstanding figure onto `MoneyText`.
+      Nothing else in this file needed a change (already token-clean).
+- [x] `cash_session_screen.dart` — the "Open" indicator (lock icon + green
+      text) became `StatusPill(tone: StatusTone.positive)`; `_kv`'s value
+      slot widened from `String` to `Widget` so the opened-at timestamp
+      still renders as plain `Text` but the opening amount and the live
+      "expected now" figure render as `MoneyText`. `_HistoryTile`'s
+      variance/opening/closing text was left as-is — it's a formatted
+      sentence with the amount embedded mid-string, not a standalone
+      figure, so forcing it into `MoneyText` would have meant restructuring
+      the row rather than fixing a token gap.
+- [x] `expense_screen.dart` — the running-total header and each row's
+      trailing amount onto `MoneyText`; `CircleAvatar` → `IconAvatar` for
+      the category glyph; the delete-confirm dialog's `FilledButton` gained
+      `AppTheme.dangerFilledButtonStyle` (the same "Delete looks exactly
+      like Save" collision Phase B's Inventory delete dialogs had — this
+      screen had its own uncaught instance). The full-screen receipt-photo
+      viewer's `Colors.black`/`Colors.white` were left alone, same reasoning
+      as Phase B's barcode scanner: the backdrop is a live photo, not a
+      theme surface.
+- [x] `recurring_expenses_screen.dart` — `CircleAvatar` → `IconAvatar`; same
+      `dangerFilledButtonStyle` fix on its delete-confirm `FilledButton`.
+      The subtitle's embedded amount was left as a sentence, same reasoning
+      as the cash-session history tile.
+- [x] `equity_screen.dart` — `_row` now delegates to `SummaryRow` (was a
+      hand-rolled `Row` duplicating `pnl_screen.dart`'s pre-refactor
+      pattern almost line-for-line). The contribution/drawing
+      `CircleAvatar` — a hand-rolled `colors.success/danger.withValues(alpha:
+      0.15)` background, exactly the pattern `IconAvatar` exists to replace
+      — became `IconAvatar(tone: StatusTone.positive/.critical)`; the
+      trailing signed amount onto `MoneyText`. Same `dangerFilledButtonStyle`
+      fix on delete-confirm.
+- [x] `payment_accounts_screen.dart` — **a fifth instance of this session's
+      recurring crash, fixed**: `_openEditor` created two
+      `TextEditingController`s (name/opening balance), `await`ed
+      `showDialog`, then disposed both — the same dispose-after-`await` bug
+      already fixed in `checkout_sheet.dart`, `categories_screen.dart`,
+      `customers_screen.dart`. Moved into a new `_PaymentAccountEditorDialog`
+      `StatefulWidget` (+ a small `_PaymentAccountDraft` result type so the
+      caller still does the actual repository call). `CircleAvatar` →
+      `IconAvatar`; the balance subtitle onto `MoneyText`
+      (`textAlign: TextAlign.left`, since a `ListTile.subtitle` reads
+      left-aligned under the title, not trailing). Same
+      `dangerFilledButtonStyle` fix on delete-confirm.
 
 ### Phase E — Settings + Back-office 🔜
 `settings_screen.dart`, `shop_profile_screen.dart`,
@@ -455,6 +494,8 @@ before assuming this phase can be finished the same way the others were.
 | 2026-08-11 | C | **Phase C's remaining token retrofit + the pastel status-pill pattern, finally implemented.** The subagent doing this work **hit the account's monthly API spend limit and was terminated mid-task**, mid-sentence, before it could report or update this ledger — the coordinator picked up from the working-tree state directly. Despite the abrupt cutoff, `flutter analyze` was clean and all 370 tests passed on inspection, meaning the agent's actual file edits were complete and self-consistent even though its own narration wasn't. **What shipped:** full token retrofit of `invoice_detail_screen.dart`, `sales_report_screen.dart` (new `_ButtonSpinner` helper for its export/generate buttons), and `customers_screen.dart`. **New shared `StatusPill`/`StatusTone` component** (`app_widgets.dart`) — four tones (`positive`/`attention`/`critical`/`neutral`) driven by `AppColors`' soft-fill tier (`successSurface`/`warningSurface`/`dangerSurface` + a new `neutralSurface`), replacing raw `Colors.green/orange/redAccent` in `order_labels.dart`'s `orderStatusColor` (now `orderStatusTone`, returning a tone not a `Color`), `invoice_view.dart`'s paid/partial/unpaid pill, and four spots in `order_detail_sheet.dart`. Non-trivial judgment calls documented inline in `order_labels.dart`: order status `new` maps to `attention` (not neutral) because a new order is the shop's to-do list, not a passive state; `cancelled` maps to `neutral` (not danger) because training the eye to read red for a normal end-state teaches it to ignore red. `customers_screen.dart`'s three-controller (name/phone/address) dispose-after-`await` crash — the same pattern as `checkout_sheet.dart`'s and `categories_screen.dart`'s, now fixed a third time — moved into a `_CustomerEditorDialog` `StatefulWidget`. `flutter analyze` clean, 370/370 tests pass, two new i18n keys. | **Coordinator's own verification** (not the subagent's, which never got to report): live on iPhone 17 Pro, `my` locale, dark — confirmed the pastel `StatusPill` renders consistently across all three surfaces that show an order/invoice status (Orders list card, Order detail sheet, Invoices list), confirmed a `new` order genuinely shows the warm-amber "attention" tone rather than a generic neutral grey (the design reasoning in the code comment is real, not aspirational), and confirmed a customer's owed-credit badge on the Customers list uses the same pastel language. **Exercised the customers crash end-to-end**: opened the edit dialog for an existing customer (three prefilled fields), tapped Save, confirmed it closed and persisted with no red error screen. Did not independently verify `sales_report_screen.dart`'s new `_ButtonSpinner` or `invoice_detail_screen.dart`'s retrofit live — code-reviewed only (grepped for leftover raw `Colors.*`/`TextStyle(fontSize:` and found none). If a future session sees anything off in the sales report or invoice detail screens specifically, treat that as the first place to look. |
 
 | 2026-08-11 | D | **Phase D — hit the account's monthly spend limit a second time, this time with real unfinished scope left over.** Unlike the Phase C interruption (where the agent's work was substantively complete and only the report/docs were missing), this run was cut off after only 3 of 8 files: `analytics_screen.dart` and `pnl_screen.dart` got full, complete treatment; `credit_screen.dart` got one line changed (a `MoneyText` conversion) before the process died; `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` were never reached — no diff exists for any of them. The coordinator did not attempt to hand-complete the remaining 5 files (that would be a full phase's worth of design work done without the audit/reference rigor the rest of this session has used) — instead verified what *was* done, fixed a real bug found doing so, and is stopping here to let the spend-limit signal actually be heard rather than mechanically continuing to grind through Phase E next. What shipped: `StatCard` rebuilt with an icon-plate + `IconAvatar` + `ButtonSpinner` (promoted from a private duplicate) added to the shared widget library; the Analytics KPI-grid raw-color collision flagged back in Phase A2 resolved by removing per-category decoration entirely in favor of color-as-signal (documented as a considered rejection, not an oversight); `pnl_screen.dart` brought onto `SummaryRow`/`MoneyText`/`ButtonSpinner` and its net-profit color rule changed to match Analytics' (loss-only, not "green on every ordinary day"). `flutter analyze` clean, 370/370 tests pass. | **Real bug caught by live verification, not code review**: every single `StatCard` tile overflowed its `RenderFlex` by 5.5-7.5px on device — `Card`'s own default 4dp margin was eating into the height budget that `_kpiTileExtent()` computed for content only, invisible in a code read since the math *looked* right in isolation. Fixed with `margin: EdgeInsets.zero` on the `Card` inside `StatCard` (the GridView's own `mainAxisSpacing`/`crossAxisSpacing` already provide the gap Card's margin was redundantly re-adding). Rebuilt and re-verified after the fix: clean tiles, correct neutral-vs-signal tone split visible live (informational tiles read as plain dark plates, `creditOutstanding > 0` reads as the amber "attention" tone), P&L's net-profit row correctly stays neutral-white on a positive figure. **Handoff, unambiguous:** Phase D needs a fresh pass covering `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart`, plus finishing `credit_screen.dart` beyond its one-line start — none of these were audited this session, so treat them as fully unstarted, not "probably fine." **Before running another large multi-file phase, check/raise the account's monthly spend limit** — two consecutive hits in one session is a real constraint, not a fluke. |
+
+| 2026-08-12 | D | **Phase D finished directly by the coordinator, on Sonnet, after two subagent spend-limit failures.** `.claude/agents/ui-ux-designer.md` switched `model: opus` ➜ `model: sonnet` at the user's request before this work started, so this and future design-pass phases default to the cheaper model rather than risking a third Opus failure mid-phase. Surveyed all 5 remaining files for the two recurring issues this session keeps finding before touching anything: grepped for `Colors.*`/`TextEditingController`/`CircleAvatar` across all 5 up front, which showed 4 of 5 files' controllers were already safely owned by a `StatefulWidget`'s own `dispose()` — only `payment_accounts_screen.dart` had the actual bug (**a fifth instance** of the dispose-after-`await` crash, same fix pattern as the four prior ones, moved into a new `_PaymentAccountEditorDialog`). Applied `StatCard`/`IconAvatar`/`MoneyText`/`SummaryRow`/`StatusPill` consistently across `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` — full detail in the Phase D section above. **Also found and fixed the same "delete looks exactly like Save" collision Phase B fixed in Inventory's delete dialogs, in three more files this session hadn't touched yet** (`expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` — four, not three) — none of these had `AppTheme.dangerFilledButtonStyle` applied to their delete-confirm `FilledButton`, all now do. `flutter analyze` clean, 370/370 tests pass throughout (checked after every file, not just at the end). | **Live-verified on iPhone 17 Pro, `my` locale, dark, exercising the actual user flows rather than just screenshotting a static screen**: `payment_accounts_screen.dart`'s crash fix end-to-end (empty state ➜ FAB ➜ dialog ➜ typed a name ➜ Save ➜ new `IconAvatar`+`MoneyText` row appeared, no red screen); `cash_session_screen.dart`'s `StatusPill` end-to-end (closed state ➜ open-register dialog ➜ typed an opening amount ➜ confirmed ➜ the "Open" pastel pill and both `MoneyText` figures render correctly). Not independently live-verified: `equity_screen.dart`'s `IconAvatar(tone:)` on a contribution/drawing row and `expense_screen.dart`/`recurring_expenses_screen.dart`'s `dangerFilledButtonStyle` — code-reviewed only, reusing patterns already proven live elsewhere this session (the identical `IconAvatar(tone:)` call shape confirmed working in `payment_accounts_screen.dart`'s live check; the identical `dangerFilledButtonStyle` call confirmed working in Phase B's Inventory delete dialogs). This closes out Phase D — all 8 scoped files done. |
 
 ### Note for next session — coordinate calibration for `mcp__Claude_Code_iOS_Simulator__control`
 Tap coordinates for this tool are in **device points** as reported by `attach` (e.g. 402×874 for iPhone 17 Pro), NOT the pixel dimensions the screenshot appears at when viewed. Estimate tap position as a **fraction of the screenshot's visual layout**, then multiply by the point-space width/height — don't eyeball raw pixel numbers from the image. Also: a `swipe`/`touch_path` whose start point lands on the bottom navigation bar (roughly the bottom ~90pt of a compact-width screen) gets consumed by the nav bar and never reaches the scrollable content above it — start swipes well clear of it (e.g. `y=700` on an 874pt-tall screen, not `y=800`). **New this session:** on at least one pushed (non-tab-shell) route, a `FloatingActionButton`'s tap target did not register across several plausible coordinate estimates while other elements on the same screen (list rows) worked fine at the same calibration — if a tap silently fails to do anything on a screen reached via `Navigator.push` rather than the bottom-tab shell, try a nearby alternate entry point to the same code path before concluding the app itself is broken.

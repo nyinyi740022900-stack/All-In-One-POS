@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
@@ -154,20 +155,18 @@ class _OpenCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(Icons.lock_open, color: AppColors.of(context).success),
-                const SizedBox(width: AppTheme.space2),
-                Text(l.cashRegisterOpen,
-                    style: TextStyle(
-                        color: AppColors.of(context).success,
-                        fontWeight: FontWeight.bold)),
-              ],
+            StatusPill(
+              label: l.cashRegisterOpen,
+              tone: StatusTone.positive,
+              icon: Icons.lock_open,
             ),
-            const SizedBox(height: AppTheme.space2),
-            _kv(context, l.cashOpenedAt, df.format(session.openedAt)),
-            _kv(context, l.cashOpeningAmount,
-                Money(session.openingAmount).withSymbol(sym)),
+            const SizedBox(height: AppTheme.space3),
+            _kv(context, l.cashOpenedAt, Text(df.format(session.openedAt))),
+            _kv(
+              context,
+              l.cashOpeningAmount,
+              MoneyText(Money(session.openingAmount).withSymbol(sym)),
+            ),
             const Divider(height: AppTheme.space5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,12 +179,10 @@ class _OpenCard extends ConsumerWidget {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2)),
                   error: (e, _) => const Text('—'),
-                  data: (v) => Text(
+                  data: (v) => MoneyText(
                     Money(v ?? 0).withSymbol(sym),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    emphasis: true,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
               ],
@@ -202,14 +199,14 @@ class _OpenCard extends ConsumerWidget {
     );
   }
 
-  Widget _kv(BuildContext context, String label, String value) {
+  Widget _kv(BuildContext context, String label, Widget value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
-          Text(value),
+          value,
         ],
       ),
     );

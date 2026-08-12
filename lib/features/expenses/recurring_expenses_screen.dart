@@ -38,7 +38,7 @@ class RecurringExpensesScreen extends ConsumerWidget {
               itemBuilder: (_, i) {
                 final t = templates[i];
                 return ListTile(
-                  leading: CircleAvatar(child: Icon(categoryIcon(t.category))),
+                  leading: IconAvatar(icon: categoryIcon(t.category)),
                   title: Text(categoryLabel(l, t.category)),
                   subtitle: Text(
                     t.note == null || t.note!.isEmpty
@@ -143,6 +143,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
             child: Text(l.commonCancel),
           ),
           FilledButton(
+            style: AppTheme.dangerFilledButtonStyle(dialogContext),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l.commonDelete),
           ),

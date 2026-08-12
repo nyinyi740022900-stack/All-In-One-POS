@@ -211,11 +211,12 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                 Text(l.expensesTotal,
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
-                Text(Money(total).withSymbol(cur),
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                MoneyText(
+                  Money(total).withSymbol(cur),
+                  textAlign: TextAlign.left,
+                  emphasis: true,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
               ],
             ),
           ),
@@ -231,9 +232,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                     itemBuilder: (_, i) {
                       final e = expenses[i];
                       return ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(categoryIcon(e.category)),
-                        ),
+                        leading: IconAvatar(icon: categoryIcon(e.category)),
                         title: Text(categoryLabel(l, e.category)),
                         subtitle: Text(
                           e.note == null || e.note!.isEmpty
@@ -242,9 +241,9 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: Text(
+                        trailing: MoneyText(
                           Money(e.amount).withSymbol(cur),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          emphasis: true,
                         ),
                         onTap: () => _openDialog(context, existing: e),
                       );
@@ -428,6 +427,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
             child: Text(l.commonCancel),
           ),
           FilledButton(
+            style: AppTheme.dangerFilledButtonStyle(dialogContext),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l.commonDelete),
           ),

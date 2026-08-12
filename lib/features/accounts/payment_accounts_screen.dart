@@ -31,6 +31,7 @@ class PaymentAccountsScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.commonDelete)),
         ],
@@ -47,58 +48,17 @@ class PaymentAccountsScreen extends ConsumerWidget {
   Future<void> _openEditor(BuildContext context, WidgetRef ref,
       [PaymentAccount? existing]) async {
     final l = AppLocalizations.of(context);
-    final name = TextEditingController(text: existing?.name ?? '');
-    final opening = TextEditingController(
-        text: existing == null ? '0' : '${existing.openingBalance}');
-
-    final saved = await showDialog<bool>(
+    final draft = await showDialog<_PaymentAccountDraft>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing == null
-            ? l.paymentAccountAdd
-            : l.paymentAccountEdit),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                textCapitalization: TextCapitalization.words,
-                decoration:
-                    InputDecoration(labelText: l.paymentAccountNameLabel),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: opening,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: InputDecoration(
-                    labelText: l.paymentAccountOpeningBalanceLabel),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonSave)),
-        ],
-      ),
+      builder: (_) => _PaymentAccountEditorDialog(existing: existing),
     );
-    final shouldSave = saved == true && name.text.trim().isNotEmpty;
-    if (shouldSave) {
-      await ref.read(paymentAccountRepositoryProvider).upsertAccount(
-            id: existing?.id,
-            name: name.text.trim(),
-            openingBalance: int.tryParse(opening.text.trim()) ?? 0,
-          );
-    }
-    name.dispose();
-    opening.dispose();
-    if (shouldSave && context.mounted) {
+    if (draft == null || !context.mounted) return;
+    await ref.read(paymentAccountRepositoryProvider).upsertAccount(
+          id: existing?.id,
+          name: draft.name,
+          openingBalance: draft.openingBalance,
+        );
+    if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.paymentAccountSaved)));
     }
@@ -142,21 +102,20 @@ class PaymentAccountsScreen extends ConsumerWidget {
                     final balance = ref.watch(accountBalanceProvider(a));
                     final colors = AppColors.of(context);
                     return ListTile(
-                      leading: const CircleAvatar(
-                          child: Icon(Icons.account_balance_wallet_outlined)),
+                      leading: const IconAvatar(
+                          icon: Icons.account_balance_wallet_outlined),
                       title: Text(a.name),
-                      subtitle: Text(
+                      subtitle: MoneyText(
                         balance.when(
                           data: (v) => Money(v).withSymbol(l.currencySymbol),
                           loading: () => '…',
                           error: (_, _) => '—',
                         ),
-                        style: TextStyle(
-                          color: balance.when(
-                            data: (v) => v < 0 ? colors.danger : null,
-                            loading: () => null,
-                            error: (_, _) => null,
-                          ),
+                        textAlign: TextAlign.left,
+                        color: balance.when(
+                          data: (v) => v < 0 ? colors.danger : null,
+                          loading: () => null,
+                          error: (_, _) => null,
                         ),
                       ),
                       trailing: IconButton(
@@ -167,6 +126,99 @@ class PaymentAccountsScreen extends ConsumerWidget {
                     );
                   },
                 ),
+    );
+  }
+}
+
+class _PaymentAccountDraft {
+  const _PaymentAccountDraft(this.name, this.openingBalance);
+  final String name;
+  final int openingBalance;
+}
+
+/// Name + opening-balance editor. A `StatefulWidget` so the two
+/// `TextEditingController`s are disposed by the dialog's own lifecycle
+/// instead of a `Future` that resolves on pop, before the exit animation
+/// finishes — the same dispose-after-`await` crash this session fixed in
+/// `checkout_sheet.dart`, `categories_screen.dart`, and `customers_screen.dart`.
+class _PaymentAccountEditorDialog extends StatefulWidget {
+  const _PaymentAccountEditorDialog({this.existing});
+
+  final PaymentAccount? existing;
+
+  @override
+  State<_PaymentAccountEditorDialog> createState() =>
+      _PaymentAccountEditorDialogState();
+}
+
+class _PaymentAccountEditorDialogState
+    extends State<_PaymentAccountEditorDialog> {
+  late final TextEditingController _name;
+  late final TextEditingController _opening;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.existing?.name ?? '');
+    _opening = TextEditingController(
+      text: widget.existing == null
+          ? '0'
+          : '${widget.existing!.openingBalance}',
+    );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _opening.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    Navigator.pop(
+      context,
+      _PaymentAccountDraft(name, int.tryParse(_opening.text.trim()) ?? 0),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(widget.existing == null
+          ? l.paymentAccountAdd
+          : l.paymentAccountEdit),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(labelText: l.paymentAccountNameLabel),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            TextField(
+              controller: _opening,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                  labelText: l.paymentAccountOpeningBalanceLabel),
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l.commonSave)),
+      ],
     );
   }
 }
