@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../expenses/expense_screen.dart' show categoryLabel;
 import '../invoices/receipt_data.dart';
@@ -163,34 +164,19 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     }
   }
 
+  /// One statement line. Delegates to the shared [SummaryRow] so the figures
+  /// render through [MoneyText] with tabular numerals — this is a column of
+  /// money that has to line up digit-for-digit down the page, and it was
+  /// previously plain proportional `Text` that visibly wobbled between rows.
   Widget _row(BuildContext context, String label, int amount, String currency,
       {bool bold = false, bool indent = false, Color? color}) {
     return Padding(
-      padding: EdgeInsets.only(
-          left: indent ? AppTheme.space4 : 0,
-          top: AppTheme.space1,
-          bottom: AppTheme.space1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: bold
-                  ? Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)
-                  : Theme.of(context).textTheme.bodyMedium),
-          Text(
-            Money(amount).withSymbol(currency),
-            style: (bold
-                    ? Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)
-                    : Theme.of(context).textTheme.bodyMedium)
-                ?.copyWith(color: color),
-          ),
-        ],
+      padding: EdgeInsets.only(left: indent ? AppTheme.space4 : 0),
+      child: SummaryRow(
+        label,
+        Money(amount).withSymbol(currency),
+        emphasis: bold,
+        color: color,
       ),
     );
   }
@@ -233,11 +219,18 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       ),
       body: statementAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (_, _) => EmptyStateView(
+          icon: Icons.error_outline,
+          title: l.commonUnexpectedError,
+        ),
         data: (p) {
-          final netColor = p.netProfit < 0
-              ? AppColors.of(context).danger
-              : AppColors.of(context).success;
+          // Only a *loss* gets colour. Painting a healthy net profit green
+          // means the statement is green on almost every ordinary day, which
+          // trains the eye to skip the one line that matters — the same call
+          // the Analytics dashboard now makes for its net-profit tile, so the
+          // two screens agree about what red means.
+          final netColor =
+              p.netProfit < 0 ? AppColors.of(context).danger : null;
           return Column(
             children: [
               Expanded(
@@ -280,11 +273,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                                 : () => _printBluetooth(p,
                                     printerConfig.mac!, printerConfig.paper),
                             icon: _printing
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
+                                ? const ButtonSpinner()
                                 : const Icon(Icons.print_outlined),
                             label: Text(l.salesReportPrintBluetooth),
                           ),
@@ -299,11 +288,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                           onPressed:
                               _exporting ? null : () => _exportPdf(p),
                           icon: _exporting
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2))
+                              ? const ButtonSpinner()
                               : const Icon(Icons.picture_as_pdf_outlined),
                           label: Text(l.salesReportExportPdf),
                         ),
@@ -316,11 +301,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                               ? null
                               : () => _exportCsv(p),
                           icon: _exportingCsv
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2))
+                              ? const ButtonSpinner()
                               : const Icon(Icons.table_chart_outlined),
                           label: Text(l.pnlExportCsv),
                         ),

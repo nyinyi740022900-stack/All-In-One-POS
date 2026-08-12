@@ -489,57 +489,199 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// A single at-a-glance metric — big value, small label, optional icon and
-/// semantic color. Used across Analytics/Equity/Cash Register-style summary
-/// grids instead of each screen building its own `Card` + `Column`.
+/// Resolves the `(fill, on)` pair a toned surface should use, where a **null
+/// tone means "no signal"** — a quiet neutral plate from the surface ramp
+/// rather than a fifth colour. Shared by [StatCard] and [IconAvatar] so an
+/// informational tile and an informational list row look like each other.
+({Color fill, Color on}) _plateColors(BuildContext context, StatusTone? tone) {
+  if (tone != null) return tone.colors(AppColors.of(context));
+  final scheme = Theme.of(context).colorScheme;
+  return (fill: scheme.surfaceContainerHigh, on: scheme.onSurfaceVariant);
+}
+
+/// One tile in a KPI / summary grid — icon plate, label, and a big **tabular**
+/// value. The Analytics dashboard, and any future summary grid, uses this
+/// instead of hand-rolling a `Card` + `Column`.
+///
+/// **Colour here means a signal, never a category.** [tone] is null for the
+/// ordinary informational tiles (revenue, expenses, sales count…), which get a
+/// neutral plate, and non-null only where the figure's *sign* is telling the
+/// shopkeeper something is wrong (net profit below zero, credit outstanding).
+/// The alternative — a different decorative hue per KPI — was measured and
+/// rejected; see the design note on the Analytics dashboard.
+///
+/// Myanmar/text-scale safety: the label gets two lines, and the value is
+/// scaled down by a [FittedBox] rather than ellipsized, because a truncated
+/// money figure is worse than a small one. The tile therefore never needs a
+/// fixed aspect ratio to stay intact — give the grid a `mainAxisExtent`
+/// derived from the current text scale.
 class StatCard extends StatelessWidget {
   const StatCard({
     super.key,
     required this.label,
     required this.value,
     this.icon,
-    this.color,
+    this.tone,
+    this.onTap,
   });
 
   final String label;
+
+  /// Pre-formatted figure (money string, count…). Always rendered tabular.
   final String value;
   final IconData? icon;
-  final Color? color;
+
+  /// Null = informational. Non-null = this figure is a *signal*.
+  final StatusTone? tone;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tint = color ?? scheme.primary;
+    final theme = Theme.of(context);
+    final plate = _plateColors(context, tone);
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: tint, size: 20),
+      // Zero, not Card's own default 4dp: this tile lives in a GridView
+      // whose delegate already supplies mainAxisSpacing/crossAxisSpacing AND
+      // a mainAxisExtent sized to the content computed by _kpiTileExtent().
+      // Card's default margin ate into that budget from the outside where
+      // the extent math couldn't see it, overflowing every tile by ~8px.
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (icon != null) ...[
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: plate.fill,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(icon, size: 18, color: plate.on),
+                    ),
+                    const SizedBox(width: AppTheme.space2),
+                  ],
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: AppTheme.space2),
+              // Left-aligned: this is a headline figure in a card, not a
+              // column entry, so it hangs off the same left rule as its label.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: MoneyText(
+                  value,
+                  textAlign: TextAlign.start,
+                  emphasis: true,
+                  color: tone == null ? null : plate.on,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
             ],
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: tint,
-              ),
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// The leading mark on a list row whose subject is a **category or an
+/// account**, not a person or a product — an expense category, a recurring
+/// template, a payment account, an equity entry.
+///
+/// Exists because those rows all reached for a bare `CircleAvatar`, whose M3
+/// default background is [ColorScheme.primaryContainer]: the fill this app
+/// reserves for "selected / primary action". A column of pale-green circles
+/// down the Expenses list competes with the one FAB that matters, on five
+/// screens at once. Neutral by default; [tone] only where the row itself
+/// carries a signal (an equity drawing vs. a contribution).
+///
+/// Rounded square rather than a circle, matching [ProductThumb], so a list of
+/// categories and a list of products read as one family.
+class IconAvatar extends StatelessWidget {
+  const IconAvatar({
+    super.key,
+    this.icon,
+    this.text,
+    this.tone,
+    this.size = 40,
+  }) : assert(icon != null || text != null, 'IconAvatar needs an icon or text');
+
+  final IconData? icon;
+
+  /// Short label used instead of an icon — a quantity or a rank. Rendered
+  /// tabular so a column of them lines up.
+  final String? text;
+  final StatusTone? tone;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final plate = _plateColors(context, tone);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: plate.fill,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      alignment: Alignment.center,
+      child: icon != null
+          ? Icon(icon, size: size * 0.5, color: plate.on)
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space1),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text!,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: plate.on,
+                    fontFeatures: AppTheme.tabularFigures,
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+/// In-button progress at exactly the size of the icon it replaces, so a
+/// button doesn't change width the moment it starts working — and so a row of
+/// export/print buttons doesn't reflow while one of them is running.
+///
+/// Was repeated inline in the sales report, the P&L screen and elsewhere; this
+/// is that shape, once.
+class ButtonSpinner extends StatelessWidget {
+  const ButtonSpinner({super.key, this.size = 18});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: size,
+    height: size,
+    child: const CircularProgressIndicator(strokeWidth: 2),
+  );
 }
 
 /// A money or quantity figure with tabular (fixed-width) numerals so digits

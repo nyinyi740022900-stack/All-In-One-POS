@@ -18,20 +18,6 @@ import 'sales_report_data.dart';
 import 'sales_report_pdf.dart';
 import 'sales_report_providers.dart';
 
-/// In-button progress at exactly the size of the icon it replaces, so a
-/// button doesn't change width the moment it starts working. Was repeated
-/// three times inline.
-class _ButtonSpinner extends StatelessWidget {
-  const _ButtonSpinner();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-    width: 18,
-    height: 18,
-    child: CircularProgressIndicator(strokeWidth: 2),
-  );
-}
-
 /// Date-range sales report — reachable from the Invoices screen. Prints on
 /// whatever the shop actually has: the paired Bluetooth thermal printer
 /// (condensed list), or a real A4/A5 document shared out (AirPrint on the
@@ -348,7 +334,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                   printerConfig.paper,
                                 ),
                           icon: _printing
-                              ? const _ButtonSpinner()
+                              ? const ButtonSpinner()
                               : const Icon(Icons.print_outlined),
                           label: Text(l.salesReportPrintBluetooth),
                         ),
@@ -383,7 +369,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                 ? null
                                 : () => _exportPdf(report, rangeLabel),
                             icon: _exporting
-                                ? const _ButtonSpinner()
+                                ? const ButtonSpinner()
                                 : const Icon(Icons.picture_as_pdf_outlined),
                             label: Text(l.salesReportExportPdf),
                           ),
@@ -395,7 +381,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                 ? null
                                 : () => _exportCsv(report),
                             icon: _exportingCsv
-                                ? const _ButtonSpinner()
+                                ? const ButtonSpinner()
                                 : const Icon(Icons.table_chart_outlined),
                             label: Text(l.salesReportExportCsv),
                           ),

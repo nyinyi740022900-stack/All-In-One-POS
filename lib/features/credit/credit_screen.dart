@@ -49,11 +49,12 @@ class CreditScreen extends ConsumerWidget {
                 Text(l.creditTotalOutstanding,
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
-                Text(Money(total).withSymbol(currency),
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                MoneyText(
+                  Money(total).withSymbol(currency),
+                  textAlign: TextAlign.start,
+                  emphasis: true,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
               ],
             ),
           ),
