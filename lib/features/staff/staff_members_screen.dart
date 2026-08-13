@@ -25,6 +25,7 @@ class StaffMembersScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.staffRemoveMember)),
         ],
@@ -41,64 +42,18 @@ class StaffMembersScreen extends ConsumerWidget {
   Future<void> _openEditor(BuildContext context, WidgetRef ref,
       [StaffMember? existing]) async {
     final l = AppLocalizations.of(context);
-    final name = TextEditingController(text: existing?.name ?? '');
-    // Never pre-filled with the existing PIN — it's stored hashed now, not
-    // in a form that could be redisplayed. Blank means "keep the current
-    // PIN" when editing (see the hint text below); required when adding.
-    final pin = TextEditingController();
-
-    final saved = await showDialog<bool>(
+    final draft = await showDialog<(String, String)>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing == null ? l.staffAddMember : l.staffEditMember),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(labelText: l.staffMemberName),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: pin,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
-              ],
-              decoration: InputDecoration(
-                labelText: l.staffMemberPin,
-                hintText: existing == null ? null : l.staffMemberPinKeepHint,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonSave)),
-        ],
-      ),
+      builder: (_) => _StaffMemberDialog(existing: existing),
     );
-    // Adding a member always needs a PIN; editing may leave it blank to keep
-    // the current one.
-    final shouldSave = saved == true &&
-        name.text.trim().isNotEmpty &&
-        !(existing == null && pin.text.trim().isEmpty);
-    if (shouldSave) {
-      await ref.read(staffRepositoryProvider).upsertMember(
-            id: existing?.id,
-            name: name.text.trim(),
-            pin: pin.text.trim().isEmpty ? null : pin.text.trim(),
-          );
-    }
-    name.dispose();
-    pin.dispose();
-    if (shouldSave && context.mounted) {
+    if (draft == null) return;
+    final (name, pin) = draft;
+    await ref.read(staffRepositoryProvider).upsertMember(
+          id: existing?.id,
+          name: name,
+          pin: pin.isEmpty ? null : pin,
+        );
+    if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.staffMemberSaved)));
     }
@@ -141,7 +96,7 @@ class StaffMembersScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               final m = list[i];
               return ListTile(
-                leading: const Icon(Icons.badge_outlined),
+                leading: const IconAvatar(icon: Icons.badge_outlined),
                 title: Text(m.name),
                 onTap: () => _openEditor(context, ref, m),
                 trailing: IconButton(
@@ -154,6 +109,87 @@ class StaffMembersScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Owns its own [TextEditingController]s so `dispose()` runs on the dialog
+/// route's real teardown rather than a `showDialog` `await` that resolves on
+/// *pop* (before the exit animation finishes) — the previous inline version
+/// disposed both controllers right after that `await`, which is the same
+/// "TextEditingController used after being disposed" crash pattern fixed
+/// repeatedly elsewhere this session (`checkout_sheet.dart`,
+/// `categories_screen.dart`, `customers_screen.dart`,
+/// `payment_accounts_screen.dart`).
+class _StaffMemberDialog extends StatefulWidget {
+  const _StaffMemberDialog({this.existing});
+  final StaffMember? existing;
+
+  @override
+  State<_StaffMemberDialog> createState() => _StaffMemberDialogState();
+}
+
+class _StaffMemberDialogState extends State<_StaffMemberDialog> {
+  late final _name = TextEditingController(text: widget.existing?.name ?? '');
+  // Never pre-filled with the existing PIN — it's stored hashed now, not in a
+  // form that could be redisplayed. Blank means "keep the current PIN" when
+  // editing (see the hint text below); required when adding.
+  final _pin = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _pin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final existing = widget.existing;
+    return AlertDialog(
+      title: Text(existing == null ? l.staffAddMember : l.staffEditMember),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(labelText: l.staffMemberName),
+          ),
+          const SizedBox(height: AppTheme.space2),
+          TextField(
+            controller: _pin,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            decoration: InputDecoration(
+              labelText: l.staffMemberPin,
+              hintText: existing == null ? null : l.staffMemberPinKeepHint,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final name = _name.text.trim();
+            final pin = _pin.text.trim();
+            // Adding a member always needs a PIN; editing may leave it blank
+            // to keep the current one.
+            if (name.isEmpty || (existing == null && pin.isEmpty)) return;
+            Navigator.pop(context, (name, pin));
+          },
+          child: Text(l.commonSave),
+        ),
+      ],
     );
   }
 }

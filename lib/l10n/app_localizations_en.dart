@@ -1099,6 +1099,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printerNone => 'No printer selected';
 
   @override
+  String get printerConnected => 'Connected';
+
+  @override
   String get printerPaired => 'Paired devices';
 
   @override

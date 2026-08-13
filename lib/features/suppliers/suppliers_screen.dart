@@ -42,7 +42,10 @@ class SuppliersScreen extends ConsumerWidget {
               Text(
                 l.supplierDeleteConfirmApWarning(
                     s.name, Money(outstanding).withSymbol(currency)),
-                style: TextStyle(color: AppColors.of(ctx).danger),
+                style: Theme.of(ctx)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.of(ctx).danger),
               ),
             ],
           ],
@@ -52,6 +55,7 @@ class SuppliersScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.commonDelete)),
         ],
@@ -68,77 +72,19 @@ class SuppliersScreen extends ConsumerWidget {
   Future<void> _openEditor(BuildContext context, WidgetRef ref,
       [Supplier? existing]) async {
     final l = AppLocalizations.of(context);
-    final name = TextEditingController(text: existing?.name ?? '');
-    final phone = TextEditingController(text: existing?.phone ?? '');
-    final address = TextEditingController(text: existing?.address ?? '');
-    final note = TextEditingController(text: existing?.note ?? '');
-
-    final saved = await showDialog<bool>(
+    final draft = await showDialog<_SupplierDraft>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-        title: Text(existing == null ? l.supplierAdd : l.supplierEdit),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: l.supplierNameLabel),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: l.customerPhone,
-                  helperText: looksLikeMyanmarPhone(phone.text)
-                      ? null
-                      : l.phoneFormatHint,
-                  helperMaxLines: 2,
-                ),
-                onChanged: (_) => setDialogState(() {}),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: address,
-                decoration: InputDecoration(labelText: l.customerAddress),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: note,
-                decoration: InputDecoration(labelText: l.expenseNote),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonSave)),
-        ],
-        ),
-      ),
+      builder: (_) => _SupplierEditorDialog(existing: existing),
     );
-    final shouldSave = saved == true && name.text.trim().isNotEmpty;
-    if (shouldSave) {
-      await ref.read(supplierRepositoryProvider).upsertSupplier(
-            id: existing?.id,
-            name: name.text.trim(),
-            phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-            address: address.text.trim().isEmpty ? null : address.text.trim(),
-            note: note.text.trim().isEmpty ? null : note.text.trim(),
-          );
-    }
-    name.dispose();
-    phone.dispose();
-    address.dispose();
-    note.dispose();
-    if (shouldSave && context.mounted) {
+    if (draft == null) return;
+    await ref.read(supplierRepositoryProvider).upsertSupplier(
+          id: existing?.id,
+          name: draft.name,
+          phone: draft.phone.isEmpty ? null : draft.phone,
+          address: draft.address.isEmpty ? null : draft.address,
+          note: draft.note.isEmpty ? null : draft.note,
+        );
+    if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.supplierSaved)));
     }
@@ -182,8 +128,8 @@ class SuppliersScreen extends ConsumerWidget {
                       if ((s.address ?? '').isNotEmpty) s.address!,
                     ];
                     return ListTile(
-                      leading: const CircleAvatar(
-                          child: Icon(Icons.local_shipping_outlined)),
+                      leading:
+                          const IconAvatar(icon: Icons.local_shipping_outlined),
                       title: Text(s.name),
                       subtitle: subtitleParts.isEmpty
                           ? null
@@ -197,6 +143,126 @@ class SuppliersScreen extends ConsumerWidget {
                     );
                   },
                 ),
+    );
+  }
+}
+
+/// Result of [_SupplierEditorDialog] — plain strings (already trimmed) so the
+/// caller never has to touch a disposed controller.
+class _SupplierDraft {
+  const _SupplierDraft({
+    required this.name,
+    required this.phone,
+    required this.address,
+    required this.note,
+  });
+  final String name;
+  final String phone;
+  final String address;
+  final String note;
+}
+
+/// Owns its own four [TextEditingController]s so `dispose()` runs on the
+/// dialog route's real teardown rather than a `showDialog` `await` that
+/// resolves on *pop* — this was the exact "four controllers" instance of the
+/// dispose-after-`await` crash flagged for this file (same pattern already
+/// fixed in `checkout_sheet.dart`, `categories_screen.dart`,
+/// `customers_screen.dart`, `payment_accounts_screen.dart`).
+class _SupplierEditorDialog extends StatefulWidget {
+  const _SupplierEditorDialog({this.existing});
+  final Supplier? existing;
+
+  @override
+  State<_SupplierEditorDialog> createState() => _SupplierEditorDialogState();
+}
+
+class _SupplierEditorDialogState extends State<_SupplierEditorDialog> {
+  late final _name = TextEditingController(text: widget.existing?.name ?? '');
+  late final _phone =
+      TextEditingController(text: widget.existing?.phone ?? '');
+  late final _address =
+      TextEditingController(text: widget.existing?.address ?? '');
+  late final _note = TextEditingController(text: widget.existing?.note ?? '');
+
+  @override
+  void initState() {
+    super.initState();
+    // Live-updates the phone format hint below.
+    _phone.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _address.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final existing = widget.existing;
+    return AlertDialog(
+      title: Text(existing == null ? l.supplierAdd : l.supplierEdit),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _name,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(labelText: l.supplierNameLabel),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: l.customerPhone,
+                helperText: looksLikeMyanmarPhone(_phone.text)
+                    ? null
+                    : l.phoneFormatHint,
+                helperMaxLines: 2,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            TextField(
+              controller: _address,
+              decoration: InputDecoration(labelText: l.customerAddress),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            TextField(
+              controller: _note,
+              decoration: InputDecoration(labelText: l.expenseNote),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final name = _name.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(
+              context,
+              _SupplierDraft(
+                name: name,
+                phone: _phone.text.trim(),
+                address: _address.text.trim(),
+                note: _note.text.trim(),
+              ),
+            );
+          },
+          child: Text(l.commonSave),
+        ),
+      ],
     );
   }
 }

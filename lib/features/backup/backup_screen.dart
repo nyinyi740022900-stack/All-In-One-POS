@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'backup_providers.dart';
 
@@ -64,6 +65,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.backupImportConfirmAction)),
         ],
@@ -99,7 +101,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           const SizedBox(height: AppTheme.space4),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.upload_file, color: Colors.teal),
+              leading: const IconAvatar(icon: Icons.upload_file),
               title: Text(l.backupExport),
               subtitle: Text(l.backupExportHint),
               onTap: _busy ? null : _export,
@@ -107,7 +109,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           ),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.download, color: Colors.indigo),
+              // Attention, not neutral: import is a replace-all that erases
+              // whatever is currently on the device (see the confirm dialog
+              // below) — worth a visual nudge before the tap, not just at
+              // the confirm step.
+              leading: const IconAvatar(
+                icon: Icons.download,
+                tone: StatusTone.attention,
+              ),
               title: Text(l.backupImport),
               subtitle: Text(l.backupImportHint),
               onTap: _busy ? null : _import,

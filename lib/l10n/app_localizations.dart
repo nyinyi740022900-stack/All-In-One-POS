@@ -2132,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'No printer selected'**
   String get printerNone;
 
+  /// No description provided for @printerConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get printerConnected;
+
   /// No description provided for @printerPaired.
   ///
   /// In en, this message translates to:

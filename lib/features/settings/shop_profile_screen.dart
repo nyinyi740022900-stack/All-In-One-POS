@@ -8,6 +8,7 @@ import '../../core/image_util.dart';
 import '../../core/phone_validator.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
@@ -157,12 +158,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                 const SizedBox(height: AppTheme.space5),
                 FilledButton.icon(
                   onPressed: _saving ? null : _save,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.check),
+                  icon: _saving ? const ButtonSpinner() : const Icon(Icons.check),
                   label: Text(l.commonSave),
                 ),
               ],
@@ -184,6 +180,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             shape: BoxShape.circle,
           ),
+          alignment: Alignment.center,
           child: (_logoUrl ?? '').isEmpty
               ? const Icon(Icons.storefront, size: 32)
               : Image.network(_logoUrl!,
@@ -196,10 +193,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
           child: OutlinedButton.icon(
             onPressed: _uploadingLogo ? null : _pickLogo,
             icon: _uploadingLogo
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? const ButtonSpinner(size: 16)
                 : const Icon(Icons.add_a_photo_outlined),
             label: Text(l.shopLogo),
           ),

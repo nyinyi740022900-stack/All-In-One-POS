@@ -52,6 +52,16 @@ class BranchesScreen extends ConsumerWidget {
     );
   }
 
+  /// The `TextEditingController` lives inside [_CreateBranchDialog], not
+  /// here. `await showDialog(...)` completes the moment the route is
+  /// *popped*, not when its exit animation finishes, so disposing a
+  /// locally-owned controller on the next line tears it out from under a
+  /// `TextField` that is still on screen — "A TextEditingController was used
+  /// after being disposed", then a cascade of framework assertions and a red
+  /// screen. Same shape already fixed in `checkout_sheet.dart`'s
+  /// `_LineDiscountDialog`, `categories_screen.dart`'s `_CategoryNameDialog`,
+  /// `customers_screen.dart`'s `_CustomerEditorDialog` and
+  /// `payment_accounts_screen.dart`'s `_PaymentAccountEditorDialog`.
   Future<void> _createBranch(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     if (!await requireOwnerPinReauth(
@@ -62,32 +72,11 @@ class BranchesScreen extends ConsumerWidget {
       return;
     }
     if (!context.mounted) return;
-    final name = TextEditingController();
-    final submitted = await showDialog<bool>(
+    final shopName = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.branchesCreate),
-        content: TextField(
-          controller: name,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(labelText: l.shopName),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.branchesCreate),
-          ),
-        ],
-      ),
+      builder: (_) => const _CreateBranchDialog(),
     );
-    final shopName = name.text.trim();
-    name.dispose();
-    if (submitted != true || !context.mounted) return;
-    if (shopName.isEmpty) return;
+    if (shopName == null || shopName.isEmpty || !context.mounted) return;
     final result = await ref
         .read(branchRepositoryProvider)
         .createBranch(shopName);
@@ -102,6 +91,51 @@ class BranchesScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
     }
+  }
+}
+
+/// Add-branch dialog. A `StatefulWidget` purely so its controller is owned by
+/// something whose `dispose` runs when the route is actually gone — see
+/// [BranchesScreen._createBranch].
+class _CreateBranchDialog extends StatefulWidget {
+  const _CreateBranchDialog();
+
+  @override
+  State<_CreateBranchDialog> createState() => _CreateBranchDialogState();
+}
+
+class _CreateBranchDialogState extends State<_CreateBranchDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.branchesCreate),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        decoration: InputDecoration(labelText: l.shopName),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l.branchesCreate)),
+      ],
+    );
   }
 }
 
@@ -140,7 +174,7 @@ class _SectionHint extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.space3),
       decoration: BoxDecoration(
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
       child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
     );
@@ -162,6 +196,7 @@ class _BranchCard extends StatelessWidget {
   final String lastSyncedText;
   final Widget healthChip;
   final Widget trailing;
+
   /// When true, pending count is this device's active-shop outbox (not the
   /// other branch's cloud state).
   final bool showDevicePending;
@@ -182,8 +217,8 @@ class _BranchCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  branch.isCurrent
+                IconAvatar(
+                  icon: branch.isCurrent
                       ? Icons.storefront
                       : Icons.storefront_outlined,
                 ),
@@ -505,6 +540,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
     );
   }
 
+  // A generic `Chip` rendered both states in the exact same neutral fill —
+  // "Safe to switch" and "Sync needed" only differed by a 16px icon glyph,
+  // easy to miss in a busy card header. `StatusPill` is the component this
+  // app already converged on for a two-state signal like this (Orders,
+  // Invoices, Customers) — safe reads positive/green, needs-sync reads
+  // attention/amber, at a glance rather than on close reading.
   Widget _buildHealthChip(
     BuildContext context,
     bool online,
@@ -512,24 +553,34 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
   ) {
     final l = AppLocalizations.of(context);
     final safe = online && pendingOutbox == 0;
-    return Chip(
-      avatar: Icon(
-        safe ? Icons.verified_outlined : Icons.sync_problem_outlined,
-        size: 16,
-      ),
-      label: Text(
-        safe ? l.branchesHealthSafeSwitch : l.branchesHealthSyncNeeded,
-      ),
+    return StatusPill(
+      label: safe ? l.branchesHealthSafeSwitch : l.branchesHealthSyncNeeded,
+      tone: safe ? StatusTone.positive : StatusTone.attention,
+      icon: safe ? Icons.verified_outlined : Icons.sync_problem_outlined,
     );
   }
 
+  // Three near-identical banners in this file (stuck / quarantine /
+  // recovery) used to reach for three different raw `ColorScheme` fills —
+  // `errorContainer`, `surfaceContainerHighest` + a `primary` icon, and
+  // `secondaryContainer` — none of them from the `AppColors` soft-fill tier
+  // the rest of the app's banners/pills converged on (see Sell's licence
+  // banners, Inventory's low-stock banner, `StatusPill`). Reassigned here by
+  // what each one actually *means*, not by what looked closest to the old
+  // color: stuck **blocks switching** and needs an immediate fix, so it gets
+  // the most severe tone (`critical`/danger); quarantine is explicitly
+  // non-blocking, self-resolving background work with nothing for the owner
+  // to do (`neutral`/muted — the "real but not urgent" tier); an interrupted
+  // switch that's offering a direct "Retry sync" action sits in between
+  // (`attention`/warning — open, needs an action, not wrong yet).
   Widget _buildStuckBanner(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
     // Do not use MaterialBanner as a Column child — its intrinsic layout
     // collapses content width to ~0 and wraps one character per line.
     return Material(
-      color: scheme.errorContainer,
+      color: colors.dangerSurface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.space3,
@@ -543,7 +594,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.warning_amber_rounded, color: scheme.error),
+                Icon(Icons.warning_amber_rounded, color: colors.danger),
                 const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Column(
@@ -551,15 +602,16 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                     children: [
                       Text(
                         l.branchesStuckBannerTitle,
-                        style: TextStyle(
-                          color: scheme.onErrorContainer,
-                          fontWeight: FontWeight.w600,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: colors.danger,
                         ),
                       ),
                       const SizedBox(height: AppTheme.space1),
                       Text(
                         l.branchesStuckBannerBody,
-                        style: TextStyle(color: scheme.onErrorContainer),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.danger,
+                        ),
                       ),
                     ],
                   ),
@@ -589,13 +641,15 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                     if (!context.mounted) return;
                     final stuck =
                         ref.read(stuckOutboxProvider).valueOrNull ?? const [];
-                    messenger.showSnackBar(SnackBar(
-                      content: Text(
-                        stuck.isEmpty
-                            ? l.syncIdle
-                            : l.branchesStuckBannerBody,
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          stuck.isEmpty
+                              ? l.syncIdle
+                              : l.branchesStuckBannerBody,
+                        ),
                       ),
-                    ));
+                    );
                   },
                   child: Text(l.branchesStuckBannerSyncNow),
                 ),
@@ -609,9 +663,10 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
 
   Widget _buildQuarantineBanner(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Material(
-      color: scheme.surfaceContainerHighest,
+      color: colors.neutralSurface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.space3,
@@ -625,7 +680,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, color: scheme.primary),
+                Icon(Icons.info_outline, color: colors.muted),
                 const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Column(
@@ -633,15 +688,14 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                     children: [
                       Text(
                         l.branchesQuarantineBannerTitle,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: textTheme.titleSmall,
                       ),
                       const SizedBox(height: AppTheme.space1),
                       Text(
                         l.branchesQuarantineBannerBody,
-                        style: TextStyle(color: scheme.onSurfaceVariant),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -654,9 +708,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               child: TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const SyncIssuesScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const SyncIssuesScreen()),
                   );
                 },
                 child: Text(l.branchesQuarantineBannerOpen),
@@ -680,9 +732,10 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
             recovery.toShopId,
             _switchErrorMessage(l, recovery.lastError),
           );
-    final scheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Material(
-      color: scheme.secondaryContainer,
+      color: colors.warningSurface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.space3,
@@ -696,12 +749,14 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.restore_outlined, color: scheme.onSecondaryContainer),
+                Icon(Icons.restore_outlined, color: colors.warning),
                 const SizedBox(width: AppTheme.space3),
                 Expanded(
                   child: Text(
                     hint,
-                    style: TextStyle(color: scheme.onSecondaryContainer),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colors.warning,
+                    ),
                   ),
                 ),
               ],
@@ -856,8 +911,8 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
               const SizedBox(height: AppTheme.space2),
               Text(
                 summaryStatus,
-                style: TextStyle(
-                  color: canProceed ? null : Theme.of(ctx).colorScheme.error,
+                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                  color: canProceed ? null : AppColors.of(ctx).danger,
                 ),
               ),
               ExpansionTile(
@@ -886,12 +941,12 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(
                         Icons.warning_amber_rounded,
-                        color: Theme.of(ctx).colorScheme.error,
+                        color: AppColors.of(ctx).danger,
                       ),
                       title: Text(
                         l.branchesPreflightStuck(info.stuckOutboxCount),
-                        style: TextStyle(
-                          color: Theme.of(ctx).colorScheme.error,
+                        style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.of(ctx).danger,
                         ),
                       ),
                     ),
@@ -1211,10 +1266,10 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
                   syncState.phase == SyncPhase.error
                       ? l.syncError
                       : (!refreshed.online
-                          ? l.branchesPreflightNeedOnline
-                          : (pending > 0
-                              ? l.branchesSwitchUploadFailed(pending)
-                              : l.branchesPreflightStuck(stuck))),
+                            ? l.branchesPreflightNeedOnline
+                            : (pending > 0
+                                  ? l.branchesSwitchUploadFailed(pending)
+                                  : l.branchesPreflightStuck(stuck))),
                 ),
                 actions: [
                   if (pending > 0 || stuck > 0)
@@ -1348,6 +1403,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
             child: Text(l.commonCancel),
           ),
           FilledButton(
+            style: AppTheme.dangerFilledButtonStyle(ctx),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l.branchesUnlink),
           ),

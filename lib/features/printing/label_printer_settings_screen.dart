@@ -99,10 +99,7 @@ class _LabelPrinterSettingsScreenState
               TextButton.icon(
                 onPressed: _loading ? null : _loadDevices,
                 icon: _loading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const ButtonSpinner(size: 16)
                     : const Icon(Icons.bluetooth_searching),
                 label: Text(l.printerSelectDevice),
               ),
@@ -112,17 +109,24 @@ class _LabelPrinterSettingsScreenState
           if (config != null && config.hasPrinter)
             Card(
               child: ListTile(
-                leading: Icon(
-                  Icons.print,
-                  color: AppColors.of(context).success,
+                leading: const IconAvatar(
+                  icon: Icons.print,
+                  tone: StatusTone.positive,
                 ),
                 title: Text(config.name ?? config.mac!),
-                subtitle: Text(config.mac!),
+                subtitle: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(child: Text(config.mac!)),
+                    const SizedBox(width: AppTheme.space2),
+                    StatusPill(
+                      label: l.printerConnected,
+                      tone: StatusTone.positive,
+                    ),
+                  ],
+                ),
                 trailing: _testing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const ButtonSpinner()
                     : TextButton(
                         onPressed: () => _testPrint(config.size, config.mac!),
                         child: Text(l.printerTestPrint),

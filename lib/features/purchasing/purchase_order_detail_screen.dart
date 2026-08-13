@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'purchase_order_editor_screen.dart';
 import 'purchase_order_providers.dart';
@@ -51,6 +52,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.poCancelOrder)),
         ],
@@ -73,6 +75,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(ctx),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(l.commonDelete)),
         ],
@@ -126,10 +129,15 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(po.supplierName,
-                  style: Theme.of(context).textTheme.titleMedium),
-              Text(poStatusLabel(l, po.status),
-                  style: TextStyle(color: poStatusColor(context, po.status))),
+              Expanded(
+                child: Text(po.supplierName,
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              const SizedBox(width: AppTheme.space2),
+              StatusPill(
+                label: poStatusLabel(l, po.status),
+                tone: poStatusTone(po.status),
+              ),
             ],
           ),
           Text(df.format(po.createdAt),
@@ -145,24 +153,11 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
               title: Text(it.nameSnapshot),
               subtitle: Text(
                   '${it.qty} x ${Money(it.unitCost).withSymbol(cur)}'),
-              trailing: Text(Money(it.lineTotal).withSymbol(cur)),
+              trailing: MoneyText(Money(it.lineTotal).withSymbol(cur)),
             ),
           const Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(l.commonTotal,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              Text(Money(po.itemsTotal).withSymbol(cur),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-            ],
-          ),
+          SummaryRow(l.commonTotal, Money(po.itemsTotal).withSymbol(cur),
+              emphasis: true),
           if (isOpen) ...[
             const SizedBox(height: AppTheme.space4),
             FilledButton.icon(

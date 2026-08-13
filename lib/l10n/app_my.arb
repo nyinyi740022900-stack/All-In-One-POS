@@ -368,6 +368,7 @@
   "printerPaperSize": "စက္ကူအရွယ်",
   "printerTestPrint": "စမ်းထုတ်",
   "printerNone": "ပရင်တာ မရွေးရသေးပါ",
+  "printerConnected": "ချိတ်ဆက်ပြီး",
   "printerPaired": "ချိတ်ဆက်ထားသော စက်များ",
   "printerNoDevicesFound": "ချိတ်ဆက်ထားသော ဘလူးတုသ် စက်များ မတွေ့ပါ။",
   "printSuccess": "ပရင့်ထုတ်ပြီးပါပြီ",

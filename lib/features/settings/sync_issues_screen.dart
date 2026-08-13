@@ -62,22 +62,34 @@ class SyncIssuesScreen extends ConsumerWidget {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(AppTheme.space4),
-                  child: Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l.syncIssuesQuarantinedRow(row.entityTable),
-                        style: Theme.of(context).textTheme.titleMedium,
+                      const IconAvatar(
+                        icon: Icons.error_outline,
+                        tone: StatusTone.critical,
                       ),
-                      const SizedBox(height: AppTheme.space1),
-                      Text(df.format(row.enqueuedAt)),
-                      Text(
-                        l.syncIssuesQuarantinedHeld,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                      const SizedBox(width: AppTheme.space3),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.syncIssuesQuarantinedRow(row.entityTable),
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
+                            const SizedBox(height: AppTheme.space1),
+                            Text(
+                              df.format(row.enqueuedAt),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: AppTheme.space2),
+                            StatusPill(
+                              label: l.syncIssuesQuarantinedHeld,
+                              tone: StatusTone.critical,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

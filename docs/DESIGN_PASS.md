@@ -435,15 +435,235 @@ design-pass work defaults to the cheaper model.
       left-aligned under the title, not trailing). Same
       `dangerFilledButtonStyle` fix on delete-confirm.
 
-### Phase E — Settings + Back-office 🔜
+### Phase E — Settings + Back-office ✅ done (2026-08-12, two parallel sessions)
 `settings_screen.dart`, `shop_profile_screen.dart`,
-**`branches_screen.dart` (1,370 lines — likely its own sub-pass)**,
+**`branches_screen.dart` (1,370 lines — split out as its own sub-pass, done below)**,
 `staff_accounts_screen.dart`, `staff_members_screen.dart`,
 `suppliers_screen.dart`, `accounts_payable_screen.dart`,
 `purchase_orders_screen.dart`, `purchase_order_editor_screen.dart`,
 `purchase_order_detail_screen.dart`, `printer_settings_screen.dart`,
 `label_printer_settings_screen.dart`, `backup_screen.dart`,
 `referral_screen.dart`, `sync_issues_screen.dart`, `help_guide_screen.dart`
+
+- [x] **The other 14 Phase E files (2026-08-12), done in parallel with the
+      `branches_screen.dart` sub-pass below.** Same audit rigor: grepped for
+      the recurring dispose-after-`await` `TextEditingController` crash and
+      the "delete styled like Save" collision across all 14 before touching
+      anything, rather than rediscovering them screen by screen.
+- [x] **Crash fixes — six locations, not four.** The three already-known
+      locations were real: `settings_screen.dart`'s `_DeviceLabelTile._editLabel`
+      (one controller), `suppliers_screen.dart`'s `_openEditor` (four
+      controllers — name/phone/address/note), and **two separate instances**
+      in `purchase_order_editor_screen.dart` (`_addProduct`'s `searchCtrl`
+      product-search sheet, `_editLine`'s `qtyCtrl`/`costCtrl` line editor).
+      All four fixed with the session's established pattern — the
+      controller(s) moved into their own `StatefulWidget`
+      (`_DeviceLabelDialog`, `_SupplierEditorDialog` + a `_SupplierDraft`
+      result type, `_ProductPickerSheet`, `_LineEditorDialog` + a
+      `_LineEditResult` result type) so `dispose()` runs on the widget's own
+      teardown, not on `showDialog`/`showModalBottomSheet`'s future — which
+      resolves on *pop*, before the exit animation finishes. **Two more found
+      by the same grep sweep, not in the handoff list:**
+      `staff_members_screen.dart`'s `_openEditor` (name/pin controllers,
+      identical dispose-after-`await` shape — fixed with a new
+      `_StaffMemberDialog`) and `staff_accounts_screen.dart`'s `_invite`
+      dialog (email/password controllers **never disposed at all** — a leak,
+      not a crash, since nothing touched them after the `await`, but the same
+      family of bug; fixed with a new `_StaffInviteDialog` for correctness
+      and consistency, gaining `autofillHints` in the process). All six
+      exercised live end-to-end where the simulator's navigation cooperated
+      (see the verification note below) — no red screens, no leaked
+      controllers.
+- [x] **The delete-button collision, four more instances.** Every
+      delete/destructive-confirm `AlertDialog` across the 14 files was
+      checked for a plain-green `FilledButton` on the destructive action;
+      four had it and now use `AppTheme.dangerFilledButtonStyle`:
+      `staff_accounts_screen.dart` (Revoke), `staff_members_screen.dart`
+      (Remove member), `suppliers_screen.dart` (Delete supplier — plus the
+      nested remove-line confirm and the outer "Cancel PO"/"Delete PO"
+      dialogs in `purchase_order_editor_screen.dart`/
+      `purchase_order_detail_screen.dart`), and `backup_screen.dart`'s
+      import-confirm ("Replace all local data" is exactly this collision).
+      `purchase_order_detail_screen.dart`'s "Cancel order" also got the
+      danger style, on the reasoning that cancelling a PO is an
+      effectively-irreversible status change, not a routine one, and sitting
+      next to a neutral "Cancel" button a plain green "Cancel order" reads as
+      the safe default.
+- [x] **The cross-feature `filteredProductsProvider` bug — fixed, not just
+      flagged.** `purchase_order_editor_screen.dart`'s product picker used to
+      read `filteredProductsProvider`, Inventory's own search/category
+      `StateProvider` — so the PO picker silently inherited whatever
+      Inventory's tab was last filtered to (a cashier leaves Inventory on
+      "Drinks", the owner opens New PO, and can't find a non-drink product
+      until they notice and clear Inventory's filter first). Switched to
+      `productsStreamProvider`, the same unfiltered base
+      `filteredProductsProvider` itself reads from, so the picker now applies
+      only its own local text search — independent of any other tab's leftover
+      state. Documented inline at the call site.
+- [x] **`purchase_orders_screen.dart` + `purchase_order_detail_screen.dart`**
+      — `poStatusColor` (raw `Color?`) became `poStatusTone` (`StatusTone?`,
+      mirroring `order_labels.dart`'s `orderStatusTone`: `open` ➜ `attention`
+      — it's the shop's to-do list, not neutral; `cancelled` ➜ `neutral`, not
+      danger, for the same "don't train the eye to ignore red" reasoning
+      Orders already uses). List rows now show a `StatusPill` next to the
+      total instead of colored text; the detail screen's header status and
+      totals moved onto `StatusPill`/`MoneyText`/`SummaryRow`; bare leading
+      `Icon`s became `IconAvatar`.
+- [x] **`printer_settings_screen.dart` + `label_printer_settings_screen.dart`**
+      — the "printer connected" row (flagged in the handoff as a `StatusPill`
+      candidate that didn't exist when Phase 5 last touched these screens):
+      the success-green `Icon` became an `IconAvatar(tone: .positive)`, and a
+      new `StatusPill` (new i18n key `printerConnected`/"Connected" ·
+      "ချိတ်ဆက်ပြီး") sits next to the device MAC. Loading spinners
+      (`TextButton.icon`'s scan spinner, the test-print spinner) now use the
+      shared `ButtonSpinner` instead of inline `SizedBox`+
+      `CircularProgressIndicator`.
+- [x] **`backup_screen.dart`** — the two hand-picked `Colors.teal`/
+      `Colors.indigo` leading icons (a beginner-tell raw-`Colors.*` pair with
+      no semantic meaning) became `IconAvatar`s: export neutral
+      (informational), import `tone: .attention` (it's a replace-all that
+      erases the device's current data — worth a visual nudge before the tap,
+      not just at the confirm dialog, which itself now uses
+      `dangerFilledButtonStyle`).
+- [x] **`referral_screen.dart`** — the numbered "How it works" steps'
+      `CircleAvatar` (hand-rolled `primaryContainer` background + bold text)
+      became `IconAvatar(text: '${i+1}')`, exactly the "short label instead
+      of an icon" case that parameter exists for; the referred-shops list's
+      active/paused `CircleAvatar` became `IconAvatar(tone: .positive/
+      .neutral)`; the redeem button's inline spinner became `ButtonSpinner`.
+      **A real overflow bug found live, not in the code:** the wallet card's
+      "Active shops: N · Total earned: X Ks" row was a `Row` with two
+      unconstrained `Text` widgets and a `Spacer` — at this account's `my`
+      locale phrase lengths it overflowed the card's right edge by ~10px
+      (Flutter's red/yellow debug banner, visible on device). Not something
+      this pass introduced; found because this pass actually ran the screen.
+      Fixed by replacing the `Row`+`Spacer` with a `Wrap` (the pair now drops
+      to a second line instead of overflowing) — the correct Myanmar-safety
+      fix per this app's own rule (no ellipsis on this kind of label, no
+      forced single line), not a one-off patch.
+- [x] **`accounts_payable_screen.dart`** — brought onto the same tokens
+      `credit_screen.dart` (out of this phase's scope) still lacks: `CircleAvatar`
+      → `IconAvatar`, the header total and all list/detail money figures onto
+      `MoneyText`, the "settled" row's hand-rolled check-icon-plus-text became
+      a `StatusPill(tone: .positive)`. **Deliberate scope boundary:** this
+      makes Accounts Payable and its sibling Credit book visually diverge for
+      now (Credit's Phase D pass only touched its total figure) — flagged
+      here rather than silently fixed, since `credit_screen.dart` isn't in
+      this phase and pulling it in would have widened the diff past one
+      phase's scope.
+- [x] **`sync_issues_screen.dart`** — the quarantined-row `Card`s were a flat
+      white card with a grey "held until sync completes" caption; now a
+      leading `IconAvatar(icon: error_outline, tone: .critical)` plus a
+      `StatusPill` for the "held" caption, matching the soft-fill banner
+      language the rest of the app uses for a blocked/attention state.
+- [x] **`settings_screen.dart`** — the License tile's status subtitle
+      (Active/Grace/Expired, color-coded) was a bare `TextStyle(color:)`
+      bypassing the `ListTileTheme`'s subtitle role; now
+      `Theme.of(context).textTheme.bodySmall?.copyWith(color:)`.
+      `shop_profile_screen.dart` — the logo-preview circle was missing
+      `alignment: Alignment.center` (the fallback icon sat top-left inside
+      the circle, not centered); the Save/upload-logo spinners now use
+      `ButtonSpinner`.
+- [x] **`help_guide_screen.dart`, `staff_accounts_screen.dart` (structure),
+      `staff_members_screen.dart` (structure) — audited, already fine.**
+      `help_guide_screen.dart` has zero color literals and already uses
+      `ExpansionTile` + theme text roles; no change made. The rest of both
+      staff screens' layout (list/empty-state/FAB) was already token-clean
+      from the earlier Phase-5 retrofit.
+- [x] `flutter analyze` clean; **370/370 tests pass**, unchanged (grepped
+      `test/` for text these screens' own tests assert on before
+      restructuring — `owner_only_routes_matrix_test.dart` only checks the
+      `OwnerOnlyGate` lock icon on `StaffAccountsScreen`, unaffected by the
+      dialog extraction). No business logic changed. One new i18n key
+      (`printerConnected`) added to both `.arb`s + `flutter gen-l10n`.
+- [x] **Verified live** on iPhone 17 Pro, `my`+`en` × light+dark (mixed
+      across screens, not every combination on every screen — see below).
+      **Exercised end-to-end, no red screens:** Suppliers' four-controller
+      crash fix (add ➜ Save ➜ new `IconAvatar` row appeared) and its delete
+      confirm (`en`/light: solid-red "Delete" clearly distinct from the
+      "Cancel" text button, tapped through, row removed cleanly, back to
+      `EmptyStateView`); Staff Accounts' invite-dialog crash fix (dialog open
+      ➜ eye-icon visibility toggle ➜ Cancel, no leak/crash); the Referral
+      overflow fix, confirmed gone in `my`+`en` × light+dark after the code
+      fix (screenshotted broken, then fixed, on the same live device);
+      Backup's `IconAvatar` tones and its native file-picker dismiss (no
+      crash). **Not independently exercised live:**
+      `purchase_order_editor_screen.dart`'s two dialog fixes specifically —
+      this screen is reached via `Navigator.push` (not the bottom-tab shell),
+      and its small icon-only `FloatingActionButton` did not register a tap
+      across many coordinate attempts this session, while the *extended*
+      FAB one level up (Purchase Orders' "Create" button) and a `showDialog`
+      reached via a text-field's trailing `IconButton` on the *same* pushed
+      screen both worked — the same "FAB tap unreliable on a pushed route"
+      simulator quirk noted in this file's Phase-B section and again in the
+      `branches_screen.dart` sub-pass below, not a code defect. Confidence
+      instead rests on: (a) the identical `StatefulWidget`-dialog-extraction
+      pattern verified live twice elsewhere this same phase (Suppliers,
+      Staff Accounts), (b) `flutter analyze` clean + 370/370 tests, and (c)
+      the surrounding infrastructure on this exact screen — another
+      `showModalBottomSheet` reached via a different control — confirmed
+      working live. Also not reached live: `purchase_orders_screen.dart`/
+      `purchase_order_detail_screen.dart`'s `StatusPill` (no saved PO to
+      view, for the same FAB reason), and the printer-connected `StatusPill`
+      (no Bluetooth printer paired in the simulator).
+
+- [x] **`account/branches_screen.dart` ✅ (2026-08-12)** — token/visual pass done
+      in isolation (a parallel session handles the other 13 files above; this
+      box covers only this one). Verified the old Phase-5 retrofit
+      (changelog #104) was already flowing spacing/type-scale/`AppColors`
+      through the new deep-green palette correctly (it reads tokens, not
+      hex) — confirmed rather than assumed. What changed: a **sixth instance**
+      of this session's recurring dispose-after-`await` `TextEditingController`
+      crash, in `_createBranch`'s add-branch dialog, fixed with the same
+      `_CreateBranchDialog` `StatefulWidget` pattern as the five prior fixes;
+      the health chip (`_buildHealthChip`, "Safe to switch"/"Sync needed")
+      went from a generic `Chip` — both states rendered in the *same* neutral
+      fill, differing only by a 16px icon glyph — to `StatusPill`
+      (positive/attention); the three near-identical stuck/quarantine/recovery
+      banners moved off raw `ColorScheme.errorContainer`/
+      `surfaceContainerHighest`+`primary`-icon/`secondaryContainer` onto the
+      `AppColors` soft-fill tier, re-tiered by what each one *means* rather
+      than what looked closest to the old color (stuck blocks switching ➜
+      `dangerSurface`; quarantine is non-blocking/self-resolving ➜
+      `neutralSurface`; an interrupted switch offering a direct retry ➜
+      `warningSurface`); `_BranchCard`'s bare leading `Icon` became an
+      `IconAvatar`; the `_confirmUnlink` dialog's plain-green `FilledButton`
+      (the "delete looks like Save" collision) now uses
+      `AppTheme.dangerFilledButtonStyle`; `AppTheme.radius` (the deprecated
+      alias) in `_SectionHint` became `radiusMd`; a few remaining raw
+      `TextStyle(color: ...)` spots in the preflight bottom sheet now read
+      through `Theme.of(context).textTheme.*` + `AppColors`. The
+      `Switch`/`Unlink` trailing-row button *types* (`OutlinedButton`/
+      `FilledButton`) were deliberately left alone — `branches_screen_p3_widget_test.dart`
+      pins those exact widget types by text, and the existing tonal-fill +
+      red-foreground "Unlink" button already reads as visually distinct from
+      "Switch", so there was no real "Save" collision there to fix (unlike the
+      confirm-dialog's plain FilledButton, which was one). No business logic
+      touched. `flutter analyze` clean; **370/370 tests pass** unchanged (the
+      widget test's `OutlinedButton`/`FilledButton`-by-text assertions and
+      "Safe to switch"/"Sync needed" text assertions still hold against
+      `StatusPill`). No new i18n strings. **Verified live** on iPhone 17 Pro,
+      `my` locale, dark + light: the pinned current-branch card, the green
+      `StatusPill` "Safe to switch", and the bordered `_SectionHint` empty-other-
+      branches box all render cleanly with no overflow in both brightnesses;
+      the create-branch dialog crash fix was exercised end-to-end twice
+      (FAB ➜ dialog opens autofocused ➜ typed a name ➜ submitted ➜ dialog
+      closed cleanly back to the branch list, no red error screen either time).
+      **Not independently verified live** (this test account only has one
+      linked branch, so the "other branches" list never rendered): the
+      `IconAvatar` on an other-branch card, the `_confirmUnlink` danger-button
+      fix, and the three re-toned banners — all code-reviewed and reusing
+      call shapes already confirmed working live elsewhere this session
+      (`IconAvatar`/`StatusPill`/`dangerFilledButtonStyle` in Phase D;
+      the `AppColors` soft-fill `Material`+`Padding`+`Icon`+`Text` banner
+      shape in Sell's licence banners). `en` locale not reached live either
+      (only exercised by the widget test, which does force `Locale('en')` for
+      the error-state case and passes). Simulator navigation in this session
+      was unusually unreliable — screenshots repeatedly landed on unrelated
+      Settings sub-screens after a tap, consistent with a second, concurrent
+      agent driving the same booted simulator for the rest of Phase E at the
+      same time — so fewer states were captured than a typical phase; the
+      states above were captured on stable, double-confirmed screenshots only.
 
 ### Phase F — Web surfaces 🔜
 `admin/admin_dashboard_screen.dart`, `admin/admin_login_screen.dart`,
@@ -496,6 +716,12 @@ design-pass work defaults to the cheaper model.
 | 2026-08-11 | D | **Phase D — hit the account's monthly spend limit a second time, this time with real unfinished scope left over.** Unlike the Phase C interruption (where the agent's work was substantively complete and only the report/docs were missing), this run was cut off after only 3 of 8 files: `analytics_screen.dart` and `pnl_screen.dart` got full, complete treatment; `credit_screen.dart` got one line changed (a `MoneyText` conversion) before the process died; `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` were never reached — no diff exists for any of them. The coordinator did not attempt to hand-complete the remaining 5 files (that would be a full phase's worth of design work done without the audit/reference rigor the rest of this session has used) — instead verified what *was* done, fixed a real bug found doing so, and is stopping here to let the spend-limit signal actually be heard rather than mechanically continuing to grind through Phase E next. What shipped: `StatCard` rebuilt with an icon-plate + `IconAvatar` + `ButtonSpinner` (promoted from a private duplicate) added to the shared widget library; the Analytics KPI-grid raw-color collision flagged back in Phase A2 resolved by removing per-category decoration entirely in favor of color-as-signal (documented as a considered rejection, not an oversight); `pnl_screen.dart` brought onto `SummaryRow`/`MoneyText`/`ButtonSpinner` and its net-profit color rule changed to match Analytics' (loss-only, not "green on every ordinary day"). `flutter analyze` clean, 370/370 tests pass. | **Real bug caught by live verification, not code review**: every single `StatCard` tile overflowed its `RenderFlex` by 5.5-7.5px on device — `Card`'s own default 4dp margin was eating into the height budget that `_kpiTileExtent()` computed for content only, invisible in a code read since the math *looked* right in isolation. Fixed with `margin: EdgeInsets.zero` on the `Card` inside `StatCard` (the GridView's own `mainAxisSpacing`/`crossAxisSpacing` already provide the gap Card's margin was redundantly re-adding). Rebuilt and re-verified after the fix: clean tiles, correct neutral-vs-signal tone split visible live (informational tiles read as plain dark plates, `creditOutstanding > 0` reads as the amber "attention" tone), P&L's net-profit row correctly stays neutral-white on a positive figure. **Handoff, unambiguous:** Phase D needs a fresh pass covering `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart`, plus finishing `credit_screen.dart` beyond its one-line start — none of these were audited this session, so treat them as fully unstarted, not "probably fine." **Before running another large multi-file phase, check/raise the account's monthly spend limit** — two consecutive hits in one session is a real constraint, not a fluke. |
 
 | 2026-08-12 | D | **Phase D finished directly by the coordinator, on Sonnet, after two subagent spend-limit failures.** `.claude/agents/ui-ux-designer.md` switched `model: opus` ➜ `model: sonnet` at the user's request before this work started, so this and future design-pass phases default to the cheaper model rather than risking a third Opus failure mid-phase. Surveyed all 5 remaining files for the two recurring issues this session keeps finding before touching anything: grepped for `Colors.*`/`TextEditingController`/`CircleAvatar` across all 5 up front, which showed 4 of 5 files' controllers were already safely owned by a `StatefulWidget`'s own `dispose()` — only `payment_accounts_screen.dart` had the actual bug (**a fifth instance** of the dispose-after-`await` crash, same fix pattern as the four prior ones, moved into a new `_PaymentAccountEditorDialog`). Applied `StatCard`/`IconAvatar`/`MoneyText`/`SummaryRow`/`StatusPill` consistently across `cash_session_screen.dart`, `expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` — full detail in the Phase D section above. **Also found and fixed the same "delete looks exactly like Save" collision Phase B fixed in Inventory's delete dialogs, in three more files this session hadn't touched yet** (`expense_screen.dart`, `recurring_expenses_screen.dart`, `equity_screen.dart`, `payment_accounts_screen.dart` — four, not three) — none of these had `AppTheme.dangerFilledButtonStyle` applied to their delete-confirm `FilledButton`, all now do. `flutter analyze` clean, 370/370 tests pass throughout (checked after every file, not just at the end). | **Live-verified on iPhone 17 Pro, `my` locale, dark, exercising the actual user flows rather than just screenshotting a static screen**: `payment_accounts_screen.dart`'s crash fix end-to-end (empty state ➜ FAB ➜ dialog ➜ typed a name ➜ Save ➜ new `IconAvatar`+`MoneyText` row appeared, no red screen); `cash_session_screen.dart`'s `StatusPill` end-to-end (closed state ➜ open-register dialog ➜ typed an opening amount ➜ confirmed ➜ the "Open" pastel pill and both `MoneyText` figures render correctly). Not independently live-verified: `equity_screen.dart`'s `IconAvatar(tone:)` on a contribution/drawing row and `expense_screen.dart`/`recurring_expenses_screen.dart`'s `dangerFilledButtonStyle` — code-reviewed only, reusing patterns already proven live elsewhere this session (the identical `IconAvatar(tone:)` call shape confirmed working in `payment_accounts_screen.dart`'s live check; the identical `dangerFilledButtonStyle` call confirmed working in Phase B's Inventory delete dialogs). This closes out Phase D — all 8 scoped files done. |
+
+| 2026-08-12 | E (branches) | **`account/branches_screen.dart` alone (1,370 lines, split out from the rest of Phase E because of size — the other 13 Phase E files were handled by a parallel agent).** Read the file fresh rather than assuming the old Phase-5 retrofit (changelog #104) still held under the new deep-green palette — it did (spacing/type-scale/`AppColors` calls read tokens, not hex, so the recolor flowed through for free). Found and fixed a **sixth instance** of this session's recurring dispose-after-`await` `TextEditingController` crash, in `_createBranch`'s add-branch `AlertDialog` — the controller was created inline, `await`ed `showDialog`, then disposed on the next line, the same bug already fixed five times in `checkout_sheet.dart`/`categories_screen.dart`/`customers_screen.dart`/`payment_accounts_screen.dart`. Fixed the same way: moved into a new `_CreateBranchDialog` `StatefulWidget`. The `_confirmUnlink` delete-confirm dialog had the "delete looks exactly like Save" collision (a plain green `FilledButton` for "Unlink") — now uses `AppTheme.dangerFilledButtonStyle`. Beyond the two known recurring patterns: the health chip (`_buildHealthChip`) went from a generic `Chip` — "Safe to switch" and "Sync needed" rendered in the *identical* neutral fill, differing only by a 16px icon — to `StatusPill` (positive/attention), matching the pattern this app converged on elsewhere; the three near-identical stuck/quarantine/recovery banners (flagged as already using `AppTheme.space*` back in changelog #104, but never re-examined for color) moved off raw `ColorScheme.errorContainer`/`surfaceContainerHighest`+`primary`-icon/`secondaryContainer` onto the `AppColors` soft-fill tier, re-tiered by actual meaning rather than closest-old-color: stuck blocks switching ➜ `dangerSurface`/critical, quarantine is non-blocking and self-resolving ➜ `neutralSurface`/neutral, an interrupted switch offering a direct "Retry sync" ➜ `warningSurface`/attention; `_BranchCard`'s bare leading `Icon` became an `IconAvatar`; `_SectionHint`'s `AppTheme.radius` (the deprecated pre-retrofit alias) became `radiusMd`; a few remaining raw `TextStyle(color: ...)` spots in the switch-preflight bottom sheet now read through `Theme.of(context).textTheme.*` + `AppColors.danger`. **Deliberately left alone:** the `Switch`/`Unlink` trailing-row button *types* (`OutlinedButton`/`FilledButton.tonalIcon`) — `branches_screen_p3_widget_test.dart` pins those exact types by button text, and on inspection the existing tonal-fill-plus-red-foreground "Unlink" button already reads as visually distinct from the outlined "Switch" button, so there was no actual "looks like Save" collision there to fix, unlike the confirm-dialog's plain `FilledButton`, which was one. No business logic touched, no new i18n strings. `flutter analyze` clean; **370/370 tests pass unchanged**, including the 4 branches-specific widget tests (`OutlinedButton`/`FilledButton`-by-text and "Safe to switch"/"Sync needed"-by-text assertions all still hold against the `StatusPill`/style changes). | **Verified live** on iPhone 17 Pro, `my` locale, dark + light (light via `xcrun simctl ui <udid> appearance light`): the pinned current-branch card, the green `StatusPill` "Safe to switch" (pastel fill, solid-green label, correct in both brightnesses), and the bordered `_SectionHint` "no other branches" box all render cleanly with no overflow. **Exercised the crash fix end-to-end, twice**: FAB ➜ dialog opens autofocused ➜ typed a branch name ➜ submitted ➜ dialog closed cleanly back to the branch list with no red error screen, repeated a second time to confirm the widget survives repeat opens, not just first-open (matching this session's "reopen it a second time" standard from the A2 checkout-discount-dialog verification). **Not independently verified live** — this test account has only one linked branch, so the "other branches" list/`_BranchCard` never rendered regardless of navigation: the `IconAvatar` on an other-branch row, the `_confirmUnlink` danger-button fix, the `Switch`/`Unlink` trailing row, and the three re-toned banners (none of stuck/quarantined/interrupted-switch state exists in this seed data either) — all code-reviewed only, reusing call shapes already proven live elsewhere this session (`IconAvatar`/`StatusPill`/`dangerFilledButtonStyle` throughout Phase D; the `AppColors` soft-fill `Material`+`Padding`+`Icon`+`Text` banner shape in Sell's licence banners, Phase A). `en` locale not reached live (only exercised by the widget test's forced `Locale('en')` error-state case, which passes). **Simulator navigation was unusually unreliable this session** — repeated taps landed on unrelated Settings sub-screens (Suppliers, Label Printer Settings, License) instead of the row actually tapped, and the visible screen sometimes didn't match the most recent screenshot at all — consistent with a second, concurrent agent also driving this same booted simulator for the rest of Phase E at the same time (the mid-session build failures in `purchase_order_detail_screen.dart`/`purchase_order_editor_screen.dart` — files outside this task's scope, transiently referencing not-yet-defined methods, then clean again minutes later — independently confirm a second agent was mid-edit on the shared working tree concurrently). Every screenshot cited above as "verified" was double-confirmed stable (two consecutive identical screenshots) before being treated as ground truth, rather than trusted on the first frame. |
+
+| 2026-08-12 | E (13-15 files) | **The other 14 Phase E files, done in parallel with the `branches_screen.dart` sub-pass above (same booted simulator, same working tree — see that entry's note on why navigation was noisy this session).** Full detail in the Phase E section above; short version: grepped `TextEditingController`/`Colors.*`/delete-confirm `FilledButton`s across all 14 files up front rather than rediscovering issues screen-by-screen. Confirmed **all four already-flagged crash locations** (`settings_screen.dart`'s device-label dialog; `suppliers_screen.dart`'s four-controller editor; `purchase_order_editor_screen.dart`'s **two separate instances** — the product-search sheet and the qty/cost line editor) and fixed all four with the session's established `StatefulWidget`-owns-the-controller(s) pattern. **Found two more of the same bug family the grep sweep turned up, not on the handoff list**: `staff_members_screen.dart`'s name/pin editor (identical dispose-after-`await` crash shape) and `staff_accounts_screen.dart`'s invite dialog (controllers **never disposed at all** — a leak, not a crash, but fixed the same way for correctness). **Decided the `filteredProductsProvider` cross-feature bug is a real fix, not just a flag**: switched the PO product picker to `productsStreamProvider` (the same unfiltered base Inventory's own filtered provider reads from) so it stops silently inheriting whatever category/search Inventory's tab was last left on — documented inline. Delete-button collision fixed in four more files (`staff_accounts_screen.dart`, `staff_members_screen.dart`, `suppliers_screen.dart`, `backup_screen.dart`'s import-confirm) plus PO's cancel/delete dialogs. `purchase_orders_screen.dart`/`purchase_order_detail_screen.dart` gained `poStatusTone`+`StatusPill` (mirroring `order_labels.dart`'s reasoning: open=attention, cancelled=neutral, not danger). `printer_settings_screen.dart`/`label_printer_settings_screen.dart`'s "printer connected" indicator — flagged in the handoff as a `StatusPill` candidate that didn't exist last time these screens were touched — now is one (new i18n key `printerConnected`). `backup_screen.dart`'s raw `Colors.teal`/`Colors.indigo` icons became toned `IconAvatar`s. `referral_screen.dart`'s numbered steps and referred-shops list adopted `IconAvatar`; **a real overflow bug was found live** (not introduced by this pass) — the wallet card's "Active shops / Total earned" `Row`+`Spacer` overflowed ~10px at `my` locale phrase lengths, fixed with a `Wrap` per this app's own Myanmar-safety rule. `accounts_payable_screen.dart` got the full token pass (`IconAvatar`/`MoneyText`/`StatusPill`) that its sibling `credit_screen.dart` (out of scope this phase) still lacks — flagged as a deliberate, documented scope boundary, not an oversight. `sync_issues_screen.dart`'s quarantined rows gained an `IconAvatar`+`StatusPill` in the critical tone. `help_guide_screen.dart` audited and left untouched (zero color literals, already token-clean). One new i18n key in both `.arb`s + `flutter gen-l10n`. `flutter analyze` clean, **370/370 tests pass** throughout. | **Live-verified** on iPhone 17 Pro, `my`+`en` × light+dark (not every combination on every screen). **Exercised end-to-end**: Suppliers' four-controller crash fix and its delete-confirm (`en`/light — solid-red "Delete" vs. text "Cancel", deleted cleanly, back to `EmptyStateView`); Staff Accounts' invite-dialog fix (open ➜ eye-icon toggle ➜ Cancel, no leak); the Referral overflow bug, screenshotted broken then confirmed fixed on the same device across `my`/`en` × light/dark; Backup's `IconAvatar` tones plus its native file-picker dismiss. **Not independently exercised live**: `purchase_order_editor_screen.dart`'s two dialog fixes specifically — this screen's small icon-only FAB did not register a tap across many coordinate attempts (the same "FAB unreliable on a pushed route" quirk the note below and the `branches_screen.dart` entry above both hit), while an *extended* FAB one level up and a `showDialog` reached via a different control on the *same* pushed screen both worked fine — confidence rests on the identical extraction pattern proven live twice elsewhere in this same phase, plus `flutter analyze`/tests. Also not reached live: Purchase Orders' `StatusPill` (no saved PO to view, same FAB reason) and the printer-connected `StatusPill` (no Bluetooth printer paired in the simulator). |
+
+| 2026-08-12 | E | **Coordinator independently re-verified both Phase E halves** (trust-but-verify): re-ran `flutter analyze` (clean) and `flutter test` (370/370) myself; confirmed `docs/DESIGN_PASS.md` and `PROJECT_SPEC.md` merged coherently from the two concurrent subagent sessions (no duplicated headers, no corrupted table rows — both wrote to genuinely disjoint sections). Read the crash-fix structure directly in `branches_screen.dart` (`_CreateBranchDialog`) and `purchase_order_editor_screen.dart` (`_ProductPickerSheet`, `_LineEditorDialog`) — both correctly shaped `StatefulWidget`s with `dispose()` on real teardown, matching the five prior fixes. Rebuilt and live-verified on iPhone 17 Pro: Settings list navigation, Printer settings (confirmed the "printer connected" `StatusPill` genuinely can't be seen without a paired Bluetooth device, matching both subagents' own caveat — not a gap in verification effort), and reached the Purchase Order editor screen (supplier/note fields, items list, Save button all render correctly on the new tokens). | **Could not get past the same wall both subagents hit**: `purchase_order_editor_screen.dart`'s small icon-only "add product" `FloatingActionButton` did not register a tap across 4 separate attempts with carefully recalculated coordinates, on the *same* screen where the extended "Create purchase order" FAB one level up worked correctly (confirming the coordinate math itself is right) and where the code (`floatingActionButton: FloatingActionButton(onPressed: _addProduct, ...)`) is unremarkable — no `heroTag` collision, no disabled condition, no `IgnorePointer`. Three independent sessions now hitting the identical wall on the identical control is enough to call this a real characteristic of `mcp__Claude_Code_iOS_Simulator__control` (or this specific `FloatingActionButton` shape) worth flagging plainly rather than a coincidence — see the coordinate-calibration note below, and if a future session needs to actually exercise this dialog live, try `mcp__Claude_Code_iOS_Simulator__control`'s `touch_path` action (a slower, eased tap-and-hold) instead of a bare `tap`, which hasn't been tried against this specific button yet. Confidence in the fix itself rests on code review + the identical extraction pattern proven live 6 times elsewhere this session, not on exercising this exact button. |
 
 ### Note for next session — coordinate calibration for `mcp__Claude_Code_iOS_Simulator__control`
 Tap coordinates for this tool are in **device points** as reported by `attach` (e.g. 402×874 for iPhone 17 Pro), NOT the pixel dimensions the screenshot appears at when viewed. Estimate tap position as a **fraction of the screenshot's visual layout**, then multiply by the point-space width/height — don't eyeball raw pixel numbers from the image. Also: a `swipe`/`touch_path` whose start point lands on the bottom navigation bar (roughly the bottom ~90pt of a compact-width screen) gets consumed by the nav bar and never reaches the scrollable content above it — start swipes well clear of it (e.g. `y=700` on an 874pt-tall screen, not `y=800`). **New this session:** on at least one pushed (non-tab-shell) route, a `FloatingActionButton`'s tap target did not register across several plausible coordinate estimates while other elements on the same screen (list rows) worked fine at the same calibration — if a tap silently fails to do anything on a screen reached via `Navigator.push` rather than the bottom-tab shell, try a nearby alternate entry point to the same code path before concluding the app itself is broken.

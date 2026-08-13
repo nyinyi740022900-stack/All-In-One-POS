@@ -54,11 +54,12 @@ class AccountsPayableScreen extends ConsumerWidget {
                 Text(l.apOutstanding,
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
-                Text(Money(total).withSymbol(currency),
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                MoneyText(
+                  Money(total).withSymbol(currency),
+                  textAlign: TextAlign.start,
+                  emphasis: true,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
               ],
             ),
           ),
@@ -99,28 +100,19 @@ class AccountsPayableScreen extends ConsumerWidget {
                       final settled = b.outstanding <= 0;
                       final colors = AppColors.of(context);
                       return ListTile(
-                        leading: const CircleAvatar(
-                            child: Icon(Icons.local_shipping_outlined)),
+                        leading: const IconAvatar(
+                            icon: Icons.local_shipping_outlined),
                         title: Text(b.name),
                         trailing: settled
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check_circle,
-                                      color: colors.success, size: 18),
-                                  const SizedBox(width: AppTheme.space1),
-                                  Text(l.creditSettled,
-                                      style: TextStyle(
-                                          color: colors.success,
-                                          fontWeight: FontWeight.bold)),
-                                ],
+                            ? StatusPill(
+                                label: l.creditSettled,
+                                tone: StatusTone.positive,
+                                icon: Icons.check_circle,
                               )
-                            : Text(
+                            : MoneyText(
                                 Money(b.outstanding).withSymbol(currency),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.danger,
-                                ),
+                                emphasis: true,
+                                color: colors.danger,
                               ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -190,14 +182,13 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
                 children: [
                   Text(l.apOutstanding,
                       style: Theme.of(context).textTheme.titleMedium),
-                  Text(
+                  MoneyText(
                     Money(balance.outstanding).withSymbol(currency),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: balance.outstanding > 0
-                              ? colors.danger
-                              : colors.success,
-                        ),
+                    emphasis: true,
+                    style: Theme.of(context).textTheme.titleLarge,
+                    color: balance.outstanding > 0
+                        ? colors.danger
+                        : colors.success,
                   ),
                 ],
               ),
@@ -212,7 +203,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
                 subtitle: po.receivedAt != null
                     ? Text(df.format(po.receivedAt!))
                     : null,
-                trailing: Text(Money(po.itemsTotal).withSymbol(currency)),
+                trailing: MoneyText(Money(po.itemsTotal).withSymbol(currency)),
               )),
           if (payments.isNotEmpty) ...[
             const SizedBox(height: AppTheme.space3),
@@ -221,7 +212,11 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.check_circle, color: colors.success),
-                  title: Text('-${Money(p.amount).withSymbol(currency)}'),
+                  title: MoneyText(
+                    '-${Money(p.amount).withSymbol(currency)}',
+                    textAlign: TextAlign.left,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   subtitle: Text(
                       '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
                 )),

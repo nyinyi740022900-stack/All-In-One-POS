@@ -473,7 +473,7 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
       title: Text(l.settingsLicense),
       subtitle: Text(
         modeLabel == null ? label : '$label · ${l.operatingModeLabel}: $modeLabel',
-        style: TextStyle(color: color),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(
@@ -610,38 +610,65 @@ class _DeviceLabelTile extends ConsumerWidget {
     WidgetRef ref,
     String? current,
   ) async {
-    final l = AppLocalizations.of(context);
-    final controller = TextEditingController(text: current ?? '');
-    final saved = await showDialog<bool>(
+    final label = await showDialog<String>(
       context: context,
       // Use the dialog's own context (not the outer Settings-screen one) to
       // pop — showDialog pushes onto the root navigator by default, but the
       // outer context here belongs to a go_router shell branch's own nested
       // navigator, which only ever holds this one page; popping *that* one
       // instead crashes the whole shell branch ("no pages left to show").
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.settingsDeviceName),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l.settingsDeviceNameHint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.commonSave),
-          ),
-        ],
-      ),
+      builder: (_) => _DeviceLabelDialog(initial: current ?? ''),
     );
-    final label = controller.text.trim();
-    controller.dispose();
-    if (saved != true) return;
+    if (label == null) return;
     final deviceId = await ref.read(deviceIdProvider.future);
     await ref.read(deviceLabelRepositoryProvider).setLabel(deviceId, label);
+  }
+}
+
+/// Owns its own [TextEditingController] so `dispose()` runs on the dialog
+/// route's real teardown rather than the moment `showDialog`'s future
+/// resolves on *pop* (which is before the exit animation finishes) — a
+/// controller created and disposed inline around `await showDialog` crashes
+/// with "A TextEditingController was used after being disposed" because the
+/// still-animating `TextField` outlives it. Same fix as
+/// `checkout_sheet.dart`'s `_LineDiscountDialog` and friends.
+class _DeviceLabelDialog extends StatefulWidget {
+  const _DeviceLabelDialog({required this.initial});
+  final String initial;
+
+  @override
+  State<_DeviceLabelDialog> createState() => _DeviceLabelDialogState();
+}
+
+class _DeviceLabelDialogState extends State<_DeviceLabelDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.settingsDeviceName),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: l.settingsDeviceNameHint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: Text(l.commonSave),
+        ),
+      ],
+    );
   }
 }

@@ -50,58 +50,15 @@ class StaffAccountsScreen extends ConsumerWidget {
 
   Future<void> _invite(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    final email = TextEditingController();
-    final password = TextEditingController();
-    var obscure = true;
-    final submitted = await showDialog<bool>(
+    final credentials = await showDialog<(String, String)>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l.staffAccountsInvite),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: l.accountEmail),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextField(
-                controller: password,
-                obscureText: obscure,
-                decoration: InputDecoration(
-                  labelText: l.accountPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () => setDialogState(() => obscure = !obscure),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.staffAccountsInvite),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => const _StaffInviteDialog(),
     );
-    if (submitted != true || !context.mounted) return;
-    if (email.text.trim().isEmpty || password.text.isEmpty) return;
+    if (credentials == null || !context.mounted) return;
+    final (email, password) = credentials;
     final result = await ref
         .read(accountRepositoryProvider)
-        .inviteStaff(email.text.trim(), password.text);
+        .inviteStaff(email, password);
     if (!context.mounted) return;
     if (result.ok) {
       ScaffoldMessenger.of(
@@ -115,6 +72,84 @@ class StaffAccountsScreen extends ConsumerWidget {
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
+  }
+}
+
+/// Owns its own [TextEditingController]s so `dispose()` runs on the dialog
+/// route's real teardown rather than a `showDialog` `await` that resolves on
+/// *pop* — see `_DeviceLabelDialog` in `settings_screen.dart` for the same
+/// fix and the crash it avoids. This dialog previously left both controllers
+/// undisposed for the whole app session (a leak, not a crash, since nothing
+/// used them after the `await`) — owning them here fixes that too.
+class _StaffInviteDialog extends StatefulWidget {
+  const _StaffInviteDialog();
+
+  @override
+  State<_StaffInviteDialog> createState() => _StaffInviteDialogState();
+}
+
+class _StaffInviteDialogState extends State<_StaffInviteDialog> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.staffAccountsInvite),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _email,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: InputDecoration(labelText: l.accountEmail),
+          ),
+          const SizedBox(height: AppTheme.space2),
+          TextField(
+            controller: _password,
+            obscureText: _obscure,
+            autofillHints: const [AutofillHints.newPassword],
+            decoration: InputDecoration(
+              labelText: l.accountPassword,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final email = _email.text.trim();
+            final password = _password.text;
+            if (email.isEmpty || password.isEmpty) return;
+            Navigator.pop(context, (email, password));
+          },
+          child: Text(l.staffAccountsInvite),
+        ),
+      ],
+    );
   }
 }
 
@@ -152,11 +187,20 @@ class _StaffAccountsBody extends ConsumerWidget {
           itemBuilder: (context, i) {
             final s = staff[i];
             return ListTile(
-              leading: Icon(s.banned ? Icons.person_off : Icons.person),
-              title: Text(s.email),
-              subtitle: Text(
-                s.banned ? l.staffAccountsRevoked : l.staffAccountsActive,
+              leading: IconAvatar(
+                icon: s.banned ? Icons.person_off : Icons.person,
+                tone: s.banned ? StatusTone.neutral : null,
               ),
+              title: Text(s.email),
+              subtitle: s.banned
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: AppTheme.space1),
+                      child: StatusPill(
+                        label: l.staffAccountsRevoked,
+                        tone: StatusTone.neutral,
+                      ),
+                    )
+                  : Text(l.staffAccountsActive),
               trailing: s.banned
                   ? null
                   : IconButton(
@@ -187,6 +231,7 @@ class _StaffAccountsBody extends ConsumerWidget {
             child: Text(l.commonCancel),
           ),
           FilledButton(
+            style: AppTheme.dangerFilledButtonStyle(ctx),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l.staffAccountsRevoke),
           ),

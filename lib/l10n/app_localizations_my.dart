@@ -1100,6 +1100,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get printerNone => 'ပရင်တာ မရွေးရသေးပါ';
 
   @override
+  String get printerConnected => 'ချိတ်ဆက်ပြီး';
+
+  @override
   String get printerPaired => 'ချိတ်ဆက်ထားသော စက်များ';
 
   @override

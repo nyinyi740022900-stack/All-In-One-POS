@@ -185,15 +185,27 @@ class _WalletCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppTheme.space2),
-            Row(
+            // Wrap, not Row+Spacer: two unconstrained Text widgets in a Row
+            // overflowed the card on the right at this locale's phrase
+            // lengths (found live, in `my`) — Myanmar labels run longer than
+            // their English source, so the pair needs to be free to drop to
+            // a second line instead of being forced onto one.
+            Wrap(
+              spacing: AppTheme.space3,
+              runSpacing: AppTheme.space1,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(Icons.storefront,
-                    size: 16, color: theme.colorScheme.onPrimaryContainer),
-                const SizedBox(width: AppTheme.space1),
-                Text('${l.referralActiveShops}: ${summary.activeReferrals}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer)),
-                const Spacer(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.storefront,
+                        size: 16, color: theme.colorScheme.onPrimaryContainer),
+                    const SizedBox(width: AppTheme.space1),
+                    Text('${l.referralActiveShops}: ${summary.activeReferrals}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer)),
+                  ],
+                ),
                 Text(
                     '${l.referralEarnedTotal}: ${Money(summary.earned).withSymbol(cur)}',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -220,12 +232,7 @@ class _WalletCard extends StatelessWidget {
             const SizedBox(height: AppTheme.space3),
             FilledButton.icon(
               onPressed: (busy || !canRedeem) ? null : onRedeem,
-              icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.redeem),
+              icon: busy ? const ButtonSpinner() : const Icon(Icons.redeem),
               label: Text(l.referralRedeem),
             ),
           ],
@@ -333,14 +340,7 @@ class _HowItWorksCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 11,
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      child: Text('${i + 1}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimaryContainer)),
-                    ),
+                    IconAvatar(text: '${i + 1}', size: 24),
                     const SizedBox(width: AppTheme.space2),
                     Expanded(
                         child: Text(steps[i],
@@ -384,11 +384,10 @@ class _ReferredList extends ConsumerWidget {
             for (final s in shops)
               ListTile(
                 dense: true,
-                leading: CircleAvatar(
-                  child: Icon(
-                    s.active ? Icons.check : Icons.pause,
-                    size: 18,
-                  ),
+                leading: IconAvatar(
+                  icon: s.active ? Icons.check : Icons.pause,
+                  tone: s.active ? StatusTone.positive : StatusTone.neutral,
+                  size: 36,
                 ),
                 title: Text('#${_mask(s.shopId)}'),
                 subtitle: s.createdAt != null

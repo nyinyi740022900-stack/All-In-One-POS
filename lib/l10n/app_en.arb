@@ -374,6 +374,7 @@
   "printerPaperSize": "Paper size",
   "printerTestPrint": "Test print",
   "printerNone": "No printer selected",
+  "printerConnected": "Connected",
   "printerPaired": "Paired devices",
   "printerNoDevicesFound": "No paired Bluetooth devices found.",
   "printSuccess": "Printed successfully",

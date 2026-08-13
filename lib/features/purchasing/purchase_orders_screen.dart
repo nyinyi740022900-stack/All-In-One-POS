@@ -18,10 +18,16 @@ String poStatusLabel(AppLocalizations l, String status) => switch (status) {
       _ => l.poStatusOpen,
     };
 
-Color? poStatusColor(BuildContext context, String status) => switch (status) {
-      'received' => AppColors.of(context).success,
-      'cancelled' => AppColors.of(context).danger,
-      _ => null,
+/// The semantic weight of a purchase-order status, for [StatusPill] — mirrors
+/// `orderStatusTone` in `order_labels.dart`. `open` is [StatusTone.attention]
+/// (not neutral): an open PO is still waiting to be received, i.e. the shop's
+/// to-do list, the same reasoning as a `new` social order. `cancelled` is
+/// [StatusTone.neutral], not danger, for the same reason cancelled orders
+/// aren't red — it is a finished-with state, not an error to chase.
+StatusTone poStatusTone(String status) => switch (status) {
+      'received' => StatusTone.positive,
+      'cancelled' => StatusTone.neutral,
+      _ => StatusTone.attention,
     };
 
 /// Purchase orders: lightweight tracking of what's been ordered from
@@ -68,21 +74,20 @@ class PurchaseOrdersScreen extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final po = orders[i];
                     return ListTile(
-                      leading: const Icon(Icons.local_shipping_outlined),
+                      leading: const IconAvatar(
+                          icon: Icons.local_shipping_outlined),
                       title: Text('${po.poNo}  ·  ${po.supplierName}'),
                       subtitle: Text(df.format(po.createdAt)),
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(Money(po.itemsTotal).withSymbol(l.currencySymbol)),
-                          Text(
-                            poStatusLabel(l, po.status),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color: poStatusColor(context, po.status)),
+                          MoneyText(
+                              Money(po.itemsTotal).withSymbol(l.currencySymbol)),
+                          const SizedBox(height: AppTheme.space1),
+                          StatusPill(
+                            label: poStatusLabel(l, po.status),
+                            tone: poStatusTone(po.status),
                           ),
                         ],
                       ),
