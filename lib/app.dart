@@ -12,7 +12,6 @@ import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
 import 'features/onboarding/daily_gate.dart';
-import 'features/onboarding/mode_migrate_flow.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/onboarding/operating_mode_providers.dart';
 import 'features/printing/printing_providers.dart';
@@ -53,20 +52,12 @@ class MmPosApp extends ConsumerWidget {
     final showOnboarding =
         ref.watch(_onboardingDoneProvider).valueOrNull == false;
     final showPasswordRecovery = ref.watch(passwordRecoveryPendingProvider);
-    final modeConfirmed =
-        ref.watch(operatingModeConfirmedProvider).valueOrNull == true;
-    final showModeMigrate = !showOnboarding &&
-        ref.watch(operatingModeConfirmedProvider).hasValue &&
-        !modeConfirmed;
     final dailyGateAsync = ref.watch(dailyGateNeededProvider);
     // Every install must not flash the Sell shell while we resolve whether
     // today's entry gate is still needed.
-    final holdForDailyCheck = !showOnboarding &&
-        !showModeMigrate &&
-        !dailyGateAsync.hasValue;
-    final showDailyGate = !showOnboarding &&
-        !showModeMigrate &&
-        (dailyGateAsync.valueOrNull == true);
+    final holdForDailyCheck = !showOnboarding && !dailyGateAsync.hasValue;
+    final showDailyGate =
+        !showOnboarding && (dailyGateAsync.valueOrNull == true);
 
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
@@ -91,15 +82,6 @@ class MmPosApp extends ConsumerWidget {
         if (showOnboarding) {
           return OnboardingFlow(
               onDone: () => ref.invalidate(_onboardingDoneProvider));
-        }
-        if (showModeMigrate) {
-          return ModeMigrateFlow(
-            onDone: () {
-              ref.invalidate(operatingModeConfirmedProvider);
-              ref.invalidate(operatingModeProvider);
-              ref.invalidate(dailyGateNeededProvider);
-            },
-          );
         }
         if (holdForDailyCheck) {
           return const Scaffold(

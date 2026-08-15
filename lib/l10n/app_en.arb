@@ -868,8 +868,12 @@
   "onboardLicenseTitle": "Free plan or license key",
   "onboardLicenseBody": "Continue on the Free plan — Sell and Inventory work forever, no card, no signup, no key needed. Already have a license key from an agent? Activate it now to unlock Premium, or add one later from Settings.",
   "onboardActivateNow": "Activate a license key",
+  "onboardAccountTitle": "Sign in (optional)",
+  "onboardAccountBody": "Already run this shop on another device? Sign in to sync across devices, get cloud backup, and manage staff by email. Skip this and it still works — you can sign in anytime later from Settings.",
+  "onboardAccountSkip": "Skip for now",
+  "onboardAccountSignedInTitle": "Signed in",
   "onboardStaffTitle": "Owner and Staff modes",
-  "onboardStaffBody": "You're in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.",
+  "onboardStaffBody": "You're in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who's opening the shop each day.",
 
   "accountShopLoginTitle": "Shop login",
   "accountShopLoginHint": "Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.",

@@ -3,8 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
 import '../../data/repositories/settings_repository.dart';
-import '../account/account_providers.dart';
-import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 
 /// Device-global Online/Offline shell. Null until first choice / migrate.
@@ -43,23 +41,3 @@ final dailyGateNeededProvider = FutureProvider<bool>((ref) async {
       .dailyGateYmd(shopId);
   return ymd != localCalendarYmd();
 });
-
-/// Persist mode + lock flag, and best-effort align `licenses.tier` for pricing.
-Future<void> lockOperatingMode(WidgetRef ref, String mode) async {
-  final settings = ref.read(settingsRepositoryProvider);
-  await settings.setOperatingMode(mode);
-  await settings.confirmOperatingMode();
-  ref.invalidate(operatingModeProvider);
-  ref.invalidate(operatingModeConfirmedProvider);
-  try {
-    final result =
-        await ref.read(accountRepositoryProvider).setPricingTier(mode);
-    if (result.ok && result.license != null) {
-      ref
-          .read(licenseControllerProvider.notifier)
-          .applyExternal(result.license!);
-    }
-  } catch (_) {
-    // No session / Free offline — tier stays whatever activate last wrote.
-  }
-}

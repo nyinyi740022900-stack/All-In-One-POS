@@ -860,8 +860,12 @@
   "onboardLicenseTitle": "Free Plan သို့မဟုတ် License Key",
   "onboardLicenseBody": "Free Plan နဲ့ ဆက်လက်အသုံးပြုနိုင်ပါတယ် — ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုတွေ Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲအသုံးပြုနိုင်ပါမယ်။ Agent ဆီက license key ရှိပြီးသားလား? Premium ဖွင့်ဖို့ အခုပဲ activate လုပ်ပါ ဒါမှမဟုတ် နောက်မှ Settings ကနေ ထည့်နိုင်ပါတယ်။",
   "onboardActivateNow": "License key ချက်ချင်း activate",
+  "onboardAccountTitle": "Sign in (မလုပ်လည်းရ)",
+  "onboardAccountBody": "ဒီဆိုင်ကို device တခြားကနေ အသုံးပြုနေပြီးသားလား? Device တွေကြား sync လုပ်ဖို့၊ cloud backup ရဖို့၊ email နဲ့ ဝန်ထမ်းစီမံဖို့ Sign in လုပ်ပါ။ ဒီအဆင့်ကို ကျော်ထားလည်း ရပါတယ် — Settings ကနေ နောက်မှ Sign in လုပ်နိုင်ပါတယ်။",
+  "onboardAccountSkip": "အခုအတွက် ကျော်မည်",
+  "onboardAccountSignedInTitle": "Sign in ဝင်ပြီးပါပြီ",
   "onboardStaffTitle": "Owner နှင့် Staff Mode",
-  "onboardStaffBody": "အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။",
+  "onboardStaffBody": "အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။ ဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။",
 
   "accountShopLoginTitle": "ဆိုင် Login",
   "accountShopLoginHint": "ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။",

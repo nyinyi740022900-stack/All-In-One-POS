@@ -2546,11 +2546,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardActivateNow => 'Activate a license key';
 
   @override
+  String get onboardAccountTitle => 'Sign in (optional)';
+
+  @override
+  String get onboardAccountBody =>
+      'Already run this shop on another device? Sign in to sync across devices, get cloud backup, and manage staff by email. Skip this and it still works — you can sign in anytime later from Settings.';
+
+  @override
+  String get onboardAccountSkip => 'Skip for now';
+
+  @override
+  String get onboardAccountSignedInTitle => 'Signed in';
+
+  @override
   String get onboardStaffTitle => 'Owner and Staff modes';
 
   @override
   String get onboardStaffBody =>
-      'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.';
+      'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who\'s opening the shop each day.';
 
   @override
   String get accountShopLoginTitle => 'Shop login';

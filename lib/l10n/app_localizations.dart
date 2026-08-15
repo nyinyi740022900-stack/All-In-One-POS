@@ -4724,6 +4724,30 @@ abstract class AppLocalizations {
   /// **'Activate a license key'**
   String get onboardActivateNow;
 
+  /// No description provided for @onboardAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in (optional)'**
+  String get onboardAccountTitle;
+
+  /// No description provided for @onboardAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Already run this shop on another device? Sign in to sync across devices, get cloud backup, and manage staff by email. Skip this and it still works — you can sign in anytime later from Settings.'**
+  String get onboardAccountBody;
+
+  /// No description provided for @onboardAccountSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get onboardAccountSkip;
+
+  /// No description provided for @onboardAccountSignedInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get onboardAccountSignedInTitle;
+
   /// No description provided for @onboardStaffTitle.
   ///
   /// In en, this message translates to:
@@ -4733,7 +4757,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardStaffBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner.'**
+  /// **'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who\'s opening the shop each day.'**
   String get onboardStaffBody;
 
   /// No description provided for @accountShopLoginTitle.

@@ -2547,11 +2547,24 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardActivateNow => 'License key ချက်ချင်း activate';
 
   @override
+  String get onboardAccountTitle => 'Sign in (မလုပ်လည်းရ)';
+
+  @override
+  String get onboardAccountBody =>
+      'ဒီဆိုင်ကို device တခြားကနေ အသုံးပြုနေပြီးသားလား? Device တွေကြား sync လုပ်ဖို့၊ cloud backup ရဖို့၊ email နဲ့ ဝန်ထမ်းစီမံဖို့ Sign in လုပ်ပါ။ ဒီအဆင့်ကို ကျော်ထားလည်း ရပါတယ် — Settings ကနေ နောက်မှ Sign in လုပ်နိုင်ပါတယ်။';
+
+  @override
+  String get onboardAccountSkip => 'အခုအတွက် ကျော်မည်';
+
+  @override
+  String get onboardAccountSignedInTitle => 'Sign in ဝင်ပြီးပါပြီ';
+
+  @override
   String get onboardStaffTitle => 'Owner နှင့် Staff Mode';
 
   @override
   String get onboardStaffBody =>
-      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။';
+      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။ ဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
 
   @override
   String get accountShopLoginTitle => 'ဆိုင် Login';
