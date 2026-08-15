@@ -82,9 +82,9 @@ class _AccountEmailTile extends ConsumerWidget {
 /// Lists the shop's device slots and lets the owner add or release one.
 /// Offline: add via license-key QR. Online: sign-in on the other phone (no QR).
 class _DevicesSection extends ConsumerWidget {
-  const _DevicesSection({this.onlineMode = false});
+  const _DevicesSection({this.hasAccount = false});
 
-  final bool onlineMode;
+  final bool hasAccount;
 
   Future<void> _addDevice(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
@@ -277,7 +277,7 @@ class _DevicesSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (onlineMode)
+                if (hasAccount)
                   Padding(
                     padding: const EdgeInsets.only(top: AppTheme.space2),
                     child: Text(

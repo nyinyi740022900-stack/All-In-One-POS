@@ -6,7 +6,6 @@ import '../account/account_providers.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
 import '../license/license_providers.dart';
-import '../onboarding/operating_mode_providers.dart';
 import '../printing/printing_providers.dart';
 import 'owner_permission.dart';
 import 'staff_repository.dart';
@@ -93,15 +92,16 @@ final activeStaffNameProvider = Provider<String?>((ref) {
 
 /// Role currently applied by the UI permission layer.
 ///
-/// Online mode: backend account role only (email staff/owner) — device PIN
-/// mode is ignored.
-/// Offline mode: more-restrictive of local device mode + backend:
+/// A device with a real account session: backend account role only (email
+/// staff/owner) — the local device PIN mode is ignored.
+/// A device with no real account session: more-restrictive of local device
+/// mode + backend:
 /// - backend 'staff' => always staff
 /// - backend 'owner' => follow local device mode
 /// - no backend role  => follow local device mode
 final effectiveRoleProvider = Provider<String>((ref) {
   final backendRole = ref.watch(backendAccountRoleProvider);
-  if (ref.watch(isOnlineModeProvider)) {
+  if (ref.watch(hasRealAccountSessionProvider)) {
     if (backendRole == 'staff') return 'staff';
     return 'owner';
   }
@@ -150,10 +150,11 @@ final canEditInventoryProvider = Provider<bool>(
   ),
 );
 
-/// Staff/Owner device-PIN mode is Offline-only. Online shops use email staff
-/// accounts instead. Still shown Offline when multi-device or already in staff.
+/// Staff/Owner device-PIN mode is for devices with no real account session —
+/// a shop with a real account uses email staff accounts instead. Still shown
+/// when multi-device or already in staff, even with a real account.
 final showStaffModeSectionProvider = Provider<bool>((ref) {
-  if (ref.watch(isOnlineModeProvider)) return false;
+  if (ref.watch(hasRealAccountSessionProvider)) return false;
   final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   if (role != 'owner') return true;
   final deviceCount =

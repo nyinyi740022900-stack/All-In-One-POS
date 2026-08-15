@@ -11,7 +11,6 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
-import '../onboarding/operating_mode_providers.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import '../sell/barcode_scanner_screen.dart';
@@ -170,10 +169,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
 
   Future<void> _contactSupportForTrial() {
     final l = AppLocalizations.of(context);
-    final online = ref.read(isOnlineModeProvider);
+    final hasAccount = ref.read(hasRealAccountSessionProvider);
     return _contactSupport(
       title: l.licenseFreeTrial,
-      body: online ? l.licenseTrialContactHintOnline : l.licenseTrialContactHint,
+      body: hasAccount
+          ? l.licenseTrialContactHintOnline
+          : l.licenseTrialContactHint,
     );
   }
 
@@ -182,10 +183,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   /// inside the binary.
   Future<void> _contactSupportForPremium() {
     final l = AppLocalizations.of(context);
-    final online = ref.read(isOnlineModeProvider);
+    final hasAccount = ref.read(hasRealAccountSessionProvider);
     return _contactSupport(
       title: l.licenseContactSupportTitle,
-      body: online
+      body: hasAccount
           ? l.licensePremiumContactHintOnline
           : l.licensePremiumContactHint,
     );
@@ -263,7 +264,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
     final state = ref.watch(licenseControllerProvider);
     final status = state.status;
-    final online = ref.watch(isOnlineModeProvider);
+    final hasAccount = ref.watch(hasRealAccountSessionProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsLicense)),
@@ -272,7 +273,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         children: [
           _StatusCard(status: status),
           const SizedBox(height: AppTheme.space2),
-          if (online) const _AccountEmailTile() else const _RefIdTile(),
+          if (hasAccount) const _AccountEmailTile() else const _RefIdTile(),
           const SizedBox(height: AppTheme.space4),
           if (status.canSell) ...[
             FilledButton.icon(
@@ -290,12 +291,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             ),
             const SizedBox(height: AppTheme.space1),
             Text(
-              online
+              hasAccount
                   ? l.licensePremiumContactHintOnline
                   : l.licensePremiumContactHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            if (online) ...[
+            if (hasAccount) ...[
               const SizedBox(height: AppTheme.space1),
               Text(
                 l.licenseOnlineApplyHint,
@@ -315,14 +316,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               ),
               const SizedBox(height: AppTheme.space1),
               Text(
-                online
+                hasAccount
                     ? l.licenseTrialContactHintOnline
                     : l.licenseTrialContactHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              // Offline Free: redeem a device license key. Online Free: account
-              // Premium only — never show key entry (looks like Offline).
-              if (!online) ...[
+              // No account: redeem a device license key. Real account: cloud
+              // Premium only — never show key entry (that's the no-account
+              // model).
+              if (!hasAccount) ...[
                 const SizedBox(height: AppTheme.space4),
                 const Divider(),
                 const SizedBox(height: AppTheme.space2),
@@ -356,7 +358,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               ),
               const SizedBox(height: AppTheme.space1),
               Text(
-                online ? l.licenseRenewHintOnline : l.licenseRenewHint,
+                hasAccount ? l.licenseRenewHintOnline : l.licenseRenewHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: AppTheme.space2),
@@ -373,11 +375,11 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              _DevicesSection(onlineMode: online),
+              _DevicesSection(hasAccount: hasAccount),
             ],
-          ] else if (online) ...[
-            // Online without canSell: recover via Support on the account —
-            // never push Offline key typing as the primary path.
+          ] else if (hasAccount) ...[
+            // Real account without canSell: recover via Support on the
+            // account — never push key typing as the primary path.
             Text(
               l.licenseContactSupportTitle,
               style: Theme.of(context).textTheme.titleMedium,

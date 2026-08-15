@@ -4,60 +4,49 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/features/account/account_providers.dart';
 import 'package:mm_pos/features/onboarding/operating_mode_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 
 void main() {
-  test('isOnlineModeProvider follows operating.mode', () async {
-    final container = ProviderContainer(
-      overrides: [
-        operatingModeProvider.overrideWith((ref) async => 'online'),
-      ],
-    );
-    addTearDown(container.dispose);
-    await container.read(operatingModeProvider.future);
-    expect(container.read(isOnlineModeProvider), isTrue);
-  });
-
-  test('showStaffModeSectionProvider is false in online mode', () async {
-    final container = ProviderContainer(
-      overrides: [
-        operatingModeProvider.overrideWith((ref) async => 'online'),
-        staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
-      ],
-    );
-    addTearDown(container.dispose);
-    await container.read(operatingModeProvider.future);
-    expect(container.read(showStaffModeSectionProvider), isFalse);
-  });
-
-  test('showStaffModeSectionProvider stays true offline when already staff',
+  test('showStaffModeSectionProvider is false with a real account session',
       () async {
     final container = ProviderContainer(
       overrides: [
-        operatingModeProvider.overrideWith(
-          (ref) async => SettingsRepository.operatingModeOffline,
-        ),
+        hasRealAccountSessionProvider.overrideWithValue(true),
         staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
       ],
     );
     addTearDown(container.dispose);
-    await container.read(operatingModeProvider.future);
+    expect(container.read(showStaffModeSectionProvider), isFalse);
+  });
+
+  test(
+      'showStaffModeSectionProvider stays true with no account session when '
+      'already staff', () async {
+    final container = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(false),
+        staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+      ],
+    );
+    addTearDown(container.dispose);
     await container.read(staffRoleProvider.future);
     expect(container.read(showStaffModeSectionProvider), isTrue);
   });
 
-  test('effectiveRoleProvider ignores local role in online mode', () async {
+  test('effectiveRoleProvider ignores local role with a real account session',
+      () async {
     final container = ProviderContainer(
       overrides: [
-        operatingModeProvider.overrideWith((ref) async => 'online'),
+        hasRealAccountSessionProvider.overrideWithValue(true),
         staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
       ],
     );
     addTearDown(container.dispose);
-    await container.read(operatingModeProvider.future);
-    // No backend role → online defaults to owner (email session required by gate).
+    // No backend role -> a real account session defaults to owner (email
+    // session required by the daily gate).
     expect(container.read(effectiveRoleProvider), 'owner');
   });
 

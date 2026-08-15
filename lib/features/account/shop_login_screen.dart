@@ -151,6 +151,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         ref.read(syncControllerProvider.notifier).sync();
       }
       ref.invalidate(backendAccountRoleProvider);
+      ref.invalidate(hasRealAccountSessionProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
       _signInPassword.clear();
       setState(() {});
@@ -203,6 +204,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           .applyExternal(result.license!);
     }
     ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() {});
@@ -294,6 +296,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       await ref.read(licenseControllerProvider.notifier).deactivate();
     }
     ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);
     if (!mounted) return;
     setState(() => _busy = false);

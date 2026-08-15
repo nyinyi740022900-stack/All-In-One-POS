@@ -5864,6 +5864,12 @@ abstract class AppLocalizations {
   /// **'Shop mode'**
   String get operatingModeLabel;
 
+  /// No description provided for @licenseAccountLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud account linked'**
+  String get licenseAccountLinked;
+
   /// No description provided for @operatingModeOnline.
   ///
   /// In en, this message translates to:

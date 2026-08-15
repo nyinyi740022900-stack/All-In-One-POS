@@ -3199,6 +3199,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get operatingModeLabel => 'ဆိုင် mode';
 
   @override
+  String get licenseAccountLinked => 'Cloud account ချိတ်ဆက်ထားပြီး';
+
+  @override
   String get operatingModeOnline => 'Online';
 
   @override

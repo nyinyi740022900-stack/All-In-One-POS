@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../onboarding/operating_mode_providers.dart';
+import '../account/account_providers.dart';
 import 'license_providers.dart';
 import 'license_screen.dart';
 
@@ -29,7 +29,7 @@ class PremiumGate extends ConsumerWidget {
     if (licState.isPremium) return child;
     return _PremiumPaywall(
       featureName: featureName,
-      onlineMode: ref.watch(isOnlineModeProvider),
+      hasAccount: ref.watch(hasRealAccountSessionProvider),
     );
   }
 }
@@ -37,10 +37,10 @@ class PremiumGate extends ConsumerWidget {
 class _PremiumPaywall extends StatelessWidget {
   const _PremiumPaywall({
     required this.featureName,
-    required this.onlineMode,
+    required this.hasAccount,
   });
   final String featureName;
-  final bool onlineMode;
+  final bool hasAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +59,7 @@ class _PremiumPaywall extends StatelessWidget {
                 textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.space2),
             Text(
-              onlineMode ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
+              hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.space4),
@@ -83,14 +83,15 @@ class _PremiumPaywall extends StatelessWidget {
 Future<void> showPremiumRequiredDialog(
     BuildContext context, String featureName) {
   final l = AppLocalizations.of(context);
-  final online =
-      ProviderScope.containerOf(context).read(isOnlineModeProvider);
+  final hasAccount = ProviderScope.containerOf(
+    context,
+  ).read(hasRealAccountSessionProvider);
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(l.premiumFeatureTitle(featureName)),
       content: Text(
-        online ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
+        hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
       ),
       actions: [
         TextButton(

@@ -3203,6 +3203,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get operatingModeLabel => 'Shop mode';
 
   @override
+  String get licenseAccountLinked => 'Cloud account linked';
+
+  @override
   String get operatingModeOnline => 'Online';
 
   @override

@@ -1070,6 +1070,7 @@
   "dailyGateContinueAsStaff": "ဝန်ထမ်းအဖြစ် ဆက်မည်",
   "dailyGateOrSignIn": "သို့မဟုတ် account နဲ့ Sign in လုပ်ပါ",
   "operatingModeLabel": "ဆိုင် mode",
+  "licenseAccountLinked": "Cloud account ချိတ်ဆက်ထားပြီး",
   "operatingModeOnline": "Online",
   "operatingModeOffline": "Offline",
 

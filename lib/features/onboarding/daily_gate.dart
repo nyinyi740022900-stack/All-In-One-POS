@@ -114,6 +114,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             .read(licenseControllerProvider.notifier)
             .applyExternal(result.license!);
         ref.invalidate(backendAccountRoleProvider);
+        ref.invalidate(hasRealAccountSessionProvider);
         setState(() {
           _busy = false;
           _step = 1;
@@ -168,6 +169,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       }
       ref.read(syncControllerProvider.notifier).sync();
       ref.invalidate(backendAccountRoleProvider);
+      ref.invalidate(hasRealAccountSessionProvider);
       setState(() {
         _busy = false;
         _step = 1;

@@ -9,8 +9,8 @@ import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/repositories/settings_repository.dart';
 import '../../data/sync/sync_providers.dart';
+import '../account/account_providers.dart';
 import '../account/branch_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
@@ -40,7 +40,6 @@ import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
-import '../onboarding/operating_mode_providers.dart';
 import 'device_label_providers.dart';
 import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
@@ -120,11 +119,12 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _AccountsPayableTile(),
           _EquityTile(),
-          if (isOwner && ref.watch(isOnlineModeProvider)) _StorefrontTile(),
+          if (isOwner && ref.watch(isPremiumProvider) && Env.hasBackend)
+            _StorefrontTile(),
 
           _SectionHeader(l.settingsSectionFinance),
           if (isOwner) _LicenseTile(),
-          if (ref.watch(isOnlineModeProvider))
+          if (ref.watch(hasRealAccountSessionProvider))
             ListTile(
               leading: const Icon(Icons.alternate_email),
               title: Text(l.accountShopLoginTitle),
@@ -133,7 +133,7 @@ class SettingsScreen extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
               ),
             ),
-          if (ref.watch(isOnlineModeProvider) &&
+          if (ref.watch(hasRealAccountSessionProvider) &&
               session.backendRole != null &&
               isOwner) ...[
             ListTile(
@@ -224,7 +224,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           _DeviceLabelTile(),
-          if (ref.watch(isOnlineModeProvider)) _SyncTile(),
+          if (ref.watch(isPremiumProvider) && Env.hasBackend) _SyncTile(),
 
           _SectionHeader(l.settingsSectionHelp),
           ListTile(
@@ -462,17 +462,14 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
               Theme.of(context).colorScheme.outline,
             ),
           };
-    final mode = ref.watch(operatingModeProvider).valueOrNull;
-    final modeLabel = mode == SettingsRepository.operatingModeOnline
-        ? l.operatingModeOnline
-        : mode == SettingsRepository.operatingModeOffline
-            ? l.operatingModeOffline
-            : null;
+    // Plan status is the primary fact; whether a cloud account is linked is
+    // a secondary, live readout — no more permanent "shop mode" to report.
+    final hasAccount = ref.watch(hasRealAccountSessionProvider);
     return ListTile(
       leading: const Icon(Icons.key),
       title: Text(l.settingsLicense),
       subtitle: Text(
-        modeLabel == null ? label : '$label · ${l.operatingModeLabel}: $modeLabel',
+        hasAccount ? '$label · ${l.licenseAccountLinked}' : label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
       ),
       trailing: const Icon(Icons.chevron_right),

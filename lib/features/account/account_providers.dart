@@ -28,3 +28,20 @@ final backendAccountRoleProvider = Provider<String?>((ref) {
     return null;
   }
 });
+
+/// Whether this device currently has a real (email) account session — the
+/// replacement for the old permanent "Online mode" flag: cloud-capable UI
+/// (Shop Login, Staff accounts, Branches, ...) now gates on *actually having
+/// a session* rather than a device-wide mode chosen once at onboarding.
+/// `AccountRepository.isSignedInWithRealAccount` is a plain getter, not
+/// itself Riverpod-reactive, so every call site that changes the session
+/// (sign in/out, wipe-and-claim) must `ref.invalidate` this alongside
+/// [backendAccountRoleProvider] — see `shop_login_screen.dart` and
+/// `daily_gate.dart` for the existing invalidation sites.
+final hasRealAccountSessionProvider = Provider<bool>((ref) {
+  try {
+    return ref.watch(accountRepositoryProvider).isSignedInWithRealAccount;
+  } catch (_) {
+    return false;
+  }
+});
