@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/env.dart';
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
+import '../../data/local/shop_data_transition_service.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import 'license_repository.dart';
@@ -94,10 +95,49 @@ class LicenseController extends StateNotifier<LicenseState> {
   Future<ActivationResult> activate(String key) async {
     final result = await _repo.activate(key);
     if (result.ok && result.license != null) {
-      await _reopenShopDbIfNeeded(result.license!.shopId);
+      final promoted = await _promoteFreeShopIfNeeded(result.license!.shopId);
+      if (!promoted) {
+        await _reopenShopDbIfNeeded(result.license!.shopId);
+      }
       _apply(result.license);
     }
     return result;
+  }
+
+  /// A Free-plan shop (`shop_id = free-<deviceId>`, purely local — see
+  /// `sync_providers.dart`'s `syncEngineProvider`) has no server-side
+  /// presence. Activating a key mints a real, server-assigned [toShopId]
+  /// distinct from the local one — without this, [_reopenShopDbIfNeeded]
+  /// would open a brand-new, empty file at [toShopId] and silently strand
+  /// every local sale/product behind the old Free identity. Moves the data
+  /// to travel with it instead. Returns true if a promotion ran (which
+  /// already reopens the DB at the new shop), so the caller skips its own
+  /// plain reopen.
+  Future<bool> _promoteFreeShopIfNeeded(String toShopId) async {
+    final current = state.license;
+    if (current == null ||
+        current.plan != LicensePlan.free ||
+        current.shopId == toShopId ||
+        !AppDatabase.usePerShopDbFiles) {
+      return false;
+    }
+    final fromShopId = current.shopId;
+    final settings = _ref.read(settingsRepositoryProvider);
+    // Written before the data rewrite starts, cleared only after the file
+    // rename succeeds — see `resolvePendingShopPromotion` for how a crash
+    // mid-promotion is resumed on next launch.
+    await settings.setPendingShopPromotion(fromShopId, toShopId);
+    final db = _ref.read(databaseProvider);
+    await ShopDataTransitionService(
+      db,
+    ).promoteShopIdentity(fromShopId: fromShopId, toShopId: toShopId);
+    final session = _ref.read(databaseSessionProvider);
+    await session?.reopenForShopPromotedFrom(
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+    );
+    await settings.clearPendingShopPromotion();
+    return true;
   }
 
   /// Detaches this device's key/trial. Falls back to the Free plan (same

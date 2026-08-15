@@ -34,6 +34,7 @@ class SettingsRepository {
         key == 'app.locale' ||
         key == 'referral.seen_earned' ||
         key == 'branch.switch.state' ||
+        key == 'shop.promote.pending' ||
         key == 'vendor.config.json') {
       return true;
     }
@@ -59,6 +60,7 @@ class SettingsRepository {
   static const _kReferralSeenEarned = 'referral.seen_earned';
   static const _kStorefrontSeenOrderMs = 'storefront.seen_order_ms';
   static const _kBranchSwitchState = 'branch.switch.state';
+  static const _kShopPromotePending = 'shop.promote.pending';
   static const _kStaffRole = 'staff.role';
   static const _kStaffPinHash = 'staff.pin_hash';
   static const _kStaffPin = 'staff.pin';
@@ -421,6 +423,18 @@ class SettingsRepository {
   Future<void> setBranchSwitchStateJson(String json) =>
       _set(_kBranchSwitchState, json);
   Future<void> clearBranchSwitchState() => _delete(_kBranchSwitchState);
+
+  /// Recovery marker for a Free-plan shop-identity promotion in progress,
+  /// stored as `"<fromShopId>|<toShopId>"`. Written before
+  /// `ShopDataTransitionService.promoteShopIdentity` starts, cleared only
+  /// after the subsequent file rename succeeds — if still set on the next
+  /// app launch, `resolvePendingShopPromotion` finishes the job (both steps
+  /// are safe to blindly re-run; see `promoteShopIdentity`'s doc comment).
+  Future<String?> pendingShopPromotion() => _get(_kShopPromotePending);
+  Future<void> setPendingShopPromotion(String fromShopId, String toShopId) =>
+      _set(_kShopPromotePending, '$fromShopId|$toShopId');
+  Future<void> clearPendingShopPromotion() =>
+      _delete(_kShopPromotePending);
   Stream<String?> watchBranchSwitchStateJson() {
     return _db.select(_db.appSettings).watch().map((rows) {
       for (final r in rows) {

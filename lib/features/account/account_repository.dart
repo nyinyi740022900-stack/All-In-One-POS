@@ -82,6 +82,7 @@ class AccountRepository {
     this._settings,
     this._db, {
     this.onShopDbSwap,
+    this.onShopPromoted,
   });
 
   final LicenseRepository _licenseRepository;
@@ -94,6 +95,12 @@ class AccountRepository {
   /// See [BranchRepository.onShopDbSwap]. Account wipe-and-claim opens the
   /// target shop file and leaves other shops' SQLite files on disk.
   final Future<void> Function(String toShopId)? onShopDbSwap;
+
+  /// Like [onShopDbSwap], but for a Free-plan shop being promoted to a real
+  /// one (see [_promoteFreeShopIfNeeded]) — the target file's data must
+  /// travel with it from [fromShopId], not open an empty file at the new id.
+  final Future<void> Function(String fromShopId, String toShopId)?
+  onShopPromoted;
 
   bool get isSignedInWithRealAccount {
     final user = Supabase.instance.client.auth.currentUser;
@@ -321,8 +328,39 @@ class AccountRepository {
       deviceId: deviceId,
       tier: data['tier'] as String? ?? 'online',
     );
+    await _promoteFreeShopIfNeeded(lic.shopId);
     await _licenseRepository.saveExternal(lic);
     return SignupResult.success(lic);
+  }
+
+  /// A Free-plan shop (`shop_id = free-<deviceId>`, purely local — see
+  /// `sync_providers.dart`'s `syncEngineProvider`) has no server-side
+  /// presence. [signupShop] mints a real, server-assigned shop distinct from
+  /// the local one — without this, the caller's subsequent `applyExternal`
+  /// would leave the device pointed at a brand-new, empty shop file and
+  /// silently strand every local sale/product behind the old Free identity.
+  /// Moves the data to travel with it instead. Same reasoning as
+  /// `LicenseController._promoteFreeShopIfNeeded`, for the "create a shop
+  /// via email" path instead of "activate a key."
+  Future<void> _promoteFreeShopIfNeeded(String toShopId) async {
+    final current = await _licenseRepository.current();
+    if (current == null ||
+        current.plan != LicensePlan.free ||
+        current.shopId == toShopId ||
+        !AppDatabase.usePerShopDbFiles) {
+      return;
+    }
+    final fromShopId = current.shopId;
+    // Written before the data rewrite starts, cleared only after the file
+    // rename succeeds — see `resolvePendingShopPromotion` for how a crash
+    // mid-promotion is resumed on next launch.
+    await _settings.setPendingShopPromotion(fromShopId, toShopId);
+    await _transition.promoteShopIdentity(
+      fromShopId: fromShopId,
+      toShopId: toShopId,
+    );
+    await onShopPromoted?.call(fromShopId, toShopId);
+    await _settings.clearPendingShopPromotion();
   }
 
   Future<AccountActionResult> createShopLogin(

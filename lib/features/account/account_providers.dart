@@ -14,6 +14,13 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
       final session = ref.read(databaseSessionProvider);
       await session?.reopenForShop(toShopId);
     },
+    onShopPromoted: (fromShopId, toShopId) async {
+      final session = ref.read(databaseSessionProvider);
+      await session?.reopenForShopPromotedFrom(
+        fromShopId: fromShopId,
+        toShopId: toShopId,
+      );
+    },
   );
 });
 
