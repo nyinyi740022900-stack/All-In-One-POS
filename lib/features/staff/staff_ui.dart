@@ -152,120 +152,129 @@ Future<bool> requireOwnerPinReauth(
   return ok;
 }
 
+/// Sentinel returned by [pickStaffMemberId] for "no name — just Staff mode".
+const kSkipNamedStaffId = '__skip__';
+
+/// Lets the owner pick which roster member is about to use the device, or
+/// fall back to plain (unnamed) Staff mode. Returns the member id, the
+/// [kSkipNamedStaffId] sentinel, or null if dismissed without a choice.
+/// Shared by [StaffModeCard] and the daily gate's local identity step.
+Future<String?> pickStaffMemberId(
+  BuildContext context,
+  List<StaffMember> members,
+) {
+  final l = AppLocalizations.of(context);
+  return showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l.staffWhoAreYou,
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final m in members)
+            ListTile(
+              leading: const Icon(Icons.badge_outlined),
+              title: Text(m.name),
+              onTap: () => Navigator.of(ctx).pop(m.id),
+            ),
+          ListTile(
+            leading: const Icon(Icons.person_off_outlined),
+            title: Text(l.staffNoNamedStaff),
+            onTap: () => Navigator.of(ctx).pop(kSkipNamedStaffId),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Switches the device to [target] ('owner' or 'staff'), prompting for
+/// whichever PIN is needed along the way (owner PIN, or a named staff
+/// member's own PIN if a roster is configured). Returns true on a
+/// confirmed switch, false on cancel/wrong PIN/cooldown. Entirely local —
+/// no network required — so it doubles as an offline identity-confirm step
+/// (used by both [StaffModeCard] and the universal daily gate).
+Future<bool> switchStaffRole(
+  BuildContext context,
+  WidgetRef ref,
+  String target,
+) async {
+  final l = AppLocalizations.of(context);
+  final ctrl = ref.read(staffControllerProvider);
+  if (target == 'owner') {
+    final cooldown = ctrl.ownerPinCooldownRemainingSeconds();
+    if (cooldown > 0) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.staffPinTryAgainIn(cooldown))));
+      return false;
+    }
+  }
+
+  // Switching to Staff with a named roster set up: ask who's using the
+  // device (each name has its own PIN) instead of a single shared PIN.
+  if (target == 'staff') {
+    final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
+    if (members.isNotEmpty) {
+      final pickedId = await pickStaffMemberId(context, members);
+      if (pickedId == null || !context.mounted) return false; // cancelled
+      if (pickedId == kSkipNamedStaffId) {
+        final ok = await ctrl.switchRole('staff');
+        if (!ok && context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+        }
+        return ok;
+      }
+      final pin = await promptPin(context, l.staffEnterPin);
+      if (pin == null || !context.mounted) return false;
+      final ok = await ctrl.switchToStaffMember(pickedId, pin);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+      }
+      return ok;
+    }
+  }
+
+  String? pin;
+  if (target == 'owner') {
+    pin = await promptPin(context, l.staffEnterPin);
+    if (pin == null) return false; // cancelled
+  }
+  if (!context.mounted) return false;
+  final ok = await ctrl.switchRole(target, pin: pin);
+  if (!ok && context.mounted) {
+    final remaining = ctrl.ownerPinCooldownRemainingSeconds();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          remaining > 0 ? l.staffPinTryAgainIn(remaining) : l.staffWrongPin,
+        ),
+      ),
+    );
+  }
+  return ok;
+}
+
 /// Settings section to switch between Owner and Staff mode, and manage the
 /// owner PIN. Switching to Staff is free; switching to Owner prompts for the
 /// PIN. Deliberately just two modes — a finer-grained role tier was tried and
 /// folded back into this for simplicity.
 class StaffModeCard extends ConsumerWidget {
   const StaffModeCard({super.key});
-
-  Future<void> _switchTo(
-    BuildContext context,
-    WidgetRef ref,
-    String target,
-  ) async {
-    final l = AppLocalizations.of(context);
-    final ctrl = ref.read(staffControllerProvider);
-    if (target == 'owner') {
-      final cooldown = ctrl.ownerPinCooldownRemainingSeconds();
-      if (cooldown > 0) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l.staffPinTryAgainIn(cooldown))));
-        return;
-      }
-    }
-
-    // Switching to Staff with a named roster set up: ask who's using the
-    // device (each name has its own PIN) instead of a single shared PIN.
-    if (target == 'staff') {
-      final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
-      if (members.isNotEmpty) {
-        final pickedId = await _pickStaffMemberId(context, members);
-        if (pickedId == null || !context.mounted) return; // cancelled
-        if (pickedId == _skipNamedStaff) {
-          final ok = await ctrl.switchRole('staff');
-          if (!ok && context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
-          }
-          return;
-        }
-        final pin = await promptPin(context, l.staffEnterPin);
-        if (pin == null || !context.mounted) return;
-        final ok = await ctrl.switchToStaffMember(pickedId, pin);
-        if (!ok && context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
-        }
-        return;
-      }
-    }
-
-    String? pin;
-    if (target == 'owner') {
-      pin = await promptPin(context, l.staffEnterPin);
-      if (pin == null) return; // cancelled
-    }
-    if (!context.mounted) return;
-    final ok = await ctrl.switchRole(target, pin: pin);
-    if (!ok && context.mounted) {
-      final remaining = ctrl.ownerPinCooldownRemainingSeconds();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            remaining > 0 ? l.staffPinTryAgainIn(remaining) : l.staffWrongPin,
-          ),
-        ),
-      );
-    }
-  }
-
-  static const _skipNamedStaff = '__skip__';
-
-  /// Lets the owner pick which roster member is about to use the device, or
-  /// fall back to plain (unnamed) Staff mode. Returns the member id, the
-  /// [_skipNamedStaff] sentinel, or null if dismissed without a choice.
-  Future<String?> _pickStaffMemberId(
-    BuildContext context,
-    List<StaffMember> members,
-  ) {
-    final l = AppLocalizations.of(context);
-    return showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                l.staffWhoAreYou,
-                style: Theme.of(ctx).textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (final m in members)
-              ListTile(
-                leading: const Icon(Icons.badge_outlined),
-                title: Text(m.name),
-                onTap: () => Navigator.of(ctx).pop(m.id),
-              ),
-            ListTile(
-              leading: const Icon(Icons.person_off_outlined),
-              title: Text(l.staffNoNamedStaff),
-              onTap: () => Navigator.of(ctx).pop(_skipNamedStaff),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -303,7 +312,7 @@ class StaffModeCard extends ConsumerWidget {
               enabled: !(target == 'owner' && ownerCooldown > 0),
               onTap: (target == 'owner' && ownerCooldown > 0)
                   ? null
-                  : () => _switchTo(context, ref, target),
+                  : () => switchStaffRole(context, ref, target),
             ),
         if (isOwner)
           ListTile(

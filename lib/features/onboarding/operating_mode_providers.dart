@@ -30,25 +30,14 @@ final isOfflineModeProvider = Provider<bool>((ref) {
 String localCalendarYmd([DateTime? now]) =>
     DateFormat('yyyy-MM-dd').format(now ?? DateTime.now());
 
-/// Whether the Online daily entry gate still needs to run for the active shop.
-final onlineDailyGateNeededProvider = FutureProvider<bool>((ref) async {
-  final mode = await ref.watch(operatingModeProvider.future);
-  if (mode != SettingsRepository.operatingModeOnline) return false;
-  final confirmed = await ref.watch(operatingModeConfirmedProvider.future);
-  if (!confirmed) return false;
-  // Signed out on an Online-mode device has no valid identity to run the
-  // shell with (Online role = backend email role) — always re-run the gate,
-  // regardless of whether today's gate already completed.
-  var signedIn = true;
-  try {
-    signedIn = ref.watch(accountRepositoryProvider).isSignedInWithRealAccount;
-  } catch (_) {
-    // Supabase not initialized (e.g. some test harnesses) — assume signed
-    // in so this check is a no-op rather than a false "gate needed".
-  }
-  if (!signedIn) return true;
+/// Whether the daily entry gate still needs to run for the active shop.
+/// Universal — every shop, regardless of plan or connectivity, confirms
+/// identity/branch/cash-open once per local calendar day (identity is
+/// confirmed locally via staff PIN when there's no live account session,
+/// see `DailyGate`).
+final dailyGateNeededProvider = FutureProvider<bool>((ref) async {
   final shopId = ref.watch(shopIdProvider);
-  if (shopId.isEmpty) return true;
+  if (shopId.isEmpty) return false;
   final ymd = await ref
       .watch(settingsRepositoryProvider)
       .dailyGateYmd(shopId);

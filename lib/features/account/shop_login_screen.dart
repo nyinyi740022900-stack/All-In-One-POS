@@ -203,7 +203,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           .applyExternal(result.license!);
     }
     ref.invalidate(backendAccountRoleProvider);
-    ref.invalidate(onlineDailyGateNeededProvider);
+    ref.invalidate(dailyGateNeededProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() {});
   }
@@ -294,7 +294,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       await ref.read(licenseControllerProvider.notifier).deactivate();
     }
     ref.invalidate(backendAccountRoleProvider);
-    ref.invalidate(onlineDailyGateNeededProvider);
+    ref.invalidate(dailyGateNeededProvider);
     if (!mounted) return;
     setState(() => _busy = false);
     messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteSuccess)));

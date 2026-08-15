@@ -3174,6 +3174,15 @@ class AppLocalizationsMy extends AppLocalizations {
       'ငွေကိုက်ထဲရှိငွေ ထည့်ပါ။ ဒီနေ့ till မလိုက်ဘူးဆိုရင် ကျော်နိုင်ပါတယ်။';
 
   @override
+  String get dailyGateContinueAsOwner => 'ပိုင်ရှင်အဖြစ် ဆက်မည်';
+
+  @override
+  String get dailyGateContinueAsStaff => 'ဝန်ထမ်းအဖြစ် ဆက်မည်';
+
+  @override
+  String get dailyGateOrSignIn => 'သို့မဟုတ် account နဲ့ Sign in လုပ်ပါ';
+
+  @override
   String get operatingModeLabel => 'ဆိုင် mode';
 
   @override

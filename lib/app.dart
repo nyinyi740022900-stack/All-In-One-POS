@@ -11,9 +11,9 @@ import 'features/expenses/recurring_expense_providers.dart';
 import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
+import 'features/onboarding/daily_gate.dart';
 import 'features/onboarding/mode_migrate_flow.dart';
 import 'features/onboarding/onboarding_flow.dart';
-import 'features/onboarding/online_daily_gate.dart';
 import 'features/onboarding/operating_mode_providers.dart';
 import 'features/printing/printing_providers.dart';
 import 'features/referral/referral_watcher.dart';
@@ -58,12 +58,11 @@ class MmPosApp extends ConsumerWidget {
     final showModeMigrate = !showOnboarding &&
         ref.watch(operatingModeConfirmedProvider).hasValue &&
         !modeConfirmed;
-    final dailyGateAsync = ref.watch(onlineDailyGateNeededProvider);
-    // Online installs must not flash the Sell shell while we resolve whether
+    final dailyGateAsync = ref.watch(dailyGateNeededProvider);
+    // Every install must not flash the Sell shell while we resolve whether
     // today's entry gate is still needed.
     final holdForDailyCheck = !showOnboarding &&
         !showModeMigrate &&
-        ref.watch(isOnlineModeProvider) &&
         !dailyGateAsync.hasValue;
     final showDailyGate = !showOnboarding &&
         !showModeMigrate &&
@@ -98,7 +97,7 @@ class MmPosApp extends ConsumerWidget {
             onDone: () {
               ref.invalidate(operatingModeConfirmedProvider);
               ref.invalidate(operatingModeProvider);
-              ref.invalidate(onlineDailyGateNeededProvider);
+              ref.invalidate(dailyGateNeededProvider);
             },
           );
         }
@@ -108,8 +107,8 @@ class MmPosApp extends ConsumerWidget {
           );
         }
         if (showDailyGate) {
-          return OnlineDailyGate(
-            onDone: () => ref.invalidate(onlineDailyGateNeededProvider),
+          return DailyGate(
+            onDone: () => ref.invalidate(dailyGateNeededProvider),
           );
         }
         return child!;

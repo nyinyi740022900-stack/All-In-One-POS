@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/local/database.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
@@ -13,19 +14,22 @@ import '../account/branch_repository.dart';
 import '../cash/cash_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
+import '../staff/staff_providers.dart';
+import '../staff/staff_ui.dart';
 import 'operating_mode_providers.dart';
 
-/// Online-only: once per local calendar day — account → role → branch →
-/// opening amount or Skip — then the tab shell.
-class OnlineDailyGate extends ConsumerStatefulWidget {
-  const OnlineDailyGate({super.key, required this.onDone});
+/// Runs once per local calendar day, for every shop regardless of plan or
+/// connectivity — identity confirm (local staff PIN, or an optional account
+/// sign-in) → role → branch → opening amount or Skip — then the tab shell.
+class DailyGate extends ConsumerStatefulWidget {
+  const DailyGate({super.key, required this.onDone});
   final VoidCallback onDone;
 
   @override
-  ConsumerState<OnlineDailyGate> createState() => _OnlineDailyGateState();
+  ConsumerState<DailyGate> createState() => _DailyGateState();
 }
 
-class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
+class _DailyGateState extends ConsumerState<DailyGate> {
   int _step = 0;
   bool _busy = false;
   String? _error;
@@ -53,6 +57,17 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
     }
   }
 
+  /// Guarded the same way as [_signedIn]: with the gate now universal, this
+  /// step renders for every shop (including ones with Supabase never
+  /// initialized, e.g. widget tests), not just previously-online-only ones.
+  String? get _accountEmail {
+    try {
+      return ref.read(accountRepositoryProvider).currentAccountEmail;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _finish({required bool skippedOpen}) async {
     final shopId = ref.read(shopIdProvider);
     await ref.read(settingsRepositoryProvider).markDailyGateComplete(
@@ -60,8 +75,23 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
           ymd: localCalendarYmd(),
           skippedOpen: skippedOpen,
         );
-    ref.invalidate(onlineDailyGateNeededProvider);
+    ref.invalidate(dailyGateNeededProvider);
     widget.onDone();
+  }
+
+  /// Local, fully-offline identity confirm — reuses the same PIN machinery
+  /// as the Settings > Staff mode switcher, so a shop with no connectivity
+  /// (or no real account at all, e.g. Free plan) can still confirm who's
+  /// opening the shop today.
+  Future<void> _continueAsRole(String target) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final ok = await switchStaffRole(context, ref, target);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ok) setState(() => _step = 1);
   }
 
   Future<void> _auth() async {
@@ -83,6 +113,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
         ref
             .read(licenseControllerProvider.notifier)
             .applyExternal(result.license!);
+        ref.invalidate(backendAccountRoleProvider);
         setState(() {
           _busy = false;
           _step = 1;
@@ -136,6 +167,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
             .applyExternal(result.license!);
       }
       ref.read(syncControllerProvider.notifier).sync();
+      ref.invalidate(backendAccountRoleProvider);
       setState(() {
         _busy = false;
         _step = 1;
@@ -194,8 +226,12 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // Already signed in → skip account step on first build.
-    if (_step == 0 && _signedIn) {
+    final rosterAsync = ref.watch(staffMembersProvider);
+    // Already signed in, or a single-owner shop with no staff roster
+    // configured (the common Free-plan case) → skip the identity step
+    // entirely, zero added friction.
+    final rosterEmpty = rosterAsync.valueOrNull?.isEmpty == true;
+    if (_step == 0 && (_signedIn || rosterEmpty)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _step == 0) setState(() => _step = 1);
       });
@@ -217,7 +253,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppTheme.space4),
-              Expanded(child: _buildStep(l)),
+              Expanded(child: _buildStep(l, rosterAsync)),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -234,15 +270,54 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
     );
   }
 
-  Widget _buildStep(AppLocalizations l) {
-    return _step == 0 ? _accountStep(l) : _detailsStep(l);
+  Widget _buildStep(
+    AppLocalizations l,
+    AsyncValue<List<StaffMember>> rosterAsync,
+  ) {
+    if (_step == 0) {
+      if (!_signedIn && !rosterAsync.hasValue) {
+        // Local roster still loading (near-instant, Drift-backed) — avoid
+        // flashing the sign-in form only to swap it a frame later.
+        return const Center(child: CircularProgressIndicator());
+      }
+      return _accountStep(l, rosterAsync.valueOrNull ?? const []);
+    }
+    return _detailsStep(l);
   }
 
-  Widget _accountStep(AppLocalizations l) {
+  Widget _accountStep(AppLocalizations l, List<StaffMember> roster) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (roster.isNotEmpty) ...[
+            Text(l.staffWhoAreYou,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.verified_user),
+              title: Text(l.dailyGateContinueAsOwner),
+              onTap: _busy ? null : () => _continueAsRole('owner'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.badge_outlined),
+              title: Text(l.dailyGateContinueAsStaff),
+              onTap: _busy ? null : () => _continueAsRole('staff'),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(l.dailyGateOrSignIn,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           Text(l.dailyGateAccountStep,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
@@ -300,7 +375,7 @@ class _OnlineDailyGateState extends ConsumerState<OnlineDailyGate> {
   /// session is already open today) — all on one page, one final button.
   Widget _detailsStep(AppLocalizations l) {
     final role = ref.watch(backendAccountRoleProvider) ?? 'owner';
-    final email = ref.watch(accountRepositoryProvider).currentAccountEmail;
+    final email = _accountEmail;
     final isStaff = role == 'staff';
     final branchesAsync = ref.watch(branchesProvider);
     final premium = ref.watch(isPremiumProvider);

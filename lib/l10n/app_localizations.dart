@@ -5816,6 +5816,24 @@ abstract class AppLocalizations {
   /// **'Enter the cash in the drawer, or skip if you are not tracking the till today.'**
   String get dailyGateOpeningHint;
 
+  /// No description provided for @dailyGateContinueAsOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue as Owner'**
+  String get dailyGateContinueAsOwner;
+
+  /// No description provided for @dailyGateContinueAsStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue as Staff'**
+  String get dailyGateContinueAsStaff;
+
+  /// No description provided for @dailyGateOrSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'or sign in with an account'**
+  String get dailyGateOrSignIn;
+
   /// No description provided for @operatingModeLabel.
   ///
   /// In en, this message translates to:

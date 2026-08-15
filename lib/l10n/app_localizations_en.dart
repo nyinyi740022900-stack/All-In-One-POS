@@ -3178,6 +3178,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the cash in the drawer, or skip if you are not tracking the till today.';
 
   @override
+  String get dailyGateContinueAsOwner => 'Continue as Owner';
+
+  @override
+  String get dailyGateContinueAsStaff => 'Continue as Staff';
+
+  @override
+  String get dailyGateOrSignIn => 'or sign in with an account';
+
+  @override
   String get operatingModeLabel => 'Shop mode';
 
   @override

@@ -10,6 +10,7 @@ import 'package:mm_pos/domain/product_with_stock.dart';
 import 'package:mm_pos/features/account/account_providers.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
+import 'package:mm_pos/features/onboarding/operating_mode_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
@@ -47,6 +48,9 @@ void main() {
             (ref) => Stream.value(null),
           ),
           backendAccountRoleProvider.overrideWithValue(backendRole),
+          // The daily gate is universal now (every shop, every plan) — this
+          // test verifies role-based tab visibility, not the gate itself.
+          dailyGateNeededProvider.overrideWith((ref) async => false),
         ],
         child: const MmPosApp(),
       ),

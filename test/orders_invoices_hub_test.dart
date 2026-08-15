@@ -14,6 +14,7 @@ import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/invoices/invoices_screen.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/orders/orders_screen.dart';
+import 'package:mm_pos/features/onboarding/operating_mode_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/sell/sales_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
@@ -61,6 +62,9 @@ void main() {
           branchSwitchRecoveryProvider.overrideWith(
             (ref) => Stream.value(null),
           ),
+          // The daily gate is universal now (every shop, every plan) — this
+          // test verifies hub navigation chrome, not the gate itself.
+          dailyGateNeededProvider.overrideWith((ref) async => false),
         ],
         child: const MmPosApp(),
       ),
