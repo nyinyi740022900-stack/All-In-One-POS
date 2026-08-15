@@ -2,10 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/env.dart';
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import 'admin_api.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_login_screen.dart';
 
+/// The vendor's own internal tool (license/key management for shops running
+/// GoldPOSMM), not customer-facing storefront chrome — so unlike the
+/// storefront-web design question, there's no reason for this to diverge
+/// visually from the rest of the product. It shares [AppTheme]/[AppColors]
+/// wholesale rather than growing its own palette: before this it ran a raw
+/// `ColorScheme.fromSeed(seedColor: Color(0xFF00695C))` (a teal with no
+/// relationship to the app's actual `#0F5C3E` brand green) and no
+/// `textTheme` at all — the exact "beginner tell #1" from the design-pass
+/// rubric. `AppTheme`/`AppColors` are pure `package:flutter/material.dart` +
+/// internal l10n, so nothing here breaks the Flutter Web build.
+///
+/// This console is deliberately **English-only** (every string in
+/// `admin/*` is a literal, there is no `AppLocalizations` import anywhere in
+/// this directory) — `localeCode: 'en'` is passed explicitly so Myanmar is
+/// only ever a font *fallback* here, never the primary family, and no
+/// `localizationsDelegates`/`supportedLocales` are added (that would pull in
+/// a translation pipeline this screen was never part of).
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
 
@@ -14,10 +33,8 @@ class AdminApp extends StatelessWidget {
     return MaterialApp(
       title: 'MM POS Admin',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00695C)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(localeCode: 'en'),
+      darkTheme: AppTheme.dark(localeCode: 'en'),
       home: const _AuthGate(),
     );
   }
@@ -78,23 +95,16 @@ class _NotAuthorized extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.block, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            const Text('This account is not an admin.'),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () async {
-                await api.signOut();
-                onSignedOut();
-              },
-              child: const Text('Sign out'),
-            ),
-          ],
-        ),
+      body: EmptyStateView(
+        icon: Icons.block,
+        title: 'This account is not an admin.',
+        message: 'Sign in with an account that has admin access to '
+            'GoldPOSMM licensing.',
+        actionLabel: 'Sign out',
+        onAction: () async {
+          await api.signOut();
+          onSignedOut();
+        },
       ),
     );
   }

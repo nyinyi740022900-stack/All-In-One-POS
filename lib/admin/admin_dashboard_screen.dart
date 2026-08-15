@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import 'admin_api.dart';
 part 'admin_dashboard_widgets.dart';
 
@@ -207,21 +209,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                     'Scan on the customer\'s phone (License screen > License key '
                     'field > scan icon) instead of retyping the code below.',
-                    style: TextStyle(fontSize: 12)),
-                const SizedBox(height: 16),
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: AppTheme.space4),
                 BarcodeWidget(
                   barcode: Barcode.qrCode(),
                   data: token,
                   width: 220,
                   height: 220,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTheme.space4),
                 SelectableText(token,
-                    style:
-                        const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace')),
               ],
             ),
           ),

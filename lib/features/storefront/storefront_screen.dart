@@ -271,13 +271,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         const SizedBox(height: AppTheme.space4),
         FilledButton.icon(
           onPressed: _busy ? null : _publish,
-          icon: _busy
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.public),
+          icon: _busy ? const ButtonSpinner() : const Icon(Icons.public),
           label: Text(l.storefrontPublish),
         ),
       ],
@@ -295,6 +289,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                 width: 84,
                 height: 84,
                 clipBehavior: Clip.antiAlias,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -312,11 +307,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
               TextButton.icon(
                 onPressed: _uploadingLogo ? null : _pickLogo,
                 icon: _uploadingLogo
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const ButtonSpinner(size: 14)
                     : const Icon(Icons.add_a_photo_outlined, size: 18),
                 label: Text(l.storefrontLogoLabel),
               ),
@@ -342,11 +333,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           decoration: InputDecoration(labelText: l.storefrontAddressShown),
         ),
         const Divider(height: AppTheme.space6),
-        Text(
-          l.storefrontPaymentInfoTitle,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: AppTheme.space1),
+        SectionHeader(title: l.storefrontPaymentInfoTitle),
         Text(
           l.storefrontPaymentInfoHint,
           style: Theme.of(context).textTheme.bodySmall,
@@ -376,10 +363,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           decoration: InputDecoration(labelText: l.storefrontPayWaveNumber),
         ),
         const Divider(height: AppTheme.space6),
-        Text(
-          l.storefrontHoursTitle,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        SectionHeader(title: l.storefrontHoursTitle),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(l.storefrontHoursEnabled),
@@ -410,7 +394,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         const SizedBox(height: AppTheme.space3),
         FilledButton.icon(
           onPressed: _busy ? null : _saveProfile,
-          icon: const Icon(Icons.check),
+          icon: _busy ? const ButtonSpinner() : const Icon(Icons.check),
           label: Text(l.commonSave),
         ),
         const Divider(height: AppTheme.space6),
@@ -479,53 +463,25 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
 class _BlockedCustomersScreen extends ConsumerWidget {
   const _BlockedCustomersScreen();
 
-  Future<void> _addBlock(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l,
-  ) async {
-    final phone = TextEditingController();
-    final reason = TextEditingController();
-    final ok = await showDialog<bool>(
+  /// The dialog's two `TextEditingController`s live inside
+  /// [_AddBlockedCustomerDialog], not here. This used to create them inline,
+  /// `await` `showDialog`, and never dispose them at all — a straight leak
+  /// (nothing touched them after the `await`, so it never crashed), the same
+  /// bug family as `checkout_sheet.dart`'s dispose-*after*-`await` crash
+  /// (that one *did* red-screen, because it disposed on the next line while
+  /// the `TextField` was still mounted — the future resolves on *pop*, before
+  /// the exit animation finishes). Fixed the same way regardless: the
+  /// controllers move into their own `StatefulWidget` so `dispose()` runs on
+  /// real teardown.
+  Future<void> _addBlock(BuildContext context, WidgetRef ref) async {
+    final draft = await showDialog<_BlockedCustomerDraft>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.storefrontAddBlocked),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: phone,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(labelText: l.customerPhone),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: reason,
-              decoration: InputDecoration(
-                labelText: l.storefrontBlockReasonOptional,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.orderBlockCustomer),
-          ),
-        ],
-      ),
+      builder: (_) => const _AddBlockedCustomerDialog(),
     );
-    if (ok != true || phone.text.trim().isEmpty) return;
+    if (draft == null || !context.mounted) return;
     await ref
         .read(storefrontRepositoryProvider)
-        .block(
-          phone.text.trim(),
-          reason: reason.text.trim().isEmpty ? null : reason.text.trim(),
-        );
+        .block(draft.phone, reason: draft.reason);
     ref.invalidate(blockedCustomersProvider);
   }
 
@@ -536,7 +492,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l.storefrontBlockedCustomers)),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addBlock(context, ref, l),
+        onPressed: () => _addBlock(context, ref),
         child: const Icon(Icons.add),
       ),
       body: async.when(
@@ -555,7 +511,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               final b = rows[i];
               return ListTile(
-                leading: const Icon(Icons.phone_disabled),
+                leading: const IconAvatar(icon: Icons.phone_disabled),
                 title: Text(b.phone),
                 subtitle: (b.reason ?? '').isEmpty ? null : Text(b.reason!),
                 trailing: TextButton(
@@ -572,6 +528,81 @@ class _BlockedCustomersScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _BlockedCustomerDraft {
+  const _BlockedCustomerDraft(this.phone, this.reason);
+  final String phone;
+  final String? reason;
+}
+
+/// Phone + optional reason editor for blocking a storefront customer. A
+/// `StatefulWidget` purely so its two controllers are owned by something
+/// whose `dispose()` runs on real teardown — see
+/// [_BlockedCustomersScreen._addBlock].
+class _AddBlockedCustomerDialog extends StatefulWidget {
+  const _AddBlockedCustomerDialog();
+
+  @override
+  State<_AddBlockedCustomerDialog> createState() =>
+      _AddBlockedCustomerDialogState();
+}
+
+class _AddBlockedCustomerDialogState
+    extends State<_AddBlockedCustomerDialog> {
+  final _phone = TextEditingController();
+  final _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _reason.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final phone = _phone.text.trim();
+    if (phone.isEmpty) return;
+    final reason = _reason.text.trim();
+    Navigator.of(
+      context,
+    ).pop(_BlockedCustomerDraft(phone, reason.isEmpty ? null : reason));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.storefrontAddBlocked),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _phone,
+            autofocus: true,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(labelText: l.customerPhone),
+          ),
+          const SizedBox(height: AppTheme.space2),
+          TextField(
+            controller: _reason,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: l.storefrontBlockReasonOptional,
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l.orderBlockCustomer)),
+      ],
     );
   }
 }

@@ -1,12 +1,49 @@
 part of 'admin_dashboard_screen.dart';
 
+/// The semantic weight of a license `status` value (`active | expired |
+/// grace`, see `supabase/migrations/0003_licensing.sql`), for [StatusPill] —
+/// deliberately mirrors the mobile app's own `LicenseStatusKind` mapping in
+/// `settings_screen.dart` (active -> success, grace -> warning, else ->
+/// danger) rather than inventing a second convention for the same concept.
+StatusTone _licenseTone(String status) => switch (status) {
+      'active' => StatusTone.positive,
+      'grace' => StatusTone.attention,
+      _ => StatusTone.critical,
+    };
+
+String _capitalize(String s) =>
+    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+/// `AppTheme`'s `filledButtonTheme` sets `minimumSize: Size.fromHeight(52)`
+/// — a deliberately big, full-bleed tap target for a screen's *one* primary
+/// CTA (Sign in, Save, Generate). `Size.fromHeight` sets `minWidth:
+/// double.infinity`, which is fine inside a dialog's `OverflowBar` (every
+/// `AlertDialog.actions` FilledButton in this app already relies on that)
+/// but is a real crash/layout risk for a *compact inline* action sitting in
+/// a plain `Row`/`ListTile.trailing` — a non-flex child asked for infinite
+/// width inside an otherwise-bounded `Row` fights the row's own finite
+/// constraints. Nothing in this app puts a bare `FilledButton` in a `Row`
+/// before this file, so this is a real gap, not a copy-paste of a
+/// proven-safe shape. Used for the two inline row actions below.
+ButtonStyle _compactFilledButtonStyle() => FilledButton.styleFrom(
+      minimumSize: const Size(64, 40),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
+    );
+
 class _LicensesTab extends StatelessWidget {
   const _LicensesTab({required this.rows});
   final List<Map<String, dynamic>> rows;
 
   @override
   Widget build(BuildContext context) {
-    if (rows.isEmpty) return const Center(child: Text('No licenses yet.'));
+    if (rows.isEmpty) {
+      return const EmptyStateView(
+        icon: Icons.vpn_key_outlined,
+        title: 'No licenses yet.',
+        message: 'Generate a key from the button below once a shop is '
+            'ready to activate.',
+      );
+    }
     return ListView.separated(
       itemCount: rows.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
@@ -14,14 +51,17 @@ class _LicensesTab extends StatelessWidget {
         final r = rows[i];
         final status = '${r['status']}';
         return ListTile(
-          leading: Icon(Icons.vpn_key,
-              color: status == 'active' ? Colors.green : Colors.orange),
+          leading: const IconAvatar(icon: Icons.vpn_key),
           title: SelectableText('${r['key']}'),
           subtitle: Text(
-              'Shop: ${r['shop_id']}  ·  ${r['plan']}  ·  $status\n'
+              'Shop: ${r['shop_id']}  ·  ${r['plan']}\n'
               'Expires: ${_date(r['expires_at'])}  ·  '
               'Device: ${r['device_id'] ?? '—'}'),
           isThreeLine: true,
+          trailing: StatusPill(
+            label: _capitalize(status),
+            tone: _licenseTone(status),
+          ),
         );
       },
     );
@@ -35,7 +75,10 @@ class _HistoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (rows.isEmpty) {
-      return const Center(child: Text('No key issues / renewals yet.'));
+      return const EmptyStateView(
+        icon: Icons.history,
+        title: 'No key issues / renewals yet.',
+      );
     }
     return ListView.separated(
       itemCount: rows.length,
@@ -43,9 +86,13 @@ class _HistoryTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final r = rows[i];
         final isExtend = r['action'] == 'extend';
+        // Neutral, not color-coded: "Extended" vs "Issued" is a category the
+        // title text already states, not a state the shop needs a signal
+        // for (same reasoning Analytics' KPI grid settled on — color here
+        // would be decorative, not information).
         return ListTile(
-          leading: Icon(isExtend ? Icons.more_time : Icons.vpn_key,
-              color: isExtend ? Colors.blue : Colors.green),
+          leading: IconAvatar(
+              icon: isExtend ? Icons.more_time : Icons.vpn_key),
           title: Text(
               '${isExtend ? 'Extended' : 'Issued'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}'),
           subtitle: Text(
@@ -66,7 +113,10 @@ class _RequestsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (rows.isEmpty) {
-      return const Center(child: Text('No subscription requests.'));
+      return const EmptyStateView(
+        icon: Icons.hourglass_empty,
+        title: 'No subscription requests.',
+      );
     }
     return ListView.separated(
       itemCount: rows.length,
@@ -77,9 +127,12 @@ class _RequestsTab extends StatelessWidget {
         final proofPath = r['payment_proof_path'] as String?;
         final shopId = r['shop_id'] as String?;
         return ListTile(
-          leading: Icon(
-            fulfilled ? Icons.check_circle : Icons.hourglass_top,
-            color: fulfilled ? Colors.green : Colors.orange,
+          // A pending request is the admin's to-do list, so it gets
+          // `attention`, not a neutral fill — the same reasoning Orders'
+          // `new` status and Purchase Orders' `open` status use.
+          leading: IconAvatar(
+            icon: fulfilled ? Icons.check_circle : Icons.hourglass_top,
+            tone: fulfilled ? StatusTone.positive : StatusTone.attention,
           ),
           title: Text(
               '${r['shop_name']}  ·  ${r['amount']} Ks  ·  ${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}'),
@@ -101,9 +154,10 @@ class _RequestsTab extends StatelessWidget {
                   label: const Text('Screenshot'),
                 ),
               if (fulfilled)
-                const Text('Issued')
+                const StatusPill(label: 'Issued', tone: StatusTone.positive)
               else
                 FilledButton(
+                  style: _compactFilledButtonStyle(),
                   onPressed: () => onIssue(r),
                   child: const Text('Issue key'),
                 ),
@@ -171,8 +225,12 @@ class _ReferralsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (commissions.isEmpty && referrals.isEmpty) {
-      return const Center(child: Text('No referrals or commissions yet.'));
+      return const EmptyStateView(
+        icon: Icons.card_giftcard_outlined,
+        title: 'No referrals or commissions yet.',
+      );
     }
+    final textTheme = Theme.of(context).textTheme;
 
     // Aggregate lifetime earned + payment count per referrer.
     final earned = <String, int>{};
@@ -186,48 +244,65 @@ class _ReferralsTab extends StatelessWidget {
       ..sort((a, b) => (earned[b] ?? 0).compareTo(earned[a] ?? 0));
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Text('Commissions by referrer',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4, AppTheme.space2, AppTheme.space4, AppTheme.space1),
+          child: Text('Commissions by referrer', style: textTheme.titleSmall),
         ),
         if (referrers.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('No commissions earned yet.'),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.space4, vertical: AppTheme.space2),
+            child: Text('No commissions earned yet.',
+                style: textTheme.bodyMedium),
           )
         else
           for (final sid in referrers)
             ListTile(
-              leading: const Icon(Icons.card_giftcard, color: Colors.green),
+              // Every row here already implies "has earned a commission" —
+              // the icon's color would be purely decorative, not a signal
+              // (same reasoning as the History tab above), so neutral.
+              leading: const IconAvatar(icon: Icons.card_giftcard),
               title: SelectableText(sid),
               subtitle: Text(
                   '${counts[sid]} payment(s)  ·  earned ${earned[sid]} Ks'),
               trailing: FilledButton(
-                onPressed: () => _confirmApplyCredit(context, sid, earned[sid] ?? 0),
+                style: _compactFilledButtonStyle(),
+                onPressed: () =>
+                    _confirmApplyCredit(context, sid, earned[sid] ?? 0),
                 child: const Text('Apply credit'),
               ),
             ),
-        const Divider(height: 24),
+        const Divider(height: AppTheme.space5),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4, AppTheme.space1, AppTheme.space4, AppTheme.space1),
           child: Text('Referral links (${referrals.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+              style: textTheme.titleSmall),
         ),
         if (referrals.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('No referral links yet.'),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.space4, vertical: AppTheme.space2),
+            child:
+                Text('No referral links yet.', style: textTheme.bodyMedium),
           )
         else
           for (final r in referrals)
             ListTile(
               dense: true,
-              leading: Icon(
-                (r['is_active'] == true) ? Icons.link : Icons.link_off,
-                color: (r['is_active'] == true) ? Colors.blue : Colors.grey,
+              // A real binary signal (does this link still work) — active
+              // gets `positive`; inactive is a finished-with, non-urgent
+              // state (`neutral`, not a warning color), mirroring the
+              // printer-connected indicator in `printer_settings_screen.dart`.
+              leading: IconAvatar(
+                icon: (r['is_active'] == true) ? Icons.link : Icons.link_off,
+                tone: (r['is_active'] == true)
+                    ? StatusTone.positive
+                    : StatusTone.neutral,
+                size: 32,
               ),
               title: Text('${r['referral_code']}  ·  ${r['referrer_shop_id']}'),
               subtitle: Text(
@@ -270,13 +345,13 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
             decoration: const InputDecoration(
                 labelText: 'Shop ID (any stable identifier)'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _shopName,
             decoration:
                 const InputDecoration(labelText: 'Shop name (display)'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           DropdownButtonFormField<String>(
             initialValue: _plan,
             decoration: const InputDecoration(labelText: 'Plan'),
@@ -286,7 +361,7 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
             ],
             onChanged: (v) => setState(() => _plan = v ?? 'monthly'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _months,
             keyboardType: TextInputType.number,
@@ -362,11 +437,11 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
             TextField(
                 controller: _shopId,
                 decoration: const InputDecoration(labelText: 'Shop ID')),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
                 controller: _shopName,
                 decoration: const InputDecoration(labelText: 'Shop name')),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             DropdownButtonFormField<String>(
               initialValue: _plan,
               decoration: const InputDecoration(labelText: 'Plan'),
@@ -376,14 +451,14 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
               ],
               onChanged: (v) => setState(() => _plan = v ?? 'monthly'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
               controller: _months,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(labelText: 'Duration (months)'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
               controller: _device,
               decoration: const InputDecoration(
@@ -454,9 +529,14 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
             decoration: InputDecoration(labelText: widget.label),
           ),
           if (widget.warning != null) ...[
-            const SizedBox(height: 8),
-            Text(widget.warning!,
-                style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              widget.warning!,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.of(context).muted),
+            ),
           ],
         ],
       ),
@@ -501,7 +581,7 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
             decoration: const InputDecoration(
                 labelText: 'App Reference ID / Shop Code'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _months,
             keyboardType: TextInputType.number,
@@ -539,13 +619,19 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 40),
-          const SizedBox(height: 12),
+          // A bare `Icon`, not `IconAvatar`: this mirrors `EmptyStateView`'s
+          // own big-centered-icon shape (size 48, no plate) rather than the
+          // list-row leading-mark shape `IconAvatar` is built for.
+          Icon(Icons.error_outline,
+              color: AppColors.of(context).danger, size: 40),
+          const SizedBox(height: AppTheme.space3),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(message, textAlign: TextAlign.center),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
+            child: Text(message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
@@ -631,7 +717,7 @@ class _ConfigTabState extends State<_ConfigTab> {
               ),
             ),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         FilledButton.icon(
           onPressed: _saving ? null : _save,
           icon: _saving
@@ -735,7 +821,10 @@ class _DeliveryTab extends StatelessWidget {
         const Divider(height: 1),
         Expanded(
           child: rows.isEmpty
-              ? const Center(child: Text('No carriers configured yet.'))
+              ? const EmptyStateView(
+                  icon: Icons.local_shipping_outlined,
+                  title: 'No carriers configured yet.',
+                )
               : ListView.separated(
                   itemCount: rows.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
@@ -744,10 +833,11 @@ class _DeliveryTab extends StatelessWidget {
                     final enabled = r['enabled'] == true;
                     final keySet = r['api_key_set'] == true;
                     final last4 = r['api_key_last4'];
+                    final colors = AppColors.of(context);
                     return ListTile(
                       leading: Icon(
                         Icons.local_shipping,
-                        color: enabled ? Colors.green : Colors.grey,
+                        color: enabled ? colors.success : colors.muted,
                       ),
                       title: Text(_carrierLabel(r['carrier'] as String?)),
                       subtitle: Text([
@@ -764,8 +854,8 @@ class _DeliveryTab extends StatelessWidget {
                             onPressed: () => _edit(context, r),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.red),
+                            icon: Icon(Icons.delete_outline,
+                                color: colors.danger),
                             onPressed: () => _confirmDelete(context, r),
                           ),
                         ],

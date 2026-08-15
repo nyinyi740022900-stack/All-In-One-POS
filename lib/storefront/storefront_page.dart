@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../core/image_util.dart';
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import '../features/invoices/invoice_capture.dart';
 import '../features/invoices/invoice_view.dart';
 import '../features/orders/myanmar_townships.dart';
@@ -163,13 +165,13 @@ class _StorefrontPageState extends State<StorefrontPage> {
                   ),
                 ),
               SliverPadding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppTheme.space3),
                 sliver: SliverGrid(
                   gridDelegate:
                       const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
+                    mainAxisSpacing: AppTheme.space3,
+                    crossAxisSpacing: AppTheme.space3,
                     childAspectRatio: 0.72,
                   ),
                   delegate: SliverChildBuilderDelegate(
@@ -194,7 +196,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
           ? null
           : SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppTheme.space3),
                 child: FilledButton(
                   onPressed: () async {
                     final c = await _future;
@@ -202,7 +204,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
                     await _checkout(c);
                   },
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppTheme.space2),
                     child: Text(l.storefrontCheckoutBar(_count, _ks(l, _total))),
                   ),
                 ),
@@ -223,7 +225,12 @@ class _ShopBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space5,
+        AppTheme.space6,
+        AppTheme.space5,
+        AppTheme.space5,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -237,51 +244,30 @@ class _ShopBanner extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 64,
-                height: 64,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2)),
-                  ],
-                ),
-                child: (info.logoUrl ?? '').isEmpty
-                    ? Icon(Icons.storefront, color: scheme.primary, size: 30)
-                    : Image.network(
-                        info.logoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            Icon(Icons.storefront, color: scheme.primary),
-                      ),
+              ProductThumb(
+                name: info.displayName ?? l.storefrontShopFallbackName,
+                imageUrl: info.logoUrl,
+                size: 64,
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: AppTheme.space4),
               Expanded(
                 child: Text(
                   info.displayName ?? l.storefrontShopFallbackName,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
             ],
           ),
           if ((info.phone ?? '').isNotEmpty || (info.address ?? '').isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 14),
+              padding: const EdgeInsets.only(top: AppTheme.space4),
               child: Wrap(
-                spacing: 16,
-                runSpacing: 6,
+                spacing: AppTheme.space4,
+                runSpacing: AppTheme.space2,
                 children: [
                   if ((info.phone ?? '').isNotEmpty)
                     InkWell(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusXs),
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: info.phone!));
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -293,7 +279,7 @@ class _ShopBanner extends StatelessWidget {
                         children: [
                           Icon(Icons.call_outlined,
                               size: 16, color: scheme.primary),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: AppTheme.space2),
                           Text(info.phone!),
                         ],
                       ),
@@ -304,7 +290,7 @@ class _ShopBanner extends StatelessWidget {
                       children: [
                         Icon(Icons.location_on_outlined,
                             size: 16, color: scheme.primary),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: AppTheme.space2),
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 260),
                           child: Text(info.address!,
@@ -345,21 +331,15 @@ class _ProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: (product.imageUrl ?? '').isEmpty
-                  ? Icon(Icons.image_outlined,
-                      color: Theme.of(context).colorScheme.outlineVariant)
-                  : Image.network(
-                      product.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(Icons.broken_image_outlined),
-                    ),
+            child: ProductThumb(
+              name: product.name,
+              imageUrl: product.imageUrl,
+              radius: 0,
+              dimmed: soldOut,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppTheme.space3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -367,28 +347,33 @@ class _ProductCard extends StatelessWidget {
                 Text(product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                    style: Theme.of(context).textTheme.titleSmall),
                 if (product.onlineAvailable != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppTheme.space1),
                   Text(
                     soldOut
                         ? l.storefrontSoldOut
                         : l.storefrontOnlineLeft(product.onlineAvailable!),
-                    style: TextStyle(
-                        fontSize: 11,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: soldOut
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).colorScheme.outline),
+                            ? AppColors.of(context).danger
+                            : AppColors.of(context).muted),
                   ),
                 ],
-                const SizedBox(height: 6),
+                const SizedBox(height: AppTheme.space2),
                 Row(
                   children: [
-                    Text(_ks(l, product.price),
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold)),
-                    const Spacer(),
+                    Expanded(
+                      child: MoneyText(
+                        _ks(l, product.price),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary),
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
                     if (qty == 0)
                       FilledButton.tonal(
                         onPressed: soldOut ? null : onAdd,
@@ -401,11 +386,16 @@ class _ProductCard extends StatelessWidget {
                               onPressed: onSub,
                               icon: const Icon(Icons.remove, size: 18)),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 6),
-                            child: Text('$qty',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppTheme.space2),
+                            child: Text(
+                              '$qty',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                      fontFeatures: AppTheme.tabularFigures),
+                            ),
                           ),
                           IconButton.filledTonal(
                               onPressed: atCap ? null : onAdd,
@@ -544,7 +534,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     if (_orderNo != null) return _confirmation(context, l);
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, bottom + 16),
+      padding: EdgeInsets.fromLTRB(
+        AppTheme.space4,
+        AppTheme.space4,
+        AppTheme.space4,
+        bottom + AppTheme.space4,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -552,7 +547,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           children: [
             Text(l.storefrontYourDetails,
                 style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             // Honeypot — kept out of the visible layout entirely (zero size,
             // not just hidden) so no real customer can tab/scroll into it.
             Offstage(
@@ -562,18 +557,18 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 controller: _name,
                 decoration:
                     InputDecoration(labelText: l.storefrontNameRequired)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(labelText: l.shopPhone)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
                 controller: _address,
                 maxLines: 2,
                 decoration:
                     InputDecoration(labelText: l.orderDeliveryAddress)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             DropdownButtonFormField<String>(
               initialValue: _township,
               isExpanded: true,
@@ -584,14 +579,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               ],
               onChanged: (v) => setState(() => _township = v),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             TextField(
                 controller: _note,
                 decoration: InputDecoration(labelText: l.orderNote)),
-            const SizedBox(height: 16),
-            Text(l.storefrontPayment,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space4),
+            SectionHeader(title: l.storefrontPayment),
             SegmentedButton<String>(
               segments: [
                 ButtonSegment(
@@ -607,21 +600,20 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               onSelectionChanged: (s) =>
                   setState(() => _paymentMethod = s.first),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             if (_paymentMethod == 'transfer') ...[
               if ((widget.info.payKpay ?? '').isNotEmpty ||
                   (widget.info.payWave ?? '').isNotEmpty) ...[
                 Card(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppTheme.space3),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(l.storefrontPayTo,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
+                            style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: AppTheme.space1),
                         if ((widget.info.payKpay ?? '').isNotEmpty)
                           _PayAccountRow(
                             method: 'KBZPay',
@@ -638,7 +630,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppTheme.space2),
               ],
               OutlinedButton.icon(
                 onPressed: _pickProof,
@@ -653,30 +645,27 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               Card(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppTheme.space3),
                   child: Row(
                     children: [
                       const Icon(Icons.info_outline, size: 18),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppTheme.space2),
                       Expanded(
                           child: Text(l.storefrontCodNoticeBeforeOrder)),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space4),
             Text(l.storefrontTotal(_ks(l, widget.total)),
                 style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             FilledButton(
               onPressed: _submitting ? null : _submit,
               child: Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppTheme.space2),
                 child: _submitting
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const ButtonSpinner()
                     : Text(l.storefrontPlaceOrder),
               ),
             ),
@@ -727,24 +716,25 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   Widget _confirmation(BuildContext context, AppLocalizations l) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppTheme.space5),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 48),
-            const SizedBox(height: 8),
+            Icon(Icons.check_circle,
+                color: AppColors.of(context).success, size: 48),
+            const SizedBox(height: AppTheme.space2),
             Text(l.storefrontOrderPlaced,
                 style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppTheme.space1),
             Text(l.storefrontOrderNo(_orderNo!)),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space4),
             InvoiceView(data: _invoiceData(l)),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             if (_paymentMethod == 'transfer' &&
                 ((widget.info.payKpay ?? '').isNotEmpty ||
                     (widget.info.payWave ?? '').isNotEmpty)) ...[
               Text(l.storefrontTransferInstructions),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.space2),
               if ((widget.info.payKpay ?? '').isNotEmpty)
                 _PayAccountRow(
                   method: 'KBZPay',
@@ -757,10 +747,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   name: widget.info.payWaveName,
                   number: widget.info.payWave!,
                 ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTheme.space4),
             ] else if (_paymentMethod == 'cod') ...[
               Text(l.storefrontCodNoticeAfterOrder),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTheme.space4),
             ],
             Row(
               children: [
@@ -770,15 +760,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         ? null
                         : () => _saveInvoiceToPhotos(context, l),
                     icon: _downloading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const ButtonSpinner(size: 16)
                         : const Icon(Icons.photo_library_outlined),
                     label: Text(l.storefrontSaveToPhotos),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.space2),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.of(context).pop('done'),
@@ -808,7 +795,7 @@ class _PayAccountRow extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final label = (name ?? '').isEmpty ? number : '$name · $number';
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         children: [
           Expanded(child: Text('$method: $label')),
@@ -835,15 +822,9 @@ class _NotFound extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.storefront_outlined, size: 56),
-          const SizedBox(height: 12),
-          Text(l.storefrontNotFound(slug)),
-        ],
-      ),
+    return EmptyStateView(
+      icon: Icons.storefront_outlined,
+      title: l.storefrontNotFound(slug),
     );
   }
 }

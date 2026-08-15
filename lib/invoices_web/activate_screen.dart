@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import '../l10n/app_localizations.dart';
 import 'invoices_web_session.dart';
 
@@ -94,39 +96,35 @@ class _ActivateScreenState extends State<ActivateScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppTheme.space5),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(Icons.receipt_long,
                     size: 48, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTheme.space4),
                 Text(l.invWebActivateTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppTheme.space2),
                 Text(l.invWebActivateHint,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppTheme.space5),
                 TextField(
                   controller: _key,
                   decoration: InputDecoration(
                     labelText: l.invWebKeyLabel,
-                    border: const OutlineInputBorder(),
                     errorText: _error,
                   ),
                   onSubmitted: (_) => _busy ? null : _activate(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTheme.space4),
                 FilledButton(
                   onPressed: _busy ? null : _activate,
                   child: _busy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const ButtonSpinner()
                       : Text(l.invWebActivateButton),
                 ),
               ],

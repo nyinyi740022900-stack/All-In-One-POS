@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import 'storefront_page.dart';
 
@@ -40,10 +41,23 @@ class _StorefrontAppState extends State<StorefrontApp> {
     return MaterialApp(
       title: 'Shop',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF6C4AB6),
-        useMaterial3: true,
-      ),
+      // Same design system as the rest of GoldPOSMM (`AppTheme`), not a
+      // bespoke palette for this page. This page has no per-shop branding to
+      // apply (no shop-specific colour field exists anywhere in the data
+      // model — grep-confirmed) and no comment anywhere suggested the old
+      // untouched `colorSchemeSeed: Color(0xFF6C4AB6)` was a deliberate
+      // choice; it reads as the framework default nobody replaced. Reusing
+      // `AppTheme` here is a real functional win, not just consistency for
+      // its own sake: it gets this page the tuned type scale (in particular
+      // the taller line-heights `AppTheme` adds for Myanmar diacritics —
+      // this storefront defaults to `my` and previously had zero line-height
+      // tuning of its own), the radius/elevation/motion tokens, and
+      // `AppColors`' soft-fill tier for free, applied automatically to every
+      // `Card`/`FilledButton`/bottom sheet already in this file via
+      // `ThemeData`, without hand-rolling a second design system for one
+      // extra Flutter Web target. Deliberately light-only, matching this
+      // page's behaviour before this change (no `darkTheme:` was set either).
+      theme: AppTheme.light(localeCode: _locale.languageCode),
       locale: _locale,
       // Force the chosen locale — never fall back to the visitor's browser
       // locale (same rule the main app follows).
@@ -75,7 +89,7 @@ class _NoSlug extends StatelessWidget {
       appBar: StorefrontLocaleBar(locale: locale, onToggle: onToggleLocale),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppTheme.space5),
           child: Text(l.storefrontOpenShopLink, textAlign: TextAlign.center),
         ),
       ),

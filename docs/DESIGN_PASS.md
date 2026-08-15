@@ -665,10 +665,131 @@ design-pass work defaults to the cheaper model.
       same time — so fewer states were captured than a typical phase; the
       states above were captured on stable, double-confirmed screenshots only.
 
-### Phase F — Web surfaces 🔜
-`admin/admin_dashboard_screen.dart`, `admin/admin_login_screen.dart`,
-`storefront/storefront_screen.dart`, `storefront/storefront_page.dart`,
-`invoices_web/*`
+### Phase F — Web surfaces ✅ done (2026-08-12, two parallel sessions + coordinator finished the remainder)
+`admin/admin_login_screen.dart`, `admin/admin_dashboard_screen.dart`,
+`admin/admin_dashboard_widgets.dart` (924 lines — found during scoping, not
+in the original file list, but it's where the dashboard's actual
+dialogs/status colors live), `features/storefront/storefront_screen.dart`
+(the in-app "My Web Storefront" settings screen), `storefront/storefront_page.dart`
+(the public customer-facing storefront page), `storefront/storefront_app.dart`,
+`invoices_web/*` (7 files).
+
+**Both parallel subagents (F1: admin, F2: storefront) hit the account's
+monthly spend limit mid-task, a third and fourth time this session** — see
+the session-log entry below. Unlike the Phase D interruptions, both agents'
+*actual file edits* were substantially complete and high-quality when cut
+off; the coordinator finished the small remainder itself (3 leftover raw
+colors in `admin_dashboard_widgets.dart`, all of `invoices_web/*`, which F2
+never reached) rather than spawning a fifth subagent.
+
+- [x] **Admin console (`lib/admin/*`) — adopted `AppTheme`/`AppColors`
+      wholesale, a deliberate decision, not a mechanical import.** This is
+      GoldPOSMM's own internal tool (the vendor's license-management
+      console), not customer-facing chrome, so unlike the storefront
+      question below there was no real case for a separate visual identity.
+      Before: a raw `ColorScheme.fromSeed(seedColor: Color(0xFF00695C))`
+      (the old teal, no relationship to the actual `#0F5C3E` brand green)
+      and no `textTheme` at all — exactly "beginner tell #1" from the
+      original design-pass rubric, on the one screen that had somehow never
+      been touched by any of this session's other phases. `admin_login_screen.dart`
+      rebuilt onto `AuthScaffold`/`InlineErrorBanner`/`ButtonSpinner`, the
+      exact shared auth pattern the mobile app and `invoices_web`'s
+      `ActivateScreen` both already use. `admin_dashboard_screen.dart`'s
+      `_NotAuthorized` view: hand-rolled `Center`+`Column`+raw `Colors.red`
+      → `EmptyStateView`. `admin_dashboard_widgets.dart`: five independent
+      raw-color ternaries for license/key/carrier status
+      (`Colors.green/orange/blue/grey/red`, scattered across the license
+      list, key-request dialog, and carrier-config list) resolved through
+      `AppColors`; `_ErrorView` rebuilt onto tokens; the carrier list's bare
+      `Center(child: Text(...))` empty state → `EmptyStateView`. Explicitly
+      **English-only by design** (no `AppLocalizations` import anywhere in
+      `admin/`) — `localeCode: 'en'` passed to `AppTheme` so Myanmar stays a
+      font *fallback* only, and no `localizationsDelegates` were added
+      (would pull in a translation pipeline this console was never part of).
+      `core/theme/app_theme.dart`/`core/widgets/app_widgets.dart` confirmed
+      to have no non-web-safe imports before being pulled in — nothing broke
+      the web build.
+- [x] **`features/storefront/storefront_screen.dart` (the mobile in-app
+      settings screen)** — already imported `AppTheme` from the old Phase 6
+      retrofit, confirmed still flowing correctly. **A crash fix — the
+      eighth instance of this session's recurring bug, this time a straight
+      leak (no `dispose()` at all, not even the dispose-after-`await`
+      shape)**: `_BlockedCustomersScreen._addBlock` created `phone`/`reason`
+      controllers inline for its block-a-customer dialog and never disposed
+      them. Fixed with a new `_AddBlockedCustomerDialog` `StatefulWidget`,
+      the same pattern as the seven prior fixes.
+- [x] **`storefront/storefront_page.dart` + `storefront/storefront_app.dart`
+      (the actual public page a shop's customers see) — adopted `AppTheme`,
+      a considered decision with real functional payoff, not just
+      consistency for its own sake.** Grepped the data model first for any
+      per-shop color/branding field — none exists, so the old untouched
+      `colorSchemeSeed: Color(0xFF6C4AB6)` (purple) reads as an unreplaced
+      framework default, not a deliberate separate brand. Adopting `AppTheme`
+      gets this page the tuned type scale for free — in particular the
+      taller line-heights for Myanmar diacritics, which this page needed and
+      never had (`my` is its default locale) — plus the radius/elevation/
+      motion tokens and the `AppColors` soft-fill tier, applied automatically
+      to every `Card`/`FilledButton`/bottom sheet already in the file via one
+      `ThemeData`, instead of hand-rolling a second design system for one
+      extra Flutter Web target. Deliberately **light-only**, matching this
+      page's behavior before the change (no `darkTheme:` was set either).
+      Locale passed dynamically (`_locale.languageCode`, not hardcoded like
+      admin) since this page has its own bilingual toggle.
+- [x] **`invoices_web/*` (7 files) — same reasoning as admin, not
+      storefront: `InvoicesWebSession` is the shop owner's own tool** (their
+      own invoices, authenticated via the same device-activation flow as
+      the mobile app), not a page anonymous customers land on — so it
+      shares `AppTheme` for the same reason `admin_app.dart` does, not the
+      "does this deserve its own brand" question `storefront_page.dart`
+      had to actually answer. `invoices_web_app.dart`: same raw
+      `colorSchemeSeed` (purple) replaced with `AppTheme.light/dark`.
+      `activate_screen.dart`: spacing onto tokens, spinner onto
+      `ButtonSpinner`, a redundant local `OutlineInputBorder()` removed
+      (fighting `AppTheme`'s own `inputDecorationTheme`). `invoice_list_screen.dart`:
+      money onto `MoneyText`, the refund-flag label onto `AppColors.danger`
+      + a theme text role (was `TextStyle(fontSize: 11, color: Colors.red)`),
+      both empty states onto `EmptyStateView`, search-field padding onto
+      `AppTheme.space3`. `invoice_detail_web_screen.dart`: spacing onto
+      tokens, the download spinner onto `ButtonSpinner`, the fetch-error
+      state onto `EmptyStateView`. `invoice_detail_web_screen.dart` and
+      `invoices_web_session.dart` had no `TextEditingController`/dialog
+      pattern to check; `activate_screen.dart`'s one controller was already
+      correctly disposed.
+- [x] **A real, pre-existing bug found and fixed while trying to verify
+      live, unrelated to any of the above.** `.claude/launch.json`'s
+      `storefront-web` entry was missing `--dart-define-from-file
+      env.local.json` — present on both its sibling entries
+      (`admin-web`, `invoices-web`) but not this one. The practical effect:
+      `flutter run -d web-server -t lib/storefront/storefront_main.dart
+      --web-port 8765` (exactly the documented launch command) loads,
+      serves, and reports success, but the page never paints — a genuinely
+      blank tab with **zero console errors and an empty accessibility
+      tree**, which is a much harder failure to diagnose than a visible
+      error would have been (traced by re-running the identical command
+      with the missing flag added on a fresh port, which rendered
+      correctly). Fixed in `launch.json` directly. Whoever hits an
+      inexplicable blank Flutter-web preview in this repo in the future:
+      check the launch config has the env dart-define before assuming the
+      app code is broken.
+- [x] `flutter analyze` clean; **370/370 tests pass**, unchanged.
+- [x] **Verified live** via the Browser tools against real `flutter run -d
+      web-server` builds (not code review alone) — all three web surfaces:
+      admin login screen (deep-green `primaryContainer` brand mark, "MM POS
+      Admin" title, tokenized Card/FilledButton — no valid admin credentials
+      available to see past login, noted rather than skipped silently);
+      storefront's `_NoSlug` screen (Myanmar copy, language toggle, correct
+      fonts, after the `launch.json` fix above); `invoices_web`'s
+      `ActivateScreen` (green icon, tokenized input, green "Activate"
+      button — the exact result of the `activate_screen.dart` edits above).
+      `features/storefront/storefront_screen.dart`'s crash fix was
+      code-reviewed (correct `StatefulWidget` shape, matching seven prior
+      proven-live fixes) but not independently exercised on the iOS
+      Simulator this pass — the mobile-side verification budget went to
+      confirming the two web servers actually painted, which was the
+      higher-risk unknown given this phase's different toolchain.
+
+**This closes out the whole app-wide redesign — all six phases (A/A2, B, C,
+D, E, F) are now done.**
 
 ---
 
@@ -722,6 +843,8 @@ design-pass work defaults to the cheaper model.
 | 2026-08-12 | E (13-15 files) | **The other 14 Phase E files, done in parallel with the `branches_screen.dart` sub-pass above (same booted simulator, same working tree — see that entry's note on why navigation was noisy this session).** Full detail in the Phase E section above; short version: grepped `TextEditingController`/`Colors.*`/delete-confirm `FilledButton`s across all 14 files up front rather than rediscovering issues screen-by-screen. Confirmed **all four already-flagged crash locations** (`settings_screen.dart`'s device-label dialog; `suppliers_screen.dart`'s four-controller editor; `purchase_order_editor_screen.dart`'s **two separate instances** — the product-search sheet and the qty/cost line editor) and fixed all four with the session's established `StatefulWidget`-owns-the-controller(s) pattern. **Found two more of the same bug family the grep sweep turned up, not on the handoff list**: `staff_members_screen.dart`'s name/pin editor (identical dispose-after-`await` crash shape) and `staff_accounts_screen.dart`'s invite dialog (controllers **never disposed at all** — a leak, not a crash, but fixed the same way for correctness). **Decided the `filteredProductsProvider` cross-feature bug is a real fix, not just a flag**: switched the PO product picker to `productsStreamProvider` (the same unfiltered base Inventory's own filtered provider reads from) so it stops silently inheriting whatever category/search Inventory's tab was last left on — documented inline. Delete-button collision fixed in four more files (`staff_accounts_screen.dart`, `staff_members_screen.dart`, `suppliers_screen.dart`, `backup_screen.dart`'s import-confirm) plus PO's cancel/delete dialogs. `purchase_orders_screen.dart`/`purchase_order_detail_screen.dart` gained `poStatusTone`+`StatusPill` (mirroring `order_labels.dart`'s reasoning: open=attention, cancelled=neutral, not danger). `printer_settings_screen.dart`/`label_printer_settings_screen.dart`'s "printer connected" indicator — flagged in the handoff as a `StatusPill` candidate that didn't exist last time these screens were touched — now is one (new i18n key `printerConnected`). `backup_screen.dart`'s raw `Colors.teal`/`Colors.indigo` icons became toned `IconAvatar`s. `referral_screen.dart`'s numbered steps and referred-shops list adopted `IconAvatar`; **a real overflow bug was found live** (not introduced by this pass) — the wallet card's "Active shops / Total earned" `Row`+`Spacer` overflowed ~10px at `my` locale phrase lengths, fixed with a `Wrap` per this app's own Myanmar-safety rule. `accounts_payable_screen.dart` got the full token pass (`IconAvatar`/`MoneyText`/`StatusPill`) that its sibling `credit_screen.dart` (out of scope this phase) still lacks — flagged as a deliberate, documented scope boundary, not an oversight. `sync_issues_screen.dart`'s quarantined rows gained an `IconAvatar`+`StatusPill` in the critical tone. `help_guide_screen.dart` audited and left untouched (zero color literals, already token-clean). One new i18n key in both `.arb`s + `flutter gen-l10n`. `flutter analyze` clean, **370/370 tests pass** throughout. | **Live-verified** on iPhone 17 Pro, `my`+`en` × light+dark (not every combination on every screen). **Exercised end-to-end**: Suppliers' four-controller crash fix and its delete-confirm (`en`/light — solid-red "Delete" vs. text "Cancel", deleted cleanly, back to `EmptyStateView`); Staff Accounts' invite-dialog fix (open ➜ eye-icon toggle ➜ Cancel, no leak); the Referral overflow bug, screenshotted broken then confirmed fixed on the same device across `my`/`en` × light/dark; Backup's `IconAvatar` tones plus its native file-picker dismiss. **Not independently exercised live**: `purchase_order_editor_screen.dart`'s two dialog fixes specifically — this screen's small icon-only FAB did not register a tap across many coordinate attempts (the same "FAB unreliable on a pushed route" quirk the note below and the `branches_screen.dart` entry above both hit), while an *extended* FAB one level up and a `showDialog` reached via a different control on the *same* pushed screen both worked fine — confidence rests on the identical extraction pattern proven live twice elsewhere in this same phase, plus `flutter analyze`/tests. Also not reached live: Purchase Orders' `StatusPill` (no saved PO to view, same FAB reason) and the printer-connected `StatusPill` (no Bluetooth printer paired in the simulator). |
 
 | 2026-08-12 | E | **Coordinator independently re-verified both Phase E halves** (trust-but-verify): re-ran `flutter analyze` (clean) and `flutter test` (370/370) myself; confirmed `docs/DESIGN_PASS.md` and `PROJECT_SPEC.md` merged coherently from the two concurrent subagent sessions (no duplicated headers, no corrupted table rows — both wrote to genuinely disjoint sections). Read the crash-fix structure directly in `branches_screen.dart` (`_CreateBranchDialog`) and `purchase_order_editor_screen.dart` (`_ProductPickerSheet`, `_LineEditorDialog`) — both correctly shaped `StatefulWidget`s with `dispose()` on real teardown, matching the five prior fixes. Rebuilt and live-verified on iPhone 17 Pro: Settings list navigation, Printer settings (confirmed the "printer connected" `StatusPill` genuinely can't be seen without a paired Bluetooth device, matching both subagents' own caveat — not a gap in verification effort), and reached the Purchase Order editor screen (supplier/note fields, items list, Save button all render correctly on the new tokens). | **Could not get past the same wall both subagents hit**: `purchase_order_editor_screen.dart`'s small icon-only "add product" `FloatingActionButton` did not register a tap across 4 separate attempts with carefully recalculated coordinates, on the *same* screen where the extended "Create purchase order" FAB one level up worked correctly (confirming the coordinate math itself is right) and where the code (`floatingActionButton: FloatingActionButton(onPressed: _addProduct, ...)`) is unremarkable — no `heroTag` collision, no disabled condition, no `IgnorePointer`. Three independent sessions now hitting the identical wall on the identical control is enough to call this a real characteristic of `mcp__Claude_Code_iOS_Simulator__control` (or this specific `FloatingActionButton` shape) worth flagging plainly rather than a coincidence — see the coordinate-calibration note below, and if a future session needs to actually exercise this dialog live, try `mcp__Claude_Code_iOS_Simulator__control`'s `touch_path` action (a slower, eased tap-and-hold) instead of a bare `tap`, which hasn't been tried against this specific button yet. Confidence in the fix itself rests on code review + the identical extraction pattern proven live 6 times elsewhere this session, not on exercising this exact button. |
+
+| 2026-08-12 | F | **Phase F — both parallel subagents (F1 admin, F2 storefront/invoices-web) hit the account's monthly spend limit mid-task, the third and fourth occurrences this session.** Unlike Phase D's second interruption (real scope left untouched), both agents here left genuinely complete, high-quality work behind — the coordinator's job was finishing a small remainder and documenting, not redoing anything. F1 (admin) was essentially done: `admin_login_screen.dart` fully rebuilt onto shared auth components, `admin_app.dart`'s theme + `_NotAuthorized` view converted, `admin_dashboard_widgets.dart` mostly converted with a well-reasoned doc comment on *why* admin adopts `AppTheme` (it's GoldPOSMM's own tool) — only 3 raw colors near the end of that 924-line file were unreached, fixed directly by the coordinator (`enabled ? Colors.green : Colors.grey` → `AppColors`, a `Colors.red` delete icon → `AppColors.danger`, a `Colors.black54` caption → a theme text role + `AppColors.muted`, plus one bare empty state → `EmptyStateView`). F2 (storefront) had fully converted `storefront_screen.dart` (including an eighth crash-pattern instance — a straight leak this time, `_BlockedCustomersScreen._addBlock`'s controllers never disposed at all) and `storefront_page.dart`/`storefront_app.dart` (with a genuinely well-reasoned branding decision documented inline — grepped the data model for per-shop color fields, found none, concluded the old purple seed was an unreplaced default not an intentional brand boundary) — but never reached `invoices_web/*` at all, which the coordinator did from scratch: `invoices_web_app.dart` onto `AppTheme` (same reasoning as admin — this is the shop owner's own tool, not a customer-facing page, so the storefront branding question doesn't apply), `activate_screen.dart`/`invoice_list_screen.dart`/`invoice_detail_web_screen.dart` onto `MoneyText`/`ButtonSpinner`/`EmptyStateView`/spacing tokens. `flutter analyze` clean, 370/370 tests pass throughout. | **A real, pre-existing bug found live, not introduced by this phase**: `.claude/launch.json`'s `storefront-web` entry was missing `--dart-define-from-file env.local.json` (present on its two sibling entries) — the practical symptom was a completely blank page with zero console errors and an empty accessibility tree, diagnosed by re-running the identical `flutter run` command with the flag added on a fresh port, which then rendered correctly. Fixed in `launch.json`. **Verified live via the Browser tools** (this phase's first time using them instead of the iOS Simulator, since it's Flutter Web) against real `flutter run -d web-server` builds for all three surfaces: admin login screen, storefront's `_NoSlug` screen (after the launch-config fix), and `invoices_web`'s `ActivateScreen` — all three render correctly on the new deep-green tokens with no visual defects. Not verified: what's past admin login (no valid credentials available — noted rather than silently skipped) and `storefront_screen.dart`'s crash fix on the actual iOS Simulator (code-reviewed only, matching seven prior proven-live fixes of the identical shape). **All six phases of the app-wide design pass are now complete.** |
 
 ### Note for next session — coordinate calibration for `mcp__Claude_Code_iOS_Simulator__control`
 Tap coordinates for this tool are in **device points** as reported by `attach` (e.g. 402×874 for iPhone 17 Pro), NOT the pixel dimensions the screenshot appears at when viewed. Estimate tap position as a **fraction of the screenshot's visual layout**, then multiply by the point-space width/height — don't eyeball raw pixel numbers from the image. Also: a `swipe`/`touch_path` whose start point lands on the bottom navigation bar (roughly the bottom ~90pt of a compact-width screen) gets consumed by the nav bar and never reaches the scrollable content above it — start swipes well clear of it (e.g. `y=700` on an 874pt-tall screen, not `y=800`). **New this session:** on at least one pushed (non-tab-shell) route, a `FloatingActionButton`'s tap target did not register across several plausible coordinate estimates while other elements on the same screen (list rows) worked fine at the same calibration — if a tap silently fails to do anything on a screen reached via `Navigator.push` rather than the bottom-tab shell, try a nearby alternate entry point to the same code path before concluding the app itself is broken.

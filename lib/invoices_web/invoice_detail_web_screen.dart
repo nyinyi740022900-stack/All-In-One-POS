@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import '../features/invoices/invoice_pdf.dart';
 import '../features/invoices/invoice_view.dart';
 import '../l10n/app_localizations.dart';
@@ -90,24 +92,24 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('${snap.error}'));
+            return EmptyStateView(
+              icon: Icons.error_outline,
+              title: '${snap.error}',
+            );
           }
           final data = snap.data!;
           return Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppTheme.space5),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   InvoiceView(data: data, width: 420),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.space5),
                   FilledButton.icon(
                     onPressed: _downloading ? null : () => _downloadPdf(data),
                     icon: _downloading
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const ButtonSpinner()
                         : const Icon(Icons.picture_as_pdf),
                     label: Text(l.invWebDownloadPdf),
                   ),

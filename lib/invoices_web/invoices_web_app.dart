@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import 'activate_screen.dart';
 import 'invoice_list_screen.dart';
@@ -12,6 +13,12 @@ import 'invoices_web_session.dart';
 /// model) as adding another phone. Not for checkout/inventory — that's a
 /// much larger Phase 2 (needs a web-compatible local DB, USB/network
 /// printing, etc.), deliberately out of scope here.
+///
+/// **This is the shop owner's own tool** (viewing their own invoices,
+/// authenticated via the same device-activation flow as the mobile app) —
+/// not a customer-facing page like `storefront_page.dart`, so the same
+/// "does this deserve its own separate brand" question doesn't apply here;
+/// it shares `AppTheme` for the same reason `admin_app.dart` does.
 class InvoicesWebApp extends StatefulWidget {
   const InvoicesWebApp({super.key});
 
@@ -35,7 +42,8 @@ class _InvoicesWebAppState extends State<InvoicesWebApp> {
     return MaterialApp(
       title: 'Invoices',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF6C4AB6), useMaterial3: true),
+      theme: AppTheme.light(localeCode: _locale.languageCode),
+      darkTheme: AppTheme.dark(localeCode: _locale.languageCode),
       locale: _locale,
       localeResolutionCallback: (_, _) => _locale,
       localizationsDelegates: const [

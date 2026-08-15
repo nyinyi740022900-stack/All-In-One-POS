@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/money.dart';
+import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import '../l10n/app_localizations.dart';
 import 'invoice_detail_web_screen.dart';
 import 'invoices_web_session.dart';
@@ -141,22 +143,27 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppTheme.space3),
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: l.invWebSearchHint,
                     prefixIcon: const Icon(Icons.search),
                     isDense: true,
-                    border: const OutlineInputBorder(),
                   ),
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ),
               Expanded(
                 child: all.isEmpty
-                    ? Center(child: Text(l.invoicesEmpty))
+                    ? EmptyStateView(
+                        icon: Icons.receipt_long_outlined,
+                        title: l.invoicesEmpty,
+                      )
                     : rows.isEmpty
-                        ? Center(child: Text(l.invWebNoResults))
+                        ? EmptyStateView(
+                            icon: Icons.search_off,
+                            title: l.invWebNoResults,
+                          )
                         : ListView.separated(
                             itemCount: rows.length,
                             separatorBuilder: (_, _) => const Divider(height: 1),
@@ -176,11 +183,15 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(Money(r.total).withSymbol(l.currencySymbol)),
+                                    MoneyText(Money(r.total).withSymbol(l.currencySymbol)),
                                     if (r.isRefund)
                                       Text(l.invoiceRefunded,
-                                          style: const TextStyle(
-                                              fontSize: 11, color: Colors.red)),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                  color: AppColors.of(context)
+                                                      .danger)),
                                   ],
                                 ),
                                 onTap: () => Navigator.of(context).push(
