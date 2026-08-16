@@ -9,7 +9,7 @@ import 'admin_dashboard_screen.dart';
 import 'admin_login_screen.dart';
 
 /// The vendor's own internal tool (license/key management for shops running
-/// GoldPOSMM), not customer-facing storefront chrome — so unlike the
+/// All In One POS), not customer-facing storefront chrome — so unlike the
 /// storefront-web design question, there's no reason for this to diverge
 /// visually from the rest of the product. It shares [AppTheme]/[AppColors]
 /// wholesale rather than growing its own palette: before this it ran a raw
@@ -31,7 +31,7 @@ class AdminApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MM POS Admin',
+      title: 'All In One POS Admin',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(localeCode: 'en'),
       darkTheme: AppTheme.dark(localeCode: 'en'),
@@ -99,7 +99,7 @@ class _NotAuthorized extends StatelessWidget {
         icon: Icons.block,
         title: 'This account is not an admin.',
         message: 'Sign in with an account that has admin access to '
-            'GoldPOSMM licensing.',
+            'All In One POS licensing.',
         actionLabel: 'Sign out',
         onAction: () async {
           await api.signOut();

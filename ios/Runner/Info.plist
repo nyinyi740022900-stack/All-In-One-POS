@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>GoldPOSMM</string>
+	<string>All In One POS</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -67,15 +67,15 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>GoldPOSMM connects to your Bluetooth receipt printer to print invoices.</string>
+	<string>All In One POS connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>GoldPOSMM connects to your Bluetooth receipt printer to print invoices.</string>
+	<string>All In One POS connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>GoldPOSMM uses the camera to scan product barcodes and license QR codes.</string>
+	<string>All In One POS uses the camera to scan product barcodes and license QR codes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GoldPOSMM needs photo access so you can attach payment proofs, expense receipts, and product images.</string>
+	<string>All In One POS needs photo access so you can attach payment proofs, expense receipts, and product images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>GoldPOSMM may save exported receipts or reports to your photo library when you choose to share them.</string>
+	<string>All In One POS may save exported receipts or reports to your photo library when you choose to share them.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleURLTypes</key>

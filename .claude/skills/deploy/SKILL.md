@@ -1,15 +1,19 @@
 ---
 name: deploy
-description: Deploy GoldPOSMM — apply Supabase migrations + Edge Functions, redeploy the admin web to Vercel, and install the app on the iPhone. Use when shipping backend or app changes. Includes the exact commands, ordering, and known caveats.
+description: Deploy All In One POS — apply Supabase migrations + Edge Functions, redeploy the admin web to Vercel, and install the app on the iPhone. Use when shipping backend or app changes. Includes the exact commands, ordering, and known caveats.
 ---
 
-# Deploy GoldPOSMM
+# Deploy All In One POS
 
 Always `flutter analyze` (clean) + `flutter test` (all pass) FIRST.
 
 Live project: `gnikispsurwrmkspuisj` (must be `supabase link`ed as the
-GoldPOSMM-owning account). Admin web: Vercel project `goldposmm-admin`, scope
-`nyi-nyi-s-projects1`. iPhone id: `00008150-001A44C41E08401C`.
+All In One POS-owning account). Admin web: Vercel project `allinonepos-admin`,
+scope `nyi-nyi-s-projects1`. iPhone id: `00008150-001A44C41E08401C`.
+
+Rebranded from GoldPOSMM 2026-08-16 — bundle ID `com.mmpos.mmPos` /
+`com.mmpos.mm_pos` → `com.allinonepos.app`, every `goldposmm-*.vercel.app`
+project → `allinonepos-*.vercel.app` (old URLs are dead, not redirected).
 
 ## 1. Supabase migrations
 ```bash
@@ -41,27 +45,27 @@ flutter build web -t lib/admin/admin_main.dart --dart-define-from-file=env.local
 #   { "routes": [ { "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" } ] }
 cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://goldposmm-admin.vercel.app (use this; the per-deployment URL
+Stable URL: https://allinonepos-admin.vercel.app (use this; the per-deployment URL
 is SSO-gated).
 
 ## 3b. Storefront web → Vercel
 Same build/deploy shape as above, different target + project:
 ```bash
 flutter build web -t lib/storefront/storefront_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
-cd build/web && vercel link --yes --project goldposmm-shop --scope nyi-nyi-s-projects1
+cd build/web && vercel link --yes --project allinonepos-shop --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://goldposmm-shop.vercel.app.
+Stable URL: https://allinonepos-shop.vercel.app.
 
 ## 3c. Invoices Web companion → Vercel
 Read-only "view & print own invoices" companion for a shop's computer (Phase 1
 of computer/tablet support — see PROJECT_SPEC §12). Same shape again:
 ```bash
 flutter build web -t lib/invoices_web/invoices_web_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
-cd build/web && vercel link --yes --project goldposmm-invoices --scope nyi-nyi-s-projects1
+cd build/web && vercel link --yes --project allinonepos-invoices --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://goldposmm-invoices.vercel.app. No backend changes ship with
+Stable URL: https://allinonepos-invoices.vercel.app. No backend changes ship with
 this one — it activates via the existing `activate` function and reads
 `sales`/`sale_items`/`storefronts` directly, so redeploying it is web-build-only.
 
@@ -71,7 +75,7 @@ scaffolding exists but is **out of scope** (blank-window; not prioritized).
 
 **Build gate (from this Mac):** GitHub Actions
 [`.github/workflows/windows_desktop.yml`](../../.github/workflows/windows_desktop.yml)
-— `windows-latest`, uploads `GoldPOSMM-windows-<sha>`. Optional secrets:
+— `windows-latest`, uploads `AllInOnePOS-windows-<sha>`. Optional secrets:
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`.
 
 Docs: [`docs/windows/`](../../docs/windows/). Human smoke on a Windows PC
@@ -83,7 +87,7 @@ flutter build windows --release --dart-define-from-file=env.local.json
 ```
 
 Invoices-only on any computer: Phase 1 web companion
-`https://goldposmm-invoices.vercel.app` (no local DB).
+`https://allinonepos-invoices.vercel.app` (no local DB).
 
 ## 4. App → iPhone (wireless)
 ```bash
@@ -96,7 +100,7 @@ for `Swift Compiler Error` before assuming it's the device.
 
 ## 5. App Store / TestFlight (IPA)
 Kit: `docs/app_store/` (listing copy, privacy nutrition, review notes, smoke
-checklist). Privacy Policy (live): https://goldposmm-legal.vercel.app  
+checklist). Privacy Policy (live): https://allinonepos-legal.vercel.app  
 Redeploy policy HTML:
 ```bash
 cd docs/app_store/privacy && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
@@ -125,8 +129,10 @@ export APP_STORE_CONNECT_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_�
 
 ## 6. Play Store (AAB)
 Kit: `docs/play_store/` (signing, listing, Data safety, internal test, submit).
-Privacy Policy: https://goldposmm-legal.vercel.app  
-Package: `com.mmpos.mm_pos` (do not change).
+Privacy Policy: https://allinonepos-legal.vercel.app  
+Package: `com.allinonepos.app` (was `com.mmpos.mm_pos` before the 2026-08-16
+rebrand — no Play upload has happened yet, so this is safe to have changed;
+do not change again once a real upload exists).
 
 ```bash
 # 1) One-time: create upload keystore + android/key.properties

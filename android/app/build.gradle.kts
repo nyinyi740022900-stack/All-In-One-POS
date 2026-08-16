@@ -18,7 +18,7 @@ val hasReleaseKeystore = keystorePropertiesFile.exists().also { exists ->
 }
 
 android {
-    namespace = "com.mmpos.mm_pos"
+    namespace = "com.allinonepos.app"
     // Bumped to 36: newer plugins (flutter_plugin_android_lifecycle via
     // file_picker 8.x) require compiling against Android API 36+.
     compileSdk = 36
@@ -32,8 +32,9 @@ android {
     }
 
     defaultConfig {
-        // Production application id — do not change (sideload + Play installs).
-        applicationId = "com.mmpos.mm_pos"
+        // Rebranded to All In One POS 2026-08-16 — was com.mmpos.mm_pos.
+        // Do not change again without a real reason (sideload + Play installs).
+        applicationId = "com.allinonepos.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

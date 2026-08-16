@@ -75,7 +75,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ),
               ),
               const SizedBox(height: AppTheme.space3),
-              Text('MM POS Admin',
+              Text('All In One POS Admin',
                   style: Theme.of(context)
                       .textTheme
                       .headlineSmall

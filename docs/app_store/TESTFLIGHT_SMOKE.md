@@ -4,7 +4,7 @@ Use after a build appears under **App Store Connect → TestFlight** (Internal f
 
 ## Install
 - [ ] Internal tester (team) installs via TestFlight
-- [ ] App icon label shows **GoldPOSMM**
+- [ ] App icon label shows **All In One POS**
 - [ ] Version / build matches uploaded IPA (`1.0.0 (N)`)
 
 ## Core POS
@@ -19,7 +19,7 @@ Use after a build appears under **App Store Connect → TestFlight** (Internal f
 
 ## Storefront
 - [ ] Owner publishes / opens storefront settings
-- [ ] Place a guest order on https://goldposmm-shop.vercel.app/{slug}
+- [ ] Place a guest order on https://allinonepos-shop.vercel.app/{slug}
 - [ ] Order appears in Orders after sync; local notification may fire
 
 ## Multi-shop A→B→A (#74)

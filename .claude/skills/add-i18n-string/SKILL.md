@@ -1,6 +1,6 @@
 ---
 name: add-i18n-string
-description: Add (or change) a localized UI string in GoldPOSMM — English + Myanmar together. Use when adding ANY user-facing text. Parity between the two ARB files is enforced by a test, so never add to just one.
+description: Add (or change) a localized UI string in All In One POS — English + Myanmar together. Use when adding ANY user-facing text. Parity between the two ARB files is enforced by a test, so never add to just one.
 ---
 
 # Add a localized string

@@ -9,7 +9,7 @@ class AppLocalizationsMy extends AppLocalizations {
   AppLocalizationsMy([String locale = 'my']) : super(locale);
 
   @override
-  String get appTitle => 'MM POS';
+  String get appTitle => 'All In One POS';
 
   @override
   String get navSell => 'ရောင်းချ';
@@ -1851,7 +1851,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String referralShareText(String code, String shop) {
-    return 'သင့်ဆိုင်အတွက် MM POS သုံးပါ! စာရင်းသွင်းတဲ့အခါ ကျွန်ုပ်၏ referral ကုဒ် $code ကို ထည့်ပါ။ — $shop';
+    return 'သင့်ဆိုင်အတွက် All In One POS သုံးပါ! စာရင်းသွင်းတဲ့အခါ ကျွန်ုပ်၏ referral ကုဒ် $code ကို ထည့်ပါ။ — $shop';
   }
 
   @override
@@ -1955,11 +1955,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get backupImportHint => 'Backup file ကနေ data ပြန်ယူ';
 
   @override
-  String get backupShareSubject => 'MM POS backup';
+  String get backupShareSubject => 'All In One POS backup';
 
   @override
   String get backupShareText =>
-      'MM POS data backup။ နောက်မှ ပြန်ယူဖို့ ဒီ file ကို သိမ်းထားပါ။';
+      'All In One POS data backup။ နောက်မှ ပြန်ယူဖို့ ဒီ file ကို သိမ်းထားပါ။';
 
   @override
   String get backupImportConfirmTitle => 'data အားလုံး အစားထိုးမလား?';
@@ -2681,7 +2681,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဆိုင်အမည်၊ App Reference ID၊ လအရေအတွက်နှင့် ငွေပမာဏတို့ကို ဖြည့်သွင်းပါ။';
 
   @override
-  String get onboardWelcomeTitle => 'GoldPOSMM မှ ကြိုဆိုပါတယ်';
+  String get onboardWelcomeTitle => 'All In One POS မှ ကြိုဆိုပါတယ်';
 
   @override
   String get onboardWelcomeBody =>
@@ -3246,7 +3246,7 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
-  String get onboardModeTitle => 'GoldPOSMM ကို ဘယ်လို သုံးမှာလဲ?';
+  String get onboardModeTitle => 'All In One POS ကို ဘယ်လို သုံးမှာလဲ?';
 
   @override
   String get onboardModeOfflineTitle => 'Offline';
@@ -3315,7 +3315,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get modeMigrateBody =>
-      'GoldPOSMM က Online သို့မဟုတ် Offline mode ကို အမြဲတမ်း သတ်မှတ်အသုံးပြုပါသည်။ တစ်ကြိမ်သာ အတည်ပြုပါ — အက်ပ်ထဲကနေ နောက်မှ ပြောင်းလို့ မရပါ။';
+      'All In One POS က Online သို့မဟုတ် Offline mode ကို အမြဲတမ်း သတ်မှတ်အသုံးပြုပါသည်။ တစ်ကြိမ်သာ အတည်ပြုပါ — အက်ပ်ထဲကနေ နောက်မှ ပြောင်းလို့ မရပါ။';
 
   @override
   String get modeMigrateSuggestOnline =>

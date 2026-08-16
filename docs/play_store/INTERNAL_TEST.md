@@ -4,7 +4,7 @@ After uploading an AAB to **Internal testing** and inviting testers.
 
 ## Install
 - [ ] Tester joins internal track link / email
-- [ ] App label **GoldPOSMM**, package `com.mmpos.mm_pos`
+- [ ] App label **All In One POS**, package `com.allinonepos.app`
 - [ ] versionName / versionCode match uploaded AAB
 
 ## Core POS

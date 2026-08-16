@@ -1,11 +1,11 @@
 {
-    "name": "mm_pos",
-    "short_name": "mm_pos",
+    "name": "All In One POS",
+    "short_name": "All In One POS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "All In One POS — offline-first point of sale for Myanmar shops.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

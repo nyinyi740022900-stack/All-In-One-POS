@@ -74,7 +74,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       length: 6,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('MM POS Admin'),
+          title: const Text('All In One POS Admin'),
           bottom: TabBar(isScrollable: true, tabs: [
             Tab(text: 'Licenses (${_licenses?.length ?? 0})'),
             Tab(text: 'Requests ($pendingRequests)'),

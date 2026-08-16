@@ -1,7 +1,7 @@
 # App Review notes (paste into Connect → App Review Information)
 
 ## Demo access
-GoldPOSMM is a B2B offline POS. Reviewers can:
+All In One POS is a B2B offline POS. Reviewers can:
 
 1. Install the build and complete onboarding (choose Myanmar or English).
 2. Use **Free plan** immediately to sell — no purchase required for basic POS.

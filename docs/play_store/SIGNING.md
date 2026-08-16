@@ -7,9 +7,9 @@ Release builds **must not** use the debug keystore. Gradle loads
 ## 1. Create upload keystore (once)
 
 ```bash
-keytool -genkey -v -keystore ~/goldposmm-upload.jks \
+keytool -genkey -v -keystore ~/allinonepos-upload.jks \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias goldposmm_upload
+  -alias allinonepos_upload
 ```
 
 Store the `.jks` **outside git** (home directory is fine). Backup offline.
@@ -27,8 +27,8 @@ Example:
 ```properties
 storePassword=…
 keyPassword=…
-keyAlias=goldposmm_upload
-storeFile=/Users/YOU/goldposmm-upload.jks
+keyAlias=allinonepos_upload
+storeFile=/Users/YOU/allinonepos-upload.jks
 ```
 
 Never commit `android/key.properties`, `*.jks`, or `*.keystore`.

@@ -1,4 +1,4 @@
-# GoldPOSMM — Play Store kit
+# All In One POS — Play Store kit
 
 | Doc | Purpose |
 |---|---|
@@ -10,6 +10,6 @@
 | [INTERNAL_TEST.md](INTERNAL_TEST.md) | Internal testing track smoke |
 | [SUBMIT.md](SUBMIT.md) | Production rollout |
 
-Privacy policy (shared with iOS): https://goldposmm-legal.vercel.app  
+Privacy policy (shared with iOS): https://allinonepos-legal.vercel.app  
 
 Build: see deploy skill §6 and `flutter build appbundle --release --dart-define-from-file=env.local.json`.

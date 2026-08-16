@@ -2,10 +2,15 @@
 
 ## Verified on this machine (2026-08-07)
 
+**Rebranded 2026-08-16**: Bundle ID changed `com.mmpos.mmPos` →
+`com.allinonepos.app` (App Store Connect app record never existed yet — this
+checklist is still Phase 0/unexecuted — so the change was safe; the "do not
+change" warning below now protects the *new* value).
+
 | Item | Value | Status |
 |---|---|---|
 | Development Team ID | `F8KLK8L5SY` | Present in Xcode project |
-| Bundle ID | `com.mmpos.mmPos` | Do **not** change (sideload installs) |
+| Bundle ID | `com.allinonepos.app` | Do **not** change (sideload installs) |
 | Signing identity | Apple Development: `nyinyi1451996@icloud.com` (`MU3QKXW37H`) | Valid for device installs |
 | App Store Connect API key | — | **Not on disk** — create before upload (below) |
 
@@ -14,10 +19,10 @@
 1. Confirm [Apple Developer Program](https://developer.apple.com/account) membership is **Active** for team `F8KLK8L5SY`.
 2. Open [App Store Connect](https://appstoreconnect.apple.com) → **My Apps** → **+** → **New App**:
    - Platform: iOS
-   - Name: **GoldPOSMM** (or available variant)
+   - Name: **All In One POS** (or available variant)
    - Primary language: English (U.S.) — add Myanmar localization later
-   - Bundle ID: select **`com.mmpos.mmPos`** (register under Certificates, Identifiers & Profiles if missing)
-   - SKU: `goldposmm-ios` (immutable internal id)
+   - Bundle ID: select **`com.allinonepos.app`** (register under Certificates, Identifiers & Profiles if missing)
+   - SKU: `allinonepos-ios` (immutable internal id)
    - User Access: Full Access
 3. Under **Users and Access → Integrations → App Store Connect API**, create a key:
    - Role: **Admin** or **App Manager**
@@ -38,8 +43,8 @@ export APP_STORE_CONNECT_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_XX
 
 Certificates, Identifiers & Profiles → Identifiers → **+** → App IDs → App:
 
-- Description: GoldPOSMM
-- Bundle ID: Explicit `com.mmpos.mmPos`
+- Description: All In One POS
+- Bundle ID: Explicit `com.allinonepos.app`
 - Capabilities: none required beyond defaults (no Push/Associated Domains yet)
 
 ## Done when

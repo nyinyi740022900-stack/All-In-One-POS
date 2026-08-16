@@ -6,7 +6,7 @@ scaffolded but deferred (blank-window issue; not a product priority).
 Phone/tablet remain the primary POS. Windows is the shop-PC path for full
 Sell/Inventory/Orders (native Drift SQLite — same offline model as mobile).
 Invoices-only on any computer can still use
-https://goldposmm-invoices.vercel.app (Phase 1).
+https://allinonepos-invoices.vercel.app (Phase 1).
 
 ## Build gate: GitHub Actions
 
@@ -15,7 +15,7 @@ Workflow: [`.github/workflows/windows_desktop.yml`](../.github/workflows/windows
 - Runs on `windows-latest` (cannot build Windows from a Mac).
 - Triggers: `workflow_dispatch`, and push/PR touching `lib/`, `windows/`,
   `pubspec.*`, l10n, or the workflow file.
-- Uploads artifact `GoldPOSMM-windows-<sha>` (Release folder, ~14 days).
+- Uploads artifact `AllInOnePOS-windows-<sha>` (Release folder, ~14 days).
 
 ### Repo secrets (optional but recommended)
 
@@ -31,7 +31,7 @@ Without secrets the build still succeeds; the app runs with empty defines
 ### Download a CI build
 
 1. GitHub → Actions → **Windows desktop** → latest green run.
-2. Artifacts → download `GoldPOSMM-windows-…`.
+2. Artifacts → download `AllInOnePOS-windows-…`.
 3. Unzip → run `mm_pos.exe`.
 
 ## Local build (when you smoke-test on the Windows PC)

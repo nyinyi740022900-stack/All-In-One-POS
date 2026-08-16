@@ -1,4 +1,9 @@
-# GoldPOSMM — project guide for Claude
+# All In One POS — project guide for Claude
+
+Rebranded from GoldPOSMM 2026-08-16 — bundle ID `com.allinonepos.app`, web
+projects `allinonepos-{admin,shop,invoices,legal}.vercel.app`. If you see
+"GoldPOSMM"/"goldposmm-*"/`com.mmpos.*` anywhere outside a historical
+`PROJECT_SPEC.md` changelog entry, it's stale and should be fixed.
 
 Offline-first POS + license SaaS for Myanmar SMEs. **Flutter** app (iOS/Android)
 + **Flutter Web** admin console + **Supabase** (Postgres/Auth/Edge Functions).

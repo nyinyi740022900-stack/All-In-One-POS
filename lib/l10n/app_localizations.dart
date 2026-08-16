@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// Application title
   ///
   /// In en, this message translates to:
-  /// **'MM POS'**
+  /// **'All In One POS'**
   String get appTitle;
 
   /// No description provided for @navSell.
@@ -3467,7 +3467,7 @@ abstract class AppLocalizations {
   /// No description provided for @referralShareText.
   ///
   /// In en, this message translates to:
-  /// **'Use MM POS for your shop! Enter my referral code {code} when you subscribe. — {shop}'**
+  /// **'Use All In One POS for your shop! Enter my referral code {code} when you subscribe. — {shop}'**
   String referralShareText(String code, String shop);
 
   /// No description provided for @referralBalance.
@@ -3641,13 +3641,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupShareSubject.
   ///
   /// In en, this message translates to:
-  /// **'MM POS backup'**
+  /// **'All In One POS backup'**
   String get backupShareSubject;
 
   /// No description provided for @backupShareText.
   ///
   /// In en, this message translates to:
-  /// **'MM POS data backup. Keep this file to restore later.'**
+  /// **'All In One POS data backup. Keep this file to restore later.'**
   String get backupShareText;
 
   /// No description provided for @backupImportConfirmTitle.
@@ -4937,7 +4937,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to GoldPOSMM'**
+  /// **'Welcome to All In One POS'**
   String get onboardWelcomeTitle;
 
   /// No description provided for @onboardWelcomeBody.
@@ -5921,7 +5921,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardModeTitle.
   ///
   /// In en, this message translates to:
-  /// **'How will you use GoldPOSMM?'**
+  /// **'How will you use All In One POS?'**
   String get onboardModeTitle;
 
   /// No description provided for @onboardModeOfflineTitle.
@@ -6041,7 +6041,7 @@ abstract class AppLocalizations {
   /// No description provided for @modeMigrateBody.
   ///
   /// In en, this message translates to:
-  /// **'GoldPOSMM now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.'**
+  /// **'All In One POS now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.'**
   String get modeMigrateBody;
 
   /// No description provided for @modeMigrateSuggestOnline.

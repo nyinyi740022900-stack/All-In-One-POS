@@ -50,7 +50,7 @@ class _StorefrontAppState extends State<StorefrontApp> {
     return MaterialApp(
       title: 'Shop',
       debugShowCheckedModeBanner: false,
-      // Same design system as the rest of GoldPOSMM (`AppTheme`), not a
+      // Same design system as the rest of All In One POS (`AppTheme`), not a
       // bespoke palette for this page. This page has no per-shop branding to
       // apply (no shop-specific colour field exists anywhere in the data
       // model — grep-confirmed) and no comment anywhere suggested the old

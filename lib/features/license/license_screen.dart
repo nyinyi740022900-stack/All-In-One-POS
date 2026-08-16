@@ -283,7 +283,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final ok = await launchUrl(
-      Uri.parse('https://goldposmm-shop.vercel.app/renew'),
+      Uri.parse('https://allinonepos-shop.vercel.app/renew'),
       mode: LaunchMode.externalApplication,
     );
     if (!ok && mounted) {

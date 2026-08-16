@@ -1,6 +1,6 @@
 ---
 name: add-synced-entity
-description: Add a new offline-synced Drift + Supabase table to GoldPOSMM (e.g. orders, order_items, customers). Use when adding ANY entity that must persist locally and sync to the cloud. Encodes the full checklist so no step (especially RLS) is missed.
+description: Add a new offline-synced Drift + Supabase table to All In One POS (e.g. orders, order_items, customers). Use when adding ANY entity that must persist locally and sync to the cloud. Encodes the full checklist so no step (especially RLS) is missed.
 ---
 
 # Add a synced entity

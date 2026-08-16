@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'MM POS';
+  String get appTitle => 'All In One POS';
 
   @override
   String get navSell => 'Sell';
@@ -1834,7 +1834,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String referralShareText(String code, String shop) {
-    return 'Use MM POS for your shop! Enter my referral code $code when you subscribe. — $shop';
+    return 'Use All In One POS for your shop! Enter my referral code $code when you subscribe. — $shop';
   }
 
   @override
@@ -1938,11 +1938,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupImportHint => 'Restore data from a backup file.';
 
   @override
-  String get backupShareSubject => 'MM POS backup';
+  String get backupShareSubject => 'All In One POS backup';
 
   @override
   String get backupShareText =>
-      'MM POS data backup. Keep this file to restore later.';
+      'All In One POS data backup. Keep this file to restore later.';
 
   @override
   String get backupImportConfirmTitle => 'Replace all data?';
@@ -2668,7 +2668,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please fill in shop name, App Reference ID, months, and amount.';
 
   @override
-  String get onboardWelcomeTitle => 'Welcome to GoldPOSMM';
+  String get onboardWelcomeTitle => 'Welcome to All In One POS';
 
   @override
   String get onboardWelcomeBody =>
@@ -3237,7 +3237,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardModeTitle => 'How will you use GoldPOSMM?';
+  String get onboardModeTitle => 'How will you use All In One POS?';
 
   @override
   String get onboardModeOfflineTitle => 'Offline';
@@ -3307,7 +3307,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modeMigrateBody =>
-      'GoldPOSMM now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.';
+      'All In One POS now uses a permanent Online or Offline mode. Confirm once — you cannot change it later in the app.';
 
   @override
   String get modeMigrateSuggestOnline =>

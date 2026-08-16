@@ -1,6 +1,6 @@
 # App Privacy nutrition labels (App Store Connect)
 
-Declare data linked to the user / used for app functionality. GoldPOSMM does **not** track across apps (ATT not used).
+Declare data linked to the user / used for app functionality. All In One POS does **not** track across apps (ATT not used).
 
 ## Data types to declare
 

@@ -81,13 +81,13 @@ jobs:
           $src = "build/windows/x64/runner/Release"
           if (-not (Test-Path $src)) { throw "Missing $src" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item -Recurse -Force $src dist/GoldPOSMM-windows
-          Get-ChildItem dist/GoldPOSMM-windows | Select-Object Name, Length
+          Copy-Item -Recurse -Force $src dist/AllInOnePOS-windows
+          Get-ChildItem dist/AllInOnePOS-windows | Select-Object Name, Length
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GoldPOSMM-windows-${{ github.sha }}
-          path: dist/GoldPOSMM-windows
+          name: AllInOnePOS-windows-${{ github.sha }}
+          path: dist/AllInOnePOS-windows
           if-no-files-found: error
           retention-days: 14

@@ -1,4 +1,4 @@
-package com.mmpos.mm_pos
+package com.allinonepos.app
 
 import io.flutter.embedding.android.FlutterActivity
 

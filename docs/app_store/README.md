@@ -1,4 +1,4 @@
-# GoldPOSMM — App Store kit
+# All In One POS — App Store kit
 
 | Doc | Purpose |
 |---|---|
@@ -10,6 +10,6 @@
 | [REVIEW_NOTES.md](REVIEW_NOTES.md) | App Review notes template |
 | [TESTFLIGHT_SMOKE.md](TESTFLIGHT_SMOKE.md) | Beta smoke including A→B→A |
 | [SUBMIT.md](SUBMIT.md) | Submit / release checklist |
-| [privacy/](privacy/) | Hosted privacy policy → https://goldposmm-legal.vercel.app |
+| [privacy/](privacy/) | Hosted privacy policy → https://allinonepos-legal.vercel.app |
 
 Build & upload: see repo deploy skill §5 and `tool/upload_ios_ipa.sh`.

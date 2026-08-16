@@ -1,6 +1,6 @@
-# MM POS — Admin dashboard (Flutter Web)
+# All In One POS — Admin dashboard (Flutter Web)
 
-**Live:** https://goldposmm-admin.vercel.app
+**Live:** https://allinonepos-admin.vercel.app
 
 Vendor console for managing licenses. Separate from the POS app: its own entry
 point (`admin_main.dart`), tree-shaken out of the mobile build. All privileged
@@ -44,7 +44,7 @@ flutter run -d chrome -t lib/admin/admin_main.dart \
 ```
 
 ## Deploy the dashboard (Vercel)
-Hosted at **https://goldposmm-admin.vercel.app** (Vercel project `goldposmm-admin`,
+Hosted at **https://allinonepos-admin.vercel.app** (Vercel project `allinonepos-admin`,
 scope `nyi-nyi-s-projects1`). To ship a new build:
 ```bash
 flutter build web -t lib/admin/admin_main.dart \

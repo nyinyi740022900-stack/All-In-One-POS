@@ -1,15 +1,15 @@
 # App Store listing copy (paste into App Store Connect)
 
-**Privacy Policy URL:** https://goldposmm-legal.vercel.app  
-**Support URL:** https://goldposmm-admin.vercel.app (or your Support/Viber landing)  
-**Marketing URL (optional):** https://goldposmm-shop.vercel.app  
+**Privacy Policy URL:** https://allinonepos-legal.vercel.app  
+**Support URL:** https://allinonepos-admin.vercel.app (or your Support/Viber landing)  
+**Marketing URL (optional):** https://allinonepos-shop.vercel.app  
 
-Bundle ID: `com.mmpos.mmPos` · Version: follow `pubspec.yaml` (`1.0.0+N`)
+Bundle ID: `com.allinonepos.app` · Version: follow `pubspec.yaml` (`1.0.0+N`)
 
 ---
 
 ## Name
-GoldPOSMM
+All In One POS
 
 ## Subtitle (30 chars max)
 Offline POS for Myanmar shops
@@ -18,7 +18,7 @@ Offline POS for Myanmar shops
 Sell offline, sync when online. Orders, invoices, stock, and a web storefront — English & Myanmar.
 
 ## Description (EN)
-GoldPOSMM is an offline-first point of sale for Myanmar SMEs — grocery, minimarts, pharmacies, phone shops, and more.
+All In One POS is an offline-first point of sale for Myanmar SMEs — grocery, minimarts, pharmacies, phone shops, and more.
 
 • Sell with an on-device cart even without internet  
 • Inventory, barcodes, and stock tracking  
@@ -31,7 +31,7 @@ GoldPOSMM is an offline-first point of sale for Myanmar SMEs — grocery, minima
 Licensing: activate with a key from Support, or sign in online. Premium is not sold via Apple In-App Purchase — it unlocks business POS features for your physical shop.
 
 ## Description (MY) — optional localization
-GoldPOSMM သည် မြန်မာ SME ဆိုင်များအတွက် offline-first POS ဖြစ်သည်။
+All In One POS သည် မြန်မာ SME ဆိုင်များအတွက် offline-first POS ဖြစ်သည်။
 
 • အင်တာနက်မရှိလည်း ရောင်းနိုင်  
 • ပစ္စည်းစာရင်း၊ barcode၊ လက်ကျန်  
