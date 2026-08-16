@@ -36,6 +36,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   final _shopName = TextEditingController();
   final _deviceId = TextEditingController();
+  final _email = TextEditingController();
   final _phone = TextEditingController();
   final _amount = TextEditingController();
   final _refNo = TextEditingController();
@@ -63,6 +64,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   void dispose() {
     _shopName.dispose();
     _deviceId.dispose();
+    _email.dispose();
     _phone.dispose();
     _amount.dispose();
     _refNo.dispose();
@@ -116,6 +118,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       await _api.submitLicenseRequest(
         shopName: shopName,
         deviceId: deviceId,
+        email: _email.text.trim(),
         phone: _phone.text.trim(),
         plan: _plan,
         months: months,
@@ -196,6 +199,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
               helperText: l.storefrontRenewDeviceIdHint,
               helperMaxLines: 2,
             ),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(labelText: l.storefrontRenewEmail),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(

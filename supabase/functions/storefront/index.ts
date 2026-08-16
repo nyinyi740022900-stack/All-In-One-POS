@@ -10,13 +10,15 @@
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no }
-//   submit_license_request { shop_name, device_id, phone?, plan, months,
-//                    method?, amount, ref_no?, payment_proof_path?, hp }
-//                    -> { ok } — the /renew page's subscription-renewal
+//   submit_license_request { shop_name, device_id, email?, phone?, plan,
+//                    months, method?, amount, ref_no?, payment_proof_path?,
+//                    hp } -> { ok } — the /renew page's subscription-renewal
 //                    request form. No slug/shop lookup (the shop isn't
-//                    resolved yet, just a device_id the owner typed in);
-//                    writes a pending row to license_requests for the admin
-//                    dashboard's Requests tab to pick up.
+//                    resolved yet, just a device_id the owner typed in, or
+//                    optionally an account email that resolves to shop_id
+//                    for an online-tier shop); writes a pending row to
+//                    license_requests for the admin dashboard's Requests
+//                    tab to pick up.
 //   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
@@ -184,10 +186,34 @@ async function handleSubmitLicenseRequest(
   const refNo = `${body.ref_no ?? ""}`.trim() || null;
   const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
 
+  // Optional: an online-tier shop (has a Supabase Auth account) can give
+  // its account email instead of hunting for its device_id — resolves to
+  // the exact shop via app_metadata.shop_id, so fulfill_request's existing
+  // shop_id-first lookup renews precisely that shop (an account can have
+  // multiple devices, unlike a device_id match, which only ever matches
+  // one). Same page-and-match approach as list_shops — the Admin Auth API
+  // has no filter-by-email call — and a bad/unmatched email just leaves
+  // shopId null, silently falling back to the device_id path below.
+  const email = `${body.email ?? ""}`.trim().toLowerCase();
+  let shopId: string | null = null;
+  if (email) {
+    const { data: userPage } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 2000,
+    });
+    // deno-lint-ignore no-explicit-any
+    const match = ((userPage?.users ?? []) as any[]).find(
+      (u) => `${u.email ?? ""}`.toLowerCase() === email,
+    );
+    const meta = match?.app_metadata as Record<string, unknown> | undefined;
+    shopId = (meta?.shop_id as string | undefined) ?? null;
+  }
+
   const now = new Date().toISOString();
   const { error } = await admin.from("license_requests").insert({
     id: crypto.randomUUID(),
     shop_name: shopName,
+    shop_id: shopId,
     device_id: deviceId,
     phone,
     plan,

@@ -2537,6 +2537,9 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဖုန်းထဲမှာ ရှာပါ - Settings → License → App Reference ID။';
 
   @override
+  String get storefrontRenewEmail => 'အီးမေးလ် (account ရှိရင်)';
+
+  @override
   String get storefrontRenewPlan => 'အစီအစဉ်';
 
   @override

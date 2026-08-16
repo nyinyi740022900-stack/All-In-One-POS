@@ -863,6 +863,7 @@
   "storefrontRenewHint": "Submit your payment details below and we'll review it to extend your subscription.",
   "storefrontRenewShopName": "Shop name *",
   "storefrontRenewDeviceIdHint": "Find this on your phone: Settings → License → App Reference ID.",
+  "storefrontRenewEmail": "Email (if you have an account)",
   "storefrontRenewPlan": "Plan",
   "storefrontRenewMonths": "Months",
   "storefrontRenewAmountPaid": "Amount paid (Ks) *",

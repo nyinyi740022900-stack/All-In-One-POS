@@ -171,6 +171,7 @@ class StorefrontApi {
   Future<void> submitLicenseRequest({
     required String shopName,
     required String deviceId,
+    String? email,
     String? phone,
     required String plan,
     required int months,
@@ -184,6 +185,7 @@ class StorefrontApi {
       'action': 'submit_license_request',
       'shop_name': shopName,
       'device_id': deviceId,
+      'email': email,
       'phone': phone,
       'plan': plan,
       'months': months,

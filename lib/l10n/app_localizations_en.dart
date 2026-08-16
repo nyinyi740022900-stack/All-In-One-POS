@@ -2536,6 +2536,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find this on your phone: Settings → License → App Reference ID.';
 
   @override
+  String get storefrontRenewEmail => 'Email (if you have an account)';
+
+  @override
   String get storefrontRenewPlan => 'Plan';
 
   @override

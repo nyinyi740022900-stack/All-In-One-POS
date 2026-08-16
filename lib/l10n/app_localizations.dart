@@ -4700,6 +4700,12 @@ abstract class AppLocalizations {
   /// **'Find this on your phone: Settings → License → App Reference ID.'**
   String get storefrontRenewDeviceIdHint;
 
+  /// No description provided for @storefrontRenewEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email (if you have an account)'**
+  String get storefrontRenewEmail;
+
   /// No description provided for @storefrontRenewPlan.
   ///
   /// In en, this message translates to:
