@@ -25,7 +25,6 @@ synced tables — otherwise core tables go default-deny. See the 0012 lesson.)
 ```bash
 supabase functions deploy admin --project-ref gnikispsurwrmkspuisj
 supabase functions deploy activate --project-ref gnikispsurwrmkspuisj
-supabase functions deploy start_trial --project-ref gnikispsurwrmkspuisj
 supabase functions deploy storefront --project-ref gnikispsurwrmkspuisj
 supabase functions deploy sync_force_apply --project-ref gnikispsurwrmkspuisj
 ```

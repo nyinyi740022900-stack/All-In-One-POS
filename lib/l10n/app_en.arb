@@ -547,6 +547,8 @@
   "licenseThankYou24h": "We'll verify your payment and your access will begin within 24 hours.",
   "licenseFreeTrial": "Try Premium",
   "licensePlanTrial": "Free trial",
+  "licenseTrialStartConfirm": "Start your 2-month Premium trial on this device now? Every Premium feature unlocks immediately, no payment needed. One trial per device — needs an internet connection to start.",
+  "licenseTrialSelfServeHint": "2 months, every Premium feature, no payment — one trial per device.",
   "licenseTrialContactHint": "Premium trials are issued by support only (not in-app), no charge. Copy the Viber number, send your App Reference ID, and ask for a trial key.",
   "licenseTrialContactHintOnline": "Premium trials for Online shops are issued by Support only, no charge. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.",
   "licenseTrialViberMissing": "Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.",

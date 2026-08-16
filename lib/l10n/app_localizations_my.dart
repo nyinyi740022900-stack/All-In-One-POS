@@ -1643,6 +1643,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licensePlanTrial => 'အခမဲ့ စမ်းသုံး';
 
   @override
+  String get licenseTrialStartConfirm =>
+      'ဒီ device မှာ Premium ၂ လ စမ်းသုံးမှုကို အခုပဲ စတင်မလား? Premium feature အကုန် ချက်ချင်း ဖွင့်ပေးပါမယ်၊ ငွေပေးစရာ မလိုပါ။ Device တစ်ခုကို တစ်ကြိမ်ပဲ — စတင်ဖို့ အင်တာနက် လိုအပ်ပါတယ်။';
+
+  @override
+  String get licenseTrialSelfServeHint =>
+      '၂ လ၊ Premium feature အကုန်၊ ငွေပေးစရာ မလို — device တစ်ခုကို တစ်ကြိမ်ပဲ။';
+
+  @override
   String get licenseTrialContactHint =>
       'Premium စမ်းသုံးခွင့်ကို app ထဲက မယူရပါ — Support ကသာ အခမဲ့ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။';
 

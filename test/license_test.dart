@@ -171,9 +171,10 @@ void main() {
       expect(await repo.current(), isNull);
     });
 
-    test('self-serve free trial is disabled (support-issued keys only)',
-        () async {
-      expect(await repo.startFreeTrial('shop-1'), isNull);
+    test('self-serve trial needs a backend', () async {
+      final result = await repo.startFreeTrial('My Shop');
+      expect(result.ok, isFalse);
+      expect(result.errorCode, 'no_backend');
       expect(await repo.current(), isNull);
     });
 

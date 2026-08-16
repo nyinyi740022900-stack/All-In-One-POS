@@ -70,6 +70,24 @@
 //                                                 One trial per device_id,
 //                                                 permanently (error:
 //                                                 trial_already_used)
+//   start_trial { shop_name?, device_id }      -> no-account self-serve
+//                                                 trial mint for a device
+//                                                 currently on the Free plan
+//                                                 or never activated — the
+//                                                 "Try Premium" button's
+//                                                 primary path. Stamps
+//                                                 app_metadata.shop_id on
+//                                                 the CALLER'S OWN user
+//                                                 (unlike signup_shop, no
+//                                                 separate account). Rejects
+//                                                 if the caller's session
+//                                                 already has a shop_id
+//                                                 (error: already_activated)
+//                                                 or the device already had
+//                                                 a trial (error:
+//                                                 trial_already_used); its
+//                                                 own per-IP rate limit
+//                                                 (start_trial_attempts).
 //   set_tier { tier }                          -> owner-role caller
 //                                                 self-service switches
 //                                                 their OWN shop's pricing
@@ -215,6 +233,21 @@ Deno.serve(async (req) => {
       body.device_id ?? "",
     );
   }
+  if (action === "start_trial") {
+    // No email/password on this path (that's the point), so device_id is
+    // the only farming signal — a dedicated IP throttle, since removing the
+    // email requirement makes this the purest device-farming target in the
+    // app so far.
+    if (!(await checkAndRecordRateLimit(admin, ip, "start_trial_attempts"))) {
+      return json({ ok: false, error: "rate_limited" }, 200);
+    }
+    return handleStartTrial(
+      admin,
+      userData.user,
+      body.shop_name ?? "",
+      body.device_id ?? "",
+    );
+  }
   if (action === "set_tier") {
     return handleSetTier(admin, userData.user, body.tier ?? "");
   }
@@ -334,15 +367,16 @@ type AdminClient = any;
 async function checkAndRecordRateLimit(
   admin: AdminClient,
   ip: string,
+  table = "activate_attempts",
 ): Promise<boolean> {
   const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const { count } = await admin
-    .from("activate_attempts")
+    .from(table)
     .select("id", { count: "exact", head: true })
     .eq("ip", ip)
     .gte("created_at", windowStart);
   if ((count ?? 0) >= 10) return false;
-  await admin.from("activate_attempts").insert({ ip });
+  await admin.from(table).insert({ ip });
   return true;
 }
 
@@ -901,8 +935,9 @@ const SIGNUP_TRIAL_MONTHS = 2;
 // One free trial per physical device, permanently — email uniqueness alone
 // only stops reusing the SAME email; a device can otherwise sign up with a
 // fresh email indefinitely. Deliberately has no time window (matches the
-// dead `start_trial` function's original intent): a device that already
-// burned its trial needs a real key or a Support override, not a new email.
+// now-retired standalone `start_trial` function's original intent): a
+// device that already burned its trial needs a real key or a Support
+// override, not a new email. Shared by `signup_shop` and `start_trial`.
 async function deviceAlreadyHasTrial(
   admin: AdminClient,
   deviceId: string,
@@ -917,6 +952,91 @@ async function deviceAlreadyHasTrial(
     .maybeSingle();
   if (error) return false; // fail open — don't block signup on a lookup hiccup
   return !!data;
+}
+
+const SELF_SERVE_TRIAL_MONTHS = 2;
+
+// Self-serve, no-account trial mint for a device currently on the local
+// Free plan (or never activated at all) — the in-app "Try Premium" button's
+// primary path, replacing the old Viber-only flow. Unlike `signup_shop`,
+// there's no email/password, so this stamps `app_metadata.shop_id` on the
+// CALLER'S OWN user (same pattern as the default `activate` action) instead
+// of creating a separate account. A caller whose session already carries a
+// shop_id claim has already activated/signed up something real — minting a
+// second, disconnected trial shop_id for the same device would fragment
+// that data instead of helping, so it's rejected rather than silently
+// creating a competing shop (the client already only shows this button in
+// no-account contexts; this is defense in depth, not the primary gate).
+async function handleStartTrial(
+  admin: AdminClient,
+  user: SupabaseUser,
+  shopName: string,
+  deviceId: string,
+): Promise<Response> {
+  if (!deviceId) return json({ ok: false, error: "bad_request" }, 400);
+  if (shopIdOf(user)) {
+    return json({ ok: false, error: "already_activated" }, 200);
+  }
+  if (await deviceAlreadyHasTrial(admin, deviceId)) {
+    return json({ ok: false, error: "trial_already_used" }, 200);
+  }
+
+  const shopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  const key = "TRIAL-" +
+    crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + SELF_SERVE_TRIAL_MONTHS);
+  const { data: refCode } = await admin.rpc("gen_referral_code");
+
+  const { data: license, error: licErr } = await admin
+    .from("licenses")
+    .insert({
+      shop_id: shopId,
+      shop_name: shopName || null,
+      key,
+      plan: "trial",
+      status: "active",
+      device_id: deviceId,
+      expires_at: expires.toISOString(),
+      activated_at: now.toISOString(),
+      referral_code: refCode,
+      tier: "offline",
+    })
+    .select("*")
+    .single();
+  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+
+  const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: { shop_id: shopId },
+  });
+  if (metaErr) return json({ ok: false, error: "server_error" }, 500);
+
+  // See the default activate action's identical best-effort block — same
+  // reasoning, a self-serve trial also gets a cryptographic offline
+  // fallback from day one.
+  let offlineToken: { token: string; expiresAt: string } | undefined;
+  try {
+    offlineToken = await signOfflineToken({
+      shopId,
+      shopName: shopName || null,
+      plan: "trial",
+      deviceId,
+    });
+  } catch (_) {
+    // Signing key not configured, or some other transient issue.
+  }
+
+  return json({
+    ok: true,
+    shop_id: shopId,
+    plan: "trial",
+    expires_at: license.expires_at,
+    activated_at: license.activated_at,
+    tier: "offline",
+    offline_token: offlineToken?.token,
+    offline_token_expires_at: offlineToken?.expiresAt,
+  }, 200);
 }
 
 // The only action that doesn't require a shop to already exist — mints a

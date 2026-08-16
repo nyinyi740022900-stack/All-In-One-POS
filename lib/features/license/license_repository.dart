@@ -115,11 +115,62 @@ class LicenseRepository {
     )).then((v) => v!);
   }
 
-  /// Self-serve in-app trial is disabled (delete/reinstall farming). Premium
-  /// trials are issued by support as a normal license key; the caller should
-  /// direct the owner to Viber with their App Reference ID. Kept as a no-op
-  /// so older UI call sites fail closed instead of minting a local trial.
-  Future<CachedLicense?> startFreeTrial(String shopId) async => null;
+  /// Self-serve, no-account Premium trial for a device on the Free plan (or
+  /// never activated) — calls the `start_trial` action, which enforces one
+  /// trial per `device_id` permanently (server-side; see `activate`'s
+  /// `deviceAlreadyHasTrial`). No email/password, unlike the sibling
+  /// `signup_shop` flow (`AccountRepository.signupShop`) — this stamps
+  /// `app_metadata.shop_id` on the caller's own (possibly anonymous)
+  /// session instead of creating a separate account. `'TRIAL'` is a local
+  /// placeholder key, same
+  /// non-lookup-able-but-harmless convention `signupShop`'s `'SIGNUP'` key
+  /// already uses — there's no per-key server lookup for this plan type.
+  Future<ActivationResult> startFreeTrial(String shopName) async {
+    if (!Env.hasBackend) return const ActivationResult.failure('no_backend');
+    final deviceId = await _settings.deviceId();
+
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {
+          'action': 'start_trial',
+          'shop_name': shopName,
+          'device_id': deviceId,
+        },
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] != true) {
+        return ActivationResult.failure(
+            (data['error'] as String?) ?? 'server_error');
+      }
+      final now = DateTime.now();
+      final lic = CachedLicense(
+        key: 'TRIAL',
+        shopId: data['shop_id'] as String,
+        plan: LicensePlan.trial,
+        expiresAt: DateTime.parse(data['expires_at'] as String),
+        activatedAt:
+            DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
+        lastVerifiedAt: now,
+        deviceId: deviceId,
+        tier: data['tier'] as String? ?? 'offline',
+      );
+      // Refresh the session so the new shop_id claim lands in the JWT.
+      try {
+        await Supabase.instance.client.auth.refreshSession();
+      } catch (_) {}
+      final offlineToken = data['offline_token'] as String?;
+      if (offlineToken != null && offlineToken.isNotEmpty) {
+        await _settings.setLicenseOfflineFallbackToken(
+          lic.shopId,
+          offlineToken,
+        );
+      }
+      return ActivationResult.success(await _save(lic));
+    } catch (_) {
+      return const ActivationResult.failure('network_error');
+    }
+  }
 
   /// Enters the Free plan from scratch — no key, no account, no network call.
   /// Core POS features (Sell/Inventory/etc.) work immediately and forever;

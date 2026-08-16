@@ -540,6 +540,8 @@
   "licenseThankYou24h": "ငွေစစ်ဆေးပြီး ၂၄ နာရီအတွင်း စတင်အသုံးပြုလို့ရပါမယ်။",
   "licenseFreeTrial": "Premium စမ်းကြည့်ရန်",
   "licensePlanTrial": "အခမဲ့ စမ်းသုံး",
+  "licenseTrialStartConfirm": "ဒီ device မှာ Premium ၂ လ စမ်းသုံးမှုကို အခုပဲ စတင်မလား? Premium feature အကုန် ချက်ချင်း ဖွင့်ပေးပါမယ်၊ ငွေပေးစရာ မလိုပါ။ Device တစ်ခုကို တစ်ကြိမ်ပဲ — စတင်ဖို့ အင်တာနက် လိုအပ်ပါတယ်။",
+  "licenseTrialSelfServeHint": "၂ လ၊ Premium feature အကုန်၊ ငွေပေးစရာ မလို — device တစ်ခုကို တစ်ကြိမ်ပဲ။",
   "licenseTrialContactHint": "Premium စမ်းသုံးခွင့်ကို app ထဲက မယူရပါ — Support ကသာ အခမဲ့ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။",
   "licenseTrialContactHintOnline": "Online ဆိုင်အတွက် Premium စမ်းသုံးခွင့်ကို Support ကသာ အခမဲ့ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး shop account email ပို့ကာ အဲဒီ account ပေါ် trial တောင်းပါ — key ရိုက်စရာမလိုပါ။",
   "licenseTrialViberMissing": "Support Viber မသတ်မှတ်ရသေးပါ။ Settings → Support ရနိုင်မှ သုံးပါ၊ သို့မဟုတ် App Reference ID နဲ့ တခြားလမ်းက ဆက်သွယ်ပါ။",

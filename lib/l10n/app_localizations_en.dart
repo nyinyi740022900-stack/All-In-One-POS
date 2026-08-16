@@ -1629,6 +1629,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licensePlanTrial => 'Free trial';
 
   @override
+  String get licenseTrialStartConfirm =>
+      'Start your 2-month Premium trial on this device now? Every Premium feature unlocks immediately, no payment needed. One trial per device — needs an internet connection to start.';
+
+  @override
+  String get licenseTrialSelfServeHint =>
+      '2 months, every Premium feature, no payment — one trial per device.';
+
+  @override
   String get licenseTrialContactHint =>
       'Premium trials are issued by support only (not in-app), no charge. Copy the Viber number, send your App Reference ID, and ask for a trial key.';
 

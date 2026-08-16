@@ -3116,6 +3116,18 @@ abstract class AppLocalizations {
   /// **'Free trial'**
   String get licensePlanTrial;
 
+  /// No description provided for @licenseTrialStartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your 2-month Premium trial on this device now? Every Premium feature unlocks immediately, no payment needed. One trial per device — needs an internet connection to start.'**
+  String get licenseTrialStartConfirm;
+
+  /// No description provided for @licenseTrialSelfServeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'2 months, every Premium feature, no payment — one trial per device.'**
+  String get licenseTrialSelfServeHint;
+
   /// No description provided for @licenseTrialContactHint.
   ///
   /// In en, this message translates to:

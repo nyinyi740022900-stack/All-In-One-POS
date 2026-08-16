@@ -126,6 +126,53 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
+  /// Self-serve, no-account Premium trial — the "Try Premium" button's
+  /// primary path (replaces the old Viber-only flow for a device with no
+  /// real account; see `_contactSupportForTrial`, kept as a fallback for
+  /// no-connectivity or an already-used device that needs a human override).
+  Future<void> _startSelfServeTrial() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.licenseFreeTrial),
+        content: Text(l.licenseTrialStartConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.licenseFreeTrial),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final profile = await ref.read(shopProfileProvider.future);
+      final result = await ref
+          .read(licenseControllerProvider.notifier)
+          .startFreeTrial(profile.name);
+      if (!mounted) return;
+      if (result.ok) {
+        messenger.showSnackBar(SnackBar(content: Text(l.licenseTrialStarted)));
+      } else {
+        final msg = switch (result.errorCode) {
+          'trial_already_used' => l.licenseTrialUsed,
+          'rate_limited' => l.licenseRateLimited,
+          _ => l.licenseActivateFailed,
+        };
+        messenger.showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   /// Scans a device key shown as a QR code on an already-activated device
   /// (see `_DevicesSection`'s "Add a device" flow) instead of typing it. The
   /// QR may carry a role alongside the key (DeviceProvisioning) — remembered
@@ -335,22 +382,48 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               l.licensePayOnlineHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            // Free-plan try-Premium on-ramp: support-issued trial only (no
-            // in-app start_trial — closes delete/reinstall farming).
+            // Free-plan try-Premium on-ramp: self-serve for a no-account
+            // device (start_trial action, one trial per device_id
+            // permanently); Contact-Support-only for a real account that's
+            // lapsed to Free — minting a second, disconnected trial shop_id
+            // for an account with real billing history would fragment its
+            // data rather than help it.
             if (state.license?.plan == LicensePlan.free) ...[
               const SizedBox(height: AppTheme.space2),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _contactSupportForTrial,
-                icon: const Icon(Icons.support_agent),
-                label: Text(l.licenseFreeTrial),
-              ),
-              const SizedBox(height: AppTheme.space1),
-              Text(
-                hasAccount
-                    ? l.licenseTrialContactHintOnline
-                    : l.licenseTrialContactHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (!hasAccount) ...[
+                FilledButton.icon(
+                  onPressed: _busy ? null : _startSelfServeTrial,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.workspace_premium_outlined),
+                  label: Text(l.licenseFreeTrial),
+                ),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  l.licenseTrialSelfServeHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppTheme.space1),
+                TextButton(
+                  onPressed: _busy ? null : _contactSupportForTrial,
+                  child: Text(l.licenseContactSupportTitle),
+                ),
+              ] else ...[
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _contactSupportForTrial,
+                  icon: const Icon(Icons.support_agent),
+                  label: Text(l.licenseFreeTrial),
+                ),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  l.licenseTrialContactHintOnline,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               // No account: redeem a device license key. Real account: cloud
               // Premium only — never show key entry (that's the no-account
               // model).
@@ -452,15 +525,26 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             const SizedBox(height: AppTheme.space3),
             ..._buildKeyEntryFields(l),
             const SizedBox(height: AppTheme.space2),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _contactSupportForTrial,
-              icon: const Icon(Icons.support_agent),
+            FilledButton.icon(
+              onPressed: _busy ? null : _startSelfServeTrial,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.workspace_premium_outlined),
               label: Text(l.licenseFreeTrial),
             ),
             const SizedBox(height: AppTheme.space1),
             Text(
-              l.licenseTrialContactHint,
+              l.licenseTrialSelfServeHint,
               style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space1),
+            TextButton(
+              onPressed: _busy ? null : _contactSupportForTrial,
+              child: Text(l.licenseContactSupportTitle),
             ),
             if (Env.hasBackend) ...[
               const SizedBox(height: AppTheme.space5),
