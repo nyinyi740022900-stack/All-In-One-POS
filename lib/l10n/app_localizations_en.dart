@@ -2842,6 +2842,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountEmailTaken => 'That email is already in use.';
 
   @override
+  String get accountTrialAlreadyUsed =>
+      'This device or account has already used its free trial. Contact support to continue.';
+
+  @override
   String get accountNotActivated => 'Activate this device first.';
 
   @override

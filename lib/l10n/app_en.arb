@@ -958,6 +958,7 @@
   "accountSignInWipeConfirmBody": "This device currently has another shop's data. Continuing replaces all local data on this device with this account's shop data. Make sure everything is already synced first — this cannot be undone.",
   "accountLoginCreated": "Login created.",
   "accountEmailTaken": "That email is already in use.",
+  "accountTrialAlreadyUsed": "This device or account has already used its free trial. Contact support to continue.",
   "accountNotActivated": "Activate this device first.",
   "accountNoBackend": "No internet connection.",
   "accountPendingSync": "This device still has unsynced changes. Wait for sync to finish, then try again.",

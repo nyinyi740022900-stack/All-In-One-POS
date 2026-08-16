@@ -29,6 +29,16 @@ class DailyGate extends ConsumerStatefulWidget {
   ConsumerState<DailyGate> createState() => _DailyGateState();
 }
 
+String _authErrorMessage(AppLocalizations l, String? code) => switch (code) {
+      'email_taken' => l.accountEmailTaken,
+      'no_backend' => l.accountNoBackend,
+      'not_activated' => l.accountNotActivated,
+      'pending_sync' => l.accountPendingSync,
+      'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
+      'trial_already_used' => l.accountTrialAlreadyUsed,
+      _ => l.accountActionFailed,
+    };
+
 class _DailyGateState extends ConsumerState<DailyGate> {
   int _step = 0;
   bool _busy = false;
@@ -122,7 +132,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       } else {
         setState(() {
           _busy = false;
-          _error = result.error ?? l.accountActionFailed;
+          _error = _authErrorMessage(l, result.error);
         });
       }
       return;
@@ -177,7 +187,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     } else {
       setState(() {
         _busy = false;
-        _error = result.error ?? l.accountActionFailed;
+        _error = _authErrorMessage(l, result.error);
       });
     }
   }

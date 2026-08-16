@@ -5258,6 +5258,12 @@ abstract class AppLocalizations {
   /// **'That email is already in use.'**
   String get accountEmailTaken;
 
+  /// No description provided for @accountTrialAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'This device or account has already used its free trial. Contact support to continue.'**
+  String get accountTrialAlreadyUsed;
+
   /// No description provided for @accountNotActivated.
   ///
   /// In en, this message translates to:

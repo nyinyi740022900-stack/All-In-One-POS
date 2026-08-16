@@ -30,7 +30,10 @@
 //                                                 primary way to add a
 //                                                 branch when already signed
 //                                                 in with a real account, no
-//                                                 separate key needed
+//                                                 separate key needed. Capped
+//                                                 at 1 concurrent active
+//                                                 trial branch per owner
+//                                                 (error: trial_already_used)
 //   link_branch { key, label }                -> owner-role caller registers
 //                                                 another EXISTING shop_id
 //                                                 (proven by its key) as a
@@ -63,7 +66,10 @@
 //                                                 that doesn't require a
 //                                                 shop to already exist; the
 //                                                 client signs in with the
-//                                                 new credentials itself
+//                                                 new credentials itself.
+//                                                 One trial per device_id,
+//                                                 permanently (error:
+//                                                 trial_already_used)
 //   set_tier { tier }                          -> owner-role caller
 //                                                 self-service switches
 //                                                 their OWN shop's pricing
@@ -593,6 +599,38 @@ const BRANCH_TRIAL_MONTHS = 2;
 // PRIMARY way to add a branch once already signed in with a real account —
 // no separate key round-trip needed, unlike `link_branch` (which stays
 // available for the secondary case of an already-existing separate shop).
+//
+// Anti-abuse: since a freshly-minted branch license has no device_id (see
+// above), device tracking can't catch repeated calls the way it does for
+// `signup_shop` — the identity that repeats here is the authenticated owner
+// account instead. Cap concurrent active trial branches per owner so
+// `create_branch` can't be used to mint unlimited free 2-month licenses;
+// a real key (`link_branch`) or a Support override is the path past that.
+const MAX_ACTIVE_TRIAL_BRANCHES_PER_OWNER = 1;
+
+async function ownerActiveTrialBranchCount(
+  admin: AdminClient,
+  ownerUserId: string,
+): Promise<number> {
+  const { data: links, error: linkErr } = await admin
+    .from("org_branches")
+    .select("shop_id")
+    .eq("owner_user_id", ownerUserId);
+  if (linkErr || !links || links.length === 0) return 0;
+  // deno-lint-ignore no-explicit-any
+  const shopIds = (links as any[]).map((l) => l.shop_id);
+
+  const { data: trialLicenses, error: licErr } = await admin
+    .from("licenses")
+    .select("shop_id")
+    .in("shop_id", shopIds)
+    .eq("plan", "trial")
+    .eq("status", "active")
+    .gt("expires_at", new Date().toISOString());
+  if (licErr || !trialLicenses) return 0;
+  return trialLicenses.length;
+}
+
 async function handleCreateBranch(
   admin: AdminClient,
   user: SupabaseUser,
@@ -602,6 +640,10 @@ async function handleCreateBranch(
   if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
   if (roleOf(user) !== "owner") {
     return json({ ok: false, error: "forbidden" }, 403);
+  }
+  const activeTrials = await ownerActiveTrialBranchCount(admin, user.id);
+  if (activeTrials >= MAX_ACTIVE_TRIAL_BRANCHES_PER_OWNER) {
+    return json({ ok: false, error: "trial_already_used" }, 200);
   }
 
   const newShopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
@@ -856,6 +898,27 @@ async function licensePayloadForShop(
 
 const SIGNUP_TRIAL_MONTHS = 2;
 
+// One free trial per physical device, permanently — email uniqueness alone
+// only stops reusing the SAME email; a device can otherwise sign up with a
+// fresh email indefinitely. Deliberately has no time window (matches the
+// dead `start_trial` function's original intent): a device that already
+// burned its trial needs a real key or a Support override, not a new email.
+async function deviceAlreadyHasTrial(
+  admin: AdminClient,
+  deviceId: string,
+): Promise<boolean> {
+  if (!deviceId) return false;
+  const { data, error } = await admin
+    .from("licenses")
+    .select("id")
+    .eq("device_id", deviceId)
+    .eq("plan", "trial")
+    .limit(1)
+    .maybeSingle();
+  if (error) return false; // fail open — don't block signup on a lookup hiccup
+  return !!data;
+}
+
 // The only action that doesn't require a shop to already exist — mints a
 // brand new shop_id, a 2-month trial license bound to this device, a real
 // owner login, and an auto-registered "Home" branch, all in one call. Does
@@ -871,6 +934,9 @@ async function handleSignupShop(
   deviceId: string,
 ): Promise<Response> {
   if (!email || !password) return json({ ok: false, error: "bad_request" }, 400);
+  if (await deviceAlreadyHasTrial(admin, deviceId)) {
+    return json({ ok: false, error: "trial_already_used" }, 200);
+  }
 
   const shopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
   const key = "SIGNUP-" +

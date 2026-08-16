@@ -393,6 +393,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
         'not_activated' => l.accountNotActivated,
         'pending_sync' => l.accountPendingSync,
         'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
+        'trial_already_used' => l.accountTrialAlreadyUsed,
         _ => l.accountActionFailed,
       };
 

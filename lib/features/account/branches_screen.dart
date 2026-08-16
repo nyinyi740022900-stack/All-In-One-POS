@@ -88,9 +88,12 @@ class BranchesScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(l.branchesCreated)));
     } else {
+      final message = result.error == 'trial_already_used'
+          ? l.accountTrialAlreadyUsed
+          : l.accountActionFailed;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l.accountActionFailed)));
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 }

@@ -2854,6 +2854,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountEmailTaken => 'ဒီအီးမေးလ်ကို အသုံးပြုပြီးသားဖြစ်ပါတယ်။';
 
   @override
+  String get accountTrialAlreadyUsed =>
+      'ဒီစက် (သို့) အကောင့်က အခမဲ့စမ်းသုံးခွင့် သုံးပြီးသားဖြစ်ပါတယ်။ ဆက်လက်သုံးရန် support ကို ဆက်သွယ်ပါ။';
+
+  @override
   String get accountNotActivated => 'ဒီစက်ကို အရင် Activate လုပ်ပါ။';
 
   @override
