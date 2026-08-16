@@ -194,4 +194,37 @@ void main() {
       expect(await repo.dailyGateSkippedOpen('shop-branch'), isFalse);
     });
   });
+
+  group('license offline fallback token (per-shop isolation)', () {
+    test('is shop-scoped, not device-global — must travel with a promoted '
+        'Free shop (ShopDataTransitionService.promoteShopIdentity rekeys '
+        'shop-scoped settings, not device-global ones)', () {
+      expect(
+        SettingsRepository.isDeviceGlobalKey('license.offline_fallback'),
+        isFalse,
+      );
+    });
+
+    test('setting a token for one shop never leaks into another\'s read',
+        () async {
+      await repo.setLicenseOfflineFallbackToken('shop-main', 'MMPOS1.main.sig');
+      await repo.setLicenseOfflineFallbackToken(
+        'shop-branch',
+        'MMPOS1.branch.sig',
+      );
+
+      expect(
+        await repo.licenseOfflineFallbackToken('shop-main'),
+        'MMPOS1.main.sig',
+      );
+      expect(
+        await repo.licenseOfflineFallbackToken('shop-branch'),
+        'MMPOS1.branch.sig',
+      );
+    });
+
+    test('unset for a shop that never had one', () async {
+      expect(await repo.licenseOfflineFallbackToken('shop-none'), isNull);
+    });
+  });
 }

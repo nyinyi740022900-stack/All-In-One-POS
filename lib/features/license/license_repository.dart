@@ -86,6 +86,16 @@ class LicenseRepository {
       try {
         await Supabase.instance.client.auth.refreshSession();
       } catch (_) {}
+      // Best-effort: cache the offline-verifiable fallback token the Edge
+      // Function now issues alongside every activation, if present (older
+      // deployments / a missing signing-key secret just omit it).
+      final offlineToken = data['offline_token'] as String?;
+      if (offlineToken != null && offlineToken.isNotEmpty) {
+        await _settings.setLicenseOfflineFallbackToken(
+          lic.shopId,
+          offlineToken,
+        );
+      }
       return ActivationResult.success(await _save(lic));
     } catch (e) {
       return ActivationResult.failure('network_error');

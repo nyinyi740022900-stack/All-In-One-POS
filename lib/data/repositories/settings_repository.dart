@@ -186,6 +186,12 @@ class SettingsRepository {
   static const _kLicense = 'license.json';
   static const _kDeviceId = 'device.id';
   static const _kLocale = 'app.locale';
+  /// Shop-scoped (via [_shopKey]) — unlike [_kLicense] itself, which is
+  /// device-global, this must travel with a Free-plan shop's data if it's
+  /// later promoted to a real one (`ShopDataTransitionService
+  /// .promoteShopIdentity` rekeys every shop-scoped setting, not
+  /// device-global ones).
+  static const _kLicenseOfflineFallback = 'license.offline_fallback';
 
   /// Persisted UI language ('en' | 'my'); null until the user has chosen.
   Future<String?> savedLocale() => _get(_kLocale);
@@ -321,6 +327,18 @@ class SettingsRepository {
 
   Future<String?> licenseJson() => _get(_kLicense);
   Future<void> setLicenseJson(String json) => _set(_kLicense, json);
+
+  /// Cryptographically offline-verifiable fallback token (`MMPOS1.` format,
+  /// see `OfflineLicense`) issued automatically alongside a normal online
+  /// activation/signup — gives a Premium shop a safety net that outlives the
+  /// 7-day online grace window if it loses connectivity, not just shops an
+  /// admin happened to hand-fulfill one for. Refreshed on every successful
+  /// online re-verify; read by `LicenseController._silentReverify`'s
+  /// network-failure fallback path.
+  Future<String?> licenseOfflineFallbackToken(String shopId) =>
+      _get(_shopKey(_kLicenseOfflineFallback, shopId));
+  Future<void> setLicenseOfflineFallbackToken(String shopId, String token) =>
+      _set(_shopKey(_kLicenseOfflineFallback, shopId), token);
 
   // One free trial per install.
   static const _kTrialUsed = 'license.trial_used';

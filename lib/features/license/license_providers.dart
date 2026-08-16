@@ -10,10 +10,34 @@ import '../printing/printing_providers.dart';
 import 'license_model.dart';
 import 'license_repository.dart';
 import 'license_status.dart';
+import 'offline_license.dart';
 
 final licenseRepositoryProvider = Provider<LicenseRepository>((ref) {
   return LicenseRepository(ref.watch(settingsRepositoryProvider));
 });
+
+/// Pure decision logic for [LicenseController.refreshOnline]'s
+/// network-failure fallback: given a license already offline-verified via
+/// [OfflineLicense.verify] and the one currently cached, decides whether/how
+/// far to extend trust. Deliberately keeps [current]'s own identity
+/// (`key`/`shopId`/`plan`) — the offline token only proves the shop is
+/// still valid, it isn't a replacement license — so a later successful
+/// online re-verify still runs normally rather than this fallback silently
+/// pinning the shop to offline-only forever. Returns null if the fallback
+/// token is itself expired (nothing to extend with).
+CachedLicense? applyOfflineFallback({
+  required CachedLicense current,
+  required CachedLicense verifiedFallback,
+  required DateTime now,
+}) {
+  if (!verifiedFallback.expiresAt.isAfter(now)) return null;
+  return current.copyWith(
+    lastVerifiedAt: now,
+    expiresAt: verifiedFallback.expiresAt.isAfter(current.expiresAt)
+        ? verifiedFallback.expiresAt
+        : current.expiresAt,
+  );
+}
 
 /// The shop's device slots. Re-fetch with `ref.invalidate` after adding or
 /// releasing a device (no realtime/stream backing this — it's a plain
@@ -204,8 +228,46 @@ class LicenseController extends StateNotifier<LicenseState> {
       return ActivationResult.success(lic);
     }
     final result = await _repo.activate(lic.key);
-    if (result.ok) _apply(result.license);
+    if (result.ok) {
+      _apply(result.license);
+      return result;
+    }
+    // A pure connectivity failure (not the server telling us the license is
+    // actually invalid/mismatched/rate-limited) — fall back to the
+    // cryptographic offline token cached alongside the last successful
+    // online activation, if one exists and isn't itself expired. Extends
+    // coverage past the 7-day online grace window (`GRACE_DAYS` in the
+    // `activate` Edge Function) for as long as that cached token remains
+    // valid, instead of leaving the shop stuck at whatever the last online
+    // status was.
+    if (result.errorCode == 'network_error') {
+      final fallback = await _tryOfflineFallback(lic);
+      if (fallback != null) {
+        _apply(fallback);
+        return ActivationResult.success(fallback);
+      }
+    }
     return result;
+  }
+
+  /// See [refreshOnline]'s network-failure branch. The I/O half (fetch the
+  /// cached token, verify it) lives here; the decision half is
+  /// [applyOfflineFallback], kept pure and separately unit-tested.
+  Future<CachedLicense?> _tryOfflineFallback(CachedLicense current) async {
+    final settings = _ref.read(settingsRepositoryProvider);
+    final token = await settings.licenseOfflineFallbackToken(current.shopId);
+    if (token == null || token.isEmpty) return null;
+    try {
+      final deviceId = await settings.deviceId();
+      final verified = await OfflineLicense.verify(token, deviceId);
+      return applyOfflineFallback(
+        current: current,
+        verifiedFallback: verified,
+        now: DateTime.now(),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Applies a [CachedLicense] that was already persisted elsewhere (e.g. by
