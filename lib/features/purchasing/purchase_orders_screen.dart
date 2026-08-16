@@ -41,7 +41,11 @@ class PurchaseOrdersScreen extends ConsumerWidget {
     if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.purchaseOrdersTitle)),
-        body: PremiumGate(featureName: l.purchaseOrdersTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.purchaseOrdersTitle,
+          benefits: [l.purchaseOrdersBenefit1, l.purchaseOrdersBenefit2],
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final orders = ref.watch(purchaseOrdersProvider).valueOrNull ?? const [];

@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -2795,7 +2795,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatureBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Premium subscription or license key.'**
+  /// **'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Premium subscription or license key.'**
   String get premiumFeatureBody;
 
   /// No description provided for @premiumUpgradeCta.
@@ -2803,6 +2803,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upgrade'**
   String get premiumUpgradeCta;
+
+  /// No description provided for @analyticsBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'See your best-selling products at a glance'**
+  String get analyticsBenefit1;
+
+  /// No description provided for @analyticsBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily profit trends, not just totals'**
+  String get analyticsBenefit2;
+
+  /// No description provided for @analyticsBenefit3.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare this month vs last month'**
+  String get analyticsBenefit3;
+
+  /// No description provided for @pnlBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Real profit — income minus expenses'**
+  String get pnlBenefit1;
+
+  /// No description provided for @pnlBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculated automatically every month'**
+  String get pnlBenefit2;
+
+  /// No description provided for @equityBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'See exactly what the business owes you'**
+  String get equityBenefit1;
+
+  /// No description provided for @equityBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Track capital you\'ve put in vs. profit kept'**
+  String get equityBenefit2;
+
+  /// No description provided for @purchaseOrdersBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Track what you\'ve ordered from suppliers'**
+  String get purchaseOrdersBenefit1;
+
+  /// No description provided for @purchaseOrdersBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'See what\'s arrived vs. still pending'**
+  String get purchaseOrdersBenefit2;
+
+  /// No description provided for @accountsPayableBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'See exactly what you owe each supplier'**
+  String get accountsPayableBenefit1;
+
+  /// No description provided for @accountsPayableBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Never lose track of an unpaid bill'**
+  String get accountsPayableBenefit2;
+
+  /// No description provided for @paymentAccountsBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Track balances across KBZPay, WavePay, and more'**
+  String get paymentAccountsBenefit1;
+
+  /// No description provided for @paymentAccountsBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Know exactly where your money is'**
+  String get paymentAccountsBenefit2;
+
+  /// No description provided for @salesReportBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Printable, shareable reports for any period'**
+  String get salesReportBenefit1;
+
+  /// No description provided for @salesReportBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand a clean report to your accountant'**
+  String get salesReportBenefit2;
+
+  /// No description provided for @storefrontBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'A free online ordering page for your shop'**
+  String get storefrontBenefit1;
+
+  /// No description provided for @storefrontBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers browse and order without calling'**
+  String get storefrontBenefit2;
+
+  /// No description provided for @branchesBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage multiple shop locations from one account'**
+  String get branchesBenefit1;
+
+  /// No description provided for @branchesBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'See stock and sales for each branch separately'**
+  String get branchesBenefit2;
+
+  /// No description provided for @staffAccountsBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each staff member their own login'**
+  String get staffAccountsBenefit1;
+
+  /// No description provided for @staffAccountsBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'No more sharing one PIN for everyone'**
+  String get staffAccountsBenefit2;
+
+  /// No description provided for @inventoryCsvBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your full product list to a spreadsheet'**
+  String get inventoryCsvBenefit;
+
+  /// No description provided for @settingsSignInRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to a shop account first (Shop Login above) to use this.'**
+  String get settingsSignInRequired;
+
+  /// No description provided for @settingsSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get settingsSignIn;
 
   /// No description provided for @onboardingContinueFree.
   ///
@@ -3071,7 +3215,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatureBodyOnline.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Online Premium subscription on your shop account.'**
+  /// **'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Online Premium subscription on your shop account.'**
   String get premiumFeatureBodyOnline;
 
   /// No description provided for @deviceCount.

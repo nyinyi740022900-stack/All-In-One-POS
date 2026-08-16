@@ -9,8 +9,6 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
-import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import '../sell/payment_labels.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
@@ -22,12 +20,6 @@ class CreditScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.creditTitle)),
-        body: PremiumGate(featureName: l.creditTitle, child: const SizedBox.shrink()),
-      );
-    }
     final currency = l.currencySymbol;
     final filter = ref.watch(creditFilterProvider);
     final customers = filter == CreditFilter.all

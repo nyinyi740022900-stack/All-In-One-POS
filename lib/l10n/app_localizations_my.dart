@@ -907,7 +907,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း စသဖြင့်)။ Premium features (Analytics၊ Suppliers၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1452,10 +1452,101 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get premiumFeatureBody =>
-      'အခု Free plan ကို သုံးနေပါတယ် — Sell နဲ့ Inventory ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ ဒီ feature ကိုတော့ Premium subscription ဒါမှမဟုတ် license key active ရှိမှ သုံးလို့ရပါမယ်။';
+      'အခု Free plan ကို သုံးနေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ ဒီ feature ကိုတော့ Premium subscription ဒါမှမဟုတ် license key active ရှိမှ သုံးလို့ရပါမယ်။';
 
   @override
   String get premiumUpgradeCta => 'Upgrade လုပ်မည်';
+
+  @override
+  String get analyticsBenefit1 =>
+      'အရောင်းအရဆုံး ကုန်ပစ္စည်းတွေကို တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်';
+
+  @override
+  String get analyticsBenefit2 =>
+      'နေ့စဉ် အမြတ် လမ်းကြောင်း (trend) ကို ကြည့်နိုင်';
+
+  @override
+  String get analyticsBenefit3 => 'ဒီလကို ပြီးခဲ့တဲ့လနဲ့ နှိုင်းယှဉ်ကြည့်နိုင်';
+
+  @override
+  String get pnlBenefit1 => 'တကယ့်အမြတ် — ဝင်ငွေ အထွက်ငွေ နှုတ်ပြီး';
+
+  @override
+  String get pnlBenefit2 => 'လစဉ် အလိုအလျောက် တွက်ချက်ပေး';
+
+  @override
+  String get equityBenefit1 =>
+      'လုပ်ငန်းက ပိုင်ရှင်ကို ဘယ်လောက်တင်နေလဲ တိတိကျကျ သိနိုင်';
+
+  @override
+  String get equityBenefit2 =>
+      'ရင်းနှီးထည့်ဝင်ငွေ vs ချန်ထားတဲ့အမြတ် ခွဲခြားကြည့်နိုင်';
+
+  @override
+  String get purchaseOrdersBenefit1 =>
+      'ရောင်းဝယ်ဖက်ဆီက မှာထားတဲ့ ပစ္စည်းများ ခြေရာခံနိုင်';
+
+  @override
+  String get purchaseOrdersBenefit2 =>
+      'ရောက်ပြီးသား/စောင့်ဆိုင်းနေဆဲ ခွဲကြည့်နိုင်';
+
+  @override
+  String get accountsPayableBenefit1 =>
+      'ရောင်းဝယ်ဖက် တစ်ဦးချင်းစီကို ဘယ်လောက်ကျန်နေလဲ တိတိကျကျ သိနိုင်';
+
+  @override
+  String get accountsPayableBenefit2 =>
+      'ငွေမရှင်းရသေးတဲ့ ဘောက်ချာ ဘယ်တော့မှ မမေ့တော့ဘူး';
+
+  @override
+  String get paymentAccountsBenefit1 =>
+      'KBZPay၊ WavePay စတဲ့ အကောင့်တွေရဲ့ လက်ကျန် ခြေရာခံနိုင်';
+
+  @override
+  String get paymentAccountsBenefit2 =>
+      'ငွေတွေ ဘယ်နေရာမှာ ရှိနေလဲ တိတိကျကျ သိနိုင်';
+
+  @override
+  String get salesReportBenefit1 =>
+      'ကာလ မည်သည့်အချိန်မဆို print/share လုပ်လို့ရတဲ့ report';
+
+  @override
+  String get salesReportBenefit2 =>
+      'စာရင်းကိုင်ဆီ သန့်ရှင်းတဲ့ report ပေးနိုင်';
+
+  @override
+  String get storefrontBenefit1 =>
+      'ဆိုင်အတွက် အခမဲ့ အွန်လိုင်း ရောင်းချစာမျက်နှာ';
+
+  @override
+  String get storefrontBenefit2 =>
+      'ဖောက်သည်တွေ ဖုန်းမခေါ်ဘဲ browse လုပ်ပြီး order တင်နိုင်';
+
+  @override
+  String get branchesBenefit1 =>
+      'ဆိုင်ခွဲများကို account တစ်ခုတည်းကနေ စီမံနိုင်';
+
+  @override
+  String get branchesBenefit2 =>
+      'ဆိုင်ခွဲတစ်ခုချင်းစီရဲ့ stock/ရောင်းအား သီးခြားကြည့်နိုင်';
+
+  @override
+  String get staffAccountsBenefit1 =>
+      'ဝန်ထမ်းတစ်ဦးချင်းစီကို ကိုယ်ပိုင် login ပေးနိုင်';
+
+  @override
+  String get staffAccountsBenefit2 => 'PIN တစ်ခုတည်း အားလုံးမျှမသုံးရတော့ဘူး';
+
+  @override
+  String get inventoryCsvBenefit =>
+      'ကုန်ပစ္စည်းစာရင်းအားလုံးကို spreadsheet အဖြစ် export လုပ်နိုင်';
+
+  @override
+  String get settingsSignInRequired =>
+      'ဒါကို သုံးဖို့ ဆိုင် account တစ်ခုနဲ့ အရင် sign in ဝင်ပါ (အပေါ်က Shop Login)။';
+
+  @override
+  String get settingsSignIn => 'Sign In ဝင်မည်';
 
   @override
   String get onboardingContinueFree => 'အခမဲ့ ဆက်သုံးမည်';
@@ -1612,7 +1703,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get premiumFeatureBodyOnline =>
-      'Free plan ဖြစ်နေပါတယ် — ရောင်းချနှင့် ကုန်ပစ္စည်း ဆက်သုံးနိုင်ပြီး ဤ feature အတွက် Online Premium subscription လိုအပ်ပါတယ်။';
+      'Free plan ဖြစ်နေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ ဆက်သုံးနိုင်ပြီး ဤ feature အတွက် Online Premium subscription လိုအပ်ပါတယ်။';
 
   @override
   String deviceCount(int used, int free) {

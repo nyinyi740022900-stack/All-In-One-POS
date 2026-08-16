@@ -217,6 +217,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         appBar: AppBar(title: Text(l.storefrontTitle)),
         body: PremiumGate(
           featureName: l.storefrontTitle,
+          benefits: [l.storefrontBenefit1, l.storefrontBenefit2],
           child: const SizedBox.shrink(),
         ),
       );

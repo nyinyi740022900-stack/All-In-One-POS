@@ -907,7 +907,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Suppliers, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -1449,10 +1449,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumFeatureBody =>
-      'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Premium subscription or license key.';
+      'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Premium subscription or license key.';
 
   @override
   String get premiumUpgradeCta => 'Upgrade';
+
+  @override
+  String get analyticsBenefit1 => 'See your best-selling products at a glance';
+
+  @override
+  String get analyticsBenefit2 => 'Daily profit trends, not just totals';
+
+  @override
+  String get analyticsBenefit3 => 'Compare this month vs last month';
+
+  @override
+  String get pnlBenefit1 => 'Real profit — income minus expenses';
+
+  @override
+  String get pnlBenefit2 => 'Calculated automatically every month';
+
+  @override
+  String get equityBenefit1 => 'See exactly what the business owes you';
+
+  @override
+  String get equityBenefit2 => 'Track capital you\'ve put in vs. profit kept';
+
+  @override
+  String get purchaseOrdersBenefit1 =>
+      'Track what you\'ve ordered from suppliers';
+
+  @override
+  String get purchaseOrdersBenefit2 => 'See what\'s arrived vs. still pending';
+
+  @override
+  String get accountsPayableBenefit1 =>
+      'See exactly what you owe each supplier';
+
+  @override
+  String get accountsPayableBenefit2 => 'Never lose track of an unpaid bill';
+
+  @override
+  String get paymentAccountsBenefit1 =>
+      'Track balances across KBZPay, WavePay, and more';
+
+  @override
+  String get paymentAccountsBenefit2 => 'Know exactly where your money is';
+
+  @override
+  String get salesReportBenefit1 =>
+      'Printable, shareable reports for any period';
+
+  @override
+  String get salesReportBenefit2 => 'Hand a clean report to your accountant';
+
+  @override
+  String get storefrontBenefit1 => 'A free online ordering page for your shop';
+
+  @override
+  String get storefrontBenefit2 => 'Customers browse and order without calling';
+
+  @override
+  String get branchesBenefit1 =>
+      'Manage multiple shop locations from one account';
+
+  @override
+  String get branchesBenefit2 =>
+      'See stock and sales for each branch separately';
+
+  @override
+  String get staffAccountsBenefit1 => 'Give each staff member their own login';
+
+  @override
+  String get staffAccountsBenefit2 => 'No more sharing one PIN for everyone';
+
+  @override
+  String get inventoryCsvBenefit =>
+      'Export your full product list to a spreadsheet';
+
+  @override
+  String get settingsSignInRequired =>
+      'Sign in to a shop account first (Shop Login above) to use this.';
+
+  @override
+  String get settingsSignIn => 'Sign In';
 
   @override
   String get onboardingContinueFree => 'Continue Free';
@@ -1608,7 +1688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumFeatureBodyOnline =>
-      'You\'re on the Free plan — Sell and Inventory keep working, but this feature needs an active Online Premium subscription on your shop account.';
+      'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Online Premium subscription on your shop account.';
 
   @override
   String deviceCount(int used, int free) {

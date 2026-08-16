@@ -72,7 +72,10 @@ class PaymentAccountsScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(title: Text(l.paymentAccountsTitle)),
         body: PremiumGate(
-            featureName: l.paymentAccountsTitle, child: const SizedBox.shrink()),
+          featureName: l.paymentAccountsTitle,
+          benefits: [l.paymentAccountsBenefit1, l.paymentAccountsBenefit2],
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];

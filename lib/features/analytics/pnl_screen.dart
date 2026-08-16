@@ -188,7 +188,11 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.pnlTitle)),
-        body: PremiumGate(featureName: l.pnlTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.pnlTitle,
+          benefits: [l.pnlBenefit1, l.pnlBenefit2],
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final sym = l.currencySymbol;

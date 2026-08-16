@@ -64,7 +64,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   Future<void> _exportCsv() async {
     final l = AppLocalizations.of(context);
     if (!ref.read(isPremiumProvider)) {
-      await showPremiumRequiredDialog(context, l.inventoryExportCsv);
+      await showPremiumRequiredDialog(context, l.inventoryExportCsv,
+          benefit: l.inventoryCsvBenefit);
       return;
     }
     final messenger = ScaffoldMessenger.of(context);

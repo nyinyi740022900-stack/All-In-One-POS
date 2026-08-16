@@ -107,8 +107,19 @@ class SettingsScreen extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const PurchaseOrdersScreen()),
             ),
           ),
-          if (isOwner && ref.watch(isPremiumProvider) && Env.hasBackend)
-            _StorefrontTile(),
+          if (isOwner && Env.hasBackend)
+            ref.watch(isPremiumProvider)
+                ? _StorefrontTile()
+                : _LockedTile(
+                    icon: Icons.storefront,
+                    title: l.storefrontTitle,
+                    explanation: ref.watch(hasRealAccountSessionProvider)
+                        ? l.premiumFeatureBodyOnline
+                        : l.premiumFeatureBody,
+                    unlockLabel: l.premiumUpgradeCta,
+                    onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const LicenseScreen())),
+                  ),
 
           // Finance: money/accounting only.
           _SectionHeader(l.settingsSectionFinance),
@@ -151,49 +162,66 @@ class SettingsScreen extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
               ),
             ),
-          if (ref.watch(hasRealAccountSessionProvider) &&
-              session.backendRole != null &&
-              isOwner) ...[
-            ListTile(
-              leading: const Icon(Icons.admin_panel_settings_outlined),
-              title: Text(l.staffAccountsTitle),
-              subtitle: Text(l.staffAccountsSubtitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                if (!await requireOwnerPinReauth(
-                      context,
-                      ref,
-                      capability: OwnerCapability.staffAccounts,
-                    ) ||
-                    !context.mounted) {
-                  return;
-                }
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const StaffAccountsScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.store_mall_directory_outlined),
-              title: Text(l.branchesTitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                if (!await requireOwnerPinReauth(
-                      context,
-                      ref,
-                      capability: OwnerCapability.branches,
-                    ) ||
-                    !context.mounted) {
-                  return;
-                }
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BranchesScreen()),
-                );
-              },
-            ),
-          ],
+          if (isOwner)
+            if (ref.watch(hasRealAccountSessionProvider) &&
+                session.backendRole != null) ...[
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings_outlined),
+                title: Text(l.staffAccountsTitle),
+                subtitle: Text(l.staffAccountsSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  if (!await requireOwnerPinReauth(
+                        context,
+                        ref,
+                        capability: OwnerCapability.staffAccounts,
+                      ) ||
+                      !context.mounted) {
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const StaffAccountsScreen(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.store_mall_directory_outlined),
+                title: Text(l.branchesTitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  if (!await requireOwnerPinReauth(
+                        context,
+                        ref,
+                        capability: OwnerCapability.branches,
+                      ) ||
+                      !context.mounted) {
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BranchesScreen()),
+                  );
+                },
+              ),
+            ] else ...[
+              _LockedTile(
+                icon: Icons.admin_panel_settings_outlined,
+                title: l.staffAccountsTitle,
+                explanation: l.settingsSignInRequired,
+                unlockLabel: l.settingsSignIn,
+                onUnlock: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
+              ),
+              _LockedTile(
+                icon: Icons.store_mall_directory_outlined,
+                title: l.branchesTitle,
+                explanation: l.settingsSignInRequired,
+                unlockLabel: l.settingsSignIn,
+                onUnlock: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
+              ),
+            ],
           _ReferralTile(),
 
           // Device: local device settings + data, no longer "& Staff" —
@@ -236,7 +264,19 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           _DeviceLabelTile(),
-          if (ref.watch(isPremiumProvider) && Env.hasBackend) _SyncTile(),
+          if (Env.hasBackend)
+            ref.watch(isPremiumProvider)
+                ? _SyncTile()
+                : _LockedTile(
+                    icon: Icons.cloud_sync,
+                    title: l.settingsSync,
+                    explanation: ref.watch(hasRealAccountSessionProvider)
+                        ? l.premiumFeatureBodyOnline
+                        : l.premiumFeatureBody,
+                    unlockLabel: l.premiumUpgradeCta,
+                    onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const LicenseScreen())),
+                  ),
           if (isOwner)
             ListTile(
               leading: const Icon(Icons.backup),
@@ -497,6 +537,59 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const LicenseScreen())),
+    );
+  }
+}
+
+/// A tile for a feature that's currently locked (Premium or a shop account
+/// required) — shown dimmed with a lock icon instead of vanishing entirely,
+/// so a Free/offline shop discovers the capability exists rather than never
+/// knowing. Tapping explains why and offers a way to unlock it, instead of
+/// navigating straight into the feature.
+class _LockedTile extends StatelessWidget {
+  const _LockedTile({
+    required this.icon,
+    required this.title,
+    required this.explanation,
+    required this.unlockLabel,
+    required this.onUnlock,
+  });
+  final IconData icon;
+  final String title;
+  final String explanation;
+  final String unlockLabel;
+  final VoidCallback onUnlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Opacity(
+      opacity: 0.5,
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        trailing: const Icon(Icons.lock_outline),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(title),
+            content: Text(explanation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  onUnlock();
+                },
+                child: Text(unlockLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -7,8 +7,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
-import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import 'accounts_payable.dart';
 import 'accounts_payable_providers.dart';
 import 'supplier_providers.dart';
@@ -93,12 +91,6 @@ class SuppliersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.suppliersTitle)),
-        body: PremiumGate(featureName: l.suppliersTitle, child: const SizedBox.shrink()),
-      );
-    }
     final suppliers = ref.watch(suppliersProvider).valueOrNull ?? const [];
     final loading = ref.watch(suppliersProvider).isLoading;
 

@@ -29,6 +29,7 @@ class BranchesScreen extends ConsumerWidget {
         appBar: AppBar(title: Text(l.branchesTitle)),
         body: PremiumGate(
           featureName: l.branchesTitle,
+          benefits: [l.branchesBenefit1, l.branchesBenefit2],
           child: const SizedBox.shrink(),
         ),
       );

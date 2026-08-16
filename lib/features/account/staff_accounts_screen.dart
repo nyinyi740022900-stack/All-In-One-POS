@@ -25,6 +25,7 @@ class StaffAccountsScreen extends ConsumerWidget {
         appBar: AppBar(title: Text(l.staffAccountsTitle)),
         body: PremiumGate(
           featureName: l.staffAccountsTitle,
+          benefits: [l.staffAccountsBenefit1, l.staffAccountsBenefit2],
           child: const SizedBox.shrink(),
         ),
       );

@@ -12,9 +12,20 @@ import 'license_screen.dart';
 /// "Upgrade" CTA). Mirrors `OwnerOnlyGate`'s shape — compose the two when a
 /// screen needs both checks (see e.g. `AnalyticsScreen`).
 class PremiumGate extends ConsumerWidget {
-  const PremiumGate({super.key, required this.child, required this.featureName});
+  const PremiumGate({
+    super.key,
+    required this.child,
+    required this.featureName,
+    this.benefits,
+  });
   final Widget child;
   final String featureName;
+
+  /// Concrete, outcome-focused bullets shown on the paywall instead of (or
+  /// alongside) the generic explanation — "best-sellers at a glance" reads
+  /// as a reason to upgrade; "this feature needs Premium" alone doesn't.
+  /// Optional and additive: omitting it keeps the exact previous behavior.
+  final List<String>? benefits;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,6 +41,7 @@ class PremiumGate extends ConsumerWidget {
     return _PremiumPaywall(
       featureName: featureName,
       hasAccount: ref.watch(hasRealAccountSessionProvider),
+      benefits: benefits,
     );
   }
 }
@@ -38,9 +50,11 @@ class _PremiumPaywall extends StatelessWidget {
   const _PremiumPaywall({
     required this.featureName,
     required this.hasAccount,
+    this.benefits,
   });
   final String featureName;
   final bool hasAccount;
+  final List<String>? benefits;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +76,34 @@ class _PremiumPaywall extends StatelessWidget {
               hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
               textAlign: TextAlign.center,
             ),
+            if (benefits != null && benefits!.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.space3),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final b in benefits!)
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.check_circle,
+                                size: 16,
+                                color: AppColors.of(context).success),
+                            const SizedBox(width: AppTheme.space2),
+                            Flexible(child: Text(b)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppTheme.space4),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -81,7 +123,7 @@ class _PremiumPaywall extends StatelessWidget {
 /// screen (e.g. Inventory's CSV export button) rather than a whole screen
 /// body — same copy/CTA as [PremiumGate], as a dialog instead.
 Future<void> showPremiumRequiredDialog(
-    BuildContext context, String featureName) {
+    BuildContext context, String featureName, {String? benefit}) {
   final l = AppLocalizations.of(context);
   final hasAccount = ProviderScope.containerOf(
     context,
@@ -90,8 +132,24 @@ Future<void> showPremiumRequiredDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(l.premiumFeatureTitle(featureName)),
-      content: Text(
-        hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody),
+          if (benefit != null) ...[
+            const SizedBox(height: AppTheme.space2),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.check_circle,
+                    size: 16, color: AppColors.of(ctx).success),
+                const SizedBox(width: AppTheme.space2),
+                Flexible(child: Text(benefit)),
+              ],
+            ),
+          ],
+        ],
       ),
       actions: [
         TextButton(

@@ -29,8 +29,10 @@ class AccountsPayableScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(title: Text(l.accountsPayableTitle)),
         body: PremiumGate(
-            featureName: l.accountsPayableTitle,
-            child: const SizedBox.shrink()),
+          featureName: l.accountsPayableTitle,
+          benefits: [l.accountsPayableBenefit1, l.accountsPayableBenefit2],
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final currency = l.currencySymbol;

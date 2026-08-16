@@ -15,8 +15,6 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../analytics/analytics_providers.dart';
-import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
 import 'recurring_expense_providers.dart';
@@ -145,12 +143,6 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading || !ref.watch(isPremiumProvider)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.expensesTitle)),
-        body: PremiumGate(featureName: l.expensesTitle, child: const SizedBox.shrink()),
-      );
-    }
     final cur = l.currencySymbol;
     final expenses =
         ref.watch(expensesInRangeProvider).valueOrNull ?? const <Expense>[];

@@ -44,6 +44,7 @@ class AnalyticsScreen extends ConsumerWidget {
         appBar: AppBar(title: Text(l.navAnalytics)),
         body: PremiumGate(
           featureName: l.navAnalytics,
+          benefits: [l.analyticsBenefit1, l.analyticsBenefit2, l.analyticsBenefit3],
           child: const SizedBox.shrink(),
         ),
       );

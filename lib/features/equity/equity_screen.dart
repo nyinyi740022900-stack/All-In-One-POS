@@ -39,7 +39,11 @@ class OwnerEquityScreen extends ConsumerWidget {
         !ref.watch(isPremiumProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.equityTitle)),
-        body: PremiumGate(featureName: l.equityTitle, child: const SizedBox.shrink()),
+        body: PremiumGate(
+          featureName: l.equityTitle,
+          benefits: [l.equityBenefit1, l.equityBenefit2],
+          child: const SizedBox.shrink(),
+        ),
       );
     }
     final cur = l.currencySymbol;

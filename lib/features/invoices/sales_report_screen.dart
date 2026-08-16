@@ -180,6 +180,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         appBar: AppBar(title: Text(l.salesReportTitle)),
         body: PremiumGate(
           featureName: l.salesReportTitle,
+          benefits: [l.salesReportBenefit1, l.salesReportBenefit2],
           child: const SizedBox.shrink(),
         ),
       );
