@@ -24,7 +24,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Map<String, dynamic>>? _events;
   List<Map<String, dynamic>>? _referrals;
   List<Map<String, dynamic>>? _commissions;
-  List<Map<String, dynamic>>? _carriers;
   Map<String, String>? _config;
   String? _error;
   bool _loading = false;
@@ -46,7 +45,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final events = await widget.api.listEvents();
       final referrals = await widget.api.listReferrals();
       final commissions = await widget.api.listCommissions();
-      final carriers = await widget.api.listCarriers();
       final config = await widget.api.getConfig();
       setState(() {
         _licenses = licenses;
@@ -54,7 +52,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _events = events;
         _referrals = referrals;
         _commissions = commissions;
-        _carriers = carriers;
         _config = config;
       });
     } catch (e) {
@@ -69,7 +66,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final pendingRequests =
         (_requests ?? []).where((r) => r['status'] == 'pending').length;
     return DefaultTabController(
-      length: 6,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('MM POS Admin'),
@@ -78,7 +75,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Tab(text: 'Requests ($pendingRequests)'),
             Tab(text: 'History (${_events?.length ?? 0})'),
             Tab(text: 'Referrals (${_referrals?.length ?? 0})'),
-            Tab(text: 'Delivery (${_carriers?.length ?? 0})'),
             const Tab(text: 'Config'),
           ]),
           actions: [
@@ -132,11 +128,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       commissions: _commissions ?? const [],
                       referrals: _referrals ?? const [],
                       onApplyCredit: _applyCredit,
-                    ),
-                    _DeliveryTab(
-                      rows: _carriers ?? const [],
-                      onSave: _saveCarrier,
-                      onDelete: _deleteCarrier,
                     ),
                     _ConfigTab(
                       initial: _config ?? const {},
@@ -335,26 +326,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       await widget.api.setConfig(config);
       _snack('Config saved');
-      _reload();
-    } catch (e) {
-      _snack('$e');
-    }
-  }
-
-  Future<void> _saveCarrier(Map<String, dynamic> carrier) async {
-    try {
-      await widget.api.setCarrier(carrier);
-      _snack('Carrier saved');
-      _reload();
-    } catch (e) {
-      _snack('$e');
-    }
-  }
-
-  Future<void> _deleteCarrier(String id) async {
-    try {
-      await widget.api.deleteCarrier(id);
-      _snack('Carrier removed');
       _reload();
     } catch (e) {
       _snack('$e');

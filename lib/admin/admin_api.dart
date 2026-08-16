@@ -32,24 +32,6 @@ class AdminApi {
   Future<List<Map<String, dynamic>>> listCommissions() =>
       _rows('list_commissions');
 
-  // ---- Delivery carriers (secrets stay server-side) ----------------------
-  /// Carrier configs. The API key is never returned raw — each row carries
-  /// `api_key_set` (bool) and `api_key_last4` instead.
-  Future<List<Map<String, dynamic>>> listCarriers() => _rows('list_carriers');
-
-  /// Upserts a carrier. Omit/blank `api_key` to keep the stored secret.
-  Future<void> setCarrier(Map<String, dynamic> carrier) async {
-    final res = await _c.functions
-        .invoke('admin', body: {'action': 'set_carrier', 'carrier': carrier});
-    _throwIfError(res);
-  }
-
-  Future<void> deleteCarrier(String id) async {
-    final res = await _c.functions
-        .invoke('admin', body: {'action': 'delete_carrier', 'id': id});
-    _throwIfError(res);
-  }
-
   /// Redeems a referrer's outstanding balance into whole license months on
   /// their own license. Returns { months, amount, expires_at, balance }
   /// (months == 0 when the balance isn't yet one month's price).
