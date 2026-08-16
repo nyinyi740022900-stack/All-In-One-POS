@@ -34,7 +34,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   List<Widget> get _pages => [
         _WelcomePage(),
         _ShopProfilePage(),
-        _LicensePage(),
+        _LicensePage(onContinue: () => _next(_pages.length)),
         _AccountPage(onDone: () => _next(_pages.length)),
         _StaffModePage(),
       ];
@@ -275,6 +275,17 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
 }
 
 class _LicensePage extends ConsumerWidget {
+  const _LicensePage({required this.onContinue});
+
+  /// Advances onboarding to the next page. Called automatically once a
+  /// choice here actually resolves — either "Continue Free" succeeds, or
+  /// [LicenseScreen] is popped after a successful activation — so the owner
+  /// never has to separately hunt for the bottom "Next" button too. Before
+  /// this, "Continue Free" only showed a toast and left the owner sitting on
+  /// this same page with no visible feedback that anything happened at
+  /// all — indistinguishable from the tap simply not registering.
+  final VoidCallback onContinue;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -285,9 +296,14 @@ class _LicensePage extends ConsumerWidget {
       extra: Column(
         children: [
           OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const LicenseScreen(),
-            )),
+            onPressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const LicenseScreen(),
+              ));
+              if (context.mounted && ref.read(isPremiumProvider)) {
+                onContinue();
+              }
+            },
             icon: const Icon(Icons.key_outlined),
             label: Text(l.onboardActivateNow),
           ),
@@ -295,10 +311,14 @@ class _LicensePage extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              await ref.read(licenseControllerProvider.notifier).continueFree();
-              if (context.mounted) {
+              final ok =
+                  await ref.read(licenseControllerProvider.notifier).continueFree();
+              if (!context.mounted) return;
+              if (ok) {
+                onContinue();
+              } else {
                 messenger.showSnackBar(
-                    SnackBar(content: Text(l.licensePlanFree)));
+                    SnackBar(content: Text(l.commonUnexpectedError)));
               }
             },
             child: Text(l.onboardingContinueFree),
