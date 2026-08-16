@@ -831,7 +831,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get settingsSectionFinance => 'ငွေကြေး';
 
   @override
-  String get settingsSectionDevice => 'စက်/ဝန်ထမ်း';
+  String get settingsSectionAccountTeam => 'အကောင့်/ဝန်ထမ်း';
+
+  @override
+  String get settingsSectionDevice => 'စက်';
 
   @override
   String get settingsSectionHelp => 'အကူအညီ';

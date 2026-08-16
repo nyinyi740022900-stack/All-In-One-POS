@@ -831,7 +831,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionFinance => 'Finance';
 
   @override
-  String get settingsSectionDevice => 'Device & Staff';
+  String get settingsSectionAccountTeam => 'Account & Team';
+
+  @override
+  String get settingsSectionDevice => 'Device';
 
   @override
   String get settingsSectionHelp => 'Help';

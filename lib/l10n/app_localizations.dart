@@ -1634,10 +1634,16 @@ abstract class AppLocalizations {
   /// **'Finance'**
   String get settingsSectionFinance;
 
+  /// No description provided for @settingsSectionAccountTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & Team'**
+  String get settingsSectionAccountTeam;
+
   /// No description provided for @settingsSectionDevice.
   ///
   /// In en, this message translates to:
-  /// **'Device & Staff'**
+  /// **'Device'**
   String get settingsSectionDevice;
 
   /// No description provided for @settingsSectionHelp.

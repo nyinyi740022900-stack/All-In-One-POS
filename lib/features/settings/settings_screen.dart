@@ -58,6 +58,13 @@ class SettingsScreen extends ConsumerWidget {
       body: ContentWidth(
         child: ListView(
         children: [
+          // Business: day-to-day shop operations. Money/accounting tiles
+          // (Credit book, Expenses, Payment accounts, Accounts payable,
+          // Owner's equity) deliberately live under Finance below instead —
+          // they used to be mixed in here while a section literally called
+          // "Finance" held License/Shop Login/Staff/Branches/Referral/Backup
+          // instead, none of which are money-related. Regrouped after the
+          // owner spotted the mismatch directly from a Settings screenshot.
           _SectionHeader(l.settingsSectionBusiness),
           ListTile(
             leading: const Icon(Icons.store),
@@ -76,7 +83,6 @@ class SettingsScreen extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const CashSessionScreen()),
             ),
           ),
-          _CreditTile(),
           ListTile(
             leading: const Icon(Icons.people_outline),
             title: Text(l.customersTitle),
@@ -84,14 +90,6 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const CustomersScreen())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.receipt_long_outlined),
-            title: Text(l.expensesTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.local_shipping_outlined),
@@ -109,6 +107,20 @@ class SettingsScreen extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const PurchaseOrdersScreen()),
             ),
           ),
+          if (isOwner && ref.watch(isPremiumProvider) && Env.hasBackend)
+            _StorefrontTile(),
+
+          // Finance: money/accounting only.
+          _SectionHeader(l.settingsSectionFinance),
+          _CreditTile(),
+          ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: Text(l.expensesTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+          ),
           ListTile(
             leading: const Icon(Icons.credit_card_outlined),
             title: Text(l.paymentAccountsTitle),
@@ -119,10 +131,9 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _AccountsPayableTile(),
           _EquityTile(),
-          if (isOwner && ref.watch(isPremiumProvider) && Env.hasBackend)
-            _StorefrontTile(),
 
-          _SectionHeader(l.settingsSectionFinance),
+          // Account & Team: subscription, sign-in, and who has access.
+          _SectionHeader(l.settingsSectionAccountTeam),
           if (isOwner) _LicenseTile(),
           // Always visible to the owner, not gated on already being signed
           // in — ShopLoginScreen itself branches on hasRealAccountSessionProvider
@@ -184,16 +195,10 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
           _ReferralTile(),
-          if (isOwner)
-            ListTile(
-              leading: const Icon(Icons.backup),
-              title: Text(l.backupTitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const BackupScreen())),
-            ),
 
+          // Device: local device settings + data, no longer "& Staff" —
+          // Staff Accounts moved to Account & Team above; Backup moved here,
+          // it's device/data, not account.
           _SectionHeader(l.settingsSectionDevice),
           ListTile(
             leading: const Icon(Icons.language),
@@ -232,6 +237,15 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _DeviceLabelTile(),
           if (ref.watch(isPremiumProvider) && Env.hasBackend) _SyncTile(),
+          if (isOwner)
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: Text(l.backupTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BackupScreen())),
+            ),
 
           _SectionHeader(l.settingsSectionHelp),
           ListTile(
