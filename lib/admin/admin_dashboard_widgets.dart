@@ -538,6 +538,15 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            'Creates an Offline-tier key (device-key activation, no online '
+            'account).',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.of(context).muted),
+          ),
+          const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _shopId,
             decoration: const InputDecoration(
