@@ -62,6 +62,7 @@ dependencies:
   # A4-quality invoice PDF for the Invoices Web companion (Phase 1) — a real
   # PDF, not a rasterized PNG, so it prints sharp at any size on a computer.
   pdf: ^3.11.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

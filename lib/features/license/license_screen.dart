@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/env.dart';
 import '../../core/money.dart';
@@ -225,6 +226,24 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
   }
 
+  /// Opens the public web payment-request form (`/renew` on the Storefront
+  /// web app) — not part of the app binary, so it's not subject to Apple
+  /// 5.1.1(v) (no in-app payment solicitation); it's just a web link, same
+  /// as any "visit our website" URL. Restores an actual on-ramp for
+  /// Confirm/Decline in the admin dashboard's Requests tab, which otherwise
+  /// only Support-via-Viber can feed.
+  Future<void> _openRenewPage() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await launchUrl(
+      Uri.parse('https://goldposmm-shop.vercel.app/renew'),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
   Future<void> _refresh() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -305,6 +324,17 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                     ),
               ),
             ],
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton.icon(
+              onPressed: _openRenewPage,
+              icon: const Icon(Icons.open_in_new),
+              label: Text(l.licensePayOnline),
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              l.licensePayOnlineHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             // Free-plan try-Premium on-ramp: support-issued trial only (no
             // in-app start_trial — closes delete/reinstall farming).
             if (state.license?.plan == LicensePlan.free) ...[
@@ -399,6 +429,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               onPressed: _busy ? null : _contactSupportForPremium,
               icon: const Icon(Icons.support_agent),
               label: Text(l.licenseContactSupportTitle),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton.icon(
+              onPressed: _openRenewPage,
+              icon: const Icon(Icons.open_in_new),
+              label: Text(l.licensePayOnline),
             ),
             const SizedBox(height: AppTheme.space2),
             OutlinedButton.icon(

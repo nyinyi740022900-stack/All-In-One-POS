@@ -507,6 +507,8 @@
   "licenseGetKeyTitle": "License Key ယူရန်",
   "licenseOnlineApplyHint": "Admin approve လုပ်ပြီးရင် Account ပေါ်မှာ အလိုအလျောက် သက်ရောက်ပါလိမ့်မယ် — Key ထည့်စရာမလိုပါ။",
   "licenseRenew": "သက်တမ်းတိုး",
+  "licensePayOnline": "အွန်လိုင်းက ပေးချေမည်",
+  "licensePayOnlineHint": "ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ — account မလိုအပ်ပါ။",
   "licenseExpiringSoon": "License သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",
   "@licenseExpiringSoon": { "placeholders": { "days": { "type": "int" } } },
   "licenseThankYouTitle": "ကျေးဇူးတင်ပါတယ်!",

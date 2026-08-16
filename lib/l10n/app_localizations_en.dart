@@ -1521,6 +1521,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseRenew => 'Renew / Extend';
 
   @override
+  String get licensePayOnline => 'Pay online';
+
+  @override
+  String get licensePayOnlineHint =>
+      'Submit a payment request on our website — no account needed.';
+
+  @override
   String licenseExpiringSoon(int days) {
     return 'License expires in $days days — tap to renew.';
   }

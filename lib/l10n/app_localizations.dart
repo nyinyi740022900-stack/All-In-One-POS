@@ -2924,6 +2924,18 @@ abstract class AppLocalizations {
   /// **'Renew / Extend'**
   String get licenseRenew;
 
+  /// No description provided for @licensePayOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay online'**
+  String get licensePayOnline;
+
+  /// No description provided for @licensePayOnlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a payment request on our website — no account needed.'**
+  String get licensePayOnlineHint;
+
   /// No description provided for @licenseExpiringSoon.
   ///
   /// In en, this message translates to:

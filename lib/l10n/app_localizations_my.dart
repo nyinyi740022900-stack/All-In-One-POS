@@ -1524,6 +1524,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseRenew => 'သက်တမ်းတိုး';
 
   @override
+  String get licensePayOnline => 'အွန်လိုင်းက ပေးချေမည်';
+
+  @override
+  String get licensePayOnlineHint =>
+      'ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ — account မလိုအပ်ပါ။';
+
+  @override
   String licenseExpiringSoon(int days) {
     return 'License သက်တမ်း $days ရက် ကျန် — တိုးရန် နှိပ်ပါ။';
   }

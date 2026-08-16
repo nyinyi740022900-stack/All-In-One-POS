@@ -124,7 +124,14 @@ class SettingsScreen extends ConsumerWidget {
 
           _SectionHeader(l.settingsSectionFinance),
           if (isOwner) _LicenseTile(),
-          if (ref.watch(hasRealAccountSessionProvider))
+          // Always visible to the owner, not gated on already being signed
+          // in — ShopLoginScreen itself branches on hasRealAccountSessionProvider
+          // internally (Register/Sign-in tabs when signed out, account info
+          // when signed in). Gating the tile on the same condition it exists
+          // to resolve made "create a new shop via email" unreachable for
+          // exactly the owners who'd want it — the one thing Phase 2's
+          // onboarding redesign explicitly relied on this tile for.
+          if (isOwner)
             ListTile(
               leading: const Icon(Icons.alternate_email),
               title: Text(l.accountShopLoginTitle),
