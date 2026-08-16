@@ -108,18 +108,24 @@ class ActivationResult {
 
 /// One device slot under the shop's license (a row in `licenses`). [deviceId]
 /// is null for a released/unclaimed slot waiting to be picked up by a new
-/// device.
+/// device. [realtimeEnabled]/[createdAt] are used to rank this shop's
+/// devices for the Realtime connection-pool cap — see
+/// `sync_providers.dart`'s `realtimePriorityRank`.
 class ShopDevice {
   final String key;
   final String? deviceId;
   final String status;
   final DateTime? lastVerifiedAt;
+  final bool realtimeEnabled;
+  final DateTime createdAt;
 
   const ShopDevice({
     required this.key,
     required this.deviceId,
     required this.status,
     required this.lastVerifiedAt,
+    required this.createdAt,
+    this.realtimeEnabled = false,
   });
 
   bool get isBound => deviceId != null && deviceId!.isNotEmpty;
@@ -131,6 +137,10 @@ class ShopDevice {
         lastVerifiedAt: j['last_verified_at'] == null
             ? null
             : DateTime.parse(j['last_verified_at'] as String),
+        realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
+        createdAt: j['created_at'] == null
+            ? DateTime.fromMillisecondsSinceEpoch(0)
+            : DateTime.parse(j['created_at'] as String),
       );
 }
 

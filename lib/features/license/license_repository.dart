@@ -171,7 +171,9 @@ class LicenseRepository {
     if (!Env.hasBackend) return const [];
     final rows = await Supabase.instance.client
         .from('licenses')
-        .select('key, device_id, status, last_verified_at')
+        .select(
+          'key, device_id, status, last_verified_at, realtime_enabled, created_at',
+        )
         .order('created_at', ascending: true);
     return (rows as List)
         .map((r) => ShopDevice.fromJson(Map<String, dynamic>.from(r as Map)))

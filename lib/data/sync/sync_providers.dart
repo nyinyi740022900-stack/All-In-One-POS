@@ -15,6 +15,20 @@ import '../local/database.dart';
 import 'outbox_constants.dart';
 import 'sync_engine.dart';
 
+/// This device's 1-based rank among the shop's Realtime-enabled, bound
+/// devices, ordered by earliest-bound (`createdAt` ascending) — the
+/// earliest-bound device ranks 1. Returns null if [thisDeviceId] isn't
+/// itself among them (nothing to rank). Pure so it's unit-testable without
+/// Supabase/Riverpod — see `SyncController._updateRealtimeSubscription` for
+/// how the rank gates whether this device actually opens a Realtime
+/// connection, versus relying on the always-running periodic poll instead.
+int? realtimePriorityRank(List<ShopDevice> devices, String thisDeviceId) {
+  final ranked = devices.where((d) => d.realtimeEnabled && d.isBound).toList()
+    ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  final index = ranked.indexWhere((d) => d.deviceId == thisDeviceId);
+  return index == -1 ? null : index + 1;
+}
+
 /// Outbox rows that have failed to push at least [kOutboxStuckThreshold]
 /// times and are not yet quarantined — rare; sync usually quarantines them
 /// at the same threshold so branch switch is never blocked.
@@ -135,6 +149,14 @@ class SyncController extends StateNotifier<SyncState> {
   Timer? _realtimeDebounce;
   String? _realtimeShopId;
 
+  /// Caps how many of a shop's realtime_enabled devices actually hold a
+  /// live Realtime connection — the rest fall back to the always-running
+  /// 5-minute poll. Bounds Supabase's Realtime connection-pool usage as
+  /// shop count grows (a small constant today; promote to an `app_config`
+  /// value if it ever needs to vary), without touching the server-side
+  /// per-device flag at all — see `realtimePriorityRank`.
+  static const _kMaxRealtimeDevices = 2;
+
   Future<void> _init() async {
     // Establish an auth session. Anonymous for now; Phase 5 replaces this with
     // a license-bound session carrying the shop_id claim.
@@ -157,11 +179,30 @@ class SyncController extends StateNotifier<SyncState> {
   }
 
   void _updateRealtimeSubscription(CachedLicense? license) {
+    unawaited(_updateRealtimeSubscriptionAsync(license));
+  }
+
+  Future<void> _updateRealtimeSubscriptionAsync(CachedLicense? license) async {
     final shopId = license?.realtimeEnabled == true ? license?.shopId : null;
     if (shopId == _realtimeShopId) return; // no change
-    _teardownRealtime();
-    if (shopId == null) return;
+    if (shopId == null) {
+      _teardownRealtime();
+      return;
+    }
 
+    // This device's own flag is on, but only the shop's first
+    // _kMaxRealtimeDevices realtime-enabled devices (earliest-bound first)
+    // actually get a live connection — everyone else degrades gracefully to
+    // the unconditional 5-minute poll below, never a sync loss.
+    final devices = await _ref.read(licenseRepositoryProvider).listDevices();
+    final deviceId = await _ref.read(deviceIdProvider.future);
+    final rank = realtimePriorityRank(devices, deviceId);
+    if (rank == null || rank > _kMaxRealtimeDevices) {
+      _teardownRealtime();
+      return;
+    }
+
+    _teardownRealtime();
     _realtimeShopId = shopId;
     final client = Supabase.instance.client;
     var channel = client.channel('shop-$shopId-realtime');

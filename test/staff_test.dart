@@ -297,6 +297,7 @@ void main() {
       deviceId: id,
       status: 'active',
       lastVerifiedAt: null,
+      createdAt: DateTime(2026),
     );
 
     test('hidden for an owner on a single/no-backend device', () async {
