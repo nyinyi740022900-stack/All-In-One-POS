@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
     key?: string;
     device_id?: string;
     request_id?: string;
+    reason?: string;
     config?: Record<string, string>;
   };
   try {
@@ -243,6 +244,34 @@ Deno.serve(async (req) => {
         sourceRequestId: reqId,
       });
       return json({ key, action });
+    }
+
+    case "reject_request": {
+      const reqId = (body.request_id ?? "").trim();
+      if (!reqId) return json({ error: "bad_request" }, 400);
+      const reason = (body.reason ?? "").trim();
+      const { data: reqRow, error: reqErr } = await admin
+        .from("license_requests")
+        .select("*")
+        .eq("id", reqId)
+        .maybeSingle();
+      if (reqErr) return json({ error: "server_error" }, 500);
+      if (!reqRow) return json({ error: "not_found" }, 404);
+
+      await admin
+        .from("license_requests")
+        .update({
+          status: "rejected",
+          reject_reason: reason || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reqId);
+      await logEvent(admin, {
+        device_id: (reqRow.device_id ?? "").trim() || null,
+        shop_name: reqRow.shop_name ?? null,
+        action: "reject",
+      });
+      return json({ ok: true });
     }
 
     case "list_referrals": {

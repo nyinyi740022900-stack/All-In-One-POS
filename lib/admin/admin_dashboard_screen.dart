@@ -121,7 +121,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     _LicensesTab(rows: _licenses ?? const []),
                     _RequestsTab(
                       rows: _requests ?? const [],
-                      onIssue: _issueKey,
+                      onConfirm: _confirmPayment,
+                      onDecline: _declineRequest,
                     ),
                     _HistoryTab(rows: _events ?? const []),
                     _ReferralsTab(
@@ -274,9 +275,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _issueKey(Map<String, dynamic> request) async {
+  Future<void> _confirmPayment(Map<String, dynamic> request) async {
     try {
-      final key = await widget.api.fulfillRequest(
+      final key = await widget.api.confirmPayment(
         requestId: '${request['id']}',
         months: request['months'] is int ? request['months'] as int : null,
       );
@@ -284,7 +285,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Key issued'),
+          title: const Text('Payment confirmed'),
           content: SelectableText(key,
               style: const TextStyle(
                   fontFamily: 'monospace', fontWeight: FontWeight.bold)),
@@ -299,6 +300,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ],
         ),
       );
+      _reload();
+    } catch (e) {
+      _snack('$e');
+    }
+  }
+
+  Future<void> _declineRequest(Map<String, dynamic> request) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => const _DeclineReasonDialog(),
+    );
+    if (reason == null) return;
+    try {
+      await widget.api.rejectRequest(
+        requestId: '${request['id']}',
+        reason: reason.isEmpty ? null : reason,
+      );
+      _snack('Request declined.');
       _reload();
     } catch (e) {
       _snack('$e');

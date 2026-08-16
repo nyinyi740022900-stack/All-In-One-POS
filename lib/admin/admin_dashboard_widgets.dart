@@ -77,7 +77,7 @@ class _HistoryTab extends StatelessWidget {
     if (rows.isEmpty) {
       return const EmptyStateView(
         icon: Icons.history,
-        title: 'No key issues / renewals yet.',
+        title: 'No confirmations, renewals, or declines yet.',
       );
     }
     return ListView.separated(
@@ -85,30 +85,52 @@ class _HistoryTab extends StatelessWidget {
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {
         final r = rows[i];
-        final isExtend = r['action'] == 'extend';
-        // Neutral, not color-coded: "Extended" vs "Issued" is a category the
-        // title text already states, not a state the shop needs a signal
-        // for (same reasoning Analytics' KPI grid settled on — color here
-        // would be decorative, not information).
+        final action = r['action'];
+        final isExtend = action == 'extend';
+        final isDecline = action == 'reject';
+        // Neutral, not color-coded: "Extended" vs "Confirmed" is a category
+        // the title text already states, not a state the shop needs a
+        // signal for (same reasoning Analytics' KPI grid settled on — color
+        // here would be decorative, not information). Decline is the one
+        // exception — it's the negative outcome in this feed, so it keeps
+        // the critical tone the Requests tab already gives it.
         return ListTile(
           leading: IconAvatar(
-              icon: isExtend ? Icons.more_time : Icons.vpn_key),
-          title: Text(
-              '${isExtend ? 'Extended' : 'Issued'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}'),
-          subtitle: Text(
-              'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
-              'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}'),
-          isThreeLine: true,
+            icon: isDecline
+                ? Icons.cancel
+                : isExtend
+                    ? Icons.more_time
+                    : Icons.vpn_key,
+            tone: isDecline ? StatusTone.critical : null,
+          ),
+          title: Text(isDecline
+              ? 'Declined  ·  ${r['shop_name'] ?? '—'}'
+              : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}'),
+          subtitle: Text(isDecline
+              ? 'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
+              : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
+                  'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}'),
+          isThreeLine: !isDecline,
         );
       },
     );
   }
 }
 
+/// The action here is "the admin verified a payment came in," not a generic
+/// approve/deny — "Confirm payment" / "Decline" name that directly, instead
+/// of the more mechanism-focused "Issue key" wording this replaced (that
+/// framing described what the system does internally, not what the admin is
+/// deciding).
 class _RequestsTab extends StatelessWidget {
-  const _RequestsTab({required this.rows, required this.onIssue});
+  const _RequestsTab({
+    required this.rows,
+    required this.onConfirm,
+    required this.onDecline,
+  });
   final List<Map<String, dynamic>> rows;
-  final Future<void> Function(Map<String, dynamic>) onIssue;
+  final Future<void> Function(Map<String, dynamic>) onConfirm;
+  final Future<void> Function(Map<String, dynamic>) onDecline;
 
   @override
   Widget build(BuildContext context) {
@@ -118,51 +140,85 @@ class _RequestsTab extends StatelessWidget {
         title: 'No subscription requests.',
       );
     }
+    // Pending requests are the admin's to-do list — surface them above
+    // already-settled ones instead of leaving them mixed into one
+    // created_at-ordered feed the admin has to scan past.
+    final pending = rows.where((r) => r['status'] == 'pending').toList();
+    final settled = rows.where((r) => r['status'] != 'pending').toList();
+    final sorted = [...pending, ...settled];
+    final textTheme = Theme.of(context).textTheme;
     return ListView.separated(
-      itemCount: rows.length,
+      itemCount: sorted.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {
-        final r = rows[i];
-        final fulfilled = r['status'] == 'fulfilled';
+        final r = sorted[i];
+        final status = r['status'];
+        final fulfilled = status == 'fulfilled';
+        final rejected = status == 'rejected';
         final proofPath = r['payment_proof_path'] as String?;
         final shopId = r['shop_id'] as String?;
+        final rejectReason = r['reject_reason'] as String?;
         return ListTile(
-          // A pending request is the admin's to-do list, so it gets
-          // `attention`, not a neutral fill — the same reasoning Orders'
-          // `new` status and Purchase Orders' `open` status use.
-          leading: IconAvatar(
-            icon: fulfilled ? Icons.check_circle : Icons.hourglass_top,
-            tone: fulfilled ? StatusTone.positive : StatusTone.attention,
+          leading: (proofPath != null && proofPath.isNotEmpty)
+              ? _RequestProofImage(
+                  path: proofPath,
+                  size: 44,
+                  onTap: () => _showProof(context, proofPath),
+                )
+              : IconAvatar(
+                  icon: rejected
+                      ? Icons.cancel
+                      : fulfilled
+                          ? Icons.check_circle
+                          : Icons.hourglass_top,
+                  tone: rejected
+                      ? StatusTone.critical
+                      : fulfilled
+                          ? StatusTone.positive
+                          : StatusTone.attention,
+                ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text('${r['shop_name']}', style: textTheme.titleSmall),
+              ),
+              Text('${r['amount']} Ks',
+                  style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary)),
+            ],
           ),
-          title: Text(
-              '${r['shop_name']}  ·  ${r['amount']} Ks  ·  ${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}'),
           subtitle: Text(
+              '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}\n'
               'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
               'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
               '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'
+              '${rejected && rejectReason != null && rejectReason.isNotEmpty ? '\nReason: $rejectReason' : ''}'
               // Renewal (an existing shop) vs a brand-new one — see
               // fulfill_request's shop_id-first lookup.
               '${shopId != null && shopId.isNotEmpty ? '\nRenewal for shop: $shopId' : '\n(No shop_id — treated as a new shop)'}'),
           isThreeLine: true,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (proofPath != null && proofPath.isNotEmpty)
-                TextButton.icon(
-                  onPressed: () => _showProof(context, proofPath),
-                  icon: const Icon(Icons.image_outlined, size: 18),
-                  label: const Text('Screenshot'),
-                ),
-              if (fulfilled)
-                const StatusPill(label: 'Issued', tone: StatusTone.positive)
-              else
-                FilledButton(
-                  style: _compactFilledButtonStyle(),
-                  onPressed: () => onIssue(r),
-                  child: const Text('Issue key'),
-                ),
-            ],
-          ),
+          trailing: fulfilled
+              ? const StatusPill(label: 'Confirmed', tone: StatusTone.positive)
+              : rejected
+                  ? const StatusPill(label: 'Declined', tone: StatusTone.critical)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () => onDecline(r),
+                          style: TextButton.styleFrom(
+                              foregroundColor: AppColors.of(context).danger),
+                          child: const Text('Decline'),
+                        ),
+                        const SizedBox(width: AppTheme.space1),
+                        FilledButton(
+                          style: _compactFilledButtonStyle(),
+                          onPressed: () => onConfirm(r),
+                          child: const Text('Confirm payment'),
+                        ),
+                      ],
+                    ),
         );
       },
     );
@@ -184,6 +240,57 @@ class _RequestsTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Optional-reason prompt shown before declining a pending request — same
+/// text-entry shape as [_CodePromptDialog], but the field is optional (an
+/// empty submit still confirms the decline) since a reason is a courtesy for
+/// the shop, not a requirement to act.
+class _DeclineReasonDialog extends StatefulWidget {
+  const _DeclineReasonDialog();
+  @override
+  State<_DeclineReasonDialog> createState() => _DeclineReasonDialogState();
+}
+
+class _DeclineReasonDialogState extends State<_DeclineReasonDialog> {
+  final _reason = TextEditingController();
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Decline this request?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('The shop will not be charged or issued a key.'),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _reason,
+            autofocus: true,
+            decoration:
+                const InputDecoration(labelText: 'Reason (optional)'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _reason.text.trim()),
+          style: FilledButton.styleFrom(
+              backgroundColor: AppColors.of(context).danger),
+          child: const Text('Decline'),
+        ),
+      ],
     );
   }
 }
@@ -745,8 +852,14 @@ String _date(dynamic v) {
 /// the admin's own session is `authenticated`, already covered by the
 /// existing bucket-wide SELECT policy (migration 0022).
 class _RequestProofImage extends StatefulWidget {
-  const _RequestProofImage({required this.path});
+  const _RequestProofImage({required this.path, this.size, this.onTap});
   final String path;
+
+  /// When set, renders as a small tappable square thumbnail (for the
+  /// Requests tab's row leading) instead of the full-width preview used
+  /// inside the "Payment screenshot" dialog.
+  final double? size;
+  final VoidCallback? onTap;
 
   @override
   State<_RequestProofImage> createState() => _RequestProofImageState();
@@ -765,18 +878,32 @@ class _RequestProofImageState extends State<_RequestProofImage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = widget.size;
     return FutureBuilder<String>(
       future: _url,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const SizedBox(
-              height: 200, child: Center(child: CircularProgressIndicator()));
+          return SizedBox(
+              height: size ?? 200,
+              width: size,
+              child: const Center(
+                  child: ButtonSpinner(size: 20)));
         }
         if (snap.hasError || snap.data == null) {
-          return const SizedBox(
-              height: 120, child: Icon(Icons.broken_image_outlined));
+          return SizedBox(
+              height: size ?? 120,
+              width: size,
+              child: const Icon(Icons.broken_image_outlined));
         }
-        return Image.network(snap.data!, fit: BoxFit.contain);
+        final image = Image.network(snap.data!,
+            fit: size != null ? BoxFit.cover : BoxFit.contain,
+            width: size,
+            height: size);
+        if (size == null) return image;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          child: InkWell(onTap: widget.onTap, child: image),
+        );
       },
     );
   }

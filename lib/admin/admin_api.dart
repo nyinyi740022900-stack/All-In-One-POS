@@ -80,7 +80,7 @@ class AdminApi {
     return '${(res.data as Map)['expires_at']}';
   }
 
-  Future<String> fulfillRequest({required String requestId, int? months}) async {
+  Future<String> confirmPayment({required String requestId, int? months}) async {
     final body = <String, dynamic>{
       'action': 'fulfill_request',
       'request_id': requestId,
@@ -89,6 +89,15 @@ class AdminApi {
     final res = await _c.functions.invoke('admin', body: body);
     _throwIfError(res);
     return (res.data as Map)['key'] as String;
+  }
+
+  Future<void> rejectRequest({required String requestId, String? reason}) async {
+    final res = await _c.functions.invoke('admin', body: {
+      'action': 'reject_request',
+      'request_id': requestId,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
+    _throwIfError(res);
   }
 
   Future<Map<String, String>> getConfig() async {
