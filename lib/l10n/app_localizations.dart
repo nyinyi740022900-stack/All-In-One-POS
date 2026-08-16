@@ -4910,23 +4910,29 @@ abstract class AppLocalizations {
   /// **'Months'**
   String get storefrontRenewMonths;
 
-  /// No description provided for @storefrontRenewAmountHint.
+  /// No description provided for @storefrontRenewAmountLockedHint.
   ///
   /// In en, this message translates to:
-  /// **'Suggested from the current price — edit if you paid a different amount.'**
-  String get storefrontRenewAmountHint;
+  /// **'This is the fixed amount for your plan — please transfer exactly this much.'**
+  String get storefrontRenewAmountLockedHint;
 
   /// No description provided for @storefrontRenewAmountPaid.
   ///
   /// In en, this message translates to:
-  /// **'Amount paid (Ks) *'**
+  /// **'Amount to pay (Ks) *'**
   String get storefrontRenewAmountPaid;
 
   /// No description provided for @storefrontRenewRefNo.
   ///
   /// In en, this message translates to:
-  /// **'Transaction ref. no. (optional)'**
+  /// **'Last 6 digits of the transaction number *'**
   String get storefrontRenewRefNo;
+
+  /// No description provided for @storefrontRenewRefNoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find this at the end of the transaction ID in your KBZPay/WavePay confirmation.'**
+  String get storefrontRenewRefNoHint;
 
   /// No description provided for @storefrontRenewSubmit.
   ///
@@ -4955,7 +4961,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontRenewMissingFields.
   ///
   /// In en, this message translates to:
-  /// **'Please fill in shop name, App Reference ID, months, and amount.'**
+  /// **'Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.'**
   String get storefrontRenewMissingFields;
 
   /// No description provided for @onboardWelcomeTitle.

@@ -2669,15 +2669,19 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontRenewMonths => 'လအရေအတွက်';
 
   @override
-  String get storefrontRenewAmountHint =>
-      'လက်ရှိစျေးနှုန်းအရ ခန့်မှန်းထားပါတယ် — ပေးချေထားတာ မတူရင် ပြင်ပါ။';
+  String get storefrontRenewAmountLockedHint =>
+      'ဒါက သင့် plan အတွက် သတ်မှတ်ထားတဲ့ ပမာဏ ဖြစ်ပါတယ် — ဒီပမာဏအတိုင်း လွှဲပေးပါ။';
 
   @override
-  String get storefrontRenewAmountPaid => 'ပေးချေထားသော ငွေပမာဏ (ကျပ်) *';
+  String get storefrontRenewAmountPaid => 'ပေးချေရမည့် ငွေပမာဏ (ကျပ်) *';
 
   @override
   String get storefrontRenewRefNo =>
-      'လွှဲပြောင်းမှု ကိုးကားနံပါတ် (မဖြည့်လည်းရ)';
+      'လွှဲပြောင်းမှု ကိုးကားနံပါတ်၏ နောက်ဆုံး ၆ လုံး *';
+
+  @override
+  String get storefrontRenewRefNoHint =>
+      'KBZPay/WavePay confirmation ထဲက transaction ID ရဲ့ အဆုံးမှာ ရှာပါ။';
 
   @override
   String get storefrontRenewSubmit => 'တောင်းဆိုမှု ပို့ပါ';
@@ -2696,7 +2700,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontRenewMissingFields =>
-      'ဆိုင်အမည်၊ App Reference ID၊ လအရေအတွက်နှင့် ငွေပမာဏတို့ကို ဖြည့်သွင်းပါ။';
+      'ဆိုင်အမည်၊ App Reference ID (သို့) email၊ လအရေအတွက်၊ ငွေပမာဏနှင့် transaction number ရဲ့ နောက်ဆုံး ၆ လုံးတို့ကို ဖြည့်သွင်းပါ။';
 
   @override
   String get onboardWelcomeTitle => 'All In One POS မှ ကြိုဆိုပါတယ်';

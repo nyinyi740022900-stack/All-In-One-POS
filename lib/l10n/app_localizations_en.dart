@@ -2657,14 +2657,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontRenewMonths => 'Months';
 
   @override
-  String get storefrontRenewAmountHint =>
-      'Suggested from the current price — edit if you paid a different amount.';
+  String get storefrontRenewAmountLockedHint =>
+      'This is the fixed amount for your plan — please transfer exactly this much.';
 
   @override
-  String get storefrontRenewAmountPaid => 'Amount paid (Ks) *';
+  String get storefrontRenewAmountPaid => 'Amount to pay (Ks) *';
 
   @override
-  String get storefrontRenewRefNo => 'Transaction ref. no. (optional)';
+  String get storefrontRenewRefNo =>
+      'Last 6 digits of the transaction number *';
+
+  @override
+  String get storefrontRenewRefNoHint =>
+      'Find this at the end of the transaction ID in your KBZPay/WavePay confirmation.';
 
   @override
   String get storefrontRenewSubmit => 'Submit request';
@@ -2683,7 +2688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontRenewMissingFields =>
-      'Please fill in shop name, App Reference ID, months, and amount.';
+      'Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.';
 
   @override
   String get onboardWelcomeTitle => 'Welcome to All In One POS';

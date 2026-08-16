@@ -90,26 +90,35 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     _months.addListener(_recalcAmount);
   }
 
-  /// A *suggestion*, not a lock — the owner may have actually paid a
-  /// different amount (a discount, a partial payment, an old rate), and
-  /// `_amount` stays a plain editable field either way. Yearly rounds the
-  /// month count up to the nearest whole year so a mid-year top-up (e.g.
-  /// 18 months) still suggests a sane amount rather than under-charging.
+  /// The price per month/year is admin-fixed, not negotiable — so unlike a
+  /// storefront cart, this is the exact amount owed, not a suggestion the
+  /// owner can override (see [_amountLocked]). Yearly rounds the month
+  /// count up to the nearest whole year so a mid-year top-up (e.g. 18
+  /// months) still charges a sane amount rather than under-charging.
   void _recalcAmount() {
     final months = int.tryParse(_months.text.trim()) ?? 0;
     if (months <= 0) return;
-    final int? suggested;
+    final int? total;
     if (_plan == 'yearly' && _priceYearly != null) {
-      suggested = _priceYearly! * ((months + 11) ~/ 12);
+      total = _priceYearly! * ((months + 11) ~/ 12);
     } else if (_plan == 'monthly' && _priceMonthly != null) {
-      suggested = _priceMonthly! * months;
+      total = _priceMonthly! * months;
     } else {
-      suggested = null;
+      total = null;
     }
-    if (suggested != null) {
-      _amount.text = '$suggested';
+    if (total != null) {
+      _amount.text = '$total';
     }
   }
+
+  /// True once the admin-configured price for the selected plan is known —
+  /// at that point Amount is locked (read-only, exact) rather than a plain
+  /// field, since there's a fixed rate to charge against. Falls back to a
+  /// plain editable field if the price genuinely failed to load (a config
+  /// fetch error, or an admin who hasn't set one yet) — better than
+  /// blocking the whole form on a config read that never resolves.
+  bool get _amountLocked =>
+      (_plan == 'yearly' ? _priceYearly : _priceMonthly) != null;
 
   @override
   void dispose() {
@@ -154,10 +163,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     final email = _email.text.trim();
     final months = int.tryParse(_months.text.trim()) ?? 0;
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final refNo = _refNo.text.trim();
     if (shopName.isEmpty ||
         (deviceId.isEmpty && email.isEmpty) ||
         months <= 0 ||
-        amount <= 0) {
+        amount <= 0 ||
+        refNo.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.storefrontRenewMissingFields)),
       );
@@ -179,7 +190,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         months: months,
         method: _method,
         amount: amount,
-        refNo: _refNo.text.trim(),
+        refNo: refNo,
         paymentProofPath: proofPath,
         hp: _hp.text,
       );
@@ -355,21 +366,30 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _amount,
+            readOnly: _amountLocked,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: l.storefrontRenewAmountPaid,
-              helperText:
-                  (_priceMonthly != null || _priceYearly != null)
-                      ? l.storefrontRenewAmountHint
-                      : null,
+              helperText: _amountLocked
+                  ? l.storefrontRenewAmountLockedHint
+                  : null,
               helperMaxLines: 2,
             ),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _refNo,
-            decoration: InputDecoration(labelText: l.storefrontRenewRefNo),
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            decoration: InputDecoration(
+              labelText: l.storefrontRenewRefNo,
+              helperText: l.storefrontRenewRefNoHint,
+              helperMaxLines: 2,
+            ),
           ),
           const SizedBox(height: AppTheme.space3),
           OutlinedButton.icon(

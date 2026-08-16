@@ -11,8 +11,9 @@
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no }
 //   submit_license_request { shop_name, device_id, email?, phone?, plan,
-//                    months, method?, amount, ref_no?, payment_proof_path?,
-//                    hp } -> { ok } — the /renew page's subscription-renewal
+//                    months, method?, amount, ref_no (6-digit transaction
+//                    suffix), payment_proof_path?, hp } -> { ok } — the
+//                    /renew page's subscription-renewal
 //                    request form. No slug/shop lookup (the shop isn't
 //                    resolved yet, just a device_id the owner typed in, or
 //                    optionally an account email that resolves to shop_id
@@ -169,10 +170,15 @@ async function handleSubmitLicenseRequest(
   const emailPresent = `${body.email ?? ""}`.trim().length > 0;
   const months = Number(body.months);
   const amount = Number(body.amount);
+  // Last 6 digits of the transaction number — required (not just optional
+  // reference text) so a submitted request can actually be matched against
+  // the vendor's own KBZPay/WavePay transaction history.
+  const refNo = `${body.ref_no ?? ""}`.trim();
   if (
     !shopName || (!deviceId && !emailPresent) ||
     !Number.isInteger(months) || months <= 0 ||
-    !Number.isInteger(amount) || amount <= 0
+    !Number.isInteger(amount) || amount <= 0 ||
+    !/^\d{6}$/.test(refNo)
   ) {
     return json({ error: "bad_request" }, 400);
   }
@@ -184,7 +190,6 @@ async function handleSubmitLicenseRequest(
     ? rawMethod
     : null;
   const phone = `${body.phone ?? ""}`.trim() || null;
-  const refNo = `${body.ref_no ?? ""}`.trim() || null;
   const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
 
   // Optional: an online-tier shop (has a Supabase Auth account) can give
