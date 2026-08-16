@@ -2643,16 +2643,34 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontRenewDeviceIdHint =>
-      'ဖုန်းထဲမှာ ရှာပါ - Settings → License → App Reference ID။';
+      'ဖုန်းထဲမှာ ရှာပါ - Settings → License → App Reference ID။ Account နဲ့ sign in ဝင်ထားရင် ဒါကို ကျော်ပြီး အောက်က email ကို ဖြည့်ပါ။';
 
   @override
   String get storefrontRenewEmail => 'အီးမေးလ် (account ရှိရင်)';
 
   @override
+  String get storefrontRenewEmailHint =>
+      'ဒါရှိရင် အပေါ်က App Reference ID မလိုပါဘူး — တစ်ခုပဲ ဖြည့်ရင် ရပါတယ်။';
+
+  @override
   String get storefrontRenewPlan => 'အစီအစဉ်';
 
   @override
+  String storefrontRenewPricePerMonth(String price) {
+    return '$price / လ';
+  }
+
+  @override
+  String storefrontRenewPricePerYear(String price) {
+    return '$price / နှစ်';
+  }
+
+  @override
   String get storefrontRenewMonths => 'လအရေအတွက်';
+
+  @override
+  String get storefrontRenewAmountHint =>
+      'လက်ရှိစျေးနှုန်းအရ ခန့်မှန်းထားပါတယ် — ပေးချေထားတာ မတူရင် ပြင်ပါ။';
 
   @override
   String get storefrontRenewAmountPaid => 'ပေးချေထားသော ငွေပမာဏ (ကျပ်) *';

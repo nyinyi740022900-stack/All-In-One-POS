@@ -213,6 +213,8 @@ class StorefrontApi {
       'pay.kbzpay.number',
       'pay.wavepay.name',
       'pay.wavepay.number',
+      'price.monthly',
+      'price.yearly',
     ]);
     return {
       for (final r in (rows as List))

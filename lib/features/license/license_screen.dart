@@ -278,14 +278,26 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   /// 5.1.1(v) (no in-app payment solicitation); it's just a web link, same
   /// as any "visit our website" URL. Restores an actual on-ramp for
   /// Confirm/Decline in the admin dashboard's Requests tab, which otherwise
-  /// only Support-via-Viber can feed.
+  /// only Support-via-Viber can feed. Pre-fills what the app already knows
+  /// (shop name, App Reference ID, account email if signed in) as query
+  /// params — plain visible text, nothing sensitive, and the page itself
+  /// already reads/writes these same fields, so a shop opening this from
+  /// Settings doesn't have to retype what the app already has.
   Future<void> _openRenewPage() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final ok = await launchUrl(
-      Uri.parse('https://allinonepos-shop.vercel.app/renew'),
-      mode: LaunchMode.externalApplication,
-    );
+    final lic = ref.read(licenseControllerProvider).license;
+    final email = ref.read(accountRepositoryProvider).currentAccountEmail;
+    String? shopName;
+    try {
+      shopName = (await ref.read(shopProfileProvider.future)).name;
+    } catch (_) {}
+    final uri = Uri.https('allinonepos-shop.vercel.app', '/renew', {
+      if (shopName != null && shopName.isNotEmpty) 'name': shopName,
+      if (lic != null && lic.deviceId.isNotEmpty) 'device_id': lic.deviceId,
+      if (email != null && email.isNotEmpty) 'email': email,
+    });
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }

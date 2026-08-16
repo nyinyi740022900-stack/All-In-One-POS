@@ -4871,7 +4871,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontRenewDeviceIdHint.
   ///
   /// In en, this message translates to:
-  /// **'Find this on your phone: Settings → License → App Reference ID.'**
+  /// **'Find this on your phone: Settings → License → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.'**
   String get storefrontRenewDeviceIdHint;
 
   /// No description provided for @storefrontRenewEmail.
@@ -4880,17 +4880,41 @@ abstract class AppLocalizations {
   /// **'Email (if you have an account)'**
   String get storefrontRenewEmail;
 
+  /// No description provided for @storefrontRenewEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Have this? You don\'t need the App Reference ID above — either one is enough.'**
+  String get storefrontRenewEmailHint;
+
   /// No description provided for @storefrontRenewPlan.
   ///
   /// In en, this message translates to:
   /// **'Plan'**
   String get storefrontRenewPlan;
 
+  /// No description provided for @storefrontRenewPricePerMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} / month'**
+  String storefrontRenewPricePerMonth(String price);
+
+  /// No description provided for @storefrontRenewPricePerYear.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} / year'**
+  String storefrontRenewPricePerYear(String price);
+
   /// No description provided for @storefrontRenewMonths.
   ///
   /// In en, this message translates to:
   /// **'Months'**
   String get storefrontRenewMonths;
+
+  /// No description provided for @storefrontRenewAmountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested from the current price — edit if you paid a different amount.'**
+  String get storefrontRenewAmountHint;
 
   /// No description provided for @storefrontRenewAmountPaid.
   ///

@@ -166,10 +166,11 @@ async function handleSubmitLicenseRequest(
 
   const shopName = `${body.shop_name ?? ""}`.trim();
   const deviceId = `${body.device_id ?? ""}`.trim();
+  const emailPresent = `${body.email ?? ""}`.trim().length > 0;
   const months = Number(body.months);
   const amount = Number(body.amount);
   if (
-    !shopName || !deviceId ||
+    !shopName || (!deviceId && !emailPresent) ||
     !Number.isInteger(months) || months <= 0 ||
     !Number.isInteger(amount) || amount <= 0
   ) {

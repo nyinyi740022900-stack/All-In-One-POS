@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
@@ -8,6 +9,9 @@ import '../core/widgets/app_widgets.dart';
 import '../l10n/app_localizations.dart';
 import 'storefront_api.dart';
 import 'storefront_page.dart' show StorefrontLocaleBar;
+
+final _money = NumberFormat('#,##0', 'en_US');
+String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
 
 /// Subscription-renewal request form at `/renew` — restores a live path
 /// into `license_requests` now that the in-app payment UI is gone (removed
@@ -54,10 +58,57 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   String? _proofExt;
   String? _proofName;
 
+  // Admin-configured price.monthly/price.yearly, once loaded — drives both
+  // the per-unit price shown next to the Plan toggle and the auto-filled
+  // Amount below. No online/offline split here (unlike VendorConfig's own
+  // tier-aware priceFor): this app no longer distinguishes an online vs.
+  // offline plan, so a single admin-set rate applies to every request.
+  int? _priceMonthly;
+  int? _priceYearly;
+
   @override
   void initState() {
     super.initState();
     _paymentConfig = _api.fetchPaymentConfig();
+    _paymentConfig.then((cfg) {
+      if (!mounted) return;
+      setState(() {
+        _priceMonthly = int.tryParse(cfg['price.monthly'] ?? '');
+        _priceYearly = int.tryParse(cfg['price.yearly'] ?? '');
+      });
+      _recalcAmount();
+    });
+    // The app's own "Pay online" link passes along what it already knows
+    // (LicenseScreen._openRenewPage) so a shop opening this from Settings
+    // doesn't have to retype its own name/App Reference ID/email. Plain
+    // query params — nothing here is sensitive, and this same data is
+    // already visible in the form itself once filled in.
+    final q = Uri.base.queryParameters;
+    _shopName.text = q['name'] ?? '';
+    _deviceId.text = q['device_id'] ?? '';
+    _email.text = q['email'] ?? '';
+    _months.addListener(_recalcAmount);
+  }
+
+  /// A *suggestion*, not a lock — the owner may have actually paid a
+  /// different amount (a discount, a partial payment, an old rate), and
+  /// `_amount` stays a plain editable field either way. Yearly rounds the
+  /// month count up to the nearest whole year so a mid-year top-up (e.g.
+  /// 18 months) still suggests a sane amount rather than under-charging.
+  void _recalcAmount() {
+    final months = int.tryParse(_months.text.trim()) ?? 0;
+    if (months <= 0) return;
+    final int? suggested;
+    if (_plan == 'yearly' && _priceYearly != null) {
+      suggested = _priceYearly! * ((months + 11) ~/ 12);
+    } else if (_plan == 'monthly' && _priceMonthly != null) {
+      suggested = _priceMonthly! * months;
+    } else {
+      suggested = null;
+    }
+    if (suggested != null) {
+      _amount.text = '$suggested';
+    }
   }
 
   @override
@@ -100,9 +151,13 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     final l = AppLocalizations.of(context);
     final shopName = _shopName.text.trim();
     final deviceId = _deviceId.text.trim();
+    final email = _email.text.trim();
     final months = int.tryParse(_months.text.trim()) ?? 0;
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
-    if (shopName.isEmpty || deviceId.isEmpty || months <= 0 || amount <= 0) {
+    if (shopName.isEmpty ||
+        (deviceId.isEmpty && email.isEmpty) ||
+        months <= 0 ||
+        amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.storefrontRenewMissingFields)),
       );
@@ -204,7 +259,11 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(labelText: l.storefrontRenewEmail),
+            decoration: InputDecoration(
+              labelText: l.storefrontRenewEmail,
+              helperText: l.storefrontRenewEmailHint,
+              helperMaxLines: 2,
+            ),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -222,6 +281,17 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             selected: {_plan},
             onSelectionChanged: (s) => _onPlanChanged(s.first),
           ),
+          Builder(builder: (context) {
+            final price = _plan == 'yearly' ? _priceYearly : _priceMonthly;
+            if (price == null) return const SizedBox.shrink();
+            final text = _plan == 'yearly'
+                ? l.storefrontRenewPricePerYear(_ks(l, price))
+                : l.storefrontRenewPricePerMonth(_ks(l, price));
+            return Padding(
+              padding: const EdgeInsets.only(top: AppTheme.space1),
+              child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+            );
+          }),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _months,
@@ -287,8 +357,14 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             controller: _amount,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration:
-                InputDecoration(labelText: l.storefrontRenewAmountPaid),
+            decoration: InputDecoration(
+              labelText: l.storefrontRenewAmountPaid,
+              helperText:
+                  (_priceMonthly != null || _priceYearly != null)
+                      ? l.storefrontRenewAmountHint
+                      : null,
+              helperMaxLines: 2,
+            ),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(

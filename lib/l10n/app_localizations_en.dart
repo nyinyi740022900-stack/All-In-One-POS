@@ -2631,16 +2631,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontRenewDeviceIdHint =>
-      'Find this on your phone: Settings → License → App Reference ID.';
+      'Find this on your phone: Settings → License → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.';
 
   @override
   String get storefrontRenewEmail => 'Email (if you have an account)';
 
   @override
+  String get storefrontRenewEmailHint =>
+      'Have this? You don\'t need the App Reference ID above — either one is enough.';
+
+  @override
   String get storefrontRenewPlan => 'Plan';
 
   @override
+  String storefrontRenewPricePerMonth(String price) {
+    return '$price / month';
+  }
+
+  @override
+  String storefrontRenewPricePerYear(String price) {
+    return '$price / year';
+  }
+
+  @override
   String get storefrontRenewMonths => 'Months';
+
+  @override
+  String get storefrontRenewAmountHint =>
+      'Suggested from the current price — edit if you paid a different amount.';
 
   @override
   String get storefrontRenewAmountPaid => 'Amount paid (Ks) *';
