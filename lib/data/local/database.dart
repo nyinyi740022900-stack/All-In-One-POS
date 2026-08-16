@@ -48,6 +48,7 @@ bool isDuplicateColumnMigrationError(Object error) {
     EquityEntries,
     AppSettings,
     Outbox,
+    ShopProfiles,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -60,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 29;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -241,6 +242,11 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE outbox SET quarantined = 1 WHERE attempts >= 3',
         );
       }
+      // v29: shop_profiles — lets the admin console show a shop's
+      // name/phone/address without it having published a Storefront.
+      if (from < 29) {
+        await m.createTable(shopProfiles);
+      }
     },
   );
 
@@ -298,6 +304,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(paymentAccounts).go();
       await delete(supplierPayments).go();
       await delete(equityEntries).go();
+      await delete(shopProfiles).go();
       await (delete(
         appSettings,
       )..where((s) => s.key.like('sync.cursor.%'))).go();

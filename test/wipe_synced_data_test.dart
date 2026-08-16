@@ -20,6 +20,15 @@ void main() {
     expect(await db.select(db.products).get(), isNotEmpty);
     expect(await db.select(db.stockLevels).get(), isNotEmpty);
 
+    await db.into(db.shopProfiles).insert(
+          ShopProfilesCompanion.insert(
+            id: 'shop-1',
+            shopId: 'shop-1',
+            name: 'Test Shop',
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+
     await db.into(db.appSettings).insert(
         const AppSettingsCompanion(
             key: Value('sync.cursor.products'), value: Value('2026-01-01')));
@@ -34,6 +43,7 @@ void main() {
 
     expect(await db.select(db.products).get(), isEmpty);
     expect(await db.select(db.stockLevels).get(), isEmpty);
+    expect(await db.select(db.shopProfiles).get(), isEmpty);
 
     final settings = await db.select(db.appSettings).get();
     expect(settings.map((s) => s.key), isNot(contains('sync.cursor.products')));

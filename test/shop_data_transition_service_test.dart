@@ -134,6 +134,16 @@ void main() {
       await db
           .into(db.appSettings)
           .insert(AppSettingsCompanion.insert(key: 'shop.name.$from', value: 'Test Shop'));
+      // id == shopId for this table (one row per shop) — a different shape
+      // from every other table above, where only shopId moves.
+      await db.into(db.shopProfiles).insert(
+            ShopProfilesCompanion.insert(
+              id: from,
+              shopId: from,
+              name: 'Test Shop',
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
     }
 
     test('rewrites shop_id across tables and rekeys shop-scoped settings',
@@ -167,6 +177,21 @@ void main() {
       expect(categoryRows.map((o) => o.rowId), ['c1']);
       // p2-deleted is excluded — see the comment in seed().
       expect(productRows.map((o) => o.rowId), ['p1']);
+    });
+
+    test('rekeys shop_profiles\' id together with shopId, not just shopId '
+        '(the one table where id == shopId)', () async {
+      await seed();
+      await service.promoteShopIdentity(fromShopId: from, toShopId: to);
+
+      final rows = await db.select(db.shopProfiles).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.id, to);
+      expect(rows.single.shopId, to);
+
+      final outbox = await db.select(db.outbox).get();
+      final profileRows = outbox.where((o) => o.entityTable == 'shop_profiles');
+      expect(profileRows.map((o) => o.rowId), [to]);
     });
 
     test('is idempotent — re-running after an already-promoted shop is a '

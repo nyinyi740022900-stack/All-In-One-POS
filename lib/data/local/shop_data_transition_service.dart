@@ -127,6 +127,7 @@ class ShopDataTransitionService {
       await _promotePaymentAccounts(fromShopId, toShopId);
       await _promoteSupplierPayments(fromShopId, toShopId);
       await _promoteEquityEntries(fromShopId, toShopId);
+      await _promoteShopProfiles(fromShopId, toShopId);
       // Shop-scoped settings (SettingsRepository._shopKey: `<base>.<shopId>`)
       // — device-global keys never carry a shop suffix, so this can't touch
       // them. `stock_lots` is deliberately excluded: local-only FIFO cache,
@@ -435,5 +436,20 @@ class ShopDataTransitionService {
       'equity_entries',
       rows.where((r) => !r.isDeleted).map((r) => r.id),
     );
+  }
+
+  /// `id == shopId` for this table (one row per shop) — unlike every other
+  /// promote above, both columns must move together or the row would end up
+  /// with a stale `id` that no longer matches its own `shopId`.
+  Future<void> _promoteShopProfiles(String from, String to) async {
+    final row = await (_db.select(
+      _db.shopProfiles,
+    )..where((t) => t.id.equals(from))).getSingleOrNull();
+    if (row == null) return;
+    await (_db.update(_db.shopProfiles)..where((t) => t.id.equals(from)))
+        .write(ShopProfilesCompanion(id: Value(to), shopId: Value(to)));
+    if (!row.isDeleted) {
+      await _enqueueOutbox('shop_profiles', [to]);
+    }
   }
 }

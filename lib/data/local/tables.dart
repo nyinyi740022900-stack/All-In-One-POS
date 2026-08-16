@@ -238,6 +238,24 @@ class Suppliers extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
+/// One row per shop (id == shopId), synced so the admin console can show a
+/// shop's name/phone/address without it having published a public
+/// Storefront (`Storefronts` is customer-facing and opt-in; this mirrors
+/// just the contact fields already collected by `ShopProfileScreen`, whose
+/// authoritative local copy stays the existing `AppSettings` KV entries —
+/// this table exists purely so admin tooling has something to read).
+/// `@DataClassName` avoids colliding with `SettingsRepository`'s existing
+/// (unrelated, KV-backed) `ShopProfile` class.
+@DataClassName('ShopProfileRow')
+class ShopProfiles extends Table with SyncColumns {
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// A named money account the shop receives payments into besides cash —
 /// KBZPay, WavePay, or any custom one the owner adds — used to track a
 /// running balance per account. [openingBalance] is set once at creation

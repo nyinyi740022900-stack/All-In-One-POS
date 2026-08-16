@@ -100,6 +100,27 @@ Deno.serve(async (req) => {
         storeByShop.set(s.shop_id, { phone: s.phone, address: s.address });
       }
 
+      // shop_profiles mirrors ShopProfileScreen's contact fields for every
+      // shop, not just ones that opted into a public Storefront — the
+      // fallback source for phone/address/name. Storefront wins when both
+      // exist: it's the customer-facing, deliberately-published version,
+      // which can differ from what's saved on the receipt-header profile.
+      const { data: profileRows } = await admin
+        .from("shop_profiles")
+        .select("shop_id, name, phone, address")
+        .eq("is_deleted", false);
+      const profileByShop = new Map<
+        string,
+        { name: string | null; phone: string | null; address: string | null }
+      >();
+      for (const p of (profileRows ?? [])) {
+        profileByShop.set(p.shop_id, {
+          name: p.name,
+          phone: p.phone,
+          address: p.address,
+        });
+      }
+
       // No query-by-metadata filter on the Admin Auth API — a single page is
       // enough at this app's SME scale (same precedent as list_licenses's
       // own limit(2000) / handleListStaff's limit(1000) in activate/index.ts,
@@ -145,16 +166,17 @@ Deno.serve(async (req) => {
 
       const rows = Array.from(shops.values()).map((r) => {
         const store = storeByShop.get(r.shop_id);
+        const profile = profileByShop.get(r.shop_id);
         const em = emailByShop.get(r.shop_id);
         return {
           shop_id: r.shop_id,
-          shop_name: r.shop_name ?? null,
+          shop_name: r.shop_name ?? profile?.name ?? null,
           plan: r.plan,
           status: r.status,
           expires_at: r.expires_at,
           tier: r.tier,
-          phone: store?.phone ?? null,
-          address: store?.address ?? null,
+          phone: store?.phone ?? profile?.phone ?? null,
+          address: store?.address ?? profile?.address ?? null,
           email: em?.email ?? null,
         };
       });

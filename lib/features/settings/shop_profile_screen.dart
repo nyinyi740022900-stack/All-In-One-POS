@@ -12,6 +12,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
+import 'shop_profile_sync_repository.dart';
 
 /// Edit the shop's receipt header (logo/name/address/phone) and footer line.
 /// Backs [ShopProfile], which the receipt builder (printed + shared invoices)
@@ -103,8 +104,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     String? orNull(TextEditingController c) =>
         c.text.trim().isEmpty ? null : c.text.trim();
     try {
+      final shopId = ref.read(shopIdProvider);
       await ref.read(settingsRepositoryProvider).saveShopProfile(
-            ref.read(shopIdProvider),
+            shopId,
             ShopProfile(
               name: _name.text.trim(),
               address: orNull(_address),
@@ -112,6 +114,18 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
               footer: orNull(_footer),
             ),
           );
+      // Mirrors name/phone/address into the synced ShopProfiles table so
+      // the admin console can show them without a published Storefront —
+      // best-effort: a sync failure here shouldn't block saving the
+      // profile itself, which already succeeded locally above.
+      try {
+        await ref.read(shopProfileSyncRepositoryProvider).sync(
+              shopId: shopId,
+              name: _name.text.trim(),
+              phone: orNull(_phone),
+              address: orNull(_address),
+            );
+      } catch (_) {}
       // Receipts read this via a FutureProvider — refresh the cache.
       ref.invalidate(shopProfileProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.shopProfileSaved)));

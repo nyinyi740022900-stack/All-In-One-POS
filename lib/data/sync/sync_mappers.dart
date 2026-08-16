@@ -61,6 +61,7 @@ final syncTables = <SyncTableDef>[
   _paymentAccounts,
   _supplierPayments,
   _equityEntries,
+  _shopProfiles,
 ];
 
 // --- categories -------------------------------------------------------------
@@ -992,6 +993,45 @@ final _suppliers = SyncTableDef(
           phone: Value(m['phone'] as String?),
           address: Value(m['address'] as String?),
           note: Value(m['note'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+  },
+);
+
+// --- shop_profiles -----------------------------------------------------------
+final _shopProfiles = SyncTableDef(
+  name: 'shop_profiles',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.shopProfiles)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'name': r.name,
+      'phone': r.phone,
+      'address': r.address,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.shopProfiles)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    await db.into(db.shopProfiles).insertOnConflictUpdate(ShopProfilesCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          name: Value(m['name'] as String),
+          phone: Value(m['phone'] as String?),
+          address: Value(m['address'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           isDeleted: Value(_bool(m['is_deleted'])),
