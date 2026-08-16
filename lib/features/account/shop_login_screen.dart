@@ -82,6 +82,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
             .read(licenseControllerProvider.notifier)
             .applyExternal(result.license!);
       }
+      // Same invalidation _signIn()/_signOut()/_deleteAccount() already do —
+      // hasRealAccountSessionProvider wraps a plain (non-reactive) getter,
+      // so Settings' locked-tile gating for Staff Accounts/Branches would
+      // otherwise stay on its stale pre-login value until something else
+      // happens to invalidate it.
+      ref.invalidate(backendAccountRoleProvider);
+      ref.invalidate(hasRealAccountSessionProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
       _createPassword.clear();
       setState(() {});
