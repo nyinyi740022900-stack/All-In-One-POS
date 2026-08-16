@@ -907,7 +907,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"ဈေးနှုန်း အမျိုးအစား\" — Online (Account) နဲ့ Offline (Key) Plan နှစ်ခုရဲ့ ကွာခြားချက်ကို ⓘ icon နှိပ်ပြီး ကြည့်နိုင်ပါတယ်။\n၆။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၇။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၈။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၉။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -3178,39 +3178,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String branchesUnlinkConfirmBody(String label) {
     return '\"$label\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။';
   }
-
-  @override
-  String get pricingTierTitle => 'ဈေးနှုန်း အမျိုးအစား';
-
-  @override
-  String get pricingTierOffline => 'Offline ဈေးနှုန်း';
-
-  @override
-  String get pricingTierOnline => 'Online ဈေးနှုန်း';
-
-  @override
-  String get pricingTierSwitchToOnline => 'Online သို့ ပြောင်းမည်';
-
-  @override
-  String get pricingTierSwitchToOffline => 'Offline သို့ ပြောင်းမည်';
-
-  @override
-  String get pricingTierConfirmBody =>
-      'ဒါက နောက်ထပ် renewal request တစ်ခုအတွက် အကြံပြု ဈေးနှုန်းကိုပဲ ပြောင်းပေးမှာပါ — လက်ရှိ Plan ဒါမှမဟုတ် ပေးဆောင်ပြီးသား ငွေကို မထိခိုက်ပါ။';
-
-  @override
-  String get pricingTierWhatsTheDifference => 'ဘာတွေ ကွာခြားလဲ?';
-
-  @override
-  String get pricingTierCompareTitle => 'Online vs Offline';
-
-  @override
-  String get pricingTierOnlineExplain =>
-      'Device မရွေး email/password နဲ့ ဒီစတိုးကို sign in ဝင်နိုင်ပါတယ် — key ရိုက်စရာမလိုပါ။ Subscription က Account နဲ့ ချိတ်ဆက်ထားလို့ renew လုပ်တိုင်း sign in ဝင်ထားတဲ့ device အားလုံး ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။ Sign out လုပ်လိုက်ရင်တော့ ပြန် sign in ဝင်တဲ့အထိ ဒါမှမဟုတ် renew လုပ်တဲ့အထိ ဒီ device ပေါ်က Premium feature တွေ ရပ်သွားပါလိမ့်မယ်။';
-
-  @override
-  String get pricingTierOfflineExplain =>
-      'ရောင်းရန်အတွက် Account သို့မဟုတ် Internet မလိုပါ — License key က ဒီ device ပေါ်မှာပဲ ရှိပါတယ်။ Device နောက်ထပ်ထည့်ချင်ရင် သီးခြား key တစ်ခု လိုအပ်ပါတယ် (Settings → Devices)။ Premium ကတော့ Sign in အခြေအနေ မရွေး ဒီ device နဲ့ အမြဲ ချိတ်ဆက်ထားပါလိမ့်မယ်။';
 
   @override
   String get recurringExpenseTitle => 'လစဉ် ပုံသေ ကုန်ကျစရိတ်';

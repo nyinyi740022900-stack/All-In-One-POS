@@ -907,7 +907,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -3163,39 +3163,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String branchesUnlinkConfirmBody(String label) {
     return '\"$label\" will be removed from your branch list. You can re-link it later with its key.';
   }
-
-  @override
-  String get pricingTierTitle => 'Pricing tier';
-
-  @override
-  String get pricingTierOffline => 'Offline pricing';
-
-  @override
-  String get pricingTierOnline => 'Online pricing';
-
-  @override
-  String get pricingTierSwitchToOnline => 'Switch to Online';
-
-  @override
-  String get pricingTierSwitchToOffline => 'Switch to Offline';
-
-  @override
-  String get pricingTierConfirmBody =>
-      'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.';
-
-  @override
-  String get pricingTierWhatsTheDifference => 'What\'s the difference?';
-
-  @override
-  String get pricingTierCompareTitle => 'Online vs Offline';
-
-  @override
-  String get pricingTierOnlineExplain =>
-      'Sign in with your email and password on any device to reach this shop — no key to type. Your subscription is linked to your account, so renewing keeps every signed-in device working. Signing out stops Premium features on that device until you sign back in or renew.';
-
-  @override
-  String get pricingTierOfflineExplain =>
-      'No account or internet needed to keep selling — the license key lives on this device. Adding another device needs its own key (Settings → Devices). Premium stays with the device permanently, regardless of any sign-in.';
 
   @override
   String get recurringExpenseTitle => 'Recurring expenses';

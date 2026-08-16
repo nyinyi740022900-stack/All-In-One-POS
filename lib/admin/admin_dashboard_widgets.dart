@@ -921,10 +921,13 @@ class _ConfigTabState extends State<_ConfigTab> {
     'pay.wavepay.name': 'WavePay account name',
     'pay.wavepay.number': 'WavePay number',
     'support.viber': 'Support Viber number',
-    'price.monthly': 'Monthly price, offline (Ks)',
-    'price.yearly': 'Yearly price, offline (Ks)',
-    'price.monthly.online': 'Monthly price, online (Ks, defaults to offline)',
-    'price.yearly.online': 'Yearly price, online (Ks, defaults to offline)',
+    // No online/offline price split — the app doesn't meaningfully
+    // distinguish those plans anymore (see PROJECT_SPEC #144). This one
+    // rate applies regardless of a shop's `tier`; `price.monthly.online`/
+    // `price.yearly.online` used to exist here but nothing has read them
+    // since Store-compliance billing changes removed the only UI that did.
+    'price.monthly': 'Monthly price (Ks)',
+    'price.yearly': 'Yearly price (Ks)',
     'referral.enabled': 'Referral program on (true/false)',
     'referral.rate': 'Referral commission rate (e.g. 0.15 = 15%)',
   };

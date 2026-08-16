@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"Pricing tier\" — tap the ⓘ icon to see what\'s different between the Online (account) and Offline (key) plans.\n6. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n7. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n8. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n9. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -5791,66 +5791,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{label}\" will be removed from your branch list. You can re-link it later with its key.'**
   String branchesUnlinkConfirmBody(String label);
-
-  /// No description provided for @pricingTierTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pricing tier'**
-  String get pricingTierTitle;
-
-  /// No description provided for @pricingTierOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline pricing'**
-  String get pricingTierOffline;
-
-  /// No description provided for @pricingTierOnline.
-  ///
-  /// In en, this message translates to:
-  /// **'Online pricing'**
-  String get pricingTierOnline;
-
-  /// No description provided for @pricingTierSwitchToOnline.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch to Online'**
-  String get pricingTierSwitchToOnline;
-
-  /// No description provided for @pricingTierSwitchToOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch to Offline'**
-  String get pricingTierSwitchToOffline;
-
-  /// No description provided for @pricingTierConfirmBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This changes the suggested price on your next renewal request only — it doesn\'t affect your current plan or anything already paid.'**
-  String get pricingTierConfirmBody;
-
-  /// No description provided for @pricingTierWhatsTheDifference.
-  ///
-  /// In en, this message translates to:
-  /// **'What\'s the difference?'**
-  String get pricingTierWhatsTheDifference;
-
-  /// No description provided for @pricingTierCompareTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Online vs Offline'**
-  String get pricingTierCompareTitle;
-
-  /// No description provided for @pricingTierOnlineExplain.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in with your email and password on any device to reach this shop — no key to type. Your subscription is linked to your account, so renewing keeps every signed-in device working. Signing out stops Premium features on that device until you sign back in or renew.'**
-  String get pricingTierOnlineExplain;
-
-  /// No description provided for @pricingTierOfflineExplain.
-  ///
-  /// In en, this message translates to:
-  /// **'No account or internet needed to keep selling — the license key lives on this device. Adding another device needs its own key (Settings → Devices). Premium stays with the device permanently, regardless of any sign-in.'**
-  String get pricingTierOfflineExplain;
 
   /// No description provided for @recurringExpenseTitle.
   ///
