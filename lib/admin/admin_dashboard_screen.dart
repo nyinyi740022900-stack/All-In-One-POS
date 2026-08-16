@@ -8,6 +8,8 @@ import '../core/widgets/app_widgets.dart';
 import 'admin_api.dart';
 part 'admin_dashboard_widgets.dart';
 
+enum _ManageByCodeAction { extend, reset, offline }
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen(
       {super.key, required this.api, required this.onSignedOut});
@@ -24,6 +26,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Map<String, dynamic>>? _events;
   List<Map<String, dynamic>>? _referrals;
   List<Map<String, dynamic>>? _commissions;
+  List<Map<String, dynamic>>? _shops;
   Map<String, String>? _config;
   String? _error;
   bool _loading = false;
@@ -45,6 +48,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final events = await widget.api.listEvents();
       final referrals = await widget.api.listReferrals();
       final commissions = await widget.api.listCommissions();
+      final shops = await widget.api.listShops();
       final config = await widget.api.getConfig();
       setState(() {
         _licenses = licenses;
@@ -52,6 +56,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _events = events;
         _referrals = referrals;
         _commissions = commissions;
+        _shops = shops;
         _config = config;
       });
     } catch (e) {
@@ -66,7 +71,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final pendingRequests =
         (_requests ?? []).where((r) => r['status'] == 'pending').length;
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('MM POS Admin'),
@@ -75,23 +80,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Tab(text: 'Requests ($pendingRequests)'),
             Tab(text: 'History (${_events?.length ?? 0})'),
             Tab(text: 'Referrals (${_referrals?.length ?? 0})'),
+            Tab(text: 'Shops (${_shops?.length ?? 0})'),
             const Tab(text: 'Config'),
           ]),
           actions: [
-            IconButton(
-              tooltip: 'Extend by App Reference ID',
-              icon: const Icon(Icons.more_time),
-              onPressed: _extendByCode,
-            ),
-            IconButton(
-              tooltip: 'Reset device binding',
-              icon: const Icon(Icons.phonelink_erase),
-              onPressed: _resetDevice,
-            ),
-            IconButton(
-              tooltip: 'Generate offline code',
-              icon: const Icon(Icons.offline_bolt),
-              onPressed: _generateOffline,
+            // Grouped into one labeled menu rather than three bare icon
+            // buttons: none of `more_time`/`phonelink_erase`/`offline_bolt`
+            // reads clearly on sight, and tooltips never show on a touch
+            // tap — a menu with text labels is legible without guessing,
+            // and "Reset device binding" (a real, if reversible, action)
+            // no longer sits one misclick away from "Extend."
+            PopupMenuButton<_ManageByCodeAction>(
+              tooltip: 'Manage by code',
+              icon: const Icon(Icons.dialpad),
+              onSelected: (action) => switch (action) {
+                _ManageByCodeAction.extend => _extendByCode(),
+                _ManageByCodeAction.reset => _resetDevice(),
+                _ManageByCodeAction.offline => _generateOffline(),
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: _ManageByCodeAction.extend,
+                  child: Text('Extend by App Reference ID'),
+                ),
+                PopupMenuItem(
+                  value: _ManageByCodeAction.reset,
+                  child: Text('Reset device binding'),
+                ),
+                PopupMenuItem(
+                  value: _ManageByCodeAction.offline,
+                  child: Text('Generate offline code'),
+                ),
+              ],
             ),
             IconButton(
               tooltip: 'Reload',
@@ -130,6 +150,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       referrals: _referrals ?? const [],
                       onApplyCredit: _applyCredit,
                     ),
+                    _ShopsTab(rows: _shops ?? const []),
                     _ConfigTab(
                       initial: _config ?? const {},
                       onSave: _saveConfig,

@@ -68,6 +68,97 @@ class _LicensesTab extends StatelessWidget {
   }
 }
 
+/// One row per shop, merged server-side from three sources that only share
+/// `shop_id` (licenses, storefronts, auth.users) — see `list_shops` in
+/// `supabase/functions/admin/index.ts`. Phone/address/email render as "—"
+/// for a shop that hasn't opted into a storefront or linked an account; that
+/// is a normal, expected state here, not missing data.
+class _ShopsTab extends StatefulWidget {
+  const _ShopsTab({required this.rows});
+  final List<Map<String, dynamic>> rows;
+
+  @override
+  State<_ShopsTab> createState() => _ShopsTabState();
+}
+
+class _ShopsTabState extends State<_ShopsTab> {
+  final _filter = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.rows.isEmpty) {
+      return const EmptyStateView(
+        icon: Icons.storefront_outlined,
+        title: 'No shops yet.',
+      );
+    }
+    final q = _query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? widget.rows
+        : widget.rows.where((r) {
+            final name = '${r['shop_name'] ?? ''}'.toLowerCase();
+            final email = '${r['email'] ?? ''}'.toLowerCase();
+            final shopId = '${r['shop_id'] ?? ''}'.toLowerCase();
+            return name.contains(q) ||
+                email.contains(q) ||
+                shopId.contains(q);
+          }).toList();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.space3),
+          child: TextField(
+            controller: _filter,
+            onChanged: (v) => setState(() => _query = v),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              hintText: 'Filter by shop name or email',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? const EmptyStateView(
+                  icon: Icons.search_off,
+                  title: 'No shops match that filter.',
+                )
+              : ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final r = filtered[i];
+                    final status = '${r['status']}';
+                    return ListTile(
+                      leading: const IconAvatar(icon: Icons.storefront),
+                      title: Text('${r['shop_name'] ?? r['shop_id']}'),
+                      subtitle: Text(
+                          '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
+                          '${r['address'] ?? '—'}\n'
+                          '${r['plan']}  ·  ${r['tier'] ?? 'offline'}  ·  '
+                          'Expires: ${_date(r['expires_at'])}'),
+                      isThreeLine: true,
+                      trailing: StatusPill(
+                        label: _capitalize(status),
+                        tone: _licenseTone(status),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
 class _HistoryTab extends StatelessWidget {
   const _HistoryTab({required this.rows});
   final List<Map<String, dynamic>> rows;

@@ -26,6 +26,7 @@ class AdminApi {
   }
 
   Future<List<Map<String, dynamic>>> listLicenses() => _rows('list_licenses');
+  Future<List<Map<String, dynamic>>> listShops() => _rows('list_shops');
   Future<List<Map<String, dynamic>>> listRequests() => _rows('list_requests');
   Future<List<Map<String, dynamic>>> listEvents() => _rows('list_events');
   Future<List<Map<String, dynamic>>> listReferrals() => _rows('list_referrals');

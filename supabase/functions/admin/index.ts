@@ -66,6 +66,79 @@ Deno.serve(async (req) => {
       return json({ rows: data });
     }
 
+    case "list_shops": {
+      // One row per shop, merged from three sources that only overlap on
+      // shop_id: licenses (name/plan/status — every shop has at least one),
+      // storefronts (phone/address — only shops that opted into the public
+      // storefront feature), and auth.users (email — lives only in Auth,
+      // never in a table; matched via app_metadata.shop_id, the same claim
+      // auth_shop_id() reads for RLS).
+      const { data: licRows, error: licErr } = await admin
+        .from("licenses")
+        .select("shop_id, shop_name, plan, status, expires_at, tier, updated_at")
+        .eq("is_deleted", false)
+        .order("updated_at", { ascending: false })
+        .limit(2000);
+      if (licErr) return json({ error: "server_error" }, 500);
+
+      // A shop can have multiple device rows (0025_multi_device_licensing.sql)
+      // — keep the most recently updated one per shop_id. licRows is already
+      // updated_at-desc, so "first seen" is "most recent."
+      // deno-lint-ignore no-explicit-any
+      const shops = new Map<string, any>();
+      for (const r of (licRows ?? [])) {
+        if (!shops.has(r.shop_id)) shops.set(r.shop_id, { ...r });
+      }
+
+      const { data: storeRows } = await admin
+        .from("storefronts")
+        .select("shop_id, phone, address");
+      const storeByShop = new Map<string, { phone: string | null; address: string | null }>();
+      for (const s of (storeRows ?? [])) {
+        storeByShop.set(s.shop_id, { phone: s.phone, address: s.address });
+      }
+
+      // No query-by-metadata filter on the Admin Auth API — a single page is
+      // enough at this app's SME scale (same precedent as list_licenses's
+      // own limit(2000) / handleListStaff's limit(1000) in activate/index.ts,
+      // not built to paginate an unbounded user base).
+      const emailByShop = new Map<string, { email: string; role: string | null }>();
+      const { data: userPage } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 2000,
+      });
+      // deno-lint-ignore no-explicit-any
+      for (const u of ((userPage?.users ?? []) as any[])) {
+        const meta = u.app_metadata as Record<string, unknown> | null;
+        const sid = meta?.shop_id as string | undefined;
+        if (!sid) continue;
+        const role = (meta?.role as string | undefined) ?? null;
+        const existing = emailByShop.get(sid);
+        // Prefer the owner's email when a shop has multiple linked users
+        // (owner + invited staff).
+        if (!existing || role === "owner") {
+          emailByShop.set(sid, { email: u.email ?? "", role });
+        }
+      }
+
+      const rows = Array.from(shops.values()).map((r) => {
+        const store = storeByShop.get(r.shop_id);
+        const em = emailByShop.get(r.shop_id);
+        return {
+          shop_id: r.shop_id,
+          shop_name: r.shop_name ?? null,
+          plan: r.plan,
+          status: r.status,
+          expires_at: r.expires_at,
+          tier: r.tier,
+          phone: store?.phone ?? null,
+          address: store?.address ?? null,
+          email: em?.email ?? null,
+        };
+      });
+      return json({ rows });
+    }
+
     case "extend_by_device": {
       // Extend whatever license is bound to this App Reference ID / device.
       const dev = (body.device_id ?? "").trim();
