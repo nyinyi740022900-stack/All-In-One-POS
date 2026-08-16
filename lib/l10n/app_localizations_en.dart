@@ -1623,18 +1623,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'We\'ll verify your payment and your access will begin within 24 hours.';
 
   @override
-  String get licenseFreeTrial => 'Ask support for a free trial';
+  String get licenseFreeTrial => 'Try Premium';
 
   @override
   String get licensePlanTrial => 'Free trial';
 
   @override
   String get licenseTrialContactHint =>
-      'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.';
+      'Premium trials are issued by support only (not in-app), no charge. Copy the Viber number, send your App Reference ID, and ask for a trial key.';
 
   @override
   String get licenseTrialContactHintOnline =>
-      'Free Premium trials for Online shops are issued by Support only. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.';
+      'Premium trials for Online shops are issued by Support only, no charge. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.';
 
   @override
   String get licenseTrialViberMissing =>

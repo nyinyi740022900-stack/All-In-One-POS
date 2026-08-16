@@ -1637,18 +1637,18 @@ class AppLocalizationsMy extends AppLocalizations {
       'ငွေစစ်ဆေးပြီး ၂၄ နာရီအတွင်း စတင်အသုံးပြုလို့ရပါမယ်။';
 
   @override
-  String get licenseFreeTrial => 'အခမဲ့ စမ်းသုံးဖို့ Support ဆက်သွယ်';
+  String get licenseFreeTrial => 'Premium စမ်းကြည့်ရန်';
 
   @override
   String get licensePlanTrial => 'အခမဲ့ စမ်းသုံး';
 
   @override
   String get licenseTrialContactHint =>
-      'Premium အခမဲ့ စမ်းသုံးမှုကို app ထဲက မယူရပါ — Support ကသာ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။';
+      'Premium စမ်းသုံးခွင့်ကို app ထဲက မယူရပါ — Support ကသာ အခမဲ့ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ trial key တောင်းပါ။';
 
   @override
   String get licenseTrialContactHintOnline =>
-      'Online ဆိုင်အတွက် Premium အခမဲ့ စမ်းသုံးမှုကို Support ကသာ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး shop account email ပို့ကာ အဲဒီ account ပေါ် trial တောင်းပါ — key ရိုက်စရာမလိုပါ။';
+      'Online ဆိုင်အတွက် Premium စမ်းသုံးခွင့်ကို Support ကသာ အခမဲ့ ပေးပါတယ်။ Viber နံပါတ် ကူးပြီး shop account email ပို့ကာ အဲဒီ account ပေါ် trial တောင်းပါ — key ရိုက်စရာမလိုပါ။';
 
   @override
   String get licenseTrialViberMissing =>

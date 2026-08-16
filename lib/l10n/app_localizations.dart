@@ -3107,7 +3107,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseFreeTrial.
   ///
   /// In en, this message translates to:
-  /// **'Ask support for a free trial'**
+  /// **'Try Premium'**
   String get licenseFreeTrial;
 
   /// No description provided for @licensePlanTrial.
@@ -3119,13 +3119,13 @@ abstract class AppLocalizations {
   /// No description provided for @licenseTrialContactHint.
   ///
   /// In en, this message translates to:
-  /// **'Free Premium trials are issued by support only (not in-app). Copy the Viber number, send your App Reference ID, and ask for a trial key.'**
+  /// **'Premium trials are issued by support only (not in-app), no charge. Copy the Viber number, send your App Reference ID, and ask for a trial key.'**
   String get licenseTrialContactHint;
 
   /// No description provided for @licenseTrialContactHintOnline.
   ///
   /// In en, this message translates to:
-  /// **'Free Premium trials for Online shops are issued by Support only. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.'**
+  /// **'Premium trials for Online shops are issued by Support only, no charge. Copy the Viber number, send your shop account email, and ask for a trial on that account — no key to enter.'**
   String get licenseTrialContactHintOnline;
 
   /// No description provided for @licenseTrialViberMissing.
