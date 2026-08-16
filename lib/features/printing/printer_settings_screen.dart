@@ -84,9 +84,13 @@ class _PrinterSettingsScreenState
             ],
           ),
           actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.commonCancel),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, selected),
-              child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+              child: Text(l.commonSave),
             ),
           ],
         ),
@@ -139,9 +143,7 @@ class _PrinterSettingsScreenState
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.space4),
         children: [
-          Text(l.printerPaperSize,
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppTheme.space2),
+          SectionHeader(title: l.printerPaperSize),
           SegmentedButton<PaperSize>(
             segments: [
               ButtonSegment(value: PaperSize.mm58, label: Text(l.paper58)),
@@ -158,9 +160,7 @@ class _PrinterSettingsScreenState
           ),
           const SizedBox(height: AppTheme.space5),
 
-          Text(l.printerPdfPaperSize,
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppTheme.space1),
+          SectionHeader(title: l.printerPdfPaperSize),
           Text(l.printerPdfPaperSizeHint,
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: AppTheme.space2),
@@ -174,19 +174,15 @@ class _PrinterSettingsScreenState
           ),
           const SizedBox(height: AppTheme.space5),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(l.printerPaired,
-                  style: Theme.of(context).textTheme.titleMedium),
-              TextButton.icon(
-                onPressed: _loading ? null : _loadDevices,
-                icon: _loading
-                    ? const ButtonSpinner(size: 16)
-                    : const Icon(Icons.bluetooth_searching),
-                label: Text(l.printerSelectDevice),
-              ),
-            ],
+          SectionHeader(
+            title: l.printerPaired,
+            trailing: TextButton.icon(
+              onPressed: _loading ? null : _loadDevices,
+              icon: _loading
+                  ? const ButtonSpinner(size: 16)
+                  : const Icon(Icons.bluetooth_searching),
+              label: Text(l.printerSelectDevice),
+            ),
           ),
 
           if (config != null && config.hasPrinter)
@@ -227,15 +223,61 @@ class _PrinterSettingsScreenState
               ),
             )
           else if (_devices != null)
-            ...(_devices!.map((d) => ListTile(
-                  leading: const Icon(Icons.bluetooth),
-                  title: Text(d.name.isEmpty ? d.mac : d.name),
-                  subtitle: Text(d.mac),
-                  selected: config?.mac == d.mac,
-                  onTap: () => _pairDevice(d),
-                ))),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (var i = 0; i < _devices!.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _PairedDeviceTile(
+                      device: _devices![i],
+                      isSelected: config?.mac == _devices![i].mac,
+                      onTap: () => _pairDevice(_devices![i]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// One row in the "pick a different printer" list — harmonizes with the
+/// active-printer card above it (same [IconAvatar]/positive-tone language)
+/// while staying in the bare-`ListTile` vocabulary the rest of the app's
+/// directory lists (Suppliers, Customers) already use. The currently-paired
+/// device gets a tinted background plus a check mark, since scanning nearby
+/// Bluetooth devices can list several with near-identical names ("Printer",
+/// "BT Printer") and the plain `ListTile.selected` text tint alone was easy
+/// to miss at a glance.
+class _PairedDeviceTile extends StatelessWidget {
+  const _PairedDeviceTile({
+    required this.device,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final BtDevice device;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: IconAvatar(
+        icon: Icons.bluetooth,
+        tone: isSelected ? StatusTone.positive : null,
+      ),
+      title: Text(device.name.isEmpty ? device.mac : device.name),
+      subtitle: Text(device.mac),
+      selected: isSelected,
+      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: AppColors.of(context).success)
+          : null,
+      onTap: onTap,
     );
   }
 }
