@@ -101,7 +101,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               itemBuilder: (context) => const [
                 PopupMenuItem(
                   value: _ManageByCodeAction.extend,
-                  child: Text('Extend by App Reference ID'),
+                  child: Text('Extend by App Reference ID or Email'),
                 ),
                 PopupMenuItem(
                   value: _ManageByCodeAction.reset,
@@ -150,7 +150,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       referrals: _referrals ?? const [],
                       onApplyCredit: _applyCredit,
                     ),
-                    _ShopsTab(rows: _shops ?? const []),
+                    _ShopsTab(
+                      rows: _shops ?? const [],
+                      onGenerateKey: (shopId) =>
+                          _generateKey(initialShopId: shopId),
+                    ),
                     _ConfigTab(
                       initial: _config ?? const {},
                       onSave: _saveConfig,
@@ -160,10 +164,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Future<void> _generateKey() async {
+  Future<void> _generateKey({String? initialShopId}) async {
     final result = await showDialog<_KeyRequest>(
       context: context,
-      builder: (_) => const _GenerateKeyDialog(),
+      builder: (_) => _GenerateKeyDialog(initialShopId: initialShopId),
     );
     if (result == null) return;
     try {
@@ -281,15 +285,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _extendByCode() async {
-    final result = await showDialog<(String, int)>(
+    final result = await showDialog<(String?, String?, int)>(
       context: context,
       builder: (_) => const _ExtendByCodeDialog(),
     );
     if (result == null) return;
     try {
-      final expiry = await widget.api
-          .extendByDevice(deviceId: result.$1, months: result.$2);
-      _snack('Extended to $expiry');
+      final outcome = await widget.api.extendLicense(
+        deviceId: result.$1,
+        email: result.$2,
+        months: result.$3,
+      );
+      _snack(outcome.created
+          ? 'No license existed — created one, expires ${outcome.expiresAt}'
+          : 'Extended to ${outcome.expiresAt}');
       _reload();
     } catch (e) {
       _snack('$e');

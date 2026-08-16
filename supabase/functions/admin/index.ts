@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
     months?: number;
     key?: string;
     device_id?: string;
+    email?: string;
     request_id?: string;
     reason?: string;
     config?: Record<string, string>;
@@ -68,7 +69,8 @@ Deno.serve(async (req) => {
 
     case "list_shops": {
       // One row per shop, merged from three sources that only overlap on
-      // shop_id: licenses (name/plan/status — every shop has at least one),
+      // shop_id: licenses (name/plan/status — the common case, but NOT
+      // guaranteed: an auth.users row can outlive its license, see below),
       // storefronts (phone/address — only shops that opted into the public
       // storefront feature), and auth.users (email — lives only in Auth,
       // never in a table; matched via app_metadata.shop_id, the same claim
@@ -121,6 +123,26 @@ Deno.serve(async (req) => {
         }
       }
 
+      // A real login account can outlive its license (e.g. a shop whose
+      // license row was removed — a data wipe, a manual cleanup — while its
+      // auth.users row and app_metadata.shop_id claim were deliberately
+      // kept). Without this, such a shop is invisible here even though it's
+      // fully reachable and broken for the owner: nothing to extend, only
+      // to create fresh. Surface it with null license fields rather than
+      // silently dropping it.
+      for (const [sid] of emailByShop) {
+        if (!shops.has(sid)) {
+          shops.set(sid, {
+            shop_id: sid,
+            shop_name: null,
+            plan: null,
+            status: "no_license",
+            expires_at: null,
+            tier: null,
+          });
+        }
+      }
+
       const rows = Array.from(shops.values()).map((r) => {
         const store = storeByShop.get(r.shop_id);
         const em = emailByShop.get(r.shop_id);
@@ -139,32 +161,102 @@ Deno.serve(async (req) => {
       return json({ rows });
     }
 
-    case "extend_by_device": {
-      // Extend whatever license is bound to this App Reference ID / device.
+    case "extend_license": {
+      // Extend whatever license matches an App Reference ID (device_id —
+      // a specific device) or an email (the shop's account — matches any
+      // of its devices, resolved via app_metadata.shop_id same as
+      // list_shops/storefront's own email lookup). At least one required;
+      // device_id is tried first since it names an exact license row,
+      // email only a shop.
       const dev = (body.device_id ?? "").trim();
+      const email = (body.email ?? "").trim().toLowerCase();
       const months = body.months ?? 1;
-      if (!dev) return json({ error: "bad_request" }, 400);
-      const { data: lic, error: findErr } = await admin
-        .from("licenses")
-        .select("key, shop_name")
-        .eq("device_id", dev)
-        .maybeSingle();
-      if (findErr) return json({ error: "server_error" }, 500);
-      if (!lic) return json({ error: "not_found" }, 404);
+      if (!dev && !email) return json({ error: "bad_request" }, 400);
+
+      // deno-lint-ignore no-explicit-any
+      let lic: any = null;
+      if (dev) {
+        const { data, error: findErr } = await admin
+          .from("licenses")
+          .select("key, shop_id, shop_name")
+          .eq("device_id", dev)
+          .maybeSingle();
+        if (findErr) return json({ error: "server_error" }, 500);
+        lic = data;
+      }
+
+      let shopId: string | null = lic?.shop_id ?? null;
+      if (!lic && email) {
+        const { data: userPage } = await admin.auth.admin.listUsers({
+          page: 1,
+          perPage: 2000,
+        });
+        // deno-lint-ignore no-explicit-any
+        const match = ((userPage?.users ?? []) as any[]).find(
+          (u) => `${u.email ?? ""}`.toLowerCase() === email,
+        );
+        const meta = match?.app_metadata as Record<string, unknown> | undefined;
+        shopId = (meta?.shop_id as string | undefined) ?? null;
+        if (!shopId) return json({ error: "not_found" }, 404);
+
+        const { data, error: findErr } = await admin
+          .from("licenses")
+          .select("key, shop_id, shop_name")
+          .eq("shop_id", shopId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (findErr) return json({ error: "server_error" }, 500);
+        lic = data;
+      }
+
+      if (!lic && !shopId) return json({ error: "not_found" }, 404);
+
+      // A resolved shop with a real account but zero license rows (e.g. one
+      // removed by a data cleanup while the login was deliberately kept) has
+      // nothing to renew — mint fresh instead of failing.
+      if (!lic) {
+        const { data: newKey, error: createErr } = await admin.rpc(
+          "create_license",
+          { p_shop_id: shopId, p_plan: "monthly", p_months: months },
+        );
+        if (createErr) {
+          return json({ error: "server_error", detail: createErr.message }, 500);
+        }
+        const { data: created } = await admin
+          .from("licenses")
+          .select("expires_at")
+          .eq("key", newKey)
+          .maybeSingle();
+        await logEvent(admin, {
+          device_id: dev || null,
+          shop_name: null,
+          key: newKey,
+          action: "extend",
+          months,
+          expires_at: created?.expires_at,
+        });
+        return json({
+          expires_at: created?.expires_at,
+          key: newKey,
+          created: true,
+        });
+      }
+
       const { data, error } = await admin.rpc("renew_license", {
         p_key: lic.key,
         p_months: months,
       });
       if (error) return json({ error: "server_error", detail: error.message }, 500);
       await logEvent(admin, {
-        device_id: dev,
+        device_id: dev || null,
         shop_name: lic.shop_name,
         key: lic.key,
         action: "extend",
         months,
         expires_at: data,
       });
-      return json({ expires_at: data, key: lic.key });
+      return json({ expires_at: data, key: lic.key, created: false });
     }
 
     case "sign_offline": {

@@ -1,5 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class ExtendLicenseResult {
+  const ExtendLicenseResult({required this.expiresAt, required this.created});
+  final String expiresAt;
+  final bool created;
+}
+
 /// Thin client over the `admin` Edge Function. Every call carries the current
 /// admin session's JWT (added automatically by `functions.invoke`); the
 /// function verifies the `role=admin` claim and uses the service role
@@ -70,15 +76,30 @@ class AdminApi {
     return ((res.data as Map)['cleared'] as num?)?.toInt() ?? 0;
   }
 
-  Future<String> extendByDevice(
-      {required String deviceId, required int months}) async {
+  /// Extends whichever license matches [deviceId] (a specific device) or
+  /// [email] (the shop's account, any device) — pass whichever the admin
+  /// has on hand, at least one is required. If the resolved shop has an
+  /// account but no license row at all (e.g. one removed by a data
+  /// cleanup while the login was kept), mints a fresh one instead of
+  /// failing — [ExtendLicenseResult.created] tells the caller which
+  /// happened, for the confirmation message.
+  Future<ExtendLicenseResult> extendLicense({
+    String? deviceId,
+    String? email,
+    required int months,
+  }) async {
     final res = await _c.functions.invoke('admin', body: {
-      'action': 'extend_by_device',
-      'device_id': deviceId,
+      'action': 'extend_license',
+      if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+      if (email != null && email.isNotEmpty) 'email': email,
       'months': months,
     });
     _throwIfError(res);
-    return '${(res.data as Map)['expires_at']}';
+    final data = res.data as Map;
+    return ExtendLicenseResult(
+      expiresAt: '${data['expires_at']}',
+      created: data['created'] == true,
+    );
   }
 
   Future<String> confirmPayment({required String requestId, int? months}) async {

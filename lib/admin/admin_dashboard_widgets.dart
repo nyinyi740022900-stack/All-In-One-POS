@@ -74,8 +74,9 @@ class _LicensesTab extends StatelessWidget {
 /// for a shop that hasn't opted into a storefront or linked an account; that
 /// is a normal, expected state here, not missing data.
 class _ShopsTab extends StatefulWidget {
-  const _ShopsTab({required this.rows});
+  const _ShopsTab({required this.rows, required this.onGenerateKey});
   final List<Map<String, dynamic>> rows;
+  final void Function(String shopId) onGenerateKey;
 
   @override
   State<_ShopsTab> createState() => _ShopsTabState();
@@ -137,19 +138,36 @@ class _ShopsTabState extends State<_ShopsTab> {
                   itemBuilder: (context, i) {
                     final r = filtered[i];
                     final status = '${r['status']}';
+                    final hasNoLicense = status == 'no_license';
                     return ListTile(
                       leading: const IconAvatar(icon: Icons.storefront),
                       title: Text('${r['shop_name'] ?? r['shop_id']}'),
-                      subtitle: Text(
-                          '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
-                          '${r['address'] ?? '—'}\n'
-                          '${r['plan']}  ·  ${r['tier'] ?? 'offline'}  ·  '
-                          'Expires: ${_date(r['expires_at'])}'),
+                      subtitle: Text(hasNoLicense
+                          ? '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
+                              '${r['address'] ?? '—'}\n'
+                              'Has an account, but no license — nothing to '
+                              'extend, only to create.'
+                          : '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
+                              '${r['address'] ?? '—'}\n'
+                              '${r['plan']}  ·  ${r['tier'] ?? 'offline'}  ·  '
+                              'Expires: ${_date(r['expires_at'])}'),
                       isThreeLine: true,
-                      trailing: StatusPill(
-                        label: _capitalize(status),
-                        tone: _licenseTone(status),
-                      ),
+                      trailing: hasNoLicense
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FilledButton(
+                                  style: _compactFilledButtonStyle(),
+                                  onPressed: () => widget
+                                      .onGenerateKey('${r['shop_id']}'),
+                                  child: const Text('Generate key'),
+                                ),
+                              ],
+                            )
+                          : StatusPill(
+                              label: _capitalize(status),
+                              tone: _licenseTone(status),
+                            ),
                     );
                   },
                 ),
@@ -512,13 +530,14 @@ class _ReferralsTab extends StatelessWidget {
 }
 
 class _GenerateKeyDialog extends StatefulWidget {
-  const _GenerateKeyDialog();
+  const _GenerateKeyDialog({this.initialShopId});
+  final String? initialShopId;
   @override
   State<_GenerateKeyDialog> createState() => _GenerateKeyDialogState();
 }
 
 class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
-  final _shopId = TextEditingController();
+  late final _shopId = TextEditingController(text: widget.initialShopId);
   final _shopName = TextEditingController();
   final _months = TextEditingController(text: '1');
   String _plan = 'monthly';
@@ -768,10 +787,12 @@ class _ExtendByCodeDialog extends StatefulWidget {
 
 class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
   final _code = TextEditingController();
+  final _email = TextEditingController();
   final _months = TextEditingController(text: '1');
   @override
   void dispose() {
     _code.dispose();
+    _email.dispose();
     _months.dispose();
     super.dispose();
   }
@@ -779,14 +800,32 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Extend by App Reference ID'),
+      title: const Text('Extend by App Reference ID or Email'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            'Fill in either one — App Reference ID matches a specific '
+            'device; email matches the shop\'s account (any device). If '
+            'the shop has an account but no license yet, this creates one '
+            'instead of extending.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.of(context).muted),
+          ),
+          const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _code,
             decoration: const InputDecoration(
                 labelText: 'App Reference ID / Shop Code'),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration:
+                const InputDecoration(labelText: 'Shop account email'),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -804,9 +843,16 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
         FilledButton(
           onPressed: () {
             final code = _code.text.trim();
-            if (code.isEmpty) return;
+            final email = _email.text.trim();
+            if (code.isEmpty && email.isEmpty) return;
             Navigator.pop(
-                context, (code, int.tryParse(_months.text.trim()) ?? 1));
+              context,
+              (
+                code.isEmpty ? null : code,
+                email.isEmpty ? null : email,
+                int.tryParse(_months.text.trim()) ?? 1,
+              ),
+            );
           },
           child: const Text('Extend'),
         ),
