@@ -869,6 +869,7 @@
   "onboardWelcomeTitle": "GoldPOSMM မှ ကြိုဆိုပါတယ်",
   "onboardWelcomeBody": "မြန်မာဆိုင်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။",
   "onboardNext": "ရှေ့ဆက်",
+  "onboardBack": "နောက်ပြန်",
   "onboardSkip": "ကျော်",
   "onboardGetStarted": "စတင်မည်",
   "onboardShopTitle": "သင့်ဆိုင်",

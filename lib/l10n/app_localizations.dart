@@ -4778,6 +4778,12 @@ abstract class AppLocalizations {
   /// **'Next'**
   String get onboardNext;
 
+  /// No description provided for @onboardBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardBack;
+
   /// No description provided for @onboardSkip.
   ///
   /// In en, this message translates to:

@@ -56,6 +56,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     );
   }
 
+  void _previous() {
+    _controller.previousPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
   Future<void> _finish() async {
     await ref.read(settingsRepositoryProvider).markOnboardingComplete();
     widget.onDone();
@@ -96,6 +103,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                       ),
                     ),
                   const Spacer(),
+                  if (_page > 0) ...[
+                    TextButton(
+                      onPressed: _previous,
+                      child: Text(l.onboardBack),
+                    ),
+                    const SizedBox(width: AppTheme.space2),
+                  ],
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 220),
                     child: FilledButton(
@@ -274,7 +288,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   }
 }
 
-class _LicensePage extends ConsumerWidget {
+class _LicensePage extends ConsumerStatefulWidget {
   const _LicensePage({required this.onContinue});
 
   /// Advances onboarding to the next page. Called automatically once a
@@ -287,7 +301,38 @@ class _LicensePage extends ConsumerWidget {
   final VoidCallback onContinue;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_LicensePage> createState() => _LicensePageState();
+}
+
+class _LicensePageState extends ConsumerState<_LicensePage> {
+  bool _busy = false;
+
+  Future<void> _activate() async {
+    setState(() => _busy = true);
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const LicenseScreen(),
+    ));
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ref.read(isPremiumProvider)) widget.onContinue();
+  }
+
+  Future<void> _continueFree() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final ok = await ref.read(licenseControllerProvider.notifier).continueFree();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ok) {
+      widget.onContinue();
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return _OnboardPage(
       icon: Icons.verified_outlined,
@@ -296,32 +341,16 @@ class _LicensePage extends ConsumerWidget {
       extra: Column(
         children: [
           OutlinedButton.icon(
-            onPressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const LicenseScreen(),
-              ));
-              if (context.mounted && ref.read(isPremiumProvider)) {
-                onContinue();
-              }
-            },
+            onPressed: _busy ? null : _activate,
             icon: const Icon(Icons.key_outlined),
             label: Text(l.onboardActivateNow),
           ),
           const SizedBox(height: AppTheme.space2),
           TextButton(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final ok =
-                  await ref.read(licenseControllerProvider.notifier).continueFree();
-              if (!context.mounted) return;
-              if (ok) {
-                onContinue();
-              } else {
-                messenger.showSnackBar(
-                    SnackBar(content: Text(l.commonUnexpectedError)));
-              }
-            },
-            child: Text(l.onboardingContinueFree),
+            onPressed: _busy ? null : _continueFree,
+            child: _busy
+                ? const ButtonSpinner(size: 16)
+                : Text(l.onboardingContinueFree),
           ),
         ],
       ),

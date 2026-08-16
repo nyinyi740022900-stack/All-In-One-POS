@@ -2582,6 +2582,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardNext => 'ရှေ့ဆက်';
 
   @override
+  String get onboardBack => 'နောက်ပြန်';
+
+  @override
   String get onboardSkip => 'ကျော်';
 
   @override
