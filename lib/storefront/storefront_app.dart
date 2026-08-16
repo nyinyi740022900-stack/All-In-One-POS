@@ -3,11 +3,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import 'renew_request_page.dart';
 import 'storefront_page.dart';
 
 /// Public storefront web app. The shop is chosen by the URL:
 ///   `https://host/slug`         (path)   e.g. /aungset-3f9a
 ///   `https://host/?shop=slug`   (query)  fallback for local dev
+///   `https://host/renew`        (path, reserved) subscription-renewal
+///     request form — owner-facing, not per-shop (see RenewRequestPage).
+///     Collision with a real shop slug is not possible in practice:
+///     `gen_storefront_slug()` (0017_storefronts.sql) always appends a
+///     random suffix, so no organic slug is ever literally "renew".
 class StorefrontApp extends StatefulWidget {
   const StorefrontApp({super.key});
 
@@ -21,6 +27,9 @@ class _StorefrontAppState extends State<StorefrontApp> {
   // this is plain in-memory state threaded down via a toggle button — see
   // StorefrontLocaleBar.
   Locale _locale = const Locale('my');
+
+  bool get _isRenewPath =>
+      Uri.base.pathSegments.isNotEmpty && Uri.base.pathSegments.first == 'renew';
 
   String get _slug {
     final uri = Uri.base;
@@ -69,10 +78,12 @@ class _StorefrontAppState extends State<StorefrontApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: slug.isEmpty
-          ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
-          : StorefrontPage(
-              slug: slug, locale: _locale, onToggleLocale: _toggleLocale),
+      home: _isRenewPath
+          ? RenewRequestPage(locale: _locale, onToggleLocale: _toggleLocale)
+          : slug.isEmpty
+              ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
+              : StorefrontPage(
+                  slug: slug, locale: _locale, onToggleLocale: _toggleLocale),
     );
   }
 }

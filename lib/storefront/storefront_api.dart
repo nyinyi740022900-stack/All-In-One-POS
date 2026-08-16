@@ -164,4 +164,57 @@ class StorefrontApi {
     }
     return (res.data as Map)['order_no'] as String;
   }
+
+  /// Submits a subscription-renewal request from the /renew page — the shop
+  /// owner identifies themselves by [deviceId] (their own "App Reference
+  /// ID"), not a slug or session. Reviewed by the admin in the Requests tab.
+  Future<void> submitLicenseRequest({
+    required String shopName,
+    required String deviceId,
+    String? phone,
+    required String plan,
+    required int months,
+    String? method,
+    required int amount,
+    String? refNo,
+    String? paymentProofPath,
+    String? hp,
+  }) async {
+    final res = await _c.functions.invoke('storefront', body: {
+      'action': 'submit_license_request',
+      'shop_name': shopName,
+      'device_id': deviceId,
+      'phone': phone,
+      'plan': plan,
+      'months': months,
+      'method': method,
+      'amount': amount,
+      'ref_no': refNo,
+      'payment_proof_path': paymentProofPath,
+      'hp': hp,
+    });
+    if (res.status != 200 || (res.data is Map && res.data['ok'] != true)) {
+      throw Exception(res.data is Map ? res.data['error'] : 'error');
+    }
+  }
+
+  /// Payment-account info (KBZPay/WavePay name+number) to show a shop owner
+  /// on the /renew page — read directly from `app_config`, anon-readable
+  /// (`0006_app_config.sql`), same source `VendorConfigRepository` uses on
+  /// the mobile app. No Edge Function needed for a plain table read.
+  Future<Map<String, String>> fetchPaymentConfig() async {
+    final rows = await _c
+        .from('app_config')
+        .select('key, value')
+        .inFilter('key', const [
+      'pay.kbzpay.name',
+      'pay.kbzpay.number',
+      'pay.wavepay.name',
+      'pay.wavepay.number',
+    ]);
+    return {
+      for (final r in (rows as List))
+        (r['key'] as String): (r['value'] as String? ?? ''),
+    };
+  }
 }

@@ -2523,6 +2523,52 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဆိုင်လင့်ခ်ကို ဖွင့်ပါ၊ ဥပမာ - /your-shop-slug';
 
   @override
+  String get storefrontRenewTitle => 'စာရင်းသွင်းမှု သက်တမ်းတိုးရန်';
+
+  @override
+  String get storefrontRenewHint =>
+      'အောက်တွင် ငွေပေးချေမှု အချက်အလက်များ ဖြည့်သွင်းပါ — စစ်ဆေးပြီး သင့်စာရင်းသွင်းမှု သက်တမ်းကို တိုးပေးပါမည်။';
+
+  @override
+  String get storefrontRenewShopName => 'ဆိုင်အမည် *';
+
+  @override
+  String get storefrontRenewDeviceIdHint =>
+      'ဖုန်းထဲမှာ ရှာပါ - Settings → License → App Reference ID။';
+
+  @override
+  String get storefrontRenewPlan => 'အစီအစဉ်';
+
+  @override
+  String get storefrontRenewMonths => 'လအရေအတွက်';
+
+  @override
+  String get storefrontRenewAmountPaid => 'ပေးချေထားသော ငွေပမာဏ (ကျပ်) *';
+
+  @override
+  String get storefrontRenewRefNo =>
+      'လွှဲပြောင်းမှု ကိုးကားနံပါတ် (မဖြည့်လည်းရ)';
+
+  @override
+  String get storefrontRenewSubmit => 'တောင်းဆိုမှု ပို့ပါ';
+
+  @override
+  String get storefrontRenewSubmitted =>
+      'တောင်းဆိုမှု ပို့ပြီးပါပြီ! သင့်ငွေပေးချေမှုကို စစ်ဆေးပြီး မကြာမီ သက်တမ်းတိုးပေးပါမည်။';
+
+  @override
+  String get storefrontRenewFailed =>
+      'တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်မံကြိုးစားပါ ဒါမှမဟုတ် support ကို ဆက်သွယ်ပါ။';
+
+  @override
+  String get storefrontRenewRateLimited =>
+      'တောင်းဆိုမှု အကြိမ်များစွာ ပို့ထားပါသည် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get storefrontRenewMissingFields =>
+      'ဆိုင်အမည်၊ App Reference ID၊ လအရေအတွက်နှင့် ငွေပမာဏတို့ကို ဖြည့်သွင်းပါ။';
+
+  @override
   String get onboardWelcomeTitle => 'GoldPOSMM မှ ကြိုဆိုပါတယ်';
 
   @override

@@ -4676,6 +4676,84 @@ abstract class AppLocalizations {
   /// **'Open a shop link, e.g. /your-shop-slug'**
   String get storefrontOpenShopLink;
 
+  /// No description provided for @storefrontRenewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew subscription'**
+  String get storefrontRenewTitle;
+
+  /// No description provided for @storefrontRenewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit your payment details below and we\'ll review it to extend your subscription.'**
+  String get storefrontRenewHint;
+
+  /// No description provided for @storefrontRenewShopName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop name *'**
+  String get storefrontRenewShopName;
+
+  /// No description provided for @storefrontRenewDeviceIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find this on your phone: Settings → License → App Reference ID.'**
+  String get storefrontRenewDeviceIdHint;
+
+  /// No description provided for @storefrontRenewPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get storefrontRenewPlan;
+
+  /// No description provided for @storefrontRenewMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'Months'**
+  String get storefrontRenewMonths;
+
+  /// No description provided for @storefrontRenewAmountPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount paid (Ks) *'**
+  String get storefrontRenewAmountPaid;
+
+  /// No description provided for @storefrontRenewRefNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction ref. no. (optional)'**
+  String get storefrontRenewRefNo;
+
+  /// No description provided for @storefrontRenewSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit request'**
+  String get storefrontRenewSubmit;
+
+  /// No description provided for @storefrontRenewSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Request submitted! We\'ll review your payment and extend your subscription soon.'**
+  String get storefrontRenewSubmitted;
+
+  /// No description provided for @storefrontRenewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again or contact support.'**
+  String get storefrontRenewFailed;
+
+  /// No description provided for @storefrontRenewRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests submitted recently — please wait a few minutes and try again.'**
+  String get storefrontRenewRateLimited;
+
+  /// No description provided for @storefrontRenewMissingFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in shop name, App Reference ID, months, and amount.'**
+  String get storefrontRenewMissingFields;
+
   /// No description provided for @onboardWelcomeTitle.
   ///
   /// In en, this message translates to:

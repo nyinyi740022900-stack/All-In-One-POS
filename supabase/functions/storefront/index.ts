@@ -10,6 +10,13 @@
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no }
+//   submit_license_request { shop_name, device_id, phone?, plan, months,
+//                    method?, amount, ref_no?, payment_proof_path?, hp }
+//                    -> { ok } — the /renew page's subscription-renewal
+//                    request form. No slug/shop lookup (the shop isn't
+//                    resolved yet, just a device_id the owner typed in);
+//                    writes a pending row to license_requests for the admin
+//                    dashboard's Requests tab to pick up.
 //   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
@@ -119,6 +126,90 @@ async function sumOrderedByProduct(
   return ordered;
 }
 
+/// The /renew page's submission handler — a shop's own owner requesting a
+/// subscription renewal/extension, identified only by the device_id ("App
+/// Reference ID") they type in, not a slug or session. Restores a live path
+/// into license_requests now that the in-app payment UI is gone (removed for
+/// App Store 5.1.1(v) compliance, see the file header) — a web page isn't
+/// subject to that rule. Mirrors submit_order's honeypot + rate-limit shape.
+async function handleSubmitLicenseRequest(
+  admin: Admin,
+  // deno-lint-ignore no-explicit-any
+  body: any,
+  req: Request,
+): Promise<Response> {
+  // Honeypot: pretend success, write nothing — same convention as
+  // submit_order, so a bot gets no signal it was caught.
+  if (`${body.hp ?? ""}`.trim().length > 0) {
+    return json({ ok: true });
+  }
+
+  // Rate limit: 5 per IP per 10 minutes. No shop_id to key on here (the
+  // whole point of this entry point is that the shop isn't resolved yet) —
+  // mirrors activate_attempts' IP-only shape, not submit_order's (shop_id,
+  // ip) shape.
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
+    .split(",")[0]
+    .trim();
+  const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("license_request_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if ((count ?? 0) >= 5) {
+    return json({ error: "rate_limited" }, 429);
+  }
+  await admin.from("license_request_attempts").insert({ ip });
+
+  const shopName = `${body.shop_name ?? ""}`.trim();
+  const deviceId = `${body.device_id ?? ""}`.trim();
+  const months = Number(body.months);
+  const amount = Number(body.amount);
+  if (
+    !shopName || !deviceId ||
+    !Number.isInteger(months) || months <= 0 ||
+    !Number.isInteger(amount) || amount <= 0
+  ) {
+    return json({ error: "bad_request" }, 400);
+  }
+
+  const rawPlan = `${body.plan ?? ""}`.trim();
+  const plan = rawPlan === "yearly" ? "yearly" : "monthly";
+  const rawMethod = `${body.method ?? ""}`.trim();
+  const method = rawMethod === "kbzpay" || rawMethod === "wavepay"
+    ? rawMethod
+    : null;
+  const phone = `${body.phone ?? ""}`.trim() || null;
+  const refNo = `${body.ref_no ?? ""}`.trim() || null;
+  const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
+
+  const now = new Date().toISOString();
+  const { error } = await admin.from("license_requests").insert({
+    id: crypto.randomUUID(),
+    shop_name: shopName,
+    device_id: deviceId,
+    phone,
+    plan,
+    months,
+    method,
+    amount,
+    ref_no: refNo,
+    payment_proof_path: proofPath,
+    // This entry point never has a Supabase Auth session — the resulting
+    // key is always a device-key (offline-tier) activation, same as the
+    // admin's own "Generate license key" default.
+    tier: "offline",
+    status: "pending",
+    created_at: now,
+    updated_at: now,
+  });
+  if (error) {
+    return json({ error: "server_error", detail: error.message }, 500);
+  }
+  return json({ ok: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json({});
 
@@ -179,6 +270,14 @@ Deno.serve(async (req) => {
     return json({ error: "bad_request" }, 400);
   }
   const action = body.action as string;
+
+  // Dispatched before the slug lookup below: a subscription-renewal request
+  // has no shop slug at all (the shop identifies itself only by the
+  // device_id it types in) — see handleSubmitLicenseRequest.
+  if (action === "submit_license_request") {
+    return handleSubmitLicenseRequest(admin, body, req);
+  }
+
   const slug = (body.slug ?? "").trim();
   if (!slug) return json({ error: "bad_request" }, 400);
 

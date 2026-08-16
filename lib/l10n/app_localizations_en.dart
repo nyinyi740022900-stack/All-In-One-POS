@@ -2522,6 +2522,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontOpenShopLink => 'Open a shop link, e.g. /your-shop-slug';
 
   @override
+  String get storefrontRenewTitle => 'Renew subscription';
+
+  @override
+  String get storefrontRenewHint =>
+      'Submit your payment details below and we\'ll review it to extend your subscription.';
+
+  @override
+  String get storefrontRenewShopName => 'Shop name *';
+
+  @override
+  String get storefrontRenewDeviceIdHint =>
+      'Find this on your phone: Settings → License → App Reference ID.';
+
+  @override
+  String get storefrontRenewPlan => 'Plan';
+
+  @override
+  String get storefrontRenewMonths => 'Months';
+
+  @override
+  String get storefrontRenewAmountPaid => 'Amount paid (Ks) *';
+
+  @override
+  String get storefrontRenewRefNo => 'Transaction ref. no. (optional)';
+
+  @override
+  String get storefrontRenewSubmit => 'Submit request';
+
+  @override
+  String get storefrontRenewSubmitted =>
+      'Request submitted! We\'ll review your payment and extend your subscription soon.';
+
+  @override
+  String get storefrontRenewFailed =>
+      'Something went wrong. Please try again or contact support.';
+
+  @override
+  String get storefrontRenewRateLimited =>
+      'Too many requests submitted recently — please wait a few minutes and try again.';
+
+  @override
+  String get storefrontRenewMissingFields =>
+      'Please fill in shop name, App Reference ID, months, and amount.';
+
+  @override
   String get onboardWelcomeTitle => 'Welcome to GoldPOSMM';
 
   @override
