@@ -18,6 +18,23 @@ enum PaperSize {
 /// printer loaded with A5 rather than the more common A4.
 enum PdfPaperSize { a4, a5 }
 
+/// Best-effort guess at a newly-paired Bluetooth printer's paper width from
+/// its OS-reported device name — the Bluetooth pairing API this app uses
+/// exposes no real capability/model descriptor (no vendor id, no paper-width
+/// field), only that name string, so this is a heuristic suggestion to
+/// pre-select in the UI, never a substitute for the owner's own confirm.
+/// Returns null when the name gives no signal either way, so the caller can
+/// fall back to its own existing default rather than guessing wrong with
+/// false confidence.
+PaperSize? suggestPaperSizeFromDeviceName(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('80')) return PaperSize.mm80;
+  if (n.contains('58') || n.contains('57') || n.contains('56')) {
+    return PaperSize.mm58;
+  }
+  return null;
+}
+
 /// A line item's own discount, recovered from what's already stored rather
 /// than needing its own column — `SaleItems.lineTotal` is written as
 /// `unitPrice * qty - lineDiscount` at sale time (see

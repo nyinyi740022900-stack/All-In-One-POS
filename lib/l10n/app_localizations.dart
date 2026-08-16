@@ -2150,6 +2150,18 @@ abstract class AppLocalizations {
   /// **'No paired Bluetooth devices found.'**
   String get printerNoDevicesFound;
 
+  /// No description provided for @printerChoosePaperSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What paper size does this printer use?'**
+  String get printerChoosePaperSizeTitle;
+
+  /// No description provided for @printerChoosePaperSizeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each printer remembers its own size — you can change it anytime from here.'**
+  String get printerChoosePaperSizeHint;
+
   /// No description provided for @printSuccess.
   ///
   /// In en, this message translates to:

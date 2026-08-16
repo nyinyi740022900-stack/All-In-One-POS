@@ -39,6 +39,61 @@ class _PrinterSettingsScreenState
     }
   }
 
+  /// Pairs [d] as the active printer. If it has no remembered paper size
+  /// yet (a genuinely new printer, not just re-selecting a previously
+  /// configured one), asks once — pre-selecting a best-effort guess from
+  /// the device name (see [suggestPaperSizeFromDeviceName]) — since the
+  /// Bluetooth pairing API exposes no real capability info to detect this
+  /// automatically.
+  Future<void> _pairDevice(BtDevice d) async {
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.setPrinter(d.mac, d.name);
+    if (await settings.hasPaperSizeForPrinter(d.mac)) return;
+    if (!mounted) return;
+    final suggested = suggestPaperSizeFromDeviceName(d.name) ?? PaperSize.mm58;
+    final chosen = await _choosePaperSizeDialog(initial: suggested);
+    if (chosen != null) {
+      await settings.setPaperSizeForPrinter(d.mac, chosen);
+    }
+  }
+
+  Future<PaperSize?> _choosePaperSizeDialog({required PaperSize initial}) {
+    final l = AppLocalizations.of(context);
+    var selected = initial;
+    return showDialog<PaperSize>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l.printerChoosePaperSizeTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.printerChoosePaperSizeHint,
+                  style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: AppTheme.space3),
+              SegmentedButton<PaperSize>(
+                segments: [
+                  ButtonSegment(value: PaperSize.mm58, label: Text(l.paper58)),
+                  ButtonSegment(value: PaperSize.mm80, label: Text(l.paper80)),
+                ],
+                selected: {selected},
+                onSelectionChanged: (s) =>
+                    setDialogState(() => selected = s.first),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, selected),
+              child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _testPrint(PaperSize paper, String mac) async {
     setState(() => _testing = true);
     final l = AppLocalizations.of(context);
@@ -93,7 +148,13 @@ class _PrinterSettingsScreenState
               ButtonSegment(value: PaperSize.mm80, label: Text(l.paper80)),
             ],
             selected: {config?.paper ?? PaperSize.mm58},
-            onSelectionChanged: (s) => settings.setPaperSize(s.first),
+            // A connected printer remembers its own size from here on;
+            // with none paired yet, this sets the device-wide default a
+            // newly-paired printer starts from (see _pairDevice).
+            onSelectionChanged: (s) =>
+                (config != null && config.hasPrinter)
+                    ? settings.setPaperSizeForPrinter(config.mac!, s.first)
+                    : settings.setPaperSize(s.first),
           ),
           const SizedBox(height: AppTheme.space5),
 
@@ -171,7 +232,7 @@ class _PrinterSettingsScreenState
                   title: Text(d.name.isEmpty ? d.mac : d.name),
                   subtitle: Text(d.mac),
                   selected: config?.mac == d.mac,
-                  onTap: () => settings.setPrinter(d.mac, d.name),
+                  onTap: () => _pairDevice(d),
                 ))),
         ],
       ),

@@ -1110,6 +1110,14 @@ class AppLocalizationsMy extends AppLocalizations {
       'ချိတ်ဆက်ထားသော ဘလူးတုသ် စက်များ မတွေ့ပါ။';
 
   @override
+  String get printerChoosePaperSizeTitle =>
+      'ဒီ printer က ဘယ်စက္ကူအရွယ်အစား သုံးလဲ?';
+
+  @override
+  String get printerChoosePaperSizeHint =>
+      'Printer တစ်ခုစီက သူ့ရဲ့ size ကို သီးခြား မှတ်ထားပါတယ် — ဒီနေရာကနေ အချိန်မရွေး ပြောင်းလို့ရပါတယ်။';
+
+  @override
   String get printSuccess => 'ပရင့်ထုတ်ပြီးပါပြီ';
 
   @override

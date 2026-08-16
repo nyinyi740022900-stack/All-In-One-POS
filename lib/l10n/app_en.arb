@@ -377,6 +377,8 @@
   "printerConnected": "Connected",
   "printerPaired": "Paired devices",
   "printerNoDevicesFound": "No paired Bluetooth devices found.",
+  "printerChoosePaperSizeTitle": "What paper size does this printer use?",
+  "printerChoosePaperSizeHint": "Each printer remembers its own size — you can change it anytime from here.",
   "printSuccess": "Printed successfully",
   "printFailed": "Print failed",
   "bluetoothOff": "Bluetooth is off. Turn it on and pair your printer.",

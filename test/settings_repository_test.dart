@@ -3,6 +3,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/features/invoices/receipt_data.dart';
 
 void main() {
   late AppDatabase db;
@@ -225,6 +226,50 @@ void main() {
 
     test('unset for a shop that never had one', () async {
       expect(await repo.licenseOfflineFallbackToken('shop-none'), isNull);
+    });
+  });
+
+  group('printer paper size (per-printer isolation)', () {
+    test('two printers on the same device remember their own size '
+        'independently', () async {
+      await repo.setPrinter('AA:11', 'Front Counter');
+      await repo.setPaperSizeForPrinter('AA:11', PaperSize.mm58);
+      await repo.setPaperSizeForPrinter('BB:22', PaperSize.mm80);
+
+      final configFront = await repo.printerConfig(); // active mac = AA:11
+      expect(configFront.paper, PaperSize.mm58);
+
+      await repo.setPrinter('BB:22', 'Back Counter');
+      final configBack = await repo.printerConfig();
+      expect(configBack.paper, PaperSize.mm80);
+    });
+
+    test('a printer with no remembered size falls back to the device-wide '
+        'default, not always 58mm', () async {
+      await repo.setPaperSize(PaperSize.mm80); // device-wide default
+      await repo.setPrinter('CC:33', 'New Printer'); // never configured
+
+      expect(await repo.hasPaperSizeForPrinter('CC:33'), isFalse);
+      final config = await repo.printerConfig();
+      expect(config.paper, PaperSize.mm80); // the default, not mm58
+    });
+
+    test('hasPaperSizeForPrinter distinguishes "never set" from "set to '
+        'the default value"', () async {
+      expect(await repo.hasPaperSizeForPrinter('DD:44'), isFalse);
+      await repo.setPaperSizeForPrinter('DD:44', PaperSize.mm58);
+      expect(await repo.hasPaperSizeForPrinter('DD:44'), isTrue);
+    });
+
+    test('watchPrinterConfig resolves the same per-printer/default fallback '
+        'as the one-shot printerConfig read', () async {
+      await repo.setPaperSize(PaperSize.mm58);
+      await repo.setPrinter('EE:55', 'Printer E');
+      await repo.setPaperSizeForPrinter('EE:55', PaperSize.mm80);
+
+      final streamed = await repo.watchPrinterConfig().first;
+      expect(streamed.paper, PaperSize.mm80);
+      expect(streamed.mac, 'EE:55');
     });
   });
 }

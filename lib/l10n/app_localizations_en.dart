@@ -1108,6 +1108,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printerNoDevicesFound => 'No paired Bluetooth devices found.';
 
   @override
+  String get printerChoosePaperSizeTitle =>
+      'What paper size does this printer use?';
+
+  @override
+  String get printerChoosePaperSizeHint =>
+      'Each printer remembers its own size — you can change it anytime from here.';
+
+  @override
   String get printSuccess => 'Printed successfully';
 
   @override

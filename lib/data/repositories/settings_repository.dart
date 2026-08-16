@@ -109,12 +109,26 @@ class SettingsRepository {
     return _get(baseKey);
   }
 
+  /// Per-printer key (`printer.paper_size.<mac>`) — already routes through
+  /// the device sidecar via [isDeviceGlobalKey]'s `printer.` prefix check,
+  /// no changes needed there. A shop with two receipt printers of different
+  /// widths (e.g. swapping a spare in) no longer has to re-pick paper size
+  /// by hand every time it reconnects the other one.
+  String _paperSizeKeyForMac(String mac) => '$_kPaperSize.$mac';
+
+  PaperSize _resolvePaperSize(Map<String, String> map, String? mac) {
+    final scoped = mac == null ? null : map[_paperSizeKeyForMac(mac)];
+    final raw = scoped ?? map[_kPaperSize];
+    return raw == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
+  }
+
   Stream<PrinterConfig> watchPrinterConfig() {
     return _deviceDb.select(_deviceDb.appSettings).watch().map((rows) {
       final map = {for (final r in rows) r.key: r.value};
+      final mac = map[_kPrinterMac];
       return PrinterConfig(
-        paper: map[_kPaperSize] == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
-        mac: map[_kPrinterMac],
+        paper: _resolvePaperSize(map, mac),
+        mac: mac,
         name: map[_kPrinterName],
         pdfPaperSize: map[_kPdfPaperSize] == 'a5'
             ? PdfPaperSize.a5
@@ -124,11 +138,12 @@ class SettingsRepository {
   }
 
   Future<PrinterConfig> printerConfig() async {
+    final mac = await _get(_kPrinterMac);
+    final scoped = mac == null ? null : await _get(_paperSizeKeyForMac(mac));
+    final raw = scoped ?? await _get(_kPaperSize);
     return PrinterConfig(
-      paper: (await _get(_kPaperSize)) == 'mm80'
-          ? PaperSize.mm80
-          : PaperSize.mm58,
-      mac: await _get(_kPrinterMac),
+      paper: raw == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
+      mac: mac,
       name: await _get(_kPrinterName),
       pdfPaperSize: (await _get(_kPdfPaperSize)) == 'a5'
           ? PdfPaperSize.a5
@@ -136,8 +151,22 @@ class SettingsRepository {
     );
   }
 
+  /// Sets the device-wide default paper size — used until a specific
+  /// printer has its own remembered size (see [setPaperSizeForPrinter]).
   Future<void> setPaperSize(PaperSize size) =>
       _set(_kPaperSize, size == PaperSize.mm80 ? 'mm80' : 'mm58');
+
+  /// Remembers [size] for this specific printer ([mac]), independent of the
+  /// device-wide default — see [_resolvePaperSize].
+  Future<void> setPaperSizeForPrinter(String mac, PaperSize size) =>
+      _set(_paperSizeKeyForMac(mac), size == PaperSize.mm80 ? 'mm80' : 'mm58');
+
+  /// Whether [mac] already has its own remembered paper size, vs. still
+  /// falling back to the device-wide default — the printer settings screen
+  /// uses this to decide whether a newly-paired printer needs the
+  /// one-time "which paper size?" prompt.
+  Future<bool> hasPaperSizeForPrinter(String mac) async =>
+      (await _get(_paperSizeKeyForMac(mac))) != null;
 
   Future<void> setPdfPaperSize(PdfPaperSize size) =>
       _set(_kPdfPaperSize, size == PdfPaperSize.a5 ? 'a5' : 'a4');
