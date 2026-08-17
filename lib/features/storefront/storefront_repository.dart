@@ -100,7 +100,11 @@ class StorefrontRepository {
     String? address,
   }) {
     return _withRlsRetry(
-      () => _publishImpl(displayName: displayName, phone: phone, address: address),
+      () => _publishImpl(
+        displayName: displayName,
+        phone: phone,
+        address: address,
+      ),
     );
   }
 
@@ -111,10 +115,10 @@ class StorefrontRepository {
   }) async {
     final existing = await mine();
     if (existing != null) {
-      await _c.from('storefronts').update({'enabled': true}).eq(
-        'shop_id',
-        _shopId,
-      );
+      await _c
+          .from('storefronts')
+          .update({'enabled': true})
+          .eq('shop_id', _shopId);
       return (await mine())!;
     }
     final slug =
@@ -234,19 +238,23 @@ class StorefrontRepository {
   /// Blocks [phone] from placing new storefront orders on this shop. Blocking
   /// the same number twice is a no-op (upsert on the shop_id+phone unique
   /// index) rather than an error.
-  Future<void> block(String phone, {String? reason}) async {
-    await _c.from('storefront_blocklist').upsert({
-      'shop_id': _shopId,
-      'phone': phone,
-      'reason': reason,
-    }, onConflict: 'shop_id,phone');
+  Future<void> block(String phone, {String? reason}) {
+    return _withRlsRetry(
+      () => _c.from('storefront_blocklist').upsert({
+        'shop_id': _shopId,
+        'phone': phone,
+        'reason': reason,
+      }, onConflict: 'shop_id,phone'),
+    );
   }
 
-  Future<void> unblock(String phone) async {
-    await _c
-        .from('storefront_blocklist')
-        .delete()
-        .eq('shop_id', _shopId)
-        .eq('phone', phone);
+  Future<void> unblock(String phone) {
+    return _withRlsRetry(
+      () => _c
+          .from('storefront_blocklist')
+          .delete()
+          .eq('shop_id', _shopId)
+          .eq('phone', phone),
+    );
   }
 }

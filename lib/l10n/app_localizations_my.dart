@@ -70,6 +70,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonClear => 'ရှင်းလင်းရန်';
 
   @override
+  String get commonNetworkError =>
+      'အင်တာနက် ချိတ်ဆက်မှု မရှိပါ။ Connection စစ်ပြီး ထပ်စမ်းကြည့်ပါ။';
+
+  @override
+  String get commonRetry => 'ထပ်စမ်းမည်';
+
+  @override
   String get copied => 'ကူးယူပြီး';
 
   @override
@@ -2426,6 +2433,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontNeedsName => 'ဆိုင်နာမည် ထည့်ပါ';
+
+  @override
+  String get storefrontSessionStale =>
+      'Session ကို refresh လုပ်ဖို့ လိုပါတယ်။ App ကို ပိတ်ပြီး ပြန်ဖွင့်ကာ ထပ်စမ်းကြည့်ပါ။';
 
   @override
   String get storefrontPhoneShown => 'ဖုန်း (ဖောက်သည်များ မြင်ရမည်)';

@@ -69,6 +69,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonClear => 'Clear';
 
   @override
+  String get commonNetworkError =>
+      'No internet connection. Check your connection and try again.';
+
+  @override
+  String get commonRetry => 'Retry';
+
+  @override
   String get copied => 'Copied';
 
   @override
@@ -2414,6 +2421,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontNeedsName => 'Enter a storefront name';
+
+  @override
+  String get storefrontSessionStale =>
+      'Your session needs refreshing. Please close and reopen the app, then try again.';
 
   @override
   String get storefrontPhoneShown => 'Phone (shown to customers)';

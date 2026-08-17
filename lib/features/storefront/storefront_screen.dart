@@ -7,12 +7,74 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../data/sync/outbox_error.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import 'storefront_repository.dart';
+
+/// Classifies a Storefront repository error into specific, actionable
+/// guidance instead of a flat "something went wrong" — the RLS branch only
+/// fires once the repository's own one-shot session-refresh retry
+/// (`StorefrontRepository._withRlsRetry`) has already happened and still
+/// failed, so "restart the app" is genuinely the next real step, not just a
+/// retry of what already failed.
+String _storefrontErrorMessage(AppLocalizations l, Object e) {
+  final s = e.toString().toLowerCase();
+  if (s.contains('socketexception') ||
+      s.contains('failed host lookup') ||
+      s.contains('network') ||
+      s.contains('connection')) {
+    return l.commonNetworkError;
+  }
+  if (classifyOutboxError(e.toString()) == OutboxErrorClass.rls42501) {
+    return l.storefrontSessionStale;
+  }
+  return l.commonUnexpectedError;
+}
+
+/// A load failure with an actual recovery path, not a dead-end message —
+/// mirrors the error-view shape `branches_screen.dart` already established
+/// (icon + message + retry button that invalidates the failed provider).
+class _ErrorRetryView extends StatelessWidget {
+  const _ErrorRetryView({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppColors.of(context).muted,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l.commonRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 final storefrontRepositoryProvider = Provider<StorefrontRepository>((ref) {
   return StorefrontRepository(ref.watch(shopIdProvider));
@@ -126,7 +188,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+        ).showSnackBar(SnackBar(content: Text(_storefrontErrorMessage(l, e))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -163,7 +225,9 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+            content: Text(
+              _storefrontErrorMessage(AppLocalizations.of(context), e),
+            ),
           ),
         );
       }
@@ -190,7 +254,9 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+            content: Text(
+              _storefrontErrorMessage(AppLocalizations.of(context), e),
+            ),
           ),
         );
       }
@@ -227,7 +293,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       appBar: AppBar(title: Text(l.storefrontTitle)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => _ErrorRetryView(
+          message: _storefrontErrorMessage(l, e),
+          onRetry: () => ref.invalidate(myStorefrontProvider),
+        ),
         data: (row) {
           if (row == null) return _publishForm(l);
           _initFrom(row);
@@ -404,8 +473,23 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           title: Text(l.storefrontEnabled),
           value: row.enabled,
           onChanged: (v) async {
-            await ref.read(storefrontRepositoryProvider).setEnabled(v);
-            ref.invalidate(myStorefrontProvider);
+            try {
+              await ref.read(storefrontRepositoryProvider).setEnabled(v);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _storefrontErrorMessage(AppLocalizations.of(context), e),
+                    ),
+                  ),
+                );
+              }
+            } finally {
+              // Re-fetch either way so the switch reflects the true server
+              // state instead of staying visually toggled on a failed write.
+              ref.invalidate(myStorefrontProvider);
+            }
           },
         ),
         const SizedBox(height: AppTheme.space2),
@@ -480,10 +564,23 @@ class _BlockedCustomersScreen extends ConsumerWidget {
       builder: (_) => const _AddBlockedCustomerDialog(),
     );
     if (draft == null || !context.mounted) return;
-    await ref
-        .read(storefrontRepositoryProvider)
-        .block(draft.phone, reason: draft.reason);
-    ref.invalidate(blockedCustomersProvider);
+    try {
+      await ref
+          .read(storefrontRepositoryProvider)
+          .block(draft.phone, reason: draft.reason);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _storefrontErrorMessage(AppLocalizations.of(context), e),
+            ),
+          ),
+        );
+      }
+    } finally {
+      ref.invalidate(blockedCustomersProvider);
+    }
   }
 
   @override
@@ -498,7 +595,10 @@ class _BlockedCustomersScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => _ErrorRetryView(
+          message: _storefrontErrorMessage(l, e),
+          onRetry: () => ref.invalidate(blockedCustomersProvider),
+        ),
         data: (rows) {
           if (rows.isEmpty) {
             return EmptyStateView(
@@ -517,10 +617,26 @@ class _BlockedCustomersScreen extends ConsumerWidget {
                 subtitle: (b.reason ?? '').isEmpty ? null : Text(b.reason!),
                 trailing: TextButton(
                   onPressed: () async {
-                    await ref
-                        .read(storefrontRepositoryProvider)
-                        .unblock(b.phone);
-                    ref.invalidate(blockedCustomersProvider);
+                    try {
+                      await ref
+                          .read(storefrontRepositoryProvider)
+                          .unblock(b.phone);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              _storefrontErrorMessage(
+                                AppLocalizations.of(context),
+                                e,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    } finally {
+                      ref.invalidate(blockedCustomersProvider);
+                    }
                   },
                   child: Text(l.storefrontUnblock),
                 ),
@@ -551,8 +667,7 @@ class _AddBlockedCustomerDialog extends StatefulWidget {
       _AddBlockedCustomerDialogState();
 }
 
-class _AddBlockedCustomerDialogState
-    extends State<_AddBlockedCustomerDialog> {
+class _AddBlockedCustomerDialogState extends State<_AddBlockedCustomerDialog> {
   final _phone = TextEditingController();
   final _reason = TextEditingController();
 

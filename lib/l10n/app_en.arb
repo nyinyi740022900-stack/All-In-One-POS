@@ -23,6 +23,8 @@
   "commonCopy": "Copy",
   "commonMore": "More actions",
   "commonClear": "Clear",
+  "commonNetworkError": "No internet connection. Check your connection and try again.",
+  "commonRetry": "Retry",
   "copied": "Copied",
 
   "sellTitle": "Sell",
@@ -812,6 +814,7 @@
   "storefrontEnabled": "Storefront enabled",
   "storefrontCopied": "Link copied",
   "storefrontNeedsName": "Enter a storefront name",
+  "storefrontSessionStale": "Your session needs refreshing. Please close and reopen the app, then try again.",
   "storefrontPhoneShown": "Phone (shown to customers)",
   "storefrontAddressShown": "Address (shown to customers)",
   "storefrontLogoLabel": "Shop logo",

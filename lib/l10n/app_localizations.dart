@@ -218,6 +218,18 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get commonClear;
 
+  /// No description provided for @commonNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Check your connection and try again.'**
+  String get commonNetworkError;
+
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get commonRetry;
+
   /// No description provided for @copied.
   ///
   /// In en, this message translates to:
@@ -4495,6 +4507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a storefront name'**
   String get storefrontNeedsName;
+
+  /// No description provided for @storefrontSessionStale.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session needs refreshing. Please close and reopen the app, then try again.'**
+  String get storefrontSessionStale;
 
   /// No description provided for @storefrontPhoneShown.
   ///
