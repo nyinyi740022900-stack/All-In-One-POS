@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/providers.dart';
@@ -69,8 +70,9 @@ class LicenseState {
 
 /// Convenience read of [LicenseState.isPremium], same shape as
 /// `isEffectiveOwnerProvider` — the primary thing `PremiumGate` watches.
-final isPremiumProvider =
-    Provider<bool>((ref) => ref.watch(licenseControllerProvider).isPremium);
+final isPremiumProvider = Provider<bool>(
+  (ref) => ref.watch(licenseControllerProvider).isPremium,
+);
 
 /// Flips to `true` once after `LicenseController` auto-downgrades an expired
 /// license to the Free plan, so Settings can show a one-time "you're on the
@@ -80,8 +82,8 @@ final pendingPlanDowngradeNoticeProvider = StateProvider<bool>((ref) => false);
 
 final licenseControllerProvider =
     StateNotifierProvider<LicenseController, LicenseState>((ref) {
-  return LicenseController(ref)..load();
-});
+      return LicenseController(ref)..load();
+    });
 
 class LicenseController extends StateNotifier<LicenseState> {
   LicenseController(this._ref) : super(const LicenseState());
@@ -99,7 +101,9 @@ class LicenseController extends StateNotifier<LicenseState> {
     if (Env.hasBackend) {
       _silentReverify();
       _reverifyTimer ??= Timer.periodic(
-          const Duration(hours: 6), (_) => _silentReverify());
+        const Duration(hours: 6),
+        (_) => _silentReverify(),
+      );
     }
   }
 
@@ -107,7 +111,9 @@ class LicenseController extends StateNotifier<LicenseState> {
     if (state.license == null) return;
     try {
       await refreshOnline();
-    } catch (_) {/* offline / transient — keep cached */}
+    } catch (_) {
+      /* offline / transient — keep cached */
+    }
   }
 
   @override
@@ -230,12 +236,30 @@ class LicenseController extends StateNotifier<LicenseState> {
     if (lic == null) {
       return const ActivationResult.failure('not_activated');
     }
-    // A local trial, the Free plan, or an offline signed token has nothing to
-    // re-verify online — treat it as up to date instead of a misleading
-    // "activation failed".
-    if (lic.key == 'FREE-TRIAL' ||
+    // A self-serve trial, the Free plan, or an offline signed token has
+    // nothing to re-verify online — there's no real key to look up (a
+    // self-serve trial's cached 'TRIAL' is a local placeholder,
+    // `LicenseRepository.startFreeTrial`'s own doc comment says so
+    // explicitly — calling `activate('TRIAL')` would just fail server-side
+    // every time, as literally no license row has that key). This used to
+    // check for `'FREE-TRIAL'`, a string nothing ever actually sets — dead
+    // code that silently defeated the exemption and made every periodic
+    // reverify a guaranteed-failing `activate('TRIAL')` call instead.
+    // Since this is also the app's only periodic "is the session still
+    // good" heartbeat (`load()` on every launch + every 6h), a trial session
+    // still gets a real benefit here: proactively refresh so a JWT that
+    // never picked up its `shop_id` claim (e.g. the one-shot refresh right
+    // after minting the trial silently failed) has another chance to
+    // self-heal, instead of only doing so reactively when some RLS-scoped
+    // write already fails.
+    if (lic.key == 'TRIAL' ||
         lic.key == 'FREE' ||
         lic.key.startsWith('MMPOS1.')) {
+      if (lic.key == 'TRIAL') {
+        try {
+          await Supabase.instance.client.auth.refreshSession();
+        } catch (_) {}
+      }
       return ActivationResult.success(lic);
     }
     final result = await _repo.activate(lic.key);
