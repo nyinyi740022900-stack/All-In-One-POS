@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
+import '../license/license_status.dart';
 import '../printing/printing_providers.dart';
 import 'barcode_scanner_screen.dart';
 import 'cart.dart';
@@ -79,8 +80,14 @@ class SellScreen extends ConsumerWidget {
     final readOnly = licState.status.isReadOnly && !licState.loading;
     final expiresAt = licState.status.expiresAt;
     final daysLeft = expiresAt?.difference(DateTime.now()).inDays;
+    // Free plan never expires — computeLicenseStatus keeps expiresAt as a
+    // non-null placeholder (`now`, see license_status.dart) purely so `kind`
+    // can be `active`, not as a real date. Without this guard, every Free
+    // shop saw a permanent "expires in 0 days" warning (license_widgets.dart
+    // already carries the same plan != free guard for this exact reason).
     final expiringSoon = !licState.loading &&
         licState.status.canSell &&
+        licState.status.plan != LicensePlan.free &&
         daysLeft != null &&
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);

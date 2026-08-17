@@ -110,14 +110,23 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                     ),
                     const SizedBox(width: AppTheme.space2),
                   ],
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 220),
-                    child: FilledButton(
-                      onPressed: () => _next(pages.length),
-                      child: Text(_page == pages.length - 1
-                          ? l.onboardGetStarted
-                          : l.onboardNext),
+                  // Explicit finite minimumSize: the theme's FilledButton
+                  // default is Size.fromHeight(52), which sets width to
+                  // double.infinity (most buttons in this app are meant to
+                  // fill their container) — inside this Row, that infinite
+                  // demand was being resolved against a maxWidth: 220
+                  // ConstrainedBox into a forced 220pt-wide button no matter
+                  // how short its text was, overflowing the Row on narrow
+                  // phones once page dots + a "Back" button were also
+                  // present. A real minimum width lets it size to content.
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(88, 52),
                     ),
+                    onPressed: () => _next(pages.length),
+                    child: Text(_page == pages.length - 1
+                        ? l.onboardGetStarted
+                        : l.onboardNext),
                   ),
                 ],
               ),
