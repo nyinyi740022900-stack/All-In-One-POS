@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../data/sync/outbox_error.dart';
 
 /// Public base URL where the storefront web app is hosted. A shop's page is
 /// `$storefrontBaseUrl/<slug>`.
@@ -97,6 +98,16 @@ class StorefrontRepository {
     required String displayName,
     String? phone,
     String? address,
+  }) {
+    return _withRlsRetry(
+      () => _publishImpl(displayName: displayName, phone: phone, address: address),
+    );
+  }
+
+  Future<StorefrontRow> _publishImpl({
+    required String displayName,
+    String? phone,
+    String? address,
   }) async {
     final existing = await mine();
     if (existing != null) {
@@ -120,11 +131,34 @@ class StorefrontRepository {
     return (await mine())!;
   }
 
-  Future<void> setEnabled(bool enabled) async {
-    await _c
-        .from('storefronts')
-        .update({'enabled': enabled})
-        .eq('shop_id', _shopId);
+  Future<void> setEnabled(bool enabled) {
+    return _withRlsRetry(
+      () => _c
+          .from('storefronts')
+          .update({'enabled': enabled})
+          .eq('shop_id', _shopId),
+    );
+  }
+
+  /// A freshly-granted shop_id claim (e.g. self-serve trial, sign-in) can lag
+  /// behind on an already-cached Supabase session until it next auto-refreshes,
+  /// making an otherwise-correct write fail RLS (`42501`) with no obvious way
+  /// for the caller to recover. Retry once after forcing a session refresh,
+  /// so a stale JWT self-heals instead of surfacing as a dead-end error.
+  Future<T> _withRlsRetry<T>(Future<T> Function() op) async {
+    try {
+      return await op();
+    } catch (e) {
+      if (classifyOutboxError(e.toString()) != OutboxErrorClass.rls42501) {
+        rethrow;
+      }
+      try {
+        await _c.auth.refreshSession();
+      } catch (_) {
+        throw e;
+      }
+      return await op();
+    }
   }
 
   /// Updates display fields on an existing storefront (name/phone/address
@@ -161,7 +195,9 @@ class StorefrontRepository {
       'require_transfer_proof': ?requireTransferProof,
     };
     if (patch.isEmpty) return;
-    await _c.from('storefronts').update(patch).eq('shop_id', _shopId);
+    await _withRlsRetry(
+      () => _c.from('storefronts').update(patch).eq('shop_id', _shopId),
+    );
   }
 
   /// Uploads a logo image to the shared public product-images bucket and
