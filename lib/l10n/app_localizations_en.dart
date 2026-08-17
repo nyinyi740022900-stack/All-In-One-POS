@@ -2462,6 +2462,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontNeedsName => 'Enter a storefront name';
 
   @override
+  String get storefrontOrderNeedsName =>
+      'Please enter your name to place the order.';
+
+  @override
   String get storefrontSessionStale =>
       'Your session needs refreshing. Please close and reopen the app, then try again.';
 

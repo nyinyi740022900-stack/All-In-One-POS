@@ -816,6 +816,7 @@
   "storefrontEnabled": "ဆိုင် ဖွင့်ထားသည်",
   "storefrontCopied": "Link ကူးယူပြီး",
   "storefrontNeedsName": "ဆိုင်နာမည် ထည့်ပါ",
+  "storefrontOrderNeedsName": "Order တင်ဖို့ သင့်အမည်ကို ထည့်ပါ။",
   "storefrontSessionStale": "Session ကို refresh လုပ်ဖို့ လိုပါတယ်။ App ကို ပိတ်ပြီး ပြန်ဖွင့်ကာ ထပ်စမ်းကြည့်ပါ။",
   "storefrontPhoneShown": "ဖုန်း (ဖောက်သည်များ မြင်ရမည်)",
   "storefrontAddressShown": "လိပ်စာ (ဖောက်သည်များ မြင်ရမည်)",

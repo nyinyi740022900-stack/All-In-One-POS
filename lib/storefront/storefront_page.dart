@@ -494,7 +494,14 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   }
 
   Future<void> _submit() async {
-    if (_name.text.trim().isEmpty) return;
+    if (_name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).storefrontOrderNeedsName),
+        ),
+      );
+      return;
+    }
     if (_paymentMethod == 'transfer' &&
         widget.info.requireTransferProof &&
         _proofBytes == null) {

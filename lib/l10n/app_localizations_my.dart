@@ -2473,6 +2473,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontNeedsName => 'ဆိုင်နာမည် ထည့်ပါ';
 
   @override
+  String get storefrontOrderNeedsName => 'Order တင်ဖို့ သင့်အမည်ကို ထည့်ပါ။';
+
+  @override
   String get storefrontSessionStale =>
       'Session ကို refresh လုပ်ဖို့ လိုပါတယ်။ App ကို ပိတ်ပြီး ပြန်ဖွင့်ကာ ထပ်စမ်းကြည့်ပါ။';
 

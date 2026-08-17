@@ -4568,6 +4568,12 @@ abstract class AppLocalizations {
   /// **'Enter a storefront name'**
   String get storefrontNeedsName;
 
+  /// No description provided for @storefrontOrderNeedsName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name to place the order.'**
+  String get storefrontOrderNeedsName;
+
   /// No description provided for @storefrontSessionStale.
   ///
   /// In en, this message translates to:

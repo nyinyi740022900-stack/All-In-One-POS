@@ -824,6 +824,7 @@
   "storefrontEnabled": "Storefront enabled",
   "storefrontCopied": "Link copied",
   "storefrontNeedsName": "Enter a storefront name",
+  "storefrontOrderNeedsName": "Please enter your name to place the order.",
   "storefrontSessionStale": "Your session needs refreshing. Please close and reopen the app, then try again.",
   "storefrontPhoneShown": "Phone (shown to customers)",
   "storefrontAddressShown": "Address (shown to customers)",
