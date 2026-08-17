@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/providers.dart';
@@ -255,10 +254,13 @@ class LicenseController extends StateNotifier<LicenseState> {
     if (lic.key == 'TRIAL' ||
         lic.key == 'FREE' ||
         lic.key.startsWith('MMPOS1.')) {
+      // `flutter run --release`'s device stdout isn't relayed to the host
+      // terminal on this project's target device, so a temporary debugPrint
+      // here was unobservable — replaced with `refreshSessionAndVerifyClaim`,
+      // which reports a real failure to Sentry instead (queryable regardless
+      // of build mode) and self-heals with a retry, rather than just logging.
       if (lic.key == 'TRIAL') {
-        try {
-          await Supabase.instance.client.auth.refreshSession();
-        } catch (_) {}
+        await _repo.refreshSessionAndVerifyClaim(lic.shopId);
       }
       return ActivationResult.success(lic);
     }

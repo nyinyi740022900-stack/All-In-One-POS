@@ -111,6 +111,30 @@ class PartialFailRemote extends FakeSyncRemote {
   }
 }
 
+/// Always rejects `upsert` for [failTable] with a genuine (first-time, not
+/// pre-seeded) RLS error — models a device whose JWT shop_id claim is
+/// currently stale, distinct from `PartialFailRemote`'s generic failure and
+/// from the pre-seeded-`lastError` reset tests above (which model a row that
+/// *already* failed before this sync, not one failing live during push).
+class RlsFailRemote extends FakeSyncRemote {
+  RlsFailRemote(this.failTable);
+  final String failTable;
+  int upsertAttempts = 0;
+
+  @override
+  Future<void> upsert(String table, Map<String, dynamic> row,
+      {String? onConflict}) async {
+    if (table == failTable) {
+      upsertAttempts++;
+      throw Exception(
+        'PostgresException(message: new row violates row-level security '
+        'policy for table "$failTable", code: 42501)',
+      );
+    }
+    return super.upsert(table, row, onConflict: onConflict);
+  }
+}
+
 Map<String, dynamic> remoteProduct(
   String id, {
   String shop = 'shop-1',
@@ -362,6 +386,47 @@ void main() {
     final result = await engine.syncNow();
     expect(result.pushed, greaterThanOrEqualTo(1));
     expect(await db.select(db.outbox).get(), isEmpty);
+  });
+
+  test(
+      'a live RLS 42501 failure (not pre-seeded) attempts a session-refresh '
+      'self-heal exactly once, then records the failure rather than '
+      'dropping the row or looping — no live Supabase session in a unit '
+      'test, so the refresh itself can\'t succeed here; this only proves '
+      'the fallback path stays sound', () async {
+    final rlsRemote = RlsFailRemote('categories');
+    final rlsEngine = SyncEngine(
+        db: db, remote: rlsRemote, settings: settings, shopId: 'shop-1');
+    final now = DateTime.now();
+    await db.into(db.categories).insert(
+          CategoriesCompanion.insert(
+            id: 'cat-1',
+            shopId: 'shop-1',
+            name: 'Drinks',
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    await db.into(db.outbox).insert(
+          OutboxCompanion.insert(
+            entityTable: 'categories',
+            rowId: 'cat-1',
+            op: 'upsert',
+            payload: '{}',
+          ),
+        );
+
+    await rlsEngine.syncNow();
+
+    // Exactly one real upsert attempt — the refresh-and-retry branch never
+    // reaches its own `_pushOne` retry when `refreshSession()` itself throws
+    // (no live session in this test), so it isn't double-counted here.
+    expect(rlsRemote.upsertAttempts, 1);
+    final row = await (db.select(db.outbox)
+          ..where((o) => o.entityTable.equals('categories')))
+        .getSingle();
+    expect(row.attempts, 1);
+    expect(row.quarantined, false);
   });
 
   test(

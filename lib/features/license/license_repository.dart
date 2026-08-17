@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
@@ -82,10 +83,10 @@ class LicenseRepository {
         realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
         tier: data['tier'] as String? ?? 'offline',
       );
-      // Refresh the session so the new shop_id claim lands in the JWT.
-      try {
-        await Supabase.instance.client.auth.refreshSession();
-      } catch (_) {}
+      // Refresh the session and confirm the new shop_id claim actually
+      // landed — best-effort (reported to Sentry on failure, never blocks
+      // activation itself, since the license is already valid server-side).
+      await refreshSessionAndVerifyClaim(lic.shopId);
       // Best-effort: cache the offline-verifiable fallback token the Edge
       // Function now issues alongside every activation, if present (older
       // deployments / a missing signing-key secret just omit it).
@@ -155,10 +156,12 @@ class LicenseRepository {
         deviceId: deviceId,
         tier: data['tier'] as String? ?? 'offline',
       );
-      // Refresh the session so the new shop_id claim lands in the JWT.
-      try {
-        await Supabase.instance.client.auth.refreshSession();
-      } catch (_) {}
+      // Refresh the session and confirm the new shop_id claim actually
+      // landed — see refreshSessionAndVerifyClaim's own doc comment; this is
+      // the exact path that was silently failing before (a self-serve trial
+      // whose session never picked up its shop_id claim, closed alongside
+      // this change).
+      await refreshSessionAndVerifyClaim(lic.shopId);
       final offlineToken = data['offline_token'] as String?;
       if (offlineToken != null && offlineToken.isNotEmpty) {
         await _settings.setLicenseOfflineFallbackToken(
@@ -204,6 +207,45 @@ class LicenseRepository {
       expiresAt: now,
       lastVerifiedAt: now,
     )))!;
+  }
+
+  /// Refreshes the caller's Supabase session and verifies the resulting JWT
+  /// actually carries [expectedShopId] in `app_metadata.shop_id` — retries
+  /// the refresh once if the claim hasn't landed yet, then reports (Sentry,
+  /// best-effort) and returns false if it still hasn't. Every call site that
+  /// mints or re-verifies a license needs this, not just a fire-and-forget
+  /// `refreshSession()`: a claim that silently fails to land makes every
+  /// subsequent RLS-scoped write fail with no way to tell why (the bug this
+  /// centralizes the fix for). Mirrors the verify-after-refresh pattern
+  /// `BranchRepository.switchBranch()` already used in exactly one place.
+  Future<bool> refreshSessionAndVerifyClaim(String expectedShopId) async {
+    final auth = Supabase.instance.client.auth;
+    Object? lastError;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        await auth.refreshSession();
+      } catch (e) {
+        lastError = e;
+        continue;
+      }
+      final claim = auth.currentUser?.appMetadata['shop_id'] as String?;
+      if (claim == expectedShopId) return true;
+      lastError = 'claim_mismatch (got: $claim)';
+    }
+    try {
+      await Sentry.captureMessage(
+        'License session refresh did not carry the expected shop_id claim',
+        level: SentryLevel.warning,
+        withScope: (scope) {
+          scope.setTag('license.expected_shop_id', expectedShopId);
+          scope.setContexts('license_refresh', {
+            'expected_shop_id': expectedShopId,
+            'last_error': lastError.toString(),
+          });
+        },
+      );
+    } catch (_) {}
+    return false;
   }
 
   Future<void> deactivate() => _settings.clearLicense();

@@ -158,9 +158,11 @@ class SyncEngine {
   final List<SyncTableDef> tables;
   late final Map<String, SyncTableDef> _byName;
   bool _didFkPullThisSync = false;
+  bool _didSessionRefreshThisSync = false;
 
   Future<SyncResult> syncNow() async {
     _didFkPullThisSync = false;
+    _didSessionRefreshThisSync = false;
     await _resetHealableRlsFailures();
     await _reconcileUpsertsAlreadyRemote();
     await _healForeignKeyFailures();
@@ -320,6 +322,29 @@ class SyncEngine {
         if (errorClass == OutboxErrorClass.foreignKey && !_didFkPullThisSync) {
           await _pullAllTablesOnce();
           try {
+            await _pushOne(item, def);
+            await _removeOutbox(item.seq);
+            count++;
+            continue;
+          } catch (e2) {
+            await _recordPushFailure(item, e2.toString(),
+                classifyOutboxError(e2.toString()));
+            continue;
+          }
+        }
+
+        // A 42501 that isn't "already exists remotely" (handled above) means
+        // this device's JWT shop_id claim may be stale rather than the write
+        // itself being wrong — the same class of bug that broke Storefront
+        // publish (see StorefrontRepository._withRlsRetry). Retry a session
+        // refresh once per sync cycle before recording a failure, so real
+        // synced data self-heals instead of silently piling up as stuck /
+        // quarantined outbox rows forever.
+        if (errorClass == OutboxErrorClass.rls42501 &&
+            !_didSessionRefreshThisSync) {
+          _didSessionRefreshThisSync = true;
+          try {
+            await Supabase.instance.client.auth.refreshSession();
             await _pushOne(item, def);
             await _removeOutbox(item.seq);
             count++;
