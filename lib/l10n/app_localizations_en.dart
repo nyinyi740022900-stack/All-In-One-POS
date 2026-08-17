@@ -1457,6 +1457,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseTxnId => 'Transaction ID (last 6 digits)';
 
   @override
+  String get licenseFixConnection => 'Fix connection issue';
+
+  @override
+  String get licenseFixConnectionHint =>
+      'If Publish/Register keeps saying your session needs refreshing even after reopening the app, try this — it reconnects your device without losing any data.';
+
+  @override
+  String get licenseFixConnectionSuccess =>
+      'Connection fixed — please try again.';
+
+  @override
   String get licenseDeactivate => 'Remove license';
 
   @override

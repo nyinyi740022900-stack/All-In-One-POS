@@ -1460,6 +1460,17 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseTxnId => 'Transaction ID (နောက်ဆုံး ၆ လုံး)';
 
   @override
+  String get licenseFixConnection => 'Connection ပြဿနာ ပြင်ရန်';
+
+  @override
+  String get licenseFixConnectionHint =>
+      'App ကို ပိတ်ပြီးပြန်ဖွင့်ပြီးနောက်တောင် Publish/Register ကနေ \"session needs refreshing\" ဆိုတာ ထပ်ခါထပ်ခါ ပြနေရင် ဒါကို စမ်းကြည့်ပါ — ဒေတာ ဘာမှ မပျောက်ဘဲ device ကို ပြန်ချိတ်ဆက်ပေးပါလိမ့်မယ်။';
+
+  @override
+  String get licenseFixConnectionSuccess =>
+      'Connection ပြင်ပြီးပါပြီ — ထပ်စမ်းကြည့်ပါ။';
+
+  @override
   String get licenseDeactivate => 'လိုင်စင် ဖယ်ရှား';
 
   @override

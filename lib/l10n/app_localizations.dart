@@ -2804,6 +2804,24 @@ abstract class AppLocalizations {
   /// **'Transaction ID (last 6 digits)'**
   String get licenseTxnId;
 
+  /// No description provided for @licenseFixConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix connection issue'**
+  String get licenseFixConnection;
+
+  /// No description provided for @licenseFixConnectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If Publish/Register keeps saying your session needs refreshing even after reopening the app, try this — it reconnects your device without losing any data.'**
+  String get licenseFixConnectionHint;
+
+  /// No description provided for @licenseFixConnectionSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection fixed — please try again.'**
+  String get licenseFixConnectionSuccess;
+
   /// No description provided for @licenseDeactivate.
   ///
   /// In en, this message translates to:

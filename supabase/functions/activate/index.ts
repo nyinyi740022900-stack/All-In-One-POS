@@ -233,6 +233,25 @@ Deno.serve(async (req) => {
       body.device_id ?? "",
     );
   }
+  if (action === "resync_session") {
+    // Recovery path for a device whose Supabase session lost its shop_id
+    // claim in a way an ordinary refreshSession() retry can't fix (e.g. the
+    // local refresh token itself is gone — a plain refresh throws before
+    // any network call, so no amount of client-side retrying ever reaches
+    // this server to pick up the corrected claim). The client is expected
+    // to sign out + sign back in anonymously *before* calling this, so
+    // `userData.user` here is a fresh identity with no shop_id yet — this
+    // just re-stamps it from the device's own already-issued license,
+    // found by device_id rather than by key (the client may only have the
+    // 'TRIAL' local placeholder, not the real per-license key — see
+    // LicenseRepository.startFreeTrial's own doc comment on that
+    // placeholder). Rate-limited like every other action that accepts an
+    // arbitrary-ish client-supplied identifier.
+    if (!(await checkAndRecordRateLimit(admin, ip))) {
+      return json({ ok: false, error: "rate_limited" }, 200);
+    }
+    return handleResyncSession(admin, userData.user, body.device_id ?? "");
+  }
   if (action === "start_trial") {
     // No email/password on this path (that's the point), so device_id is
     // the only farming signal — a dedicated IP throttle, since removing the
@@ -955,6 +974,45 @@ async function deviceAlreadyHasTrial(
 }
 
 const SELF_SERVE_TRIAL_MONTHS = 2;
+
+// Re-stamps app_metadata.shop_id on the CALLING session from an existing
+// license found by device_id — the recovery half of `resync_session`
+// (see its dispatch comment above for why this exists: a session whose
+// local refresh token is simply gone can't be fixed by refreshing it, only
+// by attaching a fresh session to the shop it already owns). Looks up by
+// device_id, not key, since a self-serve trial's cached key on the client
+// is just the local 'TRIAL' placeholder — the client genuinely doesn't
+// know its own real per-license key.
+async function handleResyncSession(
+  admin: AdminClient,
+  user: SupabaseUser,
+  deviceId: string,
+): Promise<Response> {
+  if (!deviceId) return json({ ok: false, error: "bad_request" }, 400);
+
+  const { data: license, error: licErr } = await admin
+    .from("licenses")
+    .select("*")
+    .eq("device_id", deviceId)
+    .eq("is_deleted", false)
+    .maybeSingle();
+  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+  if (!license) return json({ ok: false, error: "not_found" }, 200);
+
+  const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: { shop_id: license.shop_id },
+  });
+  if (metaErr) return json({ ok: false, error: "server_error" }, 500);
+
+  return json({
+    ok: true,
+    shop_id: license.shop_id,
+    plan: license.plan,
+    expires_at: license.expires_at,
+    activated_at: license.activated_at,
+    tier: license.tier ?? "offline",
+  }, 200);
+}
 
 // Self-serve, no-account trial mint for a device currently on the local
 // Free plan (or never activated at all) — the in-app "Try Premium" button's

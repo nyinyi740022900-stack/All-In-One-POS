@@ -333,6 +333,30 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
+  Future<void> _repairSession() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final result = await ref
+          .read(licenseControllerProvider.notifier)
+          .repairSession();
+      final String msg;
+      if (result.ok) {
+        msg = l.licenseFixConnectionSuccess;
+      } else if (result.errorCode == 'rate_limited') {
+        msg = l.licenseRateLimited;
+      } else if (result.errorCode == 'network_error') {
+        msg = l.commonNetworkError;
+      } else {
+        msg = l.licenseActivateFailed;
+      }
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -481,6 +505,22 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 hasAccount ? l.licenseRenewHintOnline : l.licenseRenewHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (!hasAccount) ...[
+                const SizedBox(height: AppTheme.space2),
+                TextButton.icon(
+                  onPressed: _busy ? null : _repairSession,
+                  icon: const Icon(Icons.build_outlined),
+                  label: Text(l.licenseFixConnection),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.space4),
+                  child: Text(
+                    l.licenseFixConnectionHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
               const SizedBox(height: AppTheme.space2),
               TextButton.icon(
                 onPressed: _confirmDeactivate,

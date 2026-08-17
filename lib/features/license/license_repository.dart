@@ -188,6 +188,66 @@ class LicenseRepository {
     }
   }
 
+  /// Last-resort recovery when [refreshSessionAndVerifyClaim] keeps failing
+  /// even after its own retry — the signal that this device's local session
+  /// isn't merely *stale* (an ordinary `refreshSession()` would fix that)
+  /// but has lost its refresh token entirely, so refreshing it can never
+  /// succeed no matter how many times it's attempted (confirmed in
+  /// production: zero successful refreshes across dozens of attempts over
+  /// 24+ hours for one real device). The only way out is a genuinely fresh
+  /// session: sign out (clears only the local Supabase Auth session — the
+  /// local Drift database with all of this shop's actual data is completely
+  /// untouched), sign back in anonymously (a brand new session with a valid
+  /// refresh token from the moment it's created), then ask the server to
+  /// re-stamp *that* session with this device's existing shop_id claim,
+  /// found by device_id rather than by key since a self-serve trial's
+  /// cached key is only ever the local [trialKey] placeholder — the real
+  /// per-license key was never sent to (or knowable by) the client.
+  Future<ActivationResult> repairSession() async {
+    if (!Env.hasBackend) return const ActivationResult.failure('no_backend');
+    final current = await this.current();
+    if (current == null) {
+      return const ActivationResult.failure('not_activated');
+    }
+    final deviceId = await _settings.deviceId();
+    final auth = Supabase.instance.client.auth;
+    try {
+      try {
+        await auth.signOut();
+      } catch (_) {}
+      await auth.signInAnonymously();
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'resync_session', 'device_id': deviceId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] != true) {
+        return ActivationResult.failure(
+            (data['error'] as String?) ?? 'server_error');
+      }
+      final now = DateTime.now();
+      // shop_id/device_id are unchanged by design — resync_session looks the
+      // license up by this exact device_id, so the shop_id it returns is
+      // always this device's own shop; copyWith doesn't (and shouldn't)
+      // let either be overridden.
+      final lic = current.copyWith(
+        plan: _planFrom(data['plan'] as String? ?? 'monthly'),
+        expiresAt: DateTime.parse(data['expires_at'] as String),
+        lastVerifiedAt: now,
+        tier: data['tier'] as String? ?? 'offline',
+      );
+      // The fresh session should carry the claim immediately (it was just
+      // stamped, synchronously, before this response came back) — verify
+      // rather than assume, same discipline every other mint/activate path
+      // here already follows.
+      final verified = await refreshSessionAndVerifyClaim(lic.shopId);
+      if (!verified) return const ActivationResult.failure('network_error');
+      return ActivationResult.success(await _save(lic));
+    } catch (_) {
+      return const ActivationResult.failure('network_error');
+    }
+  }
+
   /// Enters the Free plan from scratch — no key, no account, no network call.
   /// Core POS features (Sell/Inventory/etc.) work immediately and forever;
   /// only Premium-gated features stay locked (see `PremiumGate`). The shop_id
