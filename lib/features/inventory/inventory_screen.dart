@@ -164,7 +164,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           Expanded(
             child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => ErrorRetryView(
+          message: l.commonUnexpectedError,
+          onRetry: () => ref.invalidate(productsStreamProvider),
+        ),
         data: (_) {
           if (products.isEmpty) {
             final searching =

@@ -66,7 +66,10 @@ class OwnerEquityScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppTheme.space4),
             child: summaryAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => Text(l.commonUnexpectedError),
+              error: (_, _) => ErrorRetryView(
+                message: l.commonUnexpectedError,
+                onRetry: () => ref.invalidate(equitySummaryProvider),
+              ),
               data: (s) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

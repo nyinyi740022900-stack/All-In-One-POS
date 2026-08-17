@@ -70,7 +70,10 @@ class StockHistoryScreen extends ConsumerWidget {
       ),
       body: movements.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => ErrorRetryView(
+          message: l.commonUnexpectedError,
+          onRetry: () => ref.invalidate(stockMovementsProvider(productId)),
+        ),
         data: (list) {
           if (list.isEmpty) {
             return EmptyStateView(

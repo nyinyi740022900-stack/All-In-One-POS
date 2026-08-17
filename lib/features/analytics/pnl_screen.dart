@@ -231,6 +231,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         error: (_, _) => EmptyStateView(
           icon: Icons.error_outline,
           title: l.commonUnexpectedError,
+          actionLabel: l.commonRetry,
+          onAction: () => ref.invalidate(pnlStatementProvider),
         ),
         data: (p) {
           // Only a *loss* gets colour. Painting a healthy net profit green

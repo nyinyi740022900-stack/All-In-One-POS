@@ -94,6 +94,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
         error: (e, _) => EmptyStateView(
           icon: Icons.error_outline,
           title: l.commonUnexpectedError,
+          actionLabel: l.commonRetry,
+          onAction: () => ref.invalidate(saleDetailProvider(saleId)),
         ),
         data: (d) {
           final s = d.sale;

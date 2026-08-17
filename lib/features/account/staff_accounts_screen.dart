@@ -170,6 +170,8 @@ class _StaffAccountsBody extends ConsumerWidget {
         child: EmptyStateView(
           icon: Icons.error_outline,
           title: l.accountActionFailed,
+          actionLabel: l.commonRetry,
+          onAction: () => ref.invalidate(staffAccountsProvider),
         ),
       ),
       data: (staff) {

@@ -59,7 +59,10 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
 
     final body = sales.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => ErrorRetryView(
+          message: l.commonUnexpectedError,
+          onRetry: () => ref.invalidate(salesStreamProvider),
+        ),
         data: (all) {
           var list = filter == InvoiceFilter.credit
               ? all.where((s) => owedOf(s) > 0).toList()

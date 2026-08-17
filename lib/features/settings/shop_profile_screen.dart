@@ -149,7 +149,10 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       appBar: AppBar(title: Text(l.settingsShop)),
       body: profile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+        error: (e, _) => ErrorRetryView(
+          message: l.commonUnexpectedError,
+          onRetry: () => ref.invalidate(shopProfileProvider),
+        ),
         data: (p) {
           _hydrate(p);
           return Form(

@@ -94,6 +94,8 @@ class StaffMembersScreen extends ConsumerWidget {
           child: EmptyStateView(
             icon: Icons.error_outline,
             title: l.commonUnexpectedError,
+            actionLabel: l.commonRetry,
+            onAction: () => ref.invalidate(staffMembersProvider),
           ),
         ),
         data: (list) {

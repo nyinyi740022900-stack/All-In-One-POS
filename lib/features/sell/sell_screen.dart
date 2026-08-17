@@ -160,7 +160,10 @@ class SellScreen extends ConsumerWidget {
         Expanded(
           child: products.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(l.commonUnexpectedError)),
+            error: (e, _) => ErrorRetryView(
+              message: l.commonUnexpectedError,
+              onRetry: () => ref.invalidate(productsStreamProvider),
+            ),
             data: (_) {
               if (filtered.isEmpty) {
                 final searching =

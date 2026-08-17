@@ -777,6 +777,59 @@ class SummaryRow extends StatelessWidget {
   }
 }
 
+/// A load failure with an actual recovery path, not a dead end — icon +
+/// message + a "Retry" button that invalidates the failed provider. Use this
+/// instead of a bare `Center(child: Text(...))` on an `AsyncValue`/`.when()`
+/// error branch.
+///
+/// Mirrors the shape `storefront_screen.dart`'s `_ErrorRetryView` and
+/// `branches_screen.dart`'s inline error view established first, promoted to
+/// a shared widget so screens that only had a dead-end error branch (Sell,
+/// Inventory, Categories, Stock History, Orders, Invoices, Shop Profile,
+/// Equity) don't each hand-roll their own copy.
+class ErrorRetryView extends StatelessWidget {
+  const ErrorRetryView({
+    super.key,
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppColors.of(context).muted,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l.commonRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// A short inline validation/error message with an icon on a soft danger
 /// tint — the standard treatment for form errors app-wide (was previously a
 /// bare red `Text(...)` per screen, with no consistent shape/spacing).
