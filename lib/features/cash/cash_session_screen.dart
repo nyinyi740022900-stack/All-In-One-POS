@@ -148,6 +148,7 @@ class _OpenCard extends ConsumerWidget {
     final sym = l.currencySymbol;
     final expected = ref.watch(expectedCashProvider);
     final df = DateFormat('yyyy-MM-dd HH:mm');
+    final colors = AppColors.of(context);
 
     return Card(
       child: Padding(
@@ -178,7 +179,18 @@ class _OpenCard extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2)),
-                  error: (e, _) => const Text('—'),
+                  error: (e, _) => Tooltip(
+                    message: l.commonUnexpectedError,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.error_outline,
+                            size: 16, color: colors.danger),
+                        const SizedBox(width: 4),
+                        Text('—', style: TextStyle(color: colors.danger)),
+                      ],
+                    ),
+                  ),
                   data: (v) => MoneyText(
                     Money(v ?? 0).withSymbol(sym),
                     emphasis: true,

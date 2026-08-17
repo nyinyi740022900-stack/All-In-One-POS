@@ -1262,6 +1262,12 @@ abstract class AppLocalizations {
   /// **'Cancel this purchase order? Stock will not be affected.'**
   String get poCancelConfirmTitle;
 
+  /// No description provided for @poCancelConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This marks the order as cancelled and it can no longer be received. Your stock is not touched. This can\'t be undone.'**
+  String get poCancelConfirmBody;
+
   /// No description provided for @poDeleteConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -3728,6 +3734,12 @@ abstract class AppLocalizations {
   /// **'Backup failed: {error}'**
   String backupFailed(String error);
 
+  /// No description provided for @backupInvalidFile.
+  ///
+  /// In en, this message translates to:
+  /// **'This doesn\'t look like a valid backup file.'**
+  String get backupInvalidFile;
+
   /// No description provided for @settingsSync.
   ///
   /// In en, this message translates to:
@@ -4760,6 +4772,12 @@ abstract class AppLocalizations {
   /// **'Sorry, one of your items just sold out online. Please adjust your cart and try again.'**
   String get storefrontOutOfStock;
 
+  /// No description provided for @storefrontInvalidProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the items in your cart is no longer available. Please remove it and try again.'**
+  String get storefrontInvalidProduct;
+
   /// No description provided for @storefrontOnlineLeft.
   ///
   /// In en, this message translates to:
@@ -5012,6 +5030,12 @@ abstract class AppLocalizations {
   /// **'Request submitted! We\'ll review your payment and extend your subscription soon.'**
   String get storefrontRenewSubmitted;
 
+  /// No description provided for @storefrontRenewRequestId.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference: {requestId}'**
+  String storefrontRenewRequestId(String requestId);
+
   /// No description provided for @storefrontRenewFailed.
   ///
   /// In en, this message translates to:
@@ -5029,6 +5053,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.'**
   String get storefrontRenewMissingFields;
+
+  /// No description provided for @storefrontRenewMonthsTooHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Months can\'t be more than 60 (5 years). Please enter a smaller number.'**
+  String get storefrontRenewMonthsTooHigh;
 
   /// No description provided for @onboardWelcomeTitle.
   ///

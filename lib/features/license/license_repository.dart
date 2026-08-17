@@ -18,6 +18,19 @@ import 'offline_license.dart';
 class LicenseRepository {
   LicenseRepository(this._settings);
 
+  /// Local placeholder `CachedLicense.key` for a self-serve trial minted by
+  /// [startFreeTrial] — there's no per-key server lookup for this plan type
+  /// (same convention `signupShop`'s `'SIGNUP'` key already uses). Named here
+  /// so every comparison site (this file, `license_providers.dart`) shares
+  /// one source instead of re-typing the literal — a re-typed copy is
+  /// exactly what caused `refreshOnline` to silently check a dead
+  /// `'FREE-TRIAL'` string instead of this value.
+  static const String trialKey = 'TRIAL';
+
+  /// Local placeholder `CachedLicense.key` for the Free plan — see
+  /// [startFreePlan] / [downgradeToFree]. Same rationale as [trialKey].
+  static const String freeKey = 'FREE';
+
   final SettingsRepository _settings;
 
   Future<CachedLicense?> current() async {
@@ -122,7 +135,7 @@ class LicenseRepository {
   /// `deviceAlreadyHasTrial`). No email/password, unlike the sibling
   /// `signup_shop` flow (`AccountRepository.signupShop`) — this stamps
   /// `app_metadata.shop_id` on the caller's own (possibly anonymous)
-  /// session instead of creating a separate account. `'TRIAL'` is a local
+  /// session instead of creating a separate account. [trialKey] is a local
   /// placeholder key, same
   /// non-lookup-able-but-harmless convention `signupShop`'s `'SIGNUP'` key
   /// already uses — there's no per-key server lookup for this plan type.
@@ -146,7 +159,7 @@ class LicenseRepository {
       }
       final now = DateTime.now();
       final lic = CachedLicense(
-        key: 'TRIAL',
+        key: trialKey,
         shopId: data['shop_id'] as String,
         plan: LicensePlan.trial,
         expiresAt: DateTime.parse(data['expires_at'] as String),
@@ -184,7 +197,7 @@ class LicenseRepository {
     final deviceId = await _settings.deviceId();
     final now = DateTime.now();
     return (await _save(CachedLicense(
-      key: 'FREE',
+      key: freeKey,
       shopId: 'free-${deviceId.replaceAll('-', '').substring(0, 10)}',
       plan: LicensePlan.free,
       expiresAt: now,
@@ -202,7 +215,7 @@ class LicenseRepository {
   Future<CachedLicense> downgradeToFree(CachedLicense current) async {
     final now = DateTime.now();
     return (await _save(current.copyWith(
-      key: 'FREE',
+      key: freeKey,
       plan: LicensePlan.free,
       expiresAt: now,
       lastVerifiedAt: now,

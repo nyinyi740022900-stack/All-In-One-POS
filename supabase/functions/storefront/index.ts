@@ -216,8 +216,9 @@ async function handleSubmitLicenseRequest(
   }
 
   const now = new Date().toISOString();
+  const requestId = crypto.randomUUID();
   const { error } = await admin.from("license_requests").insert({
-    id: crypto.randomUUID(),
+    id: requestId,
     shop_name: shopName,
     shop_id: shopId,
     device_id: deviceId,
@@ -239,7 +240,10 @@ async function handleSubmitLicenseRequest(
   if (error) {
     return json({ error: "server_error", detail: error.message }, 500);
   }
-  return json({ ok: true });
+  // The id is already known (generated above, before insert) — return it so
+  // the /renew page can show the owner a reference number for their
+  // submission, same as submit_order's order_no.
+  return json({ ok: true, request_id: requestId });
 }
 
 Deno.serve(async (req) => {

@@ -57,6 +57,7 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.poCancelConfirmTitle),
+        content: Text(l.poCancelConfirmBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),

@@ -634,6 +634,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီကုန်ဝယ်အမှာစာကို ပယ်ဖျက်မလား? Stock ကို မထိခိုက်ပါ။';
 
   @override
+  String get poCancelConfirmBody =>
+      'ဒါက ဒီအော်ဒါကို ပယ်ဖျက်ခြင်းအဖြစ် မှတ်သားပြီး နောက်ထပ် လက်ခံရရှိကြောင်း မှတ်သား၍ မရတော့ပါ။ Stock ကို မထိခိုက်ပါ။ ဒါကို ပြန်ပြင်လို့ မရပါ။';
+
+  @override
   String get poDeleteConfirmTitle => 'ဒီကုန်ဝယ်အမှာစာကို ဖျက်မလား?';
 
   @override
@@ -2012,6 +2016,9 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get backupInvalidFile => 'ဒါက မှန်ကန်တဲ့ backup ဖိုင် မဟုတ်ပုံရပါတယ်။';
+
+  @override
   String get settingsSync => 'Cloud ချိတ်ဆက်မှု';
 
   @override
@@ -2580,6 +2587,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'စိတ်မကောင်းပါဘူး၊ Cart ထဲက ပစ္စည်းတစ်ခု Online မှာ ကုန်သွားပါပြီ။ Cart ကို ပြင်ပြီး ထပ်ကြိုးစားပါ။';
 
   @override
+  String get storefrontInvalidProduct =>
+      'Cart ထဲက ပစ္စည်းတစ်ခုသည် ရရှိနိုင်တော့ပါ။ ၎င်းကို ဖယ်ရှားပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
   String storefrontOnlineLeft(int count) {
     return 'Online ကျန် $count ခု';
   }
@@ -2733,6 +2744,11 @@ class AppLocalizationsMy extends AppLocalizations {
       'တောင်းဆိုမှု ပို့ပြီးပါပြီ! သင့်ငွေပေးချေမှုကို စစ်ဆေးပြီး မကြာမီ သက်တမ်းတိုးပေးပါမည်။';
 
   @override
+  String storefrontRenewRequestId(String requestId) {
+    return 'ကိုးကားနံပါတ်: $requestId';
+  }
+
+  @override
   String get storefrontRenewFailed =>
       'တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်မံကြိုးစားပါ ဒါမှမဟုတ် support ကို ဆက်သွယ်ပါ။';
 
@@ -2743,6 +2759,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontRenewMissingFields =>
       'ဆိုင်အမည်၊ App Reference ID (သို့) email၊ လအရေအတွက်၊ ငွေပမာဏနှင့် transaction number ရဲ့ နောက်ဆုံး ၆ လုံးတို့ကို ဖြည့်သွင်းပါ။';
+
+  @override
+  String get storefrontRenewMonthsTooHigh =>
+      'လအရေအတွက်သည် ၆၀ လ (၅ နှစ်) ထက် ပိုမနိုင်ပါ။ ကျေးဇူးပြု၍ ပိုနည်းသောနံပါတ်တစ်ခု ထည့်ပါ။';
 
   @override
   String get onboardWelcomeTitle => 'All In One POS မှ ကြိုဆိုပါတယ်';

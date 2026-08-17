@@ -284,7 +284,10 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
                 TextField(
                   controller: _deliveryFee,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(9),
+                  ],
                   decoration: InputDecoration(
                     labelText: l.orderDeliveryFee,
                     suffixText: sym,
@@ -364,7 +367,10 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
             child: TextField(
               controller: line.price,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(9),
+              ],
               decoration:
                   InputDecoration(labelText: l.orderItemPrice, isDense: true),
               onChanged: (_) => setState(() {}),
@@ -376,7 +382,10 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
             child: TextField(
               controller: line.qty,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(9),
+              ],
               decoration:
                   InputDecoration(labelText: l.orderItemQty, isDense: true),
               onChanged: (_) => setState(() {}),

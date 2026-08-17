@@ -113,12 +113,22 @@ class OwnerEquityScreen extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: MoneyText(
-                          '${isContribution ? '+' : '-'}${Money(e.amount).withSymbol(cur)}',
-                          emphasis: true,
-                          color: isContribution ? colors.success : colors.danger,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            MoneyText(
+                              '${isContribution ? '+' : '-'}${Money(e.amount).withSymbol(cur)}',
+                              emphasis: true,
+                              color:
+                                  isContribution ? colors.success : colors.danger,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: l.commonDelete,
+                              onPressed: () => _confirmDelete(context, ref, e),
+                            ),
+                          ],
                         ),
-                        onLongPress: () => _confirmDelete(context, ref, e),
                       );
                     },
                   ),

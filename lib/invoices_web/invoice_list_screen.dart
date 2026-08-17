@@ -76,6 +76,23 @@ class InvoiceRow {
       );
 }
 
+/// Classifies a raw Supabase-fetch failure into a real sentence — this
+/// screen makes a direct `.from('sales').select()` REST call (no local
+/// cache/sync layer to fall back on), so any offline/network hiccup here
+/// surfaces straight from the client. Reuses the same shared keys
+/// `activate_screen.dart`'s `_errorMessage` reaches for on this web target.
+String _loadErrorMessage(AppLocalizations l, Object error) {
+  final text = error.toString().toLowerCase();
+  if (text.contains('socketexception') ||
+      text.contains('clientexception') ||
+      text.contains('failed host lookup') ||
+      text.contains('failed to fetch') ||
+      text.contains('network')) {
+    return l.commonNetworkError;
+  }
+  return l.commonUnexpectedError;
+}
+
 class InvoiceListScreen extends StatefulWidget {
   const InvoiceListScreen(
       {super.key, required this.locale, required this.onToggleLocale});
@@ -128,7 +145,12 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('${snap.error}'));
+            return EmptyStateView(
+              icon: Icons.error_outline,
+              title: _loadErrorMessage(l, snap.error!),
+              actionLabel: l.commonRetry,
+              onAction: () => setState(() => _future = _load()),
+            );
           }
           final all = snap.data ?? const <InvoiceRow>[];
           final q = _query.trim().toLowerCase();

@@ -102,6 +102,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             ? l.licenseInvalidKey
             : result.errorCode == 'rate_limited'
             ? l.licenseRateLimited
+            : result.errorCode == 'network_error'
+            ? l.commonNetworkError
             : l.licenseActivateFailed;
         messenger.showSnackBar(SnackBar(content: Text(msg)));
       } else {
@@ -164,6 +166,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         final msg = switch (result.errorCode) {
           'trial_already_used' => l.licenseTrialUsed,
           'rate_limited' => l.licenseRateLimited,
+          'network_error' => l.commonNetworkError,
           _ => l.licenseActivateFailed,
         };
         messenger.showSnackBar(SnackBar(content: Text(msg)));
@@ -319,8 +322,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         msg = l.licenseInvalidKey;
       } else if (result.errorCode == 'rate_limited') {
         msg = l.licenseRateLimited;
+      } else if (result.errorCode == 'network_error') {
+        msg = l.commonNetworkError;
       } else {
-        msg = l.licenseActivateFailed; // network / auth
+        msg = l.licenseActivateFailed; // auth
       }
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     } finally {

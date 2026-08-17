@@ -43,24 +43,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _error = null;
     });
     try {
-      final licenses = await widget.api.listLicenses();
-      final requests = await widget.api.listRequests();
-      final events = await widget.api.listEvents();
-      final referrals = await widget.api.listReferrals();
-      final commissions = await widget.api.listCommissions();
-      final shops = await widget.api.listShops();
-      final config = await widget.api.getConfig();
+      // All 7 calls are independent reads (none depends on another's
+      // result) — parallelize instead of 7 sequential round-trips, so a
+      // slow connection doesn't leave the tab showing stale data for
+      // several seconds after an action's success snackbar already fired.
+      final results = await Future.wait<dynamic>([
+        widget.api.listLicenses(),
+        widget.api.listRequests(),
+        widget.api.listEvents(),
+        widget.api.listReferrals(),
+        widget.api.listCommissions(),
+        widget.api.listShops(),
+        widget.api.getConfig(),
+      ]);
+      if (!mounted) return;
       setState(() {
-        _licenses = licenses;
-        _requests = requests;
-        _events = events;
-        _referrals = referrals;
-        _commissions = commissions;
-        _shops = shops;
-        _config = config;
+        _licenses = results[0] as List<Map<String, dynamic>>;
+        _requests = results[1] as List<Map<String, dynamic>>;
+        _events = results[2] as List<Map<String, dynamic>>;
+        _referrals = results[3] as List<Map<String, dynamic>>;
+        _commissions = results[4] as List<Map<String, dynamic>>;
+        _shops = results[5] as List<Map<String, dynamic>>;
+        _config = results[6] as Map<String, String>;
       });
     } catch (e) {
-      setState(() => _error = '$e');
+      if (!mounted) return;
+      setState(() => _error = _adminErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -122,8 +130,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               tooltip: 'Sign out',
               icon: const Icon(Icons.logout),
               onPressed: () async {
-                await widget.api.signOut();
-                widget.onSignedOut();
+                try {
+                  await widget.api.signOut();
+                  widget.onSignedOut();
+                } catch (e) {
+                  _snack(_adminErrorMessage(e));
+                }
               },
             ),
           ],
@@ -133,33 +145,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: const Icon(Icons.add),
           label: const Text('Generate key'),
         ),
-        body: _error != null
-            ? _ErrorView(message: _error!, onRetry: _reload)
-            : _loading && _licenses == null
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(children: [
-                    _LicensesTab(rows: _licenses ?? const []),
-                    _RequestsTab(
-                      rows: _requests ?? const [],
-                      onConfirm: _confirmPayment,
-                      onDecline: _declineRequest,
-                    ),
-                    _HistoryTab(rows: _events ?? const []),
-                    _ReferralsTab(
-                      commissions: _commissions ?? const [],
-                      referrals: _referrals ?? const [],
-                      onApplyCredit: _applyCredit,
-                    ),
-                    _ShopsTab(
-                      rows: _shops ?? const [],
-                      onGenerateKey: (shopId) =>
-                          _generateKey(initialShopId: shopId),
-                    ),
-                    _ConfigTab(
-                      initial: _config ?? const {},
-                      onSave: _saveConfig,
-                    ),
-                  ]),
+        body: Column(
+          children: [
+            // Distinct from the initial-load spinner below: shown on top of
+            // already-loaded data during a background reload, so a refresh
+            // in flight after an action's success snackbar doesn't look
+            // like the action silently did nothing.
+            if (_loading && _licenses != null)
+              const LinearProgressIndicator(minHeight: 2),
+            Expanded(
+              child: _error != null
+                  ? _ErrorView(message: _error!, onRetry: _reload)
+                  : _loading && _licenses == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : TabBarView(children: [
+                          _LicensesTab(rows: _licenses ?? const []),
+                          _RequestsTab(
+                            rows: _requests ?? const [],
+                            onConfirm: _confirmPayment,
+                            onDecline: _declineRequest,
+                          ),
+                          _HistoryTab(rows: _events ?? const []),
+                          _ReferralsTab(
+                            commissions: _commissions ?? const [],
+                            referrals: _referrals ?? const [],
+                            onApplyCredit: _applyCredit,
+                          ),
+                          _ShopsTab(
+                            rows: _shops ?? const [],
+                            onGenerateKey: (shopId) =>
+                                _generateKey(initialShopId: shopId),
+                          ),
+                          _ConfigTab(
+                            initial: _config ?? const {},
+                            onSave: _saveConfig,
+                          ),
+                        ]),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -201,7 +225,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _snack('This shop already has a license — use Extend instead of '
           'Generate key.');
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -259,7 +283,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       );
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -283,7 +307,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           : 'No license bound to that code.');
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -304,7 +328,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           : 'Extended to ${outcome.expiresAt}');
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -335,7 +359,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -353,7 +377,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _snack('Request declined.');
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -370,7 +394,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -380,7 +404,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _snack('Config saved');
       _reload();
     } catch (e) {
-      _snack('$e');
+      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -390,5 +414,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           .showSnackBar(SnackBar(content: Text(msg)));
     }
   }
+}
+
+/// Maps the raw error codes thrown by [AdminApi._throwIfError] (and the
+/// backend's `admin` Edge Function — see `supabase/functions/admin/index.ts`)
+/// to real sentences, the same way `admin_login_screen.dart`'s `_signIn`
+/// already does for sign-in. This console has no l10n pipeline (English
+/// only, by design), so these stay literal strings. Falls back to the raw
+/// exception text only for a code this function doesn't recognize, so an
+/// unmapped backend error is still visible (for support/debugging) rather
+/// than silently swallowed.
+String _adminErrorMessage(Object e) {
+  final raw = e.toString();
+  // AdminApi._throwIfError throws Exception('$code') or
+  // Exception('$code: $detail') — pull just the leading code token.
+  final code = RegExp(r'^Exception: (\w+)').firstMatch(raw)?.group(1);
+  switch (code) {
+    case 'not_found':
+      return 'No shop found matching that email or App Reference ID.';
+    case 'forbidden':
+      return "You don't have permission for this.";
+    case 'not_authenticated':
+      return 'Your session expired — sign in again.';
+    case 'bad_request':
+      return 'That request was missing required information.';
+    case 'server_error':
+      return 'Something went wrong on the server — try again.';
+    case 'unknown_action':
+      return "That action isn't supported.";
+    case 'method_not_allowed':
+      return 'Something went wrong on the server — try again.';
+    case 'license_already_exists':
+      return 'This shop already has a license.';
+  }
+  final lower = raw.toLowerCase();
+  if (lower.contains('socketexception') ||
+      lower.contains('failed host lookup') ||
+      lower.contains('clientexception') ||
+      lower.contains('network')) {
+    return 'Network error — check your connection and try again.';
+  }
+  return raw.replaceFirst('Exception: ', '');
 }
 

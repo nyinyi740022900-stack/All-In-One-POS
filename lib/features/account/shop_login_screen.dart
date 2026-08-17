@@ -61,6 +61,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
     'wrong_password' => l.accountDeleteWrongPassword,
     'forbidden' => l.accountDeleteOwnerOnly,
+    'network_error' => l.commonNetworkError,
     _ => l.accountActionFailed,
   };
 

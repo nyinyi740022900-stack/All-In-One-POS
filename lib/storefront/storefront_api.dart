@@ -168,7 +168,9 @@ class StorefrontApi {
   /// Submits a subscription-renewal request from the /renew page — the shop
   /// owner identifies themselves by [deviceId] (their own "App Reference
   /// ID"), not a slug or session. Reviewed by the admin in the Requests tab.
-  Future<void> submitLicenseRequest({
+  /// Returns the new `license_requests` row's id — a reference number the
+  /// page can show the owner, mirroring [submitOrder]'s `order_no`.
+  Future<String> submitLicenseRequest({
     required String shopName,
     required String deviceId,
     String? email,
@@ -198,6 +200,7 @@ class StorefrontApi {
     if (res.status != 200 || (res.data is Map && res.data['ok'] != true)) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
+    return (res.data as Map)['request_id'] as String? ?? '';
   }
 
   /// Payment-account info (KBZPay/WavePay name+number) to show a shop owner

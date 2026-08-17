@@ -18,6 +18,24 @@ import 'storefront_seo.dart';
 final _money = NumberFormat('#,##0', 'en_US');
 String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
 
+/// Last-resort classification for `_submit`'s catch block, for any backend
+/// error code (or client-side failure) not already special-cased above —
+/// e.g. `bad_request`/`server_error`/`invalid_quantity`/`bad_action` from
+/// `supabase/functions/storefront/index.ts`, or a network drop. Without
+/// this, an unrecognized code fell through to the raw `Exception: ...`
+/// string instead of a real sentence.
+String _submitFallbackMessage(AppLocalizations l, String raw) {
+  final lower = raw.toLowerCase();
+  if (lower.contains('socketexception') ||
+      lower.contains('clientexception') ||
+      lower.contains('failed host lookup') ||
+      lower.contains('failed to fetch') ||
+      lower.contains('network')) {
+    return l.commonNetworkError;
+  }
+  return l.commonUnexpectedError;
+}
+
 /// Slim transparent app bar with just a language toggle — the storefront has
 /// no user account/settings to persist a language choice, so it's plain
 /// in-memory state on [StorefrontApp], threaded down to whichever screen is
@@ -519,7 +537,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         ? l.storefrontProofRequired
                         : raw.contains('closed')
                             ? l.storefrontClosed
-                            : raw;
+                            : raw.contains('invalid_product')
+                                ? l.storefrontInvalidProduct
+                                : _submitFallbackMessage(l, raw);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
       }

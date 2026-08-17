@@ -439,6 +439,7 @@ class OrderDetailSheet extends ConsumerWidget {
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(l.commonCancel)),
           FilledButton(
+              style: AppTheme.dangerFilledButtonStyle(dialogContext),
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: Text(l.orderDelete)),
         ],

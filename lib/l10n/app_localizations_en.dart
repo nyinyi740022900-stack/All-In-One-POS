@@ -635,6 +635,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cancel this purchase order? Stock will not be affected.';
 
   @override
+  String get poCancelConfirmBody =>
+      'This marks the order as cancelled and it can no longer be received. Your stock is not touched. This can\'t be undone.';
+
+  @override
   String get poDeleteConfirmTitle => 'Delete this purchase order?';
 
   @override
@@ -1995,6 +1999,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get backupInvalidFile =>
+      'This doesn\'t look like a valid backup file.';
+
+  @override
   String get settingsSync => 'Cloud sync';
 
   @override
@@ -2569,6 +2577,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sorry, one of your items just sold out online. Please adjust your cart and try again.';
 
   @override
+  String get storefrontInvalidProduct =>
+      'One of the items in your cart is no longer available. Please remove it and try again.';
+
+  @override
   String storefrontOnlineLeft(int count) {
     return '$count left online';
   }
@@ -2721,6 +2733,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Request submitted! We\'ll review your payment and extend your subscription soon.';
 
   @override
+  String storefrontRenewRequestId(String requestId) {
+    return 'Reference: $requestId';
+  }
+
+  @override
   String get storefrontRenewFailed =>
       'Something went wrong. Please try again or contact support.';
 
@@ -2731,6 +2748,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontRenewMissingFields =>
       'Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.';
+
+  @override
+  String get storefrontRenewMonthsTooHigh =>
+      'Months can\'t be more than 60 (5 years). Please enter a smaller number.';
 
   @override
   String get onboardWelcomeTitle => 'Welcome to All In One POS';

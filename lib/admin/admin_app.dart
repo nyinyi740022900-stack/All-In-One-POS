@@ -102,8 +102,15 @@ class _NotAuthorized extends StatelessWidget {
             'All In One POS licensing.',
         actionLabel: 'Sign out',
         onAction: () async {
-          await api.signOut();
-          onSignedOut();
+          try {
+            await api.signOut();
+            onSignedOut();
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sign out failed: $e')));
+            }
+          }
         },
       ),
     );

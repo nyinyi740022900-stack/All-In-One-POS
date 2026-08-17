@@ -541,6 +541,8 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
   final _shopName = TextEditingController();
   final _months = TextEditingController(text: '1');
   String _plan = 'monthly';
+  String? _shopIdError;
+  String? _monthsError;
 
   @override
   void dispose() {
@@ -568,8 +570,12 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _shopId,
-            decoration: const InputDecoration(
-                labelText: 'Shop ID (any stable identifier)'),
+            decoration: InputDecoration(
+                labelText: 'Shop ID (any stable identifier)',
+                errorText: _shopIdError),
+            onChanged: (_) {
+              if (_shopIdError != null) setState(() => _shopIdError = null);
+            },
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -592,7 +598,11 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
             controller: _months,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'Duration (months)'),
+            decoration: InputDecoration(
+                labelText: 'Duration (months)', errorText: _monthsError),
+            onChanged: (_) {
+              if (_monthsError != null) setState(() => _monthsError = null);
+            },
           ),
         ],
       ),
@@ -603,14 +613,21 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
         FilledButton(
           onPressed: () {
             final shop = _shopId.text.trim();
-            if (shop.isEmpty) return;
+            final months = int.tryParse(_months.text.trim());
+            setState(() {
+              _shopIdError = shop.isEmpty ? 'Shop ID is required.' : null;
+              _monthsError = (months == null || months <= 0)
+                  ? 'Enter a whole number of months (1 or more).'
+                  : null;
+            });
+            if (_shopIdError != null || _monthsError != null) return;
             Navigator.pop(
               context,
               _KeyRequest(
                 shopId: shop,
                 shopName: _shopName.text.trim(),
                 plan: _plan,
-                months: int.tryParse(_months.text.trim()) ?? 1,
+                months: months!,
               ),
             );
           },
@@ -643,6 +660,8 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
   final _months = TextEditingController(text: '1');
   final _device = TextEditingController();
   String _plan = 'monthly';
+  String? _shopIdError;
+  String? _monthsError;
 
   @override
   void dispose() {
@@ -661,8 +680,13 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-                controller: _shopId,
-                decoration: const InputDecoration(labelText: 'Shop ID')),
+              controller: _shopId,
+              decoration: InputDecoration(
+                  labelText: 'Shop ID', errorText: _shopIdError),
+              onChanged: (_) {
+                if (_shopIdError != null) setState(() => _shopIdError = null);
+              },
+            ),
             const SizedBox(height: AppTheme.space2),
             TextField(
                 controller: _shopName,
@@ -682,7 +706,11 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
               controller: _months,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(labelText: 'Duration (months)'),
+              decoration: InputDecoration(
+                  labelText: 'Duration (months)', errorText: _monthsError),
+              onChanged: (_) {
+                if (_monthsError != null) setState(() => _monthsError = null);
+              },
             ),
             const SizedBox(height: AppTheme.space2),
             TextField(
@@ -700,14 +728,21 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
         FilledButton(
           onPressed: () {
             final shop = _shopId.text.trim();
-            if (shop.isEmpty) return;
+            final months = int.tryParse(_months.text.trim());
+            setState(() {
+              _shopIdError = shop.isEmpty ? 'Shop ID is required.' : null;
+              _monthsError = (months == null || months <= 0)
+                  ? 'Enter a whole number of months (1 or more).'
+                  : null;
+            });
+            if (_shopIdError != null || _monthsError != null) return;
             Navigator.pop(
               context,
               _OfflineRequest(
                 shop,
                 _shopName.text.trim(),
                 _plan,
-                int.tryParse(_months.text.trim()) ?? 1,
+                months!,
                 _device.text.trim(),
               ),
             );
@@ -789,6 +824,8 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
   final _code = TextEditingController();
   final _email = TextEditingController();
   final _months = TextEditingController(text: '1');
+  String? _identifierError;
+  String? _monthsError;
   @override
   void dispose() {
     _code.dispose();
@@ -817,22 +854,38 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _code,
-            decoration: const InputDecoration(
-                labelText: 'App Reference ID / Shop Code'),
+            decoration: InputDecoration(
+                labelText: 'App Reference ID / Shop Code',
+                errorText: _identifierError),
+            onChanged: (_) {
+              if (_identifierError != null) {
+                setState(() => _identifierError = null);
+              }
+            },
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
-            decoration:
-                const InputDecoration(labelText: 'Shop account email'),
+            decoration: InputDecoration(
+                labelText: 'Shop account email',
+                errorText: _identifierError),
+            onChanged: (_) {
+              if (_identifierError != null) {
+                setState(() => _identifierError = null);
+              }
+            },
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _months,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'Extend by (months)'),
+            decoration: InputDecoration(
+                labelText: 'Extend by (months)', errorText: _monthsError),
+            onChanged: (_) {
+              if (_monthsError != null) setState(() => _monthsError = null);
+            },
           ),
         ],
       ),
@@ -844,13 +897,22 @@ class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
           onPressed: () {
             final code = _code.text.trim();
             final email = _email.text.trim();
-            if (code.isEmpty && email.isEmpty) return;
+            final months = int.tryParse(_months.text.trim());
+            setState(() {
+              _identifierError = (code.isEmpty && email.isEmpty)
+                  ? 'Enter an App Reference ID or an email.'
+                  : null;
+              _monthsError = (months == null || months <= 0)
+                  ? 'Enter a whole number of months (1 or more).'
+                  : null;
+            });
+            if (_identifierError != null || _monthsError != null) return;
             Navigator.pop(
               context,
               (
                 code.isEmpty ? null : code,
                 email.isEmpty ? null : email,
-                int.tryParse(_months.text.trim()) ?? 1,
+                months!,
               ),
             );
           },

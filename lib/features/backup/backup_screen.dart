@@ -10,6 +10,18 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'backup_providers.dart';
 
+/// Classifies a raw export/import exception into a translated summary for
+/// `l.backupFailed`'s `{error}` placeholder — previously that placeholder
+/// was filled with the raw Dart exception (`'$e'`), so a Myanmar-locale
+/// user saw mixed-language text (e.g. `BackupService.importReplaceAll`'s
+/// `FormatException('Not an MM POS backup file.')` is always English,
+/// regardless of app locale). Only known exception shapes get a specific
+/// summary; anything else falls back to the shared generic-error string.
+String _backupErrorReason(AppLocalizations l, Object e) {
+  if (e is FormatException) return l.backupInvalidFile;
+  return l.commonUnexpectedError;
+}
+
 /// Export the shop's data to a JSON file (shared via the OS sheet — e.g. to
 /// Viber → My Notes) and restore it back.
 class BackupScreen extends ConsumerStatefulWidget {
@@ -37,7 +49,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       );
     } catch (e) {
       messenger.showSnackBar(
-          SnackBar(content: Text(l.backupFailed('$e'))));
+          SnackBar(content: Text(l.backupFailed(_backupErrorReason(l, e)))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -83,7 +95,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           .showSnackBar(SnackBar(content: Text(l.backupImportDone(count))));
     } catch (e) {
       messenger.showSnackBar(
-          SnackBar(content: Text(l.backupFailed('$e'))));
+          SnackBar(content: Text(l.backupFailed(_backupErrorReason(l, e)))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

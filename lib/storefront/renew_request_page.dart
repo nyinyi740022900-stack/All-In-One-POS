@@ -35,6 +35,12 @@ class RenewRequestPage extends StatefulWidget {
 }
 
 class _RenewRequestPageState extends State<RenewRequestPage> {
+  // 5 years — comfortably covers any real renewal request while guarding
+  // against a fat-fingered huge month count silently computing (and
+  // locking in, via [_amountLocked]) an arbitrarily large Amount with no
+  // warning before submit.
+  static const int _maxMonths = 60;
+
   final _api = StorefrontApi();
   late final Future<Map<String, String>> _paymentConfig;
 
@@ -54,6 +60,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   String _method = 'kbzpay';
   bool _submitting = false;
   bool _submitted = false;
+  String? _requestId;
   List<int>? _proofBytes;
   String? _proofExt;
   String? _proofName;
@@ -96,7 +103,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// count up to the nearest whole year so a mid-year top-up (e.g. 18
   /// months) still charges a sane amount rather than under-charging.
   void _recalcAmount() {
-    final months = int.tryParse(_months.text.trim()) ?? 0;
+    final rawMonths = int.tryParse(_months.text.trim()) ?? 0;
+    final months = rawMonths > _maxMonths ? _maxMonths : rawMonths;
     if (months <= 0) return;
     final int? total;
     if (_plan == 'yearly' && _priceYearly != null) {
@@ -164,6 +172,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     final months = int.tryParse(_months.text.trim()) ?? 0;
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
     final refNo = _refNo.text.trim();
+    if (months > _maxMonths) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.storefrontRenewMonthsTooHigh)),
+      );
+      return;
+    }
     if (shopName.isEmpty ||
         (deviceId.isEmpty && email.isEmpty) ||
         months <= 0 ||
@@ -181,7 +195,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         proofPath =
             await _api.uploadPaymentProof(_proofBytes!, _proofExt ?? 'jpg');
       }
-      await _api.submitLicenseRequest(
+      final requestId = await _api.submitLicenseRequest(
         shopName: shopName,
         deviceId: deviceId,
         email: _email.text.trim(),
@@ -194,7 +208,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         paymentProofPath: proofPath,
         hp: _hp.text,
       );
-      if (mounted) setState(() => _submitted = true);
+      if (mounted) {
+        setState(() {
+          _submitted = true;
+          _requestId = requestId.isEmpty ? null : requestId;
+        });
+      }
     } catch (e) {
       if (mounted) {
         final raw = '$e';
@@ -232,6 +251,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             Text(l.storefrontRenewSubmitted,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium),
+            if (_requestId != null) ...[
+              const SizedBox(height: AppTheme.space2),
+              SelectableText(l.storefrontRenewRequestId(_requestId!),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium),
+            ],
           ],
         ),
       ),
@@ -307,7 +332,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           TextField(
             controller: _months,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2),
+            ],
             decoration: InputDecoration(labelText: l.storefrontRenewMonths),
           ),
           const SizedBox(height: AppTheme.space4),

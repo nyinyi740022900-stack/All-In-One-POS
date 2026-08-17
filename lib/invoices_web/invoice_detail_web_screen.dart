@@ -12,6 +12,21 @@ import 'invoices_web_download.dart';
 /// the same [InvoiceView] used by the mobile app's Share-invoice and the
 /// storefront's order confirmation — then offers a real A4 PDF download
 /// ([buildInvoicePdf]) for printing sharp at full size from a computer.
+/// Classifies a raw Supabase-fetch failure into a real sentence — same
+/// direct-REST-call shape (and same helper) as `invoice_list_screen.dart`'s
+/// `_loadErrorMessage`.
+String _loadErrorMessage(AppLocalizations l, Object error) {
+  final text = error.toString().toLowerCase();
+  if (text.contains('socketexception') ||
+      text.contains('clientexception') ||
+      text.contains('failed host lookup') ||
+      text.contains('failed to fetch') ||
+      text.contains('network')) {
+    return l.commonNetworkError;
+  }
+  return l.commonUnexpectedError;
+}
+
 class InvoiceDetailWebScreen extends StatefulWidget {
   const InvoiceDetailWebScreen({super.key, required this.saleId});
   final String saleId;
@@ -94,7 +109,9 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
           if (snap.hasError) {
             return EmptyStateView(
               icon: Icons.error_outline,
-              title: '${snap.error}',
+              title: _loadErrorMessage(l, snap.error!),
+              actionLabel: l.commonRetry,
+              onAction: () => setState(() => _future = _load()),
             );
           }
           final data = snap.data!;

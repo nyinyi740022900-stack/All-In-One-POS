@@ -124,17 +124,25 @@ class PaymentAccountsScreen extends ConsumerWidget {
                       leading: const IconAvatar(
                           icon: Icons.account_balance_wallet_outlined),
                       title: Text(a.name),
-                      subtitle: MoneyText(
-                        balance.when(
-                          data: (v) => Money(v).withSymbol(l.currencySymbol),
-                          loading: () => '…',
-                          error: (_, _) => '—',
+                      subtitle: balance.when(
+                        data: (v) => MoneyText(
+                          Money(v).withSymbol(l.currencySymbol),
+                          textAlign: TextAlign.left,
+                          color: v < 0 ? colors.danger : null,
                         ),
-                        textAlign: TextAlign.left,
-                        color: balance.when(
-                          data: (v) => v < 0 ? colors.danger : null,
-                          loading: () => null,
-                          error: (_, _) => null,
+                        loading: () =>
+                            const MoneyText('…', textAlign: TextAlign.left),
+                        error: (_, _) => Tooltip(
+                          message: l.commonUnexpectedError,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline,
+                                  size: 14, color: colors.danger),
+                              const SizedBox(width: 4),
+                              Text('—', style: TextStyle(color: colors.danger)),
+                            ],
+                          ),
                         ),
                       ),
                       trailing: IconButton(
