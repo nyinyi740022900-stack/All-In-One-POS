@@ -714,6 +714,14 @@ class MoneyText extends StatelessWidget {
     return Text(
       value,
       textAlign: textAlign,
+      // An amount is never meant to wrap. Without this, a narrow container
+      // (e.g. the storefront product card's price squeezed by the "Add"
+      // button next to it) makes the default multi-line Text wrap character
+      // by character instead of just truncating — every digit on its own
+      // line, and on the storefront that overflow also pushed the Add
+      // button out of its tappable area.
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: base?.copyWith(
         fontFeatures: AppTheme.tabularFigures,
         fontWeight: emphasis ? FontWeight.w700 : base.fontWeight,
