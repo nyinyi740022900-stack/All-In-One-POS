@@ -20,30 +20,39 @@ Future<void> printSaleReceipt(
   final messenger = ScaffoldMessenger.of(context);
   final settings = ref.read(settingsRepositoryProvider);
 
-  final config = await settings.printerConfig();
-  if (!config.hasPrinter) {
-    messenger.showSnackBar(SnackBar(content: Text(l.printerNone)));
-    return;
+  try {
+    final config = await settings.printerConfig();
+    if (!config.hasPrinter) {
+      messenger.showSnackBar(SnackBar(content: Text(l.printerNone)));
+      return;
+    }
+
+    final shop = await ref.read(shopProfileProvider.future);
+    final accounts = ref.read(paymentAccountsProvider).valueOrNull;
+    final data = receiptFromSale(
+      sale,
+      items,
+      shop,
+      paymentMethodLabel:
+          paymentLabel(l, sale.paymentMethod, accounts: accounts),
+      defaultFooter: l.receiptThankYou,
+    );
+
+    final result = await ref.read(printerServiceProvider).printReceipt(
+          data,
+          paper: config.paper,
+          mac: config.mac!,
+          labels: receiptLabels(l),
+        );
+
+    messenger.showSnackBar(SnackBar(
+      content: Text(result.ok ? l.printSuccess : l.printFailed),
+    ));
+  } catch (_) {
+    // Honor the documented contract even when a step before the actual
+    // print call throws (e.g. Bluetooth turned off mid-lookup) — a caller
+    // like checkout relies on this never propagating, since the sale it's
+    // reporting on has already committed by the time this runs.
+    messenger.showSnackBar(SnackBar(content: Text(l.printFailed)));
   }
-
-  final shop = await ref.read(shopProfileProvider.future);
-  final accounts = ref.read(paymentAccountsProvider).valueOrNull;
-  final data = receiptFromSale(
-    sale,
-    items,
-    shop,
-    paymentMethodLabel: paymentLabel(l, sale.paymentMethod, accounts: accounts),
-    defaultFooter: l.receiptThankYou,
-  );
-
-  final result = await ref.read(printerServiceProvider).printReceipt(
-        data,
-        paper: config.paper,
-        mac: config.mac!,
-        labels: receiptLabels(l),
-      );
-
-  messenger.showSnackBar(SnackBar(
-    content: Text(result.ok ? l.printSuccess : l.printFailed),
-  ));
 }

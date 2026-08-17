@@ -57,6 +57,7 @@
   "scanNotFound": "No product for barcode {code}",
   "@scanNotFound": { "placeholders": { "code": { "type": "String" } } },
   "sellCompleted": "Sale completed",
+  "sellCheckoutFailed": "Sale wasn't saved — nothing was charged. Please try again.",
   "sellInsufficientPaid": "Amount paid is less than total.",
   "paymentCash": "Cash",
   "paymentKbzPay": "KBZPay",

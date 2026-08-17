@@ -166,6 +166,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellCompleted => 'Sale completed';
 
   @override
+  String get sellCheckoutFailed =>
+      'Sale wasn\'t saved — nothing was charged. Please try again.';
+
+  @override
   String get sellInsufficientPaid => 'Amount paid is less than total.';
 
   @override

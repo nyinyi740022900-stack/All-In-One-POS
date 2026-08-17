@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'Sale completed'**
   String get sellCompleted;
 
+  /// No description provided for @sellCheckoutFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale wasn\'t saved — nothing was charged. Please try again.'**
+  String get sellCheckoutFailed;
+
   /// No description provided for @sellInsufficientPaid.
   ///
   /// In en, this message translates to:

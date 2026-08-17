@@ -169,16 +169,22 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );
 
-      // Auto-print the receipt if a printer is configured (done before the
-      // sheet closes so the context is still valid).
-      final config = await ref.read(settingsRepositoryProvider).printerConfig();
-      if (config.hasPrinter && mounted) {
-        final sale = await salesRepo.getSale(result.saleId);
-        final items = await salesRepo.saleItems(result.saleId);
-        if (mounted) {
-          await printSaleReceipt(context, ref, sale: sale, items: items);
+      // The sale is committed as of here — everything below is best-effort
+      // convenience (auto-print) and must never surface as "sale failed" or
+      // block clearing the cart, since retrying at this point would double
+      // the sale, not fix a failure. printSaleReceipt already reports its
+      // own outcome via a snackbar and never throws.
+      try {
+        final config =
+            await ref.read(settingsRepositoryProvider).printerConfig();
+        if (config.hasPrinter && mounted) {
+          final sale = await salesRepo.getSale(result.saleId);
+          final items = await salesRepo.saleItems(result.saleId);
+          if (mounted) {
+            await printSaleReceipt(context, ref, sale: sale, items: items);
+          }
         }
-      }
+      } catch (_) {}
 
       _confirmed = true;
       ref.read(cartProvider.notifier).clear();
@@ -194,6 +200,13 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
           ),
         ),
       );
+    } catch (e) {
+      // Reached only if finalizeSale (or the customer-directory lookup
+      // before it) itself threw — nothing was charged, the cart is intact,
+      // and it's safe for the cashier to just try again.
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l.sellCheckoutFailed)));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

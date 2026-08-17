@@ -167,6 +167,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellCompleted => 'ရောင်းချမှု ပြီးဆုံးပါပြီ';
 
   @override
+  String get sellCheckoutFailed =>
+      'ရောင်းချမှု မသိမ်းနိုင်ခဲ့ပါ — ငွေ ဘာမှ မကောက်ရသေးပါ။ ထပ်စမ်းကြည့်ပါ။';
+
+  @override
   String get sellInsufficientPaid => 'ပေးချေငွေသည် စုစုပေါင်းထက် နည်းနေသည်။';
 
   @override

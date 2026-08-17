@@ -56,6 +56,7 @@
   "scanNotFound": "barcode {code} နဲ့ ပစ္စည်း မတွေ့ပါ",
   "@scanNotFound": { "placeholders": { "code": { "type": "String" } } },
   "sellCompleted": "ရောင်းချမှု ပြီးဆုံးပါပြီ",
+  "sellCheckoutFailed": "ရောင်းချမှု မသိမ်းနိုင်ခဲ့ပါ — ငွေ ဘာမှ မကောက်ရသေးပါ။ ထပ်စမ်းကြည့်ပါ။",
   "sellInsufficientPaid": "ပေးချေငွေသည် စုစုပေါင်းထက် နည်းနေသည်။",
   "paymentCash": "ငွေသား",
   "paymentKbzPay": "KBZPay",
