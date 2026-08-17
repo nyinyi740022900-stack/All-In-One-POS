@@ -16,7 +16,8 @@ import 'storefront_download.dart';
 import 'storefront_seo.dart';
 
 final _money = NumberFormat('#,##0', 'en_US');
-String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
+String _ks(AppLocalizations l, int v) =>
+    '${_money.format(v)} ${l.currencySymbol}';
 
 /// Last-resort classification for `_submit`'s catch block, for any backend
 /// error code (or client-side failure) not already special-cased above —
@@ -42,8 +43,13 @@ String _submitFallbackMessage(AppLocalizations l, String raw) {
 /// showing. Shows the *other* language's own name (matches the main app's
 /// `languageEnglish`/`languageMyanmar` convention) so it reads correctly
 /// regardless of which language the visitor currently has active.
-class StorefrontLocaleBar extends StatelessWidget implements PreferredSizeWidget {
-  const StorefrontLocaleBar({super.key, required this.locale, required this.onToggle});
+class StorefrontLocaleBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const StorefrontLocaleBar({
+    super.key,
+    required this.locale,
+    required this.onToggle,
+  });
   final Locale locale;
   final VoidCallback onToggle;
 
@@ -62,7 +68,9 @@ class StorefrontLocaleBar extends StatelessWidget implements PreferredSizeWidget
         TextButton.icon(
           onPressed: onToggle,
           icon: const Icon(Icons.language, size: 16),
-          label: Text(locale.languageCode == 'my' ? l.languageEnglish : l.languageMyanmar),
+          label: Text(
+            locale.languageCode == 'my' ? l.languageEnglish : l.languageMyanmar,
+          ),
         ),
       ],
     );
@@ -98,23 +106,23 @@ class _StorefrontPageState extends State<StorefrontPage> {
     _future = _api.fetchCatalog(widget.slug);
   }
 
-  int get _total => _cart.entries
-      .fold(0, (s, e) => s + (_byId[e.key]?.price ?? 0) * e.value);
+  int get _total =>
+      _cart.entries.fold(0, (s, e) => s + (_byId[e.key]?.price ?? 0) * e.value);
   int get _count => _cart.values.fold(0, (s, q) => s + q);
 
   void _add(StoreProduct p) => setState(() {
-        final next = (_cart[p.id] ?? 0) + 1;
-        if (p.onlineAvailable != null && next > p.onlineAvailable!) return;
-        _cart[p.id] = next;
-      });
+    final next = (_cart[p.id] ?? 0) + 1;
+    if (p.onlineAvailable != null && next > p.onlineAvailable!) return;
+    _cart[p.id] = next;
+  });
   void _sub(StoreProduct p) => setState(() {
-        final q = (_cart[p.id] ?? 0) - 1;
-        if (q <= 0) {
-          _cart.remove(p.id);
-        } else {
-          _cart[p.id] = q;
-        }
-      });
+    final q = (_cart[p.id] ?? 0) - 1;
+    if (q <= 0) {
+      _cart.remove(p.id);
+    } else {
+      _cart[p.id] = q;
+    }
+  });
 
   Future<void> _checkout(Catalog catalog) async {
     if (!catalog.info.acceptingOrders) {
@@ -125,8 +133,14 @@ class _StorefrontPageState extends State<StorefrontPage> {
       return;
     }
     final lines = _cart.entries
-        .map((e) => OrderLine(
-            e.key, _byId[e.key]!.name, _byId[e.key]!.price, e.value))
+        .map(
+          (e) => OrderLine(
+            e.key,
+            _byId[e.key]!.name,
+            _byId[e.key]!.price,
+            e.value,
+          ),
+        )
         .toList();
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -149,7 +163,9 @@ class _StorefrontPageState extends State<StorefrontPage> {
     final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: StorefrontLocaleBar(
-          locale: widget.locale, onToggle: widget.onToggleLocale),
+        locale: widget.locale,
+        onToggle: widget.onToggleLocale,
+      ),
       body: FutureBuilder<Catalog>(
         future: _future,
         builder: (context, snap) {
@@ -185,25 +201,21 @@ class _StorefrontPageState extends State<StorefrontPage> {
               SliverPadding(
                 padding: const EdgeInsets.all(AppTheme.space3),
                 sliver: SliverGrid(
-                  gridDelegate:
-                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
                     mainAxisSpacing: AppTheme.space3,
                     crossAxisSpacing: AppTheme.space3,
                     childAspectRatio: 0.72,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final p = catalog.products[i];
-                      return _ProductCard(
-                        product: p,
-                        qty: _cart[p.id] ?? 0,
-                        onAdd: () => _add(p),
-                        onSub: () => _sub(p),
-                      );
-                    },
-                    childCount: catalog.products.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, i) {
+                    final p = catalog.products[i];
+                    return _ProductCard(
+                      product: p,
+                      qty: _cart[p.id] ?? 0,
+                      onAdd: () => _add(p),
+                      onSub: () => _sub(p),
+                    );
+                  }, childCount: catalog.products.length),
                 ),
               ),
             ],
@@ -223,7 +235,9 @@ class _StorefrontPageState extends State<StorefrontPage> {
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(AppTheme.space2),
-                    child: Text(l.storefrontCheckoutBar(_count, _ks(l, _total))),
+                    child: Text(
+                      l.storefrontCheckoutBar(_count, _ks(l, _total)),
+                    ),
                   ),
                 ),
               ),
@@ -288,15 +302,21 @@ class _ShopBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppTheme.radiusXs),
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: info.phone!));
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
                             content: Text(l.storefrontPhoneCopied),
-                            duration: const Duration(seconds: 1)));
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.call_outlined,
-                              size: 16, color: scheme.primary),
+                          Icon(
+                            Icons.call_outlined,
+                            size: 16,
+                            color: scheme.primary,
+                          ),
                           const SizedBox(width: AppTheme.space2),
                           Text(info.phone!),
                         ],
@@ -306,13 +326,19 @@ class _ShopBanner extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 16, color: scheme.primary),
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: scheme.primary,
+                        ),
                         const SizedBox(width: AppTheme.space2),
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 260),
-                          child: Text(info.address!,
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            info.address!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -359,13 +385,26 @@ class _ProductCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(AppTheme.space3),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // `start` (not `stretch`) made this Column ask its Row child
+              // for its *intrinsic* width to size itself — impossible to
+              // answer honestly with an Expanded inside that Row (an
+              // Expanded's width depends on the space actually available
+              // during real layout, not some inherent "ideal" size), which
+              // is exactly what threw "BoxConstraints forces an infinite
+              // width" at the price/Add-button row below. `stretch` uses
+              // the already-bounded width this Padding was given instead of
+              // asking children to self-report one — the Text children
+              // below don't need `start` specifically, they already render
+              // left-anchored via their own default `textAlign`.
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 if (product.onlineAvailable != null) ...[
                   const SizedBox(height: AppTheme.space1),
                   Text(
@@ -373,9 +412,10 @@ class _ProductCard extends StatelessWidget {
                         ? l.storefrontSoldOut
                         : l.storefrontOnlineLeft(product.onlineAvailable!),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: soldOut
-                            ? AppColors.of(context).danger
-                            : AppColors.of(context).muted),
+                      color: soldOut
+                          ? AppColors.of(context).danger
+                          : AppColors.of(context).muted,
+                    ),
                   ),
                 ],
                 const SizedBox(height: AppTheme.space2),
@@ -384,41 +424,60 @@ class _ProductCard extends StatelessWidget {
                     Expanded(
                       child: MoneyText(
                         _ks(l, product.price),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         textAlign: TextAlign.left,
                       ),
                     ),
                     if (qty == 0)
-                      FilledButton.tonal(
-                        onPressed: soldOut ? null : onAdd,
-                        child: Text(l.storefrontAdd),
+                      // IntrinsicWidth: this Row sits inside a Column with
+                      // mainAxisSize.min, which hands the Row unbounded
+                      // height/width along the way a plain FilledButton's
+                      // internal Material/Ink layout can't resolve ("Box
+                      // Constraints forces an infinite width") — forces a
+                      // real two-pass measurement instead of the unbounded
+                      // one Flex normally uses to size non-flex children.
+                      IntrinsicWidth(
+                        child: FilledButton.tonal(
+                          onPressed: soldOut ? null : onAdd,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.space2,
+                            ),
+                            minimumSize: const Size(0, 36),
+                            textStyle: Theme.of(context).textTheme.labelMedium,
+                          ),
+                          child: Text(l.storefrontAdd),
+                        ),
                       )
                     else
-                      Row(
-                        children: [
-                          IconButton.filledTonal(
+                      IntrinsicWidth(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton.filledTonal(
                               onPressed: onSub,
-                              icon: const Icon(Icons.remove, size: 18)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.space2),
-                            child: Text(
-                              '$qty',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(
-                                      fontFeatures: AppTheme.tabularFigures),
+                              icon: const Icon(Icons.remove, size: 18),
                             ),
-                          ),
-                          IconButton.filledTonal(
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppTheme.space2,
+                              ),
+                              child: Text(
+                                '$qty',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      fontFeatures: AppTheme.tabularFigures,
+                                    ),
+                              ),
+                            ),
+                            IconButton.filledTonal(
                               onPressed: atCap ? null : onAdd,
-                              icon: const Icon(Icons.add, size: 18)),
-                        ],
+                              icon: const Icon(Icons.add, size: 18),
+                            ),
+                          ],
+                        ),
                       ),
                   ],
                 ),
@@ -484,8 +543,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
     // Shrink before upload — phone screenshots are often several MB.
-    final c = compressImage(Uint8List.fromList(file.bytes!),
-        fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+    final c = compressImage(
+      Uint8List.fromList(file.bytes!),
+      fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
+    );
     setState(() {
       _proofBytes = c.bytes;
       _proofExt = c.ext;
@@ -506,7 +567,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         widget.info.requireTransferProof &&
         _proofBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).storefrontProofRequired)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).storefrontProofRequired),
+        ),
       );
       return;
     }
@@ -514,8 +577,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     try {
       String? proofPath;
       if (_paymentMethod == 'transfer' && _proofBytes != null) {
-        proofPath = await widget.api
-            .uploadPaymentProof(_proofBytes!, _proofExt ?? 'jpg');
+        proofPath = await widget.api.uploadPaymentProof(
+          _proofBytes!,
+          _proofExt ?? 'jpg',
+        );
       }
       final no = await widget.api.submitOrder(
         slug: widget.slug,
@@ -537,18 +602,19 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         final message = raw.contains('rate_limited')
             ? l.storefrontRateLimited
             : raw.contains('blocked')
-                ? l.storefrontBlocked
-                : raw.contains('out_of_stock')
-                    ? l.storefrontOutOfStock
-                    : raw.contains('proof_required')
-                        ? l.storefrontProofRequired
-                        : raw.contains('closed')
-                            ? l.storefrontClosed
-                            : raw.contains('invalid_product')
-                                ? l.storefrontInvalidProduct
-                                : _submitFallbackMessage(l, raw);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+            ? l.storefrontBlocked
+            : raw.contains('out_of_stock')
+            ? l.storefrontOutOfStock
+            : raw.contains('proof_required')
+            ? l.storefrontProofRequired
+            : raw.contains('closed')
+            ? l.storefrontClosed
+            : raw.contains('invalid_product')
+            ? l.storefrontInvalidProduct
+            : _submitFallbackMessage(l, raw);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -572,29 +638,30 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l.storefrontYourDetails,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l.storefrontYourDetails,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: AppTheme.space3),
             // Honeypot — kept out of the visible layout entirely (zero size,
             // not just hidden) so no real customer can tab/scroll into it.
-            Offstage(
-              child: TextField(controller: _hp, autofocus: false),
+            Offstage(child: TextField(controller: _hp, autofocus: false)),
+            TextField(
+              controller: _name,
+              decoration: InputDecoration(labelText: l.storefrontNameRequired),
             ),
-            TextField(
-                controller: _name,
-                decoration:
-                    InputDecoration(labelText: l.storefrontNameRequired)),
             const SizedBox(height: AppTheme.space2),
             TextField(
-                controller: _phone,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: l.shopPhone)),
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(labelText: l.shopPhone),
+            ),
             const SizedBox(height: AppTheme.space2),
             TextField(
-                controller: _address,
-                maxLines: 2,
-                decoration:
-                    InputDecoration(labelText: l.orderDeliveryAddress)),
+              controller: _address,
+              maxLines: 2,
+              decoration: InputDecoration(labelText: l.orderDeliveryAddress),
+            ),
             const SizedBox(height: AppTheme.space2),
             DropdownButtonFormField<String>(
               initialValue: _township,
@@ -608,20 +675,23 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             ),
             const SizedBox(height: AppTheme.space2),
             TextField(
-                controller: _note,
-                decoration: InputDecoration(labelText: l.orderNote)),
+              controller: _note,
+              decoration: InputDecoration(labelText: l.orderNote),
+            ),
             const SizedBox(height: AppTheme.space4),
             SectionHeader(title: l.storefrontPayment),
             SegmentedButton<String>(
               segments: [
                 ButtonSegment(
-                    value: 'transfer',
-                    label: Text(l.storefrontBankTransfer),
-                    icon: const Icon(Icons.account_balance_outlined)),
+                  value: 'transfer',
+                  label: Text(l.storefrontBankTransfer),
+                  icon: const Icon(Icons.account_balance_outlined),
+                ),
                 ButtonSegment(
-                    value: 'cod',
-                    label: Text(l.storefrontCashOnDelivery),
-                    icon: const Icon(Icons.local_shipping_outlined)),
+                  value: 'cod',
+                  label: Text(l.storefrontCashOnDelivery),
+                  icon: const Icon(Icons.local_shipping_outlined),
+                ),
               ],
               selected: {_paymentMethod},
               onSelectionChanged: (s) =>
@@ -638,8 +708,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l.storefrontPayTo,
-                            style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          l.storefrontPayTo,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         const SizedBox(height: AppTheme.space1),
                         if ((widget.info.payKpay ?? '').isNotEmpty)
                           _PayAccountRow(
@@ -662,11 +734,13 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               OutlinedButton.icon(
                 onPressed: _pickProof,
                 icon: const Icon(Icons.upload_file),
-                label: Text(_proofName == null
-                    ? (widget.info.requireTransferProof
-                        ? l.storefrontAttachProofRequired
-                        : l.storefrontAttachProof)
-                    : l.storefrontProofAttached(_proofName!)),
+                label: Text(
+                  _proofName == null
+                      ? (widget.info.requireTransferProof
+                            ? l.storefrontAttachProofRequired
+                            : l.storefrontAttachProof)
+                      : l.storefrontProofAttached(_proofName!),
+                ),
               ),
             ] else
               Card(
@@ -677,15 +751,16 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     children: [
                       const Icon(Icons.info_outline, size: 18),
                       const SizedBox(width: AppTheme.space2),
-                      Expanded(
-                          child: Text(l.storefrontCodNoticeBeforeOrder)),
+                      Expanded(child: Text(l.storefrontCodNoticeBeforeOrder)),
                     ],
                   ),
                 ),
               ),
             const SizedBox(height: AppTheme.space4),
-            Text(l.storefrontTotal(_ks(l, widget.total)),
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.storefrontTotal(_ks(l, widget.total)),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: AppTheme.space3),
             FilledButton(
               onPressed: _submitting ? null : _submit,
@@ -703,26 +778,30 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   }
 
   InvoiceData _invoiceData(AppLocalizations l) => InvoiceData(
-        shopName: widget.info.displayName ?? l.storefrontShopFallbackName,
-        shopLogoUrl: widget.info.logoUrl,
-        shopPhone: widget.info.phone,
-        shopAddress: widget.info.address,
-        invoiceNo: _orderNo ?? '',
-        date: DateTime.now(),
-        customerName: _name.text.trim(),
-        customerPhone:
-            _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        deliveryAddress:
-            _address.text.trim().isEmpty ? null : _address.text.trim(),
-        township: _township,
-        items: [
-          for (final line in widget.lines)
-            InvoiceItemData(
-                name: line.name, qty: line.qty, lineTotal: line.price * line.qty),
-        ],
-      );
+    shopName: widget.info.displayName ?? l.storefrontShopFallbackName,
+    shopLogoUrl: widget.info.logoUrl,
+    shopPhone: widget.info.phone,
+    shopAddress: widget.info.address,
+    invoiceNo: _orderNo ?? '',
+    date: DateTime.now(),
+    customerName: _name.text.trim(),
+    customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+    deliveryAddress: _address.text.trim().isEmpty ? null : _address.text.trim(),
+    township: _township,
+    items: [
+      for (final line in widget.lines)
+        InvoiceItemData(
+          name: line.name,
+          qty: line.qty,
+          lineTotal: line.price * line.qty,
+        ),
+    ],
+  );
 
-  Future<void> _saveInvoiceToPhotos(BuildContext context, AppLocalizations l) async {
+  Future<void> _saveInvoiceToPhotos(
+    BuildContext context,
+    AppLocalizations l,
+  ) async {
     setState(() => _downloading = true);
     try {
       final invoice = _invoiceData(l);
@@ -732,8 +811,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         } catch (_) {}
       }
       if (!context.mounted) return;
-      final bytes =
-          await captureWidgetAsPng(context, InvoiceView(data: invoice));
+      final bytes = await captureWidgetAsPng(
+        context,
+        InvoiceView(data: invoice),
+      );
       await saveImageToPhotos(bytes, 'invoice-${invoice.invoiceNo}.png');
     } finally {
       if (mounted) setState(() => _downloading = false);
@@ -747,11 +828,16 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle,
-                color: AppColors.of(context).success, size: 48),
+            Icon(
+              Icons.check_circle,
+              color: AppColors.of(context).success,
+              size: 48,
+            ),
             const SizedBox(height: AppTheme.space2),
-            Text(l.storefrontOrderPlaced,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l.storefrontOrderPlaced,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: AppTheme.space1),
             Text(l.storefrontOrderNo(_orderNo!)),
             const SizedBox(height: AppTheme.space4),
@@ -832,8 +918,9 @@ class _PayAccountRow extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             onPressed: () {
               Clipboard.setData(ClipboardData(text: number));
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.storefrontNumberCopied)));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l.storefrontNumberCopied)));
             },
           ),
         ],
