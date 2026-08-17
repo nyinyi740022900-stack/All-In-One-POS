@@ -27,6 +27,7 @@ final equityEntriesProvider = StreamProvider<List<EquityEntry>>((ref) {
 final cumulativeNetProfitProvider = FutureProvider<int>((ref) async {
   ref.watch(salesStreamProvider);
   ref.watch(_equityExpenseChangesProvider);
+  ref.watch(_equityProductChangesProvider);
   final now = DateTime.now();
   final summary = await ref
       .watch(analyticsRepositoryProvider)
@@ -45,6 +46,19 @@ final _equityExpenseChangesProvider = StreamProvider<List<Expense>>((ref) {
   final shopId = ref.watch(shopIdProvider);
   return (db.select(db.expenses)
         ..where((e) => e.shopId.equals(shopId) & e.isDeleted.equals(false)))
+      .watch();
+});
+
+/// Same reasoning as [_equityExpenseChangesProvider] — a sale line with no
+/// `costSnapshot` (untracked-stock shops, see `AnalyticsRepository.summary`)
+/// falls back to the product's *current* cost price, so editing a cost
+/// price can change `netProfit` with no sale involved. Not watching
+/// stock levels here too — unlike Analytics/P&L, this provider's `netProfit`
+/// never reads `stockValue`.
+final _equityProductChangesProvider = StreamProvider<List<Product>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.products)..where((p) => p.shopId.equals(shopId)))
       .watch();
 });
 

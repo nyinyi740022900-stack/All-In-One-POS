@@ -153,7 +153,7 @@ void main() {
 
       expect(await ctrl().switchToStaffMember(id, '1111'), isTrue);
       expect(await settings.staffRole('shop-1'), 'staff');
-      expect(await settings.activeStaffId(), id);
+      expect(await settings.activeStaffId('shop-1'), id);
     },
   );
 
@@ -162,13 +162,13 @@ void main() {
         'authorized this when generating the device QR)', () async {
       await ctrl().applyProvisionedRole('staff', staffMemberId: 'staff-9');
       expect(await settings.staffRole('shop-1'), 'staff');
-      expect(await settings.activeStaffId(), 'staff-9');
+      expect(await settings.activeStaffId('shop-1'), 'staff-9');
     });
 
     test('sets staff role with no member id when none was picked', () async {
       await ctrl().applyProvisionedRole('staff');
       expect(await settings.staffRole('shop-1'), 'staff');
-      expect(await settings.activeStaffId(), isNull);
+      expect(await settings.activeStaffId('shop-1'), isNull);
     });
 
     test(
@@ -192,10 +192,10 @@ void main() {
     final staffRepo = container.read(staffRepositoryProvider);
     final id = await staffRepo.upsertMember(name: 'Mi Mi', pin: '1111');
     await ctrl().switchToStaffMember(id, '1111');
-    expect(await settings.activeStaffId(), id);
+    expect(await settings.activeStaffId('shop-1'), id);
 
     await ctrl().switchRole('owner', pin: '');
-    expect(await settings.activeStaffId(), isNull);
+    expect(await settings.activeStaffId('shop-1'), isNull);
   });
 
   test(

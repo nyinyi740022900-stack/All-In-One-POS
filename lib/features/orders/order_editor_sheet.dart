@@ -195,6 +195,14 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
           note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           lines: lines,
         );
+    // saveOrder() replaces this order's items wholesale (tombstone + insert)
+    // — orderItemsProvider has no watch signal of its own (a plain family
+    // provider over a one-shot repository read), so without this the detail
+    // sheet keeps showing the pre-edit item list until app restart.
+    final editedId = widget.order?.id;
+    if (editedId != null) {
+      ref.invalidate(orderItemsProvider(editedId));
+    }
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(l.orderSaved)));
     nav.pop();

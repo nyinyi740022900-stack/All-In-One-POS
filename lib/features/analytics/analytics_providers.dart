@@ -45,10 +45,37 @@ final _expenseChangesProvider = StreamProvider<List<Expense>>((ref) {
       .watch();
 });
 
+/// Same watch-only shape as [_expenseChangesProvider] — `summary()` also
+/// reads every product's `costPrice` (for stock value / COGS), which can
+/// change with no sale involved (editing a product's cost). Without this,
+/// Analytics/P&L/Owner's Equity all silently kept showing stale figures
+/// after a cost-price edit.
+final _productChangesProvider = StreamProvider<List<Product>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.products)..where((p) => p.shopId.equals(shopId)))
+      .watch();
+});
+
+/// Same reasoning as [_productChangesProvider] — `summary()` reads
+/// `stockLevels` for stock value, which changes on a plain stock adjustment
+/// with no sale either.
+final _stockLevelChangesProvider = StreamProvider<List<StockLevel>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.stockLevels)
+        ..where((s) => s.shopId.equals(shopId) & s.isDeleted.equals(false)))
+      .watch();
+});
+
 final analyticsSummaryProvider = FutureProvider<AnalyticsSummary>((ref) async {
-  // Recompute whenever sales or expenses change so the dashboard stays live.
+  // Recompute whenever sales, expenses, product cost, or stock levels
+  // change so the dashboard (and everything downstream that reuses this —
+  // P&L, Owner's Equity) stays live.
   ref.watch(salesStreamProvider);
   ref.watch(_expenseChangesProvider);
+  ref.watch(_productChangesProvider);
+  ref.watch(_stockLevelChangesProvider);
   final range = ref.watch(analyticsRangeProvider);
   final bounds = rangeBounds(range, DateTime.now());
   return ref

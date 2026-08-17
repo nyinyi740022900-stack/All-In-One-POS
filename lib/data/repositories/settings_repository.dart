@@ -338,19 +338,29 @@ class SettingsRepository {
   /// device — device-local, not synced (the roster itself is shared across
   /// devices; who's holding this particular phone right now is per-device).
   /// Empty/null = no named staff selected (plain staff mode, pre-roster).
+  // Shop-scoped like `_kStaffRole` above — a device switching shops
+  // (`BranchRepository.switchBranch`) must not carry the previous shop's
+  // active-staff selection into the new one (a stale id could point at a
+  // different shop's staff row entirely, or silently just not resolve).
   static const _kActiveStaffId = 'staff.active_id';
-  Future<String?> activeStaffId() async {
-    final v = await _get(_kActiveStaffId);
+  Future<String?> activeStaffId(String shopId) async {
+    final v = await _getShopScoped(_kActiveStaffId, shopId);
     return (v == null || v.isEmpty) ? null : v;
   }
 
-  Future<void> setActiveStaffId(String id) => _set(_kActiveStaffId, id);
-  Stream<String?> watchActiveStaffId() {
+  Future<void> setActiveStaffId(String shopId, String id) =>
+      _set(_shopKey(_kActiveStaffId, shopId), id);
+  Stream<String?> watchActiveStaffId(String shopId) {
     return _db.select(_db.appSettings).watch().map((rows) {
+      final scopedKey = _shopKey(_kActiveStaffId, shopId);
+      String? scoped;
+      String? legacy;
       for (final r in rows) {
-        if (r.key == _kActiveStaffId) return r.value.isEmpty ? null : r.value;
+        if (r.key == scopedKey) scoped = r.value;
+        if (r.key == _kActiveStaffId) legacy = r.value;
       }
-      return null;
+      final v = scoped ?? (shopId.isEmpty ? null : legacy);
+      return (v == null || v.isEmpty) ? null : v;
     });
   }
 

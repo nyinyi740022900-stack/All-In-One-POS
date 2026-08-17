@@ -75,7 +75,8 @@ final ownerPinCooldownSecondsProvider = StreamProvider.autoDispose<int>((
 /// Which roster member is "using" this device right now — device-local, not
 /// synced. Null if no named staff is selected (plain staff mode).
 final activeStaffIdProvider = StreamProvider<String?>((ref) {
-  return ref.watch(settingsRepositoryProvider).watchActiveStaffId();
+  final shopId = ref.watch(shopIdProvider);
+  return ref.watch(settingsRepositoryProvider).watchActiveStaffId(shopId);
 });
 
 /// The active staff member's display name, for the Sell app bar badge —
@@ -272,7 +273,7 @@ class StaffController {
       _ownerPinLockedUntil = null;
       await repo.clearOwnerPinFailedAttempts(shopId);
       await repo.clearOwnerPinLockedUntil(shopId);
-      await repo.setActiveStaffId('');
+      await repo.setActiveStaffId(shopId, '');
     }
     await repo.setStaffRole(shopId, targetRole);
     return true;
@@ -287,7 +288,7 @@ class StaffController {
     if (member == null) return false;
     final repo = _ref.read(settingsRepositoryProvider);
     final shopId = _ref.read(shopIdProvider);
-    await repo.setActiveStaffId(member.id);
+    await repo.setActiveStaffId(shopId, member.id);
     await repo.setStaffRole(shopId, 'staff');
     return true;
   }
@@ -308,7 +309,7 @@ class StaffController {
     final repo = _ref.read(settingsRepositoryProvider);
     final shopId = _ref.read(shopIdProvider);
     if (staffMemberId != null && staffMemberId.isNotEmpty) {
-      await repo.setActiveStaffId(staffMemberId);
+      await repo.setActiveStaffId(shopId, staffMemberId);
     }
     await repo.setStaffRole(shopId, 'staff');
   }

@@ -23,9 +23,30 @@ final _pnlExpenseChangesProvider = StreamProvider<List<Expense>>((ref) {
       .watch();
 });
 
+/// `repo.summary()` below also reads product cost + stock levels for COGS —
+/// same reasoning and shape as `analytics_providers.dart`'s own
+/// `_productChangesProvider`/`_stockLevelChangesProvider` (this file can't
+/// reuse those directly, they're library-private there).
+final _pnlProductChangesProvider = StreamProvider<List<Product>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.products)..where((p) => p.shopId.equals(shopId)))
+      .watch();
+});
+
+final _pnlStockLevelChangesProvider = StreamProvider<List<StockLevel>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.stockLevels)
+        ..where((s) => s.shopId.equals(shopId) & s.isDeleted.equals(false)))
+      .watch();
+});
+
 final pnlStatementProvider = FutureProvider<PnlStatement>((ref) async {
   ref.watch(salesStreamProvider);
   ref.watch(_pnlExpenseChangesProvider);
+  ref.watch(_pnlProductChangesProvider);
+  ref.watch(_pnlStockLevelChangesProvider);
   final now = DateTime.now();
   final defaultStart = DateTime(now.year, now.month, 1);
   final defaultEnd =

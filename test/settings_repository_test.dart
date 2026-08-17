@@ -155,6 +155,21 @@ void main() {
       expect(await repo.ownerPinLockedUntil('shop-main'), lockMain.toUtc());
       expect(await repo.ownerPinLockedUntil('shop-branch'), lockBranch.toUtc());
     });
+
+    test(
+      'active staff id is isolated per shop — a device switching branches '
+      'must not carry the previous shop\'s active staff selection along',
+      () async {
+        await repo.setActiveStaffId('shop-main', 'mimi-id');
+        await repo.setActiveStaffId('shop-branch', 'koko-id');
+        expect(await repo.activeStaffId('shop-main'), 'mimi-id');
+        expect(await repo.activeStaffId('shop-branch'), 'koko-id');
+
+        // A shop that never had one set sees neither — not a leaked value
+        // from whichever shop happened to be active most recently.
+        expect(await repo.activeStaffId('shop-new'), isNull);
+      },
+    );
   });
 
   group('operating mode + daily gate', () {
