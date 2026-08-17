@@ -34,10 +34,20 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(purchaseOrderRepositoryProvider).receivePO(poId);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.poReceived)));
+    try {
+      // Stock-affecting: the repository does the receive + every stock
+      // movement inside one transaction, so a failure here means nothing
+      // was changed — safe for the shopkeeper to just try again.
+      await ref.read(purchaseOrderRepositoryProvider).receivePO(poId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.poReceived)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.poReceiveFailed)));
+      }
     }
   }
 

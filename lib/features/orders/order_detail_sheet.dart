@@ -351,13 +351,17 @@ class OrderDetailSheet extends ConsumerWidget {
     if (method == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final repo = ref.read(ordersRepositoryProvider);
-    await repo.convertToSale(o.id, paymentMethod: method);
-    final saved = await repo.getOrder(o.id);
-    final sale = await ref.read(salesRepositoryProvider).getSale(saved.saleId!);
-    if (!context.mounted) return;
-    messenger.showSnackBar(
-        SnackBar(content: Text(l.orderConverted(sale.invoiceNo))));
-    _closeIfModal(context);
+    try {
+      await repo.convertToSale(o.id, paymentMethod: method);
+      final saved = await repo.getOrder(o.id);
+      final sale = await ref.read(salesRepositoryProvider).getSale(saved.saleId!);
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+          SnackBar(content: Text(l.orderConverted(sale.invoiceNo))));
+      _closeIfModal(context);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.orderConvertFailed)));
+    }
   }
 
   /// Marking an order Return used to be a pure label change — it never
@@ -375,34 +379,48 @@ class OrderDetailSheet extends ConsumerWidget {
     final repo = ref.read(ordersRepositoryProvider);
     final saleId = o.saleId;
     if (saleId == null) {
-      await repo.setStatus(o.id, 'cancelled');
+      try {
+        await repo.setStatus(o.id, 'cancelled');
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.orderReturnFailed)));
+        }
+      }
       return;
     }
     final salesRepo = ref.read(salesRepositoryProvider);
-    final alreadyRefunded = await salesRepo.refundOf(saleId) != null;
-    if (!alreadyRefunded) {
-      final sale = await salesRepo.getSale(saleId);
-      if (!context.mounted) return;
-      final amount = Money(sale.total).withSymbol(l.currencySymbol);
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l.orderReturnConfirmTitle),
-          content: Text(l.orderReturnConfirmBody(amount)),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(l.commonCancel)),
-            FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(l.invoiceRefund)),
-          ],
-        ),
-      );
-      if (ok != true || !context.mounted) return;
-      await salesRepo.refundSale(saleId);
+    try {
+      final alreadyRefunded = await salesRepo.refundOf(saleId) != null;
+      if (!alreadyRefunded) {
+        final sale = await salesRepo.getSale(saleId);
+        if (!context.mounted) return;
+        final amount = Money(sale.total).withSymbol(l.currencySymbol);
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(l.orderReturnConfirmTitle),
+            content: Text(l.orderReturnConfirmBody(amount)),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(l.commonCancel)),
+              FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(l.invoiceRefund)),
+            ],
+          ),
+        );
+        if (ok != true || !context.mounted) return;
+        await salesRepo.refundSale(saleId);
+      }
+      await repo.setStatus(o.id, 'cancelled');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.orderReturnFailed)));
+      }
     }
-    await repo.setStatus(o.id, 'cancelled');
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -427,8 +445,15 @@ class OrderDetailSheet extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(ordersRepositoryProvider).deleteOrder(orderId);
-    if (context.mounted) _closeIfModal(context);
+    try {
+      await ref.read(ordersRepositoryProvider).deleteOrder(orderId);
+      if (context.mounted) _closeIfModal(context);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    }
   }
 
   Future<void> _blockCustomer(BuildContext context, WidgetRef ref,
@@ -451,8 +476,13 @@ class OrderDetailSheet extends ConsumerWidget {
     );
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    await ref.read(storefrontRepositoryProvider).block(phone);
-    messenger.showSnackBar(SnackBar(content: Text(l.orderCustomerBlocked)));
+    try {
+      await ref.read(storefrontRepositoryProvider).block(phone);
+      messenger.showSnackBar(SnackBar(content: Text(l.orderCustomerBlocked)));
+    } catch (e) {
+      messenger
+          .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
   }
 }
 
@@ -513,14 +543,43 @@ class _PaymentProofState extends State<_PaymentProof> {
 /// flips to 'paid' automatically when converted to a sale otherwise, with no
 /// way to acknowledge "I saw the screenshot, payment is confirmed" before
 /// that (fulfillment and payment confirmation are separate steps).
-class _PaymentSection extends ConsumerWidget {
+class _PaymentSection extends ConsumerStatefulWidget {
   const _PaymentSection({required this.order});
   final Order order;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PaymentSection> createState() => _PaymentSectionState();
+}
+
+class _PaymentSectionState extends ConsumerState<_PaymentSection> {
+  // Guards against a double-tap firing the write twice while the first one
+  // is still in flight, and lets the button show it's working instead of
+  // looking like the tap did nothing.
+  bool _updating = false;
+
+  Future<void> _setPaymentStatus(String status) async {
+    if (_updating) return;
     final l = AppLocalizations.of(context);
-    final o = order;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _updating = true);
+    try {
+      await ref
+          .read(ordersRepositoryProvider)
+          .setPaymentStatus(widget.order.id, status);
+    } catch (e) {
+      if (mounted) {
+        messenger
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final o = widget.order;
 
     final isPaid = o.paymentStatus == 'paid';
     // COD's "not paid yet" is the expected default before the courier
@@ -542,10 +601,14 @@ class _PaymentSection extends ConsumerWidget {
             Expanded(child: Text(l.orderPaymentCodNote)),
             if (o.saleId == null)
               TextButton(
-                onPressed: () => ref
-                    .read(ordersRepositoryProvider)
-                    .setPaymentStatus(o.id, 'paid'),
-                child: Text(l.orderMarkAsPaid),
+                onPressed:
+                    _updating ? null : () => _setPaymentStatus('paid'),
+                child: _updating
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(l.orderMarkAsPaid),
               ),
           ],
         ),
@@ -590,17 +653,25 @@ class _PaymentSection extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: isPaid
                 ? TextButton.icon(
-                    onPressed: () => ref
-                        .read(ordersRepositoryProvider)
-                        .setPaymentStatus(o.id, 'unpaid'),
-                    icon: const Icon(Icons.undo, size: 16),
+                    onPressed:
+                        _updating ? null : () => _setPaymentStatus('unpaid'),
+                    icon: _updating
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.undo, size: 16),
                     label: Text(l.orderMarkAsUnpaid),
                   )
                 : FilledButton.tonalIcon(
-                    onPressed: () => ref
-                        .read(ordersRepositoryProvider)
-                        .setPaymentStatus(o.id, 'paid'),
-                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    onPressed:
+                        _updating ? null : () => _setPaymentStatus('paid'),
+                    icon: _updating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.check_circle_outline, size: 18),
                     label: Text(l.orderMarkAsPaid),
                   ),
           ),
@@ -695,27 +766,44 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
   Future<void> _handOff() async {
     final carrier = _carrier.text.trim();
     if (carrier.isEmpty) return;
+    final l = AppLocalizations.of(context);
     setState(() => _saving = true);
-    await ref
-        .read(ordersRepositoryProvider)
-        .handOffToCarrier(widget.order.id, carrier: carrier);
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _editing = false;
-    });
+    try {
+      await ref
+          .read(ordersRepositoryProvider)
+          .handOffToCarrier(widget.order.id, carrier: carrier);
+      if (!mounted) return;
+      setState(() {
+        _editing = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _saveTracking() async {
     final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _savingTracking = true);
-    await ref
-        .read(ordersRepositoryProvider)
-        .setDelivery(widget.order.id, trackingNumber: _tracking.text.trim());
-    if (!mounted) return;
-    setState(() => _savingTracking = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l.deliverySaved)));
+    try {
+      await ref
+          .read(ordersRepositoryProvider)
+          .setDelivery(widget.order.id, trackingNumber: _tracking.text.trim());
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l.deliverySaved)));
+    } catch (e) {
+      if (mounted) {
+        messenger
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _savingTracking = false);
+    }
   }
 
   @override

@@ -64,6 +64,13 @@ class InvoiceDetailScreen extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l.invoiceAlreadyRefunded)));
+    } catch (e) {
+      // Any other failure (e.g. a DB/transaction error mid-refund) — the
+      // StateError branch above only covers the "already refunded" case.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }
 

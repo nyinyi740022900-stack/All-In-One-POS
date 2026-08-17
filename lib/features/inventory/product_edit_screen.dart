@@ -141,10 +141,17 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await ref
-        .read(inventoryRepositoryProvider)
-        .deleteProduct(widget.existing!.product.id);
-    if (mounted) Navigator.of(context).pop();
+    try {
+      await ref
+          .read(inventoryRepositoryProvider)
+          .deleteProduct(widget.existing!.product.id);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -168,6 +175,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             imageUrl: _imageUrl,
           );
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

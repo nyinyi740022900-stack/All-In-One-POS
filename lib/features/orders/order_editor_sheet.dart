@@ -174,38 +174,47 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
     }
 
     setState(() => _saving = true);
-    final phone = _phone.text.trim();
-    // A directory customer explicitly picked via the autocomplete/picker
-    // sheet is used as-is — resolving by name again could match a different
-    // customer sharing that name.
-    final customerId = _selectedCustomerId ??
-        await ref
-            .read(customerRepositoryProvider)
-            .resolveOrCreate(_name.text.trim(),
-                phone: phone.isEmpty ? null : phone);
-    await ref.read(ordersRepositoryProvider).saveOrder(
-          id: widget.order?.id,
-          customerName: _name.text.trim(),
-          customerPhone: phone.isEmpty ? null : phone,
-          customerId: customerId,
-          channel: _channel,
-          deliveryAddress:
-              _address.text.trim().isEmpty ? null : _address.text.trim(),
-          deliveryFee: _deliveryFeeVal,
-          note: _note.text.trim().isEmpty ? null : _note.text.trim(),
-          lines: lines,
-        );
-    // saveOrder() replaces this order's items wholesale (tombstone + insert)
-    // — orderItemsProvider has no watch signal of its own (a plain family
-    // provider over a one-shot repository read), so without this the detail
-    // sheet keeps showing the pre-edit item list until app restart.
-    final editedId = widget.order?.id;
-    if (editedId != null) {
-      ref.invalidate(orderItemsProvider(editedId));
+    try {
+      final phone = _phone.text.trim();
+      // A directory customer explicitly picked via the autocomplete/picker
+      // sheet is used as-is — resolving by name again could match a
+      // different customer sharing that name.
+      final customerId = _selectedCustomerId ??
+          await ref
+              .read(customerRepositoryProvider)
+              .resolveOrCreate(_name.text.trim(),
+                  phone: phone.isEmpty ? null : phone);
+      await ref.read(ordersRepositoryProvider).saveOrder(
+            id: widget.order?.id,
+            customerName: _name.text.trim(),
+            customerPhone: phone.isEmpty ? null : phone,
+            customerId: customerId,
+            channel: _channel,
+            deliveryAddress:
+                _address.text.trim().isEmpty ? null : _address.text.trim(),
+            deliveryFee: _deliveryFeeVal,
+            note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+            lines: lines,
+          );
+      // saveOrder() replaces this order's items wholesale (tombstone + insert)
+      // — orderItemsProvider has no watch signal of its own (a plain family
+      // provider over a one-shot repository read), so without this the
+      // detail sheet keeps showing the pre-edit item list until app restart.
+      final editedId = widget.order?.id;
+      if (editedId != null) {
+        ref.invalidate(orderItemsProvider(editedId));
+      }
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l.orderSaved)));
+      nav.pop();
+    } catch (e) {
+      if (mounted) {
+        messenger
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-    if (!mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(l.orderSaved)));
-    nav.pop();
   }
 
   @override

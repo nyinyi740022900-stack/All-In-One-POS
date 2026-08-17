@@ -181,6 +181,11 @@ class _PurchaseOrderEditorScreenState
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.poSaved)));
+    } catch (e) {
+      if (mounted) {
+        messenger
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

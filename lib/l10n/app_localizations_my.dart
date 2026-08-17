@@ -623,6 +623,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'ကုန်ဝယ်အမှာစာ လက်ခံရရှိပြီ — Stock အသစ်ပြင်ပြီးပါပြီ။';
 
   @override
+  String get poReceiveFailed =>
+      'လက်ခံရရှိကြောင်း မှတ်သား၍မရပါ — Stock ကို မွမ်းမံခြင်း မပြုရသေးပါ။ ထပ်ကြိုးစားကြည့်ပါ။';
+
+  @override
   String get poCancelOrder => 'ကုန်ဝယ်အမှာစာ ပယ်ဖျက်မည်';
 
   @override
@@ -759,6 +763,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String stockAdjustBelowZero(int quantity) {
     return 'ဒါလုပ်ရင် stock က ဇီးရိုထက်နည်းသွားပါမယ် (လက်ရှိ $quantity)။';
   }
+
+  @override
+  String get stockAdjustRace =>
+      'Stock ကို အခြားစက်တစ်ခုတွင် ပြောင်းလဲလိုက်ပါသည် — ပြန်လည်စတင်ပြီး ထပ်ကြိုးစားပါ။';
 
   @override
   String stockAdjustCurrentStock(int quantity) {
@@ -2234,6 +2242,10 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get orderConvertFailed =>
+      'ဒီအော်ဒါကို အရောင်းအဖြစ် ပြောင်း၍မရပါ။ ထပ်ကြိုးစားကြည့်ပါ။';
+
+  @override
   String get orderAlreadySale => 'အရောင်းအဖြစ် မှတ်တမ်းတင်ပြီးပြီ။';
 
   @override
@@ -2249,6 +2261,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String orderReturnConfirmBody(String amount) {
     return 'ဒါက $amount ပြန်အမ်းပေးမည်၊ အရောင်းကို ပြန်ပြင်ပေးမည်၊ ကုန်ပစ္စည်းလက်ကျန်ကိုလည်း ပြန်ထည့်ပေးမည်ဖြစ်ပြီး ပြန်ရုပ်သိမ်းလို့ မရတော့ပါ။';
   }
+
+  @override
+  String get orderReturnFailed =>
+      'ပြန်ပို့မှုကို လုပ်ဆောင်၍မရပါ။ ထပ်မကြိုးစားမီ Invoices တွင် စစ်ဆေးပါ။';
 
   @override
   String get orderNeedsName => 'ဖောက်သည်အမည် ထည့်ပါ။';

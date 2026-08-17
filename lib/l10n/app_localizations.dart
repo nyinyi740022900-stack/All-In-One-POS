@@ -1244,6 +1244,12 @@ abstract class AppLocalizations {
   /// **'Purchase order received — stock updated.'**
   String get poReceived;
 
+  /// No description provided for @poReceiveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark as received — stock wasn\'t updated. Please try again.'**
+  String get poReceiveFailed;
+
   /// No description provided for @poCancelOrder.
   ///
   /// In en, this message translates to:
@@ -1501,6 +1507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This would take stock below zero (currently {quantity}).'**
   String stockAdjustBelowZero(int quantity);
+
+  /// No description provided for @stockAdjustRace.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock changed on another device — refresh and try again.'**
+  String get stockAdjustRace;
 
   /// No description provided for @stockAdjustCurrentStock.
   ///
@@ -4136,6 +4148,12 @@ abstract class AppLocalizations {
   /// **'Order converted to a sale ({invoice}).'**
   String orderConverted(String invoice);
 
+  /// No description provided for @orderConvertFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t convert this order to a sale. Please try again.'**
+  String get orderConvertFailed;
+
   /// No description provided for @orderAlreadySale.
   ///
   /// In en, this message translates to:
@@ -4165,6 +4183,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.'**
   String orderReturnConfirmBody(String amount);
+
+  /// No description provided for @orderReturnFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t process the return. Please check Invoices before trying again.'**
+  String get orderReturnFailed;
 
   /// No description provided for @orderNeedsName.
   ///

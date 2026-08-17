@@ -76,11 +76,19 @@ class CategoriesScreen extends ConsumerWidget {
       builder: (_) => _CategoryNameDialog(existing: existing),
     );
     if (name != null && name.isNotEmpty) {
-      await ref.read(inventoryRepositoryProvider).upsertCategory(
-            id: existing?.id,
-            name: name,
-            sort: existing?.sort ?? 0,
-          );
+      try {
+        await ref.read(inventoryRepositoryProvider).upsertCategory(
+              id: existing?.id,
+              name: name,
+              sort: existing?.sort ?? 0,
+            );
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:
+                  Text(AppLocalizations.of(context).commonUnexpectedError)));
+        }
+      }
     }
   }
 
@@ -106,7 +114,14 @@ class CategoriesScreen extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      await ref.read(inventoryRepositoryProvider).deleteCategory(c.id);
+      try {
+        await ref.read(inventoryRepositoryProvider).deleteCategory(c.id);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l.commonUnexpectedError)));
+        }
+      }
     }
   }
 }

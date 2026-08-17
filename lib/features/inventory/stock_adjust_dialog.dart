@@ -122,14 +122,26 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
         : null;
 
     final navigator = Navigator.of(context);
-    await ref.read(inventoryRepositoryProvider).adjustStock(
-          productId: widget.productId,
-          delta: delta,
-          type: _mode == _Mode.restock ? 'purchase' : 'adjustment',
-          note: note,
-          unitCost: unitCost,
-        );
-    navigator.pop();
+    try {
+      await ref.read(inventoryRepositoryProvider).adjustStock(
+            productId: widget.productId,
+            delta: delta,
+            type: _mode == _Mode.restock ? 'purchase' : 'adjustment',
+            note: note,
+            unitCost: unitCost,
+          );
+      navigator.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        // A concurrent adjustment on another device can take stock below
+        // zero between this dialog's own pre-check above and the write
+        // actually landing — surfaced by the repository as a StateError.
+        // Anything else is an unclassified failure.
+        _error = e is StateError ? l.stockAdjustRace : l.commonUnexpectedError;
+      });
+    }
   }
 
   @override

@@ -624,6 +624,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get poReceived => 'Purchase order received — stock updated.';
 
   @override
+  String get poReceiveFailed =>
+      'Couldn\'t mark as received — stock wasn\'t updated. Please try again.';
+
+  @override
   String get poCancelOrder => 'Cancel purchase order';
 
   @override
@@ -759,6 +763,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String stockAdjustBelowZero(int quantity) {
     return 'This would take stock below zero (currently $quantity).';
   }
+
+  @override
+  String get stockAdjustRace =>
+      'Stock changed on another device — refresh and try again.';
 
   @override
   String stockAdjustCurrentStock(int quantity) {
@@ -2223,6 +2231,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get orderConvertFailed =>
+      'Couldn\'t convert this order to a sale. Please try again.';
+
+  @override
   String get orderAlreadySale => 'Already recorded as a sale.';
 
   @override
@@ -2238,6 +2250,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String orderReturnConfirmBody(String amount) {
     return 'This refunds $amount, reverses the sale, and restores stock. This cannot be undone.';
   }
+
+  @override
+  String get orderReturnFailed =>
+      'Couldn\'t process the return. Please check Invoices before trying again.';
 
   @override
   String get orderNeedsName => 'Enter a customer name.';
