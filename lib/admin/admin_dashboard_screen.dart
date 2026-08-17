@@ -197,6 +197,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       );
       _reload();
+    } on LicenseAlreadyExistsException {
+      _snack('This shop already has a license — use Extend instead of '
+          'Generate key.');
     } catch (e) {
       _snack('$e');
     }

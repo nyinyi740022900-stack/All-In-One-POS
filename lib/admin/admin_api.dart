@@ -6,6 +6,16 @@ class ExtendLicenseResult {
   final bool created;
 }
 
+/// Thrown by [AdminApi.createLicense] when the shop already has a
+/// non-deleted license row — create_license has no shop_id uniqueness
+/// guard at the DB level, so the caller must be stopped from minting a
+/// second live license for the same shop (should use Extend instead).
+class LicenseAlreadyExistsException implements Exception {
+  const LicenseAlreadyExistsException();
+  @override
+  String toString() => 'license_already_exists';
+}
+
 /// Thin client over the `admin` Edge Function. Every call carries the current
 /// admin session's JWT (added automatically by `functions.invoke`); the
 /// function verifies the `role=admin` claim and uses the service role
@@ -135,6 +145,11 @@ class AdminApi {
     _throwIfError(res);
   }
 
+  /// Throws [LicenseAlreadyExistsException] when [shopId] already has a
+  /// license — most callers reach this only via the Shops-tab "Generate
+  /// key" button (shown solely for status: 'no_license' rows), but the FAB
+  /// dialog accepts any typed-in shop_id, so this guard is what actually
+  /// stops a duplicate live license there.
   Future<String> createLicense({
     required String shopId,
     String? shopName,
@@ -148,6 +163,9 @@ class AdminApi {
       'plan': plan,
       'months': months,
     });
+    if (res.data is Map && (res.data as Map)['error'] == 'license_already_exists') {
+      throw const LicenseAlreadyExistsException();
+    }
     _throwIfError(res);
     return (res.data as Map)['key'] as String;
   }

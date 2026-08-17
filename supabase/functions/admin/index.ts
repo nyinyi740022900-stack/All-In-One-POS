@@ -401,7 +401,14 @@ Deno.serve(async (req) => {
         action = "issue";
       }
 
-      await admin
+      // The license is already minted at this point (create_license/
+      // renew_license above committed) — this status flip is bookkeeping on
+      // top of that. If it silently fails, the request row stays "pending"
+      // and a second "Confirm payment" click would mint/extend AGAIN for the
+      // same shop (create_license has no shop_id uniqueness guard), so the
+      // caller must be told this didn't fully succeed rather than getting a
+      // response indistinguishable from a clean fulfill.
+      const { error: markErr } = await admin
         .from("license_requests")
         .update({
           status: "fulfilled",
@@ -430,7 +437,15 @@ Deno.serve(async (req) => {
         baseAmount: reqRow.amount ?? 0,
         sourceRequestId: reqId,
       });
-      return json({ key, action });
+      if (markErr) {
+        return json({
+          key,
+          action,
+          request_marked_fulfilled: false,
+          detail: markErr.message,
+        });
+      }
+      return json({ key, action, request_marked_fulfilled: true });
     }
 
     case "reject_request": {
@@ -445,7 +460,12 @@ Deno.serve(async (req) => {
       if (reqErr) return json({ error: "server_error" }, 500);
       if (!reqRow) return json({ error: "not_found" }, 404);
 
-      await admin
+      // Nothing irreversible has happened yet (no license minted for a
+      // rejection), unlike fulfill_request above — so unlike there, it's
+      // safe to hard-fail here on an update error rather than reporting a
+      // partial success; the admin is told to retry instead of believing
+      // the request was declined when the row is actually still pending.
+      const { error: updateErr } = await admin
         .from("license_requests")
         .update({
           status: "rejected",
@@ -453,6 +473,9 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq("id", reqId);
+      if (updateErr) {
+        return json({ error: "server_error", detail: updateErr.message }, 500);
+      }
       await logEvent(admin, {
         device_id: (reqRow.device_id ?? "").trim() || null,
         shop_name: reqRow.shop_name ?? null,
@@ -585,6 +608,23 @@ Deno.serve(async (req) => {
       const plan = (body.plan ?? "monthly").trim();
       const months = body.months ?? 1;
       if (!shopId) return json({ error: "bad_request" }, 400);
+
+      // create_license has no shop_id uniqueness guard at the DB level (a
+      // plain insert) — this is the FAB "Generate key" path, reachable for
+      // ANY shop_id an admin types in, unlike the Shops-tab button which is
+      // only ever shown for rows already known to have status: 'no_license'.
+      // Guard here so typing in a shop_id that already has an active
+      // license can't silently mint a second live license row for it.
+      const { data: existingLic, error: existErr } = await admin
+        .from("licenses")
+        .select("key")
+        .eq("shop_id", shopId)
+        .eq("is_deleted", false)
+        .limit(1)
+        .maybeSingle();
+      if (existErr) return json({ error: "server_error" }, 500);
+      if (existingLic) return json({ error: "license_already_exists" }, 400);
+
       const { data, error } = await admin.rpc("create_license", {
         p_shop_id: shopId,
         p_plan: plan,
