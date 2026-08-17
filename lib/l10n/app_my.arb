@@ -597,6 +597,7 @@
   "invWebErrorPaymentRequired": "ဒီ computer ထပ်ထည့်ဖို့ device fee ပေးရပါမယ် — support ကို ဆက်သွယ်ပြီး ငွေပေးချေပါ၊ ပြီးမှ ထပ်ကြိုးစားပါ",
   "invWebErrorActivationFailed": "Activate မလုပ်နိုင်ပါ — key ကို ပြန်စစ်ပြီး ထပ်ကြိုးစားပါ",
   "invWebErrorNetwork": "Network error — connection ကို စစ်ပြီး ထပ်ကြိုးစားပါ",
+  "invWebErrorRefreshPending": "Activate ဖြစ်သွားပါပြီ — ဆက်လုပ်ရန် ဒီစာမျက်နှာကို reload လုပ်ပါ",
   "invWebSignOut": "ဒီ computer ကို sign out လုပ်မည်",
   "invWebDownloadPdf": "PDF ဒေါင်းလုဒ်",
   "invWebSearchHint": "Invoice နံပါတ်၊ ဝယ်သူအမည်၊ (သို့) ဖုန်းနံပါတ်ဖြင့် ရှာပါ",

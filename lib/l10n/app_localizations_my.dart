@@ -1832,6 +1832,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'Network error — connection ကို စစ်ပြီး ထပ်ကြိုးစားပါ';
 
   @override
+  String get invWebErrorRefreshPending =>
+      'Activate ဖြစ်သွားပါပြီ — ဆက်လုပ်ရန် ဒီစာမျက်နှာကို reload လုပ်ပါ';
+
+  @override
   String get invWebSignOut => 'ဒီ computer ကို sign out လုပ်မည်';
 
   @override

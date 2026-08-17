@@ -1816,6 +1816,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Network error — check your connection and try again';
 
   @override
+  String get invWebErrorRefreshPending =>
+      'Activated — reload this page to continue';
+
+  @override
   String get invWebSignOut => 'Sign out this computer';
 
   @override

@@ -41,19 +41,37 @@ class InvoicesWebSession {
       await auth.signInAnonymously();
     }
     final deviceId = await _deviceId();
+    final Map<String, dynamic> data;
     try {
       final res = await Supabase.instance.client.functions.invoke(
         'activate',
         body: {'key': trimmed, 'device_id': deviceId},
       );
-      final data = res.data as Map<String, dynamic>;
-      if (data['ok'] != true) {
-        return (data['error'] as String?) ?? 'activation_failed';
-      }
+      data = res.data as Map<String, dynamic>;
+    } catch (_) {
+      return 'network_error';
+    }
+    if (data['ok'] != true) {
+      return (data['error'] as String?) ?? 'activation_failed';
+    }
+    // The Edge Function call above already succeeded server-side — this
+    // device's slot is consumed — so a failure from here on must never be
+    // reported as a generic activation failure (a naive retry could then
+    // hit an "already activated" rejection and confuse the user further).
+    // A freshly-granted shop_id claim can lag behind the cached JWT until
+    // the next refresh, so give it one retry before giving up; if it still
+    // doesn't stick, tell the caller activation succeeded but the browser
+    // needs a reload to pick up the new session.
+    try {
       await auth.refreshSession();
       return null;
     } catch (_) {
-      return 'network_error';
+      try {
+        await auth.refreshSession();
+        return null;
+      } catch (_) {
+        return 'activated_refresh_pending';
+      }
     }
   }
 

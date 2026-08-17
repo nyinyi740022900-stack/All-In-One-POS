@@ -604,6 +604,7 @@
   "invWebErrorPaymentRequired": "Adding this computer needs an extra-device fee — contact support to pay, then try again",
   "invWebErrorActivationFailed": "Couldn't activate — check the key and try again",
   "invWebErrorNetwork": "Network error — check your connection and try again",
+  "invWebErrorRefreshPending": "Activated — reload this page to continue",
   "invWebSignOut": "Sign out this computer",
   "invWebDownloadPdf": "Download PDF",
   "invWebSearchHint": "Search invoice #, customer, or phone",

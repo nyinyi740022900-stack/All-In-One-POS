@@ -66,6 +66,7 @@ class _ActivateScreenState extends State<ActivateScreen> {
         'device_mismatch' => l.invWebErrorDeviceMismatch,
         'payment_required' => l.invWebErrorPaymentRequired,
         'network_error' => l.invWebErrorNetwork,
+        'activated_refresh_pending' => l.invWebErrorRefreshPending,
         _ => l.invWebErrorActivationFailed,
       };
 

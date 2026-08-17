@@ -3428,6 +3428,12 @@ abstract class AppLocalizations {
   /// **'Network error — check your connection and try again'**
   String get invWebErrorNetwork;
 
+  /// No description provided for @invWebErrorRefreshPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Activated — reload this page to continue'**
+  String get invWebErrorRefreshPending;
+
   /// No description provided for @invWebSignOut.
   ///
   /// In en, this message translates to:
