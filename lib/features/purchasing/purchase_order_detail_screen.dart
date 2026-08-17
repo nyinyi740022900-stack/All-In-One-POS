@@ -59,8 +59,15 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(purchaseOrderRepositoryProvider).cancelPO(poId);
-    if (context.mounted) Navigator.of(context).pop();
+    try {
+      await ref.read(purchaseOrderRepositoryProvider).cancelPO(poId);
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -82,8 +89,20 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(purchaseOrderRepositoryProvider).deletePO(poId);
-    if (context.mounted) Navigator.of(context).pop();
+    try {
+      await ref.read(purchaseOrderRepositoryProvider).deletePO(poId);
+      if (context.mounted) Navigator.of(context).pop();
+    } on StateError catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.poDeleteFailedReceived)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    }
   }
 
   @override

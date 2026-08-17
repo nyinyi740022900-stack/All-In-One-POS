@@ -146,6 +146,7 @@
   "equitySaved": "သိမ်းပြီးပါပြီ",
   "equityDeleteConfirmTitle": "ဒီမှတ်တမ်းကို ဖယ်ရှားမလား?",
   "equityDeleteConfirmBody": "ဒီလုပ်ဆောင်ချက်ကို ပြန်ပြင်လို့ မရပါ။",
+  "equityDeleted": "မှတ်တမ်း ဖယ်ရှားပြီးပါပြီ",
   "customersTitle": "ဖောက်သည်များ",
   "customersEmpty": "ဖောက်သည် မထည့်ရသေးပါ။ ပထမဆုံး ဖောက်သည်ထည့်ပါ။",
   "customersNoMatch": "ရှာဖွေမှုနှင့် ကိုက်ညီသည့် ဖောက်သည် မရှိပါ။",
@@ -212,6 +213,7 @@
   "poCancelConfirmTitle": "ဒီကုန်ဝယ်အမှာစာကို ပယ်ဖျက်မလား? Stock ကို မထိခိုက်ပါ။",
   "poDeleteConfirmTitle": "ဒီကုန်ဝယ်အမှာစာကို ဖျက်မလား?",
   "poDeleteConfirmBody": "ဒီ draft နှင့် line item အားလုံးကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။",
+  "poDeleteFailedReceived": "လက်ခံရရှိပြီးသား ကုန်ဝယ်အမှာစာကို ဖျက်၍မရပါ။",
 
   "inventoryTitle": "ကုန်ပစ္စည်း",
   "inventoryExportCsv": "CSV ထုတ်",

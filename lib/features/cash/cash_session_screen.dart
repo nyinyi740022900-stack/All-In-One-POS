@@ -67,11 +67,15 @@ class CashSessionScreen extends ConsumerWidget {
     );
     if (amount == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    final deviceId = await ref.read(deviceIdProvider.future);
-    await ref
-        .read(cashSessionRepositoryProvider)
-        .openSession(openingAmount: amount, deviceId: deviceId);
-    messenger.showSnackBar(SnackBar(content: Text(l.cashRegisterOpenedMsg)));
+    try {
+      final deviceId = await ref.read(deviceIdProvider.future);
+      await ref
+          .read(cashSessionRepositoryProvider)
+          .openSession(openingAmount: amount, deviceId: deviceId);
+      messenger.showSnackBar(SnackBar(content: Text(l.cashRegisterOpenedMsg)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
   }
 
   Future<void> _closeRegister(
@@ -88,10 +92,14 @@ class CashSessionScreen extends ConsumerWidget {
     );
     if (amount == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    await ref
-        .read(cashSessionRepositoryProvider)
-        .closeSession(session.id, closingAmount: amount);
-    messenger.showSnackBar(SnackBar(content: Text(l.cashRegisterClosedMsg)));
+    try {
+      await ref
+          .read(cashSessionRepositoryProvider)
+          .closeSession(session.id, closingAmount: amount);
+      messenger.showSnackBar(SnackBar(content: Text(l.cashRegisterClosedMsg)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
   }
 }
 
@@ -317,33 +325,38 @@ class _HistoryTile extends ConsumerWidget {
       PaperSize paper) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
-    final varianceText =
-        report.variance == null ? null : _varianceText(l, report.variance!);
-    final lines = CashSessionReportFormatter(paper: paper, currencySymbol: l.currencySymbol)
-        .format(
-      report,
-      title: l.cashReportTitle,
-      openedLabel: l.cashOpenedAt,
-      closedLabel: l.cashClosedAt,
-      openingFloatLabel: l.cashOpeningAmount,
-      cashSalesLabel: l.cashReportCashSales,
-      cashRepaymentsLabel: l.cashReportCashRepayments,
-      expensesLabel: l.expensesTitle,
-      expectedCashLabel: l.cashExpectedNow,
-      countedCashLabel: l.cashClosingAmount,
-      openedAt: session.openedAt,
-      closedAt: session.closedAt,
-      varianceLabel: l.cashVariance,
-      varianceText: varianceText,
-    );
-    final profile = await ref.read(shopProfileProvider.future);
-    final result = await ref
-        .read(printerServiceProvider)
-        .printZReport(lines, profile.name, paper: paper, mac: mac);
-    if (!context.mounted) return;
-    messenger.showSnackBar(
-        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)));
+    try {
+      final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
+      final varianceText =
+          report.variance == null ? null : _varianceText(l, report.variance!);
+      final lines = CashSessionReportFormatter(paper: paper, currencySymbol: l.currencySymbol)
+          .format(
+        report,
+        title: l.cashReportTitle,
+        openedLabel: l.cashOpenedAt,
+        closedLabel: l.cashClosedAt,
+        openingFloatLabel: l.cashOpeningAmount,
+        cashSalesLabel: l.cashReportCashSales,
+        cashRepaymentsLabel: l.cashReportCashRepayments,
+        expensesLabel: l.expensesTitle,
+        expectedCashLabel: l.cashExpectedNow,
+        countedCashLabel: l.cashClosingAmount,
+        openedAt: session.openedAt,
+        closedAt: session.closedAt,
+        varianceLabel: l.cashVariance,
+        varianceText: varianceText,
+      );
+      final profile = await ref.read(shopProfileProvider.future);
+      final result = await ref
+          .read(printerServiceProvider)
+          .printZReport(lines, profile.name, paper: paper, mac: mac);
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+          SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)));
+    } catch (e) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
   }
 
   Future<void> _sharePdf(BuildContext context, WidgetRef ref) async {

@@ -38,10 +38,18 @@ class PaymentAccountsScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(paymentAccountRepositoryProvider).deleteAccount(a.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.paymentAccountDeleted)));
+    try {
+      await ref.read(paymentAccountRepositoryProvider).deleteAccount(a.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.paymentAccountDeleted)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
     }
   }
 
@@ -53,14 +61,22 @@ class PaymentAccountsScreen extends ConsumerWidget {
       builder: (_) => _PaymentAccountEditorDialog(existing: existing),
     );
     if (draft == null || !context.mounted) return;
-    await ref.read(paymentAccountRepositoryProvider).upsertAccount(
-          id: existing?.id,
-          name: draft.name,
-          openingBalance: draft.openingBalance,
+    try {
+      await ref.read(paymentAccountRepositoryProvider).upsertAccount(
+            id: existing?.id,
+            name: draft.name,
+            openingBalance: draft.openingBalance,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.paymentAccountSaved)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.paymentAccountSaved)));
+      }
     }
   }
 

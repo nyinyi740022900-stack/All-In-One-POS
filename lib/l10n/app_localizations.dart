@@ -896,6 +896,12 @@ abstract class AppLocalizations {
   /// **'This cannot be undone.'**
   String get equityDeleteConfirmBody;
 
+  /// No description provided for @equityDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry removed'**
+  String get equityDeleted;
+
   /// No description provided for @creditRepaymentSaved.
   ///
   /// In en, this message translates to:
@@ -1261,6 +1267,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This permanently removes the draft and its line items. This cannot be undone.'**
   String get poDeleteConfirmBody;
+
+  /// No description provided for @poDeleteFailedReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete a purchase order that\'s already been received.'**
+  String get poDeleteFailedReceived;
 
   /// No description provided for @inventoryTitle.
   ///

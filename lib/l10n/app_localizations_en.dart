@@ -440,6 +440,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get equityDeleteConfirmBody => 'This cannot be undone.';
 
   @override
+  String get equityDeleted => 'Entry removed';
+
+  @override
   String get creditRepaymentSaved => 'Repayment recorded';
 
   @override
@@ -633,6 +636,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get poDeleteConfirmBody =>
       'This permanently removes the draft and its line items. This cannot be undone.';
+
+  @override
+  String get poDeleteFailedReceived =>
+      'Can\'t delete a purchase order that\'s already been received.';
 
   @override
   String get inventoryTitle => 'Inventory';

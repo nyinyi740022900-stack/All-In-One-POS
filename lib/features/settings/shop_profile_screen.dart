@@ -130,6 +130,11 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       ref.invalidate(shopProfileProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.shopProfileSaved)));
       navigator.pop();
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

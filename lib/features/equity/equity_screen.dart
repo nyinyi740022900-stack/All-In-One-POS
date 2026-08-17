@@ -144,8 +144,19 @@ class OwnerEquityScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (ok != true) return;
-    await ref.read(equityRepositoryProvider).deleteEntry(e.id);
+    if (ok != true || !context.mounted) return;
+    try {
+      await ref.read(equityRepositoryProvider).deleteEntry(e.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.equityDeleted)));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    }
   }
 
   Future<void> _openDialog(BuildContext context) {
@@ -214,6 +225,11 @@ class _EquityEntryDialogState extends ConsumerState<_EquityEntryDialog> {
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.equitySaved)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

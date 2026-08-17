@@ -327,6 +327,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
   String? _receiptPhotoPath;
   String? _accountId;
   bool _saving = false;
+  bool _savingReceipt = false;
 
   @override
   void initState() {
@@ -368,12 +369,22 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
         await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
-    final c = compressImage(Uint8List.fromList(file.bytes!),
-        fallbackExt: (file.extension ?? 'jpg').toLowerCase());
-    final path = await ref
-        .read(expenseRepositoryProvider)
-        .saveReceiptPhoto(c.bytes, ext: c.ext);
-    if (mounted) setState(() => _receiptPhotoPath = path);
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _savingReceipt = true);
+    try {
+      final c = compressImage(Uint8List.fromList(file.bytes!),
+          fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+      final path = await ref
+          .read(expenseRepositoryProvider)
+          .saveReceiptPhoto(c.bytes, ext: c.ext);
+      if (mounted) setState(() => _receiptPhotoPath = path);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _savingReceipt = false);
+    }
   }
 
   Future<void> _save() async {
@@ -395,6 +406,10 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.expenseSaved)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -427,9 +442,18 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
       ),
     );
     if (confirmed != true) return;
-    await ref.read(expenseRepositoryProvider).deleteExpense(widget.existing!.id);
-    navigator.pop();
-    messenger.showSnackBar(SnackBar(content: Text(l.expenseDeleted)));
+    setState(() => _saving = true);
+    try {
+      await ref.read(expenseRepositoryProvider).deleteExpense(widget.existing!.id);
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.expenseDeleted)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -536,14 +560,20 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
                           child: Text(l.expenseReceiptPhotoView),
                         ),
                         TextButton(
-                          onPressed: _pickReceiptPhoto,
+                          onPressed: _savingReceipt ? null : _pickReceiptPhoto,
                           style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(0, 0),
                               tapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                               alignment: Alignment.centerLeft),
-                          child: Text(l.expenseReceiptPhotoReplace),
+                          child: _savingReceipt
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : Text(l.expenseReceiptPhotoReplace),
                         ),
                       ],
                     ),
@@ -552,8 +582,13 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
               ),
             ] else
               OutlinedButton.icon(
-                onPressed: _pickReceiptPhoto,
-                icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                onPressed: _savingReceipt ? null : _pickReceiptPhoto,
+                icon: _savingReceipt
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.camera_alt_outlined, size: 18),
                 label: Text(l.expenseReceiptPhotoAdd),
               ),
             if (_receiptPhotoPath != null && !photoExists)

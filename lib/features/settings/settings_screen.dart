@@ -378,8 +378,18 @@ class _TrackStockTile extends ConsumerWidget {
           ),
           Switch(
             value: tracking,
-            onChanged: (v) =>
-                ref.read(settingsRepositoryProvider).setTrackStock(shopId, v),
+            onChanged: (v) async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await ref
+                    .read(settingsRepositoryProvider)
+                    .setTrackStock(shopId, v);
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l.commonUnexpectedError)),
+                );
+              }
+            },
           ),
         ],
       ),
@@ -731,8 +741,16 @@ class _DeviceLabelTile extends ConsumerWidget {
       builder: (_) => _DeviceLabelDialog(initial: current ?? ''),
     );
     if (label == null) return;
-    final deviceId = await ref.read(deviceIdProvider.future);
-    await ref.read(deviceLabelRepositoryProvider).setLabel(deviceId, label);
+    try {
+      final deviceId = await ref.read(deviceIdProvider.future);
+      await ref.read(deviceLabelRepositoryProvider).setLabel(deviceId, label);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)),
+        );
+      }
+    }
   }
 }
 

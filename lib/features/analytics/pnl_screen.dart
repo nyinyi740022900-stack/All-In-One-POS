@@ -159,6 +159,11 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
           .printZReport(lines, profile.name, paper: paper, mac: mac);
       messenger.showSnackBar(SnackBar(
           content: Text(result.ok ? l.printSuccess : l.printFailed)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _printing = false);
     }

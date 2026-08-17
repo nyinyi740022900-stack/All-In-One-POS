@@ -435,6 +435,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get equityDeleteConfirmBody => 'ဒီလုပ်ဆောင်ချက်ကို ပြန်ပြင်လို့ မရပါ။';
 
   @override
+  String get equityDeleted => 'မှတ်တမ်း ဖယ်ရှားပြီးပါပြီ';
+
+  @override
   String get creditRepaymentSaved => 'ပြန်ဆပ်ငွေ မှတ်တမ်းတင်ပြီး';
 
   @override
@@ -632,6 +635,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get poDeleteConfirmBody =>
       'ဒီ draft နှင့် line item အားလုံးကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။';
+
+  @override
+  String get poDeleteFailedReceived =>
+      'လက်ခံရရှိပြီးသား ကုန်ဝယ်အမှာစာကို ဖျက်၍မရပါ။';
 
   @override
   String get inventoryTitle => 'ကုန်ပစ္စည်း';

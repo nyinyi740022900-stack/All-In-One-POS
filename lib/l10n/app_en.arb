@@ -149,6 +149,7 @@
   "equitySaved": "Saved",
   "equityDeleteConfirmTitle": "Remove this entry?",
   "equityDeleteConfirmBody": "This cannot be undone.",
+  "equityDeleted": "Entry removed",
   "creditRepaymentSaved": "Repayment recorded",
   "customersTitle": "Customers",
   "customersEmpty": "No customers yet. Add your first customer.",
@@ -216,6 +217,7 @@
   "poCancelConfirmTitle": "Cancel this purchase order? Stock will not be affected.",
   "poDeleteConfirmTitle": "Delete this purchase order?",
   "poDeleteConfirmBody": "This permanently removes the draft and its line items. This cannot be undone.",
+  "poDeleteFailedReceived": "Can't delete a purchase order that's already been received.",
 
   "inventoryTitle": "Inventory",
   "inventoryExportCsv": "Export CSV",

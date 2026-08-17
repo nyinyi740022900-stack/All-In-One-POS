@@ -49,9 +49,17 @@ class RecurringExpensesScreen extends ConsumerWidget {
                   ),
                   trailing: Switch(
                     value: t.active,
-                    onChanged: (v) => ref
-                        .read(recurringExpenseRepositoryProvider)
-                        .setActive(t.id, v),
+                    onChanged: (v) async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await ref
+                            .read(recurringExpenseRepositoryProvider)
+                            .setActive(t.id, v);
+                      } catch (e) {
+                        messenger.showSnackBar(SnackBar(
+                            content: Text(l.commonUnexpectedError)));
+                      }
+                    },
                   ),
                   onTap: () => _openDialog(context, existing: t),
                 );
@@ -123,6 +131,11 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseSaved)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -151,11 +164,22 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
       ),
     );
     if (confirmed != true) return;
-    await ref
-        .read(recurringExpenseRepositoryProvider)
-        .deleteTemplate(widget.existing!.id);
-    navigator.pop();
-    messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseDeleted)));
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(recurringExpenseRepositoryProvider)
+          .deleteTemplate(widget.existing!.id);
+      navigator.pop();
+      messenger
+          .showSnackBar(SnackBar(content: Text(l.recurringExpenseDeleted)));
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override

@@ -60,10 +60,18 @@ class SuppliersScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(supplierRepositoryProvider).deleteSupplier(s.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.supplierDeleted)));
+    try {
+      await ref.read(supplierRepositoryProvider).deleteSupplier(s.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.supplierDeleted)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
     }
   }
 
@@ -75,16 +83,24 @@ class SuppliersScreen extends ConsumerWidget {
       builder: (_) => _SupplierEditorDialog(existing: existing),
     );
     if (draft == null) return;
-    await ref.read(supplierRepositoryProvider).upsertSupplier(
-          id: existing?.id,
-          name: draft.name,
-          phone: draft.phone.isEmpty ? null : draft.phone,
-          address: draft.address.isEmpty ? null : draft.address,
-          note: draft.note.isEmpty ? null : draft.note,
+    try {
+      await ref.read(supplierRepositoryProvider).upsertSupplier(
+            id: existing?.id,
+            name: draft.name,
+            phone: draft.phone.isEmpty ? null : draft.phone,
+            address: draft.address.isEmpty ? null : draft.address,
+            note: draft.note.isEmpty ? null : draft.note,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.supplierSaved)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.supplierSaved)));
+      }
     }
   }
 

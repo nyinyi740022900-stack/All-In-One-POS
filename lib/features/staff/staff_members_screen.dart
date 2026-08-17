@@ -32,10 +32,18 @@ class StaffMembersScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await ref.read(staffRepositoryProvider).deactivateMember(m.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.staffMemberRemoved)));
+    try {
+      await ref.read(staffRepositoryProvider).deactivateMember(m.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.staffMemberRemoved)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
     }
   }
 
@@ -48,14 +56,22 @@ class StaffMembersScreen extends ConsumerWidget {
     );
     if (draft == null) return;
     final (name, pin) = draft;
-    await ref.read(staffRepositoryProvider).upsertMember(
-          id: existing?.id,
-          name: name,
-          pin: pin.isEmpty ? null : pin,
+    try {
+      await ref.read(staffRepositoryProvider).upsertMember(
+            id: existing?.id,
+            name: name,
+            pin: pin.isEmpty ? null : pin,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.staffMemberSaved)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.staffMemberSaved)));
+      }
     }
   }
 
