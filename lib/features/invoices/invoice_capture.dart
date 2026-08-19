@@ -16,13 +16,19 @@ Future<Uint8List> captureWidgetAsPng(
 }) async {
   final key = GlobalKey();
   final overlay = Overlay.of(context, rootOverlay: true);
+  // InvoiceView now looks up AppLocalizations. The overlay is usually under
+  // MaterialApp already, but Localizations.override copies delegates from
+  // the capturing screen so a missing ancestor cannot crash share/download.
   final entry = OverlayEntry(
     builder: (_) => Positioned(
       left: -10000,
       top: 0,
-      child: Material(
-        color: Colors.transparent,
-        child: RepaintBoundary(key: key, child: child),
+      child: Localizations.override(
+        context: context,
+        child: Material(
+          color: Colors.transparent,
+          child: RepaintBoundary(key: key, child: child),
+        ),
       ),
     ),
   );

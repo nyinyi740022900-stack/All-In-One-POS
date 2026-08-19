@@ -12,6 +12,7 @@ import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
 import '../printing/print_action.dart';
 import 'receipt_data.dart';
+import 'invoice_payment_status.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
 import '../settings/device_label_providers.dart';
@@ -117,6 +118,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
           final previousBalance = totalOutstanding - thisOwed;
           final colors = AppColors.of(context);
           final reversed = isRefund || refundRow != null;
+          final (statusLabel, statusTone) = invoicePaymentStatusDisplay(
+            l,
+            invoicePaymentStatusCode(paid: s.paid, total: s.total),
+          );
           return ListView(
             padding: const EdgeInsets.all(AppTheme.space4),
             children: [
@@ -151,6 +156,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
                         StatusPill(
                           label: l.invoiceRefunded,
                           tone: StatusTone.critical,
+                        ),
+                      ] else ...[
+                        const SizedBox(width: AppTheme.space2),
+                        StatusPill(
+                          label: statusLabel,
+                          tone: statusTone,
                         ),
                       ],
                     ],

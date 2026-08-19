@@ -12,6 +12,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
+import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
@@ -53,6 +54,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final range = ref.watch(analyticsRangeProvider);
     final summary = ref.watch(analyticsSummaryProvider);
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
+    final lowStockCount = ref.watch(lowStockCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -97,14 +99,18 @@ class AnalyticsScreen extends ConsumerWidget {
               // a dot and then snap the grid back in — the range segmented
               // button above it is tapped constantly, so that reflow happened
               // on every switch. The skeleton keeps the page's shape.
-              loading: () => const _DashboardSkeleton(),
+              loading: () => _DashboardSkeleton(trackStock: trackStock),
               error: (e, _) => EmptyStateView(
                 icon: Icons.error_outline,
                 title: l.commonUnexpectedError,
                 actionLabel: l.commonRetry,
                 onAction: () => ref.invalidate(analyticsSummaryProvider),
               ),
-              data: (s) => _Dashboard(summary: s, trackStock: trackStock),
+              data: (s) => _Dashboard(
+                summary: s,
+                trackStock: trackStock,
+                lowStockCount: lowStockCount,
+              ),
             ),
           ),
         ],
@@ -130,10 +136,15 @@ double _kpiTileExtent(BuildContext context) {
 }
 
 class _Dashboard extends StatelessWidget {
-  const _Dashboard({required this.summary, required this.trackStock});
+  const _Dashboard({
+    required this.summary,
+    required this.trackStock,
+    required this.lowStockCount,
+  });
 
   final AnalyticsSummary summary;
   final bool trackStock;
+  final int lowStockCount;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +154,13 @@ class _Dashboard extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
       children: [
+        _GlanceStrip(
+          revenue: Money(summary.revenue).withSymbol(cur),
+          salesCount: '${summary.salesCount}',
+          lowStockCount: lowStockCount,
+          trackStock: trackStock,
+        ),
+        const SizedBox(height: AppTheme.space3),
         GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -181,14 +199,9 @@ class _Dashboard extends StatelessWidget {
             // carry. So: informational tiles are neutral (`tone: null`), and
             // the accent is spent only where the *sign* of the number is the
             // news. Net profit and credit outstanding are now the only
-            // coloured things in the grid.
+            // coloured things in the grid. Revenue and sales-count moved up
+            // into [_GlanceStrip] so they are not duplicated here.
             // ---------------------------------------------------------------
-            StatCard(
-              label: l.analyticsRevenue,
-              value: Money(summary.revenue).withSymbol(cur),
-              icon: Icons.payments,
-              onTap: () => context.go('/invoices'),
-            ),
             StatCard(
               label: l.analyticsProfit,
               value: Money(summary.profit).withSymbol(cur),
@@ -213,12 +226,6 @@ class _Dashboard extends StatelessWidget {
               onTap: () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
-            ),
-            StatCard(
-              label: l.analyticsSalesCount,
-              value: '${summary.salesCount}',
-              icon: Icons.receipt_long,
-              onTap: () => context.go('/invoices'),
             ),
             if (trackStock)
               StatCard(
@@ -258,16 +265,134 @@ class _Dashboard extends StatelessWidget {
   }
 }
 
+/// Three equally-weighted glance cells: range revenue, range sales count,
+/// and live low-stock (not ranged — stock is "now"). Number on top, label
+/// underneath, no icon — a 3-up row on a phone cannot spare StatCard's
+/// 32pt plate. Accent is spent only on a non-zero low-stock count.
+class _GlanceStrip extends StatelessWidget {
+  const _GlanceStrip({
+    required this.revenue,
+    required this.salesCount,
+    required this.lowStockCount,
+    required this.trackStock,
+  });
+
+  final String revenue;
+  final String salesCount;
+  final int lowStockCount;
+  final bool trackStock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _GlanceCell(
+                value: revenue,
+                label: l.analyticsRevenue,
+                onTap: () => context.go('/invoices'),
+              ),
+            ),
+            VerticalDivider(width: 1, color: scheme.outlineVariant),
+            Expanded(
+              child: _GlanceCell(
+                value: salesCount,
+                label: l.analyticsSalesCount,
+                onTap: () => context.go('/invoices'),
+              ),
+            ),
+            if (trackStock) ...[
+              VerticalDivider(width: 1, color: scheme.outlineVariant),
+              Expanded(
+                child: _GlanceCell(
+                  value: '$lowStockCount',
+                  label: l.inventoryLowStock,
+                  tone: lowStockCount > 0 ? StatusTone.attention : null,
+                  onTap: () => context.go('/inventory'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlanceCell extends StatelessWidget {
+  const _GlanceCell({
+    required this.value,
+    required this.label,
+    required this.onTap,
+    this.tone,
+  });
+
+  final String value;
+  final String label;
+  final VoidCallback onTap;
+  final StatusTone? tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = tone?.colors(AppColors.of(context)).on;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space2,
+          vertical: AppTheme.space3,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: MoneyText(
+                value,
+                textAlign: TextAlign.center,
+                emphasis: true,
+                color: color,
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color ?? theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Same geometry as the real dashboard, with the content replaced by tonal
 /// blocks — so switching the range doesn't reflow the page. Deliberately
-/// static: a shimmer animation on eight cards is per-frame work a cheap
-/// Android panel spends on nothing.
+/// static: a shimmer animation on the glance strip plus six cards is
+/// per-frame work a cheap Android panel spends on nothing.
 class _DashboardSkeleton extends StatelessWidget {
-  const _DashboardSkeleton();
+  const _DashboardSkeleton({required this.trackStock});
+
+  final bool trackStock;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final glanceCells = trackStock ? 3 : 2;
     Widget block(double width, double height) => Container(
       width: width,
       height: height,
@@ -283,6 +408,40 @@ class _DashboardSkeleton extends StatelessWidget {
           padding: const EdgeInsets.all(AppTheme.space3),
           physics: const NeverScrollableScrollPhysics(),
           children: [
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space2,
+                  vertical: AppTheme.space3,
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < glanceCells; i++) ...[
+                        if (i > 0)
+                          VerticalDivider(
+                            width: 1,
+                            color: scheme.outlineVariant,
+                          ),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              block(72, 18),
+                              const SizedBox(height: AppTheme.space1),
+                              block(48, 10),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space3),
             GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

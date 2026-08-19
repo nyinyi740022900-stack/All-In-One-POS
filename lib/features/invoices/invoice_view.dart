@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../l10n/app_localizations.dart';
+import 'invoice_payment_status.dart';
 
 class InvoiceItemData {
   final String name;
@@ -88,7 +90,7 @@ class InvoiceView extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1, color: _line),
           const SizedBox(height: 14),
-          _titleRow(),
+          _titleRow(context),
           const SizedBox(height: 14),
           const Divider(height: 1, color: _line),
           const SizedBox(height: 14),
@@ -161,19 +163,27 @@ class InvoiceView extends StatelessWidget {
     );
   }
 
-  Widget _titleRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _titleRow(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('INVOICE',
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: _accent)),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('INVOICE',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    color: _accent)),
+            const Spacer(),
+            _paymentBadge(context),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(data.invoiceNo,
                 style: const TextStyle(
@@ -291,8 +301,6 @@ class InvoiceView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        Align(alignment: Alignment.centerRight, child: _paymentBadge()),
       ],
     );
   }
@@ -337,12 +345,9 @@ class InvoiceView extends StatelessWidget {
   ///
   /// Was `Colors.green` / `Colors.orange` / `Colors.redAccent` at 12% alpha —
   /// three Material defaults that matched nothing else in the product.
-  Widget _paymentBadge() {
-    final (label, tone) = switch (data.paymentStatus) {
-      'paid' => ('PAID', StatusTone.positive),
-      'partial' => ('PARTIAL', StatusTone.attention),
-      _ => ('UNPAID', StatusTone.critical),
-    };
+  Widget _paymentBadge(BuildContext context) {
+    final (label, tone) =
+        invoicePaymentStatusDisplay(AppLocalizations.of(context), data.paymentStatus);
     return StatusPill(
       label: label,
       tone: tone,

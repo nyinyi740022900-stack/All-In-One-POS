@@ -119,6 +119,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sellAmountPaid => 'Amount paid';
 
   @override
+  String get sellTenderExact => 'Exact';
+
+  @override
   String get sellChange => 'Change';
 
   @override
@@ -671,6 +674,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryNoResults => 'No products match your search.';
 
   @override
+  String inventoryFilteredCount(int count) {
+    return '$count products';
+  }
+
+  @override
   String get inventoryOutOfStock => 'Out of stock';
 
   @override
@@ -1020,6 +1028,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceRefunded => 'Refunded';
+
+  @override
+  String get invoiceStatusPaid => 'Paid';
+
+  @override
+  String get invoiceStatusPartial => 'Partial';
+
+  @override
+  String get invoiceStatusUnpaid => 'Unpaid';
 
   @override
   String get invoiceRefundConfirmTitle => 'Refund this invoice?';

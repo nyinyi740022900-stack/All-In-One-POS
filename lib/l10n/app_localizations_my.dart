@@ -120,6 +120,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sellAmountPaid => 'ပေးချေငွေ';
 
   @override
+  String get sellTenderExact => 'အတိအကျ';
+
+  @override
   String get sellChange => 'အ‌ကြွေ';
 
   @override
@@ -670,6 +673,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get inventoryNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။';
 
   @override
+  String inventoryFilteredCount(int count) {
+    return 'ပစ္စည်း $count ခု';
+  }
+
+  @override
   String get inventoryOutOfStock => 'ကုန်ပစ္စည်း ကုန်သွားပါပြီ';
 
   @override
@@ -1021,6 +1029,15 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invoiceRefunded => 'ပြန်အမ်းပြီး';
+
+  @override
+  String get invoiceStatusPaid => 'ပေးပြီး';
+
+  @override
+  String get invoiceStatusPartial => 'တစ်စိတ်တစ်ပိုင်း';
+
+  @override
+  String get invoiceStatusUnpaid => 'မပေးရသေး';
 
   @override
   String get invoiceRefundConfirmTitle => 'ဒီပြေစာကို ပြန်အမ်းမှာလား?';

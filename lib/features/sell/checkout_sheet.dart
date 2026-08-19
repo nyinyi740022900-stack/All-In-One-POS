@@ -16,6 +16,7 @@ import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'cart.dart';
+import 'cash_tender.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
 
@@ -106,6 +107,25 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   int _resolvePaid(int total) {
     if (_paid.text.trim().isEmpty) return _method == 'credit' ? 0 : total;
     return _paidAmount;
+  }
+
+  /// Exact chip: keep the field empty so paid-in-full tracks a live cart
+  /// total (qty/discount changes). Credit is the exception — empty means
+  /// zero down, so Exact has to write the number.
+  void _applyTenderExact(int total) {
+    if (_method == 'credit') {
+      _paid.text = '$total';
+      _paid.selection = TextSelection.collapsed(offset: _paid.text.length);
+    } else {
+      _paid.clear();
+    }
+    setState(() {});
+  }
+
+  void _applyTenderAmount(int kyat) {
+    _paid.text = '$kyat';
+    _paid.selection = TextSelection.collapsed(offset: _paid.text.length);
+    setState(() {});
   }
 
   Future<void> _confirm(CartState cart, int total) async {
@@ -361,6 +381,20 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
+                    if (total > 0) ...[
+                      const SizedBox(height: AppTheme.space2),
+                      _TenderChips(
+                        suggestions: cashTenderSuggestions(total),
+                        total: total,
+                        paidAmount: _paidAmount,
+                        fieldEmpty: _paid.text.trim().isEmpty,
+                        isCredit: _method == 'credit',
+                        currency: currency,
+                        exactLabel: l.sellTenderExact,
+                        onExact: () => _applyTenderExact(total),
+                        onAmount: _applyTenderAmount,
+                      ),
+                    ],
                     const SizedBox(height: AppTheme.space2),
                     // Credit sales get an explicit deposit/balance-due breakdown
                     // rather than the generic Owed-or-Change row every other method
@@ -544,6 +578,67 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         'vip' => l.customerTierVip,
         _ => l.customerTierRetail,
       };
+}
+
+/// Quick-tender chips under the amount-paid field. Exact plus the next few
+/// kyat-note round-ups — same ChoiceChip language as the payment-method row
+/// above, so a cashier does not have to learn a second control.
+class _TenderChips extends StatelessWidget {
+  const _TenderChips({
+    required this.suggestions,
+    required this.total,
+    required this.paidAmount,
+    required this.fieldEmpty,
+    required this.isCredit,
+    required this.currency,
+    required this.exactLabel,
+    required this.onExact,
+    required this.onAmount,
+  });
+
+  final List<int> suggestions;
+  final int total;
+  final int paidAmount;
+  final bool fieldEmpty;
+  final bool isCredit;
+  final String currency;
+  final String exactLabel;
+  final VoidCallback onExact;
+  final ValueChanged<int> onAmount;
+
+  bool get _exactSelected => isCredit
+      ? !fieldEmpty && paidAmount == total
+      : fieldEmpty || paidAmount == total;
+
+  @override
+  Widget build(BuildContext context) {
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+    final extras = suggestions.skip(1);
+    return Wrap(
+      spacing: AppTheme.space2,
+      runSpacing: AppTheme.space2,
+      children: [
+        ChoiceChip(
+          showCheckmark: false,
+          label: Text(exactLabel),
+          selected: _exactSelected,
+          onSelected: (_) => onExact(),
+        ),
+        for (final amount in extras)
+          ChoiceChip(
+            showCheckmark: false,
+            label: Text(
+              Money(amount).withSymbol(currency),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontFeatures: AppTheme.tabularFigures,
+                  ),
+            ),
+            selected: !fieldEmpty && paidAmount == amount,
+            onSelected: (on) => on ? onAmount(amount) : onExact(),
+          ),
+      ],
+    );
+  }
 }
 
 /// Per-line flat-Kyat discount editor. A `StatefulWidget` purely so the

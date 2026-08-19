@@ -112,7 +112,26 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l.inventoryTitle),
+        toolbarHeight: kToolbarHeight +
+            (async.hasValue
+                ? MediaQuery.textScalerOf(context).scale(20)
+                : 0),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.inventoryTitle),
+            if (async.hasValue)
+              Text(
+                l.inventoryFilteredCount(products.length),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: l.inventoryExportCsv,

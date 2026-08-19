@@ -308,6 +308,12 @@ abstract class AppLocalizations {
   /// **'Amount paid'**
   String get sellAmountPaid;
 
+  /// No description provided for @sellTenderExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact'**
+  String get sellTenderExact;
+
   /// No description provided for @sellChange.
   ///
   /// In en, this message translates to:
@@ -1328,6 +1334,12 @@ abstract class AppLocalizations {
   /// **'No products match your search.'**
   String get inventoryNoResults;
 
+  /// No description provided for @inventoryFilteredCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products'**
+  String inventoryFilteredCount(int count);
+
   /// No description provided for @inventoryOutOfStock.
   ///
   /// In en, this message translates to:
@@ -1981,6 +1993,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refunded'**
   String get invoiceRefunded;
+
+  /// No description provided for @invoiceStatusPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get invoiceStatusPaid;
+
+  /// No description provided for @invoiceStatusPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial'**
+  String get invoiceStatusPartial;
+
+  /// No description provided for @invoiceStatusUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get invoiceStatusUnpaid;
 
   /// No description provided for @invoiceRefundConfirmTitle.
   ///
