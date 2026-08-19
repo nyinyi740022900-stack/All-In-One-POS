@@ -44,6 +44,15 @@ import 'device_label_providers.dart';
 import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
 
+String _accountTileSubtitle(AppLocalizations l, WidgetRef ref) {
+  if (!ref.watch(hasRealAccountSessionProvider)) {
+    return l.accountProfileSubtitleSignedOut;
+  }
+  final email = ref.watch(accountRepositoryProvider).currentAccountEmail;
+  if (email != null && email.isNotEmpty) return email;
+  return l.accountProfileSubtitleSignedOut;
+}
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -57,259 +66,272 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: ContentWidth(
         child: ListView(
-        children: [
-          // Business: day-to-day shop operations. Money/accounting tiles
-          // (Credit book, Expenses, Payment accounts, Accounts payable,
-          // Owner's equity) deliberately live under Finance below instead —
-          // they used to be mixed in here while a section literally called
-          // "Finance" held License/Shop Login/Staff/Branches/Referral/Backup
-          // instead, none of which are money-related. Regrouped after the
-          // owner spotted the mismatch directly from a Settings screenshot.
-          _SectionHeader(l.settingsSectionBusiness),
-          ListTile(
-            leading: const Icon(Icons.store),
-            title: Text(l.settingsShop),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ShopProfileScreen()),
-            ),
-          ),
-          if (isOwner) _TrackStockTile(),
-          ListTile(
-            leading: const Icon(Icons.point_of_sale_outlined),
-            title: Text(l.cashRegisterTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CashSessionScreen()),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.people_outline),
-            title: Text(l.customersTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const CustomersScreen())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.local_shipping_outlined),
-            title: Text(l.suppliersTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SuppliersScreen())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart_outlined),
-            title: Text(l.purchaseOrdersTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PurchaseOrdersScreen()),
-            ),
-          ),
-          if (isOwner && Env.hasBackend)
-            ref.watch(isPremiumProvider)
-                ? _StorefrontTile()
-                : _LockedTile(
-                    icon: Icons.storefront,
-                    title: l.storefrontTitle,
-                    explanation: ref.watch(hasRealAccountSessionProvider)
-                        ? l.premiumFeatureBodyOnline
-                        : l.premiumFeatureBody,
-                    unlockLabel: l.premiumUpgradeCta,
-                    onUnlock: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const LicenseScreen())),
-                  ),
-
-          // Finance: money/accounting only.
-          _SectionHeader(l.settingsSectionFinance),
-          _CreditTile(),
-          ListTile(
-            leading: const Icon(Icons.receipt_long_outlined),
-            title: Text(l.expensesTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.credit_card_outlined),
-            title: Text(l.paymentAccountsTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PaymentAccountsScreen()),
-            ),
-          ),
-          _AccountsPayableTile(),
-          _EquityTile(),
-
-          // Account & Team: subscription, sign-in, and who has access.
-          _SectionHeader(l.settingsSectionAccountTeam),
-          if (isOwner) _LicenseTile(),
-          // Always visible to the owner, not gated on already being signed
-          // in — ShopLoginScreen itself branches on hasRealAccountSessionProvider
-          // internally (Register/Sign-in tabs when signed out, account info
-          // when signed in). Gating the tile on the same condition it exists
-          // to resolve made "create a new shop via email" unreachable for
-          // exactly the owners who'd want it — the one thing Phase 2's
-          // onboarding redesign explicitly relied on this tile for.
-          if (isOwner)
+          children: [
+            // Business: day-to-day shop operations. Money/accounting tiles
+            // (Credit book, Expenses, Payment accounts, Accounts payable,
+            // Owner's equity) deliberately live under Finance below instead —
+            // they used to be mixed in here while a section literally called
+            // "Finance" held License/Shop Login/Staff/Branches/Referral/Backup
+            // instead, none of which are money-related. Regrouped after the
+            // owner spotted the mismatch directly from a Settings screenshot.
+            _SectionHeader(l.settingsSectionBusiness),
             ListTile(
-              leading: const Icon(Icons.alternate_email),
+              leading: const Icon(Icons.store),
+              title: Text(l.settingsShop),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ShopProfileScreen()),
+              ),
+            ),
+            if (isOwner) _TrackStockTile(),
+            ListTile(
+              leading: const Icon(Icons.point_of_sale_outlined),
+              title: Text(l.cashRegisterTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CashSessionScreen()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: Text(l.customersTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CustomersScreen()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.local_shipping_outlined),
+              title: Text(l.suppliersTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SuppliersScreen()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_cart_outlined),
+              title: Text(l.purchaseOrdersTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PurchaseOrdersScreen()),
+              ),
+            ),
+            if (isOwner && Env.hasBackend)
+              ref.watch(isPremiumProvider)
+                  ? _StorefrontTile()
+                  : _LockedTile(
+                      icon: Icons.storefront,
+                      title: l.storefrontTitle,
+                      explanation: ref.watch(hasRealAccountSessionProvider)
+                          ? l.premiumFeatureBodyOnline
+                          : l.premiumFeatureBody,
+                      unlockLabel: l.premiumUpgradeCta,
+                      onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LicenseScreen(),
+                        ),
+                      ),
+                    ),
+
+            // Finance: money/accounting only.
+            _SectionHeader(l.settingsSectionFinance),
+            _CreditTile(),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(l.expensesTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+            ),
+            ListTile(
+              leading: const Icon(Icons.credit_card_outlined),
+              title: Text(l.paymentAccountsTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PaymentAccountsScreen(),
+                ),
+              ),
+            ),
+            _AccountsPayableTile(),
+            _EquityTile(),
+
+            // Account & Team: subscription, sign-in, and who has access.
+            _SectionHeader(l.settingsSectionAccountTeam),
+            if (isOwner) _LicenseTile(),
+            // Always visible — not owner-only. Email staff had no other path
+            // to sign out (Shop login used to hide behind isOwner; Owner Tools
+            // is hidden whenever a real account session exists). Signed-out
+            // staff still need this tile to sign back in.
+            ListTile(
+              leading: const Icon(Icons.account_circle_outlined),
               title: Text(l.accountShopLoginTitle),
+              subtitle: Text(
+                _accountTileSubtitle(l, ref),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
               ),
             ),
-          if (isOwner)
-            if (ref.watch(hasRealAccountSessionProvider) &&
-                session.backendRole != null) ...[
-              ListTile(
-                leading: const Icon(Icons.admin_panel_settings_outlined),
-                title: Text(l.staffAccountsTitle),
-                subtitle: Text(l.staffAccountsSubtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  if (!await requireOwnerPinReauth(
-                        context,
-                        ref,
-                        capability: OwnerCapability.staffAccounts,
-                      ) ||
-                      !context.mounted) {
-                    return;
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const StaffAccountsScreen(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.store_mall_directory_outlined),
-                title: Text(l.branchesTitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  if (!await requireOwnerPinReauth(
-                        context,
-                        ref,
-                        capability: OwnerCapability.branches,
-                      ) ||
-                      !context.mounted) {
-                    return;
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const BranchesScreen()),
-                  );
-                },
-              ),
-            ] else ...[
-              _LockedTile(
-                icon: Icons.admin_panel_settings_outlined,
-                title: l.staffAccountsTitle,
-                explanation: l.settingsSignInRequired,
-                unlockLabel: l.settingsSignIn,
-                onUnlock: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
-              ),
-              _LockedTile(
-                icon: Icons.store_mall_directory_outlined,
-                title: l.branchesTitle,
-                explanation: l.settingsSignInRequired,
-                unlockLabel: l.settingsSignIn,
-                onUnlock: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ShopLoginScreen())),
-              ),
-            ],
-          _ReferralTile(),
-
-          // Device: local device settings + data, no longer "& Staff" —
-          // Staff Accounts moved to Account & Team above; Backup moved here,
-          // it's device/data, not account.
-          _SectionHeader(l.settingsSectionDevice),
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(l.settingsLanguage),
-            trailing: DropdownButton<String>(
-              value: locale,
-              underline: const SizedBox.shrink(),
-              onChanged: (v) {
-                if (v != null) {
-                  ref.read(localeControllerProvider.notifier).set(v);
-                }
-              },
-              items: [
-                DropdownMenuItem(value: 'my', child: Text(l.languageMyanmar)),
-                DropdownMenuItem(value: 'en', child: Text(l.languageEnglish)),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.print),
-            title: Text(l.settingsPrinter),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PrinterSettingsScreen()),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.sell),
-            title: Text(l.settingsLabelPrinter),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const LabelPrinterSettingsScreen(),
-              ),
-            ),
-          ),
-          _DeviceLabelTile(),
-          if (Env.hasBackend)
-            ref.watch(isPremiumProvider)
-                ? _SyncTile()
-                : _LockedTile(
-                    icon: Icons.cloud_sync,
-                    title: l.settingsSync,
-                    explanation: ref.watch(hasRealAccountSessionProvider)
-                        ? l.premiumFeatureBodyOnline
-                        : l.premiumFeatureBody,
-                    unlockLabel: l.premiumUpgradeCta,
-                    onUnlock: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const LicenseScreen())),
+            if (isOwner)
+              if (ref.watch(hasRealAccountSessionProvider) &&
+                  session.backendRole != null) ...[
+                ListTile(
+                  leading: const Icon(Icons.admin_panel_settings_outlined),
+                  title: Text(l.staffAccountsTitle),
+                  subtitle: Text(l.staffAccountsSubtitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    if (!await requireOwnerPinReauth(
+                          context,
+                          ref,
+                          capability: OwnerCapability.staffAccounts,
+                        ) ||
+                        !context.mounted) {
+                      return;
+                    }
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const StaffAccountsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.store_mall_directory_outlined),
+                  title: Text(l.branchesTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    if (!await requireOwnerPinReauth(
+                          context,
+                          ref,
+                          capability: OwnerCapability.branches,
+                        ) ||
+                        !context.mounted) {
+                      return;
+                    }
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BranchesScreen()),
+                    );
+                  },
+                ),
+              ] else ...[
+                _LockedTile(
+                  icon: Icons.admin_panel_settings_outlined,
+                  title: l.staffAccountsTitle,
+                  explanation: l.settingsSignInRequired,
+                  unlockLabel: l.settingsSignIn,
+                  onUnlock: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
                   ),
-          if (isOwner)
+                ),
+                _LockedTile(
+                  icon: Icons.store_mall_directory_outlined,
+                  title: l.branchesTitle,
+                  explanation: l.settingsSignInRequired,
+                  unlockLabel: l.settingsSignIn,
+                  onUnlock: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
+                  ),
+                ),
+              ],
+            _ReferralTile(),
+
+            // Device: local device settings + data, no longer "& Staff" —
+            // Staff Accounts moved to Account & Team above; Backup moved here,
+            // it's device/data, not account.
+            _SectionHeader(l.settingsSectionDevice),
             ListTile(
-              leading: const Icon(Icons.backup),
-              title: Text(l.backupTitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const BackupScreen())),
+              leading: const Icon(Icons.language),
+              title: Text(l.settingsLanguage),
+              trailing: DropdownButton<String>(
+                value: locale,
+                underline: const SizedBox.shrink(),
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(localeControllerProvider.notifier).set(v);
+                  }
+                },
+                items: [
+                  DropdownMenuItem(value: 'my', child: Text(l.languageMyanmar)),
+                  DropdownMenuItem(value: 'en', child: Text(l.languageEnglish)),
+                ],
+              ),
             ),
+            ListTile(
+              leading: const Icon(Icons.print),
+              title: Text(l.settingsPrinter),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PrinterSettingsScreen(),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.sell),
+              title: Text(l.settingsLabelPrinter),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LabelPrinterSettingsScreen(),
+                ),
+              ),
+            ),
+            _DeviceLabelTile(),
+            if (Env.hasBackend)
+              ref.watch(isPremiumProvider)
+                  ? _SyncTile()
+                  : _LockedTile(
+                      icon: Icons.cloud_sync,
+                      title: l.settingsSync,
+                      explanation: ref.watch(hasRealAccountSessionProvider)
+                          ? l.premiumFeatureBodyOnline
+                          : l.premiumFeatureBody,
+                      unlockLabel: l.premiumUpgradeCta,
+                      onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LicenseScreen(),
+                        ),
+                      ),
+                    ),
+            if (isOwner)
+              ListTile(
+                leading: const Icon(Icons.backup),
+                title: Text(l.backupTitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const BackupScreen())),
+              ),
 
-          _SectionHeader(l.settingsSectionHelp),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: Text(l.settingsAppGuide),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const HelpGuideScreen())),
-          ),
-          _SupportTile(),
+            _SectionHeader(l.settingsSectionHelp),
+            ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: Text(l.settingsAppGuide),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HelpGuideScreen()),
+              ),
+            ),
+            _SupportTile(),
 
-          // Kept well away from the everyday settings above — this is where
-          // an owner locks the device into Staff mode (or switches back with
-          // the PIN), not something staff should stumble across while
-          // browsing Settings. Hidden entirely for a single-device shop (see
-          // showStaffModeSectionProvider) — Staff/Owner mode only matters
-          // once there's a second device to hand off to someone else.
-          if (ref.watch(showStaffModeSectionProvider)) ...[
-            _SectionHeader(l.settingsSectionOwnerTools),
-            const StaffModeCard(),
+            // Kept well away from the everyday settings above — this is where
+            // an owner locks the device into Staff mode (or switches back with
+            // the PIN), not something staff should stumble across while
+            // browsing Settings. Hidden entirely for a single-device shop (see
+            // showStaffModeSectionProvider) — Staff/Owner mode only matters
+            // once there's a second device to hand off to someone else.
+            if (ref.watch(showStaffModeSectionProvider)) ...[
+              _SectionHeader(l.settingsSectionOwnerTools),
+              const StaffModeCard(),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -654,19 +676,19 @@ class _SyncTile extends ConsumerWidget {
         sync.pendingOutboxCount;
     final stuckCount =
         (ref.watch(stuckOutboxProvider).valueOrNull ?? const []).length;
-    final effectiveStuck =
-        stuckCount > 0 ? stuckCount : sync.stuckOutboxCount;
+    final effectiveStuck = stuckCount > 0 ? stuckCount : sync.stuckOutboxCount;
 
     final (String status, IconData icon) = switch (sync.phase) {
       SyncPhase.disabled => (l.syncDisabled, Icons.cloud_off),
       SyncPhase.syncing => (l.syncSyncing, Icons.cloud_sync),
       SyncPhase.offline => (l.syncOffline, Icons.cloud_off),
       SyncPhase.error => (sync.error ?? l.syncError, Icons.error_outline),
-      SyncPhase.idle => effectiveStuck > 0
-          ? (l.syncHasIssues, Icons.warning_amber_rounded)
-          : (pending > 0
-                ? (l.syncPendingUploads, Icons.cloud_upload_outlined)
-                : (l.syncIdle, Icons.cloud_done)),
+      SyncPhase.idle =>
+        effectiveStuck > 0
+            ? (l.syncHasIssues, Icons.warning_amber_rounded)
+            : (pending > 0
+                  ? (l.syncPendingUploads, Icons.cloud_upload_outlined)
+                  : (l.syncIdle, Icons.cloud_done)),
     };
 
     final lastSynced = sync.lastSyncedAt != null
@@ -747,7 +769,9 @@ class _DeviceLabelTile extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
         );
       }
     }

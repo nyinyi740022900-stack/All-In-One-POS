@@ -10,6 +10,10 @@ import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_status.dart';
 import '../onboarding/operating_mode_providers.dart';
+import '../printing/printing_providers.dart';
+import '../settings/device_label_providers.dart';
+import '../staff/staff_providers.dart';
+import '../staff/staff_ui.dart';
 import 'account_providers.dart';
 import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
@@ -17,7 +21,8 @@ import 'password_strength.dart';
 
 /// Real email/password login for the shop, additive to the existing
 /// device-key activation (which stays exactly as-is). Lets the owner create
-/// a login, sign in with it on another device, and sign out.
+/// a login, sign in with it on another device, and sign out. Staff reach
+/// the same screen from Settings → Account so they can sign out too.
 class ShopLoginScreen extends ConsumerStatefulWidget {
   const ShopLoginScreen({super.key});
 
@@ -27,17 +32,19 @@ class ShopLoginScreen extends ConsumerStatefulWidget {
 
 class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     with SingleTickerProviderStateMixin {
+  // Sign in first — staff (and anyone coming back after logout) need that
+  // tab, not Register. Register is the second tab for owners attaching a
+  // login to this already-activated device.
   late final _tabs = TabController(length: 2, vsync: this)
     ..addListener(_onTabChanged);
   final _createEmail = TextEditingController();
   final _createPassword = TextEditingController();
+  final _createConfirm = TextEditingController();
   final _signInEmail = TextEditingController();
   final _signInPassword = TextEditingController();
   bool _busy = false;
+  bool _justCreated = false;
 
-  // No TabBarView here (a fixed-height one clipped Myanmar labels that wrap
-  // to two lines) — the tab body is switched manually, sized to content via
-  // AnimatedSize, so this just triggers a rebuild on tab tap.
   void _onTabChanged() {
     if (mounted) setState(() {});
   }
@@ -48,6 +55,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     _tabs.dispose();
     _createEmail.dispose();
     _createPassword.dispose();
+    _createConfirm.dispose();
     _signInEmail.dispose();
     _signInPassword.dispose();
     super.dispose();
@@ -65,51 +73,66 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     _ => l.accountActionFailed,
   };
 
+  String _planLabel(AppLocalizations l, LicensePlan plan) => switch (plan) {
+    LicensePlan.yearly => l.licensePlanYearly,
+    LicensePlan.monthly => l.licensePlanMonthly,
+    LicensePlan.trial => l.licensePlanTrial,
+    LicensePlan.free => l.licensePlanFree,
+  };
+
   Future<void> _createLogin() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (_createEmail.text.trim().isEmpty || _createPassword.text.isEmpty) {
+    final email = _createEmail.text.trim();
+    final password = _createPassword.text;
+    if (email.isEmpty || password.isEmpty) return;
+    if (password != _createConfirm.text) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.accountPasswordMismatch)),
+      );
       return;
     }
     setState(() => _busy = true);
-    final result = await ref
+    final created = await ref
         .read(accountRepositoryProvider)
-        .createShopLogin(_createEmail.text.trim(), _createPassword.text);
+        .createShopLogin(email, password);
     if (!mounted) return;
-    setState(() => _busy = false);
-    if (result.ok) {
-      if (result.license != null) {
-        ref
-            .read(licenseControllerProvider.notifier)
-            .applyExternal(result.license!);
-      }
-      // Same invalidation _signIn()/_signOut()/_deleteAccount() already do —
-      // hasRealAccountSessionProvider wraps a plain (non-reactive) getter,
-      // so Settings' locked-tile gating for Staff Accounts/Branches would
-      // otherwise stay on its stale pre-login value until something else
-      // happens to invalidate it.
-      ref.invalidate(backendAccountRoleProvider);
-      ref.invalidate(hasRealAccountSessionProvider);
-      messenger.showSnackBar(SnackBar(content: Text(l.accountLoginCreated)));
-      _createPassword.clear();
-      setState(() {});
-    } else {
+    if (!created.ok) {
+      setState(() => _busy = false);
       messenger.showSnackBar(
-        SnackBar(content: Text(_errorMessage(l, result.error))),
+        SnackBar(content: Text(_errorMessage(l, created.error))),
       );
+      return;
     }
+    if (created.license != null) {
+      ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(created.license!);
+    }
+    // Sign in immediately — creating the login used to leave the device on
+    // the anonymous session, so the owner had to type the password again
+    // on the Sign in tab with only a fleeting "Login created" snackbar.
+    await _completeSignIn(email, password, justCreated: true);
   }
 
   Future<void> _signIn() async {
+    final email = _signInEmail.text.trim();
+    final password = _signInPassword.text;
+    if (email.isEmpty || password.isEmpty) return;
+    setState(() => _busy = true);
+    await _completeSignIn(email, password, justCreated: false);
+  }
+
+  Future<void> _completeSignIn(
+    String email,
+    String password, {
+    required bool justCreated,
+  }) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (_signInEmail.text.trim().isEmpty || _signInPassword.text.isEmpty) {
-      return;
-    }
-    setState(() => _busy = true);
     var result = await ref
         .read(accountRepositoryProvider)
-        .signInAndClaimDevice(_signInEmail.text.trim(), _signInPassword.text);
+        .signInAndClaimDevice(email, password);
     if (!mounted) return;
 
     if (result.needsWipeConfirmation) {
@@ -160,13 +183,23 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       }
       ref.invalidate(backendAccountRoleProvider);
       ref.invalidate(hasRealAccountSessionProvider);
-      messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
+      _createPassword.clear();
+      _createConfirm.clear();
       _signInPassword.clear();
-      setState(() {});
+      setState(() => _justCreated = justCreated);
+      if (!justCreated) {
+        messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
+      }
     } else {
       messenger.showSnackBar(
         SnackBar(content: Text(_errorMessage(l, result.error))),
       );
+      // Account exists server-side; they should not have to re-type the
+      // email on the other tab to finish signing in.
+      if (justCreated) {
+        _signInEmail.text = email;
+        _tabs.animateTo(0);
+      }
     }
   }
 
@@ -215,7 +248,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
-    setState(() {});
+    setState(() => _justCreated = false);
   }
 
   Future<void> _deleteAccount() async {
@@ -223,9 +256,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     final messenger = ScaffoldMessenger.of(context);
     final account = ref.read(accountRepositoryProvider);
     if (account.currentAccountRole != 'owner') {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.accountDeleteOwnerOnly)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteOwnerOnly)));
       return;
     }
 
@@ -282,9 +313,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     if (ok != true || pwd.isEmpty || !mounted) return;
 
     setState(() => _busy = true);
-    final result = await ref
-        .read(accountRepositoryProvider)
-        .deleteAccount(pwd);
+    final result = await ref.read(accountRepositoryProvider).deleteAccount(pwd);
     if (!mounted) return;
 
     if (!result.ok) {
@@ -307,9 +336,11 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() {
+      _busy = false;
+      _justCreated = false;
+    });
     messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteSuccess)));
-    setState(() {});
   }
 
   Widget _registerForm(AppLocalizations l) {
@@ -329,14 +360,23 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           controller: _createPassword,
           labelText: l.accountPassword,
           autofillHints: const [AutofillHints.newPassword],
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _busy ? null : _createLogin(),
+          textInputAction: TextInputAction.next,
         ),
         PasswordStrengthMeter(controller: _createPassword),
         const SizedBox(height: AppTheme.space3),
+        AuthPasswordField(
+          controller: _createConfirm,
+          labelText: l.accountConfirmPassword,
+          autofillHints: const [AutofillHints.newPassword],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_busy) _createLogin();
+          },
+        ),
+        const SizedBox(height: AppTheme.space3),
         FilledButton(
           onPressed: _busy ? null : _createLogin,
-          child: Text(l.accountCreateShopLogin),
+          child: _busy ? const ButtonSpinner() : Text(l.accountCreateShopLogin),
         ),
       ],
     );
@@ -360,7 +400,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           labelText: l.accountPassword,
           autofillHints: const [AutofillHints.password],
           textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _busy ? null : _signIn(),
+          onSubmitted: (_) {
+            if (!_busy) _signIn();
+          },
         ),
         Align(
           alignment: Alignment.centerRight,
@@ -377,8 +419,136 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         const SizedBox(height: AppTheme.space2),
         FilledButton(
           onPressed: _busy ? null : _signIn,
-          child: Text(l.accountSignIn),
+          child: _busy ? const ButtonSpinner() : Text(l.accountSignIn),
         ),
+      ],
+    );
+  }
+
+  Widget _signedInProfile(AppLocalizations l) {
+    final account = ref.read(accountRepositoryProvider);
+    final email = account.currentAccountEmail ?? '';
+    final role = account.currentAccountRole ?? '';
+    final colors = AppColors.of(context);
+    final tone = colors.identityTone(email);
+    final initial = email.isNotEmpty ? email[0].toUpperCase() : '?';
+    final shopName = ref.watch(shopProfileProvider).valueOrNull?.name;
+    final deviceLabel = ref.watch(myDeviceLabelProvider);
+    final license = ref.watch(licenseControllerProvider).license;
+    final isOwner = role == 'owner';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_justCreated) ...[
+          _CreatedBanner(
+            title: l.accountCreatedSignedIn,
+            body: l.accountReadyNoEmailWait,
+          ),
+          const SizedBox(height: AppTheme.space4),
+        ],
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space4,
+              AppTheme.space4,
+              AppTheme.space3,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: tone.fill,
+                      child: Text(
+                        initial,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: tone.onFill,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.space3),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          if (role == 'owner' || role == 'staff') ...[
+                            const SizedBox(height: AppTheme.space1),
+                            StatusPill(
+                              label: staffRoleLabel(l, role),
+                              tone: isOwner
+                                  ? StatusTone.positive
+                                  : StatusTone.attention,
+                              icon: isOwner
+                                  ? Icons.verified_user
+                                  : Icons.badge_outlined,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if ((shopName != null && shopName.isNotEmpty) ||
+                    (deviceLabel != null && deviceLabel.isNotEmpty) ||
+                    license != null) ...[
+                  const SizedBox(height: AppTheme.space3),
+                  const Divider(height: 1),
+                ],
+                if (shopName != null && shopName.isNotEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.store_outlined),
+                    title: Text(l.settingsShop),
+                    subtitle: Text(shopName),
+                  ),
+                if (deviceLabel != null && deviceLabel.isNotEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.phone_iphone),
+                    title: Text(l.settingsDeviceName),
+                    subtitle: Text(deviceLabel),
+                  ),
+                if (license != null)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.workspace_premium_outlined),
+                    title: Text(l.licensePlanLabel),
+                    subtitle: Text(_planLabel(l, license.plan)),
+                  ),
+                const SizedBox(height: AppTheme.space2),
+                FilledButton.tonal(
+                  onPressed: _busy ? null : _signOut,
+                  child: Text(l.accountSignOut),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isOwner) ...[
+          const SizedBox(height: AppTheme.space4),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _deleteAccount,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+              side: BorderSide(color: Theme.of(context).colorScheme.error),
+            ),
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: Text(l.accountDeleteAccount),
+          ),
+        ],
       ],
     );
   }
@@ -386,8 +556,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final account = ref.read(accountRepositoryProvider);
-    final signedIn = account.isSignedInWithRealAccount;
+    final signedIn = ref.watch(hasRealAccountSessionProvider);
+    final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
+    final showRegister = !signedIn && localRole != 'staff';
 
     return Scaffold(
       appBar: AppBar(title: Text(l.accountShopLoginTitle)),
@@ -400,55 +571,14 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
               const Center(child: BrandHero(size: 56)),
               const SizedBox(height: AppTheme.space4),
             ],
-            Text(
-              l.accountShopLoginHint,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppTheme.space4),
+            if (!signedIn)
+              Text(
+                l.accountShopLoginHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            if (!signedIn) const SizedBox(height: AppTheme.space4),
             if (signedIn)
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(
-                        Icons.verified_user,
-                        color: AppColors.of(context).success,
-                      ),
-                      title: Text(account.currentAccountEmail ?? ''),
-                      subtitle: Text(account.currentAccountRole ?? ''),
-                      trailing: TextButton(
-                        onPressed: _busy ? null : _signOut,
-                        child: Text(l.accountSignOut),
-                      ),
-                    ),
-                    if (account.currentAccountRole == 'owner')
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppTheme.space4,
-                          0,
-                          AppTheme.space4,
-                          AppTheme.space3,
-                        ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _busy ? null : _deleteAccount,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.error,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                            icon: const Icon(Icons.delete_forever_outlined),
-                            label: Text(l.accountDeleteAccount),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              )
+              _signedInProfile(l)
             else
               Card(
                 child: Padding(
@@ -456,14 +586,15 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TabBar(
-                        controller: _tabs,
-                        tabs: [
-                          Tab(text: l.onboardOnlineTabRegister),
-                          Tab(text: l.onboardOnlineTabSignIn),
-                        ],
-                      ),
-                      const SizedBox(height: AppTheme.space4),
+                      if (showRegister)
+                        TabBar(
+                          controller: _tabs,
+                          tabs: [
+                            Tab(text: l.onboardOnlineTabSignIn),
+                            Tab(text: l.onboardOnlineTabRegister),
+                          ],
+                        ),
+                      if (showRegister) const SizedBox(height: AppTheme.space4),
                       // No `TabBarView` — a fixed-height one clipped
                       // Myanmar labels that wrap to two lines. AnimatedSize
                       // lets each tab's body claim exactly the height it
@@ -472,9 +603,9 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
                         duration: AppTheme.motionMedium,
                         curve: AppTheme.curveStandard,
                         alignment: Alignment.topCenter,
-                        child: _tabs.index == 0
-                            ? _registerForm(l)
-                            : _signInForm(l),
+                        child: !showRegister || _tabs.index == 0
+                            ? _signInForm(l)
+                            : _registerForm(l),
                       ),
                     ],
                   ),
@@ -482,6 +613,53 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CreatedBanner extends StatelessWidget {
+  const _CreatedBanner({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.space4),
+      decoration: BoxDecoration(
+        color: colors.successSurface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle, color: colors.success),
+          const SizedBox(width: AppTheme.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  body,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.success),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1835,7 +1835,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Shop Login\" (optional) — sign in with email + password to reach this shop from another device. Delete account is available here when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -3035,7 +3035,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSignInRequired.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to a shop account first (Shop Login above) to use this.'**
+  /// **'Sign in to a shop account first (Account above) to use this.'**
   String get settingsSignInRequired;
 
   /// No description provided for @settingsSignIn.
@@ -3269,7 +3269,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseAccountEmailMissing.
   ///
   /// In en, this message translates to:
-  /// **'Sign in under Shop login so Support can find your account.'**
+  /// **'Sign in under Account so Support can find your account.'**
   String get licenseAccountEmailMissing;
 
   /// No description provided for @licenseRequestSent.
@@ -3317,7 +3317,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceAddOnlineHint.
   ///
   /// In en, this message translates to:
-  /// **'To use another phone, sign in with the same shop email and password (Settings → Shop login). No license-key QR is used in Online mode.'**
+  /// **'To use another phone, sign in with the same shop email and password (Settings → Account). No license-key QR is used in Online mode.'**
   String get deviceAddOnlineHint;
 
   /// No description provided for @premiumFeatureBodyOnline.
@@ -5219,7 +5219,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountShopLoginTitle.
   ///
   /// In en, this message translates to:
-  /// **'Shop login'**
+  /// **'Account'**
   String get accountShopLoginTitle;
 
   /// No description provided for @accountShopLoginHint.
@@ -5227,6 +5227,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.'**
   String get accountShopLoginHint;
+
+  /// No description provided for @accountProfileSubtitleSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in or create a shop login'**
+  String get accountProfileSubtitleSignedOut;
+
+  /// No description provided for @accountCreatedSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created. You\'re signed in.'**
+  String get accountCreatedSignedIn;
+
+  /// No description provided for @accountReadyNoEmailWait.
+  ///
+  /// In en, this message translates to:
+  /// **'No confirmation email to wait for — this email and password work on any device right away.'**
+  String get accountReadyNoEmailWait;
 
   /// No description provided for @accountEmail.
   ///

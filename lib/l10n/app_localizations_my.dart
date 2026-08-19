@@ -945,7 +945,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"Shop Login\" (မဖြစ်မနေ မဟုတ်ပါ) — Device တခြားကနေ ဒီဆိုင်ကို ရောက်ဖို့ email/password နဲ့ Sign in ဝင်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1601,7 +1601,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get settingsSignInRequired =>
-      'ဒါကို သုံးဖို့ ဆိုင် account တစ်ခုနဲ့ အရင် sign in ဝင်ပါ (အပေါ်က Shop Login)။';
+      'ဒါကို သုံးဖို့ ဆိုင် account တစ်ခုနဲ့ အရင် sign in ဝင်ပါ (အပေါ်က အကောင့်)။';
 
   @override
   String get settingsSignIn => 'Sign In ဝင်မည်';
@@ -1735,7 +1735,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseAccountEmailMissing =>
-      'Support က ရှာနိုင်အောင် Settings → ဆိုင် Login မှာ sign in ဝင်ထားပါ။';
+      'Support က ရှာနိုင်အောင် Settings → အကောင့် မှာ sign in ဝင်ထားပါ။';
 
   @override
   String get licenseRequestSent =>
@@ -1765,7 +1765,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deviceAddOnlineHint =>
-      'ဖုန်းနောက်တစ်လုံး သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → ဆိုင် Login)။ Online mode မှာ license-key QR မသုံးပါ။';
+      'ဖုန်းနောက်တစ်လုံး သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → အကောင့်)။ Online mode မှာ license-key QR မသုံးပါ။';
 
   @override
   String get premiumFeatureBodyOnline =>
@@ -2851,11 +2851,23 @@ class AppLocalizationsMy extends AppLocalizations {
       'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။ ဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
 
   @override
-  String get accountShopLoginTitle => 'ဆိုင် Login';
+  String get accountShopLoginTitle => 'အကောင့်';
 
   @override
   String get accountShopLoginHint =>
       'ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
+
+  @override
+  String get accountProfileSubtitleSignedOut =>
+      'ဝင်ရောက်မည် သို့မဟုတ် ဆိုင် login ဖန်တီးမည်';
+
+  @override
+  String get accountCreatedSignedIn =>
+      'အကောင့် ဖန်တီးပြီးပါပြီ။ ဝင်ရောက်ပြီးသား ဖြစ်ပါတယ်။';
+
+  @override
+  String get accountReadyNoEmailWait =>
+      'အတည်ပြုအီးမေးလ် စောင့်ရန် မလိုပါ — ဒီအီးမေးလ်နှင့် စကားဝှက်ကို မည်သည့်စက်တွင်မဆို ချက်ချင်း သုံးနိုင်ပါတယ်။';
 
   @override
   String get accountEmail => 'အီးမေးလ်';

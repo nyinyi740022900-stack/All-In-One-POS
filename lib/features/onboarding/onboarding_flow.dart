@@ -369,7 +369,7 @@ class _LicensePageState extends ConsumerState<_LicensePage> {
 
 /// Optional — sign in to an existing shop account for cloud sync, backup,
 /// and multi-device login, whatever plan was just chosen on the License
-/// page. Skippable; revisitable later via Settings > Shop Login, which is
+/// page. Skippable; revisitable later via Settings > Account, which is
 /// also where "create a new shop account" lives (deliberately not offered
 /// here too — signing up for a brand-new shop mid-onboarding, right after
 /// activating a key or continuing Free on the previous page, would silently

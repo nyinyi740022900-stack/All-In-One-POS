@@ -226,7 +226,12 @@ class AccountRepository {
   /// the account there is unaffected, exactly as the sign-out confirmation
   /// dialog already tells the owner.
   Future<AccountActionResult> signOut() async {
+    // Capture before the session is cleared — after sign-out,
+    // currentAccountRole is null and Settings would otherwise treat this
+    // device as Owner (local PIN role defaults to owner).
+    final signedOutRole = currentAccountRole;
     final current = await _licenseRepository.current();
+    final shopId = current?.shopId;
     CachedLicense? downgraded;
     if (current != null &&
         current.tier == 'online' &&
@@ -235,6 +240,9 @@ class AccountRepository {
       downgraded = await _licenseRepository.downgradeToFree(current);
     }
     await Supabase.instance.client.auth.signOut();
+    if (signedOutRole == 'staff' && shopId != null && shopId.isNotEmpty) {
+      await _settings.setStaffRole(shopId, 'staff');
+    }
     return AccountActionResult.success(null, license: downgraded);
   }
 

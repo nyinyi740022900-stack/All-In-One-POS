@@ -10,20 +10,21 @@ import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 
 void main() {
-  test('showStaffModeSectionProvider is false with a real account session',
-      () async {
-    final container = ProviderContainer(
-      overrides: [
-        hasRealAccountSessionProvider.overrideWithValue(true),
-        staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
-      ],
-    );
-    addTearDown(container.dispose);
-    expect(container.read(showStaffModeSectionProvider), isFalse);
-  });
-
   test(
-      'showStaffModeSectionProvider stays true with no account session when '
+    'showStaffModeSectionProvider is false with a real account session',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          hasRealAccountSessionProvider.overrideWithValue(true),
+          staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+        ],
+      );
+      addTearDown(container.dispose);
+      expect(container.read(showStaffModeSectionProvider), isFalse);
+    },
+  );
+
+  test('showStaffModeSectionProvider stays true with no account session when '
       'already staff', () async {
     final container = ProviderContainer(
       overrides: [
@@ -36,26 +37,41 @@ void main() {
     expect(container.read(showStaffModeSectionProvider), isTrue);
   });
 
-  test('effectiveRoleProvider ignores local role with a real account session',
-      () async {
+  test(
+    'effectiveRoleProvider ignores local role with a real account session',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          hasRealAccountSessionProvider.overrideWithValue(true),
+          staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+        ],
+      );
+      addTearDown(container.dispose);
+      // No backend role -> a real account session defaults to owner (email
+      // session required by the daily gate).
+      expect(container.read(effectiveRoleProvider), 'owner');
+    },
+  );
+
+  test('unsigned device with local staff role stays staff — email-staff '
+      'sign-out must not promote the device to owner', () async {
     final container = ProviderContainer(
       overrides: [
-        hasRealAccountSessionProvider.overrideWithValue(true),
+        hasRealAccountSessionProvider.overrideWithValue(false),
+        backendAccountRoleProvider.overrideWithValue(null),
         staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
       ],
     );
     addTearDown(container.dispose);
-    // No backend role -> a real account session defaults to owner (email
-    // session required by the daily gate).
-    expect(container.read(effectiveRoleProvider), 'owner');
+    await container.read(staffRoleProvider.future);
+    expect(container.read(effectiveRoleProvider), 'staff');
   });
 
   test('localCalendarYmd format', () {
     expect(localCalendarYmd(DateTime(2026, 8, 9)), '2026-08-09');
   });
 
-  test(
-      'dailyGateNeededProvider triggers for a Free/offline-tier shop with no '
+  test('dailyGateNeededProvider triggers for a Free/offline-tier shop with no '
       'operating.mode set — previously inexpressible, since the old '
       'provider hard-returned false unless mode == online', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());

@@ -5,12 +5,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
+import '../account/auth_password_field.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
+import '../account/password_strength.dart';
 import '../cash/cash_providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
@@ -30,14 +33,14 @@ class DailyGate extends ConsumerStatefulWidget {
 }
 
 String _authErrorMessage(AppLocalizations l, String? code) => switch (code) {
-      'email_taken' => l.accountEmailTaken,
-      'no_backend' => l.accountNoBackend,
-      'not_activated' => l.accountNotActivated,
-      'pending_sync' => l.accountPendingSync,
-      'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
-      'trial_already_used' => l.accountTrialAlreadyUsed,
-      _ => l.accountActionFailed,
-    };
+  'email_taken' => l.accountEmailTaken,
+  'no_backend' => l.accountNoBackend,
+  'not_activated' => l.accountNotActivated,
+  'pending_sync' => l.accountPendingSync,
+  'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
+  'trial_already_used' => l.accountTrialAlreadyUsed,
+  _ => l.accountActionFailed,
+};
 
 class _DailyGateState extends ConsumerState<DailyGate> {
   int _step = 0;
@@ -47,8 +50,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   final _password = TextEditingController();
   final _shopName = TextEditingController();
   final _opening = TextEditingController();
+  final _confirmPassword = TextEditingController();
   bool _register = false;
   bool _obscure = true;
+  bool _justRegistered = false;
 
   @override
   void dispose() {
@@ -56,6 +61,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     _password.dispose();
     _shopName.dispose();
     _opening.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -80,7 +86,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
 
   Future<void> _finish({required bool skippedOpen}) async {
     final shopId = ref.read(shopIdProvider);
-    await ref.read(settingsRepositoryProvider).markDailyGateComplete(
+    await ref
+        .read(settingsRepositoryProvider)
+        .markDailyGateComplete(
           shopId,
           ymd: localCalendarYmd(),
           skippedOpen: skippedOpen,
@@ -107,13 +115,24 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   Future<void> _auth() async {
     final l = AppLocalizations.of(context);
     if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
-    if (_register && _shopName.text.trim().isEmpty) return;
+    final registering =
+        _register && ref.read(staffRoleProvider).valueOrNull != 'staff';
+    if (registering && _shopName.text.trim().isEmpty) return;
+    if (registering && _password.text != _confirmPassword.text) {
+      setState(() {
+        _busy = false;
+        _error = l.accountPasswordMismatch;
+      });
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
-    if (_register) {
-      final result = await ref.read(accountRepositoryProvider).signupShop(
+    if (registering) {
+      final result = await ref
+          .read(accountRepositoryProvider)
+          .signupShop(
             _shopName.text.trim(),
             _email.text.trim(),
             _password.text,
@@ -125,8 +144,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             .applyExternal(result.license!);
         ref.invalidate(backendAccountRoleProvider);
         ref.invalidate(hasRealAccountSessionProvider);
+        ref.read(syncControllerProvider.notifier).sync();
         setState(() {
           _busy = false;
+          _justRegistered = true;
           _step = 1;
         });
       } else {
@@ -167,8 +188,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
         return;
       }
       setState(() => _busy = true);
-      result =
-          await ref.read(accountRepositoryProvider).confirmWipeAndClaimDevice();
+      result = await ref
+          .read(accountRepositoryProvider)
+          .confirmWipeAndClaimDevice();
       if (!mounted) return;
     }
     if (result.ok) {
@@ -198,8 +220,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       _busy = true;
       _error = null;
     });
-    final result =
-        await ref.read(branchRepositoryProvider).switchBranch(branch.shopId);
+    final result = await ref
+        .read(branchRepositoryProvider)
+        .switchBranch(branch.shopId);
     if (!mounted) return;
     if (result.ok && result.license != null) {
       ref
@@ -239,11 +262,18 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final rosterAsync = ref.watch(staffMembersProvider);
+    final localRoleAsync = ref.watch(staffRoleProvider);
     // Already signed in, or a single-owner shop with no staff roster
     // configured (the common Free-plan case) → skip the identity step
-    // entirely, zero added friction.
+    // entirely, zero added friction. After an email-staff sign-out the
+    // local PIN role is persisted as staff so this must NOT skip — otherwise
+    // they'd land on the details step as Owner.
     final rosterEmpty = rosterAsync.valueOrNull?.isEmpty == true;
-    if (_step == 0 && (_signedIn || rosterEmpty)) {
+    final localRole = localRoleAsync.valueOrNull ?? 'owner';
+    final canSkipIdentity =
+        _signedIn ||
+        (rosterEmpty && localRoleAsync.hasValue && localRole != 'staff');
+    if (_step == 0 && canSkipIdentity) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _step == 0) setState(() => _step = 1);
       });
@@ -258,10 +288,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             children: [
               Text(
                 l.dailyGateTitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppTheme.space4),
@@ -271,7 +300,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -287,9 +318,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     AsyncValue<List<StaffMember>> rosterAsync,
   ) {
     if (_step == 0) {
-      if (!_signedIn && !rosterAsync.hasValue) {
-        // Local roster still loading (near-instant, Drift-backed) — avoid
-        // flashing the sign-in form only to swap it a frame later.
+      if (!_signedIn &&
+          (!rosterAsync.hasValue || !ref.watch(staffRoleProvider).hasValue)) {
+        // Local roster / PIN role still loading — avoid flashing the
+        // sign-in form only to skip it a frame later.
         return const Center(child: CircularProgressIndicator());
       }
       return _accountStep(l, rosterAsync.valueOrNull ?? const []);
@@ -298,13 +330,17 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   }
 
   Widget _accountStep(AppLocalizations l, List<StaffMember> roster) {
+    final allowRegister = ref.watch(staffRoleProvider).valueOrNull != 'staff';
+    final registering = _register && allowRegister;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (roster.isNotEmpty) ...[
-            Text(l.staffWhoAreYou,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.staffWhoAreYou,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.verified_user),
@@ -322,29 +358,39 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                 const Expanded(child: Divider()),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(l.dailyGateOrSignIn,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(
+                    l.dailyGateOrSignIn,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
                 const Expanded(child: Divider()),
               ],
             ),
             const SizedBox(height: 12),
           ],
-          Text(l.dailyGateAccountStep,
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          SegmentedButton<bool>(
-            segments: [
-              ButtonSegment(
-                  value: false, label: Text(l.onboardOnlineTabSignIn)),
-              ButtonSegment(
-                  value: true, label: Text(l.onboardOnlineTabRegister)),
-            ],
-            selected: {_register},
-            onSelectionChanged: (s) => setState(() => _register = s.first),
+          Text(
+            l.dailyGateAccountStep,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 16),
-          if (_register) ...[
+          const SizedBox(height: 12),
+          if (allowRegister) ...[
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  label: Text(l.onboardOnlineTabSignIn),
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text(l.onboardOnlineTabRegister),
+                ),
+              ],
+              selected: {_register},
+              onSelectionChanged: (s) => setState(() => _register = s.first),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (registering) ...[
             TextField(
               controller: _shopName,
               textCapitalization: TextCapitalization.words,
@@ -358,25 +404,50 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             decoration: InputDecoration(labelText: l.accountEmail),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            obscureText: _obscure,
-            decoration: InputDecoration(
+          if (registering) ...[
+            AuthPasswordField(
+              controller: _password,
               labelText: l.accountPassword,
-              suffixIcon: IconButton(
-                icon: Icon(_obscure
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscure = !_obscure),
+              autofillHints: const [AutofillHints.newPassword],
+              textInputAction: TextInputAction.next,
+            ),
+            PasswordStrengthMeter(controller: _password),
+            const SizedBox(height: 12),
+            AuthPasswordField(
+              controller: _confirmPassword,
+              labelText: l.accountConfirmPassword,
+              autofillHints: const [AutofillHints.newPassword],
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (!_busy) _auth();
+              },
+            ),
+          ] else
+            TextField(
+              controller: _password,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: l.accountPassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _auth,
-            child: Text(_register
-                ? l.onboardOnlineCreateAccount
-                : l.accountSignIn),
+            child: _busy
+                ? const ButtonSpinner()
+                : Text(
+                    registering
+                        ? l.onboardOnlineCreateAccount
+                        : l.accountSignIn,
+                  ),
           ),
         ],
       ),
@@ -386,28 +457,68 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   /// Role + branch (if more than one) + opening amount (if Premium and no
   /// session is already open today) — all on one page, one final button.
   Widget _detailsStep(AppLocalizations l) {
-    final role = ref.watch(backendAccountRoleProvider) ?? 'owner';
+    final role = ref.watch(effectiveRoleProvider);
     final email = _accountEmail;
     final isStaff = role == 'staff';
     final branchesAsync = ref.watch(branchesProvider);
     final premium = ref.watch(isPremiumProvider);
-    final existingSession =
-        ref.watch(currentCashSessionProvider).valueOrNull;
+    final existingSession = ref.watch(currentCashSessionProvider).valueOrNull;
     final needsOpening = premium && existingSession == null;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l.dailyGateRoleStep,
-              style: Theme.of(context).textTheme.titleMedium),
+          if (_justRegistered) ...[
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space4),
+              decoration: BoxDecoration(
+                color: AppColors.of(context).successSurface,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: AppColors.of(context).success,
+                      ),
+                      const SizedBox(width: AppTheme.space2),
+                      Expanded(
+                        child: Text(
+                          l.onboardOnlineDone,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                color: AppColors.of(context).success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.space1),
+                  Text(
+                    l.accountReadyNoEmailWait,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.of(context).success,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTheme.space4),
+          ],
+          Text(
+            l.dailyGateRoleStep,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading:
-                Icon(isStaff ? Icons.badge_outlined : Icons.verified_user),
-            title:
-                Text(isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner),
+            leading: Icon(isStaff ? Icons.badge_outlined : Icons.verified_user),
+            title: Text(isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner),
             subtitle: email == null ? null : Text(email),
           ),
           branchesAsync.when(
@@ -422,14 +533,16 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  Text(l.dailyGateBranchStep,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    l.dailyGateBranchStep,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   for (final b in branches)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(b.label?.isNotEmpty == true
-                          ? b.label!
-                          : b.shopId),
+                      title: Text(
+                        b.label?.isNotEmpty == true ? b.label! : b.shopId,
+                      ),
                       subtitle: b.isCurrent ? Text(l.branchesCurrent) : null,
                       trailing: b.isCurrent
                           ? const Icon(Icons.check_circle)
@@ -442,11 +555,15 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           ),
           if (needsOpening) ...[
             const SizedBox(height: 8),
-            Text(l.dailyGateOpeningStep,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.dailyGateOpeningStep,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
-            Text(l.dailyGateOpeningHint,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l.dailyGateOpeningHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _opening,
@@ -460,10 +577,11 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             onPressed: _busy
                 ? null
                 : needsOpening
-                    ? _openRegister
-                    : () => _finish(skippedOpen: existingSession == null),
-            child:
-                Text(needsOpening ? l.cashOpenRegister : l.dailyGateContinue),
+                ? _openRegister
+                : () => _finish(skippedOpen: existingSession == null),
+            child: Text(
+              needsOpening ? l.cashOpenRegister : l.dailyGateContinue,
+            ),
           ),
           if (needsOpening) ...[
             const SizedBox(height: 8),
