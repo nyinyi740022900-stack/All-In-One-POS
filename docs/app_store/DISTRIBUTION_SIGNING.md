@@ -41,4 +41,4 @@ That means **device Development signing works**, but **App Store distribution is
 Still required for `tool/upload_ios_ipa.sh` — see [ACCOUNT.md](ACCOUNT.md).
 
 ## Icons
-App icons are the All In One POS teal + gold receipt mark (`assets/branding/app_icon_1024.png` → iOS AppIcon + Android mipmaps). Re-check Launch Image / splash if Xcode still warns about placeholders before public submit.
+App icons are the geometric forest-green A mark (`assets/branding/app_icon_1024.png` → iOS AppIcon + Android mipmaps). Re-check Launch Image / splash if Xcode still warns about placeholders before public submit.

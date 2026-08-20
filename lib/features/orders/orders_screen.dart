@@ -55,7 +55,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
 
     final listBody = ordersAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const AppLoadingView(),
       error: (e, _) => ErrorRetryView(
         message: l.commonUnexpectedError,
         onRetry: () => ref.invalidate(ordersStreamProvider),

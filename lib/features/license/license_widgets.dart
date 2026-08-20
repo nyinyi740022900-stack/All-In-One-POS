@@ -1,11 +1,11 @@
 part of 'license_screen.dart';
 
 String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
-      LicensePlan.yearly => l.licensePlanYearly,
-      LicensePlan.monthly => l.licensePlanMonthly,
-      LicensePlan.trial => l.licensePlanTrial,
-      LicensePlan.free => l.licensePlanFree,
-    };
+  LicensePlan.yearly => l.licensePlanYearly,
+  LicensePlan.monthly => l.licensePlanMonthly,
+  LicensePlan.trial => l.licensePlanTrial,
+  LicensePlan.free => l.licensePlanFree,
+};
 
 /// Shows the unique App Reference ID / Shop Code (the admin extends by this).
 /// Offline / device-key model only — Online uses [_AccountEmailTile] instead.
@@ -29,8 +29,9 @@ class _RefIdTile extends ConsumerWidget {
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: id));
             if (context.mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(l.copied)));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l.copied)));
             }
           },
         ),
@@ -68,8 +69,9 @@ class _AccountEmailTile extends ConsumerWidget {
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: email!));
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text(l.copied)));
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(l.copied)));
                   }
                 },
               )
@@ -96,8 +98,9 @@ class _DevicesSection extends ConsumerWidget {
     if (picked == null || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final result =
-        await ref.read(licenseRepositoryProvider).requestDeviceSlot();
+    final result = await ref
+        .read(licenseRepositoryProvider)
+        .requestDeviceSlot();
     if (!context.mounted) return;
 
     if (result.ok) {
@@ -133,7 +136,9 @@ class _DevicesSection extends ConsumerWidget {
   /// Lets the owner choose the new device's intended role (and, for Staff,
   /// which roster member) before a slot is even claimed. Null = cancelled.
   Future<({String role, String? staffMemberId})?> _pickDeviceRole(
-      BuildContext context, WidgetRef ref) {
+    BuildContext context,
+    WidgetRef ref,
+  ) {
     final l = AppLocalizations.of(context);
     final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
     var role = 'owner';
@@ -148,8 +153,7 @@ class _DevicesSection extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l.deviceRoleHint,
-                  style: Theme.of(ctx).textTheme.bodySmall),
+              Text(l.deviceRoleHint, style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: AppTheme.space3),
               SegmentedButton<String>(
                 segments: [
@@ -166,14 +170,19 @@ class _DevicesSection extends ConsumerWidget {
                 const SizedBox(height: AppTheme.space3),
                 DropdownButtonFormField<String?>(
                   initialValue: staffMemberId,
-                  decoration:
-                      InputDecoration(labelText: l.deviceRoleStaffMember),
+                  decoration: InputDecoration(
+                    labelText: l.deviceRoleStaffMember,
+                  ),
                   items: [
                     DropdownMenuItem<String?>(
-                        value: null, child: Text(l.staffNoNamedStaff)),
+                      value: null,
+                      child: Text(l.staffNoNamedStaff),
+                    ),
                     for (final m in members)
                       DropdownMenuItem<String?>(
-                          value: m.id, child: Text(m.name)),
+                        value: m.id,
+                        child: Text(m.name),
+                      ),
                   ],
                   onChanged: (v) => setLocal(() => staffMemberId = v),
                 ),
@@ -186,8 +195,9 @@ class _DevicesSection extends ConsumerWidget {
               child: Text(l.commonCancel),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx)
-                  .pop((role: role, staffMemberId: staffMemberId)),
+              onPressed: () => Navigator.of(
+                ctx,
+              ).pop((role: role, staffMemberId: staffMemberId)),
               child: Text(l.commonYes),
             ),
           ],
@@ -197,7 +207,10 @@ class _DevicesSection extends ConsumerWidget {
   }
 
   Future<void> _confirmRelease(
-      BuildContext context, WidgetRef ref, ShopDevice d) async {
+    BuildContext context,
+    WidgetRef ref,
+    ShopDevice d,
+  ) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -206,19 +219,22 @@ class _DevicesSection extends ConsumerWidget {
         content: Text(l.deviceReleaseConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.deviceRelease)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.deviceRelease),
+          ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final released =
-        await ref.read(licenseRepositoryProvider).releaseDevice(d.deviceId!);
+    final released = await ref
+        .read(licenseRepositoryProvider)
+        .releaseDevice(d.deviceId!);
     if (released) {
       ref.invalidate(shopDevicesProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.deviceReleased)));
@@ -238,8 +254,10 @@ class _DevicesSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l.deviceSectionTitle,
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          l.deviceSectionTitle,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: AppTheme.space1),
         devices.when(
           loading: () => const Padding(
@@ -252,8 +270,10 @@ class _DevicesSection extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l.deviceCount(used, freeLimit),
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l.deviceCount(used, freeLimit),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: AppTheme.space2),
                 for (final d in list.where((d) => d.isBound))
                   Card(
@@ -266,11 +286,15 @@ class _DevicesSection extends ConsumerWidget {
                             : '${d.deviceId!.substring(0, 8)}…',
                         style: const TextStyle(fontFamily: 'monospace'),
                       ),
-                      subtitle: Text(d.lastVerifiedAt == null
-                          ? l.deviceNeverVerified
-                          : l.deviceLastActive(
-                              DateFormat('yyyy-MM-dd HH:mm')
-                                  .format(d.lastVerifiedAt!))),
+                      subtitle: Text(
+                        d.lastVerifiedAt == null
+                            ? l.deviceNeverVerified
+                            : l.deviceLastActive(
+                                DateFormat(
+                                  'yyyy-MM-dd HH:mm',
+                                ).format(d.lastVerifiedAt!),
+                              ),
+                      ),
                       trailing: TextButton(
                         onPressed: () => _confirmRelease(context, ref, d),
                         child: Text(l.deviceRelease),
@@ -321,14 +345,20 @@ class _NewDeviceKeyDialog extends StatelessWidget {
             height: 180,
           ),
           const SizedBox(height: AppTheme.space3),
-          SelectableText(provisioning.key,
-              style: const TextStyle(
-                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+          SelectableText(
+            provisioning.key,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           if (provisioning.role == 'staff') ...[
             const SizedBox(height: AppTheme.space2),
-            Text(l.deviceRoleAppliesOnScan,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l.deviceRoleAppliesOnScan,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ],
       ),
@@ -337,8 +367,9 @@ class _NewDeviceKeyDialog extends StatelessWidget {
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: provisioning.key));
             if (context.mounted) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(l.deviceKeyCopied)));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l.deviceKeyCopied)));
             }
           },
           icon: const Icon(Icons.copy),
@@ -395,14 +426,26 @@ class _StatusCard extends StatelessWidget {
     final colors = AppColors.of(context);
 
     final (String label, Color color, IconData icon) = switch (status.kind) {
-      LicenseStatusKind.active =>
-        (l.licenseStatusActive, colors.success, Icons.verified),
-      LicenseStatusKind.grace =>
-        (l.licenseStatusGrace, colors.warning, Icons.timelapse),
-      LicenseStatusKind.expired =>
-        (l.licenseStatusExpired, colors.danger, Icons.error),
-      LicenseStatusKind.none =>
-        (l.licenseStatusNone, scheme.outline, Icons.info_outline),
+      LicenseStatusKind.active => (
+        l.licenseStatusActive,
+        colors.success,
+        Icons.verified,
+      ),
+      LicenseStatusKind.grace => (
+        l.licenseStatusGrace,
+        colors.warning,
+        Icons.timelapse,
+      ),
+      LicenseStatusKind.expired => (
+        l.licenseStatusExpired,
+        colors.danger,
+        Icons.error,
+      ),
+      LicenseStatusKind.none => (
+        l.licenseStatusNone,
+        scheme.outline,
+        Icons.info_outline,
+      ),
     };
 
     return Card(
@@ -416,28 +459,160 @@ class _StatusCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: color)),
+                  Text(
+                    label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: color),
+                  ),
                   if (status.plan != null)
-                    Text('${l.licensePlanLabel}: ${_planName(l, status.plan!)}',
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      '${l.licensePlanLabel}: ${_planName(l, status.plan!)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   // The Free plan never expires (see computeLicenseStatus) —
                   // its expiresAt is a meaningless placeholder, not a real date.
-                  if (status.expiresAt != null && status.plan != LicensePlan.free)
-                    Text(l.licenseExpires(
-                        DateFormat('yyyy-MM-dd').format(status.expiresAt!))),
+                  if (status.expiresAt != null &&
+                      status.plan != LicensePlan.free)
+                    Text(
+                      l.licenseExpires(
+                        DateFormat('yyyy-MM-dd').format(status.expiresAt!),
+                      ),
+                    ),
                   if (status.kind == LicenseStatusKind.grace)
-                    Text(l.licenseGraceLeft(status.graceDaysLeft),
-                        style: TextStyle(color: color)),
+                    Text(
+                      l.licenseGraceLeft(status.graceDaysLeft),
+                      style: TextStyle(color: color),
+                    ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Two equal purchase paths (website vs Viber) then a separate "already
+/// paid?" check — the License screen used to put a Viber-copy action in a
+/// button labelled Renew, hide the actual number, and list Pay online as if
+/// it were a different kind of thing.
+class _PurchasePaths extends ConsumerWidget {
+  const _PurchasePaths({
+    required this.busy,
+    required this.hasAccount,
+    required this.showCheckRenewal,
+    required this.onPayOnline,
+    required this.onContactViber,
+    required this.onCheckRenewal,
+  });
+
+  final bool busy;
+  final bool hasAccount;
+  final bool showCheckRenewal;
+  final VoidCallback onPayOnline;
+  final VoidCallback onContactViber;
+  final VoidCallback onCheckRenewal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final viber = ref.watch(vendorConfigProvider).valueOrNull?.supportViber;
+    final hasViber = viber != null && viber.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l.licenseBuyOrRenewTitle,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppTheme.space1),
+        Text(
+          l.licenseBuyOrRenewIntro,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppTheme.space3),
+        FilledButton.icon(
+          onPressed: busy ? null : onPayOnline,
+          icon: const Icon(Icons.open_in_new),
+          label: Text(l.licensePayOnline),
+        ),
+        const SizedBox(height: AppTheme.space1),
+        Text(
+          l.licensePayOnlineHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppTheme.space3),
+        Card(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: ListTile(
+            leading: const Icon(Icons.chat_outlined),
+            title: Text(l.licenseContactViber),
+            subtitle: Text(
+              hasViber ? 'Viber · $viber' : l.licenseTrialViberMissing,
+            ),
+            trailing: hasViber
+                ? IconButton(
+                    icon: const Icon(Icons.copy),
+                    tooltip: l.commonCopy,
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: viber));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${l.copied}: Viber · $viber'),
+                          ),
+                        );
+                      }
+                    },
+                  )
+                : null,
+            onTap: hasViber ? onContactViber : null,
+          ),
+        ),
+        const SizedBox(height: AppTheme.space1),
+        Text(
+          hasAccount
+              ? l.licenseContactViberHintOnline
+              : l.licenseContactViberHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        if (hasAccount) ...[
+          const SizedBox(height: AppTheme.space1),
+          Text(
+            l.licenseOnlineApplyHint,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+        if (showCheckRenewal) ...[
+          const SizedBox(height: AppTheme.space4),
+          Text(
+            l.licenseAfterPaymentTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.space2),
+          OutlinedButton.icon(
+            onPressed: busy ? null : onCheckRenewal,
+            icon: busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            label: Text(l.licenseCheckRenewal),
+          ),
+          const SizedBox(height: AppTheme.space1),
+          Text(
+            hasAccount ? l.licenseRenewHintOnline : l.licenseRenewHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ],
     );
   }
 }

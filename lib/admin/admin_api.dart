@@ -25,8 +25,7 @@ class AdminApi {
 
   bool get isSignedIn => _c.auth.currentSession != null;
 
-  bool get isAdmin =>
-      (_c.auth.currentUser?.appMetadata['role']) == 'admin';
+  bool get isAdmin => (_c.auth.currentUser?.appMetadata['role']) == 'admin';
 
   Future<void> signIn(String email, String password) =>
       _c.auth.signInWithPassword(email: email, password: password);
@@ -49,13 +48,63 @@ class AdminApi {
   Future<List<Map<String, dynamic>>> listCommissions() =>
       _rows('list_commissions');
 
+  /// Fresh shop payload for the extend-preview dialog. Pass exactly one of
+  /// [email] / [deviceId] / [shopId].
+  Future<Map<String, dynamic>> lookupShop({
+    String? email,
+    String? deviceId,
+    String? shopId,
+  }) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'lookup_shop',
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+        if (shopId != null && shopId.isNotEmpty) 'shop_id': shopId,
+      },
+    );
+    _throwIfError(res);
+    return ((res.data as Map)['shop'] as Map).cast<String, dynamic>();
+  }
+
+  /// Recovery URL the admin copies onto Viber. Never emails the shop —
+  /// this product does not rely on SMTP for account recovery.
+  Future<String> resetPassword({required String email}) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'reset_password', 'email': email},
+    );
+    _throwIfError(res);
+    return '${(res.data as Map)['action_link']}';
+  }
+
+  Future<void> unlinkAccount({required String userId}) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'unlink_account', 'user_id': userId},
+    );
+    _throwIfError(res);
+  }
+
+  Future<void> restoreAccount({required String userId}) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'restore_account', 'user_id': userId},
+    );
+    _throwIfError(res);
+  }
+
   /// Redeems a referrer's outstanding balance into whole license months on
   /// their own license. Returns { months, amount, expires_at, balance }
   /// (months == 0 when the balance isn't yet one month's price).
-  Future<Map<String, dynamic>> applyReferralCredit(
-      {required String shopId}) async {
-    final res = await _c.functions.invoke('admin',
-        body: {'action': 'apply_referral_credit', 'shop_id': shopId});
+  Future<Map<String, dynamic>> applyReferralCredit({
+    required String shopId,
+  }) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'apply_referral_credit', 'shop_id': shopId},
+    );
     _throwIfError(res);
     return (res.data as Map).cast<String, dynamic>();
   }
@@ -67,21 +116,26 @@ class AdminApi {
     required int months,
     String? deviceId,
   }) async {
-    final res = await _c.functions.invoke('admin', body: {
-      'action': 'sign_offline',
-      'shop_id': shopId,
-      if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
-      'plan': plan,
-      'months': months,
-      if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
-    });
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'sign_offline',
+        'shop_id': shopId,
+        if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
+        'plan': plan,
+        'months': months,
+        if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+      },
+    );
     _throwIfError(res);
     return (res.data as Map)['token'] as String;
   }
 
   Future<int> resetDevice({required String deviceId}) async {
-    final res = await _c.functions.invoke('admin',
-        body: {'action': 'reset_device', 'device_id': deviceId});
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'reset_device', 'device_id': deviceId},
+    );
     _throwIfError(res);
     return ((res.data as Map)['cleared'] as num?)?.toInt() ?? 0;
   }
@@ -98,12 +152,15 @@ class AdminApi {
     String? email,
     required int months,
   }) async {
-    final res = await _c.functions.invoke('admin', body: {
-      'action': 'extend_license',
-      if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
-      if (email != null && email.isNotEmpty) 'email': email,
-      'months': months,
-    });
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'extend_license',
+        if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+        if (email != null && email.isNotEmpty) 'email': email,
+        'months': months,
+      },
+    );
     _throwIfError(res);
     final data = res.data as Map;
     return ExtendLicenseResult(
@@ -112,7 +169,10 @@ class AdminApi {
     );
   }
 
-  Future<String> confirmPayment({required String requestId, int? months}) async {
+  Future<String> confirmPayment({
+    required String requestId,
+    int? months,
+  }) async {
     final body = <String, dynamic>{
       'action': 'fulfill_request',
       'request_id': requestId,
@@ -123,25 +183,31 @@ class AdminApi {
     return (res.data as Map)['key'] as String;
   }
 
-  Future<void> rejectRequest({required String requestId, String? reason}) async {
-    final res = await _c.functions.invoke('admin', body: {
-      'action': 'reject_request',
-      'request_id': requestId,
-      if (reason != null && reason.isNotEmpty) 'reason': reason,
-    });
+  Future<void> rejectRequest({
+    required String requestId,
+    String? reason,
+  }) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'reject_request',
+        'request_id': requestId,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+      },
+    );
     _throwIfError(res);
   }
 
   Future<Map<String, String>> getConfig() async {
     final rows = await _rows('get_config');
-    return {
-      for (final r in rows) '${r['key']}': '${r['value'] ?? ''}',
-    };
+    return {for (final r in rows) '${r['key']}': '${r['value'] ?? ''}'};
   }
 
   Future<void> setConfig(Map<String, String> config) async {
-    final res = await _c.functions
-        .invoke('admin', body: {'action': 'set_config', 'config': config});
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {'action': 'set_config', 'config': config},
+    );
     _throwIfError(res);
   }
 
@@ -156,14 +222,18 @@ class AdminApi {
     required String plan,
     required int months,
   }) async {
-    final res = await _c.functions.invoke('admin', body: {
-      'action': 'create_license',
-      'shop_id': shopId,
-      if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
-      'plan': plan,
-      'months': months,
-    });
-    if (res.data is Map && (res.data as Map)['error'] == 'license_already_exists') {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'create_license',
+        'shop_id': shopId,
+        if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
+        'plan': plan,
+        'months': months,
+      },
+    );
+    if (res.data is Map &&
+        (res.data as Map)['error'] == 'license_already_exists') {
       throw const LicenseAlreadyExistsException();
     }
     _throwIfError(res);
@@ -173,7 +243,9 @@ class AdminApi {
   void _throwIfError(FunctionResponse res) {
     final data = res.data;
     if (data is Map && data['error'] != null) {
-      throw Exception('${data['error']}${data['detail'] != null ? ': ${data['detail']}' : ''}');
+      throw Exception(
+        '${data['error']}${data['detail'] != null ? ': ${data['detail']}' : ''}',
+      );
     }
     if (res.status >= 400) {
       throw Exception('Request failed (${res.status})');

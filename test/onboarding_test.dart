@@ -47,8 +47,7 @@ void main() {
     expect(await settings.onboardingComplete(), isTrue);
   });
 
-  testWidgets(
-      'fresh install shows a single linear onboarding flow — no mode '
+  testWidgets('fresh install shows a single linear onboarding flow — no mode '
       'choice page, 5 pages total', (tester) async {
     // OnboardingFlow directly, not the full MmPosApp — MaterialApp.router's
     // builder still resolves the router's own page underneath even when the
@@ -72,52 +71,62 @@ void main() {
     );
     await tester.pump();
 
-    // First page is Welcome (BrandHero lockup), not a mode-choice screen —
-    // the permanent Online/Offline choice no longer exists.
-    expect(find.byType(BrandHero), findsOneWidget);
+    // First page is Welcome (brand-green wave header), not a mode-choice
+    // screen — the permanent Online/Offline choice no longer exists.
+    expect(find.byType(BrandHeroPanel), findsOneWidget);
     expect(find.text('Online'), findsNothing);
     expect(find.text('Offline'), findsNothing);
 
     // 5 pagination dots: Welcome, Shop profile, License, Account (optional),
     // Staff mode.
     expect(find.byType(AnimatedContainer), findsNWidgets(5));
+
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your shop'), findsOneWidget);
+    expect(find.text('Address'), findsOneWidget);
+    expect(find.text('Receipt footer'), findsOneWidget);
   });
 
   testWidgets(
-      'Continue Free on the License page advances to the next page, not '
-      'just a toast', (tester) async {
-    // Before this fix, "Continue Free" only called continueFree() and
-    // showed a SnackBar, leaving the owner sitting on the same page with no
-    // visible confirmation anything happened — indistinguishable from the
-    // tap not registering at all. This asserts the page actually advances.
-    final db = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
+    'Continue Free on the License page advances to the next page, not '
+    'just a toast',
+    (tester) async {
+      // Before this fix, "Continue Free" only called continueFree() and
+      // showed a SnackBar, leaving the owner sitting on the same page with no
+      // visible confirmation anything happened — indistinguishable from the
+      // tap not registering at all. This asserts the page actually advances.
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
-        child: MaterialApp(
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: OnboardingFlow(onDone: () {}),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: OnboardingFlow(onDone: () {}),
+          ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    // Welcome -> Shop profile -> License.
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    expect(find.text('Free plan or license key'), findsOneWidget);
+      // Welcome -> Shop profile -> License.
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.text('Free plan or license key'), findsOneWidget);
 
-    await tester.tap(find.text('Continue Free'));
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue Free'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue Free'));
+      await tester.pumpAndSettle();
 
-    // Landed on the next page (Account) without a second tap on the
-    // bottom "Next" button.
-    expect(find.text('Free plan or license key'), findsNothing);
-  });
+      // Landed on the next page (Account) without a second tap on the
+      // bottom "Next" button.
+      expect(find.text('Free plan or license key'), findsNothing);
+    },
+  );
 }

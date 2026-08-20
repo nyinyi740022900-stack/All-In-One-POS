@@ -2,22 +2,37 @@
 
 **Live:** https://allinonepos-admin.vercel.app
 
-Vendor console for managing licenses. Separate from the POS app: its own entry
-point (`admin_main.dart`), tree-shaken out of the mobile build. All privileged
-work goes through the `admin` Edge Function (service role stays server-side).
+Vendor console for licenses, payments, and shop support. Separate from the
+POS app: its own entry point (`admin_main.dart`), tree-shaken out of the
+mobile build. All privileged work goes through the `admin` Edge Function
+(service role stays server-side).
 
-## What it does
-- **Licenses** — every key: shop, plan, status, expiry, bound device.
-- **Requests** — self-service subscribe/renew requests customers submit
-  in-app (KBZPay/WavePay + a payment screenshot); **Issue key** calls
-  `fulfill_request`, which extends the shop's existing license when the
-  request carries a `shop_id` (or matches by `device_id` for older requests
-  with none), or mints a brand-new one otherwise.
-- **Generate key** — mint a key for a shop (`create_license`).
-- **Referrals** — commissions grouped by referrer (lifetime earned + payment
-  count) with **Apply credit** (redeems the referrer's balance into license
-  months via `apply_referral_credit`), plus the raw referral links. Commission
-  rate is editable under **Config** (`referral.rate`, `referral.enabled`).
+## Modules (sidebar)
+
+- **Dashboard** — shop / Premium / at-risk counts, pending inbox, paid
+  revenue this month, expiring-in-7-days. Monthly revenue bar (fulfilled
+  `license_requests` only — complimentary admin extends are not counted as
+  income) and a plan mix (paid / trial / free / expired).
+- **Inbox** — pending KBZPay/WavePay requests with screenshot; Confirm /
+  Decline. Lands here automatically when anything is waiting.
+- **Shops** — search by name, email, phone, or App Reference ID, then a
+  360° panel: extend by email vs device, reset a phone, offline code,
+  Viber, generate key, password-reset link, unlink staff, restore a banned
+  login.
+- **Payments** — settled requests + license activity history.
+- **Licensing** — Viber-paste extend only: email or App Reference ID
+  (two separate cards so an email cannot be pasted into a device field).
+  Both find a shop and add months to **every** device on it. Reset a
+  phone, mint a key, or send an offline code from **Shops**.
+- **Referrals** — commissions grouped by referrer with **Apply credit**,
+  plus raw referral links. Rate/toggle live under Settings
+  (`referral.rate`, `referral.enabled`).
+- **Settings** — KBZPay/WavePay pay-to, Support Viber, prices.
+
+Confirming a payment calls `fulfill_request`, which extends the shop's
+existing license when the request carries a `shop_id` (or matches by
+`device_id` for older requests with none), or mints a brand-new one
+otherwise.
 
 ## One-time setup
 
@@ -58,3 +73,7 @@ vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
 Only the anon key ships in the web bundle (safe — the `admin` function enforces
 the admin check). Never put the service-role key in this app.
+
+Password-reset links are generated server-side (`auth.admin.generateLink`) and
+copied onto Viber — this console does not send recovery email (same reason
+shop signup is `email_confirm: true`: SMTP would strand a shop).

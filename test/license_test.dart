@@ -106,14 +106,14 @@ void main() {
       expect(s.graceDaysLeft, 5);
     });
 
-    test('expired past grace, read-only', () {
+    test('expired past grace still sells — Premium is locked, not the till', () {
       final s = computeLicenseStatus(
           expiresAt: now.subtract(const Duration(days: 10)),
           now: now,
           graceDays: 7);
       expect(s.kind, LicenseStatusKind.expired);
-      expect(s.canSell, isFalse);
-      expect(s.isReadOnly, isTrue);
+      expect(s.canSell, isTrue);
+      expect(s.isReadOnly, isFalse);
     });
 
     test('exact expiry moment is still active', () {
@@ -234,6 +234,8 @@ void main() {
     test('no license at all is not premium', () {
       const state = LicenseState();
       expect(state.isPremium, isFalse);
+      expect(state.loading, isTrue);
+      expect(state.canSell, isFalse);
     });
 
     test('an active paid plan is premium', () {
@@ -264,6 +266,7 @@ void main() {
       final status = computeLicenseStatus(
           expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
       final state = LicenseState(license: lic, status: status, loading: false);
+      expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
     });
   });

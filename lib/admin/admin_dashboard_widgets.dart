@@ -6,10 +6,14 @@ part of 'admin_dashboard_screen.dart';
 /// `settings_screen.dart` (active -> success, grace -> warning, else ->
 /// danger) rather than inventing a second convention for the same concept.
 StatusTone _licenseTone(String status) => switch (status) {
-      'active' => StatusTone.positive,
-      'grace' => StatusTone.attention,
-      _ => StatusTone.critical,
-    };
+  'active' => StatusTone.positive,
+  'grace' => StatusTone.attention,
+  'no_license' => StatusTone.attention,
+  _ => StatusTone.critical,
+};
+
+String _statusLabel(String status) =>
+    status == 'no_license' ? 'No license' : _capitalize(status);
 
 String _capitalize(String s) =>
     s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
@@ -26,156 +30,9 @@ String _capitalize(String s) =>
 /// before this file, so this is a real gap, not a copy-paste of a
 /// proven-safe shape. Used for the two inline row actions below.
 ButtonStyle _compactFilledButtonStyle() => FilledButton.styleFrom(
-      minimumSize: const Size(64, 40),
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
-    );
-
-class _LicensesTab extends StatelessWidget {
-  const _LicensesTab({required this.rows});
-  final List<Map<String, dynamic>> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    if (rows.isEmpty) {
-      return const EmptyStateView(
-        icon: Icons.vpn_key_outlined,
-        title: 'No licenses yet.',
-        message: 'Generate a key from the button below once a shop is '
-            'ready to activate.',
-      );
-    }
-    return ListView.separated(
-      itemCount: rows.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final r = rows[i];
-        final status = '${r['status']}';
-        return ListTile(
-          leading: const IconAvatar(icon: Icons.vpn_key),
-          title: SelectableText('${r['key']}'),
-          subtitle: Text(
-              'Shop: ${r['shop_id']}  ·  ${r['plan']}\n'
-              'Expires: ${_date(r['expires_at'])}  ·  '
-              'Device: ${r['device_id'] ?? '—'}'),
-          isThreeLine: true,
-          trailing: StatusPill(
-            label: _capitalize(status),
-            tone: _licenseTone(status),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// One row per shop, merged server-side from three sources that only share
-/// `shop_id` (licenses, storefronts, auth.users) — see `list_shops` in
-/// `supabase/functions/admin/index.ts`. Phone/address/email render as "—"
-/// for a shop that hasn't opted into a storefront or linked an account; that
-/// is a normal, expected state here, not missing data.
-class _ShopsTab extends StatefulWidget {
-  const _ShopsTab({required this.rows, required this.onGenerateKey});
-  final List<Map<String, dynamic>> rows;
-  final void Function(String shopId) onGenerateKey;
-
-  @override
-  State<_ShopsTab> createState() => _ShopsTabState();
-}
-
-class _ShopsTabState extends State<_ShopsTab> {
-  final _filter = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _filter.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.rows.isEmpty) {
-      return const EmptyStateView(
-        icon: Icons.storefront_outlined,
-        title: 'No shops yet.',
-      );
-    }
-    final q = _query.trim().toLowerCase();
-    final filtered = q.isEmpty
-        ? widget.rows
-        : widget.rows.where((r) {
-            final name = '${r['shop_name'] ?? ''}'.toLowerCase();
-            final email = '${r['email'] ?? ''}'.toLowerCase();
-            final shopId = '${r['shop_id'] ?? ''}'.toLowerCase();
-            return name.contains(q) ||
-                email.contains(q) ||
-                shopId.contains(q);
-          }).toList();
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(AppTheme.space3),
-          child: TextField(
-            controller: _filter,
-            onChanged: (v) => setState(() => _query = v),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Filter by shop name or email',
-              isDense: true,
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        Expanded(
-          child: filtered.isEmpty
-              ? const EmptyStateView(
-                  icon: Icons.search_off,
-                  title: 'No shops match that filter.',
-                )
-              : ListView.separated(
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final r = filtered[i];
-                    final status = '${r['status']}';
-                    final hasNoLicense = status == 'no_license';
-                    return ListTile(
-                      leading: const IconAvatar(icon: Icons.storefront),
-                      title: Text('${r['shop_name'] ?? r['shop_id']}'),
-                      subtitle: Text(hasNoLicense
-                          ? '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
-                              '${r['address'] ?? '—'}\n'
-                              'Has an account, but no license — nothing to '
-                              'extend, only to create.'
-                          : '${r['email'] ?? '—'}  ·  ${r['phone'] ?? '—'}\n'
-                              '${r['address'] ?? '—'}\n'
-                              '${r['plan']}  ·  ${r['tier'] ?? 'offline'}  ·  '
-                              'Expires: ${_date(r['expires_at'])}'),
-                      isThreeLine: true,
-                      trailing: hasNoLicense
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                FilledButton(
-                                  style: _compactFilledButtonStyle(),
-                                  onPressed: () => widget
-                                      .onGenerateKey('${r['shop_id']}'),
-                                  child: const Text('Generate key'),
-                                ),
-                              ],
-                            )
-                          : StatusPill(
-                              label: _capitalize(status),
-                              tone: _licenseTone(status),
-                            ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
+  minimumSize: const Size(64, 40),
+  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
+);
 
 class _HistoryTab extends StatelessWidget {
   const _HistoryTab({required this.rows});
@@ -208,17 +65,21 @@ class _HistoryTab extends StatelessWidget {
             icon: isDecline
                 ? Icons.cancel
                 : isExtend
-                    ? Icons.more_time
-                    : Icons.vpn_key,
+                ? Icons.more_time
+                : Icons.vpn_key,
             tone: isDecline ? StatusTone.critical : null,
           ),
-          title: Text(isDecline
-              ? 'Declined  ·  ${r['shop_name'] ?? '—'}'
-              : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}'),
-          subtitle: Text(isDecline
-              ? 'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
-              : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
-                  'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}'),
+          title: Text(
+            isDecline
+                ? 'Declined  ·  ${r['shop_name'] ?? '—'}'
+                : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}',
+          ),
+          subtitle: Text(
+            isDecline
+                ? 'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
+                : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
+                      'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}',
+          ),
           isThreeLine: !isDecline,
         );
       },
@@ -236,17 +97,34 @@ class _RequestsTab extends StatelessWidget {
     required this.rows,
     required this.onConfirm,
     required this.onDecline,
+    this.pendingOnly = false,
+    this.settledOnly = false,
   });
   final List<Map<String, dynamic>> rows;
   final Future<void> Function(Map<String, dynamic>) onConfirm;
   final Future<void> Function(Map<String, dynamic>) onDecline;
+  final bool pendingOnly;
+  final bool settledOnly;
 
   @override
   Widget build(BuildContext context) {
+    var rows = this.rows;
+    if (pendingOnly) {
+      rows = rows.where((r) => r['status'] == 'pending').toList();
+    } else if (settledOnly) {
+      rows = rows.where((r) => r['status'] != 'pending').toList();
+    }
     if (rows.isEmpty) {
-      return const EmptyStateView(
-        icon: Icons.hourglass_empty,
-        title: 'No subscription requests.',
+      return EmptyStateView(
+        icon: pendingOnly ? Icons.check_circle_outline : Icons.hourglass_empty,
+        title: pendingOnly
+            ? "You're caught up."
+            : settledOnly
+            ? 'No confirmed or declined payments yet.'
+            : 'No subscription requests.',
+        message: pendingOnly
+            ? 'New KBZPay and WavePay requests will land here.'
+            : null,
       );
     }
     // Pending requests are the admin's to-do list — surface them above
@@ -254,7 +132,11 @@ class _RequestsTab extends StatelessWidget {
     // created_at-ordered feed the admin has to scan past.
     final pending = rows.where((r) => r['status'] == 'pending').toList();
     final settled = rows.where((r) => r['status'] != 'pending').toList();
-    final sorted = [...pending, ...settled];
+    final sorted = pendingOnly
+        ? pending
+        : settledOnly
+        ? settled
+        : [...pending, ...settled];
     final textTheme = Theme.of(context).textTheme;
     return ListView.separated(
       itemCount: sorted.length,
@@ -278,56 +160,61 @@ class _RequestsTab extends StatelessWidget {
                   icon: rejected
                       ? Icons.cancel
                       : fulfilled
-                          ? Icons.check_circle
-                          : Icons.hourglass_top,
+                      ? Icons.check_circle
+                      : Icons.hourglass_top,
                   tone: rejected
                       ? StatusTone.critical
                       : fulfilled
-                          ? StatusTone.positive
-                          : StatusTone.attention,
+                      ? StatusTone.positive
+                      : StatusTone.attention,
                 ),
           title: Row(
             children: [
               Expanded(
                 child: Text('${r['shop_name']}', style: textTheme.titleSmall),
               ),
-              Text('${r['amount']} Ks',
-                  style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary)),
+              Text(
+                _ks((r['amount'] as num?)?.toInt() ?? 0),
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ],
           ),
           subtitle: Text(
-              '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}\n'
-              'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
-              'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
-              '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'
-              '${rejected && rejectReason != null && rejectReason.isNotEmpty ? '\nReason: $rejectReason' : ''}'
-              // Renewal (an existing shop) vs a brand-new one — see
-              // fulfill_request's shop_id-first lookup.
-              '${shopId != null && shopId.isNotEmpty ? '\nRenewal for shop: $shopId' : '\n(No shop_id — treated as a new shop)'}'),
+            '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}\n'
+            'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
+            'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
+            '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'
+            '${rejected && rejectReason != null && rejectReason.isNotEmpty ? '\nReason: $rejectReason' : ''}'
+            // Renewal (an existing shop) vs a brand-new one — see
+            // fulfill_request's shop_id-first lookup.
+            '${shopId != null && shopId.isNotEmpty ? '\nRenewal for shop: $shopId' : '\n(No shop_id — treated as a new shop)'}',
+          ),
           isThreeLine: true,
           trailing: fulfilled
               ? const StatusPill(label: 'Confirmed', tone: StatusTone.positive)
               : rejected
-                  ? const StatusPill(label: 'Declined', tone: StatusTone.critical)
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () => onDecline(r),
-                          style: TextButton.styleFrom(
-                              foregroundColor: AppColors.of(context).danger),
-                          child: const Text('Decline'),
-                        ),
-                        const SizedBox(width: AppTheme.space1),
-                        FilledButton(
-                          style: _compactFilledButtonStyle(),
-                          onPressed: () => onConfirm(r),
-                          child: const Text('Confirm payment'),
-                        ),
-                      ],
+              ? const StatusPill(label: 'Declined', tone: StatusTone.critical)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () => onDecline(r),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.of(context).danger,
+                      ),
+                      child: const Text('Decline'),
                     ),
+                    const SizedBox(width: AppTheme.space1),
+                    FilledButton(
+                      style: _compactFilledButtonStyle(),
+                      onPressed: () => onConfirm(r),
+                      child: const Text('Confirm payment'),
+                    ),
+                  ],
+                ),
         );
       },
     );
@@ -338,10 +225,7 @@ class _RequestsTab extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Payment screenshot'),
-        content: SizedBox(
-          width: 400,
-          child: _RequestProofImage(path: path),
-        ),
+        content: SizedBox(width: 400, child: _RequestProofImage(path: path)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -384,19 +268,20 @@ class _DeclineReasonDialogState extends State<_DeclineReasonDialog> {
           TextField(
             controller: _reason,
             autofocus: true,
-            decoration:
-                const InputDecoration(labelText: 'Reason (optional)'),
+            decoration: const InputDecoration(labelText: 'Reason (optional)'),
           ),
         ],
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _reason.text.trim()),
           style: FilledButton.styleFrom(
-              backgroundColor: AppColors.of(context).danger),
+            backgroundColor: AppColors.of(context).danger,
+          ),
           child: const Text('Decline'),
         ),
       ],
@@ -416,22 +301,28 @@ class _ReferralsTab extends StatelessWidget {
   final Future<void> Function(String shopId) onApplyCredit;
 
   Future<void> _confirmApplyCredit(
-      BuildContext context, String shopId, int balance) async {
+    BuildContext context,
+    String shopId,
+    int balance,
+  ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Apply referral credit?'),
         content: Text(
-            'Converts as much of $shopId\'s $balance Ks referral balance as '
-            'covers full months into a license extension for that shop, and '
-            'deducts it from their balance. This cannot be undone.'),
+          'Converts as much of $shopId\'s $balance Ks referral balance as '
+          'covers full months into a license extension for that shop, and '
+          'deducts it from their balance. This cannot be undone.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Apply')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Apply'),
+          ),
         ],
       ),
     );
@@ -464,15 +355,23 @@ class _ReferralsTab extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppTheme.space4, AppTheme.space2, AppTheme.space4, AppTheme.space1),
+            AppTheme.space4,
+            AppTheme.space2,
+            AppTheme.space4,
+            AppTheme.space1,
+          ),
           child: Text('Commissions by referrer', style: textTheme.titleSmall),
         ),
         if (referrers.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space4, vertical: AppTheme.space2),
-            child: Text('No commissions earned yet.',
-                style: textTheme.bodyMedium),
+              horizontal: AppTheme.space4,
+              vertical: AppTheme.space2,
+            ),
+            child: Text(
+              'No commissions earned yet.',
+              style: textTheme.bodyMedium,
+            ),
           )
         else
           for (final sid in referrers)
@@ -483,7 +382,8 @@ class _ReferralsTab extends StatelessWidget {
               leading: const IconAvatar(icon: Icons.card_giftcard),
               title: SelectableText(sid),
               subtitle: Text(
-                  '${counts[sid]} payment(s)  ·  earned ${earned[sid]} Ks'),
+                '${counts[sid]} payment(s)  ·  earned ${earned[sid]} Ks',
+              ),
               trailing: FilledButton(
                 style: _compactFilledButtonStyle(),
                 onPressed: () =>
@@ -494,16 +394,23 @@ class _ReferralsTab extends StatelessWidget {
         const Divider(height: AppTheme.space5),
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppTheme.space4, AppTheme.space1, AppTheme.space4, AppTheme.space1),
-          child: Text('Referral links (${referrals.length})',
-              style: textTheme.titleSmall),
+            AppTheme.space4,
+            AppTheme.space1,
+            AppTheme.space4,
+            AppTheme.space1,
+          ),
+          child: Text(
+            'Referral links (${referrals.length})',
+            style: textTheme.titleSmall,
+          ),
         ),
         if (referrals.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space4, vertical: AppTheme.space2),
-            child:
-                Text('No referral links yet.', style: textTheme.bodyMedium),
+              horizontal: AppTheme.space4,
+              vertical: AppTheme.space2,
+            ),
+            child: Text('No referral links yet.', style: textTheme.bodyMedium),
           )
         else
           for (final r in referrals)
@@ -522,7 +429,8 @@ class _ReferralsTab extends StatelessWidget {
               ),
               title: Text('${r['referral_code']}  ·  ${r['referrer_shop_id']}'),
               subtitle: Text(
-                  'referred: ${r['referred_shop_id']}  ·  ${_date(r['created_at'])}'),
+                'referred: ${r['referred_shop_id']}  ·  ${_date(r['created_at'])}',
+              ),
             ),
       ],
     );
@@ -562,17 +470,17 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
           Text(
             'Creates an Offline-tier key (device-key activation, no online '
             'account).',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.of(context).muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.of(context).muted),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _shopId,
             decoration: InputDecoration(
-                labelText: 'Shop ID (any stable identifier)',
-                errorText: _shopIdError),
+              labelText: 'Shop ID (any stable identifier)',
+              errorText: _shopIdError,
+            ),
             onChanged: (_) {
               if (_shopIdError != null) setState(() => _shopIdError = null);
             },
@@ -580,8 +488,7 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _shopName,
-            decoration:
-                const InputDecoration(labelText: 'Shop name (display)'),
+            decoration: const InputDecoration(labelText: 'Shop name (display)'),
           ),
           const SizedBox(height: AppTheme.space3),
           DropdownButtonFormField<String>(
@@ -599,7 +506,9 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
-                labelText: 'Duration (months)', errorText: _monthsError),
+              labelText: 'Duration (months)',
+              errorText: _monthsError,
+            ),
             onChanged: (_) {
               if (_monthsError != null) setState(() => _monthsError = null);
             },
@@ -608,8 +517,9 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: () {
             final shop = _shopId.text.trim();
@@ -645,18 +555,27 @@ class _OfflineRequest {
   final int months;
   final String deviceId;
   const _OfflineRequest(
-      this.shopId, this.shopName, this.plan, this.months, this.deviceId);
+    this.shopId,
+    this.shopName,
+    this.plan,
+    this.months,
+    this.deviceId,
+  );
 }
 
 class _OfflineCodeDialog extends StatefulWidget {
-  const _OfflineCodeDialog();
+  const _OfflineCodeDialog({this.initialShopId, this.initialShopName});
+  final String? initialShopId;
+  final String? initialShopName;
   @override
   State<_OfflineCodeDialog> createState() => _OfflineCodeDialogState();
 }
 
 class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
-  final _shopId = TextEditingController();
-  final _shopName = TextEditingController();
+  late final _shopId = TextEditingController(text: widget.initialShopId ?? '');
+  late final _shopName = TextEditingController(
+    text: widget.initialShopName ?? '',
+  );
   final _months = TextEditingController(text: '1');
   final _device = TextEditingController();
   String _plan = 'monthly';
@@ -682,15 +601,18 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
             TextField(
               controller: _shopId,
               decoration: InputDecoration(
-                  labelText: 'Shop ID', errorText: _shopIdError),
+                labelText: 'Shop ID',
+                errorText: _shopIdError,
+              ),
               onChanged: (_) {
                 if (_shopIdError != null) setState(() => _shopIdError = null);
               },
             ),
             const SizedBox(height: AppTheme.space2),
             TextField(
-                controller: _shopName,
-                decoration: const InputDecoration(labelText: 'Shop name')),
+              controller: _shopName,
+              decoration: const InputDecoration(labelText: 'Shop name'),
+            ),
             const SizedBox(height: AppTheme.space2),
             DropdownButtonFormField<String>(
               initialValue: _plan,
@@ -707,7 +629,9 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
-                  labelText: 'Duration (months)', errorText: _monthsError),
+                labelText: 'Duration (months)',
+                errorText: _monthsError,
+              ),
               onChanged: (_) {
                 if (_monthsError != null) setState(() => _monthsError = null);
               },
@@ -716,15 +640,17 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
             TextField(
               controller: _device,
               decoration: const InputDecoration(
-                  labelText: 'Bind to App Reference ID (optional)'),
+                labelText: 'Bind to App Reference ID (optional)',
+              ),
             ),
           ],
         ),
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: () {
             final shop = _shopId.text.trim();
@@ -755,21 +681,24 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
 }
 
 class _CodePromptDialog extends StatefulWidget {
-  const _CodePromptDialog(
-      {required this.title,
-      required this.label,
-      required this.action,
-      this.warning});
+  const _CodePromptDialog({
+    required this.title,
+    required this.label,
+    required this.action,
+    this.warning,
+    this.initial,
+  });
   final String title;
   final String label;
   final String action;
   final String? warning;
+  final String? initial;
   @override
   State<_CodePromptDialog> createState() => _CodePromptDialogState();
 }
 
 class _CodePromptDialogState extends State<_CodePromptDialog> {
-  final _code = TextEditingController();
+  late final _code = TextEditingController(text: widget.initial ?? '');
   @override
   void dispose() {
     _code.dispose();
@@ -793,130 +722,21 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
             const SizedBox(height: AppTheme.space2),
             Text(
               widget.warning!,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.of(context).muted),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.of(context).muted,
+              ),
             ),
           ],
         ],
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _code.text.trim()),
           child: Text(widget.action),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExtendByCodeDialog extends StatefulWidget {
-  const _ExtendByCodeDialog();
-  @override
-  State<_ExtendByCodeDialog> createState() => _ExtendByCodeDialogState();
-}
-
-class _ExtendByCodeDialogState extends State<_ExtendByCodeDialog> {
-  final _code = TextEditingController();
-  final _email = TextEditingController();
-  final _months = TextEditingController(text: '1');
-  String? _identifierError;
-  String? _monthsError;
-  @override
-  void dispose() {
-    _code.dispose();
-    _email.dispose();
-    _months.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Extend by App Reference ID or Email'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Fill in either one — App Reference ID matches a specific '
-            'device; email matches the shop\'s account (any device). If '
-            'the shop has an account but no license yet, this creates one '
-            'instead of extending.',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.of(context).muted),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _code,
-            decoration: InputDecoration(
-                labelText: 'App Reference ID / Shop Code',
-                errorText: _identifierError),
-            onChanged: (_) {
-              if (_identifierError != null) {
-                setState(() => _identifierError = null);
-              }
-            },
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-                labelText: 'Shop account email',
-                errorText: _identifierError),
-            onChanged: (_) {
-              if (_identifierError != null) {
-                setState(() => _identifierError = null);
-              }
-            },
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _months,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-                labelText: 'Extend by (months)', errorText: _monthsError),
-            onChanged: (_) {
-              if (_monthsError != null) setState(() => _monthsError = null);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () {
-            final code = _code.text.trim();
-            final email = _email.text.trim();
-            final months = int.tryParse(_months.text.trim());
-            setState(() {
-              _identifierError = (code.isEmpty && email.isEmpty)
-                  ? 'Enter an App Reference ID or an email.'
-                  : null;
-              _monthsError = (months == null || months <= 0)
-                  ? 'Enter a whole number of months (1 or more).'
-                  : null;
-            });
-            if (_identifierError != null || _monthsError != null) return;
-            Navigator.pop(
-              context,
-              (
-                code.isEmpty ? null : code,
-                email.isEmpty ? null : email,
-                months!,
-              ),
-            );
-          },
-          child: const Text('Extend'),
         ),
       ],
     );
@@ -937,14 +757,19 @@ class _ErrorView extends StatelessWidget {
           // A bare `Icon`, not `IconAvatar`: this mirrors `EmptyStateView`'s
           // own big-centered-icon shape (size 48, no plate) rather than the
           // list-row leading-mark shape `IconAvatar` is built for.
-          Icon(Icons.error_outline,
-              color: AppColors.of(context).danger, size: 40),
+          Icon(
+            Icons.error_outline,
+            color: AppColors.of(context).danger,
+            size: 40,
+          ),
           const SizedBox(height: AppTheme.space3),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
-            child: Text(message,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
           const SizedBox(height: AppTheme.space3),
           OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
@@ -959,11 +784,12 @@ class _KeyRequest {
   final String shopName;
   final String plan;
   final int months;
-  const _KeyRequest(
-      {required this.shopId,
-      required this.shopName,
-      required this.plan,
-      required this.months});
+  const _KeyRequest({
+    required this.shopId,
+    required this.shopName,
+    required this.plan,
+    required this.months,
+  });
 }
 
 /// Editable vendor config (payment accounts, support, renewal prices).
@@ -1042,7 +868,8 @@ class _ConfigTabState extends State<_ConfigTab> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Icon(Icons.save),
           label: const Text('Save config'),
         ),
@@ -1095,21 +922,24 @@ class _RequestProofImageState extends State<_RequestProofImage> {
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return SizedBox(
-              height: size ?? 200,
-              width: size,
-              child: const Center(
-                  child: ButtonSpinner(size: 20)));
+            height: size ?? 200,
+            width: size,
+            child: const Center(child: ButtonSpinner(size: 20)),
+          );
         }
         if (snap.hasError || snap.data == null) {
           return SizedBox(
-              height: size ?? 120,
-              width: size,
-              child: const Icon(Icons.broken_image_outlined));
-        }
-        final image = Image.network(snap.data!,
-            fit: size != null ? BoxFit.cover : BoxFit.contain,
+            height: size ?? 120,
             width: size,
-            height: size);
+            child: const Icon(Icons.broken_image_outlined),
+          );
+        }
+        final image = Image.network(
+          snap.data!,
+          fit: size != null ? BoxFit.cover : BoxFit.contain,
+          width: size,
+          height: size,
+        );
         if (size == null) return image;
         return ClipRRect(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),

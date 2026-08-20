@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
@@ -32,8 +33,8 @@ class EmptyStateView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: colors.muted),
-            const SizedBox(height: AppTheme.space3),
+            _TonalIconPlate(child: Icon(icon, size: 36, color: colors.muted)),
+            const SizedBox(height: AppTheme.space4),
             Text(
               title,
               textAlign: TextAlign.center,
@@ -60,6 +61,136 @@ class EmptyStateView extends StatelessWidget {
   }
 }
 
+/// Soft square plate behind an empty/error/loading glyph so those states
+/// read as designed, not as a bare Material icon floating on the page.
+class _TonalIconPlate extends StatelessWidget {
+  const _TonalIconPlate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      ),
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+}
+
+/// Centered spinner on the same tonal plate [EmptyStateView] uses, so a
+/// loading tab doesn't flash a bare [CircularProgressIndicator] against
+/// the page. Optional [message] sits under the plate (no fixed height —
+/// Myanmar copy is allowed to wrap).
+class AppLoadingView extends StatelessWidget {
+  const AppLoadingView({super.key, this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space5),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _TonalIconPlate(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: scheme.primary,
+                ),
+              ),
+            ),
+            if (message != null) ...[
+              const SizedBox(height: AppTheme.space4),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.of(context).muted,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Section label for grouped lists (Settings, similar hubs). Title-weight
+/// and brand-green, not a tiny uppercase caption — Myanmar has no case, so
+/// the old `toUpperCase()` treatment only made English look louder.
+class AppSectionHeader extends StatelessWidget {
+  const AppSectionHeader(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space5,
+        AppTheme.space5,
+        AppTheme.space4,
+        AppTheme.space2,
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// White card wrapping a cluster of list tiles on the page surface, so a
+/// long Settings (or similar) screen reads as a few short lists instead of
+/// one flat wall of rows.
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: children),
+      ),
+    );
+  }
+}
+
+/// Leading glyph for auth/onboarding text fields (email, shop name, phone).
+/// Do **not** put this on [AuthPasswordField] — that already has a trailing
+/// visibility toggle, and a second icon crowds Myanmar labels.
+class AuthFieldIcon extends StatelessWidget {
+  const AuthFieldIcon(this.icon, {super.key});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant);
+  }
+}
+
 /// What a [StatusPill] is *saying*, not what colour it is — screens pick the
 /// meaning and the pill owns the palette. Four tones, because that is how many
 /// distinct answers a shopkeeper needs at a glance:
@@ -78,14 +209,8 @@ extension StatusToneColors on StatusTone {
   /// Pass the palette rather than a [BuildContext] so the fixed-light
   /// document surfaces can hand over [AppColors.onLightDocument].
   ({Color fill, Color on}) colors(AppColors palette) => switch (this) {
-    StatusTone.positive => (
-      fill: palette.successSurface,
-      on: palette.success,
-    ),
-    StatusTone.attention => (
-      fill: palette.warningSurface,
-      on: palette.warning,
-    ),
+    StatusTone.positive => (fill: palette.successSurface, on: palette.success),
+    StatusTone.attention => (fill: palette.warningSurface, on: palette.warning),
     StatusTone.critical => (fill: palette.dangerSurface, on: palette.danger),
     StatusTone.neutral => (fill: palette.neutralSurface, on: palette.muted),
   };
@@ -618,13 +743,8 @@ class StatCard extends StatelessWidget {
 /// Rounded square rather than a circle, matching [ProductThumb], so a list of
 /// categories and a list of products read as one family.
 class IconAvatar extends StatelessWidget {
-  const IconAvatar({
-    super.key,
-    this.icon,
-    this.text,
-    this.tone,
-    this.size = 40,
-  }) : assert(icon != null || text != null, 'IconAvatar needs an icon or text');
+  const IconAvatar({super.key, this.icon, this.text, this.tone, this.size = 40})
+    : assert(icon != null || text != null, 'IconAvatar needs an icon or text');
 
   final IconData? icon;
 
@@ -778,7 +898,9 @@ class SummaryRow extends StatelessWidget {
           else
             // A non-money value can be a whole phrase (a payment-account name,
             // a device label), so it wraps rather than pushing the row wide.
-            Flexible(child: Text(value, style: style, textAlign: TextAlign.end)),
+            Flexible(
+              child: Text(value, style: style, textAlign: TextAlign.end),
+            ),
         ],
       ),
     );
@@ -814,12 +936,14 @@ class ErrorRetryView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppColors.of(context).muted,
+            _TonalIconPlate(
+              child: Icon(
+                Icons.error_outline,
+                size: 36,
+                color: AppColors.of(context).muted,
+              ),
             ),
-            const SizedBox(height: AppTheme.space3),
+            const SizedBox(height: AppTheme.space4),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -867,12 +991,52 @@ class InlineErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: scheme.onErrorContainer,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onErrorContainer),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Geometric A mark on a brand plate. No l10n — admin web can use this
+/// without [AppLocalizations]. Tinted to [ColorScheme.onPrimaryContainer]
+/// so one PNG stays readable on the pale plate (light) and the deep plate
+/// (dark).
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, this.size = 56});
+
+  static const String asset = 'assets/branding/app_mark.png';
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(size * 0.26),
+      ),
+      alignment: Alignment.center,
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.18),
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            scheme.onPrimaryContainer,
+            BlendMode.srcIn,
+          ),
+          child: Image.asset(
+            asset,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
       ),
     );
   }
@@ -883,17 +1047,8 @@ class InlineErrorBanner extends StatelessWidget {
 /// every entry-flow screen shows the same mark instead of each hand-rolling
 /// an `Icon`/`Image` + `Text` pair.
 ///
-/// **The mark is drawn from theme tokens, not from an image asset, on
-/// purpose.** `assets/branding/app_icon_1024.png` is a placeholder (a gold
-/// glyph on a cream plate) left over from an abandoned palette; painting it
-/// into these screens would drop a cream-and-gold rectangle into the middle
-/// of an otherwise green-and-white app — a mismatch that reads as unfinished
-/// far more loudly than a plain mark does. A soft [ColorScheme.primaryContainer]
-/// plate with a storefront glyph recolors correctly in both brightnesses,
-/// adds no asset weight to an offline-first build, and keeps the accent
-/// subordinate to the screen's actual CTA. When a real logo exists, swapping
-/// the [Container] below for an `Image.asset` is a one-widget change and
-/// every entry screen picks it up.
+/// The geometric A lives in [BrandMark]. The opaque home-screen icon is a
+/// sibling file, `assets/branding/app_icon_1024.png`.
 class BrandHero extends StatelessWidget {
   const BrandHero({super.key, this.size = 88, this.showName = true});
 
@@ -902,26 +1057,12 @@ class BrandHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
           label: AppLocalizations.of(context).appTitle,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(size * 0.26),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.storefront_rounded,
-              size: size * 0.52,
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
+          child: BrandMark(size: size),
         ),
         if (showName) ...[
           const SizedBox(height: AppTheme.space3),
@@ -936,6 +1077,116 @@ class BrandHero extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Full-bleed brand panel with a soft wave into the page below.
+/// **Auth / onboarding / daily-gate only** — never on Sell, Inventory,
+/// Orders, Analytics, or Settings. Light mode paints [ColorScheme.primary]
+/// (deep forest); dark mode paints [ColorScheme.primaryContainer] so the
+/// panel stays a dark green instead of the jade used for on-page accents.
+class BrandHeroPanel extends StatelessWidget {
+  const BrandHeroPanel({
+    super.key,
+    required this.icon,
+    this.imageUrl,
+    this.height = 120,
+    this.waveAmplitude = 20,
+  });
+
+  final IconData icon;
+
+  /// Shop logo URL. When set, the rounded plate shows the photo instead of
+  /// [icon]. Failed or in-flight loads keep the icon so an offline morning
+  /// open never flashes a broken-image glyph.
+  final String? imageUrl;
+
+  /// Content band below the status-bar inset, not counting the wave.
+  final double height;
+
+  /// How far the wave dips below [height]. Onboarding uses 20; the daily
+  /// gate uses 16 so a screen the owner sees every morning is a touch less
+  /// ceremonial.
+  final double waveAmplitude;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fill = dark ? scheme.primaryContainer : scheme.primary;
+    final onFill = dark ? scheme.onPrimaryContainer : scheme.onPrimary;
+    final topInset = MediaQuery.paddingOf(context).top;
+    final totalHeight = topInset + height + waveAmplitude;
+    final url = imageUrl?.trim() ?? '';
+    final fallback = Icon(icon, size: 36, color: onFill);
+    Widget mark = fallback;
+    if (url.isNotEmpty) {
+      mark = Image.network(
+        url,
+        width: 72,
+        height: 72,
+        fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
+            wasSynchronouslyLoaded || frame != null ? child : fallback,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: ClipPath(
+        clipper: _HeroWaveClipper(amplitude: waveAmplitude),
+        child: ColoredBox(
+          color: fill,
+          child: SizedBox(
+            width: double.infinity,
+            height: totalHeight,
+            child: Padding(
+              padding: EdgeInsets.only(top: topInset, bottom: waveAmplitude),
+              child: Center(
+                child: Semantics(
+                  label: AppLocalizations.of(context).appTitle,
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: onFill.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    ),
+                    alignment: Alignment.center,
+                    child: mark,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroWaveClipper extends CustomClipper<Path> {
+  const _HeroWaveClipper({required this.amplitude});
+
+  final double amplitude;
+
+  @override
+  Path getClip(Size size) {
+    final trough = size.height - amplitude;
+    return Path()
+      ..lineTo(0, trough)
+      ..quadraticBezierTo(size.width / 2, size.height, size.width, trough)
+      ..lineTo(size.width, 0)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(_HeroWaveClipper old) => old.amplitude != amplitude;
 }
 
 /// Centered, width-capped scaffold for auth/entry screens (welcome,

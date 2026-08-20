@@ -5,7 +5,6 @@ import '../../data/local/database.dart';
 import '../account/account_providers.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
-import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'owner_permission.dart';
 import 'staff_repository.dart';
@@ -93,19 +92,13 @@ final activeStaffNameProvider = Provider<String?>((ref) {
 
 /// Role currently applied by the UI permission layer.
 ///
-/// A device with a real account session: backend account role only (email
-/// staff/owner) — the local device PIN mode is ignored.
-/// A device with no real account session: more-restrictive of local device
-/// mode + backend:
-/// - backend 'staff' => always staff
-/// - backend 'owner' => follow local device mode
-/// - no backend role  => follow local device mode
+/// Invited email staff (backend `'staff'`) cannot PIN-upgrade to owner.
+/// Everyone else — signed in as email owner, or not signed in at all —
+/// follows the local Owner/Staff PIN switch so handing this phone to a
+/// cashier works either way. Backend `'staff'` without an email session is
+/// still a hard floor.
 final effectiveRoleProvider = Provider<String>((ref) {
   final backendRole = ref.watch(backendAccountRoleProvider);
-  if (ref.watch(hasRealAccountSessionProvider)) {
-    if (backendRole == 'staff') return 'staff';
-    return 'owner';
-  }
   final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
   if (backendRole == 'staff') return 'staff';
   if (backendRole == 'owner') return localRole;
@@ -151,21 +144,23 @@ final canEditInventoryProvider = Provider<bool>(
   ),
 );
 
-/// Staff/Owner device-PIN mode is for devices with no real account session —
-/// a shop with a real account uses email staff accounts instead. Still shown
-/// when multi-device or already in staff, even with a real account.
+/// Staff/Owner device-PIN mode is the same-phone handoff (lock this device
+/// with a PIN, unlock as owner). Shown whether or not an email login exists
+/// — a one-phone shop still hands the till to a cashier. Hidden only for
+/// invited email staff: they sign out from Account instead of managing the
+/// shop PIN.
 final showStaffModeSectionProvider = Provider<bool>((ref) {
-  if (ref.watch(hasRealAccountSessionProvider)) return false;
-  final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
-  if (role != 'owner') return true;
-  final deviceCount =
-      ref
-          .watch(shopDevicesProvider)
-          .valueOrNull
-          ?.where((d) => d.isBound)
-          .length ??
-      1;
-  return deviceCount > 1;
+  return !(ref.watch(hasRealAccountSessionProvider) &&
+      ref.watch(backendAccountRoleProvider) == 'staff');
+});
+
+/// Whether this device currently has an owner PIN saved. Invalidated after
+/// [StaffController.setPin] so the Settings tile can switch Set → Change.
+/// Watches [shopIdProvider] — the hash is per-shop (`SettingsRepository`
+/// `_shopKey`); a branch switch must not keep the previous shop's answer.
+final ownerPinIsSetProvider = FutureProvider<bool>((ref) {
+  ref.watch(shopIdProvider);
+  return ref.watch(staffControllerProvider).hasPin();
 });
 
 /// Switches the device's staff role and manages the owner PIN. Switching to
@@ -315,6 +310,9 @@ class StaffController {
   }
 }
 
-final staffControllerProvider = Provider<StaffController>(
-  (ref) => StaffController(ref),
-);
+final staffControllerProvider = Provider<StaffController>((ref) {
+  // PIN lock counters are loaded once per controller. Recreate on shop
+  // switch so shop-A's cooldown / failure count cannot leak into shop-B.
+  ref.watch(shopIdProvider);
+  return StaffController(ref);
+});

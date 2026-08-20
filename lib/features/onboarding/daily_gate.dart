@@ -11,6 +11,7 @@ import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
 import '../account/auth_password_field.dart';
+import '../account/saved_login_store.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
 import '../account/password_strength.dart';
@@ -52,11 +53,23 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   final _opening = TextEditingController();
   final _confirmPassword = TextEditingController();
   bool _register = false;
-  bool _obscure = true;
   bool _justRegistered = false;
+  late final SavedLoginBinder _savedLogin;
+
+  @override
+  void initState() {
+    super.initState();
+    _savedLogin = SavedLoginBinder(email: _email, password: _password)
+      ..attach();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _savedLogin.load(ref.read(savedLoginStoreProvider));
+    });
+  }
 
   @override
   void dispose() {
+    _savedLogin.detach();
     _email.dispose();
     _password.dispose();
     _shopName.dispose();
@@ -145,6 +158,12 @@ class _DailyGateState extends ConsumerState<DailyGate> {
         ref.invalidate(backendAccountRoleProvider);
         ref.invalidate(hasRealAccountSessionProvider);
         ref.read(syncControllerProvider.notifier).sync();
+        await _savedLogin.remember(
+          ref.read(savedLoginStoreProvider),
+          email: _email.text.trim(),
+          password: _password.text,
+        );
+        if (!mounted) return;
         setState(() {
           _busy = false;
           _justRegistered = true;
@@ -194,6 +213,12 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       if (!mounted) return;
     }
     if (result.ok) {
+      await _savedLogin.remember(
+        ref.read(savedLoginStoreProvider),
+        email: _email.text.trim(),
+        password: _password.text,
+      );
+      if (!mounted) return;
       if (result.license != null) {
         ref
             .read(licenseControllerProvider.notifier)
@@ -280,35 +305,47 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.space4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l.dailyGateTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppTheme.space4),
-              Expanded(child: _buildStep(l, rosterAsync)),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-            ],
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BrandHeroPanel(
+            icon: Icons.storefront_rounded,
+            imageUrl: ref.watch(shopProfileProvider).asData?.value.logoUrl,
+            height: 120,
+            waveAmplitude: 16,
           ),
-        ),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space4,
+                  AppTheme.space3,
+                  AppTheme.space4,
+                  AppTheme.space4,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l.dailyGateTitle,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppTheme.space4),
+                    Expanded(child: _buildStep(l, rosterAsync)),
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppTheme.space2),
+                        child: InlineErrorBanner(message: _error!),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -322,7 +359,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           (!rosterAsync.hasValue || !ref.watch(staffRoleProvider).hasValue)) {
         // Local roster / PIN role still loading — avoid flashing the
         // sign-in form only to skip it a frame later.
-        return const Center(child: CircularProgressIndicator());
+        return const AppLoadingView();
       }
       return _accountStep(l, rosterAsync.valueOrNull ?? const []);
     }
@@ -333,123 +370,132 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     final allowRegister = ref.watch(staffRoleProvider).valueOrNull != 'staff';
     final registering = _register && allowRegister;
     return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (roster.isNotEmpty) ...[
+      child: AutofillGroup(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (roster.isNotEmpty) ...[
+              Text(
+                l.staffWhoAreYou,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const IconAvatar(icon: Icons.verified_user),
+                title: Text(l.dailyGateContinueAsOwner),
+                onTap: _busy ? null : () => _continueAsRole('owner'),
+              ),
+              ListTile(
+                leading: const IconAvatar(icon: Icons.badge_outlined),
+                title: Text(l.dailyGateContinueAsStaff),
+                onTap: _busy ? null : () => _continueAsRole('staff'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      l.dailyGateOrSignIn,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             Text(
-              l.staffWhoAreYou,
+              l.dailyGateAccountStep,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            ListTile(
-              leading: const Icon(Icons.verified_user),
-              title: Text(l.dailyGateContinueAsOwner),
-              onTap: _busy ? null : () => _continueAsRole('owner'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.badge_outlined),
-              title: Text(l.dailyGateContinueAsStaff),
-              onTap: _busy ? null : () => _continueAsRole('staff'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Expanded(child: Divider()),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    l.dailyGateOrSignIn,
-                    style: Theme.of(context).textTheme.bodySmall,
+            if (allowRegister) ...[
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: false,
+                    label: Text(l.onboardOnlineTabSignIn),
                   ),
-                ),
-                const Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-          Text(
-            l.dailyGateAccountStep,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          if (allowRegister) ...[
-            SegmentedButton<bool>(
-              segments: [
-                ButtonSegment(
-                  value: false,
-                  label: Text(l.onboardOnlineTabSignIn),
-                ),
-                ButtonSegment(
-                  value: true,
-                  label: Text(l.onboardOnlineTabRegister),
-                ),
-              ],
-              selected: {_register},
-              onSelectionChanged: (s) => setState(() => _register = s.first),
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (registering) ...[
-            TextField(
-              controller: _shopName,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(labelText: l.shopName),
-            ),
-            const SizedBox(height: 12),
-          ],
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(labelText: l.accountEmail),
-          ),
-          const SizedBox(height: 12),
-          if (registering) ...[
-            AuthPasswordField(
-              controller: _password,
-              labelText: l.accountPassword,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.next,
-            ),
-            PasswordStrengthMeter(controller: _password),
-            const SizedBox(height: 12),
-            AuthPasswordField(
-              controller: _confirmPassword,
-              labelText: l.accountConfirmPassword,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) {
-                if (!_busy) _auth();
-              },
-            ),
-          ] else
-            TextField(
-              controller: _password,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: l.accountPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+                  ButtonSegment(
+                    value: true,
+                    label: Text(l.onboardOnlineTabRegister),
                   ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
+                ],
+                selected: {_register},
+                onSelectionChanged: (s) => setState(() => _register = s.first),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (registering) ...[
+              TextField(
+                controller: _shopName,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l.shopName,
+                  prefixIcon: const AuthFieldIcon(Icons.store_outlined),
                 ),
               ),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: l.accountEmail,
+                prefixIcon: const AuthFieldIcon(Icons.mail_outline),
+              ),
             ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _busy ? null : _auth,
-            child: _busy
-                ? const ButtonSpinner()
-                : Text(
-                    registering
-                        ? l.onboardOnlineCreateAccount
-                        : l.accountSignIn,
-                  ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            if (registering) ...[
+              AuthPasswordField(
+                controller: _password,
+                labelText: l.accountPassword,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.next,
+              ),
+              PasswordStrengthMeter(controller: _password),
+              const SizedBox(height: 12),
+              AuthPasswordField(
+                controller: _confirmPassword,
+                labelText: l.accountConfirmPassword,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!_busy) _auth();
+                },
+              ),
+            ] else
+              AuthPasswordField(
+                controller: _password,
+                labelText: l.accountPassword,
+                autofillHints: const [AutofillHints.password],
+                helperText: l.accountPasswordRememberedHint,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!_busy) _auth();
+                },
+              ),
+            const SizedBox(height: 16),
+            FilledButton(
+              style: AppTheme.authFilledButtonStyle(),
+              onPressed: _busy ? null : _auth,
+              child: _busy
+                  ? const ButtonSpinner()
+                  : Text(
+                      registering
+                          ? l.onboardOnlineCreateAccount
+                          : l.accountSignIn,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -514,17 +560,23 @@ class _DailyGateState extends ConsumerState<DailyGate> {
             l.dailyGateRoleStep,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(isStaff ? Icons.badge_outlined : Icons.verified_user),
-            title: Text(isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner),
-            subtitle: email == null ? null : Text(email),
+          const SizedBox(height: AppTheme.space2),
+          Card(
+            child: ListTile(
+              leading: IconAvatar(
+                icon: isStaff ? Icons.badge_outlined : Icons.verified_user,
+                tone: isStaff ? StatusTone.attention : StatusTone.positive,
+              ),
+              title: Text(
+                isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner,
+              ),
+              subtitle: email == null ? null : Text(email),
+            ),
           ),
           branchesAsync.when(
             loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
+              padding: EdgeInsets.symmetric(vertical: AppTheme.space4),
+              child: AppLoadingView(),
             ),
             error: (_, _) => const SizedBox.shrink(),
             data: (branches) {
@@ -540,6 +592,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                   for (final b in branches)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
+                      leading: IconAvatar(
+                        icon: Icons.store_mall_directory_outlined,
+                        tone: b.isCurrent ? StatusTone.positive : null,
+                      ),
                       title: Text(
                         b.label?.isNotEmpty == true ? b.label! : b.shopId,
                       ),
@@ -574,6 +630,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           ],
           const SizedBox(height: 16),
           FilledButton(
+            style: AppTheme.authFilledButtonStyle(),
             onPressed: _busy
                 ? null
                 : needsOpening

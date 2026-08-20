@@ -945,7 +945,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" (device ၂ လုံးနှင့်အထက် ရှိမှ ပေါ်မည်) — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1440,7 +1440,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseReadOnly =>
-      'လိုင်စင်သက်တမ်းကုန်ပါပြီ — ကြည့်ရှုသာရသည်။ ဆက်ရောင်းရန် သက်တမ်းတိုးပါ။';
+      'ဆိုင်အချက်အလက် မပြည့်သေးလို့ ရောင်းချမှု မပြီးနိုင်ပါ။';
 
   @override
   String get licenseInvalidKey => 'လိုင်စင် key မမှန်ကန်ပါ။';
@@ -1607,6 +1607,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get settingsSignIn => 'Sign In ဝင်မည်';
 
   @override
+  String get settingsOwnerModeRequired =>
+      'ဒီဖုန်းက Staff mode ဖြစ်နေပါတယ်။ သုံးချင်ရင် အောက်က Owner Tools မှာ Owner ပြန်ပြောင်းပါ။';
+
+  @override
   String get onboardingContinueFree => 'အခမဲ့ ဆက်သုံးမည်';
 
   @override
@@ -1676,11 +1680,38 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseRenew => 'သက်တမ်းတိုး';
 
   @override
+  String get licenseBuyOrRenewTitle =>
+      'Premium ဝယ်ရန် သို့မဟုတ် သက်တမ်းတိုးရန်';
+
+  @override
+  String get licenseBuyOrRenewIntro =>
+      'နည်းလမ်း နှစ်ခု — website ကနေ၊ သို့မဟုတ် Viber။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
+
+  @override
   String get licensePayOnline => 'အွန်လိုင်းက ပေးချေမည်';
 
   @override
   String get licensePayOnlineHint =>
-      'ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ — account မလိုအပ်ပါ။';
+      'ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ။ Premium အသစ်ဝယ်တာရော သက်တမ်းတိုးတာရော ရပါတယ် — app ထဲ account မလိုပါ။';
+
+  @override
+  String get licenseContactViber => 'Viber ကနေ ဆက်သွယ်မည်';
+
+  @override
+  String get licenseContactViberHint =>
+      'Viber ပွင့်ပါမယ်။ အပေါ်က App Reference ID နဲ့ Premium ဝယ်ရန် သို့မဟုတ် သက်တမ်းတိုးရန် တောင်းပါ။';
+
+  @override
+  String get licenseContactViberHintOnline =>
+      'Viber ပွင့်ပါမယ်။ sign-in သုံးတဲ့ email နဲ့ Premium ဝယ်ရန် သို့မဟုတ် သက်တမ်းတိုးရန် တောင်းပါ။';
+
+  @override
+  String get supportViberOpenFailed =>
+      'Viber မဖွင့်နိုင်ပါ။ နံပါတ်ကို ကူးပြီးပါပြီ — Viber ထဲမှာ paste လုပ်ပါ။';
+
+  @override
+  String get licenseAfterPaymentTitle =>
+      'ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?';
 
   @override
   String licenseExpiringSoon(int days) {
@@ -1759,6 +1790,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get licenseRenewHintOnline =>
       'Support က Online subscription သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ — Premium က account ပေါ် အလိုအလျောက် သက်ရောက်ပါတယ် (key မလို)။';
+
+  @override
+  String get licenseRenewNotFound =>
+      'ဒီ account အတွက် subscription မတွေ့သေးပါ။ Support က သက်တမ်းတိုးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို ထပ်နှိပ်ပါ။';
 
   @override
   String get deviceSectionTitle => 'Device များ';
@@ -2876,6 +2911,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get accountPassword => 'စကားဝှက်';
 
   @override
+  String get accountPasswordRememberedHint =>
+      'ဒီဖုန်းပေါ်မှာ ဝင်ပြီးရင် email နဲ့ စကားဝှက်ကို မှတ်ထားပါတယ်။';
+
+  @override
   String get accountConfirmPassword => 'စကားဝှက် အတည်ပြုပါ';
 
   @override
@@ -2975,6 +3014,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။ Device-key activation နဲ့ local PIN quick-switch ကို ဒါက မထိခိုက်ပါ။';
 
   @override
+  String get accountSignOutConfirmBodyStaff =>
+      'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။';
+
+  @override
   String get accountSignInWipeConfirmTitle =>
       'ဒီ account က ဆိုင်တခြားတစ်ခုနှင့် သက်ဆိုင်ပါတယ်';
 
@@ -3016,6 +3059,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get staffModeSubtitle =>
       'ဒီဖုန်းအတွက်သာ: Owner PIN နဲ့ device ကို သော့ခတ်သည် (offline မှာလည်း အလုပ်လုပ်သည်)။';
+
+  @override
+  String get staffPinEmailOwnerHint =>
+      'ပိုင်ရှင် PIN ကို ဒီမှာ သတ်မှတ်/ပြောင်းပါ။ ကုန်သည်ကို ဖုန်းလွှဲပေးရင် Staff ပြောင်းပါ — email login ဝင်ထားဖို့ မလိုပါ။ အဲ့ PIN က Owner ပြန်ဖွင့်ဖို့နဲ့ နေ့စဉ်ဆိုင်ဖွင့်သူ အတည်ပြုဖို့ သုံးပါတယ်။';
 
   @override
   String get staffAccountsInvite => 'ဝန်ထမ်း ဖိတ်ခေါ်မည်';

@@ -131,11 +131,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   Future<void> _confirm(CartState cart, int total) async {
     final l = AppLocalizations.of(context);
 
-    // License gate: no finalizing sales once past the grace period.
+    // `LicenseState` starts as loading + `none`, so `canSell` is false until
+    // the cache is read. Wait rather than flash the "not set up" snackbar.
+    await ref.read(licenseControllerProvider.notifier).load();
+    if (!mounted) return;
+
+    // No license at all (pre-onboarding) — a lapsed paid plan still sells
+    // (auto-downgrade to Free). Do not lock the till behind a read-only banner.
     if (!ref.read(licenseControllerProvider).canSell) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.licenseReadOnly)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.licenseReadOnly)));
       return;
     }
 
@@ -146,9 +152,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // both need a customer name to bill. Phone stays optional.
     final forced = owed > 0 || _method == 'credit';
     if (forced && name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.creditCustomerRequired)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.creditCustomerRequired)));
       return;
     }
 
@@ -170,13 +176,15 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       final customerId = name.isEmpty
           ? null
           : _selectedCustomerId ??
-              (forced || _saveToDirectory
-                  ? await ref.read(customerRepositoryProvider).resolveOrCreate(
-                        name,
-                        phone: phone.isEmpty ? null : phone,
-                        address: address.isEmpty ? null : address,
-                      )
-                  : null);
+                (forced || _saveToDirectory
+                    ? await ref
+                          .read(customerRepositoryProvider)
+                          .resolveOrCreate(
+                            name,
+                            phone: phone.isEmpty ? null : phone,
+                            address: address.isEmpty ? null : address,
+                          )
+                    : null);
       final result = await salesRepo.finalizeSale(
         cart: cart,
         paymentMethod: _method,
@@ -195,8 +203,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       // the sale, not fix a failure. printSaleReceipt already reports its
       // own outcome via a snackbar and never throws.
       try {
-        final config =
-            await ref.read(settingsRepositoryProvider).printerConfig();
+        final config = await ref
+            .read(settingsRepositoryProvider)
+            .printerConfig();
         if (config.hasPrinter && mounted) {
           final sale = await salesRepo.getSale(result.saleId);
           final items = await salesRepo.saleItems(result.saleId);
@@ -269,315 +278,378 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         return ConstrainedBox(
           constraints: BoxConstraints(
             maxHeight: constraints.maxHeight.isFinite
-                ? (constraints.maxHeight - topInset - AppTheme.space2)
-                    .clamp(240.0, constraints.maxHeight)
+                ? (constraints.maxHeight - topInset - AppTheme.space2).clamp(
+                    240.0,
+                    constraints.maxHeight,
+                  )
                 : double.infinity,
           ),
           child: Padding(
-        padding: EdgeInsets.only(
-          left: AppTheme.space4,
-          right: AppTheme.space4,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.space4,
-        ),
-        // Scroll body + pinned action footer, rather than one long scroll with
-        // the CTA at the far end of it. With thumbnails the line items are
-        // taller, so on a real cart the "Confirm sale" button used to be two
-        // screens below the fold — and behind the keyboard as soon as the
-        // amount-paid field was focused.
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.sellCheckout,
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: AppTheme.space2),
-
-                    // Cart lines with qty steppers, hairline-separated — with a
-                    // thumbnail on every row they read as distinct records rather
-                    // than a run-on block of text.
-                    ...cart.lines.asMap().entries.expand((entry) sync* {
-                      final line = entry.value;
-                      if (entry.key > 0) yield const Divider(height: 1);
-                      yield _CartLineTile(
-                        line: line,
-                        lineTotal: cart.lineTotalFor(line),
-                        currency: currency,
-                        onDiscountTap: () => _editLineDiscount(line),
-                        onInc: () {
-                          final ok = ref.read(cartProvider.notifier).increment(
-                                line.product.id,
-                                maxQty:
-                                    trackStock ? stockById[line.product.id] : null,
-                              );
-                          if (!ok) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  l.sellStockCap(stockById[line.product.id] ?? 0)),
-                              duration: const Duration(seconds: 1),
-                            ));
-                          }
-                        },
-                        onDec: () => ref
-                            .read(cartProvider.notifier)
-                            .decrement(line.product.id),
-                      );
-                    }),
-                    const Divider(),
-
-                    SummaryRow(l.sellSubtotal, cart.subtotal.withSymbol(currency)),
-                    _DiscountField(
-                      onChanged: (v) =>
-                          ref.read(cartProvider.notifier).setDiscount(v),
-                    ),
-                    SummaryRow(l.commonTotal, Money(total).withSymbol(currency), emphasis: true),
-                    const SizedBox(height: AppTheme.space4),
-
-                    SectionHeader(title: l.sellPaymentMethod),
-                    const SizedBox(height: AppTheme.space1),
-                    Wrap(
-                      spacing: AppTheme.space2,
-                      runSpacing: AppTheme.space2,
+            padding: EdgeInsets.only(
+              left: AppTheme.space4,
+              right: AppTheme.space4,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.space4,
+            ),
+            // Scroll body + pinned action footer, rather than one long scroll with
+            // the CTA at the far end of it. With thumbnails the line items are
+            // taller, so on a real cart the "Confirm sale" button used to be two
+            // screens below the fold — and behind the keyboard as soon as the
+            // amount-paid field was focused.
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final m in [...paymentMethodIds(accounts), 'credit'])
-                          ChoiceChip(
-                            avatar: Icon(
-                              paymentIcon(m),
-                              size: 18,
-                              color: _method == m
-                                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                                  : Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            // Material paints the selected checkmark *on top of* the
-                            // avatar, which turned the chosen method's icon into an
-                            // unreadable smudge. The filled `primaryContainer` pill
-                            // plus the darkened icon/label already say "selected".
-                            showCheckmark: false,
-                            label: Text(paymentLabel(l, m, accounts: accounts)),
-                            selected: _method == m,
-                            onSelected: (_) => setState(() => _method = m),
+                        Text(
+                          l.sellCheckout,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: AppTheme.space2),
+
+                        // Cart lines with qty steppers, hairline-separated — with a
+                        // thumbnail on every row they read as distinct records rather
+                        // than a run-on block of text.
+                        ...cart.lines.asMap().entries.expand((entry) sync* {
+                          final line = entry.value;
+                          if (entry.key > 0) yield const Divider(height: 1);
+                          yield _CartLineTile(
+                            line: line,
+                            lineTotal: cart.lineTotalFor(line),
+                            currency: currency,
+                            onDiscountTap: () => _editLineDiscount(line),
+                            onInc: () {
+                              final ok = ref
+                                  .read(cartProvider.notifier)
+                                  .increment(
+                                    line.product.id,
+                                    maxQty: trackStock
+                                        ? stockById[line.product.id]
+                                        : null,
+                                  );
+                              if (!ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      l.sellStockCap(
+                                        stockById[line.product.id] ?? 0,
+                                      ),
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                            onDec: () => ref
+                                .read(cartProvider.notifier)
+                                .decrement(line.product.id),
+                          );
+                        }),
+                        const Divider(),
+
+                        SummaryRow(
+                          l.sellSubtotal,
+                          cart.subtotal.withSymbol(currency),
+                        ),
+                        _DiscountField(
+                          onChanged: (v) =>
+                              ref.read(cartProvider.notifier).setDiscount(v),
+                        ),
+                        SummaryRow(
+                          l.commonTotal,
+                          Money(total).withSymbol(currency),
+                          emphasis: true,
+                        ),
+                        const SizedBox(height: AppTheme.space4),
+
+                        SectionHeader(title: l.sellPaymentMethod),
+                        const SizedBox(height: AppTheme.space1),
+                        Wrap(
+                          spacing: AppTheme.space2,
+                          runSpacing: AppTheme.space2,
+                          children: [
+                            for (final m in [
+                              ...paymentMethodIds(accounts),
+                              'credit',
+                            ])
+                              ChoiceChip(
+                                avatar: Icon(
+                                  paymentIcon(m),
+                                  size: 18,
+                                  color: _method == m
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                ),
+                                // Material paints the selected checkmark *on top of* the
+                                // avatar, which turned the chosen method's icon into an
+                                // unreadable smudge. The filled `primaryContainer` pill
+                                // plus the darkened icon/label already say "selected".
+                                showCheckmark: false,
+                                label: Text(
+                                  paymentLabel(l, m, accounts: accounts),
+                                ),
+                                selected: _method == m,
+                                onSelected: (_) => setState(() => _method = m),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: AppTheme.space3),
+                        // Amount paid — shown for every method. Leave blank to pay in full.
+                        TextField(
+                          controller: _paid,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(9),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: _method == 'credit'
+                                ? l.creditPaidNow
+                                : l.sellAmountPaid,
+                            hintText: Money(total).withSymbol(currency),
                           ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        if (total > 0) ...[
+                          const SizedBox(height: AppTheme.space2),
+                          _TenderChips(
+                            suggestions: cashTenderSuggestions(total),
+                            total: total,
+                            paidAmount: _paidAmount,
+                            fieldEmpty: _paid.text.trim().isEmpty,
+                            isCredit: _method == 'credit',
+                            currency: currency,
+                            exactLabel: l.sellTenderExact,
+                            onExact: () => _applyTenderExact(total),
+                            onAmount: _applyTenderAmount,
+                          ),
+                        ],
+                        const SizedBox(height: AppTheme.space2),
+                        // Credit sales get an explicit deposit/balance-due breakdown
+                        // rather than the generic Owed-or-Change row every other method
+                        // shares, so a down payment always reads clearly as "this much
+                        // now, this much still owed" instead of being conflated with an
+                        // accidental cash-sale shortfall.
+                        if (_method == 'credit') ...[
+                          SummaryRow(
+                            l.creditDeposit,
+                            Money(paid).withSymbol(currency),
+                          ),
+                          SummaryRow(
+                            l.creditBalanceDue,
+                            Money(owed).withSymbol(currency),
+                            emphasis: true,
+                          ),
+                        ] else if (owed > 0)
+                          SummaryRow(
+                            l.creditOwed,
+                            Money(owed).withSymbol(currency),
+                            emphasis: true,
+                          )
+                        else
+                          SummaryRow(
+                            l.sellChange,
+                            Money(change).withSymbol(currency),
+                          ),
+
+                        // Inline switch so the seller can add customer details on demand.
+                        // Forced on (and locked) for credit / partial-payment sales.
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(l.checkoutAddCustomer),
+                          value: showCustomer,
+                          onChanged: forced
+                              ? null
+                              : (v) => setState(() {
+                                  _addCustomer = v;
+                                  // Turning the switch off hides these fields — clear
+                                  // them too, so leftover typed text can't silently
+                                  // still get attached to the sale/directory at
+                                  // confirm time even though the fields are gone.
+                                  if (!v) {
+                                    _customer.clear();
+                                    _phone.clear();
+                                    _address.clear();
+                                    _selectedCustomerId = null;
+                                    _previousBalance = 0;
+                                    ref
+                                        .read(cartProvider.notifier)
+                                        .setCustomerTier(null);
+                                  }
+                                }),
+                        ),
+
+                        if (showCustomer)
+                          Card(
+                            margin: const EdgeInsets.only(top: AppTheme.space2),
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppTheme.space3),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  CustomerAutocomplete(
+                                    controller: _customer,
+                                    focusNode: _customerFocus,
+                                    labelText: forced
+                                        ? '${l.creditCustomerName} *'
+                                        : l.creditCustomerName,
+                                    helperText: forced
+                                        ? l.creditCustomerRequired
+                                        : null,
+                                    onChanged: () => setState(() {}),
+                                    onSelected: (c) => setState(() {
+                                      _selectedCustomerId = c.id;
+                                      _customer.text = c.name;
+                                      _phone.text = c.phone ?? '';
+                                      _address.text = c.address ?? '';
+                                      _previousBalance = _outstandingFor(c.id);
+                                      ref
+                                          .read(cartProvider.notifier)
+                                          .setCustomerTier(
+                                            c.tier == 'retail' ? null : c.tier,
+                                          );
+                                    }),
+                                    onEditedByHand: () {
+                                      _selectedCustomerId = null;
+                                      _previousBalance = 0;
+                                      ref
+                                          .read(cartProvider.notifier)
+                                          .setCustomerTier(null);
+                                    },
+                                  ),
+                                  const SizedBox(height: AppTheme.space3),
+                                  TextField(
+                                    controller: _phone,
+                                    keyboardType: TextInputType.phone,
+                                    autofillHints: const [
+                                      AutofillHints.telephoneNumber,
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: l.customerPhone,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppTheme.space3),
+                                  TextField(
+                                    controller: _address,
+                                    autofillHints: const [
+                                      AutofillHints.streetAddressLine1,
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: l.customerAddress,
+                                    ),
+                                  ),
+                                  // Only meaningful for a freshly-typed name: an
+                                  // already-picked directory customer is already saved,
+                                  // and a forced (credit) sale must save regardless (the
+                                  // credit book needs the link).
+                                  if (!forced && _selectedCustomerId == null)
+                                    CheckboxListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      dense: true,
+                                      controlAffinity:
+                                          ListTileControlAffinity.leading,
+                                      title: Text(l.checkoutSaveToDirectory),
+                                      value: _saveToDirectory,
+                                      onChanged: (v) => setState(
+                                        () => _saveToDirectory = v ?? true,
+                                      ),
+                                    ),
+                                  if (_previousBalance > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: AppTheme.space2,
+                                      ),
+                                      child: SummaryRow(
+                                        l.creditPreviousBalance,
+                                        Money(
+                                          _previousBalance,
+                                        ).withSymbol(currency),
+                                      ),
+                                    ),
+                                  if (cart.customerTier != null) ...[
+                                    const SizedBox(height: AppTheme.space2),
+                                    Text(
+                                      l.checkoutTierPricingApplied(
+                                        _tierLabel(l, cart.customerTier!),
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: AppTheme.space3),
                       ],
                     ),
-
-                    const SizedBox(height: AppTheme.space3),
-                    // Amount paid — shown for every method. Leave blank to pay in full.
-                    TextField(
-                      controller: _paid,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(9),
-                  ],
-                      decoration: InputDecoration(
-                        labelText:
-                            _method == 'credit' ? l.creditPaidNow : l.sellAmountPaid,
-                        hintText: Money(total).withSymbol(currency),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    if (total > 0) ...[
-                      const SizedBox(height: AppTheme.space2),
-                      _TenderChips(
-                        suggestions: cashTenderSuggestions(total),
-                        total: total,
-                        paidAmount: _paidAmount,
-                        fieldEmpty: _paid.text.trim().isEmpty,
-                        isCredit: _method == 'credit',
-                        currency: currency,
-                        exactLabel: l.sellTenderExact,
-                        onExact: () => _applyTenderExact(total),
-                        onAmount: _applyTenderAmount,
-                      ),
-                    ],
-                    const SizedBox(height: AppTheme.space2),
-                    // Credit sales get an explicit deposit/balance-due breakdown
-                    // rather than the generic Owed-or-Change row every other method
-                    // shares, so a down payment always reads clearly as "this much
-                    // now, this much still owed" instead of being conflated with an
-                    // accidental cash-sale shortfall.
-                    if (_method == 'credit') ...[
-                      SummaryRow(l.creditDeposit, Money(paid).withSymbol(currency)),
-                      SummaryRow(l.creditBalanceDue, Money(owed).withSymbol(currency),
-                          emphasis: true),
-                    ] else if (owed > 0)
-                      SummaryRow(l.creditOwed, Money(owed).withSymbol(currency), emphasis: true)
-                    else
-                      SummaryRow(l.sellChange, Money(change).withSymbol(currency)),
-
-                    // Inline switch so the seller can add customer details on demand.
-                    // Forced on (and locked) for credit / partial-payment sales.
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: Text(l.checkoutAddCustomer),
-                      value: showCustomer,
-                      onChanged: forced
-                          ? null
-                          : (v) => setState(() {
-                                _addCustomer = v;
-                                // Turning the switch off hides these fields — clear
-                                // them too, so leftover typed text can't silently
-                                // still get attached to the sale/directory at
-                                // confirm time even though the fields are gone.
-                                if (!v) {
-                                  _customer.clear();
-                                  _phone.clear();
-                                  _address.clear();
-                                  _selectedCustomerId = null;
-                                  _previousBalance = 0;
-                                  ref.read(cartProvider.notifier).setCustomerTier(null);
-                                }
-                              }),
-                    ),
-
-                    if (showCustomer)
-                      Card(
-                        margin: const EdgeInsets.only(top: AppTheme.space2),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppTheme.space3),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              CustomerAutocomplete(
-                                controller: _customer,
-                                focusNode: _customerFocus,
-                                labelText: forced
-                                    ? '${l.creditCustomerName} *'
-                                    : l.creditCustomerName,
-                                helperText: forced ? l.creditCustomerRequired : null,
-                                onChanged: () => setState(() {}),
-                                onSelected: (c) => setState(() {
-                                  _selectedCustomerId = c.id;
-                                  _customer.text = c.name;
-                                  _phone.text = c.phone ?? '';
-                                  _address.text = c.address ?? '';
-                                  _previousBalance = _outstandingFor(c.id);
-                                  ref.read(cartProvider.notifier).setCustomerTier(
-                                      c.tier == 'retail' ? null : c.tier);
-                                }),
-                                onEditedByHand: () {
-                                  _selectedCustomerId = null;
-                                  _previousBalance = 0;
-                                  ref.read(cartProvider.notifier).setCustomerTier(null);
-                                },
-                              ),
-                              const SizedBox(height: AppTheme.space3),
-                              TextField(
-                                controller: _phone,
-                                keyboardType: TextInputType.phone,
-                                autofillHints: const [AutofillHints.telephoneNumber],
-                                decoration:
-                                    InputDecoration(labelText: l.customerPhone),
-                              ),
-                              const SizedBox(height: AppTheme.space3),
-                              TextField(
-                                controller: _address,
-                                autofillHints: const [
-                                  AutofillHints.streetAddressLine1,
-                                ],
-                                decoration:
-                                    InputDecoration(labelText: l.customerAddress),
-                              ),
-                              // Only meaningful for a freshly-typed name: an
-                              // already-picked directory customer is already saved,
-                              // and a forced (credit) sale must save regardless (the
-                              // credit book needs the link).
-                              if (!forced && _selectedCustomerId == null)
-                                CheckboxListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  title: Text(l.checkoutSaveToDirectory),
-                                  value: _saveToDirectory,
-                                  onChanged: (v) =>
-                                      setState(() => _saveToDirectory = v ?? true),
-                                ),
-                              if (_previousBalance > 0)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: AppTheme.space2,
-                                  ),
-                                  child: SummaryRow(
-                                    l.creditPreviousBalance,
-                                    Money(_previousBalance).withSymbol(currency),
-                                  ),
-                                ),
-                              if (cart.customerTier != null) ...[
-                                const SizedBox(height: AppTheme.space2),
-                                Text(
-                                  l.checkoutTierPricingApplied(
-                                    _tierLabel(l, cart.customerTier!),
-                                  ),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                ),
-                              ],
-                            ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.space3),
+                  child: FilledButton(
+                    onPressed: _submitting || cart.isEmpty
+                        ? null
+                        : () => _confirm(cart, total),
+                    // Label + amount on one bar, the same shape as the Sell
+                    // screen's docked checkout button — so the figure the seller is
+                    // about to charge is on the control they press, not only in the
+                    // summary they may have scrolled past.
+                    child: Row(
+                      children: [
+                        if (_submitting)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          const Icon(Icons.check_circle, size: 20),
+                        const SizedBox(width: AppTheme.space2),
+                        Expanded(child: Text(l.sellConfirm, maxLines: 2)),
+                        const SizedBox(width: AppTheme.space2),
+                        Text(
+                          Money(total).withSymbol(currency),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: AppTheme.tabularFigures,
                           ),
                         ),
-                      ),
-
-                    const SizedBox(height: AppTheme.space3),
-                  ],
-                ),
-              ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.only(top: AppTheme.space3),
-              child: FilledButton(
-                onPressed: _submitting || cart.isEmpty
-                    ? null
-                    : () => _confirm(cart, total),
-                // Label + amount on one bar, the same shape as the Sell
-                // screen's docked checkout button — so the figure the seller is
-                // about to charge is on the control they press, not only in the
-                // summary they may have scrolled past.
-                child: Row(
-                  children: [
-                    if (_submitting)
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      const Icon(Icons.check_circle, size: 20),
-                    const SizedBox(width: AppTheme.space2),
-                    Expanded(child: Text(l.sellConfirm, maxLines: 2)),
-                    const SizedBox(width: AppTheme.space2),
-                    Text(
-                      Money(total).withSymbol(currency),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: AppTheme.tabularFigures,
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
         );
       },
     );
   }
 
   String _tierLabel(AppLocalizations l, String tier) => switch (tier) {
-        'wholesale' => l.customerTierWholesale,
-        'vip' => l.customerTierVip,
-        _ => l.customerTierRetail,
-      };
+    'wholesale' => l.customerTierWholesale,
+    'vip' => l.customerTierVip,
+    _ => l.customerTierRetail,
+  };
 }
 
 /// Quick-tender chips under the amount-paid field. Exact plus the next few
@@ -630,8 +702,8 @@ class _TenderChips extends StatelessWidget {
             label: Text(
               Money(amount).withSymbol(currency),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontFeatures: AppTheme.tabularFigures,
-                  ),
+                fontFeatures: AppTheme.tabularFigures,
+              ),
             ),
             selected: !fieldEmpty && paidAmount == amount,
             onSelected: (on) => on ? onAmount(amount) : onExact(),
@@ -685,8 +757,9 @@ class _LineDiscountDialogState extends State<_LineDiscountDialog> {
           child: Text(l.commonCancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context)
-              .pop(int.tryParse(_controller.text.trim()) ?? 0),
+          onPressed: () => Navigator.of(
+            context,
+          ).pop(int.tryParse(_controller.text.trim()) ?? 0),
           child: Text(l.commonSave),
         ),
       ],
@@ -751,10 +824,12 @@ class _CartLineTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.sell_outlined,
-                color: line.discount > 0
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant),
+            icon: Icon(
+              Icons.sell_outlined,
+              color: line.discount > 0
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
             tooltip: l.sellDiscount,
             onPressed: onDiscountTap,
           ),
@@ -778,8 +853,9 @@ class _CartLineTile extends StatelessWidget {
                     child: Text(
                       '${line.qty}',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontFeatures: AppTheme.tabularFigures),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontFeatures: AppTheme.tabularFigures,
+                      ),
                     ),
                   ),
                   _StepperButton(
@@ -838,9 +914,7 @@ class _StepperButton extends StatelessWidget {
           child: SizedBox(
             width: 40,
             height: 40,
-            child: Center(
-              child: Icon(icon, size: 18, color: scheme.onSurface),
-            ),
+            child: Center(child: Icon(icon, size: 18, color: scheme.onSurface)),
           ),
         ),
       ),
@@ -866,14 +940,11 @@ class _DiscountField extends StatelessWidget {
             child: TextField(
               keyboardType: TextInputType.number,
               inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(9),
-          ],
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(9),
+              ],
               textAlign: TextAlign.right,
-              decoration: const InputDecoration(
-                isDense: true,
-                hintText: '0',
-              ),
+              decoration: const InputDecoration(isDense: true, hintText: '0'),
               onChanged: (v) => onChanged(int.tryParse(v.trim()) ?? 0),
             ),
           ),

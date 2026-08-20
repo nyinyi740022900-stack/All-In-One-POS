@@ -945,7 +945,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -1436,7 +1436,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseReadOnly =>
-      'License expired — read-only. Renew to keep selling.';
+      'This shop isn\'t set up yet, so you can\'t complete a sale.';
 
   @override
   String get licenseInvalidKey => 'Invalid or unknown license key.';
@@ -1593,6 +1593,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSignIn => 'Sign In';
 
   @override
+  String get settingsOwnerModeRequired =>
+      'This phone is in Staff mode. Switch to Owner in Owner Tools (below) to use this.';
+
+  @override
   String get onboardingContinueFree => 'Continue Free';
 
   @override
@@ -1662,11 +1666,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseRenew => 'Renew / Extend';
 
   @override
+  String get licenseBuyOrRenewTitle => 'Buy or renew Premium';
+
+  @override
+  String get licenseBuyOrRenewIntro =>
+      'Two ways — our website, or Viber. Payment is not collected in this app.';
+
+  @override
   String get licensePayOnline => 'Pay online';
 
   @override
   String get licensePayOnlineHint =>
-      'Submit a payment request on our website — no account needed.';
+      'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.';
+
+  @override
+  String get licenseContactViber => 'Message on Viber';
+
+  @override
+  String get licenseContactViberHint =>
+      'Opens Viber. Send your App Reference ID (above) and ask to buy or renew Premium.';
+
+  @override
+  String get licenseContactViberHintOnline =>
+      'Opens Viber. Send the email you use to sign in and ask to buy or renew Premium.';
+
+  @override
+  String get supportViberOpenFailed =>
+      'Couldn\'t open Viber. The number was copied — paste it in Viber.';
+
+  @override
+  String get licenseAfterPaymentTitle => 'Already paid or asked Support?';
 
   @override
   String licenseExpiringSoon(int days) {
@@ -1744,6 +1773,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get licenseRenewHintOnline =>
       'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).';
+
+  @override
+  String get licenseRenewNotFound =>
+      'No subscription found for this account yet. After Support extends it, try Check for renewal again.';
 
   @override
   String get deviceSectionTitle => 'Devices';
@@ -2865,6 +2898,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountPassword => 'Password';
 
   @override
+  String get accountPasswordRememberedHint =>
+      'Remembered on this phone after you sign in.';
+
+  @override
   String get accountConfirmPassword => 'Confirm password';
 
   @override
@@ -2965,6 +3002,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.';
 
   @override
+  String get accountSignOutConfirmBodyStaff =>
+      'You\'ll need your email and password again to sign back in.';
+
+  @override
   String get accountSignInWipeConfirmTitle =>
       'This account belongs to a different shop';
 
@@ -3005,6 +3046,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get staffModeSubtitle =>
       'This phone only: lock the device with an owner PIN (works offline too).';
+
+  @override
+  String get staffPinEmailOwnerHint =>
+      'Set or change the owner PIN here. Switch this phone to Staff when handing it to a cashier — email login is not required. The same PIN unlocks Owner and confirms who opens the shop each day.';
 
   @override
   String get staffAccountsInvite => 'Invite staff';

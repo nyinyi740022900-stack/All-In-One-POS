@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
@@ -239,5 +240,23 @@ void main() {
       expect(await otherShop.watchAllMovements().first, isEmpty);
       expect(await repo.watchAllMovements().first, hasLength(1));
     });
+  });
+
+  test('watchProducts lists a product once even with two stock_levels rows',
+      () async {
+    final id = await repo.upsertProduct(
+      name: 'Soap',
+      salePrice: 800,
+      quantity: 30,
+    );
+    await db.into(db.stockLevels).insert(StockLevelsCompanion.insert(
+          id: 'second-level',
+          shopId: 'shop-1',
+          productId: id,
+          quantity: const Value(29),
+        ));
+    final products = await repo.watchProducts().first;
+    expect(products, hasLength(1));
+    expect(products.single.product.id, id);
   });
 }

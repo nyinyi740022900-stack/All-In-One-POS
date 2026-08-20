@@ -284,13 +284,16 @@ class StaffModeCard extends ConsumerWidget {
         ref.watch(ownerPinCooldownSecondsProvider).valueOrNull ??
         ctrl.ownerPinCooldownRemainingSeconds();
     final role = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
-    final isOwner = role == 'owner';
+    final isLocalOwner = role == 'owner';
+    final pinIsSet = ref.watch(ownerPinIsSetProvider).valueOrNull ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ListTile(
-          leading: Icon(isOwner ? Icons.verified_user : Icons.badge_outlined),
+          leading: Icon(
+            isLocalOwner ? Icons.verified_user : Icons.badge_outlined,
+          ),
           title: Text(l.staffMode),
           subtitle: Text(
             '${l.staffModeSubtitle}\n${l.staffCurrentRole(staffRoleLabel(l, role))}',
@@ -314,15 +317,19 @@ class StaffModeCard extends ConsumerWidget {
                   ? null
                   : () => switchStaffRole(context, ref, target),
             ),
-        if (isOwner)
+        if (isLocalOwner)
           ListTile(
             leading: const Icon(Icons.pin_outlined),
-            title: Text(l.staffSetPin),
+            title: Text(pinIsSet ? l.staffChangePin : l.staffSetPin),
             onTap: () async {
-              final pin = await promptPin(context, l.staffSetPin);
+              final pin = await promptPin(
+                context,
+                pinIsSet ? l.staffChangePin : l.staffSetPin,
+              );
               if (pin == null || pin.isEmpty) return;
               try {
                 await ref.read(staffControllerProvider).setPin(pin);
+                ref.invalidate(ownerPinIsSetProvider);
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
@@ -337,7 +344,7 @@ class StaffModeCard extends ConsumerWidget {
               }
             },
           ),
-        if (isOwner)
+        if (isLocalOwner)
           ListTile(
             leading: const Icon(Icons.groups_outlined),
             title: Text(l.staffManageMembers),

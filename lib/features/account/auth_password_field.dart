@@ -16,6 +16,7 @@ class AuthPasswordField extends StatefulWidget {
     this.textInputAction,
     this.onSubmitted,
     this.errorText,
+    this.helperText,
     this.autofocus = false,
   });
 
@@ -25,6 +26,7 @@ class AuthPasswordField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final String? errorText;
+  final String? helperText;
   final bool autofocus;
 
   @override
@@ -47,6 +49,8 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
       decoration: InputDecoration(
         labelText: widget.labelText,
         errorText: widget.errorText,
+        helperText: widget.helperText,
+        helperMaxLines: 2,
         suffixIcon: Semantics(
           label: _obscure ? l.accountShowPassword : l.accountHidePassword,
           button: true,

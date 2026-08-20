@@ -98,7 +98,8 @@ class _NotAuthorized extends StatelessWidget {
       body: EmptyStateView(
         icon: Icons.block,
         title: 'This account is not an admin.',
-        message: 'Sign in with an account that has admin access to '
+        message:
+            'Sign in with an account that has admin access to '
             'All In One POS licensing.',
         actionLabel: 'Sign out',
         onAction: () async {
@@ -107,8 +108,9 @@ class _NotAuthorized extends StatelessWidget {
             onSignedOut();
           } catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Sign out failed: $e')));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Sign out failed: $e')));
             }
           }
         },

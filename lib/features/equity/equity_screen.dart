@@ -259,12 +259,36 @@ class _EquityEntryDialogState extends ConsumerState<_EquityEntryDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SegmentedButton<String>(
+              // Selected fill already marks the choice. The default
+              // checkmark steals width, so the long Myanmar contribution
+              // label wraps to two lines only while selected and the
+              // dialog jumps. Hide the icon; keep two-line room so a
+              // wrap (or 1.3× text scale) cannot clip or resize.
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.standard,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space2,
+                  vertical: AppTheme.space2,
+                ),
+              ),
               segments: [
                 ButtonSegment(
-                    value: equityTypeContribution,
-                    label: Text(l.equityContribution)),
+                  value: equityTypeContribution,
+                  label: Text(
+                    l.equityContribution,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ),
                 ButtonSegment(
-                    value: equityTypeDrawing, label: Text(l.equityDrawing)),
+                  value: equityTypeDrawing,
+                  label: Text(
+                    l.equityDrawing,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),

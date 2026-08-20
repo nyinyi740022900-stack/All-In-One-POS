@@ -76,6 +76,10 @@
 	<string>All In One POS needs photo access so you can attach payment proofs, expense receipts, and product images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>All In One POS may save exported receipts or reports to your photo library when you choose to share them.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>viber</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleURLTypes</key>

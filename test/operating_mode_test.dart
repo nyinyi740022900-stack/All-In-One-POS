@@ -11,11 +11,12 @@ import 'package:mm_pos/features/staff/staff_providers.dart';
 
 void main() {
   test(
-    'showStaffModeSectionProvider is false with a real account session',
+    'showStaffModeSectionProvider is false for an email staff session',
     () async {
       final container = ProviderContainer(
         overrides: [
           hasRealAccountSessionProvider.overrideWithValue(true),
+          backendAccountRoleProvider.overrideWithValue('staff'),
           staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
         ],
       );
@@ -23,6 +24,19 @@ void main() {
       expect(container.read(showStaffModeSectionProvider), isFalse);
     },
   );
+
+  test('showStaffModeSectionProvider is true for an email owner so they can '
+      'set or change the device PIN', () async {
+    final container = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(true),
+        backendAccountRoleProvider.overrideWithValue('owner'),
+        staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
+      ],
+    );
+    addTearDown(container.dispose);
+    expect(container.read(showStaffModeSectionProvider), isTrue);
+  });
 
   test('showStaffModeSectionProvider stays true with no account session when '
       'already staff', () async {
@@ -37,21 +51,58 @@ void main() {
     expect(container.read(showStaffModeSectionProvider), isTrue);
   });
 
-  test(
-    'effectiveRoleProvider ignores local role with a real account session',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          hasRealAccountSessionProvider.overrideWithValue(true),
-          staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
-        ],
-      );
-      addTearDown(container.dispose);
-      // No backend role -> a real account session defaults to owner (email
-      // session required by the daily gate).
-      expect(container.read(effectiveRoleProvider), 'owner');
-    },
-  );
+  test('showStaffModeSectionProvider is true for an unsigned owner on one '
+      'device', () async {
+    final container = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(false),
+        backendAccountRoleProvider.overrideWithValue(null),
+        staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(staffRoleProvider.future);
+    expect(container.read(showStaffModeSectionProvider), isTrue);
+  });
+
+  test('effectiveRoleProvider keeps invited email staff as staff even if the '
+      'local PIN role is owner', () async {
+    final container = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(true),
+        backendAccountRoleProvider.overrideWithValue('staff'),
+        staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(staffRoleProvider.future);
+    expect(container.read(effectiveRoleProvider), 'staff');
+  });
+
+  test('effectiveRoleProvider lets an email owner follow the local PIN role',
+      () async {
+    final owner = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(true),
+        backendAccountRoleProvider.overrideWithValue('owner'),
+        staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
+      ],
+    );
+    addTearDown(owner.dispose);
+    await owner.read(staffRoleProvider.future);
+    expect(owner.read(effectiveRoleProvider), 'owner');
+
+    final staff = ProviderContainer(
+      overrides: [
+        hasRealAccountSessionProvider.overrideWithValue(true),
+        backendAccountRoleProvider.overrideWithValue('owner'),
+        staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+      ],
+    );
+    addTearDown(staff.dispose);
+    await staff.read(staffRoleProvider.future);
+    expect(staff.read(effectiveRoleProvider), 'staff');
+  });
 
   test('unsigned device with local staff role stays staff — email-staff '
       'sign-out must not promote the device to owner', () async {

@@ -47,15 +47,22 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       lastDate: now,
       initialDateRange: start != null && end != null
           ? DateTimeRange(
-              start: start, end: end.subtract(const Duration(days: 1)))
+              start: start,
+              end: end.subtract(const Duration(days: 1)),
+            )
           : null,
     );
     if (picked == null) return;
-    ref.read(pnlStartDateProvider.notifier).state =
-        DateTime(picked.start.year, picked.start.month, picked.start.day);
-    ref.read(pnlEndDateProvider.notifier).state =
-        DateTime(picked.end.year, picked.end.month, picked.end.day)
-            .add(const Duration(days: 1));
+    ref.read(pnlStartDateProvider.notifier).state = DateTime(
+      picked.start.year,
+      picked.start.month,
+      picked.start.day,
+    );
+    ref.read(pnlEndDateProvider.notifier).state = DateTime(
+      picked.end.year,
+      picked.end.month,
+      picked.end.day,
+    ).add(const Duration(days: 1));
   }
 
   String _rangeLabel(PnlStatement p) {
@@ -136,7 +143,11 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     }
   }
 
-  Future<void> _printBluetooth(PnlStatement p, String mac, PaperSize paper) async {
+  Future<void> _printBluetooth(
+    PnlStatement p,
+    String mac,
+    PaperSize paper,
+  ) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _printing = true);
@@ -144,25 +155,27 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       final profile = await ref.read(shopProfileProvider.future);
       final lines = PnlFormatter(paper: paper, currencySymbol: l.currencySymbol)
           .format(
-        p,
-        title: l.pnlTitle,
-        dateRangeLabel: l.pnlDateRange,
-        revenueLabel: l.pnlRevenue,
-        cogsLabel: l.pnlCogs,
-        grossProfitLabel: l.pnlGrossProfit,
-        totalExpensesLabel: l.pnlTotalExpenses,
-        netProfitLabel: l.pnlNetProfit,
-        categoryLabel: (c) => categoryLabel(l, c),
-      );
+            p,
+            title: l.pnlTitle,
+            dateRangeLabel: l.pnlDateRange,
+            revenueLabel: l.pnlRevenue,
+            cogsLabel: l.pnlCogs,
+            grossProfitLabel: l.pnlGrossProfit,
+            totalExpensesLabel: l.pnlTotalExpenses,
+            netProfitLabel: l.pnlNetProfit,
+            categoryLabel: (c) => categoryLabel(l, c),
+          );
       final result = await ref
           .read(printerServiceProvider)
           .printZReport(lines, profile.name, paper: paper, mac: mac);
-      messenger.showSnackBar(SnackBar(
-          content: Text(result.ok ? l.printSuccess : l.printFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+      );
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(
-            SnackBar(content: Text(l.commonUnexpectedError)));
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
       }
     } finally {
       if (mounted) setState(() => _printing = false);
@@ -173,8 +186,15 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
   /// render through [MoneyText] with tabular numerals — this is a column of
   /// money that has to line up digit-for-digit down the page, and it was
   /// previously plain proportional `Text` that visibly wobbled between rows.
-  Widget _row(BuildContext context, String label, int amount, String currency,
-      {bool bold = false, bool indent = false, Color? color}) {
+  Widget _row(
+    BuildContext context,
+    String label,
+    int amount,
+    String currency, {
+    bool bold = false,
+    bool indent = false,
+    Color? color,
+  }) {
     return Padding(
       padding: EdgeInsets.only(left: indent ? AppTheme.space4 : 0),
       child: SummaryRow(
@@ -227,7 +247,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         ],
       ),
       body: statementAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const AppLoadingView(),
         error: (_, _) => EmptyStateView(
           icon: Icons.error_outline,
           title: l.commonUnexpectedError,
@@ -240,32 +260,50 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
           // trains the eye to skip the one line that matters — the same call
           // the Analytics dashboard now makes for its net-profit tile, so the
           // two screens agree about what red means.
-          final netColor =
-              p.netProfit < 0 ? AppColors.of(context).danger : null;
+          final netColor = p.netProfit < 0
+              ? AppColors.of(context).danger
+              : null;
           return Column(
             children: [
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(AppTheme.space4),
                   children: [
-                    Text(_rangeLabel(p),
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      _rangeLabel(p),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: AppTheme.space3),
                     _row(context, l.pnlRevenue, p.revenue, sym),
                     _row(context, l.pnlCogs, -p.cogs, sym),
                     const Divider(),
-                    _row(context, l.pnlGrossProfit, p.grossProfit, sym,
-                        bold: true),
+                    _row(
+                      context,
+                      l.pnlGrossProfit,
+                      p.grossProfit,
+                      sym,
+                      bold: true,
+                    ),
                     const SizedBox(height: AppTheme.space3),
                     for (final entry in p.expensesByCategory.entries)
                       if (entry.value != 0)
-                        _row(context, categoryLabel(l, entry.key),
-                            -entry.value, sym,
-                            indent: true),
+                        _row(
+                          context,
+                          categoryLabel(l, entry.key),
+                          -entry.value,
+                          sym,
+                          indent: true,
+                        ),
                     _row(context, l.pnlTotalExpenses, -p.totalExpenses, sym),
                     const Divider(),
-                    _row(context, l.pnlNetProfit, p.netProfit, sym,
-                        bold: true, color: netColor),
+                    _row(
+                      context,
+                      l.pnlNetProfit,
+                      p.netProfit,
+                      sym,
+                      bold: true,
+                      color: netColor,
+                    ),
                   ],
                 ),
               ),
@@ -281,8 +319,11 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                           child: FilledButton.icon(
                             onPressed: _printing
                                 ? null
-                                : () => _printBluetooth(p,
-                                    printerConfig.mac!, printerConfig.paper),
+                                : () => _printBluetooth(
+                                    p,
+                                    printerConfig.mac!,
+                                    printerConfig.paper,
+                                  ),
                             icon: _printing
                                 ? const ButtonSpinner()
                                 : const Icon(Icons.print_outlined),
@@ -290,14 +331,15 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                           ),
                         )
                       else
-                        Text(l.salesReportNoPrinter,
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          l.salesReportNoPrinter,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       const SizedBox(height: AppTheme.space2),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed:
-                              _exporting ? null : () => _exportPdf(p),
+                          onPressed: _exporting ? null : () => _exportPdf(p),
                           icon: _exporting
                               ? const ButtonSpinner()
                               : const Icon(Icons.picture_as_pdf_outlined),
@@ -308,9 +350,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: _exportingCsv
-                              ? null
-                              : () => _exportCsv(p),
+                          onPressed: _exportingCsv ? null : () => _exportCsv(p),
                           icon: _exportingCsv
                               ? const ButtonSpinner()
                               : const Icon(Icons.table_chart_outlined),

@@ -21,7 +21,10 @@ class SellScreen extends ConsumerWidget {
   const SellScreen({super.key});
 
   Future<void> _confirmClear(
-      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+  ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -29,11 +32,13 @@ class SellScreen extends ConsumerWidget {
         content: Text(l.sellClearConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.commonCancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.sellClear)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.sellClear),
+          ),
         ],
       ),
     );
@@ -41,31 +46,32 @@ class SellScreen extends ConsumerWidget {
   }
 
   Future<void> _scanAndAdd(
-      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+  ) async {
     final code = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
     if (code == null || !context.mounted) return;
     final products = ref.read(productsStreamProvider).valueOrNull ?? const [];
-    final match =
-        products.firstWhereOrNull((p) => (p.product.barcode ?? '') == code);
+    final match = products.firstWhereOrNull(
+      (p) => (p.product.barcode ?? '') == code,
+    );
     final messenger = ScaffoldMessenger.of(context);
     if (match != null) {
       ref.read(cartProvider.notifier).addProduct(match.product);
       messenger.showSnackBar(
-          SnackBar(content: Text(l.scanAdded(match.product.name))));
+        SnackBar(content: Text(l.scanAdded(match.product.name))),
+      );
     } else {
       ref.read(sellSearchProvider.notifier).state = code;
-      messenger
-          .showSnackBar(SnackBar(content: Text(l.scanNotFound(code))));
+      messenger.showSnackBar(SnackBar(content: Text(l.scanNotFound(code))));
     }
   }
 
   void _openCheckout(BuildContext context) {
-    showAppModal<void>(
-      context: context,
-      builder: (_) => const CheckoutSheet(),
-    );
+    showAppModal<void>(context: context, builder: (_) => const CheckoutSheet());
   }
 
   @override
@@ -77,7 +83,6 @@ class SellScreen extends ConsumerWidget {
     final currency = l.currencySymbol;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final licState = ref.watch(licenseControllerProvider);
-    final readOnly = licState.status.isReadOnly && !licState.loading;
     final expiresAt = licState.status.expiresAt;
     final daysLeft = expiresAt?.difference(DateTime.now()).inDays;
     // Free plan never expires — computeLicenseStatus keeps expiresAt as a
@@ -85,10 +90,13 @@ class SellScreen extends ConsumerWidget {
     // can be `active`, not as a real date. Without this guard, every Free
     // shop saw a permanent "expires in 0 days" warning (license_widgets.dart
     // already carries the same plan != free guard for this exact reason).
-    final expiringSoon = !licState.loading &&
-        licState.status.canSell &&
+    // A lapsed paid plan is `expired`, not "expiring soon."
+    final expiringSoon =
+        !licState.loading &&
+        licState.status.kind == LicenseStatusKind.active &&
         licState.status.plan != LicensePlan.free &&
         daysLeft != null &&
+        daysLeft >= 0 &&
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);
     final split = isMediumPlus(context);
@@ -102,63 +110,38 @@ class SellScreen extends ConsumerWidget {
     final trailFlex = widthClassOf(context) == AppWidthClass.expanded ? 38 : 42;
     final leadFlex = 100 - trailFlex;
 
-    Widget banners() => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (expiringSoon && !readOnly)
-              Material(
-                // Soft-fill tier (see AppColors) rather than an ad-hoc alpha
-                // wash — 12% of a bright orange over a near-black dark
-                // surface came out muddy and unreadable.
-                color: AppColors.of(context).warningSurface,
-                child: InkWell(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const LicenseScreen())),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.space3),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning_amber,
-                            color: AppColors.of(context).warning),
-                        const SizedBox(width: AppTheme.space2),
-                        Expanded(
-                          child: Text(
-                            l.licenseExpiringSoon(daysLeftShown),
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.of(context).warning),
-                          ),
-                        ),
-                        Icon(Icons.chevron_right,
-                            color: AppColors.of(context).warning),
-                      ],
+    Widget banners() {
+      if (!expiringSoon) return const SizedBox.shrink();
+      return Material(
+        // Soft-fill tier (see AppColors) rather than an ad-hoc alpha
+        // wash — 12% of a bright orange over a near-black dark
+        // surface came out muddy and unreadable.
+        color: AppColors.of(context).warningSurface,
+        child: InkWell(
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const LicenseScreen())),
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space3),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber, color: AppColors.of(context).warning),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Text(
+                    l.licenseExpiringSoon(daysLeftShown),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.of(context).warning,
                     ),
                   ),
                 ),
-              ),
-            if (readOnly)
-              Material(
-                // Same soft-fill banner language as the expiry warning above,
-                // so the two never look like different kinds of component.
-                color: AppColors.of(context).dangerSurface,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.space3),
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock, color: AppColors.of(context).danger),
-                      const SizedBox(width: AppTheme.space2),
-                      Expanded(
-                        child: Text(
-                          l.licenseReadOnly,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.of(context).danger),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
+                Icon(Icons.chevron_right, color: AppColors.of(context).warning),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     final productPane = Column(
       children: [
@@ -166,7 +149,7 @@ class SellScreen extends ConsumerWidget {
         const _SellCategoryFilterBar(),
         Expanded(
           child: products.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const AppLoadingView(),
             error: (e, _) => ErrorRetryView(
               message: l.commonUnexpectedError,
               onRetry: () => ref.invalidate(productsStreamProvider),
@@ -175,9 +158,11 @@ class SellScreen extends ConsumerWidget {
               if (filtered.isEmpty) {
                 final searching =
                     ref.read(sellSearchProvider).trim().isNotEmpty ||
-                        ref.read(sellCategoryProvider) != null;
+                    ref.read(sellCategoryProvider) != null;
                 return EmptyStateView(
-                  icon: searching ? Icons.search_off : Icons.inventory_2_outlined,
+                  icon: searching
+                      ? Icons.search_off
+                      : Icons.inventory_2_outlined,
                   title: searching ? l.inventoryNoResults : l.inventoryEmpty,
                 );
               }
@@ -205,15 +190,19 @@ class SellScreen extends ConsumerWidget {
                     imageUrl: p.product.imageUrl,
                     outOfStock: trackStock && p.quantity <= 0,
                     onTap: () {
-                      final ok = ref.read(cartProvider.notifier).addProduct(
+                      final ok = ref
+                          .read(cartProvider.notifier)
+                          .addProduct(
                             p.product,
                             maxQty: trackStock ? p.quantity : null,
                           );
                       if (!ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(l.sellStockCap(p.quantity)),
-                          duration: const Duration(seconds: 1),
-                        ));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l.sellStockCap(p.quantity)),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
                       }
                     },
                   );
@@ -245,15 +234,18 @@ class SellScreen extends ConsumerWidget {
           preferredSize: const Size.fromHeight(56),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppTheme.space4, 0, AppTheme.space4, AppTheme.space2),
+              AppTheme.space4,
+              0,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
             child: TextField(
               decoration: InputDecoration(
                 hintText: l.commonSearch,
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
               ),
-              onChanged: (v) =>
-                  ref.read(sellSearchProvider.notifier).state = v,
+              onChanged: (v) => ref.read(sellSearchProvider.notifier).state = v,
             ),
           ),
         ),
@@ -308,13 +300,19 @@ class _CartPanel extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppTheme.space4,
-                AppTheme.space3, AppTheme.space2, AppTheme.space2),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space3,
+              AppTheme.space2,
+              AppTheme.space2,
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: Text(l.sellCart,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    l.sellCart,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 if (!cart.isEmpty)
                   TextButton(onPressed: onClear, child: Text(l.sellClear)),
@@ -330,7 +328,8 @@ class _CartPanel extends ConsumerWidget {
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppTheme.space2),
+                      vertical: AppTheme.space2,
+                    ),
                     itemCount: cart.lines.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, i) {
@@ -377,20 +376,25 @@ class _CartPanel extends ConsumerWidget {
                               visualDensity: VisualDensity.compact,
                               icon: const Icon(Icons.add),
                               onPressed: () {
-                                final ok =
-                                    ref.read(cartProvider.notifier).increment(
-                                          line.product.id,
-                                          maxQty: trackStock
-                                              ? stockById[line.product.id]
-                                              : null,
-                                        );
+                                final ok = ref
+                                    .read(cartProvider.notifier)
+                                    .increment(
+                                      line.product.id,
+                                      maxQty: trackStock
+                                          ? stockById[line.product.id]
+                                          : null,
+                                    );
                                 if (!ok) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: Text(l.sellStockCap(
-                                        stockById[line.product.id] ?? 0)),
-                                    duration: const Duration(seconds: 1),
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l.sellStockCap(
+                                          stockById[line.product.id] ?? 0,
+                                        ),
+                                      ),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -573,9 +577,10 @@ class _ProductCardState extends State<_ProductCard> {
                     // with the user's text-size setting instead of clipping
                     // a longer Myanmar name at 1.3x.
                     SizedBox(
-                      height: MediaQuery.textScalerOf(context).scale(
-                            theme.textTheme.titleSmall?.fontSize ?? 14,
-                          ) *
+                      height:
+                          MediaQuery.textScalerOf(
+                            context,
+                          ).scale(theme.textTheme.titleSmall?.fontSize ?? 14) *
                           (theme.textTheme.titleSmall?.height ?? 1.4) *
                           2,
                       child: Text(

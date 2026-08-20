@@ -35,15 +35,30 @@ class InventoryRepository {
       ..orderBy([OrderingTerm.desc(_db.products.createdAt)]);
 
     return query.watch().map((rows) {
-      return rows.map((row) {
+      // `stock_levels` is keyed by row id, not product_id — a second cache
+      // row for the same product (sync inserting a new id, then pulling the
+      // original) would otherwise list that product twice. Collapse to one
+      // row per product, keeping the newest stock cache.
+      final products = <String, Product>{};
+      final bestStock = <String, StockLevel?>{};
+      for (final row in rows) {
         final product = row.readTable(_db.products);
         final stock = row.readTableOrNull(_db.stockLevels);
-        return ProductWithStock(
-          product: product,
-          quantity: stock?.quantity ?? 0,
-          reorderLevel: stock?.reorderLevel ?? 0,
-        );
-      }).toList();
+        products[product.id] = product;
+        final prev = bestStock[product.id];
+        if (prev == null ||
+            (stock != null && stock.updatedAt.isAfter(prev.updatedAt))) {
+          bestStock[product.id] = stock;
+        }
+      }
+      return [
+        for (final e in products.entries)
+          ProductWithStock(
+            product: e.value,
+            quantity: bestStock[e.key]?.quantity ?? 0,
+            reorderLevel: bestStock[e.key]?.reorderLevel ?? 0,
+          ),
+      ];
     });
   }
 

@@ -70,6 +70,13 @@
 //                                                 One trial per device_id,
 //                                                 permanently (error:
 //                                                 trial_already_used)
+//   refresh_account_license { device_id }     -> signed-in Check for renewal:
+//                                                 pull this shop's current
+//                                                 plan + expiry (admin
+//                                                 extend) onto the device,
+//                                                 no key. Binds this device
+//                                                 if the license row is
+//                                                 unbound.
 //   start_trial { shop_name?, device_id }      -> no-account self-serve
 //                                                 trial mint for a device
 //                                                 currently on the Free plan
@@ -251,6 +258,16 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: "rate_limited" }, 200);
     }
     return handleResyncSession(admin, userData.user, body.device_id ?? "");
+  }
+  if (action === "refresh_account_license") {
+    if (!(await checkAndRecordRateLimit(admin, ip))) {
+      return json({ ok: false, error: "rate_limited" }, 200);
+    }
+    return handleRefreshAccountLicense(
+      admin,
+      userData.user,
+      body.device_id ?? "",
+    );
   }
   if (action === "start_trial") {
     // No email/password on this path (that's the point), so device_id is
@@ -1011,6 +1028,85 @@ async function handleResyncSession(
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: license.tier ?? "offline",
+  }, 200);
+}
+
+// Settings → Check for renewal for a signed-in shop. The client often has
+// no local key (never claimed a slot after email sign-in, cache wiped, or
+// signup's 'SIGNUP' placeholder) so re-calling `activate` cannot pick up an
+// admin extend. Look up this shop's license (this device first, else the
+// shop's latest row), bind an unbound row to this device, return plan +
+// expiry. Do not steal another device's binding.
+async function handleRefreshAccountLicense(
+  admin: AdminClient,
+  user: SupabaseUser,
+  deviceId: string,
+): Promise<Response> {
+  const shopId = shopIdOf(user);
+  if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
+  if (!deviceId) return json({ ok: false, error: "bad_request" }, 400);
+
+  let license: Record<string, unknown> | null = null;
+  const { data: bound, error: boundErr } = await admin
+    .from("licenses")
+    .select("*")
+    .eq("shop_id", shopId)
+    .eq("device_id", deviceId)
+    .eq("is_deleted", false)
+    .maybeSingle();
+  if (boundErr) return json({ ok: false, error: "server_error" }, 500);
+  if (bound) {
+    license = bound as Record<string, unknown>;
+  } else {
+    const { data: latest, error: latestErr } = await admin
+      .from("licenses")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("is_deleted", false)
+      .order("expires_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestErr) return json({ ok: false, error: "server_error" }, 500);
+    license = (latest as Record<string, unknown> | null) ?? null;
+  }
+  if (!license) return json({ ok: false, error: "not_found" }, 200);
+
+  const boundDevice = (license.device_id as string | null) ?? null;
+  if (!boundDevice) {
+    const now = new Date().toISOString();
+    const { data: updated, error: bindErr } = await admin
+      .from("licenses")
+      .update({ device_id: deviceId, last_verified_at: now, updated_at: now })
+      .eq("id", license.id)
+      .eq("shop_id", shopId)
+      .is("device_id", null)
+      .select("*")
+      .maybeSingle();
+    if (bindErr) return json({ ok: false, error: "server_error" }, 500);
+    if (updated) license = updated as Record<string, unknown>;
+  } else if (boundDevice === deviceId) {
+    const now = new Date().toISOString();
+    await admin
+      .from("licenses")
+      .update({ last_verified_at: now, updated_at: now })
+      .eq("id", license.id)
+      .eq("shop_id", shopId);
+  }
+
+  const ownsRow = ((license.device_id as string | null) ?? null) === deviceId ||
+    !license.device_id;
+  const expiresAt = license.expires_at as string | null;
+  if (!expiresAt) return json({ ok: false, error: "server_error" }, 500);
+
+  return json({
+    ok: true,
+    shop_id: shopId,
+    plan: license.plan,
+    expires_at: expiresAt,
+    activated_at: license.activated_at,
+    realtime_enabled: license.realtime_enabled === true,
+    tier: license.tier ?? "online",
+    key: ownsRow ? license.key : null,
   }, 200);
 }
 

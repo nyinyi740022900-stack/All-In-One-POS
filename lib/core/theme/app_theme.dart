@@ -135,19 +135,13 @@ class AppColors extends ThemeExtension<AppColors> {
       // Neutral grey with the same faint green cast as the surface ramp, so
       // de-emphasized text sits in the palette rather than next to it.
       muted: dark ? const Color(0xFF95A09B) : const Color(0xFF5E6A65),
-      successSurface: dark
-          ? const Color(0xFF1F3312)
-          : const Color(0xFFE3F3D8),
-      warningSurface: dark
-          ? const Color(0xFF3A2410)
-          : const Color(0xFFFDECD9),
+      successSurface: dark ? const Color(0xFF1F3312) : const Color(0xFFE3F3D8),
+      warningSurface: dark ? const Color(0xFF3A2410) : const Color(0xFFFDECD9),
       dangerSurface: dark ? const Color(0xFF3A1A17) : const Color(0xFFFBE3E1),
       // Matches the surface ramp's `surfaceContainerHigh` step in each
       // brightness, so a "done with" pill reads as a recess in the page
       // rather than a fifth colour nobody chose.
-      neutralSurface: dark
-          ? const Color(0xFF242C28)
-          : const Color(0xFFE5EAE7),
+      neutralSurface: dark ? const Color(0xFF242C28) : const Color(0xFFE5EAE7),
       // sage · teal · slate-blue · lilac — see [identityFills].
       identityFills: dark
           ? const [
@@ -240,9 +234,9 @@ class AppColors extends ThemeExtension<AppColors> {
 /// palette real point-of-sale and accounting products converge on (clean
 /// white cards on a barely-tinted grey page, a single saturated accent used
 /// only for the one action that matters). Deliberately *not* cream, and
-/// deliberately *not* gold: an earlier pass derived the palette from the
-/// placeholder app icon and was rejected. Nothing here should be driven by
-/// `assets/branding/app_icon_1024.png` — it is a stand-in, not a brand.
+/// deliberately *not* gold: an earlier pass derived the palette from a
+/// placeholder icon and was rejected. The live mark is the geometric A in
+/// `assets/branding/app_icon_1024.png` (same `#0F5C3E` as [ColorScheme.primary]).
 ///
 /// The accent is reserved, not sprayed: [ColorScheme.primary] (`#0F5C3E`,
 /// 8.0:1 with white) is for the single primary CTA and the focused/selected
@@ -320,9 +314,8 @@ class AppTheme {
   /// popup menus) via `shadowColor:` + `surfaceTintColor: Colors.transparent`
   /// (keeps the brand's crisp white/near-black card color from being washed
   /// out by M3's default tonal-elevation tint).
-  static Color shadowColorFor(Brightness brightness) => brightness == Brightness.dark
-      ? Colors.black
-      : const Color(0xFF0B0F0D);
+  static Color shadowColorFor(Brightness brightness) =>
+      brightness == Brightness.dark ? Colors.black : const Color(0xFF0B0F0D);
 
   /// Explicit [BoxShadow] list for custom (non-Material-elevation) floating
   /// chrome — e.g. Sell's sticky checkout bar docked above the bottom nav,
@@ -330,9 +323,9 @@ class AppTheme {
   /// knob. Casts upward (negative dy) since these are always bottom-docked.
   static List<BoxShadow> dockedBarShadow(Brightness brightness) => [
     BoxShadow(
-      color: shadowColorFor(brightness).withValues(
-        alpha: brightness == Brightness.dark ? 0.5 : 0.10,
-      ),
+      color: shadowColorFor(
+        brightness,
+      ).withValues(alpha: brightness == Brightness.dark ? 0.5 : 0.10),
       blurRadius: 20,
       offset: const Offset(0, -4),
     ),
@@ -373,6 +366,23 @@ class AppTheme {
       foregroundColor: scheme.onError,
     );
   }
+
+  /// Pill-shaped filled CTA for **auth / onboarding / daily-gate only**.
+  /// Operational screens (Sell, Inventory, Settings) keep the default
+  /// [radiusSm] so a wall of stadium buttons never appears at the counter.
+  static ButtonStyle authFilledButtonStyle({
+    Size minimumSize = const Size.fromHeight(52),
+  }) => FilledButton.styleFrom(
+    minimumSize: minimumSize,
+    shape: const StadiumBorder(),
+  );
+
+  /// Matching outlined pill — secondary auth actions ("Activate a license
+  /// key", "Sign up") sitting under a stadium primary.
+  static ButtonStyle authOutlinedButtonStyle() => OutlinedButton.styleFrom(
+    minimumSize: const Size.fromHeight(52),
+    shape: const StadiumBorder(),
+  );
 
   // ---------------------------------------------------------------------
   // Tabular figures — every money/qty column in this app is a POS ledger;
@@ -559,9 +569,8 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? scheme.primary
-              : null,
+          (states) =>
+              states.contains(WidgetState.selected) ? scheme.primary : null,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)

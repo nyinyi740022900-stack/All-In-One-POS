@@ -18,6 +18,7 @@ import 'account_providers.dart';
 import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
 import 'password_strength.dart';
+import 'saved_login_store.dart';
 
 /// Real email/password login for the shop, additive to the existing
 /// device-key activation (which stays exactly as-is). Lets the owner create
@@ -42,8 +43,22 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
   final _createConfirm = TextEditingController();
   final _signInEmail = TextEditingController();
   final _signInPassword = TextEditingController();
+  late final SavedLoginBinder _signInSaved;
   bool _busy = false;
   bool _justCreated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _signInSaved = SavedLoginBinder(
+      email: _signInEmail,
+      password: _signInPassword,
+    )..attach();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _signInSaved.load(ref.read(savedLoginStoreProvider));
+    });
+  }
 
   void _onTabChanged() {
     if (mounted) setState(() {});
@@ -53,6 +68,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
   void dispose() {
     _tabs.removeListener(_onTabChanged);
     _tabs.dispose();
+    _signInSaved.detach();
     _createEmail.dispose();
     _createPassword.dispose();
     _createConfirm.dispose();
@@ -175,6 +191,12 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
 
     setState(() => _busy = false);
     if (result.ok) {
+      await _signInSaved.remember(
+        ref.read(savedLoginStoreProvider),
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
       if (result.license != null) {
         ref
             .read(licenseControllerProvider.notifier)
@@ -215,6 +237,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         license != null &&
         license.tier == 'online' &&
         license.plan != LicensePlan.free;
+    final isStaff =
+        ref.read(accountRepositoryProvider).currentAccountRole == 'staff';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -222,6 +246,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         content: Text(
           losesPremium
               ? l.accountSignOutPremiumConfirmBody
+              : isStaff
+              ? l.accountSignOutConfirmBodyStaff
               : l.accountSignOutConfirmBody,
         ),
         actions: [
@@ -249,6 +275,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     ref.invalidate(dailyGateNeededProvider);
     messenger.showSnackBar(SnackBar(content: Text(l.accountSignedOut)));
     setState(() => _justCreated = false);
+    _signInSaved.refillIfMatch();
   }
 
   Future<void> _deleteAccount() async {
@@ -335,6 +362,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     ref.invalidate(backendAccountRoleProvider);
     ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);
+    await ref.read(savedLoginStoreProvider).clear();
+    _signInSaved.forget();
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -353,7 +382,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           keyboardType: TextInputType.emailAddress,
           autofillHints: const [AutofillHints.email],
           textInputAction: TextInputAction.next,
-          decoration: InputDecoration(labelText: l.accountEmail),
+          decoration: InputDecoration(
+            labelText: l.accountEmail,
+            prefixIcon: const AuthFieldIcon(Icons.mail_outline),
+          ),
         ),
         const SizedBox(height: AppTheme.space3),
         AuthPasswordField(
@@ -375,6 +407,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         ),
         const SizedBox(height: AppTheme.space3),
         FilledButton(
+          style: AppTheme.authFilledButtonStyle(),
           onPressed: _busy ? null : _createLogin,
           child: _busy ? const ButtonSpinner() : Text(l.accountCreateShopLogin),
         ),
@@ -383,45 +416,52 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
   }
 
   Widget _signInForm(AppLocalizations l) {
-    return Column(
-      key: const ValueKey('signIn'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _signInEmail,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          textInputAction: TextInputAction.next,
-          decoration: InputDecoration(labelText: l.accountEmail),
-        ),
-        const SizedBox(height: AppTheme.space3),
-        AuthPasswordField(
-          controller: _signInPassword,
-          labelText: l.accountPassword,
-          autofillHints: const [AutofillHints.password],
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) {
-            if (!_busy) _signIn();
-          },
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: _busy
-                ? null
-                : () => showForgotPasswordDialog(
-                    context,
-                    prefillEmail: _signInEmail.text.trim(),
-                  ),
-            child: Text(l.accountForgotPassword),
+    return AutofillGroup(
+      child: Column(
+        key: const ValueKey('signIn'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _signInEmail,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: l.accountEmail,
+              prefixIcon: const AuthFieldIcon(Icons.mail_outline),
+            ),
           ),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        FilledButton(
-          onPressed: _busy ? null : _signIn,
-          child: _busy ? const ButtonSpinner() : Text(l.accountSignIn),
-        ),
-      ],
+          const SizedBox(height: AppTheme.space3),
+          AuthPasswordField(
+            controller: _signInPassword,
+            labelText: l.accountPassword,
+            autofillHints: const [AutofillHints.password],
+            helperText: l.accountPasswordRememberedHint,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (!_busy) _signIn();
+            },
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => showForgotPasswordDialog(
+                      context,
+                      prefillEmail: _signInEmail.text.trim(),
+                    ),
+              child: Text(l.accountForgotPassword),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space2),
+          FilledButton(
+            style: AppTheme.authFilledButtonStyle(),
+            onPressed: _busy ? null : _signIn,
+            child: _busy ? const ButtonSpinner() : Text(l.accountSignIn),
+          ),
+        ],
+      ),
     );
   }
 
@@ -436,6 +476,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     final deviceLabel = ref.watch(myDeviceLabelProvider);
     final license = ref.watch(licenseControllerProvider).license;
     final isOwner = role == 'owner';
+    final canDeleteAccount = ref.watch(isEffectiveOwnerProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -537,7 +578,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
             ),
           ),
         ),
-        if (isOwner) ...[
+        if (canDeleteAccount) ...[
           const SizedBox(height: AppTheme.space4),
           OutlinedButton.icon(
             onPressed: _busy ? null : _deleteAccount,
@@ -568,7 +609,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
           padding: const EdgeInsets.all(AppTheme.space4),
           children: [
             if (!signedIn) ...[
-              const Center(child: BrandHero(size: 56)),
+              const Center(child: BrandHero(size: 72)),
               const SizedBox(height: AppTheme.space4),
             ],
             if (!signedIn)

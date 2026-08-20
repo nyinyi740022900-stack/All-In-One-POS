@@ -51,26 +51,33 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final db = ref.read(databaseProvider);
       final repo = ref.read(inventoryRepositoryProvider);
-      await DemoSeed(db, repo).ensureSeeded();
+      final shopId = ref.read(shopIdProvider);
+      final seed = DemoSeed(db, repo, shopId);
+      await seed.ensureSeeded();
+      await seed.collapseDuplicates();
     });
   }
 
   Future<void> _openEditor([ProductWithStock? existing]) {
-    return Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ProductEditScreen(existing: existing),
-    ));
+    return Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ProductEditScreen(existing: existing)),
+    );
   }
 
   Future<void> _exportCsv() async {
     final l = AppLocalizations.of(context);
     if (!ref.read(isPremiumProvider)) {
-      await showPremiumRequiredDialog(context, l.inventoryExportCsv,
-          benefit: l.inventoryCsvBenefit);
+      await showPremiumRequiredDialog(
+        context,
+        l.inventoryExportCsv,
+        benefit: l.inventoryCsvBenefit,
+      );
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
     final products = ref.read(filteredProductsProvider);
-    final categories = ref.read(categoriesStreamProvider).valueOrNull ?? const [];
+    final categories =
+        ref.read(categoriesStreamProvider).valueOrNull ?? const [];
     final categoryNameById = {for (final c in categories) c.id: c.name};
     try {
       final csv = buildInventoryCsv(
@@ -112,10 +119,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: kToolbarHeight +
-            (async.hasValue
-                ? MediaQuery.textScalerOf(context).scale(20)
-                : 0),
+        toolbarHeight:
+            kToolbarHeight +
+            (async.hasValue ? MediaQuery.textScalerOf(context).scale(20) : 0),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -127,8 +133,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
           ],
         ),
@@ -141,23 +147,27 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           IconButton(
             tooltip: l.stockHistoryTitle,
             icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const StockMovementsScreen(),
-            )),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StockMovementsScreen()),
+            ),
           ),
           IconButton(
             tooltip: l.manageCategories,
             icon: const Icon(Icons.label),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const CategoriesScreen(),
-            )),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CategoriesScreen())),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppTheme.space4, 0, AppTheme.space4, AppTheme.space2),
+              AppTheme.space4,
+              0,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
             child: TextField(
               decoration: InputDecoration(
                 hintText: l.commonSearch,
@@ -182,90 +192,101 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           const _CategoryFilterBar(),
           Expanded(
             child: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorRetryView(
-          message: l.commonUnexpectedError,
-          onRetry: () => ref.invalidate(productsStreamProvider),
-        ),
-        data: (_) {
-          if (products.isEmpty) {
-            final searching =
-                ref.read(inventorySearchProvider).trim().isNotEmpty;
-            return EmptyStateView(
-              icon: searching
-                  ? Icons.search_off
-                  : Icons.inventory_2_outlined,
-              title: searching ? l.inventoryNoResults : l.inventoryEmpty,
-            );
-          }
-          return Column(
-            children: [
-              if (trackStock && lowCount > 0) _LowStockBanner(count: lowCount),
-              Expanded(
-                child: isMediumPlus(context)
-                    ? GridView.builder(
-                        padding: const EdgeInsets.all(AppTheme.space3),
-                        gridDelegate:
-                            SliverGridDelegateWithMaxCrossAxisExtent(
-                          // **Not** the old 300. `maxCrossAxisExtent` is a
-                          // ceiling, not a target: the delegate takes
-                          // `ceil(width / extent)` columns and divides evenly,
-                          // so 300 on an 820pt iPad produced three ~235pt
-                          // cards — and a card that narrow leaves ~70pt for
-                          // the name once the thumbnail, stock pill and menu
-                          // have taken their fixed widths, which shredded
-                          // every Myanmar product name into two clipped
-                          // fragments and wrapped "300 ကျပ်" onto two lines.
-                          // (Seen on a real iPad, not reasoned about: the old
-                          // 300 was equally broken, the thumbnail just made
-                          // it visible.) 440 forces two ~360pt cards on this
-                          // iPad and never divides below ~300pt on anything
-                          // wider.
-                          maxCrossAxisExtent: 440,
-                          mainAxisSpacing: AppTheme.space3,
-                          crossAxisSpacing: AppTheme.space3,
-                          // A fixed row height derived from the type scale
-                          // beats `childAspectRatio`, which ties the row's
-                          // height to how many columns happened to fit and
-                          // therefore breaks at exactly one window width.
-                          mainAxisExtent: _gridTileHeight(context),
-                        ),
-                        itemCount: products.length,
-                        itemBuilder: (context, i) {
-                          final p = products[i];
-                          return Card(
-                            clipBehavior: Clip.antiAlias,
-                            child: _ProductTile(
-                              p: p,
-                              currency: currency,
-                              trackStock: trackStock,
-                              canEdit: canEdit,
-                              onOpen: () => _openEditor(p),
-                            ),
-                          );
-                        },
-                      )
-                    : ListView.separated(
-                        // Clears the extended FAB, which otherwise sits on
-                        // top of the last row's overflow menu.
-                        padding: const EdgeInsets.only(bottom: 88),
-                        itemCount: products.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, i) {
-                          final p = products[i];
-                          return _ProductTile(
-                            p: p,
-                            currency: currency,
-                            trackStock: trackStock,
-                            canEdit: canEdit,
-                            onOpen: () => _openEditor(p),
-                          );
-                        },
-                      ),
+              loading: () => const AppLoadingView(),
+              error: (e, _) => ErrorRetryView(
+                message: l.commonUnexpectedError,
+                onRetry: () => ref.invalidate(productsStreamProvider),
               ),
-            ],
-          );
-        },
+              data: (_) {
+                if (products.isEmpty) {
+                  final searching = ref
+                      .read(inventorySearchProvider)
+                      .trim()
+                      .isNotEmpty;
+                  return EmptyStateView(
+                    icon: searching
+                        ? Icons.search_off
+                        : Icons.inventory_2_outlined,
+                    title: searching ? l.inventoryNoResults : l.inventoryEmpty,
+                  );
+                }
+                return Column(
+                  children: [
+                    if (trackStock && lowCount > 0)
+                      _LowStockBanner(count: lowCount),
+                    Expanded(
+                      child: isMediumPlus(context)
+                          ? GridView.builder(
+                              padding: const EdgeInsets.all(AppTheme.space3),
+                              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                                // **Not** the old 300. `maxCrossAxisExtent` is a
+                                // ceiling, not a target: the delegate takes
+                                // `ceil(width / extent)` columns and divides evenly,
+                                // so 300 on an 820pt iPad produced three ~235pt
+                                // cards — and a card that narrow leaves ~70pt for
+                                // the name once the thumbnail, stock pill and menu
+                                // have taken their fixed widths, which shredded
+                                // every Myanmar product name into two clipped
+                                // fragments and wrapped "300 ကျပ်" onto two lines.
+                                // (Seen on a real iPad, not reasoned about: the old
+                                // 300 was equally broken, the thumbnail just made
+                                // it visible.) 440 forces two ~360pt cards on this
+                                // iPad and never divides below ~300pt on anything
+                                // wider.
+                                maxCrossAxisExtent: 440,
+                                mainAxisSpacing: AppTheme.space3,
+                                crossAxisSpacing: AppTheme.space3,
+                                // A fixed row height derived from the type scale
+                                // beats `childAspectRatio`, which ties the row's
+                                // height to how many columns happened to fit and
+                                // therefore breaks at exactly one window width.
+                                mainAxisExtent: _gridTileHeight(context),
+                              ),
+                              itemCount: products.length,
+                              itemBuilder: (context, i) {
+                                final p = products[i];
+                                return Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  child: _ProductTile(
+                                    p: p,
+                                    currency: currency,
+                                    trackStock: trackStock,
+                                    canEdit: canEdit,
+                                    onOpen: () => _openEditor(p),
+                                  ),
+                                );
+                              },
+                            )
+                          : ListView.separated(
+                              // Clears the extended FAB, which otherwise sits on
+                              // top of the last row's overflow menu.
+                              padding: const EdgeInsets.fromLTRB(
+                                AppTheme.space3,
+                                AppTheme.space2,
+                                AppTheme.space3,
+                                88,
+                              ),
+                              itemCount: products.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: AppTheme.space2),
+                              itemBuilder: (context, i) {
+                                final p = products[i];
+                                return Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  child: _ProductTile(
+                                    p: p,
+                                    currency: currency,
+                                    trackStock: trackStock,
+                                    canEdit: canEdit,
+                                    onOpen: () => _openEditor(p),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -356,7 +377,8 @@ class _ProductTile extends ConsumerWidget {
   final bool canEdit;
   final VoidCallback onOpen;
 
-  void _adjustStock(BuildContext context, WidgetRef ref) => showStockAdjustDialog(
+  void _adjustStock(BuildContext context, WidgetRef ref) =>
+      showStockAdjustDialog(
         context,
         ref,
         productId: p.product.id,
@@ -365,16 +387,16 @@ class _ProductTile extends ConsumerWidget {
       );
 
   void _printLabel(BuildContext context, WidgetRef ref) => showLabelPrintDialog(
-        context,
-        ref,
-        data: LabelData(
-          name: p.product.name,
-          // Always the ASCII 'Ks' so it prints cleanly via native text
-          // commands.
-          priceText: Money(p.product.salePrice).withSymbol('Ks'),
-          barcode: labelBarcodeFor(p.product),
-        ),
-      );
+    context,
+    ref,
+    data: LabelData(
+      name: p.product.name,
+      // Always the ASCII 'Ks' so it prints cleanly via native text
+      // commands.
+      priceText: Money(p.product.salePrice).withSymbol('Ks'),
+      barcode: labelBarcodeFor(p.product),
+    ),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -386,7 +408,11 @@ class _ProductTile extends ConsumerWidget {
       onTap: canEdit ? onOpen : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppTheme.space4, AppTheme.space2, AppTheme.space2, AppTheme.space2),
+          AppTheme.space4,
+          AppTheme.space2,
+          AppTheme.space2,
+          AppTheme.space2,
+        ),
         child: Row(
           children: [
             ProductThumb(
@@ -489,15 +515,17 @@ class _StockBadge extends StatelessWidget {
     final (Color bg, Color fg) = quantity <= 0
         ? (colors.dangerSurface, colors.danger)
         : low
-            ? (colors.warningSurface, colors.warning)
-            : (scheme.surfaceContainerHigh, scheme.onSurfaceVariant);
+        ? (colors.warningSurface, colors.warning)
+        : (scheme.surfaceContainerHigh, scheme.onSurfaceVariant);
 
     final pill = Container(
       // A floor wide enough for three digits so single- and triple-digit
       // counts share one right edge down the list.
       constraints: const BoxConstraints(minWidth: 48),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.space3, vertical: AppTheme.space1),
+        horizontal: AppTheme.space3,
+        vertical: AppTheme.space1,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(AppTheme.radiusFull),
@@ -506,9 +534,9 @@ class _StockBadge extends StatelessWidget {
         '$quantity',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: fg,
-              fontFeatures: AppTheme.tabularFigures,
-            ),
+          color: fg,
+          fontFeatures: AppTheme.tabularFigures,
+        ),
       ),
     );
 
@@ -555,7 +583,9 @@ class _LowStockBanner extends StatelessWidget {
       width: double.infinity,
       color: colors.warningSurface,
       padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.space4, vertical: AppTheme.space3),
+        horizontal: AppTheme.space4,
+        vertical: AppTheme.space3,
+      ),
       child: Row(
         children: [
           Icon(Icons.warning_amber, size: 20, color: colors.warning),
@@ -563,10 +593,9 @@ class _LowStockBanner extends StatelessWidget {
           Expanded(
             child: Text(
               '${l.inventoryLowStock}: $count',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: colors.warning),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.warning),
             ),
           ),
         ],

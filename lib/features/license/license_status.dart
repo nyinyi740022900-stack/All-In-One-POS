@@ -14,7 +14,8 @@ enum LicenseStatusKind {
   /// Expired but inside the offline grace window — still fully usable.
   grace,
 
-  /// Past grace — read-only (can view, cannot finalize sales).
+  /// Past grace — paid plan has lapsed. Selling stays allowed (the shop
+  /// auto-downgrades to Free); Premium features stay locked until renewal.
   expired,
 }
 
@@ -37,18 +38,19 @@ class LicenseStatus {
 
   static const none = LicenseStatus(kind: LicenseStatusKind.none);
 
-  /// Sales can be finalized only while active or in grace.
-  bool get canSell =>
-      kind == LicenseStatusKind.active || kind == LicenseStatusKind.grace;
+  /// Sales stay allowed for any activated shop, including a lapsed paid
+  /// license (Free-plan downgrade). Only [none] — not activated yet —
+  /// blocks checkout.
+  bool get canSell => kind != LicenseStatusKind.none;
 
   bool get isReadOnly => !canSell;
 }
 
 /// Computes the effective status.
 ///
-/// - active:  `now <= expiresAt`
+/// - active:  `now <= expiresAt` (or any Free plan)
 /// - grace:   `expiresAt < now <= expiresAt + graceDays`
-/// - expired: beyond grace
+/// - expired: beyond grace — still [canSell]; Premium is locked until renewal
 /// - none:    not activated / no expiry
 LicenseStatus computeLicenseStatus({
   required DateTime? expiresAt,

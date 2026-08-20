@@ -18,6 +18,7 @@ import '../sell/barcode_scanner_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import '../support/support_providers.dart';
+import '../support/viber_launch.dart';
 import 'license_providers.dart';
 import 'license_status.dart';
 
@@ -229,18 +230,17 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     );
   }
 
-  /// Premium renew/upgrade is Support-only (no in-app KBZPay/WavePay/proof) —
-  /// store billing compliance: digital unlock must not solicit external pay
-  /// inside the binary.
-  Future<void> _contactSupportForPremium() {
+  /// Opens a Viber chat with the admin-configured Support number.
+  Future<void> _contactSupportForPremium() async {
     final l = AppLocalizations.of(context);
-    final hasAccount = ref.read(hasRealAccountSessionProvider);
-    return _contactSupport(
-      title: l.licenseContactSupportTitle,
-      body: hasAccount
-          ? l.licensePremiumContactHintOnline
-          : l.licensePremiumContactHint,
-    );
+    final viber = ref.read(vendorConfigProvider).valueOrNull?.supportViber;
+    if (viber == null || viber.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.licenseTrialViberMissing)));
+      return;
+    }
+    await openSupportViber(context, number: viber);
   }
 
   Future<void> _contactSupport({
@@ -256,11 +256,11 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       );
       return;
     }
+    final opened = await launchViberChat(viber);
+    if (opened || !mounted) return;
     await Clipboard.setData(ClipboardData(text: viber));
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(content: Text('${l.copied}: Viber · $viber')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l.supportViberOpenFailed)));
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -295,9 +295,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     try {
       shopName = (await ref.read(shopProfileProvider.future)).name;
     } catch (_) {}
+    var deviceId = lic?.deviceId ?? '';
+    if (deviceId.isEmpty) {
+      deviceId = ref.read(deviceIdProvider).valueOrNull ?? '';
+    }
     final uri = Uri.https('allinonepos-shop.vercel.app', '/renew', {
       if (shopName != null && shopName.isNotEmpty) 'name': shopName,
-      if (lic != null && lic.deviceId.isNotEmpty) 'device_id': lic.deviceId,
+      if (deviceId.isNotEmpty) 'device_id': deviceId,
       if (email != null && email.isNotEmpty) 'email': email,
     });
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -324,8 +328,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         msg = l.licenseRateLimited;
       } else if (result.errorCode == 'network_error') {
         msg = l.commonNetworkError;
+      } else if (result.errorCode == 'not_activated') {
+        msg = l.accountNotActivated;
+      } else if (result.errorCode == 'not_found') {
+        msg = l.licenseRenewNotFound;
       } else {
-        msg = l.licenseActivateFailed; // auth
+        msg = l.commonUnexpectedError;
       }
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     } finally {
@@ -383,45 +391,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
           if (hasAccount) const _AccountEmailTile() else const _RefIdTile(),
           const SizedBox(height: AppTheme.space4),
           if (status.canSell) ...[
-            FilledButton.icon(
-              onPressed: _busy ? null : _contactSupportForPremium,
-              icon: Icon(
-                state.license?.plan == LicensePlan.free
-                    ? Icons.workspace_premium_outlined
-                    : Icons.autorenew,
-              ),
-              label: Text(
-                state.license?.plan == LicensePlan.free
-                    ? l.premiumUpgradeCta
-                    : l.licenseRenew,
-              ),
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(
-              hasAccount
-                  ? l.licensePremiumContactHintOnline
-                  : l.licensePremiumContactHint,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (hasAccount) ...[
-              const SizedBox(height: AppTheme.space1),
-              Text(
-                l.licenseOnlineApplyHint,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
-            const SizedBox(height: AppTheme.space2),
-            OutlinedButton.icon(
-              onPressed: _openRenewPage,
-              icon: const Icon(Icons.open_in_new),
-              label: Text(l.licensePayOnline),
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(
-              l.licensePayOnlineHint,
-              style: Theme.of(context).textTheme.bodySmall,
+            _PurchasePaths(
+              busy: _busy,
+              hasAccount: hasAccount,
+              showCheckRenewal: state.license?.plan != LicensePlan.free,
+              onPayOnline: _openRenewPage,
+              onContactViber: _contactSupportForPremium,
+              onCheckRenewal: _refresh,
             ),
             // Free-plan try-Premium on-ramp: self-serve for a no-account
             // device (start_trial action, one trial per device_id
@@ -430,7 +406,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
             // for an account with real billing history would fragment its
             // data rather than help it.
             if (state.license?.plan == LicensePlan.free) ...[
-              const SizedBox(height: AppTheme.space2),
+              const SizedBox(height: AppTheme.space4),
               if (!hasAccount) ...[
                 FilledButton.icon(
                   onPressed: _busy ? null : _startSelfServeTrial,
@@ -485,26 +461,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 ..._buildKeyEntryFields(l),
               ],
             ],
-            // Nothing to check/deactivate for the Free plan — there's no key
-            // or subscription behind it, just a local marker.
+            // Nothing to deactivate for the Free plan — there's no key or
+            // subscription behind it, just a local marker.
             if (state.license?.plan != LicensePlan.free) ...[
-              const SizedBox(height: AppTheme.space2),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _refresh,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-                label: Text(l.licenseCheckRenewal),
-              ),
-              const SizedBox(height: AppTheme.space1),
-              Text(
-                hasAccount ? l.licenseRenewHintOnline : l.licenseRenewHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
               if (!hasAccount) ...[
                 const SizedBox(height: AppTheme.space2),
                 TextButton.icon(
@@ -514,7 +473,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.space4),
+                    horizontal: AppTheme.space4,
+                  ),
                   child: Text(
                     l.licenseFixConnectionHint,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -538,39 +498,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               _DevicesSection(hasAccount: hasAccount),
             ],
           ] else if (hasAccount) ...[
-            // Real account without canSell: recover via Support on the
-            // account — never push key typing as the primary path.
-            Text(
-              l.licenseContactSupportTitle,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(
-              l.licensePremiumContactHintOnline,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(
-              l.licenseOnlineApplyHint,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppTheme.space3),
-            FilledButton.icon(
-              onPressed: _busy ? null : _contactSupportForPremium,
-              icon: const Icon(Icons.support_agent),
-              label: Text(l.licenseContactSupportTitle),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            OutlinedButton.icon(
-              onPressed: _openRenewPage,
-              icon: const Icon(Icons.open_in_new),
-              label: Text(l.licensePayOnline),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _refresh,
-              icon: const Icon(Icons.refresh),
-              label: Text(l.licenseCheckRenewal),
+            // Real account without canSell: recover via website or Viber —
+            // never push key typing as the primary path.
+            _PurchasePaths(
+              busy: _busy,
+              hasAccount: true,
+              showCheckRenewal: true,
+              onPayOnline: _openRenewPage,
+              onContactViber: _contactSupportForPremium,
+              onCheckRenewal: _refresh,
             ),
           ] else ...[
             Text(
@@ -607,20 +543,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const SizedBox(height: AppTheme.space5),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              Text(
-                l.licenseNoKeyTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppTheme.space1),
-              Text(
-                l.licenseNoKeyHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppTheme.space3),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _contactSupportForPremium,
-                icon: const Icon(Icons.support_agent),
-                label: Text(l.licenseContactSupportTitle),
+              _PurchasePaths(
+                busy: _busy,
+                hasAccount: false,
+                showCheckRenewal: false,
+                onPayOnline: _openRenewPage,
+                onContactViber: _contactSupportForPremium,
+                onCheckRenewal: _refresh,
               ),
             ],
           ],
@@ -661,5 +590,4 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       ),
     ];
   }
-
 }

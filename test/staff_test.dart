@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
-import 'package:mm_pos/features/license/license_model.dart';
-import 'package:mm_pos/features/license/license_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 
@@ -292,34 +290,8 @@ void main() {
   });
 
   group('showStaffModeSectionProvider', () {
-    ShopDevice bound(String id) => ShopDevice(
-      key: 'K-$id',
-      deviceId: id,
-      status: 'active',
-      lastVerifiedAt: null,
-      createdAt: DateTime(2026),
-    );
-
-    test('hidden for an owner on a single/no-backend device', () async {
-      // No backend in the test env, so shopDevicesProvider resolves to [].
-      await container.read(shopDevicesProvider.future);
-      expect(container.read(showStaffModeSectionProvider), isFalse);
-    });
-
-    test('shown once a shop has 2+ devices', () async {
-      final multi = ProviderContainer(
-        overrides: [
-          settingsRepositoryProvider.overrideWithValue(settings),
-          databaseProvider.overrideWithValue(db),
-          shopIdProvider.overrideWith((ref) => 'shop-1'),
-          shopDevicesProvider.overrideWith(
-            (ref) async => [bound('d1'), bound('d2')],
-          ),
-        ],
-      );
-      addTearDown(multi.dispose);
-      await multi.read(shopDevicesProvider.future);
-      expect(multi.read(showStaffModeSectionProvider), isTrue);
+    test('shown for an unsigned owner even on a single/no-backend device', () {
+      expect(container.read(showStaffModeSectionProvider), isTrue);
     });
 
     test(
@@ -329,9 +301,28 @@ void main() {
         // staffRoleProvider is a Drift watch() stream — give its event a tick
         // to reach the provider before reading the derived value.
         await container.read(staffRoleProvider.future);
-        await container.read(shopDevicesProvider.future);
         expect(container.read(showStaffModeSectionProvider), isTrue);
       },
     );
+  });
+
+  test('ownerPinIsSetProvider follows the active shop', () async {
+    final scoped = ProviderContainer(
+      overrides: [
+        settingsRepositoryProvider.overrideWithValue(settings),
+        databaseProvider.overrideWithValue(db),
+      ],
+    );
+    addTearDown(scoped.dispose);
+
+    scoped.read(shopIdProvider.notifier).state = 'shop-a';
+    await scoped.read(staffControllerProvider).setPin('1234');
+    expect(await scoped.read(ownerPinIsSetProvider.future), isTrue);
+
+    scoped.read(shopIdProvider.notifier).state = 'shop-b';
+    expect(await scoped.read(ownerPinIsSetProvider.future), isFalse);
+
+    scoped.read(shopIdProvider.notifier).state = 'shop-a';
+    expect(await scoped.read(ownerPinIsSetProvider.future), isTrue);
   });
 }

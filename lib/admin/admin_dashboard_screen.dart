@@ -1,18 +1,41 @@
+import 'dart:math' as math;
+
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/money.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
+import '../features/support/viber_launch.dart';
 import 'admin_api.dart';
-part 'admin_dashboard_widgets.dart';
+import 'admin_stats.dart';
 
-enum _ManageByCodeAction { extend, reset, offline }
+part 'admin_dashboard_widgets.dart';
+part 'admin_shell.dart';
+part 'admin_overview.dart';
+part 'admin_shop_hub.dart';
+part 'admin_licensing.dart';
+
+enum _AdminSection {
+  dashboard,
+  inbox,
+  shops,
+  payments,
+  licensing,
+  referrals,
+  settings,
+}
 
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen(
-      {super.key, required this.api, required this.onSignedOut});
+  const AdminDashboardScreen({
+    super.key,
+    required this.api,
+    required this.onSignedOut,
+  });
   final AdminApi api;
   final VoidCallback onSignedOut;
 
@@ -30,6 +53,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Map<String, String>? _config;
   String? _error;
   bool _loading = false;
+  bool _didPickLanding = false;
+
+  _AdminSection _section = _AdminSection.dashboard;
+  AdminShopFilter _shopFilter = AdminShopFilter.all;
+  String? _selectedShopId;
 
   @override
   void initState() {
@@ -43,10 +71,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _error = null;
     });
     try {
-      // All 7 calls are independent reads (none depends on another's
-      // result) — parallelize instead of 7 sequential round-trips, so a
-      // slow connection doesn't leave the tab showing stale data for
-      // several seconds after an action's success snackbar already fired.
       final results = await Future.wait<dynamic>([
         widget.api.listLicenses(),
         widget.api.listRequests(),
@@ -57,14 +81,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         widget.api.getConfig(),
       ]);
       if (!mounted) return;
+      final requests = results[1] as List<Map<String, dynamic>>;
+      final pending = requests.where((r) => r['status'] == 'pending').length;
       setState(() {
         _licenses = results[0] as List<Map<String, dynamic>>;
-        _requests = results[1] as List<Map<String, dynamic>>;
+        _requests = requests;
         _events = results[2] as List<Map<String, dynamic>>;
         _referrals = results[3] as List<Map<String, dynamic>>;
         _commissions = results[4] as List<Map<String, dynamic>>;
         _shops = results[5] as List<Map<String, dynamic>>;
         _config = results[6] as Map<String, String>;
+        if (!_didPickLanding) {
+          _didPickLanding = true;
+          if (pending > 0) _section = _AdminSection.inbox;
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -74,118 +104,212 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  AdminStats get _stats => AdminStats.from(
+    shops: _shops ?? const [],
+    requests: _requests ?? const [],
+    now: DateTime.now(),
+  );
+
+  void _go(
+    _AdminSection section, {
+    AdminShopFilter? shopFilter,
+    String? shopId,
+  }) {
+    setState(() {
+      _section = section;
+      if (shopFilter != null) _shopFilter = shopFilter;
+      if (section == _AdminSection.shops) {
+        if (shopFilter != null) {
+          _selectedShopId = shopId;
+        } else if (shopId != null) {
+          _selectedShopId = shopId;
+        }
+      } else {
+        _selectedShopId = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pendingRequests =
-        (_requests ?? []).where((r) => r['status'] == 'pending').length;
-    return DefaultTabController(
-      length: 6,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('All In One POS Admin'),
-          bottom: TabBar(isScrollable: true, tabs: [
-            Tab(text: 'Licenses (${_licenses?.length ?? 0})'),
-            Tab(text: 'Requests ($pendingRequests)'),
-            Tab(text: 'History (${_events?.length ?? 0})'),
-            Tab(text: 'Referrals (${_referrals?.length ?? 0})'),
-            Tab(text: 'Shops (${_shops?.length ?? 0})'),
-            const Tab(text: 'Config'),
-          ]),
-          actions: [
-            // Grouped into one labeled menu rather than three bare icon
-            // buttons: none of `more_time`/`phonelink_erase`/`offline_bolt`
-            // reads clearly on sight, and tooltips never show on a touch
-            // tap — a menu with text labels is legible without guessing,
-            // and "Reset device binding" (a real, if reversible, action)
-            // no longer sits one misclick away from "Extend."
-            PopupMenuButton<_ManageByCodeAction>(
-              tooltip: 'Manage by code',
-              icon: const Icon(Icons.dialpad),
-              onSelected: (action) => switch (action) {
-                _ManageByCodeAction.extend => _extendByCode(),
-                _ManageByCodeAction.reset => _resetDevice(),
-                _ManageByCodeAction.offline => _generateOffline(),
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: _ManageByCodeAction.extend,
-                  child: Text('Extend by App Reference ID or Email'),
-                ),
-                PopupMenuItem(
-                  value: _ManageByCodeAction.reset,
-                  child: Text('Reset device binding'),
-                ),
-                PopupMenuItem(
-                  value: _ManageByCodeAction.offline,
-                  child: Text('Generate offline code'),
-                ),
-              ],
-            ),
-            IconButton(
-              tooltip: 'Reload',
-              icon: const Icon(Icons.refresh),
-              onPressed: _loading ? null : _reload,
-            ),
-            IconButton(
-              tooltip: 'Sign out',
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                try {
-                  await widget.api.signOut();
-                  widget.onSignedOut();
-                } catch (e) {
-                  _snack(_adminErrorMessage(e));
-                }
-              },
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _generateKey,
-          icon: const Icon(Icons.add),
-          label: const Text('Generate key'),
-        ),
-        body: Column(
-          children: [
-            // Distinct from the initial-load spinner below: shown on top of
-            // already-loaded data during a background reload, so a refresh
-            // in flight after an action's success snackbar doesn't look
-            // like the action silently did nothing.
-            if (_loading && _licenses != null)
-              const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: _error != null
+    final pending = _stats.pendingCount;
+    final loaded = _licenses != null;
+    return Scaffold(
+      body: Column(
+        children: [
+          if (_loading && loaded) const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: _AdminShell(
+              section: _section,
+              pendingCount: pending,
+              onSelect: (s) => _go(
+                s,
+                shopFilter: s == _AdminSection.shops
+                    ? AdminShopFilter.all
+                    : null,
+              ),
+              title: _titleFor(_section, pending),
+              onReload: _loading ? null : _reload,
+              onSignOut: _signOut,
+              body: _error != null
                   ? _ErrorView(message: _error!, onRetry: _reload)
-                  : _loading && _licenses == null
-                      ? const Center(child: CircularProgressIndicator())
-                      : TabBarView(children: [
-                          _LicensesTab(rows: _licenses ?? const []),
-                          _RequestsTab(
-                            rows: _requests ?? const [],
-                            onConfirm: _confirmPayment,
-                            onDecline: _declineRequest,
-                          ),
-                          _HistoryTab(rows: _events ?? const []),
-                          _ReferralsTab(
-                            commissions: _commissions ?? const [],
-                            referrals: _referrals ?? const [],
-                            onApplyCredit: _applyCredit,
-                          ),
-                          _ShopsTab(
-                            rows: _shops ?? const [],
-                            onGenerateKey: (shopId) =>
-                                _generateKey(initialShopId: shopId),
-                          ),
-                          _ConfigTab(
-                            initial: _config ?? const {},
-                            onSave: _saveConfig,
-                          ),
-                        ]),
+                  : _loading && !loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : _page(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _titleFor(_AdminSection section, int pending) => switch (section) {
+    _AdminSection.dashboard => 'Dashboard',
+    _AdminSection.inbox => pending == 0 ? 'Inbox' : 'Inbox ($pending)',
+    _AdminSection.shops => 'Shops',
+    _AdminSection.payments => 'Payments',
+    _AdminSection.licensing => 'Licensing',
+    _AdminSection.referrals => 'Referrals',
+    _AdminSection.settings => 'Settings',
+  };
+
+  Widget _page() {
+    final shops = _shops ?? const [];
+    final licenses = _licenses ?? const [];
+    final requests = _requests ?? const [];
+    switch (_section) {
+      case _AdminSection.dashboard:
+        return _OverviewPage(
+          stats: _stats,
+          pending: requests.where((r) => r['status'] == 'pending').toList(),
+          onOpenInbox: () => _go(_AdminSection.inbox),
+          onOpenShops: (filter) => _go(_AdminSection.shops, shopFilter: filter),
+          onOpenPayments: () => _go(_AdminSection.payments),
+        );
+      case _AdminSection.inbox:
+        return _RequestsTab(
+          rows: requests,
+          pendingOnly: true,
+          onConfirm: _confirmPayment,
+          onDecline: _declineRequest,
+        );
+      case _AdminSection.shops:
+        return _ShopHubPage(
+          shops: shops,
+          licenses: licenses,
+          requests: requests,
+          filter: _shopFilter,
+          selectedShopId: _selectedShopId,
+          supportViber: _config?['support.viber'] ?? '',
+          onFilter: (f) => setState(() => _shopFilter = f),
+          onSelectShop: (id) => setState(() => _selectedShopId = id),
+          onExtendEmail: (shop) =>
+              _extend(byEmail: true, initial: '${shop['email'] ?? ''}'),
+          onExtendDevice: (_, deviceId) =>
+              _extend(byEmail: false, initial: deviceId),
+          onResetDevice: _resetDevice,
+          onOffline: (shop) => _generateOffline(shop: shop),
+          onGenerateKey: (shopId) => _generateKey(initialShopId: shopId),
+          onViber: _openViber,
+          onResetPassword: _resetPassword,
+          onUnlink: _unlinkAccount,
+          onRestore: _restoreAccount,
+        );
+      case _AdminSection.payments:
+        return _PaymentsPage(
+          requests: requests,
+          events: _events ?? const [],
+          onConfirm: _confirmPayment,
+          onDecline: _declineRequest,
+        );
+      case _AdminSection.licensing:
+        return _LicensingPage(
+          onExtendEmail: () => _extend(byEmail: true),
+          onExtendDevice: () => _extend(byEmail: false),
+          onOpenShops: () => _go(_AdminSection.shops),
+        );
+      case _AdminSection.referrals:
+        return _ReferralsTab(
+          commissions: _commissions ?? const [],
+          referrals: _referrals ?? const [],
+          onApplyCredit: _applyCredit,
+        );
+      case _AdminSection.settings:
+        return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);
+    }
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await widget.api.signOut();
+      widget.onSignedOut();
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  Future<void> _openViber(String number) async {
+    final opened = await launchViberChat(number);
+    if (opened) return;
+    await Clipboard.setData(ClipboardData(text: number));
+    _snack("Viber isn't installed — number copied.");
+  }
+
+  Future<void> _extend({required bool byEmail, String? initial}) async {
+    final result = await showDialog<(String, int)>(
+      context: context,
+      builder: (_) =>
+          _ExtendIdentifierDialog(byEmail: byEmail, initial: initial),
+    );
+    if (result == null) return;
+    final identifier = result.$1;
+    final months = result.$2;
+    Map<String, dynamic>? shop = byEmail
+        ? findShopByEmail(_shops ?? const [], identifier)
+        : findShopByDevice(
+            _shops ?? const [],
+            _licenses ?? const [],
+            identifier,
+          );
+    try {
+      shop ??= await widget.api.lookupShop(
+        email: byEmail ? identifier : null,
+        deviceId: byEmail ? null : identifier,
+      );
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+      return;
+    }
+    final preview = Map<String, dynamic>.from(shop);
+    if (preview['devices'] is! List) {
+      preview['devices'] = shopDevices(shop, _licenses ?? const []);
+    }
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ExtendPreviewDialog(
+        shop: preview,
+        months: months,
+        byEmail: byEmail,
+        identifier: identifier,
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final outcome = await widget.api.extendLicense(
+        email: byEmail ? identifier : null,
+        deviceId: byEmail ? null : identifier,
+        months: months,
+      );
+      _snack(
+        outcome.created
+            ? 'No license existed — created one, expires ${outcome.expiresAt}'
+            : 'Extended to ${outcome.expiresAt}',
+      );
+      _reload();
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
   }
 
   Future<void> _generateKey({String? initialShopId}) async {
@@ -202,37 +326,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         months: result.months,
       );
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('License key created'),
-          content: SelectableText(key,
-              style: const TextStyle(
-                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: key));
-                Navigator.pop(context);
-              },
-              child: const Text('Copy & close'),
-            ),
-          ],
-        ),
-      );
+      await _showCopyDialog('License key created', key);
       _reload();
     } on LicenseAlreadyExistsException {
-      _snack('This shop already has a license — use Extend instead of '
-          'Generate key.');
+      _snack(
+        'This shop already has a license — use Extend instead of '
+        'Generate key.',
+      );
     } catch (e) {
       _snack(_adminErrorMessage(e));
     }
   }
 
-  Future<void> _generateOffline() async {
+  Future<void> _generateOffline({Map<String, dynamic>? shop}) async {
     final req = await showDialog<_OfflineRequest>(
       context: context,
-      builder: (_) => const _OfflineCodeDialog(),
+      builder: (_) => _OfflineCodeDialog(
+        initialShopId: shop == null ? null : '${shop['shop_id']}',
+        initialShopName: shop == null
+            ? null
+            : '${shop['shop_name'] ?? shop['shop_id']}',
+      ),
     );
     if (req == null) return;
     try {
@@ -254,9 +368,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                    'Scan on the customer\'s phone (License screen > License key '
-                    'field > scan icon) instead of retyping the code below.',
-                    style: Theme.of(context).textTheme.bodySmall),
+                  'Scan on the customer\'s phone (License screen > License key '
+                  'field > scan icon) instead of retyping the code below.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: AppTheme.space4),
                 BarcodeWidget(
                   barcode: Barcode.qrCode(),
@@ -265,9 +380,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   height: 220,
                 ),
                 const SizedBox(height: AppTheme.space4),
-                SelectableText(token,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace')),
+                SelectableText(
+                  token,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                ),
               ],
             ),
           ),
@@ -287,14 +405,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _resetDevice() async {
+  Future<void> _resetDevice([String? initial]) async {
     final code = await showDialog<String>(
       context: context,
-      builder: (_) => const _CodePromptDialog(
+      builder: (_) => _CodePromptDialog(
         title: 'Reset device binding',
         label: 'App Reference ID / Shop Code',
         action: 'Reset',
-        warning: 'This clears the device bound to this license — any '
+        initial: initial,
+        warning:
+            'This clears the device bound to this license — any '
             'device can then re-activate it. Use this when a shop lost or '
             'replaced their phone; it does not affect their expiry date.',
       ),
@@ -302,30 +422,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (code == null || code.isEmpty) return;
     try {
       final cleared = await widget.api.resetDevice(deviceId: code);
-      _snack(cleared > 0
-          ? 'Device binding cleared — user can re-activate.'
-          : 'No license bound to that code.');
-      _reload();
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
-    }
-  }
-
-  Future<void> _extendByCode() async {
-    final result = await showDialog<(String?, String?, int)>(
-      context: context,
-      builder: (_) => const _ExtendByCodeDialog(),
-    );
-    if (result == null) return;
-    try {
-      final outcome = await widget.api.extendLicense(
-        deviceId: result.$1,
-        email: result.$2,
-        months: result.$3,
+      _snack(
+        cleared > 0
+            ? 'Device binding cleared — user can re-activate.'
+            : 'No license bound to that code.',
       );
-      _snack(outcome.created
-          ? 'No license existed — created one, expires ${outcome.expiresAt}'
-          : 'Extended to ${outcome.expiresAt}');
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
@@ -339,24 +440,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         months: request['months'] is int ? request['months'] as int : null,
       );
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Payment confirmed'),
-          content: SelectableText(key,
-              style: const TextStyle(
-                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: key));
-                Navigator.pop(context);
-              },
-              child: const Text('Copy & close'),
-            ),
-          ],
-        ),
-      );
+      await _showCopyDialog('Payment confirmed', key);
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
@@ -408,26 +492,125 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _resetPassword(String email) async {
+    try {
+      final link = await widget.api.resetPassword(email: email);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Password reset link'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Send this to $email on Viber. It is not emailed — paste '
+                  'it into the chat.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppTheme.space3),
+                SelectableText(link, style: const TextStyle(fontSize: 13)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: link));
+                Navigator.pop(context);
+              },
+              child: const Text('Copy & close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  Future<void> _unlinkAccount(String userId, String email) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unlink this login?'),
+        content: Text(
+          '$email will no longer belong to this shop. They can still '
+          'exist as an Auth user, but they cannot open this shop until '
+          'invited again. The last owner of a shop cannot be unlinked.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.of(ctx).danger,
+            ),
+            child: const Text('Unlink'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await widget.api.unlinkAccount(userId: userId);
+      _snack('Unlinked $email.');
+      _reload();
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  Future<void> _restoreAccount(String userId, String email) async {
+    try {
+      await widget.api.restoreAccount(userId: userId);
+      _snack('Restored access for $email.');
+      _reload();
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  Future<void> _showCopyDialog(String title, String value) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: SelectableText(
+          value,
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              Navigator.pop(context);
+            },
+            child: const Text('Copy & close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 }
 
-/// Maps the raw error codes thrown by [AdminApi._throwIfError] (and the
-/// backend's `admin` Edge Function — see `supabase/functions/admin/index.ts`)
-/// to real sentences, the same way `admin_login_screen.dart`'s `_signIn`
-/// already does for sign-in. This console has no l10n pipeline (English
-/// only, by design), so these stay literal strings. Falls back to the raw
-/// exception text only for a code this function doesn't recognize, so an
-/// unmapped backend error is still visible (for support/debugging) rather
-/// than silently swallowed.
 String _adminErrorMessage(Object e) {
   final raw = e.toString();
-  // AdminApi._throwIfError throws Exception('$code') or
-  // Exception('$code: $detail') — pull just the leading code token.
   final code = RegExp(r'^Exception: (\w+)').firstMatch(raw)?.group(1);
   switch (code) {
     case 'not_found':
@@ -446,6 +629,10 @@ String _adminErrorMessage(Object e) {
       return 'Something went wrong on the server — try again.';
     case 'license_already_exists':
       return 'This shop already has a license.';
+    case 'last_owner':
+      return 'Cannot unlink the last owner of this shop.';
+    case 'cannot_unlink_admin':
+      return 'Admin accounts cannot be unlinked from here.';
   }
   final lower = raw.toLowerCase();
   if (lower.contains('socketexception') ||
@@ -457,3 +644,4 @@ String _adminErrorMessage(Object e) {
   return raw.replaceFirst('Exception: ', '');
 }
 
+String _ks(int kyat) => Money(kyat).withSymbol('Ks');

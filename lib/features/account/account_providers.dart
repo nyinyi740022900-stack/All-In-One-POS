@@ -4,6 +4,11 @@ import '../../core/providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'account_repository.dart';
+import 'saved_login_store.dart';
+
+final savedLoginStoreProvider = Provider<SavedLoginStore>((ref) {
+  return SavedLoginStore();
+});
 
 final accountRepositoryProvider = Provider<AccountRepository>((ref) {
   return AccountRepository(

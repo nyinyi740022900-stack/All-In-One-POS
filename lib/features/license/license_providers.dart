@@ -61,10 +61,14 @@ class LicenseState {
 
   /// Premium (as opposed to the always-on Free plan) — gates the optional
   /// modules in `PremiumGate`, distinct from [canSell] which only gates
-  /// finalizing a sale and is `true` for the Free plan too (see
-  /// `computeLicenseStatus`'s `LicensePlan.free` special case).
-  bool get isPremium =>
-      license != null && license!.plan != LicensePlan.free && status.canSell;
+  /// finalizing a sale. A lapsed paid license is still sellable but not
+  /// Premium (`kind == expired`) until it renews or auto-downgrades to Free.
+  bool get isPremium {
+    final lic = license;
+    if (lic == null || lic.plan == LicensePlan.free) return false;
+    return status.kind == LicenseStatusKind.active ||
+        status.kind == LicenseStatusKind.grace;
+  }
 }
 
 /// Convenience read of [LicenseState.isPremium], same shape as
@@ -89,10 +93,15 @@ class LicenseController extends StateNotifier<LicenseState> {
 
   final Ref _ref;
   Timer? _reverifyTimer;
+  Future<void>? _loadFuture;
 
   LicenseRepository get _repo => _ref.read(licenseRepositoryProvider);
 
-  Future<void> load() async {
+  /// Shared with checkout so a sale cannot race `loading: true` /
+  /// `canSell == false` (status defaults to [LicenseStatus.none]).
+  Future<void> load() => _loadFuture ??= _loadBody();
+
+  Future<void> _loadBody() async {
     final lic = await _repo.current();
     _apply(lic);
     // Pick up admin extensions/revocations without user action: re-verify once
@@ -242,10 +251,30 @@ class LicenseController extends StateNotifier<LicenseState> {
     return result;
   }
 
-  /// Re-checks the license online (same key + device) to pick up an extension
-  /// an admin approved after a renewal payment. Reuses `activate`, which
-  /// returns the current server-side expiry. No-op offline / with no license.
+  /// Re-checks the license online to pick up an extension an admin approved
+  /// after a renewal payment. Signed-in shops pull by account (no key).
+  /// Key-activated devices reuse `activate`. No-op offline / with no license
+  /// and no account session.
   Future<ActivationResult> refreshOnline() async {
+    final user = _repo.hasEmailSession;
+    if (user) {
+      final pulled = await _repo.refreshAccountLicense();
+      if (pulled.ok) {
+        _apply(pulled.license);
+        return pulled;
+      }
+      final lic = state.license;
+      final placeholder = lic != null &&
+          (lic.key == LicenseRepository.trialKey ||
+              lic.key == LicenseRepository.freeKey ||
+              lic.key == LicenseRepository.signupKey ||
+              lic.key.startsWith('MMPOS1.'));
+      if (lic == null || placeholder) {
+        return pulled;
+      }
+      // Real device key still on disk — fall through to activate(key),
+      // including when the account pull failed (old Edge Function, etc.).
+    }
     final lic = state.license;
     if (lic == null) {
       return const ActivationResult.failure('not_activated');

@@ -58,195 +58,193 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     int owedOf(Sale s) => owedBySale[s.id] ?? (s.total - s.paid);
 
     final body = sales.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorRetryView(
-          message: l.commonUnexpectedError,
-          onRetry: () => ref.invalidate(salesStreamProvider),
-        ),
-        data: (all) {
-          var list = filter == InvoiceFilter.credit
-              ? all.where((s) => owedOf(s) > 0).toList()
-              : all;
-          if (query.isNotEmpty) {
-            list = list
-                .where(
-                  (s) =>
-                      s.invoiceNo.toLowerCase().contains(query) ||
-                      (s.customerName?.toLowerCase().contains(query) ??
-                          false) ||
-                      (s.customerPhone?.toLowerCase().contains(query) ??
-                          false) ||
-                      (s.note?.toLowerCase().contains(query) ?? false),
-                )
-                .toList();
-          }
+      loading: () => const AppLoadingView(),
+      error: (e, _) => ErrorRetryView(
+        message: l.commonUnexpectedError,
+        onRetry: () => ref.invalidate(salesStreamProvider),
+      ),
+      data: (all) {
+        var list = filter == InvoiceFilter.credit
+            ? all.where((s) => owedOf(s) > 0).toList()
+            : all;
+        if (query.isNotEmpty) {
+          list = list
+              .where(
+                (s) =>
+                    s.invoiceNo.toLowerCase().contains(query) ||
+                    (s.customerName?.toLowerCase().contains(query) ?? false) ||
+                    (s.customerPhone?.toLowerCase().contains(query) ?? false) ||
+                    (s.note?.toLowerCase().contains(query) ?? false),
+              )
+              .toList();
+        }
 
-          if (_selectedSaleId != null &&
-              !list.any((s) => s.id == _selectedSaleId)) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _selectedSaleId = null);
-            });
-          }
+        if (_selectedSaleId != null &&
+            !list.any((s) => s.id == _selectedSaleId)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _selectedSaleId = null);
+          });
+        }
 
-          void openSale(Sale s) {
-            if (split) {
-              setState(() => _selectedSaleId = s.id);
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => InvoiceDetailScreen(saleId: s.id),
-                ),
-              );
-            }
-          }
-
-          final listPane = Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.space3,
-                  AppTheme.space3,
-                  AppTheme.space3,
-                  0,
-                ),
-                child: _InvoiceSearchField(onScan: _scan),
+        void openSale(Sale s) {
+          if (split) {
+            setState(() => _selectedSaleId = s.id);
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => InvoiceDetailScreen(saleId: s.id),
               ),
-              Padding(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: Text(l.invoiceFilterAll),
-                      selected: filter == InvoiceFilter.all,
-                      onSelected: (_) =>
-                          ref.read(invoiceFilterProvider.notifier).state =
-                              InvoiceFilter.all,
-                    ),
-                    const SizedBox(width: AppTheme.space2),
-                    ChoiceChip(
-                      label: Text(l.invoiceFilterCredit),
-                      selected: filter == InvoiceFilter.credit,
-                      onSelected: (_) =>
-                          ref.read(invoiceFilterProvider.notifier).state =
-                              InvoiceFilter.credit,
-                    ),
-                  ],
-                ),
+            );
+          }
+        }
+
+        final listPane = Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.space3,
+                AppTheme.space3,
+                AppTheme.space3,
+                0,
               ),
-              Expanded(
-                child: list.isEmpty
-                    ? EmptyStateView(
-                        icon: Icons.receipt_long_outlined,
-                        title: l.invoicesEmpty,
-                      )
-                    : ListView.separated(
-                        itemCount: list.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, i) {
-                          final s = list[i];
-                          final owed = owedOf(s);
-                          final isCredit = owed > 0;
-                          final isRefund = s.refundOfSaleId != null;
-                          final customerBits = [
-                            if (s.customerName?.trim().isNotEmpty ?? false)
-                              s.customerName!.trim(),
-                            if (s.customerPhone?.trim().isNotEmpty ?? false)
-                              s.customerPhone!.trim(),
-                          ].join(' · ');
-                          final selected = split && s.id == _selectedSaleId;
-                          return ListTile(
-                            selected: selected,
-                            selectedTileColor: Theme.of(
-                              context,
-                            ).colorScheme.secondaryContainer,
-                            title: Row(
-                              children: [
-                                Flexible(child: Text(s.invoiceNo)),
-                                if (isRefund) ...[
-                                  const SizedBox(width: AppTheme.space2),
-                                  StatusPill(
-                                    label: l.invoiceRefunded,
-                                    tone: StatusTone.critical,
-                                  ),
-                                ] else if (isCredit) ...[
-                                  const SizedBox(width: AppTheme.space2),
-                                  // `isCredit` is `owed > 0`, so this pill
-                                  // only ever marks an *outstanding* credit
-                                  // sale — money still to collect, which is
-                                  // routine follow-up (attention), not an
-                                  // error (the old badge painted it
-                                  // `colorScheme.error` red).
-                                  StatusPill(
-                                    label: l.paymentCredit,
-                                    tone: StatusTone.attention,
-                                  ),
-                                ],
-                              ],
-                            ),
-                            subtitle: Text(
-                              customerBits.isNotEmpty
-                                  ? '${DateFormat('yyyy-MM-dd HH:mm').format(s.finalizedAt)} · $customerBits'
-                                  : DateFormat(
-                                      'yyyy-MM-dd HH:mm',
-                                    ).format(s.finalizedAt),
-                            ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  Money(s.total).withSymbol(currency),
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+              child: _InvoiceSearchField(onScan: _scan),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space3),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: Text(l.invoiceFilterAll),
+                    selected: filter == InvoiceFilter.all,
+                    onSelected: (_) =>
+                        ref.read(invoiceFilterProvider.notifier).state =
+                            InvoiceFilter.all,
+                  ),
+                  const SizedBox(width: AppTheme.space2),
+                  ChoiceChip(
+                    label: Text(l.invoiceFilterCredit),
+                    selected: filter == InvoiceFilter.credit,
+                    onSelected: (_) =>
+                        ref.read(invoiceFilterProvider.notifier).state =
+                            InvoiceFilter.credit,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: list.isEmpty
+                  ? EmptyStateView(
+                      icon: Icons.receipt_long_outlined,
+                      title: l.invoicesEmpty,
+                    )
+                  : ListView.separated(
+                      itemCount: list.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final s = list[i];
+                        final owed = owedOf(s);
+                        final isCredit = owed > 0;
+                        final isRefund = s.refundOfSaleId != null;
+                        final customerBits = [
+                          if (s.customerName?.trim().isNotEmpty ?? false)
+                            s.customerName!.trim(),
+                          if (s.customerPhone?.trim().isNotEmpty ?? false)
+                            s.customerPhone!.trim(),
+                        ].join(' · ');
+                        final selected = split && s.id == _selectedSaleId;
+                        return ListTile(
+                          selected: selected,
+                          selectedTileColor: Theme.of(
+                            context,
+                          ).colorScheme.secondaryContainer,
+                          title: Row(
+                            children: [
+                              Flexible(child: Text(s.invoiceNo)),
+                              if (isRefund) ...[
+                                const SizedBox(width: AppTheme.space2),
+                                StatusPill(
+                                  label: l.invoiceRefunded,
+                                  tone: StatusTone.critical,
                                 ),
-                                if (isCredit && owed > 0)
-                                  Text(
-                                    l.invoiceOwed(
-                                      Money(owed).withSymbol(currency),
-                                    ),
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                        ),
-                                  ),
+                              ] else if (isCredit) ...[
+                                const SizedBox(width: AppTheme.space2),
+                                // `isCredit` is `owed > 0`, so this pill
+                                // only ever marks an *outstanding* credit
+                                // sale — money still to collect, which is
+                                // routine follow-up (attention), not an
+                                // error (the old badge painted it
+                                // `colorScheme.error` red).
+                                StatusPill(
+                                  label: l.paymentCredit,
+                                  tone: StatusTone.attention,
+                                ),
                               ],
-                            ),
-                            onTap: () => openSale(s),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
+                            ],
+                          ),
+                          subtitle: Text(
+                            customerBits.isNotEmpty
+                                ? '${DateFormat('yyyy-MM-dd HH:mm').format(s.finalizedAt)} · $customerBits'
+                                : DateFormat(
+                                    'yyyy-MM-dd HH:mm',
+                                  ).format(s.finalizedAt),
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                Money(s.total).withSymbol(currency),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              if (isCredit && owed > 0)
+                                Text(
+                                  l.invoiceOwed(
+                                    Money(owed).withSymbol(currency),
+                                  ),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                      ),
+                                ),
+                            ],
+                          ),
+                          onTap: () => openSale(s),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
 
-          if (!split) return listPane;
+        if (!split) return listPane;
 
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: widthClassOf(context) == AppWidthClass.expanded ? 42 : 45,
-                child: listPane,
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(
-                flex: widthClassOf(context) == AppWidthClass.expanded ? 58 : 55,
-                child: _selectedSaleId == null
-                    ? EmptyStateView(
-                        icon: Icons.receipt_outlined,
-                        title: l.invoicesSelectHint,
-                      )
-                    : InvoiceDetailScreen(
-                        saleId: _selectedSaleId!,
-                        embedded: true,
-                      ),
-              ),
-            ],
-          );
-        },
-      );
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: widthClassOf(context) == AppWidthClass.expanded ? 42 : 45,
+              child: listPane,
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              flex: widthClassOf(context) == AppWidthClass.expanded ? 58 : 55,
+              child: _selectedSaleId == null
+                  ? EmptyStateView(
+                      icon: Icons.receipt_outlined,
+                      title: l.invoicesSelectHint,
+                    )
+                  : InvoiceDetailScreen(
+                      saleId: _selectedSaleId!,
+                      embedded: true,
+                    ),
+            ),
+          ],
+        );
+      },
+    );
 
     if (widget.embedded) return body;
 
@@ -267,7 +265,6 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     );
   }
 }
-
 
 class _InvoiceSearchField extends ConsumerStatefulWidget {
   const _InvoiceSearchField({required this.onScan});

@@ -27,11 +27,24 @@ class LicenseRepository {
   /// `'FREE-TRIAL'` string instead of this value.
   static const String trialKey = 'TRIAL';
 
+  /// Local placeholder `CachedLicense.key` for a shop minted by email
+  /// signup — same convention [AccountRepository.signupShop] already writes.
+  static const String signupKey = 'SIGNUP';
+
   /// Local placeholder `CachedLicense.key` for the Free plan — see
   /// [startFreePlan] / [downgradeToFree]. Same rationale as [trialKey].
   static const String freeKey = 'FREE';
 
   final SettingsRepository _settings;
+
+  bool get hasEmailSession {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      return user != null && (user.email ?? '').isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<CachedLicense?> current() async {
     final raw = await _settings.licenseJson();
@@ -242,6 +255,57 @@ class LicenseRepository {
       // here already follows.
       final verified = await refreshSessionAndVerifyClaim(lic.shopId);
       if (!verified) return const ActivationResult.failure('network_error');
+      return ActivationResult.success(await _save(lic));
+    } catch (_) {
+      return const ActivationResult.failure('network_error');
+    }
+  }
+
+  /// Pulls this signed-in shop's current plan + expiry (admin extend) onto
+  /// the device without a typed key — Settings → Check for renewal.
+  Future<ActivationResult> refreshAccountLicense() async {
+    if (!Env.hasBackend) return const ActivationResult.failure('no_backend');
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || (user.email ?? '').isEmpty) {
+      return const ActivationResult.failure('not_activated');
+    }
+    final deviceId = await _settings.deviceId();
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'activate',
+        body: {'action': 'refresh_account_license', 'device_id': deviceId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['ok'] != true) {
+        return ActivationResult.failure(
+          (data['error'] as String?) ?? 'server_error',
+        );
+      }
+      final expiresAtRaw = data['expires_at'] as String?;
+      if (expiresAtRaw == null) {
+        return const ActivationResult.failure('server_error');
+      }
+      final now = DateTime.now();
+      final current = await this.current();
+      final key = (data['key'] as String?)?.trim();
+      final lic = CachedLicense(
+        key: (key != null && key.isNotEmpty)
+            ? key
+            : (current?.key ?? signupKey),
+        shopId: data['shop_id'] as String,
+        plan: _planFrom(data['plan'] as String? ?? 'monthly'),
+        expiresAt: DateTime.parse(expiresAtRaw),
+        activatedAt: DateTime.tryParse(
+              data['activated_at'] as String? ?? '',
+            ) ??
+            current?.activatedAt ??
+            now,
+        lastVerifiedAt: now,
+        deviceId: deviceId,
+        realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
+        tier: data['tier'] as String? ?? current?.tier ?? 'online',
+      );
+      await refreshSessionAndVerifyClaim(lic.shopId);
       return ActivationResult.success(await _save(lic));
     } catch (_) {
       return const ActivationResult.failure('network_error');

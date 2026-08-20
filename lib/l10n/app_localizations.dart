@@ -1835,7 +1835,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" (once you have 2+ devices) — hand this device to a staff member, or switch back to Owner with your PIN.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -2765,7 +2765,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseReadOnly.
   ///
   /// In en, this message translates to:
-  /// **'License expired — read-only. Renew to keep selling.'**
+  /// **'This shop isn\'t set up yet, so you can\'t complete a sale.'**
   String get licenseReadOnly;
 
   /// No description provided for @licenseInvalidKey.
@@ -3044,6 +3044,12 @@ abstract class AppLocalizations {
   /// **'Sign In'**
   String get settingsSignIn;
 
+  /// No description provided for @settingsOwnerModeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone is in Staff mode. Switch to Owner in Owner Tools (below) to use this.'**
+  String get settingsOwnerModeRequired;
+
   /// No description provided for @onboardingContinueFree.
   ///
   /// In en, this message translates to:
@@ -3170,6 +3176,18 @@ abstract class AppLocalizations {
   /// **'Renew / Extend'**
   String get licenseRenew;
 
+  /// No description provided for @licenseBuyOrRenewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy or renew Premium'**
+  String get licenseBuyOrRenewTitle;
+
+  /// No description provided for @licenseBuyOrRenewIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Two ways — our website, or Viber. Payment is not collected in this app.'**
+  String get licenseBuyOrRenewIntro;
+
   /// No description provided for @licensePayOnline.
   ///
   /// In en, this message translates to:
@@ -3179,8 +3197,38 @@ abstract class AppLocalizations {
   /// No description provided for @licensePayOnlineHint.
   ///
   /// In en, this message translates to:
-  /// **'Submit a payment request on our website — no account needed.'**
+  /// **'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.'**
   String get licensePayOnlineHint;
+
+  /// No description provided for @licenseContactViber.
+  ///
+  /// In en, this message translates to:
+  /// **'Message on Viber'**
+  String get licenseContactViber;
+
+  /// No description provided for @licenseContactViberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens Viber. Send your App Reference ID (above) and ask to buy or renew Premium.'**
+  String get licenseContactViberHint;
+
+  /// No description provided for @licenseContactViberHintOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens Viber. Send the email you use to sign in and ask to buy or renew Premium.'**
+  String get licenseContactViberHintOnline;
+
+  /// No description provided for @supportViberOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open Viber. The number was copied — paste it in Viber.'**
+  String get supportViberOpenFailed;
+
+  /// No description provided for @licenseAfterPaymentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already paid or asked Support?'**
+  String get licenseAfterPaymentTitle;
 
   /// No description provided for @licenseExpiringSoon.
   ///
@@ -3307,6 +3355,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).'**
   String get licenseRenewHintOnline;
+
+  /// No description provided for @licenseRenewNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No subscription found for this account yet. After Support extends it, try Check for renewal again.'**
+  String get licenseRenewNotFound;
 
   /// No description provided for @deviceSectionTitle.
   ///
@@ -5258,6 +5312,12 @@ abstract class AppLocalizations {
   /// **'Password'**
   String get accountPassword;
 
+  /// No description provided for @accountPasswordRememberedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Remembered on this phone after you sign in.'**
+  String get accountPasswordRememberedHint;
+
   /// No description provided for @accountConfirmPassword.
   ///
   /// In en, this message translates to:
@@ -5444,6 +5504,12 @@ abstract class AppLocalizations {
   /// **'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.'**
   String get accountSignOutConfirmBody;
 
+  /// No description provided for @accountSignOutConfirmBodyStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need your email and password again to sign back in.'**
+  String get accountSignOutConfirmBodyStaff;
+
   /// No description provided for @accountSignInWipeConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -5515,6 +5581,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This phone only: lock the device with an owner PIN (works offline too).'**
   String get staffModeSubtitle;
+
+  /// No description provided for @staffPinEmailOwnerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set or change the owner PIN here. Switch this phone to Staff when handing it to a cashier — email login is not required. The same PIN unlocks Owner and confirms who opens the shop each day.'**
+  String get staffPinEmailOwnerHint;
 
   /// No description provided for @staffAccountsInvite.
   ///

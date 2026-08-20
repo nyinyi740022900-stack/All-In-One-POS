@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import 'account_providers.dart';
 import 'auth_password_field.dart';
 import 'password_recovery_watcher.dart';
 
@@ -45,12 +46,22 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth
-          .updateUser(UserAttributes(password: _password.text));
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _password.text),
+      );
+      final email =
+          Supabase.instance.client.auth.currentUser?.email?.trim() ?? '';
+      if (email.isNotEmpty) {
+        await ref.read(savedLoginStoreProvider).save(
+              email: email,
+              password: _password.text,
+            );
+      }
       if (!mounted) return;
       ref.read(passwordRecoveryPendingProvider.notifier).state = false;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.accountResetPasswordSuccess)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.accountResetPasswordSuccess)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = l.accountActionFailed);
@@ -90,6 +101,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           ],
           const SizedBox(height: AppTheme.space5),
           FilledButton(
+            style: AppTheme.authFilledButtonStyle(),
             onPressed: _busy ? null : _save,
             child: Text(l.accountResetPasswordSave),
           ),

@@ -7,6 +7,11 @@
 //
 // Actions (POST body { action, ... }):
 //   list_licenses                         -> licenses (newest first)
+//   list_shops                            -> one row per shop (devices + accounts)
+//   lookup_shop { email|device_id|shop_id } -> one shop (fresh, for extend preview)
+//   reset_password { email }              -> { action_link } recovery URL
+//   unlink_account { user_id }            -> clear shop_id on a staff (or extra owner)
+//   restore_account { user_id }           -> lift a revoke_staff ban
 //   create_license { shop_id, plan, months } -> { key }
 //
 // Deploy: supabase functions deploy admin
@@ -46,6 +51,10 @@ Deno.serve(async (req) => {
     email?: string;
     request_id?: string;
     reason?: string;
+    user_id?: string;
+    id?: string;
+    // deno-lint-ignore no-explicit-any
+    carrier?: any;
     config?: Record<string, string>;
   };
   try {
@@ -77,19 +86,33 @@ Deno.serve(async (req) => {
       // auth_shop_id() reads for RLS).
       const { data: licRows, error: licErr } = await admin
         .from("licenses")
-        .select("shop_id, shop_name, plan, status, expires_at, tier, updated_at")
+        .select(
+          "key, shop_id, shop_name, plan, status, expires_at, tier, device_id, updated_at",
+        )
         .eq("is_deleted", false)
         .order("updated_at", { ascending: false })
         .limit(2000);
       if (licErr) return json({ error: "server_error" }, 500);
 
       // A shop can have multiple device rows (0025_multi_device_licensing.sql)
-      // — keep the most recently updated one per shop_id. licRows is already
-      // updated_at-desc, so "first seen" is "most recent."
+      // — keep the most recently updated one per shop_id for the shop-level
+      // status/plan/expiry, and retain every row under `devices` so the
+      // admin 360 view can reset a specific phone.
       // deno-lint-ignore no-explicit-any
       const shops = new Map<string, any>();
+      // deno-lint-ignore no-explicit-any
+      const devicesByShop = new Map<string, any[]>();
       for (const r of (licRows ?? [])) {
         if (!shops.has(r.shop_id)) shops.set(r.shop_id, { ...r });
+        const list = devicesByShop.get(r.shop_id) ?? [];
+        list.push({
+          key: r.key,
+          device_id: r.device_id ?? null,
+          status: r.status,
+          expires_at: r.expires_at,
+          plan: r.plan,
+        });
+        devicesByShop.set(r.shop_id, list);
       }
 
       const { data: storeRows } = await admin
@@ -126,6 +149,8 @@ Deno.serve(async (req) => {
       // own limit(2000) / handleListStaff's limit(1000) in activate/index.ts,
       // not built to paginate an unbounded user base).
       const emailByShop = new Map<string, { email: string; role: string | null }>();
+      // deno-lint-ignore no-explicit-any
+      const accountsByShop = new Map<string, any[]>();
       const { data: userPage } = await admin.auth.admin.listUsers({
         page: 1,
         perPage: 2000,
@@ -136,6 +161,19 @@ Deno.serve(async (req) => {
         const sid = meta?.shop_id as string | undefined;
         if (!sid) continue;
         const role = (meta?.role as string | undefined) ?? null;
+        if (role === "admin") continue;
+        const bannedUntil = u.banned_until as string | null | undefined;
+        const banned = !!bannedUntil && new Date(bannedUntil) > new Date();
+        const account = {
+          id: u.id,
+          email: u.email ?? "",
+          role,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          banned,
+        };
+        const list = accountsByShop.get(sid) ?? [];
+        list.push(account);
+        accountsByShop.set(sid, list);
         const existing = emailByShop.get(sid);
         // Prefer the owner's email when a shop has multiple linked users
         // (owner + invited staff).
@@ -168,6 +206,7 @@ Deno.serve(async (req) => {
         const store = storeByShop.get(r.shop_id);
         const profile = profileByShop.get(r.shop_id);
         const em = emailByShop.get(r.shop_id);
+        const accounts = accountsByShop.get(r.shop_id) ?? [];
         return {
           shop_id: r.shop_id,
           shop_name: r.shop_name ?? profile?.name ?? null,
@@ -178,9 +217,195 @@ Deno.serve(async (req) => {
           phone: store?.phone ?? profile?.phone ?? null,
           address: store?.address ?? profile?.address ?? null,
           email: em?.email ?? null,
+          accounts,
+          account_count: accounts.length,
+          devices: devicesByShop.get(r.shop_id) ?? [],
         };
       });
       return json({ rows });
+    }
+
+    case "lookup_shop": {
+      const dev = (body.device_id ?? "").trim();
+      const email = (body.email ?? "").trim().toLowerCase();
+      const sidArg = (body.shop_id ?? "").trim();
+      if (!dev && !email && !sidArg) return json({ error: "bad_request" }, 400);
+
+      let shopId = sidArg || null;
+      if (!shopId && dev) {
+        const { data, error } = await admin
+          .from("licenses")
+          .select("shop_id")
+          .eq("device_id", dev)
+          .maybeSingle();
+        if (error) return json({ error: "server_error" }, 500);
+        shopId = data?.shop_id ?? null;
+      }
+      if (!shopId && email) {
+        const { data: userPage } = await admin.auth.admin.listUsers({
+          page: 1,
+          perPage: 2000,
+        });
+        // deno-lint-ignore no-explicit-any
+        const match = ((userPage?.users ?? []) as any[]).find(
+          (u) => `${u.email ?? ""}`.toLowerCase() === email,
+        );
+        const meta = match?.app_metadata as Record<string, unknown> | undefined;
+        shopId = (meta?.shop_id as string | undefined) ?? null;
+      }
+      if (!shopId) return json({ error: "not_found" }, 404);
+
+      const { data: licRows, error: licErr } = await admin
+        .from("licenses")
+        .select(
+          "key, shop_id, shop_name, plan, status, expires_at, tier, device_id, updated_at",
+        )
+        .eq("shop_id", shopId)
+        .eq("is_deleted", false)
+        .order("updated_at", { ascending: false });
+      if (licErr) return json({ error: "server_error" }, 500);
+      const primary = (licRows ?? [])[0] ?? null;
+
+      const { data: store } = await admin
+        .from("storefronts")
+        .select("phone, address")
+        .eq("shop_id", shopId)
+        .maybeSingle();
+      const { data: profile } = await admin
+        .from("shop_profiles")
+        .select("name, phone, address")
+        .eq("shop_id", shopId)
+        .eq("is_deleted", false)
+        .maybeSingle();
+
+      const { data: userPage } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 2000,
+      });
+      // deno-lint-ignore no-explicit-any
+      const accounts = ((userPage?.users ?? []) as any[])
+        .filter((u) => {
+          const meta = u.app_metadata as Record<string, unknown> | null;
+          return (meta?.shop_id as string | undefined) === shopId &&
+            meta?.role !== "admin";
+        })
+        .map((u) => {
+          const meta = u.app_metadata as Record<string, unknown> | null;
+          const bannedUntil = u.banned_until as string | null | undefined;
+          return {
+            id: u.id,
+            email: u.email ?? "",
+            role: (meta?.role as string | undefined) ?? null,
+            last_sign_in_at: u.last_sign_in_at ?? null,
+            banned: !!bannedUntil && new Date(bannedUntil) > new Date(),
+          };
+        });
+      const owner = accounts.find((a) => a.role === "owner") ?? accounts[0];
+
+      if (!primary && accounts.length === 0) {
+        return json({ error: "not_found" }, 404);
+      }
+
+      return json({
+        shop: {
+          shop_id: shopId,
+          shop_name: primary?.shop_name ?? profile?.name ?? null,
+          plan: primary?.plan ?? null,
+          status: primary?.status ?? "no_license",
+          expires_at: primary?.expires_at ?? null,
+          tier: primary?.tier ?? null,
+          phone: store?.phone ?? profile?.phone ?? null,
+          address: store?.address ?? profile?.address ?? null,
+          email: owner?.email ?? null,
+          accounts,
+          account_count: accounts.length,
+          devices: (licRows ?? []).map((r) => ({
+            key: r.key,
+            device_id: r.device_id ?? null,
+            status: r.status,
+            expires_at: r.expires_at,
+            plan: r.plan,
+          })),
+        },
+      });
+    }
+
+    case "reset_password": {
+      // Recovery link the admin copies onto Viber — this product does not
+      // send transactional email (signup is email_confirm: true for the
+      // same reason: SMTP would strand a shop on opening day).
+      const email = (body.email ?? "").trim().toLowerCase();
+      if (!email) return json({ error: "bad_request" }, 400);
+      const { data, error } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+      });
+      if (error) {
+        const msg = error.message ?? "";
+        if (msg.toLowerCase().includes("not found") ||
+          msg.toLowerCase().includes("unable to find")) {
+          return json({ error: "not_found" }, 404);
+        }
+        return json({ error: "server_error", detail: msg }, 500);
+      }
+      const props = (data as { properties?: { action_link?: string } })
+        ?.properties;
+      const link = props?.action_link ?? "";
+      if (!link) return json({ error: "server_error" }, 500);
+      return json({ email, action_link: link });
+    }
+
+    case "unlink_account": {
+      const userId = (body.user_id ?? "").trim();
+      if (!userId) return json({ error: "bad_request" }, 400);
+      const { data: target, error: getErr } = await admin.auth.admin
+        .getUserById(userId);
+      if (getErr || !target?.user) return json({ error: "not_found" }, 404);
+      const meta =
+        (target.user.app_metadata as Record<string, unknown> | null) ?? {};
+      const role = (meta.role as string | undefined) ?? "";
+      const shopId = (meta.shop_id as string | undefined) ?? "";
+      if (role === "admin") return json({ error: "cannot_unlink_admin" }, 403);
+      if (!shopId) return json({ error: "not_found" }, 404);
+
+      if (role === "owner") {
+        const { data: userPage } = await admin.auth.admin.listUsers({
+          page: 1,
+          perPage: 2000,
+        });
+        // deno-lint-ignore no-explicit-any
+        const owners = ((userPage?.users ?? []) as any[]).filter((u) => {
+          const m = u.app_metadata as Record<string, unknown> | null;
+          return (m?.shop_id as string | undefined) === shopId &&
+            m?.role === "owner" &&
+            u.id !== userId;
+        });
+        if (owners.length === 0) return json({ error: "last_owner" }, 400);
+      }
+
+      const { error } = await admin.auth.admin.updateUserById(userId, {
+        app_metadata: { ...meta, shop_id: "", role: "" },
+      });
+      if (error) {
+        return json({ error: "server_error", detail: error.message }, 500);
+      }
+      return json({ ok: true });
+    }
+
+    case "restore_account": {
+      // Inverse of activate's revoke_staff (ban_duration ~100 years).
+      const userId = (body.user_id ?? "").trim();
+      if (!userId) return json({ error: "bad_request" }, 400);
+      const { data: target, error: getErr } = await admin.auth.admin
+        .getUserById(userId);
+      if (getErr || !target?.user) return json({ error: "not_found" }, 404);
+      const { error } = await admin.auth.admin.updateUserById(userId, {
+        ban_duration: "none",
+      });
+      if (error) {
+        return json({ error: "server_error", detail: error.message }, 500);
+      }
+      return json({ ok: true });
     }
 
     case "extend_license": {
