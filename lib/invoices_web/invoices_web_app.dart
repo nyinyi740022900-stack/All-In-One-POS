@@ -7,12 +7,11 @@ import 'activate_screen.dart';
 import 'invoice_list_screen.dart';
 import 'invoices_web_session.dart';
 
-/// Root of the Invoices Web companion (Phase 1 "computer" surface) — a
-/// read-only, print-focused view of a shop's own invoices for a desktop
-/// browser, reusing the same device-activation flow (and device-slot fee
-/// model) as adding another phone. Not for checkout/inventory — that's a
-/// much larger Phase 2 (needs a web-compatible local DB, USB/network
-/// printing, etc.), deliberately out of scope here.
+/// Root of the Invoices Web companion — a read-only, print-focused view of
+/// a shop's own invoices for a desktop or tablet browser. Online shops
+/// sign in with the same email as the phone (no extra device slot). Offline
+/// shops can paste a device key. Free plan without an account uses the
+/// Windows POS app's Continue Free instead — this page has no local DB.
 ///
 /// **This is the shop owner's own tool** (viewing their own invoices,
 /// authenticated via the same device-activation flow as the mobile app) —

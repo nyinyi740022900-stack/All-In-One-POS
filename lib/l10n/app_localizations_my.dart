@@ -1800,7 +1800,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deviceAddOnlineHint =>
-      'ဖုန်းနောက်တစ်လုံး သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → အကောင့်)။ Online mode မှာ license-key QR မသုံးပါ။';
+      'ဖုန်းနောက်တစ်လုံး၊ ဒီ computer ရဲ့ invoice စာမျက်နှာ၊ သို့မဟုတ် Windows POS သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → အကောင့်)။ Online mode မှာ license-key QR မသုံးပါ။';
 
   @override
   String get premiumFeatureBodyOnline =>
@@ -1878,20 +1878,33 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ QR ကို scan ဖတ်ပြီး activate လုပ်တဲ့အခါ Staff mode ကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။';
 
   @override
-  String get invWebActivateTitle => 'ဒီ Computer ကို Activate လုပ်ပါ';
+  String get invWebActivateTitle => 'ဒီ computer မှာ invoice ကြည့်ရန်';
 
   @override
   String get invWebActivateHint =>
-      'ဖုန်းပေါ်မှာ: Settings → License → Add device ကနေ key ရယူပြီး ဒီနေရာမှာ ကူးထည့်ပါ။';
+      'ဖုန်းမှာ သုံးနေတဲ့ ဆိုင် email နဲ့ sign in ဝင်ပါ။ Account မရှိတဲ့ Free plan: Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ — key မလိုပါ။';
+
+  @override
+  String get invWebFreeHint =>
+      'Free plan က activate မလိုပါ။ ဒီ computer မှာ ရောင်းချင်ရင် Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ။ ဒီစာမျက်နှာက ဆိုင် account နဲ့ sign in ဝင်မှ invoice ပြပါတယ်။';
+
+  @override
+  String get invWebKeySection => 'Offline device key ရှိပါသလား?';
 
   @override
   String get invWebKeyLabel => 'Device key';
 
   @override
-  String get invWebActivateButton => 'Activate';
+  String get invWebActivateButton => 'Key နဲ့ Activate';
 
   @override
   String get invWebErrorEmptyKey => 'Device key ထည့်ပါ';
+
+  @override
+  String get invWebErrorEmptySignIn => 'Email နဲ့ password ထည့်ပါ';
+
+  @override
+  String get invWebErrorNotAShop => 'ဒီ login က ဆိုင် account မဟုတ်ပါ';
 
   @override
   String get invWebErrorInvalidKey =>

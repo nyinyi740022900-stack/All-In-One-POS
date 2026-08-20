@@ -28,8 +28,36 @@ class InvoicesWebSession {
   static String? get shopId => Supabase
       .instance.client.auth.currentSession?.user.appMetadata['shop_id'] as String?;
 
+  /// Sign in with the shop's existing email/password. Does **not** consume a
+  /// device-key slot — same session as Settings → Account on the phone.
+  /// Returns an error code, or null on success.
+  static Future<String?> signIn(String email, String password) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty || password.isEmpty) return 'empty_signin';
+    try {
+      final res = await Supabase.instance.client.auth.signInWithPassword(
+        email: trimmed,
+        password: password,
+      );
+      final shopId = res.user?.appMetadata['shop_id'] as String?;
+      if (shopId == null || shopId.isEmpty) {
+        await Supabase.instance.client.auth.signOut();
+        return 'not_a_shop';
+      }
+      return null;
+    } on AuthException catch (e) {
+      final m = e.message.toLowerCase();
+      if (m.contains('invalid') || m.contains('credential')) {
+        return 'wrong_password';
+      }
+      return 'network_error';
+    } catch (_) {
+      return 'network_error';
+    }
+  }
+
   /// Activates this browser with a device key generated from the shop's
-  /// phone (Settings > License > Add device). Returns an error code on
+  /// phone (Settings > License > Add a device, Offline shops only).
   /// failure (`invalid_key`, `device_mismatch`, `payment_required`, etc. —
   /// the same codes the mobile app's activation flow already surfaces), or
   /// null on success.

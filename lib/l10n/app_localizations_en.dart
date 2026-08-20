@@ -1783,7 +1783,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceAddOnlineHint =>
-      'To use another phone, sign in with the same shop email and password (Settings → Account). No license-key QR is used in Online mode.';
+      'To use another phone, this computer\'s invoices page, or the Windows POS, sign in with the same shop email and password (Settings → Account). Online mode does not use a license-key QR.';
 
   @override
   String get premiumFeatureBodyOnline =>
@@ -1861,20 +1861,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Staff mode will be applied automatically when this QR is scanned to activate.';
 
   @override
-  String get invWebActivateTitle => 'Activate this computer';
+  String get invWebActivateTitle => 'Open invoices on this computer';
 
   @override
   String get invWebActivateHint =>
-      'On your phone: Settings → License → Add device, then paste the key here.';
+      'Sign in with the shop email you already use on the phone. Free plan with no account: use the Windows POS app and tap Continue Free — no key.';
+
+  @override
+  String get invWebFreeHint =>
+      'Free plan does not need activation. Sell on this computer with the Windows POS app (Continue Free). This page only shows invoices after you sign in to a shop account.';
+
+  @override
+  String get invWebKeySection => 'Have an Offline device key?';
 
   @override
   String get invWebKeyLabel => 'Device key';
 
   @override
-  String get invWebActivateButton => 'Activate';
+  String get invWebActivateButton => 'Activate with key';
 
   @override
   String get invWebErrorEmptyKey => 'Enter a device key';
+
+  @override
+  String get invWebErrorEmptySignIn => 'Enter email and password';
+
+  @override
+  String get invWebErrorNotAShop => 'That login is not a shop account';
 
   @override
   String get invWebErrorInvalidKey => 'That key isn\'t valid or has expired';

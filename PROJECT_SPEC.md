@@ -325,6 +325,8 @@ something a synthetic `flutter test` harness reproduces deterministically —
 verified instead via the same manual-emulator method that found it, per this
 project's existing convention for UI-only changes.
 
+| 2026-08-20 | 185 | **Invoices website asked to "Activate this computer" with a device key that Online shops cannot mint.** Settings → License hides **Add a device** for email accounts (they sign in on the other device instead) and for Free/trial, so the hint was a dead end. The page now signs in with the shop email/password (same as the phone). Free plan without an account is the Windows POS **Continue Free** path — this site has no local DB. Device key stays under an Offline expander. |
+
 | 2026-08-20 | 184 | **Admin dashboard tab icon was the old 32px JPEG-as-PNG, so it looked blurry on a retina display.** Browser chrome uses `web/favicon.png`; the live admin site had never been rebuilt after the geometric A mark (#183). Replaced with an SVG favicon (vector, sharp at any tab size) plus 32/64 PNG fallbacks, cache-busted `?v=184`. Login and the sidebar now show the same A mark. **Needs:** admin web redeploy. |
 
 | 2026-08-20 | 183 | **App icon: geometric forest-green A mark** (flat, one color `#0F5C3E`, no floral / circle / “i”). Owner-chosen mark replaces the ornate A+i emblem on iOS/Android/macOS/Windows/web/Play assets. True PNG (the source was JPEG-named-as-PNG, which breaks Xcode thinning). In-app `BrandHero` now paints `assets/branding/app_mark.png` tinted to the theme, instead of a storefront glyph. Home-screen icon needs a rebuild; iOS may cache the old icon until a delete-and-reinstall. |

@@ -3371,7 +3371,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceAddOnlineHint.
   ///
   /// In en, this message translates to:
-  /// **'To use another phone, sign in with the same shop email and password (Settings → Account). No license-key QR is used in Online mode.'**
+  /// **'To use another phone, this computer\'s invoices page, or the Windows POS, sign in with the same shop email and password (Settings → Account). Online mode does not use a license-key QR.'**
   String get deviceAddOnlineHint;
 
   /// No description provided for @premiumFeatureBodyOnline.
@@ -3503,14 +3503,26 @@ abstract class AppLocalizations {
   /// No description provided for @invWebActivateTitle.
   ///
   /// In en, this message translates to:
-  /// **'Activate this computer'**
+  /// **'Open invoices on this computer'**
   String get invWebActivateTitle;
 
   /// No description provided for @invWebActivateHint.
   ///
   /// In en, this message translates to:
-  /// **'On your phone: Settings → License → Add device, then paste the key here.'**
+  /// **'Sign in with the shop email you already use on the phone. Free plan with no account: use the Windows POS app and tap Continue Free — no key.'**
   String get invWebActivateHint;
+
+  /// No description provided for @invWebFreeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Free plan does not need activation. Sell on this computer with the Windows POS app (Continue Free). This page only shows invoices after you sign in to a shop account.'**
+  String get invWebFreeHint;
+
+  /// No description provided for @invWebKeySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Have an Offline device key?'**
+  String get invWebKeySection;
 
   /// No description provided for @invWebKeyLabel.
   ///
@@ -3521,7 +3533,7 @@ abstract class AppLocalizations {
   /// No description provided for @invWebActivateButton.
   ///
   /// In en, this message translates to:
-  /// **'Activate'**
+  /// **'Activate with key'**
   String get invWebActivateButton;
 
   /// No description provided for @invWebErrorEmptyKey.
@@ -3529,6 +3541,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a device key'**
   String get invWebErrorEmptyKey;
+
+  /// No description provided for @invWebErrorEmptySignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter email and password'**
+  String get invWebErrorEmptySignIn;
+
+  /// No description provided for @invWebErrorNotAShop.
+  ///
+  /// In en, this message translates to:
+  /// **'That login is not a shop account'**
+  String get invWebErrorNotAShop;
 
   /// No description provided for @invWebErrorInvalidKey.
   ///
