@@ -1059,6 +1059,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceAlreadyRefunded => 'This invoice was already refunded.';
 
   @override
+  String get invoiceCustomerName => 'Customer Name';
+
+  @override
+  String get invoicePhoneNumber => 'Phone Number';
+
+  @override
+  String get invoiceAddress => 'Address';
+
+  @override
+  String get invoiceColItem => 'Item';
+
+  @override
+  String get invoiceColQty => 'Qty';
+
+  @override
+  String get invoiceColPrice => 'Price';
+
+  @override
+  String get invoiceItemsAmount => 'Amount';
+
+  @override
+  String get invoiceAmountDue => 'Amount due';
+
+  @override
   String get salesReportTitle => 'Sales report';
 
   @override

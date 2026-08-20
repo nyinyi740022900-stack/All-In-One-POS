@@ -11,6 +11,7 @@ import 'invoices_web_app.dart';
 /// comment for why that's a separate, much larger Phase 2.
 ///   flutter run   -d chrome -t lib/invoices_web/invoices_web_main.dart --dart-define-from-file=env.local.json
 ///   flutter build web        -t lib/invoices_web/invoices_web_main.dart --dart-define-from-file=env.local.json
+/// Invoice template #186 — forest green shareable document.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Env.hasBackend) {

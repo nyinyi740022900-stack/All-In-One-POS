@@ -793,9 +793,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         InvoiceItemData(
           name: line.name,
           qty: line.qty,
+          unitPrice: line.price,
           lineTotal: line.price * line.qty,
         ),
     ],
+    paymentMethodCode: _paymentMethod,
+    footer: l.receiptThankYou,
   );
 
   Future<void> _saveInvoiceToPhotos(

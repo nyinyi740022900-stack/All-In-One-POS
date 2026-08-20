@@ -59,11 +59,16 @@ Future<void> shareOrderInvoice(
         InvoiceItemData(
           name: it.nameSnapshot,
           qty: it.qty,
+          unitPrice: it.priceSnapshot,
           lineTotal: it.lineTotal,
         ),
     ],
     deliveryFee: order.deliveryFee,
+    paid: order.paymentStatus == 'paid'
+        ? order.itemsTotal + order.deliveryFee
+        : 0,
     paymentStatus: order.paymentStatus,
+    paymentMethodCode: order.paymentMethod,
     footer: (profile.footer != null && profile.footer!.isNotEmpty)
         ? profile.footer
         : l.receiptThankYou,

@@ -47,12 +47,18 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
 
   Future<InvoiceData> _load() async {
     final client = Supabase.instance.client;
-    final sale = await client.from('sales').select().eq('id', widget.saleId).single();
-    final items = await client
-        .from('sale_items')
+    final sale = await client
+        .from('sales')
         .select()
-        .eq('sale_id', widget.saleId)
-        .eq('is_deleted', false) as List;
+        .eq('id', widget.saleId)
+        .single();
+    final items =
+        await client
+                .from('sale_items')
+                .select()
+                .eq('sale_id', widget.saleId)
+                .eq('is_deleted', false)
+            as List;
 
     // Best-effort shop identity — the storefront row is the only remotely
     // synced source of shop name/logo/phone/address (the mobile app's own
@@ -62,7 +68,58 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
 
     final paid = (sale['paid'] as num?)?.toInt() ?? 0;
     final total = (sale['total'] as num?)?.toInt() ?? 0;
-    final paymentStatus = paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
+    final paymentStatus = paid >= total
+        ? 'paid'
+        : (paid > 0 ? 'partial' : 'unpaid');
+    final methodCode = (sale['payment_method'] as String?) ?? 'cash';
+
+    String? customName;
+    const known = {
+      'cash',
+      'kbzpay',
+      'wavepay',
+      'ayapay',
+      'cbpay',
+      'credit',
+      'cod',
+      'transfer',
+    };
+    if (!known.contains(methodCode)) {
+      try {
+        final account = await client
+            .from('payment_accounts')
+            .select('name')
+            .eq('id', methodCode)
+            .maybeSingle();
+        customName = account?['name'] as String?;
+      } catch (_) {}
+    }
+
+    String? cashier;
+    final staffId = (sale['staff_id'] as String?)?.trim();
+    final deviceId = (sale['device_id'] as String?)?.trim();
+    if (staffId != null && staffId.isNotEmpty) {
+      try {
+        final staff = await client
+            .from('staff_members')
+            .select('name')
+            .eq('id', staffId)
+            .maybeSingle();
+        cashier = (staff?['name'] as String?)?.trim();
+      } catch (_) {}
+    }
+    if ((cashier == null || cashier.isEmpty) &&
+        deviceId != null &&
+        deviceId.isNotEmpty) {
+      try {
+        final label = await client
+            .from('device_labels')
+            .select('label')
+            .eq('device_id', deviceId)
+            .maybeSingle();
+        cashier = (label?['label'] as String?)?.trim();
+      } catch (_) {}
+    }
 
     return InvoiceData(
       shopName: (sf?['display_name'] as String?) ?? '',
@@ -73,22 +130,33 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       date: DateTime.parse(sale['finalized_at'] as String),
       customerName: (sale['customer_name'] as String?) ?? '',
       customerPhone: sale['customer_phone'] as String?,
+      deliveryAddress: sale['delivery_address'] as String?,
       items: items
           .map((e) => (e as Map).cast<String, dynamic>())
-          .map((m) => InvoiceItemData(
-                name: m['name_snapshot'] as String,
-                qty: (m['qty'] as num).toInt(),
-                lineTotal: (m['line_total'] as num).toInt(),
-              ))
+          .map(
+            (m) => InvoiceItemData(
+              name: m['name_snapshot'] as String,
+              qty: (m['qty'] as num).toInt(),
+              unitPrice: (m['price_snapshot'] as num?)?.toInt() ?? 0,
+              lineTotal: (m['line_total'] as num).toInt(),
+            ),
+          )
           .toList(),
+      discount: (sale['discount'] as num?)?.toInt() ?? 0,
+      paid: paid,
+      changeDue: (sale['change_due'] as num?)?.toInt() ?? 0,
       paymentStatus: paymentStatus,
+      paymentMethodCode: methodCode,
+      paymentMethodCustomName: customName,
+      cashier: cashier,
     );
   }
 
   Future<void> _downloadPdf(InvoiceData data) async {
     setState(() => _downloading = true);
     try {
-      final bytes = await buildInvoicePdf(data);
+      final l = AppLocalizations.of(context);
+      final bytes = await buildInvoicePdf(data, l);
       downloadBytes(bytes, '${data.invoiceNo}.pdf', 'application/pdf');
     } finally {
       if (mounted) setState(() => _downloading = false);

@@ -1060,6 +1060,30 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invoiceAlreadyRefunded => 'ဒီပြေစာကို ပြန်အမ်းပြီးသားဖြစ်ပါသည်။';
 
   @override
+  String get invoiceCustomerName => 'ဖောက်သည်အမည်';
+
+  @override
+  String get invoicePhoneNumber => 'ဖုန်းနံပါတ်';
+
+  @override
+  String get invoiceAddress => 'လိပ်စာ';
+
+  @override
+  String get invoiceColItem => 'ပစ္စည်း';
+
+  @override
+  String get invoiceColQty => 'ခု';
+
+  @override
+  String get invoiceColPrice => 'ဈေး';
+
+  @override
+  String get invoiceItemsAmount => 'ကုန်ကျငွေ';
+
+  @override
+  String get invoiceAmountDue => 'ပေးရန်ကျန်';
+
+  @override
   String get salesReportTitle => 'အရောင်း အစီရင်ခံစာ';
 
   @override

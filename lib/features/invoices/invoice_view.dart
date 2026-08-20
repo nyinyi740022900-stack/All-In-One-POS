@@ -10,9 +10,14 @@ import 'invoice_payment_status.dart';
 class InvoiceItemData {
   final String name;
   final int qty;
+  final int unitPrice;
   final int lineTotal;
-  const InvoiceItemData(
-      {required this.name, required this.qty, required this.lineTotal});
+  const InvoiceItemData({
+    required this.name,
+    required this.qty,
+    this.unitPrice = 0,
+    required this.lineTotal,
+  });
 }
 
 /// Everything needed to render a polished, shareable invoice image — distinct
@@ -32,7 +37,15 @@ class InvoiceData {
   final String? township;
   final List<InvoiceItemData> items;
   final int deliveryFee;
+  final int discount;
+  final int paid;
+  final int changeDue;
   final String paymentStatus; // unpaid | partial | paid
+  /// Payment-account / till code (`cash`, `kbzpay`, `transfer`, …).
+  final String? paymentMethodCode;
+  /// Display name when [paymentMethodCode] is a custom payment-account id.
+  final String? paymentMethodCustomName;
+  final String? cashier;
   final String currencySymbol;
   final String? footer;
 
@@ -43,19 +56,77 @@ class InvoiceData {
     this.shopAddress,
     required this.invoiceNo,
     required this.date,
-    required this.customerName,
+    this.customerName = '',
     this.customerPhone,
     this.deliveryAddress,
     this.township,
     required this.items,
     this.deliveryFee = 0,
+    this.discount = 0,
+    this.paid = 0,
+    this.changeDue = 0,
     this.paymentStatus = 'unpaid',
+    this.paymentMethodCode,
+    this.paymentMethodCustomName,
+    this.cashier,
     this.currencySymbol = 'Ks',
     this.footer,
   });
 
   int get itemsTotal => items.fold(0, (s, i) => s + i.lineTotal);
-  int get total => itemsTotal + deliveryFee;
+  int get total => itemsTotal - discount + deliveryFee;
+  int get amountDue {
+    final due = total - paid;
+    return due > 0 ? due : 0;
+  }
+
+  bool get hasCustomerDetails {
+    bool nonempty(String? s) => (s ?? '').trim().isNotEmpty;
+    return nonempty(customerName) ||
+        nonempty(customerPhone) ||
+        nonempty(deliveryAddress) ||
+        nonempty(township);
+  }
+
+  /// Delivery street plus township, when either is set.
+  String get formattedAddress {
+    final parts = <String>[
+      if ((deliveryAddress ?? '').trim().isNotEmpty) deliveryAddress!.trim(),
+      if ((township ?? '').trim().isNotEmpty) township!.trim(),
+    ];
+    return parts.join(', ');
+  }
+}
+
+/// Localized till / wallet name for the invoice document.
+String? invoicePaymentMethodLabel(
+  AppLocalizations l, {
+  String? code,
+  String? customName,
+}) {
+  if (code == null || code.isEmpty) {
+    final name = (customName ?? '').trim();
+    return name.isEmpty ? null : name;
+  }
+  if (code == 'transfer') return l.orderPaymentTransfer;
+  switch (code) {
+    case 'cash':
+      return l.paymentCash;
+    case 'kbzpay':
+      return l.paymentKbzPay;
+    case 'wavepay':
+      return l.paymentWavePay;
+    case 'ayapay':
+      return l.paymentAyaPay;
+    case 'cbpay':
+      return l.paymentCbPay;
+    case 'credit':
+      return l.paymentCredit;
+    case 'cod':
+      return l.paymentCod;
+  }
+  final name = (customName ?? '').trim();
+  return name.isEmpty ? code : name;
 }
 
 /// A polished, self-contained invoice card. Fixed-width so it captures
@@ -67,14 +138,24 @@ class InvoiceView extends StatelessWidget {
   final InvoiceData data;
   final double width;
 
-  static const _accent = Color(0xFF6C4AB6);
-  static const _muted = Color(0xFF8A8398);
-  static const _line = Color(0xFFEDEAF3);
+  /// Same forest green as [AppTheme] light primary (`#0F5C3E`).
+  static const _accent = Color(0xFF0F5C3E);
+  static const _muted = Color(0xFF5C6B64);
+  static const _line = Color(0xFFDCE6E0);
   static final _money = NumberFormat('#,##0', 'en_US');
   String _amt(int v) => '${_money.format(v)} ${data.currencySymbol}';
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final method = invoicePaymentMethodLabel(
+      l,
+      code: data.paymentMethodCode,
+      customName: data.paymentMethodCustomName,
+    );
+    final footer = (data.footer ?? '').trim().isNotEmpty
+        ? data.footer!.trim()
+        : l.receiptThankYou;
     return Container(
       width: width,
       decoration: BoxDecoration(
@@ -90,27 +171,29 @@ class InvoiceView extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1, color: _line),
           const SizedBox(height: 14),
-          _titleRow(context),
+          _titleRow(context, l),
           const SizedBox(height: 14),
           const Divider(height: 1, color: _line),
-          const SizedBox(height: 14),
-          _billTo(),
-          const SizedBox(height: 14),
+          if (data.hasCustomerDetails) ...[
+            const SizedBox(height: 14),
+            _customerBlock(l),
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: _line),
+          ],
+          const SizedBox(height: 10),
+          _itemsTable(l),
+          const SizedBox(height: 10),
           const Divider(height: 1, color: _line),
           const SizedBox(height: 10),
-          _itemsTable(),
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: _line),
-          const SizedBox(height: 10),
-          _totals(),
+          _totals(l, method),
           const SizedBox(height: 16),
           _barcode(),
-          if ((data.footer ?? '').isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(data.footer!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: _muted)),
-          ],
+          const SizedBox(height: 16),
+          Text(
+            footer,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: _muted),
+          ),
         ],
       ),
     );
@@ -118,41 +201,49 @@ class InvoiceView extends StatelessWidget {
 
   Widget _header() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 48,
           height: 48,
           clipBehavior: Clip.antiAlias,
           decoration: const BoxDecoration(
-            color: Color(0xFFF3F0FA),
+            color: Color(0xFFEEF5F1),
             shape: BoxShape.circle,
           ),
           child: (data.shopLogoUrl ?? '').isEmpty
               ? const Icon(Icons.storefront, color: _accent)
-              : Image.network(data.shopLogoUrl!,
+              : Image.network(
+                  data.shopLogoUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) =>
-                      const Icon(Icons.storefront, color: _accent)),
+                      const Icon(Icons.storefront, color: _accent),
+                ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(data.shopName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black)),
-              if ((data.shopPhone ?? '').isNotEmpty ||
-                  (data.shopAddress ?? '').isNotEmpty)
+              Text(
+                data.shopName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              if ((data.shopPhone ?? '').isNotEmpty)
                 Text(
-                  [data.shopPhone, data.shopAddress]
-                      .where((s) => (s ?? '').isNotEmpty)
-                      .join(' · '),
-                  maxLines: 1,
+                  data.shopPhone!,
+                  style: const TextStyle(fontSize: 11, color: _muted),
+                ),
+              if ((data.shopAddress ?? '').isNotEmpty)
+                Text(
+                  data.shopAddress!,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 11, color: _muted),
                 ),
@@ -163,19 +254,23 @@ class InvoiceView extends StatelessWidget {
     );
   }
 
-  Widget _titleRow(BuildContext context) {
+  Widget _titleRow(BuildContext context, AppLocalizations l) {
+    final cashier = (data.cashier ?? '').trim();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('INVOICE',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    color: _accent)),
+            Text(
+              l.receiptInvoice.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                color: _accent,
+              ),
+            ),
             const Spacer(),
             _paymentBadge(context),
           ],
@@ -185,101 +280,175 @@ class InvoiceView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(data.invoiceNo,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, color: Colors.black)),
-            Text(DateFormat('yyyy-MM-dd HH:mm').format(data.date),
-                style: const TextStyle(fontSize: 11, color: _muted)),
+            Text(
+              data.invoiceNo,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              DateFormat('yyyy-MM-dd HH:mm').format(data.date),
+              style: const TextStyle(fontSize: 11, color: _muted),
+            ),
           ],
         ),
+        if (cashier.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            '${l.receiptCashier}: $cashier',
+            style: const TextStyle(fontSize: 11, color: _muted),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _billTo() {
-    final lines = [
-      data.customerName,
-      if ((data.customerPhone ?? '').isNotEmpty) data.customerPhone!,
-      if ((data.deliveryAddress ?? '').isNotEmpty) data.deliveryAddress!,
-      if ((data.township ?? '').isNotEmpty) data.township!,
-    ];
+  Widget _customerBlock(AppLocalizations l) {
+    final name = data.customerName.trim();
+    final phone = (data.customerPhone ?? '').trim();
+    final address = data.formattedAddress;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('BILL TO',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                color: _muted)),
-        const SizedBox(height: 4),
-        for (final l in lines)
-          Text(l, style: const TextStyle(fontSize: 13, color: Colors.black)),
+        if (name.isNotEmpty) _labeled(l.invoiceCustomerName, name),
+        if (phone.isNotEmpty) _labeled(l.invoicePhoneNumber, phone),
+        if (address.isNotEmpty) _labeled(l.invoiceAddress, address),
       ],
     );
   }
 
-  static const _headStyle =
-      TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _muted);
+  Widget _labeled(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label - ',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _muted,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: const TextStyle(fontSize: 13, color: Colors.black),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _headStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    color: _muted,
+  );
   static const _itemStyle = TextStyle(fontSize: 13, color: Colors.black);
 
-  /// A real ruled grid (outer frame + column/row lines), not just soft
-  /// dividers between sections — the standard look a printed business
-  /// invoice is expected to have, especially once printed full-size from a
-  /// computer rather than viewed as a phone screenshot.
-  Widget _itemsTable() {
-    const cellPad = EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+  Widget _itemsTable(AppLocalizations l) {
+    const cellPad = EdgeInsets.symmetric(horizontal: 6, vertical: 6);
     return Table(
       border: TableBorder.all(color: _line),
       columnWidths: const {
-        0: FlexColumnWidth(5),
-        1: FlexColumnWidth(2),
-        2: FlexColumnWidth(3),
+        0: FlexColumnWidth(4.2),
+        1: FlexColumnWidth(1.4),
+        2: FlexColumnWidth(2.2),
+        3: FlexColumnWidth(2.4),
       },
       children: [
-        const TableRow(
-          decoration: BoxDecoration(color: Color(0xFFF7F5FB)),
+        TableRow(
+          decoration: const BoxDecoration(color: Color(0xFFF3F7F5)),
           children: [
-            Padding(padding: cellPad, child: Text('Item', style: _headStyle)),
             Padding(
-                padding: cellPad,
-                child: Text('Qty',
-                    textAlign: TextAlign.center, style: _headStyle)),
+              padding: cellPad,
+              child: Text(l.invoiceColItem, style: _headStyle),
+            ),
             Padding(
-                padding: cellPad,
-                child: Text('Total',
-                    textAlign: TextAlign.right, style: _headStyle)),
+              padding: cellPad,
+              child: Text(
+                l.invoiceColQty,
+                textAlign: TextAlign.center,
+                style: _headStyle,
+              ),
+            ),
+            Padding(
+              padding: cellPad,
+              child: Text(
+                l.invoiceColPrice,
+                textAlign: TextAlign.right,
+                style: _headStyle,
+              ),
+            ),
+            Padding(
+              padding: cellPad,
+              child: Text(
+                l.commonTotal,
+                textAlign: TextAlign.right,
+                style: _headStyle,
+              ),
+            ),
           ],
         ),
         for (final it in data.items)
           TableRow(
             children: [
               Padding(
-                  padding: cellPad,
-                  child: Text(it.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: _itemStyle)),
+                padding: cellPad,
+                child: Text(
+                  it.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: _itemStyle,
+                ),
+              ),
               Padding(
-                  padding: cellPad,
-                  child: Text('${it.qty}',
-                      textAlign: TextAlign.center, style: _itemStyle)),
+                padding: cellPad,
+                child: Text(
+                  '${it.qty}',
+                  textAlign: TextAlign.center,
+                  style: _itemStyle,
+                ),
+              ),
               Padding(
-                  padding: cellPad,
-                  child: Text(_amt(it.lineTotal),
-                      textAlign: TextAlign.right, style: _itemStyle)),
+                padding: cellPad,
+                child: Text(
+                  _amt(_unitPrice(it)),
+                  textAlign: TextAlign.right,
+                  style: _itemStyle,
+                ),
+              ),
+              Padding(
+                padding: cellPad,
+                child: Text(
+                  _amt(it.lineTotal),
+                  textAlign: TextAlign.right,
+                  style: _itemStyle,
+                ),
+              ),
             ],
           ),
       ],
     );
   }
 
-  Widget _totals() {
+  int _unitPrice(InvoiceItemData it) {
+    if (it.unitPrice != 0) return it.unitPrice;
+    if (it.qty == 0) return 0;
+    return it.lineTotal ~/ it.qty;
+  }
+
+  Widget _totals(AppLocalizations l, String? method) {
     return Column(
       children: [
-        _totalRow('Subtotal', _amt(data.itemsTotal)),
+        _totalRow(l.invoiceItemsAmount, _amt(data.itemsTotal)),
+        if (data.discount > 0)
+          _totalRow(l.sellDiscount, '-${_amt(data.discount)}'),
         if (data.deliveryFee > 0)
-          _totalRow('Delivery fee', _amt(data.deliveryFee)),
+          _totalRow(l.orderDeliveryFee, _amt(data.deliveryFee)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -290,17 +459,32 @@ class InvoiceView extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('TOTAL',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-              Text(_amt(data.total),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: _accent)),
+              Text(
+                l.commonTotal.toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                _amt(data.total),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: _accent,
+                ),
+              ),
             ],
           ),
         ),
+        if (method != null) ...[
+          const SizedBox(height: 8),
+          _totalRow(l.sellPaymentMethod, method),
+        ],
+        if (data.paid > 0) _totalRow(l.sellAmountPaid, _amt(data.paid)),
+        if (data.changeDue > 0) _totalRow(l.sellChange, _amt(data.changeDue)),
+        if (data.amountDue > 0)
+          _totalRow(l.invoiceAmountDue, _amt(data.amountDue)),
       ],
     );
   }
@@ -312,8 +496,10 @@ class InvoiceView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 13, color: _muted)),
-          Text(value,
-              style: const TextStyle(fontSize: 13, color: Colors.black)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13, color: Colors.black),
+          ),
         ],
       ),
     );
@@ -342,12 +528,11 @@ class InvoiceView extends StatelessWidget {
   /// live app's Overlay, so a shopkeeper on a dark-mode phone would otherwise
   /// send the customer a white invoice carrying a near-black badge with a
   /// pale-green label on it.
-  ///
-  /// Was `Colors.green` / `Colors.orange` / `Colors.redAccent` at 12% alpha —
-  /// three Material defaults that matched nothing else in the product.
   Widget _paymentBadge(BuildContext context) {
-    final (label, tone) =
-        invoicePaymentStatusDisplay(AppLocalizations.of(context), data.paymentStatus);
+    final (label, tone) = invoicePaymentStatusDisplay(
+      AppLocalizations.of(context),
+      data.paymentStatus,
+    );
     return StatusPill(
       label: label,
       tone: tone,

@@ -1,19 +1,18 @@
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
-import '../../data/local/database.dart';
+import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
 import '../printing/print_action.dart';
-import 'receipt_data.dart';
-import 'invoice_payment_status.dart';
-import '../sell/payment_labels.dart';
+import '../printing/printing_providers.dart';
+import '../staff/staff_providers.dart';
+import 'invoice_view.dart';
+import 'receipt_mapper.dart';
 import '../sell/sales_providers.dart';
 import '../settings/device_label_providers.dart';
 
@@ -118,186 +117,105 @@ class InvoiceDetailScreen extends ConsumerWidget {
           final previousBalance = totalOutstanding - thisOwed;
           final colors = AppColors.of(context);
           final reversed = isRefund || refundRow != null;
-          final (statusLabel, statusTone) = invoicePaymentStatusDisplay(
-            l,
-            invoicePaymentStatusCode(paid: s.paid, total: s.total),
+          final members =
+              ref.watch(staffMembersProvider).valueOrNull ?? const [];
+          String? cashier;
+          final staffId = s.staffId;
+          if (staffId != null && staffId.isNotEmpty) {
+            for (final m in members) {
+              if (m.id == staffId) {
+                cashier = m.name;
+                break;
+              }
+            }
+          }
+          cashier ??= (s.deviceId == null)
+              ? null
+              : ref.watch(deviceLabelMapProvider)[s.deviceId];
+          const knownMethods = {
+            'cash',
+            'kbzpay',
+            'wavepay',
+            'ayapay',
+            'cbpay',
+            'credit',
+            'cod',
+            'transfer',
+          };
+          final customName = knownMethods.contains(s.paymentMethod)
+              ? null
+              : accounts
+                  .where((a) => a.id == s.paymentMethod)
+                  .map((a) => a.name)
+                  .firstOrNull;
+          final profile = ref.watch(shopProfileProvider).valueOrNull ??
+              const ShopProfile(name: '');
+          final invoice = invoiceDataFromSale(
+            s,
+            d.items,
+            profile,
+            currencySymbol: currency,
+            cashier: cashier,
+            paymentMethodCustomName: customName,
+            defaultFooter: l.receiptThankYou,
           );
+          final docWidth =
+              (MediaQuery.sizeOf(context).width - AppTheme.space4 * 2)
+                  .clamp(280.0, 420.0);
           return ListView(
             padding: const EdgeInsets.all(AppTheme.space4),
             children: [
-              // --- Who/when: the identity of this receipt ---
-              _Group(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.invoiceNo,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontFeatures: AppTheme.tabularFigures,
-                                  ),
-                            ),
-                            Text(
-                              DateFormat(
-                                'yyyy-MM-dd HH:mm',
-                              ).format(s.finalizedAt),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (reversed) ...[
-                        const SizedBox(width: AppTheme.space2),
-                        StatusPill(
-                          label: l.invoiceRefunded,
-                          tone: StatusTone.critical,
-                        ),
-                      ] else ...[
-                        const SizedBox(width: AppTheme.space2),
-                        StatusPill(
-                          label: statusLabel,
-                          tone: statusTone,
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (isRefund && (s.note ?? '').trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppTheme.space1),
-                      child: Text(
-                        s.note!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+              if (reversed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: StatusPill(
+                      label: l.invoiceRefunded,
+                      tone: StatusTone.critical,
                     ),
-                  if (s.customerName != null &&
-                      s.customerName!.trim().isNotEmpty) ...[
-                    const SizedBox(height: AppTheme.space2),
-                    SummaryRow(
-                      l.receiptCustomer,
-                      s.customerName!,
-                      isMoney: false,
-                    ),
-                  ],
-                  if (s.customerPhone != null &&
-                      s.customerPhone!.trim().isNotEmpty)
-                    SummaryRow(l.receiptPhone, s.customerPhone!,
-                        isMoney: false),
-                  if (s.deliveryAddress != null &&
-                      s.deliveryAddress!.trim().isNotEmpty)
-                    SummaryRow(
-                      l.orderDeliveryAddress,
-                      s.deliveryAddress!,
-                      isMoney: false,
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.space3),
-
-              // --- What was sold ---
-              _Group(
-                children: [
-                  for (var i = 0; i < d.items.length; i++) ...[
-                    if (i > 0) const Divider(height: AppTheme.space4),
-                    _ItemLine(
-                      item: d.items[i],
-                      currency: currency,
-                      discount: lineDiscountOf(
-                        unitPrice: d.items[i].priceSnapshot,
-                        qty: d.items[i].qty,
-                        lineTotal: d.items[i].lineTotal,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: AppTheme.space3),
-
-              // --- What it came to ---
-              _Group(
-                children: [
-                  SummaryRow(
-                    l.sellSubtotal,
-                    Money(s.subtotal).withSymbol(currency),
-                  ),
-                  if (s.discount > 0)
-                    SummaryRow(
-                      l.sellDiscount,
-                      '-${Money(s.discount).withSymbol(currency)}',
-                      color: colors.danger,
-                    ),
-                  const Divider(height: AppTheme.space4),
-                  SummaryRow(
-                    l.commonTotal,
-                    Money(s.total).withSymbol(currency),
-                    emphasis: true,
-                  ),
-                  SummaryRow(
-                    l.sellPaymentMethod,
-                    paymentLabel(l, s.paymentMethod, accounts: accounts),
-                    isMoney: false,
-                  ),
-                  if (thisOwed > 0) ...[
-                    SummaryRow(
-                      l.creditDeposit,
-                      Money(s.paid).withSymbol(currency),
-                    ),
-                    SummaryRow(
-                      l.creditBalanceDue,
-                      Money(thisOwed).withSymbol(currency),
-                      emphasis: true,
-                      color: colors.danger,
-                    ),
-                  ],
-                  if (previousBalance > 0) ...[
-                    SummaryRow(
-                      l.creditPreviousBalance,
-                      Money(previousBalance).withSymbol(currency),
-                    ),
-                    SummaryRow(
-                      l.creditTotalBalanceDue,
-                      Money(totalOutstanding).withSymbol(currency),
-                      emphasis: true,
-                      color: colors.danger,
-                    ),
-                  ],
-                  if (s.deviceId != null)
-                    SummaryRow(
-                      l.invoiceDevice,
-                      ref.watch(deviceLabelMapProvider)[s.deviceId] ??
-                          l.invoiceDeviceUnnamed,
-                      isMoney: false,
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.space4),
-
-              // A Code128 is black bars on white by definition — on the dark
-              // theme it was painting near-black on near-black, both
-              // invisible and unscannable. It gets its own white plate in
-              // both brightnesses, like the paper receipt it stands in for.
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.space3),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  ),
-                  child: BarcodeWidget(
-                    barcode: Barcode.code128(),
-                    data: s.invoiceNo,
-                    width: 220,
-                    height: 60,
-                    drawText: true,
-                    color: Colors.black,
-                    style: const TextStyle(color: Colors.black, fontSize: 12),
                   ),
                 ),
-              ),
+              if (isRefund && (s.note ?? '').trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                  child: Text(
+                    s.note!,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              Center(child: InvoiceView(data: invoice, width: docWidth)),
+              if (thisOwed > 0 || previousBalance > 0) ...[
+                const SizedBox(height: AppTheme.space3),
+                _Group(
+                  children: [
+                    if (thisOwed > 0) ...[
+                      SummaryRow(
+                        l.creditDeposit,
+                        Money(s.paid).withSymbol(currency),
+                      ),
+                      SummaryRow(
+                        l.creditBalanceDue,
+                        Money(thisOwed).withSymbol(currency),
+                        emphasis: true,
+                        color: colors.danger,
+                      ),
+                    ],
+                    if (previousBalance > 0) ...[
+                      SummaryRow(
+                        l.creditPreviousBalance,
+                        Money(previousBalance).withSymbol(currency),
+                      ),
+                      SummaryRow(
+                        l.creditTotalBalanceDue,
+                        Money(totalOutstanding).withSymbol(currency),
+                        emphasis: true,
+                        color: colors.danger,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
               const SizedBox(height: AppTheme.space5),
               FilledButton.icon(
                 onPressed: () =>
@@ -347,63 +265,6 @@ class _Group extends StatelessWidget {
           children: children,
         ),
       ),
-    );
-  }
-}
-
-/// A sold line: name, then `qty × unit price` as a muted second line, then the
-/// line total right-aligned and tabular — the same shape as the checkout
-/// sheet's cart lines, so the receipt reads as a replay of the sale.
-///
-/// Was `Text('$name\n$qty x $price')` — one string with a newline in it, which
-/// meant the quantity carried the same weight as the product name and none of
-/// the money on this screen lined up.
-class _ItemLine extends StatelessWidget {
-  const _ItemLine({
-    required this.item,
-    required this.currency,
-    required this.discount,
-  });
-
-  final SaleItem item;
-  final String currency;
-  final int discount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = AppColors.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.nameSnapshot, style: theme.textTheme.bodyLarge),
-              Text(
-                '${item.qty} × ${Money(item.priceSnapshot).withSymbol(currency)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontFeatures: AppTheme.tabularFigures,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppTheme.space3),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            MoneyText(Money(item.lineTotal).withSymbol(currency)),
-            if (discount > 0)
-              MoneyText(
-                '-${Money(discount).withSymbol(currency)}',
-                style: theme.textTheme.bodySmall,
-                color: colors.danger,
-              ),
-          ],
-        ),
-      ],
     );
   }
 }

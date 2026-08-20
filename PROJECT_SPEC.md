@@ -325,7 +325,12 @@ something a synthetic `flutter test` harness reproduces deterministically —
 verified instead via the same manual-emulator method that found it, per this
 project's existing convention for UI-only changes.
 
-| 2026-08-20 | 185 | **Invoices website asked to "Activate this computer" with a device key that Online shops cannot mint.** Settings → License hides **Add a device** for email accounts (they sign in on the other device instead) and for Free/trial, so the hint was a dead end. The page now signs in with the shop email/password (same as the phone). Free plan without an account is the Windows POS **Continue Free** path — this site has no local DB. Device key stays under an Offline expander. |
+| 2026-08-20 | 188 | **Invoice customer block is labeled fields, not "Bill to".** Customer Name / Phone Number / Address (`ဖောက်သည်အမည်` / `ဖုန်းနံပါတ်` / `လိပ်စာ`); empty rows stay hidden. Walk-in sales still omit the block. Subtotal on this document is **ကုန်ကျငွေ** (`invoiceItemsAmount`), not checkout's `sellSubtotal`. Same `InvoiceView` + A4 PDF on phone, invoices.vercel.app, storefront confirmation, and share PNG. |
+
+| 2026-08-20 | 187 | **Phone invoice detail now renders the same shareable invoice card as the web PDF**, and invoices.vercel.app is force-rebuilt so the old purple 3-column JS cannot stay cached. Opening an invoice on the Orders tab is the forest-green document (unit price, payment method, localized labels, footer), not the old three-card summary. |
+
+| 2026-08-20 | 186 | **Shareable / web invoice matches a real POS ticket.** Walk-in sales no longer reserve an empty BILL TO block. Line table is Item / Qty / Price / Total. Totals show payment method, paid, change, amount due, discount, and cashier when known. Labels are EN+MY (`receiptInvoice`, `invoiceBillTo`, …) instead of hardcoded English. Accent is brand forest green `#0F5C3E`, not purple. Footer falls back to the thank-you line. Same `InvoiceData` feeds the PNG card, A4 PDF, invoices.vercel.app, order share, and storefront confirmation. |
+
 
 | 2026-08-20 | 184 | **Admin dashboard tab icon was the old 32px JPEG-as-PNG, so it looked blurry on a retina display.** Browser chrome uses `web/favicon.png`; the live admin site had never been rebuilt after the geometric A mark (#183). Replaced with an SVG favicon (vector, sharp at any tab size) plus 32/64 PNG fallbacks, cache-busted `?v=184`. Login and the sidebar now show the same A mark. **Needs:** admin web redeploy. |
 

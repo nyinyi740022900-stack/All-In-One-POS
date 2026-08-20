@@ -2042,6 +2042,54 @@ abstract class AppLocalizations {
   /// **'This invoice was already refunded.'**
   String get invoiceAlreadyRefunded;
 
+  /// No description provided for @invoiceCustomerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Name'**
+  String get invoiceCustomerName;
+
+  /// No description provided for @invoicePhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get invoicePhoneNumber;
+
+  /// No description provided for @invoiceAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get invoiceAddress;
+
+  /// No description provided for @invoiceColItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get invoiceColItem;
+
+  /// No description provided for @invoiceColQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get invoiceColQty;
+
+  /// No description provided for @invoiceColPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get invoiceColPrice;
+
+  /// No description provided for @invoiceItemsAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get invoiceItemsAmount;
+
+  /// No description provided for @invoiceAmountDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount due'**
+  String get invoiceAmountDue;
+
   /// No description provided for @salesReportTitle.
   ///
   /// In en, this message translates to:

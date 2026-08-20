@@ -1,5 +1,7 @@
 import '../../data/local/database.dart';
 import '../../data/repositories/settings_repository.dart';
+import 'invoice_payment_status.dart';
+import 'invoice_view.dart';
 import 'receipt_data.dart';
 
 /// Assembles a printable [ReceiptData] from persisted rows + shop profile.
@@ -40,6 +42,50 @@ ReceiptData receiptFromSale(
     paid: sale.paid,
     change: sale.changeDue,
     paymentMethod: paymentMethodLabel,
+    footer: (shop.footer != null && shop.footer!.isNotEmpty)
+        ? shop.footer
+        : defaultFooter,
+  );
+}
+
+/// Same fields as the thermal receipt, shaped for the shareable / web
+/// [InvoiceView] (PNG, A4 PDF, invoices.vercel.app, phone invoice detail).
+InvoiceData invoiceDataFromSale(
+  Sale sale,
+  List<SaleItem> items,
+  ShopProfile shop, {
+  required String currencySymbol,
+  String? cashier,
+  String? paymentMethodCustomName,
+  String? defaultFooter,
+}) {
+  return InvoiceData(
+    shopName: shop.name,
+    shopLogoUrl: shop.logoUrl,
+    shopPhone: shop.phone,
+    shopAddress: shop.address,
+    invoiceNo: sale.invoiceNo,
+    date: sale.finalizedAt,
+    customerName: sale.customerName ?? '',
+    customerPhone: sale.customerPhone,
+    deliveryAddress: sale.deliveryAddress,
+    items: [
+      for (final i in items)
+        InvoiceItemData(
+          name: i.nameSnapshot,
+          qty: i.qty,
+          unitPrice: i.priceSnapshot,
+          lineTotal: i.lineTotal,
+        ),
+    ],
+    discount: sale.discount,
+    paid: sale.paid,
+    changeDue: sale.changeDue,
+    paymentStatus: invoicePaymentStatusCode(paid: sale.paid, total: sale.total),
+    paymentMethodCode: sale.paymentMethod,
+    paymentMethodCustomName: paymentMethodCustomName,
+    cashier: cashier,
+    currencySymbol: currencySymbol,
     footer: (shop.footer != null && shop.footer!.isNotEmpty)
         ? shop.footer
         : defaultFooter,
