@@ -13,7 +13,7 @@ An **offline-first Point-of-Sale (POS) application for Myanmar retailers** (groc
 ### 1.1 Core value
 
 - **Works with no internet.** All core operations (sell, add stock, print receipt) function offline. Sync is opportunistic.
-- **Cheap hardware friendly.** Targets low-end Android devices and Bluetooth thermal mini-printers (58mm/80mm ESC/POS) common in Myanmar.
+- **Cheap hardware friendly.** Targets low-end Android devices and thermal mini-printers (58mm/80mm ESC/POS) common in Myanmar — Bluetooth, Wi-Fi, or USB on a shop PC.
 - **Myanmar-first UX.** Full Burmese (my) + English (en) localization, Myanmar Kyat (MMK) currency, local date formats, and payment methods (KBZPay, WavePay, AYAPay, CBPay, cash).
 - **Subscription licensed.** Online license activation with offline grace period; supports local payment collection.
 
@@ -35,7 +35,7 @@ An **offline-first Point-of-Sale (POS) application for Myanmar retailers** (groc
 
 - **OS:** Android 8+ (primary), iOS 14+ (secondary).
 - **Form factor:** Phone (portrait) and tablet (landscape). Responsive layout required.
-- **Printer:** Bluetooth ESC/POS thermal, 58mm & 80mm paper.
+- **Printer:** ESC/POS thermal, 58mm & 80mm paper. **Mobile:** Bluetooth + Wi-Fi (TCP 9100). **Windows PC:** same Wi-Fi printer + USB cable.
 
 ---
 
@@ -49,7 +49,7 @@ An **offline-first Point-of-Sale (POS) application for Myanmar retailers** (groc
 | Local DB | **Drift (SQLite)** | Typed, reactive, migration support — source of truth on device |
 | Backend | **Supabase** | Postgres + Row Level Security + Auth + Edge Functions |
 | Sync | Custom pull/push over Supabase REST + a local outbox queue | Last-write-wins + updated_at, tombstones for deletes |
-| Printing | `esc_pos_utils_plus` + `print_bluetooth_thermal` | ESC/POS byte generation + BT transport |
+| Printing | `esc_pos_utils_plus` + `print_bluetooth_thermal` + raw TCP 9100 + Windows RAW USB | Same ESC/POS bytes; transport is Bluetooth (mobile), Wi-Fi, or USB cable (Windows) |
 | i18n | Flutter `gen_l10n` (ARB files) | `en`, `my` |
 | Analytics/charts | `fl_chart` | Sales dashboards |
 | Auth/License | Supabase Auth + `licenses` table + Edge Function `activate` | Device-bound key, JWT claims |
@@ -161,10 +161,14 @@ All tables carry: `id` (uuid), `shop_id` (uuid), `created_at`, `updated_at`, `is
 
 ---
 
-## 7. Bluetooth Receipt Printing
+## 7. Receipt Printing
 
-- ESC/POS command generation via `esc_pos_utils_plus`; transport via `print_bluetooth_thermal`.
-- Support 58mm (32 char) and 80mm (48 char) profiles — configurable in settings.
+- ESC/POS command generation via `esc_pos_utils_plus`. Same byte stream, three transports:
+  - **Bluetooth** — `print_bluetooth_thermal`, iOS/Android. Pair in system settings, pick from Printer settings.
+  - **Wi-Fi** — raw TCP to the printer's LAN IP, port **9100** (JetDirect). Opening Printer settings on the Wi-Fi tab scans the current subnet so same-network printers appear in the list; IP can still be typed if a printer does not answer. Phone and computer can share one Wi-Fi printer by entering the same IP. iOS prompts via `NSLocalNetworkUsageDescription`.
+  - **USB cable** — Windows shop PC only. Lists printers Windows already knows and sends RAW ESC/POS (`windows_printer`, `useRawDatatype: true`) so the driver does not re-paginate a receipt.
+- Support 58mm (32 char) and 80mm (48 char) profiles — configurable in settings, remembered per printer.
+- Dedicated TSPL label printers use the same Bluetooth / Wi-Fi / USB transports as the receipt printer (TSPL bytes instead of ESC/POS).
 - Receipt includes: shop name/logo, address/phone, invoice no, datetime, cashier, line items (name/qty/price/total), subtotal/discount/total, payment method + change, footer text, optional QR.
 - **Burmese text on thermal printers** is a known hard problem (many printers lack Myanmar font). Strategy: render the receipt (or the Burmese portions) to a **bitmap image** and print as raster, so any Unicode renders correctly regardless of printer font support. English/numeric parts may use native text mode for speed.
 
@@ -354,7 +358,16 @@ project's existing convention for UI-only changes.
 
 | 2026-08-20 | 174 | **Onboarding shop page: Address + receipt footer; daily-gate hero shows the shop logo when one is set.** The "Your shop" step only collected name/phone and silently preserved address/footer from Settings. Both fields are now on that page (same `saveShopProfile` keys as Settings → Shop, so receipts pick them up). `BrandHeroPanel` accepts an optional logo URL — Start today's shop (and the Welcome / Your shop wave headers) show the photo in the rounded plate, falling back to the storefront icon if the URL is empty, still loading, or offline. |
 
+| 2026-08-21 | 192 | **HID barcode / daily-gate follow-up.** Sign-in on Start today's shop no longer skips Owner vs named-staff + PIN when a roster exists. Sell and Inventory search boxes follow a wedge scan (same as Invoices). |
+
+| 2026-08-21 | 191 | **USB / Bluetooth barcode guns work on computer, tablet, and phone.** HID "keyboard wedge" scanners (USB on PC/tablet, Bluetooth paired as a keyboard on any device) type the code + Enter; Sell adds to cart, Inventory searches, product edit fills barcode, Invoices search by number. Camera scan stays on phones/tablets; Windows scan screen waits for the gun instead of a black camera. Settings → Barcode scanner explains how to plug in / pair — nothing to pair inside the app. |
+
+| 2026-08-21 | 190 | **Windows POS shows as All In One POS; daily opening names the cashier.** The exe is `AllInOnePOS.exe` (Windows search no longer only finds `mm_pos`). First launch puts a Desktop + Start Menu shortcut. When the shop has named staff, Start today's shop always lists Owner and each staff name + PIN before the opening amount — even if already signed in — so invoices/receipts stamp the person at the till (`cashierNameForSale`: staff name or Owner). |
+
+| 2026-08-21 | 189 | **Receipt printers: Bluetooth + Wi-Fi + USB; reports print as A4 documents.** Thermal ESC/POS uses the same bytes on Bluetooth (phone), TCP 9100 Wi-Fi (phone and PC), and Windows USB RAW. Printer settings remember the connection per printer. Sales report / P&L / cash session / invoice A4 use the OS print dialog (`documentPrint`) so a shop laser/AirPrint printer works; thermal remains a second action. Myanmar report title is `အရောင်းအစီရင်ခံစာ` (no extra spaces from PDF letter-spacing). |
+
 | 2026-08-20 | 173 | **Settings: Web storefront vanished in Staff mode, and locked Branch/Storefront rows were faded to 50% so they looked missing.** Storefront was `isOwner`-only (unlike Branches after #172), so the Settings PIN hatch dropped "My web storefront" entirely. It now stays on the Business card for everyone except invited email staff — open when owner+Premium, otherwise a lock row that offers Switch to Owner or Upgrade. Locked tiles keep full-contrast labels with a brand-green lock instead of a faded row. |
+
 
 | 2026-08-20 | 172 | **Settings → Branches (and Staff accounts) vanished after Switch to Staff.** #169 made the PIN switch actually take effect for a signed-in email owner, so `isEffectiveOwner` became false and the Account & Team tiles were wrapped in `if (isOwner)` — they disappeared instead of locking. Invited email staff still don't see them. Local PIN staff now get locked tiles that explain Staff mode and offer Switch to Owner. Signed-in owners with a missing JWT `role` claim also no longer look "signed out" for these two tiles (`backendRole != 'staff'` instead of `!= null`). |
 

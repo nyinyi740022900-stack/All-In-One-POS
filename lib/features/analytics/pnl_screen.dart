@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,8 @@ import '../expenses/expense_screen.dart' show categoryLabel;
 import '../invoices/receipt_data.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/document_print.dart';
+import '../printing/printer_connection.dart';
 import '../printing/printing_providers.dart';
 import 'pnl_data.dart';
 import 'pnl_formatter.dart';
@@ -36,6 +39,44 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
   bool _exporting = false;
   bool _exportingCsv = false;
   bool _printing = false;
+  bool _printingThermal = false;
+
+  Future<Uint8List> _pdfBytes(PnlStatement p) async {
+    final l = AppLocalizations.of(context);
+    final profile = await ref.read(shopProfileProvider.future);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    return buildPnlPdf(
+      shopName: profile.name,
+      shopLogoUrl: profile.logoUrl,
+      shopPhone: profile.phone,
+      shopAddress: profile.address,
+      title: l.pnlTitle,
+      statement: p,
+      currencySymbol: l.currencySymbol,
+      dateRangeLabel: l.pnlDateRange,
+      revenueLabel: l.pnlRevenue,
+      cogsLabel: l.pnlCogs,
+      grossProfitLabel: l.pnlGrossProfit,
+      totalExpensesLabel: l.pnlTotalExpenses,
+      netProfitLabel: l.pnlNetProfit,
+      categoryLabel: (c) => categoryLabel(l, c),
+      pageFormat: printerConfig.pdfPaperSize,
+    );
+  }
+
+  Future<void> _printDocument(PnlStatement p) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _printing = true);
+    try {
+      final bytes = await _pdfBytes(p);
+      await printPdfDocument(bytes: bytes, name: l.pnlTitle);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
+  }
 
   Future<void> _pickRange() async {
     final now = DateTime.now();
@@ -76,25 +117,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exporting = true);
     try {
-      final profile = await ref.read(shopProfileProvider.future);
-      final printerConfig = await ref.read(printerConfigProvider.future);
-      final bytes = await buildPnlPdf(
-        shopName: profile.name,
-        shopLogoUrl: profile.logoUrl,
-        shopPhone: profile.phone,
-        shopAddress: profile.address,
-        title: l.pnlTitle,
-        statement: p,
-        currencySymbol: l.currencySymbol,
-        dateRangeLabel: l.pnlDateRange,
-        revenueLabel: l.pnlRevenue,
-        cogsLabel: l.pnlCogs,
-        grossProfitLabel: l.pnlGrossProfit,
-        totalExpensesLabel: l.pnlTotalExpenses,
-        netProfitLabel: l.pnlNetProfit,
-        categoryLabel: (c) => categoryLabel(l, c),
-        pageFormat: printerConfig.pdfPaperSize,
-      );
+      final bytes = await _pdfBytes(p);
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/profit-and-loss.pdf');
       await file.writeAsBytes(bytes);
@@ -143,14 +166,15 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     }
   }
 
-  Future<void> _printBluetooth(
+  Future<void> _printThermal(
     PnlStatement p,
     String mac,
-    PaperSize paper,
-  ) async {
+    PaperSize paper, {
+    required PrinterConnection connection,
+  }) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    setState(() => _printing = true);
+    setState(() => _printingThermal = true);
     try {
       final profile = await ref.read(shopProfileProvider.future);
       final lines = PnlFormatter(paper: paper, currencySymbol: l.currencySymbol)
@@ -167,7 +191,13 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
           );
       final result = await ref
           .read(printerServiceProvider)
-          .printZReport(lines, profile.name, paper: paper, mac: mac);
+          .printZReport(
+            lines,
+            profile.name,
+            paper: paper,
+            mac: mac,
+            connection: connection,
+          );
       messenger.showSnackBar(
         SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
       );
@@ -178,7 +208,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _printing = false);
+      if (mounted) setState(() => _printingThermal = false);
     }
   }
 
@@ -313,28 +343,36 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                   padding: const EdgeInsets.all(AppTheme.space4),
                   child: Column(
                     children: [
-                      if (printerConfig != null && printerConfig.hasPrinter)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _printing ? null : () => _printDocument(p),
+                          icon: _printing
+                              ? const ButtonSpinner()
+                              : const Icon(Icons.print_outlined),
+                          label: Text(l.documentPrint),
+                        ),
+                      ),
+                      if (printerConfig != null && printerConfig.hasPrinter) ...[
+                        const SizedBox(height: AppTheme.space2),
                         SizedBox(
                           width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: _printing
+                          child: OutlinedButton.icon(
+                            onPressed: _printingThermal
                                 ? null
-                                : () => _printBluetooth(
+                                : () => _printThermal(
                                     p,
                                     printerConfig.mac!,
                                     printerConfig.paper,
+                                    connection: printerConfig.connection,
                                   ),
-                            icon: _printing
+                            icon: _printingThermal
                                 ? const ButtonSpinner()
-                                : const Icon(Icons.print_outlined),
+                                : const Icon(Icons.receipt_long_outlined),
                             label: Text(l.salesReportPrintBluetooth),
                           ),
-                        )
-                      else
-                        Text(
-                          l.salesReportNoPrinter,
-                          style: Theme.of(context).textTheme.bodySmall,
                         ),
+                      ],
                       const SizedBox(height: AppTheme.space2),
                       SizedBox(
                         width: double.infinity,

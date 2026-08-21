@@ -267,7 +267,6 @@ class InvoiceView extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
                 color: _accent,
               ),
             ),

@@ -23,7 +23,7 @@ All In One POS is an offline-first point of sale for Myanmar SMEs — grocery, m
 • Sell with an on-device cart even without internet  
 • Inventory, barcodes, and stock tracking  
 • Social & web orders board (Facebook, Viber, your storefront)  
-• Invoices and Bluetooth thermal receipt printing  
+• Invoices and thermal receipt printing (Bluetooth, Wi-Fi, or USB on a computer)  
 • Multi-device licensing and optional online staff logins  
 • Free plan to sell forever; Premium unlocks advanced tools  
 • English and Myanmar throughout  
@@ -36,7 +36,7 @@ All In One POS သည် မြန်မာ SME ဆိုင်များအ�
 • အင်တာနက်မရှိလည်း ရောင်းနိုင်  
 • ပစ္စည်းစာရင်း၊ barcode၊ လက်ကျန်  
 • Facebook / Viber / Web storefront မှာယူမှုများ  
-• ငွေတောင်းခံလွှာနှင့် Bluetooth ပရင်တာ  
+• ငွေတောင်းခံလွှာနှင့် ပရင်တာ (Bluetooth၊ Wi-Fi၊ ကွန်ပျူတာမှာ USB)  
 • စက်များစွာနှင့် staff login (Online)  
 • Free plan ဖြင့် အမြဲရောင်းနိုင်; Premium ဖြင့် အဆင့်မြင့် လုပ်ဆောင်ချက်များ  
 • အင်္ဂလိပ် + မြန်မာ  

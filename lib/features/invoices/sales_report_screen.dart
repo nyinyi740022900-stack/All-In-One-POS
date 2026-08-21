@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,16 +13,17 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/document_print.dart';
+import '../printing/printer_connection.dart';
 import '../printing/printing_providers.dart';
 import 'receipt_data.dart';
 import 'sales_report_data.dart';
 import 'sales_report_pdf.dart';
 import 'sales_report_providers.dart';
 
-/// Date-range sales report — reachable from the Invoices screen. Prints on
-/// whatever the shop actually has: the paired Bluetooth thermal printer
-/// (condensed list), or a real A4/A5 document shared out (AirPrint on the
-/// same WiFi network, or saved/emailed to a computer to print from there).
+/// Date-range sales report — reachable from the Invoices screen. The primary
+/// Print button opens the OS dialog so an A4 Wi-Fi/USB/AirPrint printer can
+/// be picked; a receipt printer remains an optional second action.
 class SalesReportScreen extends ConsumerStatefulWidget {
   const SalesReportScreen({super.key});
 
@@ -33,6 +35,45 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   bool _exporting = false;
   bool _exportingCsv = false;
   bool _printing = false;
+  bool _printingThermal = false;
+
+  Future<Uint8List> _pdfBytes(SalesReport report, String rangeLabel) async {
+    final l = AppLocalizations.of(context);
+    final profile = await ref.read(shopProfileProvider.future);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    return buildSalesReportPdf(
+      shopName: profile.name,
+      shopLogoUrl: profile.logoUrl,
+      shopPhone: profile.phone,
+      shopAddress: profile.address,
+      title: l.salesReportTitle,
+      dateRangeLabel: rangeLabel,
+      report: report,
+      currencySymbol: l.currencySymbol,
+      invoiceColumnLabel: l.salesReportColumnInvoice,
+      dateColumnLabel: l.salesReportColumnDate,
+      customerColumnLabel: l.salesReportColumnCustomer,
+      addressColumnLabel: l.salesReportColumnAddress,
+      amountColumnLabel: l.salesReportColumnAmount,
+      totalLabel: l.salesReportTotal,
+      noSalesLabel: l.salesReportEmpty,
+      pageFormat: printerConfig.pdfPaperSize,
+    );
+  }
+
+  Future<void> _printDocument(SalesReport report, String rangeLabel) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _printing = true);
+    try {
+      final bytes = await _pdfBytes(report, rangeLabel);
+      await printPdfDocument(bytes: bytes, name: l.salesReportTitle);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
+  }
 
   Future<void> _pickRange() async {
     final now = DateTime.now();
@@ -74,26 +115,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exporting = true);
     try {
-      final profile = await ref.read(shopProfileProvider.future);
-      final printerConfig = await ref.read(printerConfigProvider.future);
-      final bytes = await buildSalesReportPdf(
-        shopName: profile.name,
-        shopLogoUrl: profile.logoUrl,
-        shopPhone: profile.phone,
-        shopAddress: profile.address,
-        title: l.salesReportTitle,
-        dateRangeLabel: rangeLabel,
-        report: report,
-        currencySymbol: l.currencySymbol,
-        invoiceColumnLabel: l.salesReportColumnInvoice,
-        dateColumnLabel: l.salesReportColumnDate,
-        customerColumnLabel: l.salesReportColumnCustomer,
-        addressColumnLabel: l.salesReportColumnAddress,
-        amountColumnLabel: l.salesReportColumnAmount,
-        totalLabel: l.salesReportTotal,
-        noSalesLabel: l.salesReportEmpty,
-        pageFormat: printerConfig.pdfPaperSize,
-      );
+      final bytes = await _pdfBytes(report, rangeLabel);
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/sales-report.pdf');
       await file.writeAsBytes(bytes);
@@ -140,15 +162,16 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     }
   }
 
-  Future<void> _printBluetooth(
+  Future<void> _printThermal(
     SalesReport report,
     String rangeLabel,
     String mac,
-    PaperSize paper,
-  ) async {
+    PaperSize paper, {
+    required PrinterConnection connection,
+  }) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    setState(() => _printing = true);
+    setState(() => _printingThermal = true);
     try {
       final profile = await ref.read(shopProfileProvider.future);
       final result = await ref
@@ -162,12 +185,13 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             dateRangeLabel: rangeLabel,
             totalLabel: l.salesReportTotal,
             noSalesLabel: l.salesReportEmpty,
+            connection: connection,
           );
       messenger.showSnackBar(
         SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
       );
     } finally {
-      if (mounted) setState(() => _printing = false);
+      if (mounted) setState(() => _printingThermal = false);
     }
   }
 
@@ -312,9 +336,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              boxShadow: AppTheme.dockedBarShadow(
-                Theme.of(context).brightness,
-              ),
+              boxShadow: AppTheme.dockedBarShadow(Theme.of(context).brightness),
             ),
             child: SafeArea(
               top: false,
@@ -322,42 +344,39 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 padding: const EdgeInsets.all(AppTheme.space4),
                 child: Column(
                   children: [
-                    if (printerConfig != null && printerConfig.hasPrinter)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _printing
+                            ? null
+                            : () => _printDocument(report, rangeLabel),
+                        icon: _printing
+                            ? const ButtonSpinner()
+                            : const Icon(Icons.print_outlined),
+                        label: Text(l.documentPrint),
+                      ),
+                    ),
+                    if (printerConfig != null && printerConfig.hasPrinter) ...[
+                      const SizedBox(height: AppTheme.space2),
                       SizedBox(
                         width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: _printing
+                        child: OutlinedButton.icon(
+                          onPressed: _printingThermal
                               ? null
-                              : () => _printBluetooth(
+                              : () => _printThermal(
                                   report,
                                   rangeLabel,
                                   printerConfig.mac!,
                                   printerConfig.paper,
+                                  connection: printerConfig.connection,
                                 ),
-                          icon: _printing
+                          icon: _printingThermal
                               ? const ButtonSpinner()
-                              : const Icon(Icons.print_outlined),
+                              : const Icon(Icons.receipt_long_outlined),
                           label: Text(l.salesReportPrintBluetooth),
                         ),
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.print_disabled_outlined,
-                            size: 18,
-                            color: AppColors.of(context).muted,
-                          ),
-                          const SizedBox(width: AppTheme.space2),
-                          Expanded(
-                            child: Text(
-                              l.salesReportNoPrinter,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
                       ),
+                    ],
                     const SizedBox(height: AppTheme.space2),
                     // Two peer actions side by side rather than a stack of
                     // three full-width buttons, which read as three primary

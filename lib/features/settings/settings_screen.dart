@@ -20,6 +20,7 @@ import '../license/license_status.dart';
 import '../printing/label_printer_settings_screen.dart';
 import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
+import 'barcode_scanner_help_screen.dart';
 import '../referral/referral_screen.dart';
 import '../../core/money.dart';
 import '../account/branches_screen.dart';
@@ -342,6 +343,18 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const PrinterSettingsScreen(),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const IconAvatar(
+                    icon: Icons.document_scanner_outlined,
+                  ),
+                  title: Text(l.scannerSettings),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const BarcodeScannerHelpScreen(),
                     ),
                   ),
                 ),

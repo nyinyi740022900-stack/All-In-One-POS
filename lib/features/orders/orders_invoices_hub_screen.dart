@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/invoices_screen.dart';
 import '../invoices/sales_report_screen.dart';
+import '../sell/hardware_scanner_listener.dart';
 import 'order_editor_sheet.dart';
 import 'orders_screen.dart';
 
@@ -123,9 +125,16 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
           : null,
       body: TabBarView(
         controller: _tabs,
-        children: const [
-          OrdersScreen(embedded: true),
-          InvoicesScreen(embedded: true),
+        children: [
+          const OrdersScreen(embedded: true),
+          Consumer(
+            builder: (context, ref, _) => HardwareScannerListener(
+              enabled: !onOrders,
+              onScan: (code) =>
+                  ref.read(invoiceSearchProvider.notifier).state = code.trim(),
+              child: const InvoicesScreen(embedded: true),
+            ),
+          ),
         ],
       ),
     );
@@ -146,5 +155,7 @@ double _subTabHeight(BuildContext context) {
   return math.max(48, line + AppTheme.space4);
 }
 
-Widget _subTab(String label, double height) =>
-    Tab(height: height, child: Text(label, textAlign: TextAlign.center));
+Widget _subTab(String label, double height) => Tab(
+  height: height,
+  child: Text(label, textAlign: TextAlign.center),
+);

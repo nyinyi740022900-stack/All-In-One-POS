@@ -167,6 +167,41 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get scanHardwareHint => 'ကင်မရာ (သို့) USB / Bluetooth scanner';
+
+  @override
+  String get scanHardwareOnlyHint =>
+      'USB scanner တပ်ပါ (သို့) Bluetooth scanner ကို စက်ရဲ့ Bluetooth ဆက်တင်မှာ ချိတ်ပါ။ ဒီစာမျက်နှာ ဖွင့်ထားပြီး scan ပါ။';
+
+  @override
+  String get scannerSettings => 'Barcode scanner';
+
+  @override
+  String get scannerSettingsIntro =>
+      'လက်ကိုင် scanner က ကီးဘုတ်လို ရိုက်သွင်းပါတယ်။ ကွန်ပျူတာ၊ တက်ဘလက်၊ ဖုန်းရဲ့ Bluetooth/USB မှာ ချိတ်ရုံပါ — ဒီ app ထဲမှာ သီးသန့် ချိတ်စရာ မလိုပါ။';
+
+  @override
+  String get scannerUsbTitle => 'USB scanner';
+
+  @override
+  String get scannerUsbBody =>
+      'ကွန်ပျူတာ (သို့) USB-C ပါတဲ့ တက်ဘလက်မှာ တပ်ပါ။ ရောင်းချ ဖွင့်ပြီး scan ရင် cart ထဲ ထည့်ပါတယ်။';
+
+  @override
+  String get scannerBluetoothTitle => 'Bluetooth scanner';
+
+  @override
+  String get scannerBluetoothBody =>
+      'Scanner ဖွင့်ပြီး Android / iOS / Windows Bluetooth ဆက်တင်မှာ ကီးဘုတ်အဖြစ် ချိတ်ပါ။ ရောင်းချ ဖွင့်ပြီး scan ပါ။';
+
+  @override
+  String get scannerSellTitle => 'ဘယ်နေရာမှာ သုံးလဲ';
+
+  @override
+  String get scannerSellBody =>
+      'ရောင်းချ — cart ထဲထည့်။ ကုန်ပစ္စည်း — ရှာသည်။ ပစ္စည်းပြင် — barcode ဖြည့်။ ပြေစာများ — ပြေစာနံပါတ်ရှာ။';
+
+  @override
   String get sellCompleted => 'ရောင်းချမှု ပြီးဆုံးပါပြီ';
 
   @override
@@ -269,7 +304,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashClosedAt => 'ပိတ်ချိန်';
 
   @override
-  String get cashReportPrintBluetooth => 'Print (Bluetooth)';
+  String get cashReportPrintBluetooth => 'ပြေစာပရင်တာနဲ့ ထုတ်';
 
   @override
   String get cashReportSharePdf => 'PDF မျှဝေမည်';
@@ -945,7 +980,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth receipt printer (သို့) label printer ချိတ်ဆက်ရန်။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -1084,7 +1119,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invoiceAmountDue => 'ပေးရန်ကျန်';
 
   @override
-  String get salesReportTitle => 'အရောင်း အစီရင်ခံစာ';
+  String get salesReportTitle => 'အရောင်းအစီရင်ခံစာ';
 
   @override
   String get salesReportAllDates => 'ရက်စွဲအားလုံး';
@@ -1111,7 +1146,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get salesReportColumnAmount => 'ပမာဏ';
 
   @override
-  String get salesReportPrintBluetooth => 'Print ထုတ် (Bluetooth)';
+  String get salesReportPrintBluetooth => 'ပြေစာပရင်တာနဲ့ ထုတ်';
 
   @override
   String get salesReportExportPdf => 'PDF ထုတ်';
@@ -1121,7 +1156,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get salesReportNoPrinter =>
-      'Bluetooth printer သတ်မှတ်မထားပါ — Printer settings ကို ကြည့်ပါ။';
+      'ပရင်တာ မသတ်မှတ်ရသေးပါ — ပရင်တာ ဆက်တင် ကြည့်ပါ။';
+
+  @override
+  String get documentPrint => 'ပရင့်ထုတ်';
 
   @override
   String salesReportCount(int count) {
@@ -1237,6 +1275,67 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get paperA5 => 'A5';
+
+  @override
+  String get printerConnectionType => 'ဒီစက်က ပရင်တာနဲ့ ဘယ်လို ချိတ်မလဲ';
+
+  @override
+  String get printerConnectionBluetooth => 'Bluetooth';
+
+  @override
+  String get printerConnectionWifi => 'Wi-Fi';
+
+  @override
+  String get printerConnectionUsb => 'USB';
+
+  @override
+  String get printerWifiHint =>
+      'ဒီ Wi-Fi ပေါ်က ပရင်တာတွေ စာရင်းမှာ ပေါ်ပါမယ်။ ဖုန်း၊ ကွန်ပျူတာနှင့် ပရင်တာ တူညီတဲ့ network ပေါ်မှာ ရှိရပါမယ်။';
+
+  @override
+  String get printerWifiIpLabel => 'ပရင်တာ IP လိပ်စာ';
+
+  @override
+  String get printerWifiPortLabel => 'Port';
+
+  @override
+  String get printerWifiUse => 'ဒီပရင်တာ သုံးမည်';
+
+  @override
+  String get printerWifiScan => 'ဒီ Wi-Fi ပေါ်က ပရင်တာ ရှာမည်';
+
+  @override
+  String get printerWifiScanning => 'Wi-Fi ပေါ်မှာ ရှာနေသည်…';
+
+  @override
+  String get printerWifiNoneFound =>
+      'Wi-Fi ပရင်တာ မတွေ့ပါ။ ပရင်တာ စမ်းထုတ် စာမျက်နှာက IP ကို ရိုက်ထည့်ပါ။';
+
+  @override
+  String get printerWifiList => 'ဒီ Wi-Fi ပေါ်က ပရင်တာများ';
+
+  @override
+  String get printerWifiManualHint =>
+      'စာရင်းမှာ မပေါ်ရင် ပရင်တာ စမ်းထုတ် စာမျက်နှာက IP ကို ရိုက်ထည့်ပါ။';
+
+  @override
+  String get printerInvalidIp =>
+      'ပရင်တာ IP လိပ်စာ ရိုက်ထည့်ပါ (ဥပမာ 192.168.1.100)။';
+
+  @override
+  String get printerNetworkUnreachable =>
+      'ပရင်တာကို ဆက်သွယ်မရပါ။ IP နှင့် တူညီတဲ့ Wi-Fi ပေါ်မှာ ရှိမရှိ စစ်ပါ။';
+
+  @override
+  String get printerUsbHint =>
+      'ပရင်တာကို ဒီကွန်ပျူတာနဲ့ USB ကြိုးချိတ်ပြီး စာရင်းထဲက ရွေးပါ။ Windows ရဲ့ Printers ထဲမှာ ပေါ်နေရပါမယ်။';
+
+  @override
+  String get printerUsbNoneFound =>
+      'ပရင်တာ မတွေ့ပါ။ ကြိုးချိတ်ပါ၊ Windows က တောင်းရင် install လုပ်ပါ၊ ပြီးရင် Refresh နှိပ်ပါ။';
+
+  @override
+  String get printerUsbRefresh => 'ပြန်ရှာမည်';
 
   @override
   String get settingsLabelPrinter => 'Label ပရင်တာ';
@@ -3545,6 +3644,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get dailyGateOrSignIn => 'သို့မဟုတ် account နဲ့ Sign in လုပ်ပါ';
+
+  @override
+  String get dailyGateWhoIsOpening => 'ဒီနေ့ဆိုင် ဘယ်သူဖွင့်မလဲ?';
 
   @override
   String get operatingModeLabel => 'ဆိုင် mode';

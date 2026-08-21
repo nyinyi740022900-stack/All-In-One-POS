@@ -10,10 +10,12 @@
 #include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <print_bluetooth_thermal/print_bluetooth_thermal_plugin_c_api.h>
+#include <printing/printing_plugin.h>
 #include <sentry_flutter/sentry_flutter_plugin.h>
 #include <share_plus/share_plus_windows_plugin_c_api.h>
 #include <sqlite3_flutter_libs/sqlite3_flutter_libs_plugin.h>
 #include <url_launcher_windows/url_launcher_windows.h>
+#include <windows_printer/windows_printer_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   AppLinksPluginCApiRegisterWithRegistrar(
@@ -24,6 +26,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
   PrintBluetoothThermalPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PrintBluetoothThermalPluginCApi"));
+  PrintingPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("PrintingPlugin"));
   SentryFlutterPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("SentryFlutterPlugin"));
   SharePlusWindowsPluginCApiRegisterWithRegistrar(
@@ -32,4 +36,6 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("Sqlite3FlutterLibsPlugin"));
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
+  WindowsPrinterPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowsPrinterPluginCApi"));
 }

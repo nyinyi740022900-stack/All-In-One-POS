@@ -17,6 +17,7 @@ ReceiptData receiptFromSale(
   ShopProfile shop, {
   required String paymentMethodLabel,
   String? defaultFooter,
+  String? cashier,
 }) {
   return ReceiptData(
     shopName: shop.name,
@@ -25,16 +26,19 @@ ReceiptData receiptFromSale(
     logoUrl: shop.logoUrl,
     invoiceNo: sale.invoiceNo,
     dateTime: sale.finalizedAt,
+    cashier: cashier,
     customerName: sale.customerName,
     customerPhone: sale.customerPhone,
     deliveryAddress: sale.deliveryAddress,
     items: items
-        .map((i) => ReceiptLineItem(
-              name: i.nameSnapshot,
-              qty: i.qty,
-              unitPrice: i.priceSnapshot,
-              lineTotal: i.lineTotal,
-            ))
+        .map(
+          (i) => ReceiptLineItem(
+            name: i.nameSnapshot,
+            qty: i.qty,
+            unitPrice: i.priceSnapshot,
+            lineTotal: i.lineTotal,
+          ),
+        )
         .toList(),
     subtotal: sale.subtotal,
     discount: sale.discount,

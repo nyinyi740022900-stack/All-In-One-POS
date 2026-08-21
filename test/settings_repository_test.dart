@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/invoices/receipt_data.dart';
+import 'package:mm_pos/features/printing/printer_connection.dart';
 
 void main() {
   late AppDatabase db;
@@ -182,10 +183,7 @@ void main() {
 
       expect(await repo.operatingMode(), 'online');
       expect(await repo.operatingModeConfirmed(), isTrue);
-      expect(
-        SettingsRepository.isDeviceGlobalKey('operating.mode'),
-        isTrue,
-      );
+      expect(SettingsRepository.isDeviceGlobalKey('operating.mode'), isTrue);
       expect(
         SettingsRepository.isDeviceGlobalKey('operating.mode_confirmed'),
         isTrue,
@@ -221,23 +219,28 @@ void main() {
       );
     });
 
-    test('setting a token for one shop never leaks into another\'s read',
-        () async {
-      await repo.setLicenseOfflineFallbackToken('shop-main', 'MMPOS1.main.sig');
-      await repo.setLicenseOfflineFallbackToken(
-        'shop-branch',
-        'MMPOS1.branch.sig',
-      );
+    test(
+      'setting a token for one shop never leaks into another\'s read',
+      () async {
+        await repo.setLicenseOfflineFallbackToken(
+          'shop-main',
+          'MMPOS1.main.sig',
+        );
+        await repo.setLicenseOfflineFallbackToken(
+          'shop-branch',
+          'MMPOS1.branch.sig',
+        );
 
-      expect(
-        await repo.licenseOfflineFallbackToken('shop-main'),
-        'MMPOS1.main.sig',
-      );
-      expect(
-        await repo.licenseOfflineFallbackToken('shop-branch'),
-        'MMPOS1.branch.sig',
-      );
-    });
+        expect(
+          await repo.licenseOfflineFallbackToken('shop-main'),
+          'MMPOS1.main.sig',
+        );
+        expect(
+          await repo.licenseOfflineFallbackToken('shop-branch'),
+          'MMPOS1.branch.sig',
+        );
+      },
+    );
 
     test('unset for a shop that never had one', () async {
       expect(await repo.licenseOfflineFallbackToken('shop-none'), isNull);
@@ -285,6 +288,41 @@ void main() {
       final streamed = await repo.watchPrinterConfig().first;
       expect(streamed.paper, PaperSize.mm80);
       expect(streamed.mac, 'EE:55');
+    });
+
+    test('setPrinter remembers connection type; a legacy bluetooth-only '
+        'row still reads as bluetooth', () async {
+      await repo.setPrinter(
+        '192.168.1.50',
+        'Counter Wi-Fi',
+        connection: PrinterConnection.network,
+      );
+      final wifi = await repo.printerConfig();
+      expect(wifi.connection, PrinterConnection.network);
+      expect(wifi.mac, '192.168.1.50');
+
+      await repo.setPrinter('AA:11', 'Front Counter');
+      final bt = await repo.printerConfig();
+      expect(bt.connection, PrinterConnection.bluetooth);
+    });
+
+    test('setLabelPrinter remembers connection independently of the '
+        'receipt printer', () async {
+      await repo.setPrinter(
+        'AA:11',
+        'Receipt',
+        connection: PrinterConnection.bluetooth,
+      );
+      await repo.setLabelPrinter(
+        '192.168.1.80',
+        'Label Wi-Fi',
+        connection: PrinterConnection.network,
+      );
+      final receipt = await repo.printerConfig();
+      final label = await repo.labelPrinterConfig();
+      expect(receipt.connection, PrinterConnection.bluetooth);
+      expect(label.connection, PrinterConnection.network);
+      expect(label.mac, '192.168.1.80');
     });
   });
 }

@@ -10,8 +10,13 @@ import '../invoices/sales_report_data.dart';
 import '../invoices/sales_report_formatter.dart';
 import 'label_data.dart';
 import 'label_raster.dart';
+import 'network_transport.dart';
+import 'printer_connection.dart';
 import 'receipt_raster.dart';
 import 'tspl.dart';
+import 'usb_transport.dart';
+
+export 'printer_connection.dart' show PrintResult, PrinterConnection;
 
 class BtDevice {
   final String name;
@@ -19,15 +24,9 @@ class BtDevice {
   const BtDevice(this.name, this.mac);
 }
 
-class PrintResult {
-  final bool ok;
-  final String? error;
-  const PrintResult(this.ok, [this.error]);
-}
-
-/// Wraps the Bluetooth thermal printer. Discovery/connect/write are all
-/// hardware operations and require a real paired printer to fully exercise;
-/// the byte generation (raster) is deterministic and reused for a test print.
+/// Builds ESC/POS (or TSPL) bytes, then hands them to whichever transport
+/// this device is using: Bluetooth (phones), Wi-Fi TCP 9100 (phones + PCs),
+/// or USB RAW via the Windows spooler (shop PCs).
 class PrinterService {
   Future<bool> get bluetoothEnabled => PrintBluetoothThermal.bluetoothEnabled;
 
@@ -60,15 +59,37 @@ class PrinterService {
     return ok;
   }
 
+  /// Writes already-built bytes over the configured transport. Byte
+  /// generation stays transport-agnostic so a Wi-Fi printer gets the same
+  /// Myanmar-safe raster a Bluetooth printer always did.
+  Future<PrintResult> _send(
+    List<int> bytes, {
+    required String address,
+    required PrinterConnection connection,
+  }) async {
+    switch (connection) {
+      case PrinterConnection.bluetooth:
+        if (!await _ensureConnected(address)) {
+          return const PrintResult(false, 'connect_failed');
+        }
+        final ok = await PrintBluetoothThermal.writeBytes(bytes);
+        return PrintResult(ok, ok ? null : 'write_failed');
+      case PrinterConnection.network:
+        return sendNetworkBytes(bytes, address);
+      case PrinterConnection.usb:
+        return sendUsbBytes(bytes, address);
+    }
+  }
+
   /// Best-effort: downloads and decodes the shop's logo for the receipt
   /// header. Never throws — a network failure or bad image just means the
   /// receipt prints without a logo, not that printing fails.
   Future<ui.Image?> _fetchLogo(String? url) async {
     if (url == null || url.isEmpty) return null;
     try {
-      final res = await http.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 5),
-          );
+      final res = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode != 200) return null;
       return decodeLogoImage(res.bodyBytes);
     } catch (_) {
@@ -118,14 +139,11 @@ class PrinterService {
     required PaperSize paper,
     required String mac,
     required ReceiptLabels labels,
+    PrinterConnection connection = PrinterConnection.bluetooth,
   }) async {
     try {
-      if (!await _ensureConnected(mac)) {
-        return const PrintResult(false, 'connect_failed');
-      }
       final bytes = await buildBytes(data, paper: paper, labels: labels);
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      return PrintResult(ok, ok ? null : 'write_failed');
+      return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -173,11 +191,9 @@ class PrinterService {
     required String dateRangeLabel,
     required String totalLabel,
     required String noSalesLabel,
+    PrinterConnection connection = PrinterConnection.bluetooth,
   }) async {
     try {
-      if (!await _ensureConnected(mac)) {
-        return const PrintResult(false, 'connect_failed');
-      }
       final bytes = await buildReportBytes(
         report,
         shopName,
@@ -187,8 +203,7 @@ class PrinterService {
         totalLabel: totalLabel,
         noSalesLabel: noSalesLabel,
       );
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      return PrintResult(ok, ok ? null : 'write_failed');
+      return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -226,14 +241,11 @@ class PrinterService {
     String shopName, {
     required PaperSize paper,
     required String mac,
+    PrinterConnection connection = PrinterConnection.bluetooth,
   }) async {
     try {
-      if (!await _ensureConnected(mac)) {
-        return const PrintResult(false, 'connect_failed');
-      }
       final bytes = await buildZReportBytes(bodyLines, shopName, paper: paper);
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      return PrintResult(ok, ok ? null : 'write_failed');
+      return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -247,7 +259,8 @@ class PrinterService {
   //  - buildLabelBytes / printLabel: a strip on the existing ESC/POS receipt
   //    printer — no new hardware, but not a real adhesive sticker.
   //  - buildTsplBytes / printTsplLabel: a dedicated TSPL gap-detect label
-  //    printer (a different protocol/device than the receipt printer).
+  //    printer (different protocol than ESC/POS). Same Bluetooth / Wi-Fi /
+  //    USB transports as the receipt printer.
 
   /// Builds ESC/POS bytes for [copies] repeats of one product label, printed
   /// as a strip on the existing receipt printer.
@@ -268,15 +281,17 @@ class PrinterService {
     final bytes = <int>[];
     for (var i = 0; i < copies; i++) {
       bytes.addAll(generator.imageRaster(nameImage));
-      bytes.addAll(generator.text(
-        data.priceText,
-        styles: const esc.PosStyles(
-          align: esc.PosAlign.center,
-          bold: true,
-          height: esc.PosTextSize.size2,
-          width: esc.PosTextSize.size2,
+      bytes.addAll(
+        generator.text(
+          data.priceText,
+          styles: const esc.PosStyles(
+            align: esc.PosAlign.center,
+            bold: true,
+            height: esc.PosTextSize.size2,
+            width: esc.PosTextSize.size2,
+          ),
         ),
-      ));
+      );
       if (chars.length >= 2) {
         bytes.addAll(generator.barcode(esc.Barcode.code128(chars)));
       }
@@ -291,14 +306,11 @@ class PrinterService {
     required PaperSize paper,
     required String mac,
     int copies = 1,
+    PrinterConnection connection = PrinterConnection.bluetooth,
   }) async {
     try {
-      if (!await _ensureConnected(mac)) {
-        return const PrintResult(false, 'connect_failed');
-      }
       final bytes = await buildLabelBytes(data, paper: paper, copies: copies);
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      return PrintResult(ok, ok ? null : 'write_failed');
+      return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -330,14 +342,11 @@ class PrinterService {
     required LabelSize size,
     required String mac,
     int copies = 1,
+    PrinterConnection connection = PrinterConnection.bluetooth,
   }) async {
     try {
-      if (!await _ensureConnected(mac)) {
-        return const PrintResult(false, 'connect_failed');
-      }
       final bytes = await buildTsplBytes(data, size: size, copies: copies);
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      return PrintResult(ok, ok ? null : 'write_failed');
+      return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }

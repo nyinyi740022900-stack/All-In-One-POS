@@ -6,7 +6,8 @@ Run **after** a green GitHub Actions **Windows desktop** build (or a local
 ## Setup
 
 - [ ] Download CI artifact **or** build locally with `env.local.json`
-- [ ] `mm_pos.exe` launches (window paints; not blank)
+- [ ] `AllInOnePOS.exe` launches (window paints; not blank)
+- [ ] Desktop / Start Menu shortcut **All In One POS** appears after first launch
 - [ ] Wide window (≥ 640): NavigationRail visible
 
 ## Core
@@ -20,8 +21,8 @@ Run **after** a green GitHub Actions **Windows desktop** build (or a local
 
 ## Expected limitations (OK for v1)
 
-- [ ] Camera scan may be unavailable — USB barcode or manual search OK
-- [ ] Bluetooth printer may be unavailable — PDF/share OK
+- [ ] USB / Bluetooth barcode gun adds a product on Sell (no camera)
+- [ ] Wi-Fi / USB receipt printer — PDF/share still OK if no thermal printer is set up
 
 ## Sign-off
 

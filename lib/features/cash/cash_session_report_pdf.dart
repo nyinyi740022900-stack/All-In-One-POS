@@ -112,7 +112,6 @@ Future<Uint8List> buildCashSessionReportPdf({
                 style: pw.TextStyle(
                     fontSize: 13,
                     fontWeight: pw.FontWeight.bold,
-                    letterSpacing: 1.2,
                     color: accent)),
             pw.Text(
               closedAt == null

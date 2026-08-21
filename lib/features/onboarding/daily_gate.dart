@@ -20,11 +20,12 @@ import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
+import 'daily_gate_logic.dart';
 import 'operating_mode_providers.dart';
 
 /// Runs once per local calendar day, for every shop regardless of plan or
-/// connectivity — identity confirm (local staff PIN, or an optional account
-/// sign-in) → role → branch → opening amount or Skip — then the tab shell.
+/// connectivity — who is opening (Owner or a named staff member + PIN when
+/// a roster exists) → branch → opening amount or Skip — then the tab shell.
 class DailyGate extends ConsumerStatefulWidget {
   const DailyGate({super.key, required this.onDone});
   final VoidCallback onDone;
@@ -125,6 +126,45 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     if (ok) setState(() => _step = 1);
   }
 
+  Future<void> _continueAsNamedStaff(String memberId) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final l = AppLocalizations.of(context);
+    final pin = await promptPin(context, l.staffEnterPin);
+    if (!mounted) return;
+    if (pin == null || pin.isEmpty) {
+      setState(() => _busy = false);
+      return;
+    }
+    final ok = await ref
+        .read(staffControllerProvider)
+        .switchToStaffMember(memberId, pin);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (!ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.staffWrongPin)));
+      return;
+    }
+    setState(() => _step = 1);
+  }
+
+  /// After email sign-in/register: skip the identity tiles only when there
+  /// is no named roster (a new shop, or a one-person shop). A roster means
+  /// they still pick Owner vs named staff + PIN so invoices know the cashier.
+  void _afterAccountAuth({bool justRegistered = false}) {
+    final rosterEmpty =
+        (ref.read(staffMembersProvider).valueOrNull ?? const []).isEmpty;
+    setState(() {
+      _busy = false;
+      _justRegistered = justRegistered;
+      if (justRegistered || rosterEmpty) _step = 1;
+    });
+  }
+
   Future<void> _auth() async {
     final l = AppLocalizations.of(context);
     if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
@@ -164,11 +204,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           password: _password.text,
         );
         if (!mounted) return;
-        setState(() {
-          _busy = false;
-          _justRegistered = true;
-          _step = 1;
-        });
+        _afterAccountAuth(justRegistered: true);
       } else {
         setState(() {
           _busy = false;
@@ -227,10 +263,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       ref.read(syncControllerProvider.notifier).sync();
       ref.invalidate(backendAccountRoleProvider);
       ref.invalidate(hasRealAccountSessionProvider);
-      setState(() {
-        _busy = false;
-        _step = 1;
-      });
+      _afterAccountAuth();
     } else {
       setState(() {
         _busy = false;
@@ -295,9 +328,12 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     // they'd land on the details step as Owner.
     final rosterEmpty = rosterAsync.valueOrNull?.isEmpty == true;
     final localRole = localRoleAsync.valueOrNull ?? 'owner';
-    final canSkipIdentity =
-        _signedIn ||
-        (rosterEmpty && localRoleAsync.hasValue && localRole != 'staff');
+    final canSkipIdentity = shouldSkipDailyGateIdentity(
+      rosterEmpty: rosterEmpty,
+      signedIn: _signedIn,
+      localRoleLoaded: localRoleAsync.hasValue,
+      localRole: localRole,
+    );
     if (_step == 0 && canSkipIdentity) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _step == 0) setState(() => _step = 1);
@@ -355,10 +391,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     AsyncValue<List<StaffMember>> rosterAsync,
   ) {
     if (_step == 0) {
-      if (!_signedIn &&
-          (!rosterAsync.hasValue || !ref.watch(staffRoleProvider).hasValue)) {
+      if (!rosterAsync.hasValue || !ref.watch(staffRoleProvider).hasValue) {
         // Local roster / PIN role still loading — avoid flashing the
-        // sign-in form only to skip it a frame later.
+        // sign-in form only to skip it a frame later, and avoid an empty
+        // identity list while the roster is in flight.
         return const AppLoadingView();
       }
       return _accountStep(l, rosterAsync.valueOrNull ?? const []);
@@ -376,124 +412,136 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           children: [
             if (roster.isNotEmpty) ...[
               Text(
-                l.staffWhoAreYou,
+                l.dailyGateWhoIsOpening,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              ListTile(
-                leading: const IconAvatar(icon: Icons.verified_user),
-                title: Text(l.dailyGateContinueAsOwner),
-                onTap: _busy ? null : () => _continueAsRole('owner'),
-              ),
-              ListTile(
-                leading: const IconAvatar(icon: Icons.badge_outlined),
-                title: Text(l.dailyGateContinueAsStaff),
-                onTap: _busy ? null : () => _continueAsRole('staff'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      l.dailyGateOrSignIn,
-                      style: Theme.of(context).textTheme.bodySmall,
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const IconAvatar(icon: Icons.verified_user),
+                      title: Text(l.dailyGateRoleOwner),
+                      onTap: _busy ? null : () => _continueAsRole('owner'),
                     ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
+                    for (final m in roster)
+                      ListTile(
+                        leading: const IconAvatar(icon: Icons.badge_outlined),
+                        title: Text(m.name),
+                        onTap: _busy ? null : () => _continueAsNamedStaff(m.id),
+                      ),
+                  ],
+                ),
+              ),
+              if (!_signedIn) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        l.dailyGateOrSignIn,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+            ],
+            if (!_signedIn) ...[
+              Text(
+                l.dailyGateAccountStep,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-            ],
-            Text(
-              l.dailyGateAccountStep,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            if (allowRegister) ...[
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(
-                    value: false,
-                    label: Text(l.onboardOnlineTabSignIn),
+              if (allowRegister) ...[
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      label: Text(l.onboardOnlineTabSignIn),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text(l.onboardOnlineTabRegister),
+                    ),
+                  ],
+                  selected: {_register},
+                  onSelectionChanged: (s) =>
+                      setState(() => _register = s.first),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (registering) ...[
+                TextField(
+                  controller: _shopName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: l.shopName,
+                    prefixIcon: const AuthFieldIcon(Icons.store_outlined),
                   ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text(l.onboardOnlineTabRegister),
-                  ),
-                ],
-                selected: {_register},
-                onSelectionChanged: (s) => setState(() => _register = s.first),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (registering) ...[
+                ),
+                const SizedBox(height: 12),
+              ],
               TextField(
-                controller: _shopName,
-                textCapitalization: TextCapitalization.words,
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [
+                  AutofillHints.username,
+                  AutofillHints.email,
+                ],
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: l.shopName,
-                  prefixIcon: const AuthFieldIcon(Icons.store_outlined),
+                  labelText: l.accountEmail,
+                  prefixIcon: const AuthFieldIcon(Icons.mail_outline),
                 ),
               ),
               const SizedBox(height: 12),
+              if (registering) ...[
+                AuthPasswordField(
+                  controller: _password,
+                  labelText: l.accountPassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.next,
+                ),
+                PasswordStrengthMeter(controller: _password),
+                const SizedBox(height: 12),
+                AuthPasswordField(
+                  controller: _confirmPassword,
+                  labelText: l.accountConfirmPassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (!_busy) _auth();
+                  },
+                ),
+              ] else
+                AuthPasswordField(
+                  controller: _password,
+                  labelText: l.accountPassword,
+                  autofillHints: const [AutofillHints.password],
+                  helperText: l.accountPasswordRememberedHint,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (!_busy) _auth();
+                  },
+                ),
+              const SizedBox(height: 16),
+              FilledButton(
+                style: AppTheme.authFilledButtonStyle(),
+                onPressed: _busy ? null : _auth,
+                child: _busy
+                    ? const ButtonSpinner()
+                    : Text(
+                        registering
+                            ? l.onboardOnlineCreateAccount
+                            : l.accountSignIn,
+                      ),
+              ),
             ],
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [
-                AutofillHints.username,
-                AutofillHints.email,
-              ],
-              textInputAction: TextInputAction.next,
-              decoration: InputDecoration(
-                labelText: l.accountEmail,
-                prefixIcon: const AuthFieldIcon(Icons.mail_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (registering) ...[
-              AuthPasswordField(
-                controller: _password,
-                labelText: l.accountPassword,
-                autofillHints: const [AutofillHints.newPassword],
-                textInputAction: TextInputAction.next,
-              ),
-              PasswordStrengthMeter(controller: _password),
-              const SizedBox(height: 12),
-              AuthPasswordField(
-                controller: _confirmPassword,
-                labelText: l.accountConfirmPassword,
-                autofillHints: const [AutofillHints.newPassword],
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) {
-                  if (!_busy) _auth();
-                },
-              ),
-            ] else
-              AuthPasswordField(
-                controller: _password,
-                labelText: l.accountPassword,
-                autofillHints: const [AutofillHints.password],
-                helperText: l.accountPasswordRememberedHint,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) {
-                  if (!_busy) _auth();
-                },
-              ),
-            const SizedBox(height: 16),
-            FilledButton(
-              style: AppTheme.authFilledButtonStyle(),
-              onPressed: _busy ? null : _auth,
-              child: _busy
-                  ? const ButtonSpinner()
-                  : Text(
-                      registering
-                          ? l.onboardOnlineCreateAccount
-                          : l.accountSignIn,
-                    ),
-            ),
           ],
         ),
       ),
@@ -568,7 +616,10 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                 tone: isStaff ? StatusTone.attention : StatusTone.positive,
               ),
               title: Text(
-                isStaff ? l.dailyGateRoleStaff : l.dailyGateRoleOwner,
+                isStaff
+                    ? (ref.watch(activeStaffNameProvider) ??
+                          l.dailyGateRoleStaff)
+                    : l.dailyGateRoleOwner,
               ),
               subtitle: email == null ? null : Text(email),
             ),

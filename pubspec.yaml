@@ -37,9 +37,11 @@ dependencies:
   # Charts (analytics)
   fl_chart: ^0.69.2
 
-  # Bluetooth thermal printing (ESC/POS)
+  # Thermal printing (ESC/POS). Bluetooth is mobile-only; Wi-Fi is raw TCP
+  # 9100 (no extra plugin); USB-on-Windows uses the spooler in RAW mode.
   esc_pos_utils_plus: ^2.0.4
   print_bluetooth_thermal: ^1.1.1
+  windows_printer: ^0.2.1
   image: ^4.3.0
   # Pinned to 12.x so its win32 dep co-resolves with file_picker (both win32
   # ^5); 13.x pulls win32 ^6 which breaks file_picker's Windows source. Same
@@ -62,6 +64,9 @@ dependencies:
   # A4-quality invoice PDF for the Invoices Web companion (Phase 1) — a real
   # PDF, not a rasterized PNG, so it prints sharp at any size on a computer.
   pdf: ^3.11.3
+  # Native print dialog for A4/A5 documents (AirPrint, Android print,
+  # Windows USB/Wi-Fi office printers) — not the thermal ESC/POS path.
+  printing: ^5.14.2
   url_launcher: ^6.3.2
 
 dev_dependencies:

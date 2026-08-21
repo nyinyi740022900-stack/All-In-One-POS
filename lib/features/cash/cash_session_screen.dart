@@ -13,6 +13,8 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
+import '../printing/document_print.dart';
+import '../printing/printer_connection.dart';
 import '../printing/printing_providers.dart';
 import 'cash_providers.dart';
 import 'cash_session_report_formatter.dart';
@@ -27,7 +29,8 @@ class CashSessionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final session = ref.watch(currentCashSessionProvider).valueOrNull;
-    final history = ref.watch(cashSessionHistoryProvider).valueOrNull ?? const [];
+    final history =
+        ref.watch(cashSessionHistoryProvider).valueOrNull ?? const [];
     final pastSessions = history.where((s) => s.id != session?.id).toList();
 
     return Scaffold(
@@ -38,15 +41,20 @@ class CashSessionScreen extends ConsumerWidget {
           if (session == null)
             _ClosedCard(onOpen: () => _openRegister(context, ref))
           else
-            _OpenCard(session: session, onClose: () => _closeRegister(context, ref, session)),
+            _OpenCard(
+              session: session,
+              onClose: () => _closeRegister(context, ref, session),
+            ),
           const SizedBox(height: AppTheme.space5),
           Text(l.cashHistory, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: AppTheme.space2),
           if (pastSessions.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppTheme.space3),
-              child: Text(l.cashNoHistory,
-                  style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                l.cashNoHistory,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             )
           else
             ...pastSessions.map((s) => _HistoryTile(session: s)),
@@ -79,7 +87,10 @@ class CashSessionScreen extends ConsumerWidget {
   }
 
   Future<void> _closeRegister(
-      BuildContext context, WidgetRef ref, CashSession session) async {
+    BuildContext context,
+    WidgetRef ref,
+    CashSession session,
+  ) async {
     final l = AppLocalizations.of(context);
     final amount = await showDialog<int>(
       context: context,
@@ -118,8 +129,10 @@ class _ClosedCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.lock_outline,
-                    color: Theme.of(context).colorScheme.outline),
+                Icon(
+                  Icons.lock_outline,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
                 const SizedBox(width: AppTheme.space2),
                 Expanded(child: Text(l.cashNoSession)),
               ],
@@ -172,20 +185,26 @@ class _OpenCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(l.cashExpectedNow,
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l.cashExpectedNow,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 expected.when(
                   loading: () => const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2)),
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                   error: (e, _) => Tooltip(
                     message: l.commonUnexpectedError,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.error_outline,
-                            size: 16, color: colors.danger),
+                        Icon(
+                          Icons.error_outline,
+                          size: 16,
+                          color: colors.danger,
+                        ),
                         const SizedBox(width: 4),
                         Text('—', style: TextStyle(color: colors.danger)),
                       ],
@@ -256,7 +275,7 @@ class _HistoryTile extends ConsumerWidget {
         closing == null
             ? l.cashRegisterOpen
             : '${l.cashOpeningAmount}: ${Money(session.openingAmount).withSymbol(sym)}'
-                ' → ${l.cashClosingAmount}: ${Money(closing).withSymbol(sym)}',
+                  ' → ${l.cashClosingAmount}: ${Money(closing).withSymbol(sym)}',
       ),
       trailing: closing == null
           ? null
@@ -269,23 +288,24 @@ class _HistoryTile extends ConsumerWidget {
                   // the session's window) — not vs. the opening amount
                   // alone, which would flag every normal day of sales as
                   // "over."
-                  future:
-                      ref.read(cashSessionRepositoryProvider).expectedCash(session),
+                  future: ref
+                      .read(cashSessionRepositoryProvider)
+                      .expectedCash(session),
                   builder: (context, snap) {
                     if (!snap.hasData) {
                       return const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2));
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      );
                     }
                     final variance = closing - snap.data!;
                     final colors = AppColors.of(context);
                     return Text(
                       _varianceText(l, variance),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                variance == 0 ? colors.success : colors.danger,
-                          ),
+                        color: variance == 0 ? colors.success : colors.danger,
+                      ),
                     );
                   },
                 ),
@@ -310,13 +330,27 @@ class _HistoryTile extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: const Icon(Icons.print_outlined),
+              title: Text(l.documentPrint),
+              onTap: () {
+                Navigator.pop(ctx);
+                _printPdf(context, ref);
+              },
+            ),
             if (printerConfig.hasPrinter)
               ListTile(
-                leading: const Icon(Icons.print_outlined),
+                leading: const Icon(Icons.receipt_long_outlined),
                 title: Text(l.cashReportPrintBluetooth),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _printReport(context, ref, printerConfig.mac!, printerConfig.paper);
+                  _printReport(
+                    context,
+                    ref,
+                    printerConfig.mac!,
+                    printerConfig.paper,
+                    printerConfig.connection,
+                  );
                 },
               ),
             ListTile(
@@ -333,38 +367,103 @@ class _HistoryTile extends ConsumerWidget {
     );
   }
 
-  Future<void> _printReport(BuildContext context, WidgetRef ref, String mac,
-      PaperSize paper) async {
+  Future<Uint8List> _pdfBytes(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final report = await ref
+        .read(cashSessionRepositoryProvider)
+        .reportFor(session);
+    final varianceText = report.variance == null
+        ? null
+        : _varianceText(l, report.variance!);
+    final profile = await ref.read(shopProfileProvider.future);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    return buildCashSessionReportPdf(
+      shopName: profile.name,
+      shopLogoUrl: profile.logoUrl,
+      shopPhone: profile.phone,
+      shopAddress: profile.address,
+      title: l.cashReportTitle,
+      report: report,
+      currencySymbol: l.currencySymbol,
+      openedLabel: l.cashOpenedAt,
+      closedLabel: l.cashClosedAt,
+      openingFloatLabel: l.cashOpeningAmount,
+      cashSalesLabel: l.cashReportCashSales,
+      cashRepaymentsLabel: l.cashReportCashRepayments,
+      expensesLabel: l.expensesTitle,
+      expectedCashLabel: l.cashExpectedNow,
+      countedCashLabel: l.cashClosingAmount,
+      openedAt: session.openedAt,
+      closedAt: session.closedAt,
+      varianceLabel: l.cashVariance,
+      varianceText: varianceText,
+      pageFormat: printerConfig.pdfPaperSize,
+    );
+  }
+
+  Future<void> _printPdf(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
-      final varianceText =
-          report.variance == null ? null : _varianceText(l, report.variance!);
-      final lines = CashSessionReportFormatter(paper: paper, currencySymbol: l.currencySymbol)
-          .format(
-        report,
-        title: l.cashReportTitle,
-        openedLabel: l.cashOpenedAt,
-        closedLabel: l.cashClosedAt,
-        openingFloatLabel: l.cashOpeningAmount,
-        cashSalesLabel: l.cashReportCashSales,
-        cashRepaymentsLabel: l.cashReportCashRepayments,
-        expensesLabel: l.expensesTitle,
-        expectedCashLabel: l.cashExpectedNow,
-        countedCashLabel: l.cashClosingAmount,
-        openedAt: session.openedAt,
-        closedAt: session.closedAt,
-        varianceLabel: l.cashVariance,
-        varianceText: varianceText,
-      );
+      final bytes = await _pdfBytes(context, ref);
+      if (!context.mounted) return;
+      await printPdfDocument(bytes: bytes, name: l.cashReportTitle);
+    } catch (e) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
+  Future<void> _printReport(
+    BuildContext context,
+    WidgetRef ref,
+    String mac,
+    PaperSize paper,
+    PrinterConnection connection,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final report = await ref
+          .read(cashSessionRepositoryProvider)
+          .reportFor(session);
+      final varianceText = report.variance == null
+          ? null
+          : _varianceText(l, report.variance!);
+      final lines =
+          CashSessionReportFormatter(
+            paper: paper,
+            currencySymbol: l.currencySymbol,
+          ).format(
+            report,
+            title: l.cashReportTitle,
+            openedLabel: l.cashOpenedAt,
+            closedLabel: l.cashClosedAt,
+            openingFloatLabel: l.cashOpeningAmount,
+            cashSalesLabel: l.cashReportCashSales,
+            cashRepaymentsLabel: l.cashReportCashRepayments,
+            expensesLabel: l.expensesTitle,
+            expectedCashLabel: l.cashExpectedNow,
+            countedCashLabel: l.cashClosingAmount,
+            openedAt: session.openedAt,
+            closedAt: session.closedAt,
+            varianceLabel: l.cashVariance,
+            varianceText: varianceText,
+          );
       final profile = await ref.read(shopProfileProvider.future);
       final result = await ref
           .read(printerServiceProvider)
-          .printZReport(lines, profile.name, paper: paper, mac: mac);
+          .printZReport(
+            lines,
+            profile.name,
+            paper: paper,
+            mac: mac,
+            connection: connection,
+          );
       if (!context.mounted) return;
       messenger.showSnackBar(
-          SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)));
+        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+      );
     } catch (e) {
       if (!context.mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
@@ -375,33 +474,7 @@ class _HistoryTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final report = await ref.read(cashSessionRepositoryProvider).reportFor(session);
-      final varianceText =
-          report.variance == null ? null : _varianceText(l, report.variance!);
-      final profile = await ref.read(shopProfileProvider.future);
-      final printerConfig = await ref.read(printerConfigProvider.future);
-      final bytes = await buildCashSessionReportPdf(
-        shopName: profile.name,
-        shopLogoUrl: profile.logoUrl,
-        shopPhone: profile.phone,
-        shopAddress: profile.address,
-        title: l.cashReportTitle,
-        report: report,
-        currencySymbol: l.currencySymbol,
-        openedLabel: l.cashOpenedAt,
-        closedLabel: l.cashClosedAt,
-        openingFloatLabel: l.cashOpeningAmount,
-        cashSalesLabel: l.cashReportCashSales,
-        cashRepaymentsLabel: l.cashReportCashRepayments,
-        expensesLabel: l.expensesTitle,
-        expectedCashLabel: l.cashExpectedNow,
-        countedCashLabel: l.cashClosingAmount,
-        openedAt: session.openedAt,
-        closedAt: session.closedAt,
-        varianceLabel: l.cashVariance,
-        varianceText: varianceText,
-        pageFormat: printerConfig.pdfPaperSize,
-      );
+      final bytes = await _pdfBytes(context, ref);
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/cash-session-report.pdf');
       await file.writeAsBytes(bytes);
@@ -463,8 +536,10 @@ class _AmountDialogState extends State<_AmountDialog> {
           ),
           if (widget.warningText != null) ...[
             const SizedBox(height: AppTheme.space2),
-            Text(widget.warningText!,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              widget.warningText!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ],
       ),

@@ -572,8 +572,8 @@ class RecurringExpenses extends Table with SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
-/// Simple local key/value store for device-scoped app settings (printer MAC,
-/// paper size, selected language, etc.). Not synced.
+/// Simple local key/value store for device-scoped app settings (printer
+/// address/connection, paper size, selected language, etc.). Not synced.
 class AppSettings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();

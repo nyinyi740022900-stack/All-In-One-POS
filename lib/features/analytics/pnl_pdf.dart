@@ -107,7 +107,6 @@ Future<Uint8List> buildPnlPdf({
                 style: pw.TextStyle(
                     fontSize: 13,
                     fontWeight: pw.FontWeight.bold,
-                    letterSpacing: 1.2,
                     color: accent)),
             pw.Text(
               '$dateRangeLabel: ${dateStr(statement.start)} ~ ${dateStr(inclusiveEnd)}',

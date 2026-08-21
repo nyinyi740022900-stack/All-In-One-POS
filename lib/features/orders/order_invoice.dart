@@ -118,14 +118,17 @@ Future<void> printOrderInvoice(
     defaultFooter: l.receiptThankYou,
   );
 
-  final result = await ref.read(printerServiceProvider).printReceipt(
+  final result = await ref
+      .read(printerServiceProvider)
+      .printReceipt(
         data,
         paper: config.paper,
         mac: config.mac!,
         labels: receiptLabels(l),
+        connection: config.connection,
       );
 
-  messenger.showSnackBar(SnackBar(
-    content: Text(result.ok ? l.printSuccess : l.printFailed),
-  ));
+  messenger.showSnackBar(
+    SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+  );
 }

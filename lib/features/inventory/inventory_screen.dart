@@ -19,6 +19,7 @@ import '../license/premium_gate.dart';
 import '../printing/label_data.dart';
 import '../printing/label_print_dialog.dart';
 import '../printing/printing_providers.dart';
+import '../sell/hardware_scanner_listener.dart';
 import '../staff/staff_providers.dart';
 import 'categories_screen.dart';
 import 'inventory_csv.dart';
@@ -44,9 +45,12 @@ class InventoryScreen extends ConsumerStatefulWidget {
 }
 
 class _InventoryScreenState extends ConsumerState<InventoryScreen> {
+  late final TextEditingController _search;
+
   @override
   void initState() {
     super.initState();
+    _search = TextEditingController();
     // Seed demo data on first run (debug/local convenience).
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final db = ref.read(databaseProvider);
@@ -56,6 +60,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       await seed.ensureSeeded();
       await seed.collapseDuplicates();
     });
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
   }
 
   Future<void> _openEditor([ProductWithStock? existing]) {
@@ -116,180 +126,197 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final currency = l.currencySymbol;
     // Cashiers can browse inventory but not add/edit products; managers can.
     final canEdit = ref.watch(canEditInventoryProvider);
+    ref.listen<String>(inventorySearchProvider, (prev, next) {
+      if (next != _search.text) {
+        _search.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+      }
+    });
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight:
-            kToolbarHeight +
-            (async.hasValue ? MediaQuery.textScalerOf(context).scale(20) : 0),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l.inventoryTitle),
-            if (async.hasValue)
-              Text(
-                l.inventoryFilteredCount(products.length),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return HardwareScannerListener(
+      onScan: (code) {
+        final trimmed = code.trim();
+        ref.read(inventorySearchProvider.notifier).state = trimmed;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight:
+              kToolbarHeight +
+              (async.hasValue ? MediaQuery.textScalerOf(context).scale(20) : 0),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l.inventoryTitle),
+              if (async.hasValue)
+                Text(
+                  l.inventoryFilteredCount(products.length),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: l.inventoryExportCsv,
+              icon: const Icon(Icons.table_chart_outlined),
+              onPressed: _exportCsv,
+            ),
+            IconButton(
+              tooltip: l.stockHistoryTitle,
+              icon: const Icon(Icons.history),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StockMovementsScreen()),
               ),
+            ),
+            IconButton(
+              tooltip: l.manageCategories,
+              icon: const Icon(Icons.label),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+              ),
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4,
+                0,
+                AppTheme.space4,
+                AppTheme.space2,
+              ),
+              child: TextField(
+                controller: _search,
+                decoration: InputDecoration(
+                  hintText: l.commonSearch,
+                  prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                ),
+                onChanged: (v) =>
+                    ref.read(inventorySearchProvider.notifier).state = v,
+              ),
+            ),
+          ),
+        ),
+        floatingActionButton: canEdit
+            ? FloatingActionButton.extended(
+                onPressed: () => _openEditor(),
+                icon: const Icon(Icons.add),
+                label: Text(l.commonAdd),
+              )
+            : null,
+        body: Column(
+          children: [
+            const _CategoryFilterBar(),
+            Expanded(
+              child: async.when(
+                loading: () => const AppLoadingView(),
+                error: (e, _) => ErrorRetryView(
+                  message: l.commonUnexpectedError,
+                  onRetry: () => ref.invalidate(productsStreamProvider),
+                ),
+                data: (_) {
+                  if (products.isEmpty) {
+                    final searching = ref
+                        .read(inventorySearchProvider)
+                        .trim()
+                        .isNotEmpty;
+                    return EmptyStateView(
+                      icon: searching
+                          ? Icons.search_off
+                          : Icons.inventory_2_outlined,
+                      title: searching
+                          ? l.inventoryNoResults
+                          : l.inventoryEmpty,
+                    );
+                  }
+                  return Column(
+                    children: [
+                      if (trackStock && lowCount > 0)
+                        _LowStockBanner(count: lowCount),
+                      Expanded(
+                        child: isMediumPlus(context)
+                            ? GridView.builder(
+                                padding: const EdgeInsets.all(AppTheme.space3),
+                                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                                  // **Not** the old 300. `maxCrossAxisExtent` is a
+                                  // ceiling, not a target: the delegate takes
+                                  // `ceil(width / extent)` columns and divides evenly,
+                                  // so 300 on an 820pt iPad produced three ~235pt
+                                  // cards — and a card that narrow leaves ~70pt for
+                                  // the name once the thumbnail, stock pill and menu
+                                  // have taken their fixed widths, which shredded
+                                  // every Myanmar product name into two clipped
+                                  // fragments and wrapped "300 ကျပ်" onto two lines.
+                                  // (Seen on a real iPad, not reasoned about: the old
+                                  // 300 was equally broken, the thumbnail just made
+                                  // it visible.) 440 forces two ~360pt cards on this
+                                  // iPad and never divides below ~300pt on anything
+                                  // wider.
+                                  maxCrossAxisExtent: 440,
+                                  mainAxisSpacing: AppTheme.space3,
+                                  crossAxisSpacing: AppTheme.space3,
+                                  // A fixed row height derived from the type scale
+                                  // beats `childAspectRatio`, which ties the row's
+                                  // height to how many columns happened to fit and
+                                  // therefore breaks at exactly one window width.
+                                  mainAxisExtent: _gridTileHeight(context),
+                                ),
+                                itemCount: products.length,
+                                itemBuilder: (context, i) {
+                                  final p = products[i];
+                                  return Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    child: _ProductTile(
+                                      p: p,
+                                      currency: currency,
+                                      trackStock: trackStock,
+                                      canEdit: canEdit,
+                                      onOpen: () => _openEditor(p),
+                                    ),
+                                  );
+                                },
+                              )
+                            : ListView.separated(
+                                // Clears the extended FAB, which otherwise sits on
+                                // top of the last row's overflow menu.
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppTheme.space3,
+                                  AppTheme.space2,
+                                  AppTheme.space3,
+                                  88,
+                                ),
+                                itemCount: products.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: AppTheme.space2),
+                                itemBuilder: (context, i) {
+                                  final p = products[i];
+                                  return Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    child: _ProductTile(
+                                      p: p,
+                                      currency: currency,
+                                      trackStock: trackStock,
+                                      canEdit: canEdit,
+                                      onOpen: () => _openEditor(p),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: l.inventoryExportCsv,
-            icon: const Icon(Icons.table_chart_outlined),
-            onPressed: _exportCsv,
-          ),
-          IconButton(
-            tooltip: l.stockHistoryTitle,
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const StockMovementsScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: l.manageCategories,
-            icon: const Icon(Icons.label),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const CategoriesScreen())),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.space4,
-              0,
-              AppTheme.space4,
-              AppTheme.space2,
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: l.commonSearch,
-                prefixIcon: const Icon(Icons.search),
-                isDense: true,
-              ),
-              onChanged: (v) =>
-                  ref.read(inventorySearchProvider.notifier).state = v,
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: canEdit
-          ? FloatingActionButton.extended(
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.add),
-              label: Text(l.commonAdd),
-            )
-          : null,
-      body: Column(
-        children: [
-          const _CategoryFilterBar(),
-          Expanded(
-            child: async.when(
-              loading: () => const AppLoadingView(),
-              error: (e, _) => ErrorRetryView(
-                message: l.commonUnexpectedError,
-                onRetry: () => ref.invalidate(productsStreamProvider),
-              ),
-              data: (_) {
-                if (products.isEmpty) {
-                  final searching = ref
-                      .read(inventorySearchProvider)
-                      .trim()
-                      .isNotEmpty;
-                  return EmptyStateView(
-                    icon: searching
-                        ? Icons.search_off
-                        : Icons.inventory_2_outlined,
-                    title: searching ? l.inventoryNoResults : l.inventoryEmpty,
-                  );
-                }
-                return Column(
-                  children: [
-                    if (trackStock && lowCount > 0)
-                      _LowStockBanner(count: lowCount),
-                    Expanded(
-                      child: isMediumPlus(context)
-                          ? GridView.builder(
-                              padding: const EdgeInsets.all(AppTheme.space3),
-                              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                                // **Not** the old 300. `maxCrossAxisExtent` is a
-                                // ceiling, not a target: the delegate takes
-                                // `ceil(width / extent)` columns and divides evenly,
-                                // so 300 on an 820pt iPad produced three ~235pt
-                                // cards — and a card that narrow leaves ~70pt for
-                                // the name once the thumbnail, stock pill and menu
-                                // have taken their fixed widths, which shredded
-                                // every Myanmar product name into two clipped
-                                // fragments and wrapped "300 ကျပ်" onto two lines.
-                                // (Seen on a real iPad, not reasoned about: the old
-                                // 300 was equally broken, the thumbnail just made
-                                // it visible.) 440 forces two ~360pt cards on this
-                                // iPad and never divides below ~300pt on anything
-                                // wider.
-                                maxCrossAxisExtent: 440,
-                                mainAxisSpacing: AppTheme.space3,
-                                crossAxisSpacing: AppTheme.space3,
-                                // A fixed row height derived from the type scale
-                                // beats `childAspectRatio`, which ties the row's
-                                // height to how many columns happened to fit and
-                                // therefore breaks at exactly one window width.
-                                mainAxisExtent: _gridTileHeight(context),
-                              ),
-                              itemCount: products.length,
-                              itemBuilder: (context, i) {
-                                final p = products[i];
-                                return Card(
-                                  clipBehavior: Clip.antiAlias,
-                                  child: _ProductTile(
-                                    p: p,
-                                    currency: currency,
-                                    trackStock: trackStock,
-                                    canEdit: canEdit,
-                                    onOpen: () => _openEditor(p),
-                                  ),
-                                );
-                              },
-                            )
-                          : ListView.separated(
-                              // Clears the extended FAB, which otherwise sits on
-                              // top of the last row's overflow menu.
-                              padding: const EdgeInsets.fromLTRB(
-                                AppTheme.space3,
-                                AppTheme.space2,
-                                AppTheme.space3,
-                                88,
-                              ),
-                              itemCount: products.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: AppTheme.space2),
-                              itemBuilder: (context, i) {
-                                final p = products[i];
-                                return Card(
-                                  clipBehavior: Clip.antiAlias,
-                                  child: _ProductTile(
-                                    p: p,
-                                    currency: currency,
-                                    trackStock: trackStock,
-                                    canEdit: canEdit,
-                                    onOpen: () => _openEditor(p),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

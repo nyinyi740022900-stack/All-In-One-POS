@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collection/collection.dart';
 
 import '../../core/layout.dart';
 import '../../core/money.dart';
@@ -15,7 +14,9 @@ import '../printing/printing_providers.dart';
 import 'barcode_scanner_screen.dart';
 import 'cart.dart';
 import 'checkout_sheet.dart';
+import 'hardware_scanner_listener.dart';
 import 'sales_providers.dart';
+import 'sell_barcode.dart';
 
 class SellScreen extends ConsumerWidget {
   const SellScreen({super.key});
@@ -54,20 +55,7 @@ class SellScreen extends ConsumerWidget {
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
     if (code == null || !context.mounted) return;
-    final products = ref.read(productsStreamProvider).valueOrNull ?? const [];
-    final match = products.firstWhereOrNull(
-      (p) => (p.product.barcode ?? '') == code,
-    );
-    final messenger = ScaffoldMessenger.of(context);
-    if (match != null) {
-      ref.read(cartProvider.notifier).addProduct(match.product);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.scanAdded(match.product.name))),
-      );
-    } else {
-      ref.read(sellSearchProvider.notifier).state = code;
-      messenger.showSnackBar(SnackBar(content: Text(l.scanNotFound(code))));
-    }
+    applyScannedSellCode(context, ref, l, code);
   }
 
   void _openCheckout(BuildContext context) {
@@ -214,65 +202,63 @@ class SellScreen extends ConsumerWidget {
       ],
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l.sellTitle),
-        actions: [
-          IconButton(
-            tooltip: l.scanBarcode,
-            icon: const Icon(Icons.qr_code_scanner),
-            onPressed: () => _scanAndAdd(context, ref, l),
-          ),
-          if (!cart.isEmpty)
+    return HardwareScannerListener(
+      onScan: (code) => applyScannedSellCode(context, ref, l, code),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l.sellTitle),
+          actions: [
             IconButton(
-              tooltip: l.sellClear,
-              icon: const Icon(Icons.remove_shopping_cart),
-              onPressed: () => _confirmClear(context, ref, l),
+              tooltip: l.scanBarcode,
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: () => _scanAndAdd(context, ref, l),
             ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.space4,
-              0,
-              AppTheme.space4,
-              AppTheme.space2,
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: l.commonSearch,
-                prefixIcon: const Icon(Icons.search),
-                isDense: true,
+            if (!cart.isEmpty)
+              IconButton(
+                tooltip: l.sellClear,
+                icon: const Icon(Icons.remove_shopping_cart),
+                onPressed: () => _confirmClear(context, ref, l),
               ),
-              onChanged: (v) => ref.read(sellSearchProvider.notifier).state = v,
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4,
+                0,
+                AppTheme.space4,
+                AppTheme.space2,
+              ),
+              child: _SellSearchField(
+                onSubmitted: (v) => applyScannedSellCode(context, ref, l, v),
+              ),
             ),
           ),
         ),
-      ),
-      body: split
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: leadFlex, child: productPane),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  flex: trailFlex,
-                  child: _CartPanel(
-                    onCheckout: () => _openCheckout(context),
-                    onClear: () => _confirmClear(context, ref, l),
+        body: split
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(flex: leadFlex, child: productPane),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    flex: trailFlex,
+                    child: _CartPanel(
+                      onCheckout: () => _openCheckout(context),
+                      onClear: () => _confirmClear(context, ref, l),
+                    ),
                   ),
-                ),
-              ],
-            )
-          : productPane,
-      bottomNavigationBar: split || cart.isEmpty
-          ? null
-          : _CartBar(
-              itemCount: cart.itemCount,
-              total: cart.total.withSymbol(currency),
-              onCheckout: () => _openCheckout(context),
-            ),
+                ],
+              )
+            : productPane,
+        bottomNavigationBar: split || cart.isEmpty
+            ? null
+            : _CartBar(
+                itemCount: cart.itemCount,
+                total: cart.total.withSymbol(currency),
+                onCheckout: () => _openCheckout(context),
+              ),
+      ),
     );
   }
 }
@@ -691,6 +677,53 @@ class _CartBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SellSearchField extends ConsumerStatefulWidget {
+  const _SellSearchField({required this.onSubmitted});
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  ConsumerState<_SellSearchField> createState() => _SellSearchFieldState();
+}
+
+class _SellSearchFieldState extends ConsumerState<_SellSearchField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: ref.read(sellSearchProvider));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    ref.listen<String>(sellSearchProvider, (prev, next) {
+      if (next != _controller.text) {
+        _controller.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+      }
+    });
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        hintText: l.commonSearch,
+        prefixIcon: const Icon(Icons.search),
+        isDense: true,
+      ),
+      onChanged: (v) => ref.read(sellSearchProvider.notifier).state = v,
+      onSubmitted: widget.onSubmitted,
     );
   }
 }

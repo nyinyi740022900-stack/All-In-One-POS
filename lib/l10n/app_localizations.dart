@@ -392,6 +392,66 @@ abstract class AppLocalizations {
   /// **'No product for barcode {code}'**
   String scanNotFound(String code);
 
+  /// No description provided for @scanHardwareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera, or a USB / Bluetooth scanner'**
+  String get scanHardwareHint;
+
+  /// No description provided for @scanHardwareOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Plug in a USB scanner or pair a Bluetooth scanner in system settings, then scan. Keep this screen open.'**
+  String get scanHardwareOnlyHint;
+
+  /// No description provided for @scannerSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode scanner'**
+  String get scannerSettings;
+
+  /// No description provided for @scannerSettingsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A handheld scanner works like a keyboard. Pair it on the computer, tablet, or phone — this app does not need a separate Bluetooth pairing screen.'**
+  String get scannerSettingsIntro;
+
+  /// No description provided for @scannerUsbTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'USB scanner'**
+  String get scannerUsbTitle;
+
+  /// No description provided for @scannerUsbBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Plug into the computer, or into a tablet with a USB-C adapter. Open Sell and scan — the item is added to the cart.'**
+  String get scannerUsbBody;
+
+  /// No description provided for @scannerBluetoothTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth scanner'**
+  String get scannerBluetoothTitle;
+
+  /// No description provided for @scannerBluetoothBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the scanner on, pair it in Android / iOS / Windows Bluetooth settings as a keyboard, then open Sell and scan.'**
+  String get scannerBluetoothBody;
+
+  /// No description provided for @scannerSellTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where it works'**
+  String get scannerSellTitle;
+
+  /// No description provided for @scannerSellBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell adds to the cart. Inventory searches the catalogue. Product edit fills the barcode field. Invoices search by invoice number.'**
+  String get scannerSellBody;
+
   /// No description provided for @sellCompleted.
   ///
   /// In en, this message translates to:
@@ -587,7 +647,7 @@ abstract class AppLocalizations {
   /// No description provided for @cashReportPrintBluetooth.
   ///
   /// In en, this message translates to:
-  /// **'Print (Bluetooth)'**
+  /// **'Print on receipt printer'**
   String get cashReportPrintBluetooth;
 
   /// No description provided for @cashReportSharePdf.
@@ -1835,7 +1895,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @settingsTrackStock.
@@ -2147,7 +2207,7 @@ abstract class AppLocalizations {
   /// No description provided for @salesReportPrintBluetooth.
   ///
   /// In en, this message translates to:
-  /// **'Print (Bluetooth)'**
+  /// **'Print on receipt printer'**
   String get salesReportPrintBluetooth;
 
   /// No description provided for @salesReportExportPdf.
@@ -2165,8 +2225,14 @@ abstract class AppLocalizations {
   /// No description provided for @salesReportNoPrinter.
   ///
   /// In en, this message translates to:
-  /// **'No Bluetooth printer set up — see Printer settings.'**
+  /// **'No printer set up — see Printer settings.'**
   String get salesReportNoPrinter;
+
+  /// No description provided for @documentPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get documentPrint;
 
   /// No description provided for @salesReportCount.
   ///
@@ -2383,6 +2449,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A5'**
   String get paperA5;
+
+  /// No description provided for @printerConnectionType.
+  ///
+  /// In en, this message translates to:
+  /// **'How this device prints'**
+  String get printerConnectionType;
+
+  /// No description provided for @printerConnectionBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth'**
+  String get printerConnectionBluetooth;
+
+  /// No description provided for @printerConnectionWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi'**
+  String get printerConnectionWifi;
+
+  /// No description provided for @printerConnectionUsb.
+  ///
+  /// In en, this message translates to:
+  /// **'USB'**
+  String get printerConnectionUsb;
+
+  /// No description provided for @printerWifiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers on this Wi-Fi show in the list. Phone, computer, and printer must be on the same network.'**
+  String get printerWifiHint;
+
+  /// No description provided for @printerWifiIpLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer IP address'**
+  String get printerWifiIpLabel;
+
+  /// No description provided for @printerWifiPortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get printerWifiPortLabel;
+
+  /// No description provided for @printerWifiUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this printer'**
+  String get printerWifiUse;
+
+  /// No description provided for @printerWifiScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Find printers on this Wi-Fi'**
+  String get printerWifiScan;
+
+  /// No description provided for @printerWifiScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching this Wi-Fi…'**
+  String get printerWifiScanning;
+
+  /// No description provided for @printerWifiNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Wi-Fi printers found. Enter the IP from the printer\'s test page.'**
+  String get printerWifiNoneFound;
+
+  /// No description provided for @printerWifiList.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers on this Wi-Fi'**
+  String get printerWifiList;
+
+  /// No description provided for @printerWifiManualHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Not listed? Enter the IP from the printer\'s test page.'**
+  String get printerWifiManualHint;
+
+  /// No description provided for @printerInvalidIp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a printer IP address (for example 192.168.1.100).'**
+  String get printerInvalidIp;
+
+  /// No description provided for @printerNetworkUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the printer. Check the IP and that you\'re on the same Wi-Fi.'**
+  String get printerNetworkUnreachable;
+
+  /// No description provided for @printerUsbHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Plug the printer into this computer with a USB cable, then pick it from the list. Windows must already show it under Printers.'**
+  String get printerUsbHint;
+
+  /// No description provided for @printerUsbNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers found. Plug the printer in, install it in Windows if asked, then tap Refresh.'**
+  String get printerUsbNoneFound;
+
+  /// No description provided for @printerUsbRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get printerUsbRefresh;
 
   /// No description provided for @settingsLabelPrinter.
   ///
@@ -6421,6 +6595,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'or sign in with an account'**
   String get dailyGateOrSignIn;
+
+  /// No description provided for @dailyGateWhoIsOpening.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is opening the shop today?'**
+  String get dailyGateWhoIsOpening;
 
   /// No description provided for @operatingModeLabel.
   ///

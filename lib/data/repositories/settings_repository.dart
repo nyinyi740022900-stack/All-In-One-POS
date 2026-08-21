@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../features/invoices/receipt_data.dart';
 import '../../features/printing/label_data.dart';
+import '../../features/printing/printer_connection.dart';
 import '../local/database.dart';
 
 /// Device-scoped key/value settings (not synced). Backs printer config,
@@ -41,16 +42,17 @@ class SettingsRepository {
     return key.startsWith('printer.') || key.startsWith('label_printer.');
   }
 
-  AppDatabase _dbForKey(String key) =>
-      isDeviceGlobalKey(key) ? _deviceDb : _db;
+  AppDatabase _dbForKey(String key) => isDeviceGlobalKey(key) ? _deviceDb : _db;
 
   static const _kPaperSize = 'printer.paper_size';
   static const _kPdfPaperSize = 'printer.pdf_paper_size';
   static const _kPrinterMac = 'printer.mac';
   static const _kPrinterName = 'printer.name';
+  static const _kPrinterConnection = 'printer.connection';
   static const _kLabelSize = 'label_printer.size';
   static const _kLabelMac = 'label_printer.mac';
   static const _kLabelName = 'label_printer.name';
+  static const _kLabelConnection = 'label_printer.connection';
   static const _kShopName = 'shop.name';
   static const _kShopAddress = 'shop.address';
   static const _kShopPhone = 'shop.phone';
@@ -130,6 +132,7 @@ class SettingsRepository {
         paper: _resolvePaperSize(map, mac),
         mac: mac,
         name: map[_kPrinterName],
+        connection: printerConnectionFromStorage(map[_kPrinterConnection]),
         pdfPaperSize: map[_kPdfPaperSize] == 'a5'
             ? PdfPaperSize.a5
             : PdfPaperSize.a4,
@@ -145,6 +148,7 @@ class SettingsRepository {
       paper: raw == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
       mac: mac,
       name: await _get(_kPrinterName),
+      connection: printerConnectionFromStorage(await _get(_kPrinterConnection)),
       pdfPaperSize: (await _get(_kPdfPaperSize)) == 'a5'
           ? PdfPaperSize.a5
           : PdfPaperSize.a4,
@@ -171,9 +175,14 @@ class SettingsRepository {
   Future<void> setPdfPaperSize(PdfPaperSize size) =>
       _set(_kPdfPaperSize, size == PdfPaperSize.a5 ? 'a5' : 'a4');
 
-  Future<void> setPrinter(String mac, String name) async {
+  Future<void> setPrinter(
+    String mac,
+    String name, {
+    PrinterConnection connection = PrinterConnection.bluetooth,
+  }) async {
     await _set(_kPrinterMac, mac);
     await _set(_kPrinterName, name);
+    await _set(_kPrinterConnection, connection.name);
   }
 
   // ---- Dedicated label printer (TSPL, separate device from the receipt
@@ -191,6 +200,7 @@ class SettingsRepository {
         size: _labelSizeFromKey(map[_kLabelSize]),
         mac: map[_kLabelMac],
         name: map[_kLabelName],
+        connection: printerConnectionFromStorage(map[_kLabelConnection]),
       );
     });
   }
@@ -200,14 +210,20 @@ class SettingsRepository {
       size: _labelSizeFromKey(await _get(_kLabelSize)),
       mac: await _get(_kLabelMac),
       name: await _get(_kLabelName),
+      connection: printerConnectionFromStorage(await _get(_kLabelConnection)),
     );
   }
 
   Future<void> setLabelSize(LabelSize size) => _set(_kLabelSize, size.name);
 
-  Future<void> setLabelPrinter(String mac, String name) async {
+  Future<void> setLabelPrinter(
+    String mac,
+    String name, {
+    PrinterConnection connection = PrinterConnection.bluetooth,
+  }) async {
     await _set(_kLabelMac, mac);
     await _set(_kLabelName, name);
+    await _set(_kLabelConnection, connection.name);
   }
 
   // ---- License cache + device identity ------------------------------------
@@ -215,6 +231,7 @@ class SettingsRepository {
   static const _kLicense = 'license.json';
   static const _kDeviceId = 'device.id';
   static const _kLocale = 'app.locale';
+
   /// Shop-scoped (via [_shopKey]) — unlike [_kLicense] itself, which is
   /// device-global, this must travel with a Free-plan shop's data if it's
   /// later promoted to a real one (`ShopDataTransitionService
@@ -423,8 +440,7 @@ class SettingsRepository {
   Future<bool> operatingModeConfirmed() async =>
       (await _get(_kOperatingModeConfirmed)) == 'true';
 
-  Future<void> confirmOperatingMode() =>
-      _set(_kOperatingModeConfirmed, 'true');
+  Future<void> confirmOperatingMode() => _set(_kOperatingModeConfirmed, 'true');
 
   /// Online daily shop-entry gate: calendar day (local yyyy-MM-dd) when the
   /// account → role → branch → open/Skip flow last finished for [shopId].
@@ -490,8 +506,7 @@ class SettingsRepository {
   Future<String?> pendingShopPromotion() => _get(_kShopPromotePending);
   Future<void> setPendingShopPromotion(String fromShopId, String toShopId) =>
       _set(_kShopPromotePending, '$fromShopId|$toShopId');
-  Future<void> clearPendingShopPromotion() =>
-      _delete(_kShopPromotePending);
+  Future<void> clearPendingShopPromotion() => _delete(_kShopPromotePending);
   Stream<String?> watchBranchSwitchStateJson() {
     return _db.select(_db.appSettings).watch().map((rows) {
       for (final r in rows) {
@@ -627,11 +642,13 @@ class PrinterConfig {
   final PaperSize paper;
   final String? mac;
   final String? name;
+  final PrinterConnection connection;
   final PdfPaperSize pdfPaperSize;
   const PrinterConfig({
     required this.paper,
     this.mac,
     this.name,
+    this.connection = PrinterConnection.bluetooth,
     this.pdfPaperSize = PdfPaperSize.a4,
   });
 
@@ -642,7 +659,13 @@ class LabelPrinterConfig {
   final LabelSize size;
   final String? mac;
   final String? name;
-  const LabelPrinterConfig({required this.size, this.mac, this.name});
+  final PrinterConnection connection;
+  const LabelPrinterConfig({
+    required this.size,
+    this.mac,
+    this.name,
+    this.connection = PrinterConnection.bluetooth,
+  });
 
   bool get hasPrinter => mac != null && mac!.isNotEmpty;
 }

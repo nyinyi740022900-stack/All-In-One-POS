@@ -5,7 +5,9 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
+import 'printer_connection.dart';
 import 'printer_service.dart';
+import 'printer_transport_section.dart';
 import 'printing_providers.dart';
 
 class PrinterSettingsScreen extends ConsumerStatefulWidget {
@@ -16,44 +18,24 @@ class PrinterSettingsScreen extends ConsumerStatefulWidget {
       _PrinterSettingsScreenState();
 }
 
-class _PrinterSettingsScreenState
-    extends ConsumerState<PrinterSettingsScreen> {
-  List<BtDevice>? _devices;
-  bool _loading = false;
+class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
   bool _testing = false;
 
-  Future<void> _loadDevices() async {
-    setState(() => _loading = true);
-    final svc = ref.read(printerServiceProvider);
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      if (!await svc.bluetoothEnabled) {
-        messenger.showSnackBar(SnackBar(content: Text(l.bluetoothOff)));
-        return;
-      }
-      final list = await svc.pairedDevices();
-      if (mounted) setState(() => _devices = list);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  /// Pairs [d] as the active printer. If it has no remembered paper size
-  /// yet (a genuinely new printer, not just re-selecting a previously
-  /// configured one), asks once — pre-selecting a best-effort guess from
-  /// the device name (see [suggestPaperSizeFromDeviceName]) — since the
-  /// Bluetooth pairing API exposes no real capability info to detect this
-  /// automatically.
-  Future<void> _pairDevice(BtDevice d) async {
+  /// Pairs [address] as the active printer. Same one-time paper-size prompt
+  /// as Bluetooth pairing — a newly-typed IP has no remembered size yet.
+  Future<void> _savePrinter({
+    required String address,
+    required String name,
+    required PrinterConnection connection,
+  }) async {
     final settings = ref.read(settingsRepositoryProvider);
-    await settings.setPrinter(d.mac, d.name);
-    if (await settings.hasPaperSizeForPrinter(d.mac)) return;
+    await settings.setPrinter(address, name, connection: connection);
+    if (await settings.hasPaperSizeForPrinter(address)) return;
     if (!mounted) return;
-    final suggested = suggestPaperSizeFromDeviceName(d.name) ?? PaperSize.mm58;
+    final suggested = suggestPaperSizeFromDeviceName(name) ?? PaperSize.mm58;
     final chosen = await _choosePaperSizeDialog(initial: suggested);
     if (chosen != null) {
-      await settings.setPaperSizeForPrinter(d.mac, chosen);
+      await settings.setPaperSizeForPrinter(address, chosen);
     }
   }
 
@@ -69,8 +51,10 @@ class _PrinterSettingsScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l.printerChoosePaperSizeHint,
-                  style: Theme.of(ctx).textTheme.bodySmall),
+              Text(
+                l.printerChoosePaperSizeHint,
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
               const SizedBox(height: AppTheme.space3),
               SegmentedButton<PaperSize>(
                 segments: [
@@ -98,7 +82,9 @@ class _PrinterSettingsScreenState
     );
   }
 
-  Future<void> _testPrint(PaperSize paper, String mac) async {
+  Future<void> _testPrint() async {
+    final config = ref.read(printerConfigProvider).valueOrNull;
+    if (config == null || !config.hasPrinter) return;
     setState(() => _testing = true);
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -109,7 +95,11 @@ class _PrinterSettingsScreenState
         dateTime: DateTime.now(),
         items: const [
           ReceiptLineItem(
-              name: 'စမ်းသပ် ပစ္စည်း', qty: 1, unitPrice: 1000, lineTotal: 1000),
+            name: 'စမ်းသပ် ပစ္စည်း',
+            qty: 1,
+            unitPrice: 1000,
+            lineTotal: 1000,
+          ),
         ],
         subtotal: 1000,
         discount: 0,
@@ -119,14 +109,18 @@ class _PrinterSettingsScreenState
         paymentMethod: l.paymentCash,
         footer: l.receiptThankYou,
       );
-      final result = await ref.read(printerServiceProvider).printReceipt(
+      final result = await ref
+          .read(printerServiceProvider)
+          .printReceipt(
             sample,
-            paper: paper,
-            mac: mac,
+            paper: config.paper,
+            mac: config.mac!,
             labels: receiptLabels(l),
+            connection: config.connection,
           );
-      messenger.showSnackBar(SnackBar(
-          content: Text(result.ok ? l.printSuccess : l.printFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(printerTransportErrorMessage(l, result))),
+      );
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -150,19 +144,16 @@ class _PrinterSettingsScreenState
               ButtonSegment(value: PaperSize.mm80, label: Text(l.paper80)),
             ],
             selected: {config?.paper ?? PaperSize.mm58},
-            // A connected printer remembers its own size from here on;
-            // with none paired yet, this sets the device-wide default a
-            // newly-paired printer starts from (see _pairDevice).
-            onSelectionChanged: (s) =>
-                (config != null && config.hasPrinter)
-                    ? settings.setPaperSizeForPrinter(config.mac!, s.first)
-                    : settings.setPaperSize(s.first),
+            onSelectionChanged: (s) => (config != null && config.hasPrinter)
+                ? settings.setPaperSizeForPrinter(config.mac!, s.first)
+                : settings.setPaperSize(s.first),
           ),
           const SizedBox(height: AppTheme.space5),
-
           SectionHeader(title: l.printerPdfPaperSize),
-          Text(l.printerPdfPaperSizeHint,
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            l.printerPdfPaperSizeHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: AppTheme.space2),
           SegmentedButton<PdfPaperSize>(
             segments: [
@@ -173,111 +164,17 @@ class _PrinterSettingsScreenState
             onSelectionChanged: (s) => settings.setPdfPaperSize(s.first),
           ),
           const SizedBox(height: AppTheme.space5),
-
-          SectionHeader(
-            title: l.printerPaired,
-            trailing: TextButton.icon(
-              onPressed: _loading ? null : _loadDevices,
-              icon: _loading
-                  ? const ButtonSpinner(size: 16)
-                  : const Icon(Icons.bluetooth_searching),
-              label: Text(l.printerSelectDevice),
-            ),
+          PrinterTransportSection(
+            savedAddress: config?.mac,
+            savedName: config?.name,
+            savedConnection: config?.connection ?? PrinterConnection.bluetooth,
+            hasPrinter: config?.hasPrinter ?? false,
+            onSave: _savePrinter,
+            onTestPrint: _testPrint,
+            testing: _testing,
           ),
-
-          if (config != null && config.hasPrinter)
-            Card(
-              child: ListTile(
-                leading: const IconAvatar(
-                  icon: Icons.print,
-                  tone: StatusTone.positive,
-                ),
-                title: Text(config.name ?? config.mac!),
-                subtitle: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(child: Text(config.mac!)),
-                    const SizedBox(width: AppTheme.space2),
-                    StatusPill(
-                      label: l.printerConnected,
-                      tone: StatusTone.positive,
-                    ),
-                  ],
-                ),
-                trailing: _testing
-                    ? const ButtonSpinner()
-                    : TextButton(
-                        onPressed: () =>
-                            _testPrint(config.paper, config.mac!),
-                        child: Text(l.printerTestPrint),
-                      ),
-              ),
-            ),
-
-          if (_devices != null && _devices!.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: AppTheme.space4),
-              child: EmptyStateView(
-                icon: Icons.bluetooth_disabled,
-                title: l.printerNoDevicesFound,
-              ),
-            )
-          else if (_devices != null)
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (var i = 0; i < _devices!.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _PairedDeviceTile(
-                      device: _devices![i],
-                      isSelected: config?.mac == _devices![i].mac,
-                      onTap: () => _pairDevice(_devices![i]),
-                    ),
-                  ],
-                ],
-              ),
-            ),
         ],
       ),
-    );
-  }
-}
-
-/// One row in the "pick a different printer" list — harmonizes with the
-/// active-printer card above it (same [IconAvatar]/positive-tone language)
-/// while staying in the bare-`ListTile` vocabulary the rest of the app's
-/// directory lists (Suppliers, Customers) already use. The currently-paired
-/// device gets a tinted background plus a check mark, since scanning nearby
-/// Bluetooth devices can list several with near-identical names ("Printer",
-/// "BT Printer") and the plain `ListTile.selected` text tint alone was easy
-/// to miss at a glance.
-class _PairedDeviceTile extends StatelessWidget {
-  const _PairedDeviceTile({
-    required this.device,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final BtDevice device;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: IconAvatar(
-        icon: Icons.bluetooth,
-        tone: isSelected ? StatusTone.positive : null,
-      ),
-      title: Text(device.name.isEmpty ? device.mac : device.name),
-      subtitle: Text(device.mac),
-      selected: isSelected,
-      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-      trailing: isSelected
-          ? Icon(Icons.check_circle, color: AppColors.of(context).success)
-          : null,
-      onTap: onTap,
     );
   }
 }

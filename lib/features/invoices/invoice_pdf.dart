@@ -129,7 +129,6 @@ Future<Uint8List> buildInvoicePdf(
                       style: pw.TextStyle(
                         fontSize: 14,
                         fontWeight: pw.FontWeight.bold,
-                        letterSpacing: 1.5,
                         color: accent,
                       ),
                     ),

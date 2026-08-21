@@ -8,9 +8,12 @@ import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
+import '../printing/document_print.dart';
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
+import 'cashier_label.dart';
+import 'invoice_pdf.dart';
 import 'invoice_view.dart';
 import 'receipt_mapper.dart';
 import '../sell/sales_providers.dart';
@@ -119,19 +122,14 @@ class InvoiceDetailScreen extends ConsumerWidget {
           final reversed = isRefund || refundRow != null;
           final members =
               ref.watch(staffMembersProvider).valueOrNull ?? const [];
-          String? cashier;
-          final staffId = s.staffId;
-          if (staffId != null && staffId.isNotEmpty) {
-            for (final m in members) {
-              if (m.id == staffId) {
-                cashier = m.name;
-                break;
-              }
-            }
-          }
-          cashier ??= (s.deviceId == null)
-              ? null
-              : ref.watch(deviceLabelMapProvider)[s.deviceId];
+          final cashier = cashierNameForSale(
+            staffId: s.staffId,
+            members: [for (final m in members) (id: m.id, name: m.name)],
+            ownerLabel: l.staffRoleOwner,
+            deviceLabel: s.deviceId == null
+                ? null
+                : ref.watch(deviceLabelMapProvider)[s.deviceId],
+          );
           const knownMethods = {
             'cash',
             'kbzpay',
@@ -145,10 +143,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
           final customName = knownMethods.contains(s.paymentMethod)
               ? null
               : accounts
-                  .where((a) => a.id == s.paymentMethod)
-                  .map((a) => a.name)
-                  .firstOrNull;
-          final profile = ref.watch(shopProfileProvider).valueOrNull ??
+                    .where((a) => a.id == s.paymentMethod)
+                    .map((a) => a.name)
+                    .firstOrNull;
+          final profile =
+              ref.watch(shopProfileProvider).valueOrNull ??
               const ShopProfile(name: '');
           final invoice = invoiceDataFromSale(
             s,
@@ -160,8 +159,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
             defaultFooter: l.receiptThankYou,
           );
           final docWidth =
-              (MediaQuery.sizeOf(context).width - AppTheme.space4 * 2)
-                  .clamp(280.0, 420.0);
+              (MediaQuery.sizeOf(context).width - AppTheme.space4 * 2).clamp(
+                280.0,
+                420.0,
+              );
           return ListView(
             padding: const EdgeInsets.all(AppTheme.space4),
             children: [
@@ -184,7 +185,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-              Center(child: InvoiceView(data: invoice, width: docWidth)),
+              Center(
+                child: InvoiceView(data: invoice, width: docWidth),
+              ),
               if (thisOwed > 0 || previousBalance > 0) ...[
                 const SizedBox(height: AppTheme.space3),
                 _Group(
@@ -217,25 +220,54 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: AppTheme.space5),
-              FilledButton.icon(
-                onPressed: () =>
-                    printSaleReceipt(context, ref, sale: s, items: d.items),
-                icon: const Icon(Icons.print),
-                label: Text(l.invoiceReprint),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      printSaleReceipt(context, ref, sale: s, items: d.items),
+                  icon: const Icon(Icons.print),
+                  label: Text(l.invoiceReprint),
+                ),
+              ),
+              const SizedBox(height: AppTheme.space2),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final bytes = await buildInvoicePdf(invoice, l);
+                      if (!context.mounted) return;
+                      await printPdfDocument(
+                        bytes: bytes,
+                        name: invoice.invoiceNo,
+                      );
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l.commonUnexpectedError)),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.print_outlined),
+                  label: Text(l.documentPrint),
+                ),
               ),
               if (!reversed) ...[
                 const SizedBox(height: AppTheme.space3),
-                OutlinedButton.icon(
-                  // Secondary *and* destructive: outlined keeps it
-                  // subordinate to Reprint, the danger tone keeps it from
-                  // reading as just another neutral option.
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.danger,
-                    side: BorderSide(color: colors.danger),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    // Secondary *and* destructive: outlined keeps it
+                    // subordinate to Reprint, the danger tone keeps it from
+                    // reading as just another neutral option.
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.danger,
+                      side: BorderSide(color: colors.danger),
+                    ),
+                    onPressed: () => _refund(context, ref, s.invoiceNo),
+                    icon: const Icon(Icons.undo),
+                    label: Text(l.invoiceRefund),
                   ),
-                  onPressed: () => _refund(context, ref, s.invoiceNo),
-                  icon: const Icon(Icons.undo),
-                  label: Text(l.invoiceRefund),
                 ),
               ],
             ],
@@ -268,4 +300,3 @@ class _Group extends StatelessWidget {
     );
   }
 }
-

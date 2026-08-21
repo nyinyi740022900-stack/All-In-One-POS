@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../invoices/cashier_label.dart';
 import '../invoices/receipt_mapper.dart';
 import '../sell/payment_labels.dart';
+import '../settings/device_label_providers.dart';
+import '../staff/staff_providers.dart';
 import 'printing_providers.dart';
 
 /// Prints (or reprints) a receipt for the given sale. Returns silently after
@@ -29,25 +32,41 @@ Future<void> printSaleReceipt(
 
     final shop = await ref.read(shopProfileProvider.future);
     final accounts = ref.read(paymentAccountsProvider).valueOrNull;
+    final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
+    final deviceLabel = sale.deviceId == null
+        ? null
+        : ref.read(deviceLabelMapProvider)[sale.deviceId];
     final data = receiptFromSale(
       sale,
       items,
       shop,
-      paymentMethodLabel:
-          paymentLabel(l, sale.paymentMethod, accounts: accounts),
+      paymentMethodLabel: paymentLabel(
+        l,
+        sale.paymentMethod,
+        accounts: accounts,
+      ),
       defaultFooter: l.receiptThankYou,
+      cashier: cashierNameForSale(
+        staffId: sale.staffId,
+        members: [for (final m in members) (id: m.id, name: m.name)],
+        ownerLabel: l.staffRoleOwner,
+        deviceLabel: deviceLabel,
+      ),
     );
 
-    final result = await ref.read(printerServiceProvider).printReceipt(
+    final result = await ref
+        .read(printerServiceProvider)
+        .printReceipt(
           data,
           paper: config.paper,
           mac: config.mac!,
           labels: receiptLabels(l),
+          connection: config.connection,
         );
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.ok ? l.printSuccess : l.printFailed),
-    ));
+    messenger.showSnackBar(
+      SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+    );
   } catch (_) {
     // Honor the documented contract even when a step before the actual
     // print call throws (e.g. Bluetooth turned off mid-lookup) — a caller

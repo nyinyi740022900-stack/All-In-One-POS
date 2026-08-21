@@ -12,6 +12,7 @@ import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
+import '../sell/hardware_scanner_listener.dart';
 import 'inventory_providers.dart';
 import 'stock_history_screen.dart';
 
@@ -51,22 +52,29 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     _name = TextEditingController(text: e?.product.name ?? '');
     _sku = TextEditingController(text: e?.product.sku ?? '');
     _barcode = TextEditingController(text: e?.product.barcode ?? '');
-    _salePrice =
-        TextEditingController(text: e == null ? '' : '${e.product.salePrice}');
-    _costPrice =
-        TextEditingController(text: e == null ? '' : '${e.product.costPrice}');
+    _salePrice = TextEditingController(
+      text: e == null ? '' : '${e.product.salePrice}',
+    );
+    _costPrice = TextEditingController(
+      text: e == null ? '' : '${e.product.costPrice}',
+    );
     _wholesalePrice = TextEditingController(
-        text: e?.product.wholesalePrice == null
-            ? ''
-            : '${e!.product.wholesalePrice}');
+      text: e?.product.wholesalePrice == null
+          ? ''
+          : '${e!.product.wholesalePrice}',
+    );
     _vipPrice = TextEditingController(
-        text: e?.product.vipPrice == null ? '' : '${e!.product.vipPrice}');
+      text: e?.product.vipPrice == null ? '' : '${e!.product.vipPrice}',
+    );
     _onlineStockLimit = TextEditingController(
-        text: e?.product.onlineStockLimit == null
-            ? ''
-            : '${e!.product.onlineStockLimit}');
+      text: e?.product.onlineStockLimit == null
+          ? ''
+          : '${e!.product.onlineStockLimit}',
+    );
     _quantity = TextEditingController(text: e == null ? '' : '${e.quantity}');
-    _reorder = TextEditingController(text: e == null ? '' : '${e.reorderLevel}');
+    _reorder = TextEditingController(
+      text: e == null ? '' : '${e.reorderLevel}',
+    );
   }
 
   @override
@@ -81,7 +89,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       _vipPrice,
       _onlineStockLimit,
       _quantity,
-      _reorder
+      _reorder,
     ]) {
       c.dispose();
     }
@@ -101,18 +109,26 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     if (file == null || file.bytes == null) return;
     setState(() => _uploading = true);
     try {
-      final c = compressImage(Uint8List.fromList(file.bytes!),
-          fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+      final c = compressImage(
+        Uint8List.fromList(file.bytes!),
+        fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
+      );
       final path = 'p-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
       final storage = Supabase.instance.client.storage.from('product-images');
-      await storage.uploadBinary(path, c.bytes,
-          fileOptions: const FileOptions(upsert: true));
+      await storage.uploadBinary(
+        path,
+        c.bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
       final url = storage.getPublicUrl(path);
       if (mounted) setState(() => _imageUrl = url);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -126,7 +142,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(l.deleteConfirmTitle),
         content: Text(
-            '${widget.existing!.product.name}\n\n${l.productDeleteConfirmBody}'),
+          '${widget.existing!.product.name}\n\n${l.productDeleteConfirmBody}',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -149,7 +166,10 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     }
   }
@@ -158,12 +178,13 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      await ref.read(inventoryRepositoryProvider).upsertProduct(
+      await ref
+          .read(inventoryRepositoryProvider)
+          .upsertProduct(
             id: widget.existing?.product.id,
             name: _name.text.trim(),
             sku: _sku.text.trim().isEmpty ? null : _sku.text.trim(),
-            barcode:
-                _barcode.text.trim().isEmpty ? null : _barcode.text.trim(),
+            barcode: _barcode.text.trim().isEmpty ? null : _barcode.text.trim(),
             categoryId: _categoryId,
             salePrice: _int(_salePrice),
             costPrice: _int(_costPrice),
@@ -178,7 +199,10 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -190,71 +214,90 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     final l = AppLocalizations.of(context);
     final isEdit = widget.existing != null;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? l.inventoryEditProduct : l.inventoryAddProduct),
-        actions: [
-          if (isEdit)
-            IconButton(
-              tooltip: l.commonDelete,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _confirmDelete,
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ContentWidth(
-          child: ListView(
-            padding: const EdgeInsets.all(AppTheme.space4),
-            children: [
-              // Grouped, not one flat 12-field column. The old form ran
-              // photo ➜ name ➜ prices ➜ an unanchored hint paragraph ➜ more
-              // prices ➜ another hint ➜ stock ➜ barcode ➜ SKU ➜ category as
-              // a single undifferentiated stack, so the two explanatory
-              // paragraphs floated between fields with nothing to attach
-              // themselves to. Each card is now one idea, and each hint sits
-              // inside the card it explains.
-              _group([
-                if (Env.hasBackend) _photoField(l),
-                _field(_name, l.productName,
+    return HardwareScannerListener(
+      onScan: (code) => setState(() => _barcode.text = code.trim()),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isEdit ? l.inventoryEditProduct : l.inventoryAddProduct),
+          actions: [
+            if (isEdit)
+              IconButton(
+                tooltip: l.commonDelete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _confirmDelete,
+              ),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: ContentWidth(
+            child: ListView(
+              padding: const EdgeInsets.all(AppTheme.space4),
+              children: [
+                // Grouped, not one flat 12-field column. The old form ran
+                // photo ➜ name ➜ prices ➜ an unanchored hint paragraph ➜ more
+                // prices ➜ another hint ➜ stock ➜ barcode ➜ SKU ➜ category as
+                // a single undifferentiated stack, so the two explanatory
+                // paragraphs floated between fields with nothing to attach
+                // themselves to. Each card is now one idea, and each hint sits
+                // inside the card it explains.
+                _group([
+                  if (Env.hasBackend) _photoField(l),
+                  _field(
+                    _name,
+                    l.productName,
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? l.validationRequired
-                        : null),
-                _categoryDropdown(l),
-              ]),
-              _group([
-                _field(_salePrice, l.productPrice, number: true),
-                _field(_costPrice, l.productCost, number: true),
-                Text(l.productTierPricesHint,
-                    style: Theme.of(context).textTheme.bodySmall),
-                _field(_wholesalePrice, l.productWholesalePrice, number: true),
-                _field(_vipPrice, l.productVipPrice, number: true),
-              ]),
-              _group([
-                if (trackStock) ...[
-                  _field(_quantity, l.productQuantity, number: true),
-                  _field(_reorder, l.productReorderLevel, number: true),
-                ],
-                Text(l.productOnlineStockLimitHint,
-                    style: Theme.of(context).textTheme.bodySmall),
-                _field(_onlineStockLimit, l.productOnlineStockLimit,
-                    number: true),
-                if (trackStock && isEdit)
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => StockHistoryScreen(
-                        productId: widget.existing!.product.id,
-                        productName: widget.existing!.product.name,
-                      ),
-                    )),
-                    icon: const Icon(Icons.history),
-                    label: Text(l.productViewStockHistory),
+                        : null,
                   ),
-              ]),
-              _group([
-                _field(_barcode, l.productBarcode,
+                  _categoryDropdown(l),
+                ]),
+                _group([
+                  _field(_salePrice, l.productPrice, number: true),
+                  _field(_costPrice, l.productCost, number: true),
+                  Text(
+                    l.productTierPricesHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  _field(
+                    _wholesalePrice,
+                    l.productWholesalePrice,
+                    number: true,
+                  ),
+                  _field(_vipPrice, l.productVipPrice, number: true),
+                ]),
+                _group([
+                  if (trackStock) ...[
+                    _field(_quantity, l.productQuantity, number: true),
+                    _field(_reorder, l.productReorderLevel, number: true),
+                  ],
+                  Text(
+                    l.productOnlineStockLimitHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  _field(
+                    _onlineStockLimit,
+                    l.productOnlineStockLimit,
+                    number: true,
+                  ),
+                  if (trackStock && isEdit)
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => StockHistoryScreen(
+                            productId: widget.existing!.product.id,
+                            productName: widget.existing!.product.name,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.history),
+                      label: Text(l.productViewStockHistory),
+                    ),
+                ]),
+                _group([
+                  _field(
+                    _barcode,
+                    l.productBarcode,
                     number: true,
                     // A real EAN-13 barcode is 13 digits; the shared 9-digit
                     // cap below exists for *money* fields and was silently
@@ -264,35 +307,38 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                       icon: const Icon(Icons.qr_code_scanner),
                       tooltip: l.scanBarcode,
                       onPressed: _scanBarcode,
-                    )),
-                _field(_sku, l.productSku),
-              ]),
-            ],
+                    ),
+                  ),
+                  _field(_sku, l.productSku),
+                ]),
+              ],
+            ),
           ),
         ),
-      ),
-      // Docked, like the checkout sheet's confirm bar: this form is a dozen
-      // fields long in English and longer in Myanmar, and the primary action
-      // used to sit at the bottom of that scroll — reachable only after
-      // scrolling past everything, including on the tall tablet layout where
-      // the whole form fits and the button still hid below the fold.
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: AppTheme.dockedBarShadow(Theme.of(context).brightness),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.space3),
-            child: FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.check),
-              label: Text(l.commonSave),
+        // Docked, like the checkout sheet's confirm bar: this form is a dozen
+        // fields long in English and longer in Myanmar, and the primary action
+        // used to sit at the bottom of that scroll — reachable only after
+        // scrolling past everything, including on the tall tablet layout where
+        // the whole form fits and the button still hid below the fold.
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            boxShadow: AppTheme.dockedBarShadow(Theme.of(context).brightness),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.space3),
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check),
+                label: Text(l.commonSave),
+              ),
             ),
           ),
         ),
@@ -350,11 +396,14 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             ),
             child: !hasImage
                 ? Icon(Icons.image_outlined, color: scheme.onSurfaceVariant)
-                : Image.network(_imageUrl!,
+                : Image.network(
+                    _imageUrl!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Icon(
-                        Icons.broken_image_outlined,
-                        color: scheme.onSurfaceVariant)),
+                      Icons.broken_image_outlined,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(width: AppTheme.space3),
@@ -365,7 +414,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.add_a_photo_outlined),
             label: Text(l.productPhoto),
           ),
@@ -375,7 +425,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   }
 
   Widget _categoryDropdown(AppLocalizations l) {
-    final categories = ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
+    final categories =
+        ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
     final ids = categories.map((c) => c.id).toSet();
     // Guard against a value pointing at a deleted category.
     final value = (_categoryId != null && ids.contains(_categoryId))
@@ -393,11 +444,14 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     );
   }
 
-  Widget _field(TextEditingController c, String label,
-      {bool number = false,
-      Widget? suffixIcon,
-      int? maxLength,
-      String? Function(String?)? validator}) {
+  Widget _field(
+    TextEditingController c,
+    String label, {
+    bool number = false,
+    Widget? suffixIcon,
+    int? maxLength,
+    String? Function(String?)? validator,
+  }) {
     return TextFormField(
       controller: c,
       // Extra vertical padding so tall Myanmar stacked glyphs aren't clipped.
@@ -405,7 +459,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
         labelText: label,
         suffixIcon: suffixIcon,
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.space4, vertical: AppTheme.space4),
+          horizontal: AppTheme.space4,
+          vertical: AppTheme.space4,
+        ),
       ),
       keyboardType: number ? TextInputType.number : TextInputType.text,
       // Every field here is followed by another one — hand the keyboard a

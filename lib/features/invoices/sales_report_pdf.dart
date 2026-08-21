@@ -111,7 +111,6 @@ Future<Uint8List> buildSalesReportPdf({
                 style: pw.TextStyle(
                     fontSize: 13,
                     fontWeight: pw.FontWeight.bold,
-                    letterSpacing: 1.2,
                     color: accent)),
             // "→" (as shown on-screen, where Flutter's own text engine
             // renders it fine) has no glyph in either the bundled Myanmar

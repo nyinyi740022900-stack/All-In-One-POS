@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
+import '../features/invoices/cashier_label.dart';
 import '../features/invoices/invoice_pdf.dart';
 import '../features/invoices/invoice_view.dart';
 import '../l10n/app_localizations.dart';
@@ -36,16 +37,19 @@ class InvoiceDetailWebScreen extends StatefulWidget {
 }
 
 class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
-  late Future<InvoiceData> _future;
+  Future<InvoiceData>? _future;
+  bool _started = false;
   bool _downloading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _future = _load();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _future = _load(AppLocalizations.of(context));
   }
 
-  Future<InvoiceData> _load() async {
+  Future<InvoiceData> _load(AppLocalizations l) async {
     final client = Supabase.instance.client;
     final sale = await client
         .from('sales')
@@ -95,7 +99,8 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       } catch (_) {}
     }
 
-    String? cashier;
+    String? staffName;
+    String? deviceLabel;
     final staffId = (sale['staff_id'] as String?)?.trim();
     final deviceId = (sale['device_id'] as String?)?.trim();
     if (staffId != null && staffId.isNotEmpty) {
@@ -105,21 +110,31 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
             .select('name')
             .eq('id', staffId)
             .maybeSingle();
-        cashier = (staff?['name'] as String?)?.trim();
+        staffName = (staff?['name'] as String?)?.trim();
       } catch (_) {}
     }
-    if ((cashier == null || cashier.isEmpty) &&
-        deviceId != null &&
-        deviceId.isNotEmpty) {
+    if (deviceId != null && deviceId.isNotEmpty) {
       try {
         final label = await client
             .from('device_labels')
             .select('label')
             .eq('device_id', deviceId)
             .maybeSingle();
-        cashier = (label?['label'] as String?)?.trim();
+        deviceLabel = (label?['label'] as String?)?.trim();
       } catch (_) {}
     }
+    final cashier = cashierNameForSale(
+      staffId: staffId,
+      members: [
+        if (staffId != null &&
+            staffId.isNotEmpty &&
+            staffName != null &&
+            staffName.isNotEmpty)
+          (id: staffId, name: staffName),
+      ],
+      ownerLabel: l.staffRoleOwner,
+      deviceLabel: deviceLabel,
+    );
 
     return InvoiceData(
       shopName: (sf?['display_name'] as String?) ?? '',
@@ -179,7 +194,9 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
               icon: Icons.error_outline,
               title: _loadErrorMessage(l, snap.error!),
               actionLabel: l.commonRetry,
-              onAction: () => setState(() => _future = _load()),
+              onAction: () => setState(() {
+                _future = _load(l);
+              }),
             );
           }
           final data = snap.data!;

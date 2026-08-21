@@ -166,6 +166,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get scanHardwareHint => 'Camera, or a USB / Bluetooth scanner';
+
+  @override
+  String get scanHardwareOnlyHint =>
+      'Plug in a USB scanner or pair a Bluetooth scanner in system settings, then scan. Keep this screen open.';
+
+  @override
+  String get scannerSettings => 'Barcode scanner';
+
+  @override
+  String get scannerSettingsIntro =>
+      'A handheld scanner works like a keyboard. Pair it on the computer, tablet, or phone — this app does not need a separate Bluetooth pairing screen.';
+
+  @override
+  String get scannerUsbTitle => 'USB scanner';
+
+  @override
+  String get scannerUsbBody =>
+      'Plug into the computer, or into a tablet with a USB-C adapter. Open Sell and scan — the item is added to the cart.';
+
+  @override
+  String get scannerBluetoothTitle => 'Bluetooth scanner';
+
+  @override
+  String get scannerBluetoothBody =>
+      'Turn the scanner on, pair it in Android / iOS / Windows Bluetooth settings as a keyboard, then open Sell and scan.';
+
+  @override
+  String get scannerSellTitle => 'Where it works';
+
+  @override
+  String get scannerSellBody =>
+      'Sell adds to the cart. Inventory searches the catalogue. Product edit fills the barcode field. Invoices search by invoice number.';
+
+  @override
   String get sellCompleted => 'Sale completed';
 
   @override
@@ -268,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashClosedAt => 'Closed';
 
   @override
-  String get cashReportPrintBluetooth => 'Print (Bluetooth)';
+  String get cashReportPrintBluetooth => 'Print on receipt printer';
 
   @override
   String get cashReportSharePdf => 'Share PDF';
@@ -945,7 +980,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — pair your Bluetooth receipt or label printer.\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -1110,7 +1145,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salesReportColumnAmount => 'Amount';
 
   @override
-  String get salesReportPrintBluetooth => 'Print (Bluetooth)';
+  String get salesReportPrintBluetooth => 'Print on receipt printer';
 
   @override
   String get salesReportExportPdf => 'Export PDF';
@@ -1120,7 +1155,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get salesReportNoPrinter =>
-      'No Bluetooth printer set up — see Printer settings.';
+      'No printer set up — see Printer settings.';
+
+  @override
+  String get documentPrint => 'Print';
 
   @override
   String salesReportCount(int count) {
@@ -1235,6 +1273,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paperA5 => 'A5';
+
+  @override
+  String get printerConnectionType => 'How this device prints';
+
+  @override
+  String get printerConnectionBluetooth => 'Bluetooth';
+
+  @override
+  String get printerConnectionWifi => 'Wi-Fi';
+
+  @override
+  String get printerConnectionUsb => 'USB';
+
+  @override
+  String get printerWifiHint =>
+      'Printers on this Wi-Fi show in the list. Phone, computer, and printer must be on the same network.';
+
+  @override
+  String get printerWifiIpLabel => 'Printer IP address';
+
+  @override
+  String get printerWifiPortLabel => 'Port';
+
+  @override
+  String get printerWifiUse => 'Use this printer';
+
+  @override
+  String get printerWifiScan => 'Find printers on this Wi-Fi';
+
+  @override
+  String get printerWifiScanning => 'Searching this Wi-Fi…';
+
+  @override
+  String get printerWifiNoneFound =>
+      'No Wi-Fi printers found. Enter the IP from the printer\'s test page.';
+
+  @override
+  String get printerWifiList => 'Printers on this Wi-Fi';
+
+  @override
+  String get printerWifiManualHint =>
+      'Not listed? Enter the IP from the printer\'s test page.';
+
+  @override
+  String get printerInvalidIp =>
+      'Enter a printer IP address (for example 192.168.1.100).';
+
+  @override
+  String get printerNetworkUnreachable =>
+      'Couldn\'t reach the printer. Check the IP and that you\'re on the same Wi-Fi.';
+
+  @override
+  String get printerUsbHint =>
+      'Plug the printer into this computer with a USB cable, then pick it from the list. Windows must already show it under Printers.';
+
+  @override
+  String get printerUsbNoneFound =>
+      'No printers found. Plug the printer in, install it in Windows if asked, then tap Refresh.';
+
+  @override
+  String get printerUsbRefresh => 'Refresh';
 
   @override
   String get settingsLabelPrinter => 'Label printer';
@@ -3537,6 +3636,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dailyGateOrSignIn => 'or sign in with an account';
+
+  @override
+  String get dailyGateWhoIsOpening => 'Who is opening the shop today?';
 
   @override
   String get operatingModeLabel => 'Shop mode';

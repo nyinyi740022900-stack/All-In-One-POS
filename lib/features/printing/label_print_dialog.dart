@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'label_data.dart';
+import 'printer_transport_section.dart';
 import 'printing_providers.dart';
 
 /// Prints [data] to whichever printer is configured — prefers a dedicated
@@ -46,7 +47,10 @@ class _LabelPrintDialogState extends ConsumerState<_LabelPrintDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.data.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            widget.data.name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Text(widget.data.priceText),
           const SizedBox(height: 12),
           Row(
@@ -76,14 +80,14 @@ class _LabelPrintDialogState extends ConsumerState<_LabelPrintDialog> {
           Text(
             hasTarget
                 ? (useDedicated
-                    ? l.labelPrintTargetDedicated
-                    : l.labelPrintTargetStrip)
+                      ? l.labelPrintTargetDedicated
+                      : l.labelPrintTargetStrip)
                 : l.labelPrintNoTarget,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: hasTarget
-                      ? Theme.of(context).colorScheme.outline
-                      : Theme.of(context).colorScheme.error,
-                ),
+              color: hasTarget
+                  ? Theme.of(context).colorScheme.outline
+                  : Theme.of(context).colorScheme.error,
+            ),
           ),
         ],
       ),
@@ -106,24 +110,29 @@ class _LabelPrintDialogState extends ConsumerState<_LabelPrintDialog> {
                           size: labelConfig!.size,
                           mac: labelConfig.mac!,
                           copies: _copies,
+                          connection: labelConfig.connection,
                         )
                       : await svc.printLabel(
                           widget.data,
                           paper: printerConfig!.paper,
                           mac: printerConfig.mac!,
                           copies: _copies,
+                          connection: printerConfig.connection,
                         );
                   if (!mounted) return;
                   navigator.pop();
-                  messenger.showSnackBar(SnackBar(
-                      content:
-                          Text(result.ok ? l.printSuccess : l.printFailed)));
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(printerTransportErrorMessage(l, result)),
+                    ),
+                  );
                 },
           child: _printing
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : Text(l.inventoryPrintLabel),
         ),
       ],

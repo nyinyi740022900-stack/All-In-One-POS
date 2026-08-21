@@ -70,6 +70,8 @@
 	<string>All In One POS connects to your Bluetooth receipt printer to print invoices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>All In One POS connects to your Bluetooth receipt printer to print invoices.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>All In One POS connects to your Wi-Fi receipt printer on the same network.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>All In One POS uses the camera to scan product barcodes and license QR codes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

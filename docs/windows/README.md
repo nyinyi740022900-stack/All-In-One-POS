@@ -32,7 +32,9 @@ Without secrets the build still succeeds; the app runs with empty defines
 
 1. GitHub → Actions → **Windows desktop** → latest green run.
 2. Artifacts → download `AllInOnePOS-windows-…`.
-3. Unzip → run `mm_pos.exe`.
+3. Unzip → run `AllInOnePOS.exe`. The first launch puts **All In One POS**
+   on the Desktop and in the Start Menu so you do not have to search for
+   `mm_pos.exe`.
 
 ## Local build (when you smoke-test on the Windows PC)
 
@@ -44,7 +46,7 @@ flutter pub get
 flutter build windows --release --dart-define-from-file=env.local.json
 ```
 
-Output: `build\windows\x64\runner\Release\mm_pos.exe`
+Output: `build\windows\x64\runner\Release\AllInOnePOS.exe`
 
 Copy `env.local.json` from the Mac (or recreate) — never commit it.
 
@@ -58,8 +60,8 @@ See [SMOKE.md](SMOKE.md). Defer until the CI artifact boots cleanly.
 |---|---|
 | Sell / Inventory / Orders / sync | Goal — same Dart code as mobile |
 | Layout (wide window) | Uses tablet breakpoints (rail + Sell split) |
-| Bluetooth thermal print | Weak / may not work — use PDF/share for now |
-| Camera barcode (`mobile_scanner`) | No Windows plugin — use USB wedge scanner or type |
+| Bluetooth thermal print | Mobile only — Windows uses Wi-Fi (same IP as the phone) or USB cable |
+| Camera barcode (`mobile_scanner`) | Phone/tablet camera. Computer uses a USB or Bluetooth HID scanner (keyboard wedge) on Sell / Inventory / Invoices. |
 | macOS desktop | Deferred |
 
 ## Do not

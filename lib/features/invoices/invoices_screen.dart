@@ -10,6 +10,7 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
+import '../sell/hardware_scanner_listener.dart';
 import '../sell/sales_providers.dart';
 import 'invoice_detail_screen.dart';
 import 'sales_report_screen.dart';
@@ -248,20 +249,24 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
 
     if (widget.embedded) return body;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l.navInvoices),
-        actions: [
-          IconButton(
-            tooltip: l.salesReportTitle,
-            icon: const Icon(Icons.summarize_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SalesReportScreen()),
+    return HardwareScannerListener(
+      onScan: (code) =>
+          ref.read(invoiceSearchProvider.notifier).state = code.trim(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l.navInvoices),
+          actions: [
+            IconButton(
+              tooltip: l.salesReportTitle,
+              icon: const Icon(Icons.summarize_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SalesReportScreen()),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        body: body,
       ),
-      body: body,
     );
   }
 }
