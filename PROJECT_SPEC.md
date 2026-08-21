@@ -143,7 +143,7 @@ All tables carry: `id` (uuid), `shop_id` (uuid), `created_at`, `updated_at`, `is
 
 ## 6. Licensing & Subscription
 
-- **Model:** one license key → one shop, bound to a primary device_id at activation. Plans: monthly / yearly.
+- **Model:** one shop, bound to devices at activation. The **main phone is included and does not count**; **2 extra phones or computers** (owner or staff login) are free — **3 devices total**. A phone and a computer each count as one extra. Further devices need a one-time fee (`device.extra_fee`). Plans: monthly / yearly.
 - **Activation flow:** enter key → Edge Function `activate(key, device_id)` validates + binds → returns signed license payload → stored locally.
 - **Offline grace:** app works offline; license re-verified when online. After `expires_at` plus a **7-day grace**, the shop auto-downgrades to the **Free plan** — Sell and Inventory keep working; Premium stays locked until renewed. There is no till-locking read-only mode.
 - **Local payment support:** owner can record a renewal payment (KBZPay/Wave/cash) which flags the license for manual/automated reconciliation server-side. (Automated gateway integration is a later phase.)
@@ -357,6 +357,26 @@ project's existing convention for UI-only changes.
 | 2026-08-20 | 175 | **Inventory listed the same minimart items twice (or more) because demo seed ran on the real phone.** `DemoSeed.ensureSeeded()` was called every time Inventory opened, with only an "is the products table empty?" guard — not debug-only, not shop-scoped, not serialized. After a local wipe (branch switch / license path) or before the first sync pull, the table looked empty, so six new UUIDs for Coca-Cola / soap / etc. were inserted and then kept alongside the real rows when cloud data arrived. Seed is now debug-only, per-shop, and one-flight-per-process. `watchProducts` also collapses two `stock_levels` rows for the same product (join would list it twice). Existing duplicate rows on a device stay until the owner deletes the extra copies. |
 
 | 2026-08-20 | 174 | **Onboarding shop page: Address + receipt footer; daily-gate hero shows the shop logo when one is set.** The "Your shop" step only collected name/phone and silently preserved address/footer from Settings. Both fields are now on that page (same `saveShopProfile` keys as Settings → Shop, so receipts pick them up). `BrandHeroPanel` accepts an optional logo URL — Start today's shop (and the Welcome / Your shop wave headers) show the photo in the rounded plate, falling back to the storefront icon if the URL is empty, still loading, or offline. |
+
+| 2026-08-21 | 205 | **Invoices web (computer/tablet browser) now counts as a device.** Sign-in calls `refresh_account_license` with a persisted browser device id — same cap as a second phone. At the free extra limit, the page asks to contact Support (admin **Allow extra devices**). Shipped with the phone/Windows rebuild of #194–#204. |
+
+| 2026-08-21 | 204 | **Extra devices are a shop allowance, not a key.** Admin Shops **Allow extra devices** sets how many paid extras (beyond free main phone + 2) and for how many months. No key to copy. The extra phone signs in and taps Check for renewal. POS License dropped the Offline Add-device QR. `claim_device_slot` honours `shop_device_allowance`. **Needs:** db push (0063) + `admin` function + admin web + app rebuild. |
+
+| 2026-08-21 | 203 | **Admin can grant an extra device for a shop that already has a license.** Superseded by #204 (allowance, no key). |
+
+| 2026-08-21 | 202 | **Free device allowance is the main phone plus 2 extras (3 total).** Settings → License no longer counts this phone against the quota (`0/2 extra devices used` when only this phone is signed in). Extra slots are phones or computers, owner or staff email — same count. `device.free_limit` default 2 → 3. An extra device sign-in now claims its own slot instead of borrowing Premium without counting; a 4th device asks for the extra-device fee. **Needs:** db push (0061) + `activate` deploy + app rebuild. |
+
+| 2026-08-21 | 201 | **Get started stayed grey after tap.** Finishing onboarding set a busy flag then awaited `onboarding.done` on the device DB — the same DB Free-plan setup may still be writing — so the button locked off and the write never returned. Get started now closes the gate immediately (in-memory flag) and persists in the background with a timeout. License page no longer starts Free in the background (only on Next), avoiding the lock. |
+
+| 2026-08-21 | 198 | **Start today's shop: Owner also requires PIN** (shared-phone protection). Continue as Owner always asks for the owner PIN, even if the device is already in Owner mode. If this phone has no owner PIN yet, it must be created (enter + confirm) before opening — otherwise a staff member could walk in as Owner. |
+
+| 2026-08-21 | 197 | **Start today's shop: Owner/staff rows looked untappable and had no Continue.** Identity is now a selection + a footer Continue button. Busy work shows a full-screen spinner with copy instead of silently disabling taps. |
+
+| 2026-08-21 | 196 | **Existing shop email can sign in; onboarding starts Free with no plan choice.** `functions.invoke('activate')` was sending the anon key as `Authorization`; invokes now send the signed-in JWT. Onboarding plan page only explains Free; Sign in / Register advance on success. |
+
+| 2026-08-21 | 195 | **Onboarding: license choice is explicit; email page has Create account and Sign in.** Superseded by #196 (no Free vs key choice; everyone starts Free). |
+
+| 2026-08-21 | 194 | **New install + paid email no longer lands as "Something went wrong" / Not activated.** Root cause (third time): sign-in claimed an extra device slot after Continue Free, labelled any Edge Function failure as no-internet, and left the email session hanging so Next could skip. Sign-in now pulls the shop's Premium via `refresh_account_license` first (JWT missing `shop_id` is recovered from `org_branches`). Local `free-…` is replaced without a wipe dialog. A failed attach signs out. Check for renewal and launch re-verify use the real error code. **Needs:** `activate` Edge Function deploy + app rebuild. |
 
 | 2026-08-21 | 193 | **Shipped #189–#192 to the phone and the Windows zip.** iPhone release reinstall (`com.allinonepos.app`). Computer download: GitHub Actions run https://github.com/nyinyi740022900-stack/goldposmm/actions/runs/32475588114 (artifact `AllInOnePOS-windows-25044f6…`, ~14 days). |
 

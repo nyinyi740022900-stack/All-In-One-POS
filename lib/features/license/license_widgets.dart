@@ -81,130 +81,11 @@ class _AccountEmailTile extends ConsumerWidget {
   }
 }
 
-/// Lists the shop's device slots and lets the owner add or release one.
-/// Offline: add via license-key QR. Online: sign-in on the other phone (no QR).
+/// Lists the shop's bound devices. Extra phones sign in and tap Check for
+/// renewal — Support raises the cap from the admin panel (no key).
 class _DevicesSection extends ConsumerWidget {
-  const _DevicesSection({this.hasAccount = false});
+  const _DevicesSection();
 
-  final bool hasAccount;
-
-  Future<void> _addDevice(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    // Pick the new device's intended role FIRST — so it can be baked into
-    // the QR and applied automatically on activation, instead of needing a
-    // second manual "switch to Staff" step on the new phone (easy to forget,
-    // which would leave it in full Owner mode).
-    final picked = await _pickDeviceRole(context, ref);
-    if (picked == null || !context.mounted) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await ref
-        .read(licenseRepositoryProvider)
-        .requestDeviceSlot();
-    if (!context.mounted) return;
-
-    if (result.ok) {
-      ref.invalidate(shopDevicesProvider);
-      await showDialog<void>(
-        context: context,
-        builder: (_) => _NewDeviceKeyDialog(
-          provisioning: DeviceProvisioning(
-            key: result.key!,
-            role: picked.role,
-            staffMemberId: picked.staffMemberId,
-          ),
-        ),
-      );
-      return;
-    }
-    if (result.errorCode == 'payment_required') {
-      final cfg = await ref.read(vendorConfigProvider.future);
-      if (!context.mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => _DevicePaymentRequiredDialog(
-          fee: result.fee ?? cfg.deviceExtraFee,
-          freeLimit: cfg.deviceFreeLimit,
-          viber: cfg.supportViber,
-        ),
-      );
-      return;
-    }
-    messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
-  }
-
-  /// Lets the owner choose the new device's intended role (and, for Staff,
-  /// which roster member) before a slot is even claimed. Null = cancelled.
-  Future<({String role, String? staffMemberId})?> _pickDeviceRole(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
-    final l = AppLocalizations.of(context);
-    final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
-    var role = 'owner';
-    String? staffMemberId;
-
-    return showDialog<({String role, String? staffMemberId})>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text(l.deviceRoleTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l.deviceRoleHint, style: Theme.of(ctx).textTheme.bodySmall),
-              const SizedBox(height: AppTheme.space3),
-              SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(value: 'owner', label: Text(l.staffRoleOwner)),
-                  ButtonSegment(value: 'staff', label: Text(l.staffRoleStaff)),
-                ],
-                selected: {role},
-                onSelectionChanged: (s) => setLocal(() {
-                  role = s.first;
-                  if (role == 'owner') staffMemberId = null;
-                }),
-              ),
-              if (role == 'staff' && members.isNotEmpty) ...[
-                const SizedBox(height: AppTheme.space3),
-                DropdownButtonFormField<String?>(
-                  initialValue: staffMemberId,
-                  decoration: InputDecoration(
-                    labelText: l.deviceRoleStaffMember,
-                  ),
-                  items: [
-                    DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text(l.staffNoNamedStaff),
-                    ),
-                    for (final m in members)
-                      DropdownMenuItem<String?>(
-                        value: m.id,
-                        child: Text(m.name),
-                      ),
-                  ],
-                  onChanged: (v) => setLocal(() => staffMemberId = v),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l.commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(
-                ctx,
-              ).pop((role: role, staffMemberId: staffMemberId)),
-              child: Text(l.commonYes),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _confirmRelease(
     BuildContext context,
@@ -237,6 +118,7 @@ class _DevicesSection extends ConsumerWidget {
         .releaseDevice(d.deviceId!);
     if (released) {
       ref.invalidate(shopDevicesProvider);
+      ref.invalidate(shopDeviceAllowanceProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.deviceReleased)));
     } else {
       messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
@@ -247,9 +129,13 @@ class _DevicesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final devices = ref.watch(shopDevicesProvider);
+    final allowance = ref.watch(shopDeviceAllowanceProvider).valueOrNull ??
+        ShopDeviceAllowance.none;
     final cfg = ref.watch(vendorConfigProvider).valueOrNull;
     final myDeviceId = ref.watch(deviceIdProvider).valueOrNull;
-    final freeLimit = cfg?.deviceFreeLimit ?? 2;
+    final freeLimit = cfg?.deviceFreeLimit ?? 3;
+    final extraQuota = extraDeviceQuota(freeLimit) +
+        allowance.activeExtraSlots(DateTime.now());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,12 +152,13 @@ class _DevicesSection extends ConsumerWidget {
           ),
           error: (e, _) => Text(l.commonUnexpectedError),
           data: (list) {
-            final used = list.where((d) => d.isBound).length;
+            final bound = list.where((d) => d.isBound).length;
+            final used = extraDevicesUsed(bound);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.deviceCount(used, freeLimit),
+                  l.deviceCount(used, extraQuota),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: AppTheme.space2),
@@ -301,113 +188,16 @@ class _DevicesSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (hasAccount)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppTheme.space2),
-                    child: Text(
-                      l.deviceAddOnlineHint,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: () => _addDevice(context, ref),
-                    icon: const Icon(Icons.add),
-                    label: Text(l.deviceAdd),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.space2),
+                  child: Text(
+                    l.deviceAddOnlineHint(extraQuota),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
+                ),
               ],
             );
           },
-        ),
-      ],
-    );
-  }
-}
-
-class _NewDeviceKeyDialog extends StatelessWidget {
-  const _NewDeviceKeyDialog({required this.provisioning});
-  final DeviceProvisioning provisioning;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l.deviceKeyReadyTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(l.deviceKeyReadyHint, textAlign: TextAlign.center),
-          const SizedBox(height: AppTheme.space4),
-          BarcodeWidget(
-            barcode: Barcode.qrCode(),
-            data: provisioning.encode(),
-            width: 180,
-            height: 180,
-          ),
-          const SizedBox(height: AppTheme.space3),
-          SelectableText(
-            provisioning.key,
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (provisioning.role == 'staff') ...[
-            const SizedBox(height: AppTheme.space2),
-            Text(
-              l.deviceRoleAppliesOnScan,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton.icon(
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: provisioning.key));
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(l.deviceKeyCopied)));
-            }
-          },
-          icon: const Icon(Icons.copy),
-          label: Text(l.commonCopy),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.commonYes),
-        ),
-      ],
-    );
-  }
-}
-
-class _DevicePaymentRequiredDialog extends StatelessWidget {
-  const _DevicePaymentRequiredDialog({
-    required this.fee,
-    required this.freeLimit,
-    required this.viber,
-  });
-  final int fee;
-  final int freeLimit;
-  final String viber;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final feeText = Money(fee).withSymbol(l.currencySymbol);
-    return AlertDialog(
-      title: Text(l.devicePaymentRequiredTitle),
-      content: Text(
-        l.devicePaymentRequiredBody(freeLimit, feeText) +
-            (viber.isEmpty ? '' : '\n\nViber: $viber'),
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.commonYes),
         ),
       ],
     );

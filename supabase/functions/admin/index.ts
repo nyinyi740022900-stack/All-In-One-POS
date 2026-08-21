@@ -13,6 +13,7 @@
 //   unlink_account { user_id }            -> clear shop_id on a staff (or extra owner)
 //   restore_account { user_id }           -> lift a revoke_staff ban
 //   create_license { shop_id, plan, months } -> { key }
+//   set_device_allowance { shop_id, extra_slots, months } -> { extra_slots, extras_expires_at }
 //
 // Deploy: supabase functions deploy admin
 
@@ -46,6 +47,7 @@ Deno.serve(async (req) => {
     shop_name?: string;
     plan?: string;
     months?: number;
+    extra_slots?: number;
     key?: string;
     device_id?: string;
     email?: string;
@@ -202,6 +204,24 @@ Deno.serve(async (req) => {
         }
       }
 
+      const { data: allowRows } = await admin
+        .from("shop_device_allowance")
+        .select("shop_id, extra_slots, extras_expires_at");
+      const allowByShop = new Map<
+        string,
+        { extra_slots: number; extras_expires_at: string | null }
+      >();
+      for (const a of (allowRows ?? []) as Array<{
+        shop_id: string;
+        extra_slots: number;
+        extras_expires_at: string | null;
+      }>) {
+        allowByShop.set(a.shop_id, {
+          extra_slots: a.extra_slots,
+          extras_expires_at: a.extras_expires_at,
+        });
+      }
+
       const rows = Array.from(shops.values()).map((r) => {
         const store = storeByShop.get(r.shop_id);
         const profile = profileByShop.get(r.shop_id);
@@ -220,6 +240,9 @@ Deno.serve(async (req) => {
           accounts,
           account_count: accounts.length,
           devices: devicesByShop.get(r.shop_id) ?? [],
+          extra_slots: allowByShop.get(r.shop_id)?.extra_slots ?? 0,
+          extras_expires_at: allowByShop.get(r.shop_id)?.extras_expires_at ??
+            null,
         };
       });
       return json({ rows });
@@ -858,6 +881,45 @@ Deno.serve(async (req) => {
       });
       if (error) return json({ error: "server_error", detail: error.message }, 500);
       return json({ key: data });
+    }
+
+    case "set_device_allowance": {
+      // Paid extras on top of the free 3 (main phone + 2). No key — the
+      // extra phone signs in and taps Check for renewal.
+      const shopId = (body.shop_id ?? "").trim();
+      const extraSlots = Number(body.extra_slots ?? 0);
+      const months = Number(body.months ?? 0);
+      if (!shopId) return json({ error: "bad_request" }, 400);
+      if (!Number.isFinite(extraSlots) || extraSlots < 0 || extraSlots !== Math.trunc(extraSlots)) {
+        return json({ error: "bad_request" }, 400);
+      }
+      const { data, error } = await admin.rpc("set_shop_device_allowance", {
+        p_shop_id: shopId,
+        p_extra_slots: extraSlots,
+        p_months: extraSlots === 0 ? 1 : months,
+      });
+      if (error) {
+        const detail = error.message ?? "";
+        if (detail.includes("must be")) {
+          return json({ error: "bad_request", detail }, 400);
+        }
+        return json({ error: "server_error", detail }, 500);
+      }
+      const payload = (typeof data === "string" ? JSON.parse(data) : data) as {
+        extra_slots?: number;
+        extras_expires_at?: string | null;
+      } | null;
+      await logEvent(admin, {
+        device_id: null,
+        shop_name: null,
+        key: null,
+        action: "device_allowance",
+        months: extraSlots === 0 ? 0 : months,
+      });
+      return json({
+        extra_slots: payload?.extra_slots ?? extraSlots,
+        extras_expires_at: payload?.extras_expires_at ?? null,
+      });
     }
 
     default:

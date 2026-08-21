@@ -96,6 +96,15 @@ class CachedLicense {
       );
 }
 
+/// Local-only Free plan from onboarding ("Continue Free"), not a real
+/// cloud shop. Safe to replace when the owner signs into a paid account on
+/// a new install. A downgraded *real* shop keeps its `shop-…` id and still
+/// needs the wipe-confirm dialog if they sign into a different account.
+bool isReplaceableLocalLicense(CachedLicense? lic) {
+  if (lic == null) return true;
+  return lic.shopId.startsWith('free-');
+}
+
 /// Outcome of an activation attempt.
 class ActivationResult {
   final bool ok;
@@ -142,6 +151,35 @@ class ShopDevice {
             ? DateTime.fromMillisecondsSinceEpoch(0)
             : DateTime.parse(j['created_at'] as String),
       );
+}
+
+/// Bound license rows minus the shop's main phone. The first slot is
+/// included and does not count; a phone and a computer each count as one
+/// extra. Owner vs staff login does not change the count — only the device.
+int extraDevicesUsed(int boundCount) => boundCount <= 0 ? 0 : boundCount - 1;
+
+/// Extra phones/computers included besides the main phone.
+/// [freeLimit] is the TOTAL cap stored in `device.free_limit` (default 3).
+int extraDeviceQuota(int freeLimit) => freeLimit <= 1 ? 0 : freeLimit - 1;
+
+/// Paid extras Support granted on top of the free cap (main phone + 2).
+/// [extraSlots] is ignored after [extrasExpiresAt].
+class ShopDeviceAllowance {
+  final int extraSlots;
+  final DateTime? extrasExpiresAt;
+
+  const ShopDeviceAllowance({
+    this.extraSlots = 0,
+    this.extrasExpiresAt,
+  });
+
+  static const none = ShopDeviceAllowance();
+
+  int activeExtraSlots(DateTime now) {
+    if (extraSlots <= 0) return 0;
+    if (extrasExpiresAt != null && !extrasExpiresAt!.isAfter(now)) return 0;
+    return extraSlots;
+  }
 }
 
 /// Outcome of requesting a new device slot: either a key ready to activate on

@@ -16,7 +16,7 @@ final branchRepositoryProvider = Provider<BranchRepository>((ref) {
       await session?.reopenForShop(toShopId);
     },
     onLicenseReady: (lic) async {
-      ref.read(licenseControllerProvider.notifier).applyExternal(lic);
+      await ref.read(licenseControllerProvider.notifier).applyExternal(lic);
     },
   );
 });

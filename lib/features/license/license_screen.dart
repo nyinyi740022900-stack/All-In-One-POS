@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/env.dart';
-import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../account/account_action_error.dart';
 import '../account/account_providers.dart';
 import '../printing/printing_providers.dart';
 import 'license_model.dart';
@@ -177,10 +176,8 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
-  /// Scans a device key shown as a QR code on an already-activated device
-  /// (see `_DevicesSection`'s "Add a device" flow) instead of typing it. The
-  /// QR may carry a role alongside the key (DeviceProvisioning) — remembered
-  /// here and applied once activation succeeds.
+  /// Scans a device key shown as a QR code (older Offline add-device
+  /// flow) instead of typing it. The QR may carry a role alongside the key.
   Future<void> _scanKey() async {
     final code = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
@@ -321,19 +318,15 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       final String msg;
       if (result.ok) {
         msg = l.licenseRefreshed;
+        ref.invalidate(shopDevicesProvider);
+        ref.invalidate(shopDeviceAllowanceProvider);
       } else if (result.errorCode == 'invalid_key' ||
           result.errorCode == 'device_mismatch') {
         msg = l.licenseInvalidKey;
       } else if (result.errorCode == 'rate_limited') {
         msg = l.licenseRateLimited;
-      } else if (result.errorCode == 'network_error') {
-        msg = l.commonNetworkError;
-      } else if (result.errorCode == 'not_activated') {
-        msg = l.accountNotActivated;
-      } else if (result.errorCode == 'not_found') {
-        msg = l.licenseRenewNotFound;
       } else {
-        msg = l.commonUnexpectedError;
+        msg = accountActionErrorMessage(l, result.errorCode);
       }
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     } finally {
@@ -495,7 +488,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               const SizedBox(height: AppTheme.space4),
               const Divider(),
               const SizedBox(height: AppTheme.space2),
-              _DevicesSection(hasAccount: hasAccount),
+              _DevicesSection(),
             ],
           ] else if (hasAccount) ...[
             // Real account without canSell: recover via website or Viber —

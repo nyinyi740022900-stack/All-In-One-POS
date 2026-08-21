@@ -14,6 +14,7 @@ import '../printing/printing_providers.dart';
 import '../settings/device_label_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
+import 'account_action_error.dart';
 import 'account_providers.dart';
 import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
@@ -77,17 +78,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     super.dispose();
   }
 
-  String _errorMessage(AppLocalizations l, String? code) => switch (code) {
-    'email_taken' => l.accountEmailTaken,
-    'not_activated' => l.accountNotActivated,
-    'no_backend' => l.accountNoBackend,
-    'pending_sync' => l.accountPendingSync,
-    'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
-    'wrong_password' => l.accountDeleteWrongPassword,
-    'forbidden' => l.accountDeleteOwnerOnly,
-    'network_error' => l.commonNetworkError,
-    _ => l.accountActionFailed,
-  };
+  String _errorMessage(AppLocalizations l, String? code) =>
+      accountActionErrorMessage(l, code);
 
   String _planLabel(AppLocalizations l, LicensePlan plan) => switch (plan) {
     LicensePlan.yearly => l.licensePlanYearly,
@@ -121,7 +113,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       return;
     }
     if (created.license != null) {
-      ref
+      await ref
           .read(licenseControllerProvider.notifier)
           .applyExternal(created.license!);
     }
@@ -198,7 +190,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       );
       if (!mounted) return;
       if (result.license != null) {
-        ref
+        await ref
             .read(licenseControllerProvider.notifier)
             .applyExternal(result.license!);
         ref.read(syncControllerProvider.notifier).sync();
@@ -266,7 +258,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     final result = await ref.read(accountRepositoryProvider).signOut();
     if (!mounted) return;
     if (result.license != null) {
-      ref
+      await ref
           .read(licenseControllerProvider.notifier)
           .applyExternal(result.license!);
     }

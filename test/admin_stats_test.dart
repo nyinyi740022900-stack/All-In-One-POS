@@ -147,4 +147,11 @@ void main() {
     expect(shopMatchesFilter(shops[2], AdminShopFilter.atRisk, now), isTrue);
     expect(shopMatchesFilter(shops[2], AdminShopFilter.premium, now), isFalse);
   });
+
+  test('deviceIsBound treats empty / null device_id as an unused slot', () {
+    expect(deviceIsBound({'device_id': 'dev-1'}), isTrue);
+    expect(deviceIsBound({'device_id': null}), isFalse);
+    expect(deviceIsBound({'device_id': ''}), isFalse);
+    expect(deviceIsBound({'device_id': 'null'}), isFalse);
+  });
 }

@@ -44,6 +44,43 @@ void main() {
     });
   });
 
+  group('extra device quota (main phone does not count)', () {
+    test('zero bound devices shows 0 extras used', () {
+      expect(extraDevicesUsed(0), 0);
+    });
+
+    test('the main phone alone is 0 extras used', () {
+      expect(extraDevicesUsed(1), 0);
+    });
+
+    test('main + 2 extras is a full free quota of 2', () {
+      expect(extraDevicesUsed(3), 2);
+      expect(extraDeviceQuota(3), 2);
+    });
+
+    test('a 4th device is past the default extra quota', () {
+      expect(extraDevicesUsed(4), 3);
+      expect(extraDevicesUsed(4) > extraDeviceQuota(3), isTrue);
+    });
+
+    test('a paid extra grant raises the extra quota while it is valid', () {
+      const grant = ShopDeviceAllowance(
+        extraSlots: 1,
+        extrasExpiresAt: null,
+      );
+      expect(grant.activeExtraSlots(DateTime(2026, 8, 21)), 1);
+      expect(extraDeviceQuota(3) + grant.activeExtraSlots(DateTime(2026, 8, 21)), 3);
+    });
+
+    test('an expired extra grant does not raise the quota', () {
+      final grant = ShopDeviceAllowance(
+        extraSlots: 2,
+        extrasExpiresAt: DateTime(2026, 1, 1),
+      );
+      expect(grant.activeExtraSlots(DateTime(2026, 8, 21)), 0);
+    });
+  });
+
   group('CachedLicense JSON round-trip', () {
     test('realtimeEnabled survives toJson/fromJson', () {
       final lic = CachedLicense(

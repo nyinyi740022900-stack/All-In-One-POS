@@ -29,6 +29,11 @@ void main() {
     expect(VendorConfig.empty.hasSupport, isFalse);
   });
 
+  test('missing device.free_limit defaults to 3 (main + 2 extras)', () {
+    expect(VendorConfig.fromMap({}).deviceFreeLimit, 3);
+    expect(const VendorConfig().deviceFreeLimit, 3);
+  });
+
   test('priceFor: online price defaults to the offline price when unset',
       () {
     final cfg = VendorConfig.fromMap({

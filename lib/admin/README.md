@@ -16,14 +16,14 @@ mobile build. All privileged work goes through the `admin` Edge Function
 - **Inbox** — pending KBZPay/WavePay requests with screenshot; Confirm /
   Decline. Lands here automatically when anything is waiting.
 - **Shops** — search by name, email, phone, or App Reference ID, then a
-  360° panel: extend by email vs device, reset a phone, offline code,
+  360° panel: extend by email vs device, allow extra devices (no key), reset a phone, offline code,
   Viber, generate key, password-reset link, unlink staff, restore a banned
   login.
 - **Payments** — settled requests + license activity history.
 - **Licensing** — Viber-paste extend only: email or App Reference ID
   (two separate cards so an email cannot be pasted into a device field).
   Both find a shop and add months to **every** device on it. Reset a
-  phone, mint a key, or send an offline code from **Shops**.
+  phone, allow extra devices, mint a key, or send an offline code from **Shops**.
 - **Referrals** — commissions grouped by referrer with **Apply credit**,
   plus raw referral links. Rate/toggle live under Settings
   (`referral.rate`, `referral.enabled`).

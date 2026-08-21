@@ -35,9 +35,9 @@ class _LocaleBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// Gate for the invoices companion. Online shops sign in with the same
-/// email as the phone (no device-key, no extra slot). Offline shops can
-/// still paste a key. Free plan without an account is the Windows POS
-/// app's Continue Free — this page cannot see local phone data.
+/// email as the phone (this computer counts as one extra device). Offline
+/// shops can still paste a key. Free plan without an account is the Windows
+/// POS app's Continue Free — this page cannot see local phone data.
 class ActivateScreen extends StatefulWidget {
   const ActivateScreen({
     super.key,

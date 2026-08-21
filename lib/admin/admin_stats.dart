@@ -217,6 +217,13 @@ List<Map<String, dynamic>> shopDevices(
       .toList();
 }
 
+/// A license row is a used phone/computer when [device_id] is set.
+/// Unbound rows are extra slots waiting for the shop to activate.
+bool deviceIsBound(Map<String, dynamic> d) {
+  final id = '${d['device_id'] ?? ''}'.trim();
+  return id.isNotEmpty && id != 'null';
+}
+
 List<Map<String, dynamic>> shopAccounts(Map<String, dynamic> shop) {
   final raw = shop['accounts'];
   if (raw is List) {

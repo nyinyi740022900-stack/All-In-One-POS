@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../data/repositories/settings_repository.dart';
+import 'invoke_error.dart';
 import 'license_model.dart';
 import 'license_status.dart';
 import 'offline_license.dart';
@@ -86,11 +87,13 @@ class LicenseRepository {
     }
 
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'key': trimmed, 'device_id': deviceId},
+      final res = await invokeActivate(
+        {'key': trimmed, 'device_id': deviceId},
       );
-      final data = res.data as Map<String, dynamic>;
+      final data = parseInvokeData(res.data);
+      if (data == null) {
+        return const ActivationResult.failure('server_error');
+      }
       if (data['ok'] != true) {
         return ActivationResult.failure(
             (data['error'] as String?) ?? 'activation_failed');
@@ -125,7 +128,7 @@ class LicenseRepository {
       }
       return ActivationResult.success(await _save(lic));
     } catch (e) {
-      return ActivationResult.failure('network_error');
+      return ActivationResult.failure(classifyInvokeError(e));
     }
   }
 
@@ -157,9 +160,8 @@ class LicenseRepository {
     final deviceId = await _settings.deviceId();
 
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {
+      final res = await invokeActivate(
+        {
           'action': 'start_trial',
           'shop_name': shopName,
           'device_id': deviceId,
@@ -196,8 +198,8 @@ class LicenseRepository {
         );
       }
       return ActivationResult.success(await _save(lic));
-    } catch (_) {
-      return const ActivationResult.failure('network_error');
+    } catch (e) {
+      return ActivationResult.failure(classifyInvokeError(e));
     }
   }
 
@@ -229,10 +231,10 @@ class LicenseRepository {
         await auth.signOut();
       } catch (_) {}
       await auth.signInAnonymously();
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'resync_session', 'device_id': deviceId},
-      );
+      final res = await invokeActivate({
+        'action': 'resync_session',
+        'device_id': deviceId,
+      });
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] != true) {
         return ActivationResult.failure(
@@ -262,54 +264,71 @@ class LicenseRepository {
   }
 
   /// Pulls this signed-in shop's current plan + expiry (admin extend) onto
-  /// the device without a typed key — Settings → Check for renewal.
+  /// the device without a typed key — Settings → Check for renewal, and
+  /// email sign-in on a new install.
   Future<ActivationResult> refreshAccountLicense() async {
     if (!Env.hasBackend) return const ActivationResult.failure('no_backend');
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null || (user.email ?? '').isEmpty) {
       return const ActivationResult.failure('not_activated');
     }
+    var result = await _refreshAccountLicenseOnce();
+    if (result.errorCode == 'not_activated' ||
+        result.errorCode == 'not_authenticated') {
+      try {
+        await Supabase.instance.client.auth.refreshSession();
+      } catch (_) {}
+      result = await _refreshAccountLicenseOnce();
+    }
+    return result;
+  }
+
+  Future<ActivationResult> _refreshAccountLicenseOnce() async {
     final deviceId = await _settings.deviceId();
+    final Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'refresh_account_license', 'device_id': deviceId},
-      );
-      final data = res.data as Map<String, dynamic>;
-      if (data['ok'] != true) {
-        return ActivationResult.failure(
-          (data['error'] as String?) ?? 'server_error',
-        );
-      }
-      final expiresAtRaw = data['expires_at'] as String?;
-      if (expiresAtRaw == null) {
+      final res = await invokeActivate({
+        'action': 'refresh_account_license',
+        'device_id': deviceId,
+      });
+      final parsed = parseInvokeData(res.data);
+      if (parsed == null) {
         return const ActivationResult.failure('server_error');
       }
-      final now = DateTime.now();
-      final current = await this.current();
-      final key = (data['key'] as String?)?.trim();
-      final lic = CachedLicense(
-        key: (key != null && key.isNotEmpty)
-            ? key
-            : (current?.key ?? signupKey),
-        shopId: data['shop_id'] as String,
-        plan: _planFrom(data['plan'] as String? ?? 'monthly'),
-        expiresAt: DateTime.parse(expiresAtRaw),
-        activatedAt: DateTime.tryParse(
-              data['activated_at'] as String? ?? '',
-            ) ??
-            current?.activatedAt ??
-            now,
-        lastVerifiedAt: now,
-        deviceId: deviceId,
-        realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
-        tier: data['tier'] as String? ?? current?.tier ?? 'online',
-      );
-      await refreshSessionAndVerifyClaim(lic.shopId);
-      return ActivationResult.success(await _save(lic));
-    } catch (_) {
-      return const ActivationResult.failure('network_error');
+      data = parsed;
+    } catch (e) {
+      return ActivationResult.failure(classifyInvokeError(e));
     }
+    if (data['ok'] != true) {
+      return ActivationResult.failure(
+        errorCodeFromInvokeData(data) ?? 'server_error',
+      );
+    }
+    final expiresAtRaw = data['expires_at'] as String?;
+    final shopId = data['shop_id'] as String?;
+    if (expiresAtRaw == null || shopId == null || shopId.isEmpty) {
+      return const ActivationResult.failure('server_error');
+    }
+    final now = DateTime.now();
+    final current = await this.current();
+    final key = (data['key'] as String?)?.trim();
+    final lic = CachedLicense(
+      key: (key != null && key.isNotEmpty) ? key : (current?.key ?? signupKey),
+      shopId: shopId,
+      plan: _planFrom(data['plan'] as String? ?? 'monthly'),
+      expiresAt: DateTime.parse(expiresAtRaw),
+      activatedAt: DateTime.tryParse(
+            data['activated_at'] as String? ?? '',
+          ) ??
+          current?.activatedAt ??
+          now,
+      lastVerifiedAt: now,
+      deviceId: deviceId,
+      realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
+      tier: data['tier'] as String? ?? current?.tier ?? 'online',
+    );
+    await refreshSessionAndVerifyClaim(lic.shopId);
+    return ActivationResult.success(await _save(lic));
   }
 
   /// Enters the Free plan from scratch — no key, no account, no network call.
@@ -410,6 +429,27 @@ class LicenseRepository {
         .toList();
   }
 
+  /// Paid extra slots Support granted for this shop (on top of the free
+  /// main-phone + 2). Empty when unsigned / offline / no grant row.
+  Future<ShopDeviceAllowance> deviceAllowance() async {
+    if (!Env.hasBackend) return ShopDeviceAllowance.none;
+    try {
+      final row = await Supabase.instance.client
+          .from('shop_device_allowance')
+          .select('extra_slots, extras_expires_at')
+          .maybeSingle();
+      if (row == null) return ShopDeviceAllowance.none;
+      final extras = (row['extra_slots'] as num?)?.toInt() ?? 0;
+      final raw = row['extras_expires_at'] as String?;
+      return ShopDeviceAllowance(
+        extraSlots: extras,
+        extrasExpiresAt: raw == null ? null : DateTime.tryParse(raw),
+      );
+    } catch (_) {
+      return ShopDeviceAllowance.none;
+    }
+  }
+
   /// Claims a slot for a NEW device under this shop: a free slot if the shop
   /// is under its device limit, or a fee to pay first. The returned key still
   /// needs to be activated (via [activate]) on the new physical device.
@@ -418,20 +458,20 @@ class LicenseRepository {
       return const DeviceSlotResult.failure('no_backend');
     }
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'request_device_slot'},
-      );
-      final data = res.data as Map<String, dynamic>;
-      if (data['ok'] == true) {
-        return DeviceSlotResult.granted(data['key'] as String);
+      final res = await invokeActivate({'action': 'request_device_slot'});
+      final parsed = parseInvokeData(res.data);
+      if (parsed == null) {
+        return const DeviceSlotResult.failure('server_error');
       }
-      if (data['error'] == 'payment_required') {
-        return DeviceSlotResult.paymentRequired(data['fee'] as int? ?? 0);
+      if (parsed['ok'] == true) {
+        return DeviceSlotResult.granted(parsed['key'] as String);
       }
-      return DeviceSlotResult.failure(data['error'] as String?);
-    } catch (_) {
-      return const DeviceSlotResult.failure('network_error');
+      if (parsed['error'] == 'payment_required') {
+        return DeviceSlotResult.paymentRequired(parsed['fee'] as int? ?? 0);
+      }
+      return DeviceSlotResult.failure(parsed['error'] as String?);
+    } catch (e) {
+      return DeviceSlotResult.failure(classifyInvokeError(e));
     }
   }
 
@@ -441,10 +481,10 @@ class LicenseRepository {
   Future<bool> releaseDevice(String deviceId) async {
     if (!Env.hasBackend) return false;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'release_device', 'device_id': deviceId},
-      );
+      final res = await invokeActivate({
+        'action': 'release_device',
+        'device_id': deviceId,
+      });
       final data = res.data as Map<String, dynamic>;
       return data['ok'] == true;
     } catch (_) {

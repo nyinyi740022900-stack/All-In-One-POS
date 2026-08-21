@@ -46,6 +46,11 @@ final shopDevicesProvider = FutureProvider.autoDispose<List<ShopDevice>>((ref) {
   return ref.watch(licenseRepositoryProvider).listDevices();
 });
 
+final shopDeviceAllowanceProvider =
+    FutureProvider.autoDispose<ShopDeviceAllowance>((ref) {
+  return ref.watch(licenseRepositoryProvider).deviceAllowance();
+});
+
 class LicenseState {
   final bool loading;
   final CachedLicense? license;
@@ -116,7 +121,10 @@ class LicenseController extends StateNotifier<LicenseState> {
   }
 
   Future<void> _silentReverify() async {
-    if (state.license == null) return;
+    // Signed-in shops must re-pull even when local cache is empty / Free
+    // ("Not activated" after a new install). Previously we returned early
+    // when license == null, so Check for renewal was the only heal path.
+    if (!_repo.hasEmailSession && state.license == null) return;
     try {
       await refreshOnline();
     } catch (_) {
@@ -259,8 +267,8 @@ class LicenseController extends StateNotifier<LicenseState> {
     final user = _repo.hasEmailSession;
     if (user) {
       final pulled = await _repo.refreshAccountLicense();
-      if (pulled.ok) {
-        _apply(pulled.license);
+      if (pulled.ok && pulled.license != null) {
+        await applyExternal(pulled.license!);
         return pulled;
       }
       final lic = state.license;
@@ -359,7 +367,13 @@ class LicenseController extends StateNotifier<LicenseState> {
   /// shopId-binding + status recompute `activate()`/`load()` already do.
   /// Callers that switch shops must reopen the shop DB *before* this when
   /// [AppDatabase.usePerShopDbFiles] is on (branch/account repos do).
-  void applyExternal(CachedLicense lic) => _apply(lic);
+  Future<void> applyExternal(CachedLicense lic) async {
+    final promoted = await _promoteFreeShopIfNeeded(lic.shopId);
+    if (!promoted) {
+      await _reopenShopDbIfNeeded(lic.shopId);
+    }
+    _apply(lic);
+  }
 
   Future<void> _reopenShopDbIfNeeded(String shopId) async {
     if (!AppDatabase.usePerShopDbFiles || shopId.isEmpty) return;

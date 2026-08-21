@@ -198,6 +198,53 @@ Future<String?> pickStaffMemberId(
   );
 }
 
+/// Collects the owner PIN for a switch / daily-gate confirm. If this phone
+/// has no owner PIN yet, creates one (enter + confirm) so a shared-phone
+/// staff member cannot later open as Owner with an empty PIN.
+Future<String?> promptOwnerPinForSwitch(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l = AppLocalizations.of(context);
+  final ctrl = ref.read(staffControllerProvider);
+  final pinSet = await ctrl.hasPin();
+  if (!context.mounted) return null;
+  if (pinSet) {
+    final pin = await promptPin(context, l.staffEnterPin);
+    if (pin == null || pin.isEmpty) return null;
+    return pin;
+  }
+
+  final pin = await promptPin(context, l.staffSetPin);
+  if (!context.mounted || pin == null || pin.isEmpty) return null;
+  if (!ctrl.isValidOwnerPin(pin)) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.staffPinHint)));
+    return null;
+  }
+  final confirm = await promptPin(context, l.staffConfirmPin);
+  if (!context.mounted || confirm == null) return null;
+  if (confirm != pin) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.staffPinMismatch)));
+    return null;
+  }
+  try {
+    await ctrl.setPin(pin);
+    ref.invalidate(ownerPinIsSetProvider);
+  } on ArgumentError {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.staffPinHint)));
+    }
+    return null;
+  }
+  return pin;
+}
+
 /// Switches the device to [target] ('owner' or 'staff'), prompting for
 /// whichever PIN is needed along the way (owner PIN, or a named staff
 /// member's own PIN if a roster is configured). Returns true on a
@@ -251,8 +298,8 @@ Future<bool> switchStaffRole(
 
   String? pin;
   if (target == 'owner') {
-    pin = await promptPin(context, l.staffEnterPin);
-    if (pin == null) return false; // cancelled
+    pin = await promptOwnerPinForSwitch(context, ref);
+    if (pin == null) return false; // cancelled / invalid new PIN
   }
   if (!context.mounted) return false;
   final ok = await ctrl.switchRole(target, pin: pin);

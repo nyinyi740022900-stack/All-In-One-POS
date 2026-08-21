@@ -2,13 +2,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../features/license/invoke_error.dart';
+
 /// Minimal device-activation logic for the Invoices Web companion. Reuses
-/// the exact same flow the mobile app's License screen uses (anonymous
-/// Supabase auth + the `activate` Edge Function, which sets a `shop_id` JWT
-/// claim on this browser's own session) — a browser tab activated this way
-/// consumes one of the shop's device slots, same as adding another phone.
-/// Deliberately doesn't pull in the full Drift/SettingsRepository stack this
-/// standalone read-only companion has no other use for.
+/// the exact same flow the mobile app's License screen uses (Supabase auth
+/// + the `activate` Edge Function). A browser tab that signs in consumes
+/// one of the shop's device slots — a phone and a computer each count as
+/// one extra, same as Windows POS.
 class InvoicesWebSession {
   InvoicesWebSession._();
 
@@ -25,21 +25,29 @@ class InvoicesWebSession {
   }
 
   /// The shop this browser is activated for, or null if not yet activated.
-  static String? get shopId => Supabase
-      .instance.client.auth.currentSession?.user.appMetadata['shop_id'] as String?;
+  static String? get shopId => shopIdOfCurrentUser();
 
-  /// Sign in with the shop's existing email/password. Does **not** consume a
-  /// device-key slot — same session as Settings → Account on the phone.
-  /// Returns an error code, or null on success.
+  static String? shopIdOfCurrentUser() =>
+      Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
+          as String?;
+
+  /// Sign in with the shop's existing email/password, then bind this
+  /// browser as a device (Check for renewal equivalent). Returns an error
+  /// code, or null on success.
   static Future<String?> signIn(String email, String password) async {
     final trimmed = email.trim();
     if (trimmed.isEmpty || password.isEmpty) return 'empty_signin';
     try {
-      final res = await Supabase.instance.client.auth.signInWithPassword(
+      await Supabase.instance.client.auth.signInWithPassword(
         email: trimmed,
         password: password,
       );
-      final shopId = res.user?.appMetadata['shop_id'] as String?;
+      final claimed = await _claimThisBrowser();
+      if (claimed != null) {
+        await Supabase.instance.client.auth.signOut();
+        return claimed;
+      }
+      final shopId = shopIdOfCurrentUser();
       if (shopId == null || shopId.isEmpty) {
         await Supabase.instance.client.auth.signOut();
         return 'not_a_shop';
@@ -56,11 +64,35 @@ class InvoicesWebSession {
     }
   }
 
-  /// Activates this browser with a device key generated from the shop's
-  /// phone (Settings > License > Add a device, Offline shops only).
-  /// failure (`invalid_key`, `device_mismatch`, `payment_required`, etc. —
-  /// the same codes the mobile app's activation flow already surfaces), or
-  /// null on success.
+  /// Binds this browser under the shop's device cap. Null = continue;
+  /// `payment_required` means Support has not allowed another device yet.
+  static Future<String?> _claimThisBrowser() async {
+    try {
+      final res = await invokeActivate({
+        'action': 'refresh_account_license',
+        'device_id': await _deviceId(),
+      });
+      final data = parseInvokeData(res.data);
+      if (data == null) return null;
+      if (data['ok'] == true) {
+        try {
+          await Supabase.instance.client.auth.refreshSession();
+        } catch (_) {}
+        return null;
+      }
+      final code = errorCodeFromInvokeData(data);
+      if (code == 'payment_required') return 'payment_required';
+      return null;
+    } catch (e) {
+      if (classifyInvokeError(e) == 'payment_required') {
+        return 'payment_required';
+      }
+      return null;
+    }
+  }
+
+  /// Activates this browser with an Offline device key. Online shops should
+  /// use [signIn] instead (no key).
   static Future<String?> activate(String key) async {
     final trimmed = key.trim();
     if (trimmed.isEmpty) return 'empty_key';
@@ -69,27 +101,20 @@ class InvoicesWebSession {
       await auth.signInAnonymously();
     }
     final deviceId = await _deviceId();
-    final Map<String, dynamic> data;
+    final Map<String, dynamic>? data;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'key': trimmed, 'device_id': deviceId},
+      final res = await invokeActivate(
+        {'key': trimmed, 'device_id': deviceId},
       );
-      data = res.data as Map<String, dynamic>;
-    } catch (_) {
-      return 'network_error';
+      data = parseInvokeData(res.data);
+    } catch (e) {
+      return classifyInvokeError(e) == 'network_error'
+          ? 'network_error'
+          : 'activation_failed';
     }
-    if (data['ok'] != true) {
-      return (data['error'] as String?) ?? 'activation_failed';
+    if (data == null || data['ok'] != true) {
+      return errorCodeFromInvokeData(data) ?? 'activation_failed';
     }
-    // The Edge Function call above already succeeded server-side — this
-    // device's slot is consumed — so a failure from here on must never be
-    // reported as a generic activation failure (a naive retry could then
-    // hit an "already activated" rejection and confuse the user further).
-    // A freshly-granted shop_id claim can lag behind the cached JWT until
-    // the next refresh, so give it one retry before giving up; if it still
-    // doesn't stick, tell the caller activation succeeded but the browser
-    // needs a reload to pick up the new session.
     try {
       await auth.refreshSession();
       return null;

@@ -210,6 +210,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onResetDevice: _resetDevice,
           onOffline: (shop) => _generateOffline(shop: shop),
           onGenerateKey: (shopId) => _generateKey(initialShopId: shopId),
+          onGrantExtraDevice: _grantExtraDevice,
           onViber: _openViber,
           onResetPassword: _resetPassword,
           onUnlink: _unlinkAccount,
@@ -333,6 +334,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'This shop already has a license — use Extend instead of '
         'Generate key.',
       );
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  Future<void> _grantExtraDevice(Map<String, dynamic> shop) async {
+    final current = (shop['extra_slots'] as num?)?.toInt() ?? 0;
+    final result = await showDialog<({int extraSlots, int months})>(
+      context: context,
+      builder: (_) => _DeviceAllowanceDialog(
+        initialExtraSlots: current <= 0 ? 1 : current,
+      ),
+    );
+    if (result == null) return;
+    try {
+      final saved = await widget.api.setDeviceAllowance(
+        shopId: '${shop['shop_id']}',
+        extraSlots: result.extraSlots,
+        months: result.months,
+      );
+      if (!mounted) return;
+      final until = saved.extrasExpiresAt == null
+          ? ''
+          : ' until ${_date(saved.extrasExpiresAt)}';
+      _snack(
+        saved.extraSlots == 0
+            ? 'Paid extra devices cleared. Free cap (this phone + 2) still applies.'
+            : 'This shop may use ${saved.extraSlots} paid extra device(s)$until. '
+                'Tell them to sign in on the new phone and tap Check for renewal — no key.',
+      );
+      _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
     }

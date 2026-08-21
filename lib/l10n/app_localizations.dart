@@ -230,6 +230,12 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get commonRetry;
 
+  /// No description provided for @commonPleaseWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait…'**
+  String get commonPleaseWait;
+
   /// No description provided for @copied.
   ///
   /// In en, this message translates to:
@@ -3593,8 +3599,8 @@ abstract class AppLocalizations {
   /// No description provided for @deviceAddOnlineHint.
   ///
   /// In en, this message translates to:
-  /// **'To use another phone, this computer\'s invoices page, or the Windows POS, sign in with the same shop email and password (Settings → Account). Online mode does not use a license-key QR.'**
-  String get deviceAddOnlineHint;
+  /// **'This phone is included and does not count. Extra phones or computers: sign in with an owner or staff email, then tap Check for renewal. No license key. You can use {free} extras (a phone and a computer each count as one). Support can allow more after the free 2.'**
+  String deviceAddOnlineHint(int free);
 
   /// No description provided for @premiumFeatureBodyOnline.
   ///
@@ -3605,7 +3611,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceCount.
   ///
   /// In en, this message translates to:
-  /// **'{used}/{free} free devices used'**
+  /// **'{used}/{free} extra devices used'**
   String deviceCount(int used, int free);
 
   /// No description provided for @deviceThisDevice.
@@ -3683,7 +3689,7 @@ abstract class AppLocalizations {
   /// No description provided for @devicePaymentRequiredBody.
   ///
   /// In en, this message translates to:
-  /// **'This shop already uses its {free} free devices. Adding another costs {fee} (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.'**
+  /// **'This shop already uses its main phone plus extras ({free} devices total). Adding another costs {fee} (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.'**
   String devicePaymentRequiredBody(int free, String fee);
 
   /// No description provided for @deviceOnlyOnPaidPlan.
@@ -3731,7 +3737,7 @@ abstract class AppLocalizations {
   /// No description provided for @invWebActivateHint.
   ///
   /// In en, this message translates to:
-  /// **'Sign in with the shop email you already use on the phone. Free plan with no account: use the Windows POS app and tap Continue Free — no key.'**
+  /// **'Sign in with the shop email you already use on the phone. This computer counts as one extra device. Free plan with no account: use the Windows POS app and tap Continue Free — no key.'**
   String get invWebActivateHint;
 
   /// No description provided for @invWebFreeHint.
@@ -4736,6 +4742,18 @@ abstract class AppLocalizations {
   /// **'Enter owner PIN'**
   String get staffEnterPin;
 
+  /// No description provided for @staffConfirmPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm owner PIN'**
+  String get staffConfirmPin;
+
+  /// No description provided for @staffPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two PINs do not match.'**
+  String get staffPinMismatch;
+
   /// No description provided for @staffWrongPin.
   ///
   /// In en, this message translates to:
@@ -5465,13 +5483,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardLicenseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Free plan or license key'**
+  /// **'You start on the Free plan'**
   String get onboardLicenseTitle;
 
   /// No description provided for @onboardLicenseBody.
   ///
   /// In en, this message translates to:
-  /// **'Continue on the Free plan — Sell and Inventory work forever, no card, no signup, no key needed. Already have a license key from an agent? Activate it now to unlock Premium, or add one later from Settings.'**
+  /// **'Sell and Inventory work forever — no card, no signup, no key. A license key from an agent can be added later in Settings. If you already have a shop email, sign in on the next page.'**
   String get onboardLicenseBody;
 
   /// No description provided for @onboardActivateNow.
@@ -5483,14 +5501,20 @@ abstract class AppLocalizations {
   /// No description provided for @onboardAccountTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sign in (optional)'**
+  /// **'Email account (optional)'**
   String get onboardAccountTitle;
 
   /// No description provided for @onboardAccountBody.
   ///
   /// In en, this message translates to:
-  /// **'Already run this shop on another device? Sign in to sync across devices, get cloud backup, and manage staff by email. Skip this and it still works — you can sign in anytime later from Settings.'**
+  /// **'Skip if you only use this one phone. An email account is for new shops and for shops you already run on another device.'**
   String get onboardAccountBody;
+
+  /// No description provided for @onboardAccountBenefits.
+  ///
+  /// In en, this message translates to:
+  /// **'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email'**
+  String get onboardAccountBenefits;
 
   /// No description provided for @onboardAccountSkip.
   ///
@@ -5809,6 +5833,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Please try again.'**
   String get accountActionFailed;
+
+  /// No description provided for @accountInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or password is not correct.'**
+  String get accountInvalidCredentials;
+
+  /// No description provided for @accountSignInSessionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in, but this phone could not load your shop. Try Sign in again.'**
+  String get accountSignInSessionFailed;
+
+  /// No description provided for @accountSignInNoShop.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is not linked to a shop yet. If you already paid, message Support — then tap Check for renewal.'**
+  String get accountSignInNoShop;
+
+  /// No description provided for @accountSignInDeviceLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop already uses its main phone plus 2 extra phones or computers. Message Support if an old device should be removed.'**
+  String get accountSignInDeviceLimit;
 
   /// No description provided for @staffAccountsTitle.
   ///
@@ -6473,7 +6521,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardOnlineTabRegister.
   ///
   /// In en, this message translates to:
-  /// **'Register'**
+  /// **'Create account'**
   String get onboardOnlineTabRegister;
 
   /// No description provided for @onboardOnlineTabSignIn.
@@ -6601,6 +6649,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Who is opening the shop today?'**
   String get dailyGateWhoIsOpening;
+
+  /// No description provided for @dailyGateCheckingShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking today\'s shop…'**
+  String get dailyGateCheckingShop;
 
   /// No description provided for @operatingModeLabel.
   ///

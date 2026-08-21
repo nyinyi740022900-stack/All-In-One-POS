@@ -437,6 +437,102 @@ class _ReferralsTab extends StatelessWidget {
   }
 }
 
+class _DeviceAllowanceDialog extends StatefulWidget {
+  const _DeviceAllowanceDialog({required this.initialExtraSlots});
+  final int initialExtraSlots;
+  @override
+  State<_DeviceAllowanceDialog> createState() => _DeviceAllowanceDialogState();
+}
+
+class _DeviceAllowanceDialogState extends State<_DeviceAllowanceDialog> {
+  late final _extra = TextEditingController(
+    text: '${widget.initialExtraSlots}',
+  );
+  final _months = TextEditingController(text: '12');
+  String? _extraError;
+  String? _monthsError;
+
+  @override
+  void dispose() {
+    _extra.dispose();
+    _months.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Allow extra devices'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Free is always the main phone plus 2 extras. This number is paid '
+            'extras on top of that. Do not send a key — they sign in on the '
+            'new phone or computer and tap Check for renewal.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.of(context).muted,
+            ),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _extra,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: 'Paid extra devices',
+              errorText: _extraError,
+            ),
+            onChanged: (_) {
+              if (_extraError != null) setState(() => _extraError = null);
+            },
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _months,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: 'Valid for (months)',
+              errorText: _monthsError,
+            ),
+            onChanged: (_) {
+              if (_monthsError != null) setState(() => _monthsError = null);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final extra = int.tryParse(_extra.text.trim());
+            final months = int.tryParse(_months.text.trim());
+            var ok = true;
+            if (extra == null) {
+              setState(() => _extraError = 'Enter 0 or more');
+              ok = false;
+            }
+            if (extra != null && extra > 0 && (months == null || months < 1)) {
+              setState(() => _monthsError = 'Enter at least 1 month');
+              ok = false;
+            }
+            if (!ok) return;
+            Navigator.pop(context, (
+              extraSlots: extra!,
+              months: extra == 0 ? 1 : months!,
+            ));
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class _GenerateKeyDialog extends StatefulWidget {
   const _GenerateKeyDialog({this.initialShopId});
   final String? initialShopId;

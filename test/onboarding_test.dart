@@ -89,13 +89,8 @@ void main() {
   });
 
   testWidgets(
-    'Continue Free on the License page advances to the next page, not '
-    'just a toast',
+    'Next on the plan page starts Free and opens the email page',
     (tester) async {
-      // Before this fix, "Continue Free" only called continueFree() and
-      // showed a SnackBar, leaving the owner sitting on the same page with no
-      // visible confirmation anything happened — indistinguishable from the
-      // tap not registering at all. This asserts the page actually advances.
       final db = AppDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
 
@@ -112,21 +107,25 @@ void main() {
       );
       await tester.pump();
 
-      // Welcome -> Shop profile -> License.
+      // Welcome -> Shop profile -> Plan (explained, no Free vs key choice).
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
-      expect(find.text('Free plan or license key'), findsOneWidget);
+      expect(find.text('You start on the Free plan'), findsOneWidget);
+      expect(find.text('Continue Free'), findsNothing);
+      expect(find.text('Activate a license key'), findsNothing);
 
-      await tester.ensureVisible(find.text('Continue Free'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue Free'));
+      await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-      // Landed on the next page (Account) without a second tap on the
-      // bottom "Next" button.
-      expect(find.text('Free plan or license key'), findsNothing);
+      expect(find.text('You start on the Free plan'), findsNothing);
+      expect(find.text('Email account (optional)'), findsOneWidget);
+      // Footer Next stays off so a failed Sign in cannot skip ahead.
+      final next = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Next'),
+      );
+      expect(next.onPressed, isNull);
     },
   );
 }

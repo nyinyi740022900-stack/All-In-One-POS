@@ -15,6 +15,7 @@ class _ShopHubPage extends StatelessWidget {
     required this.onResetDevice,
     required this.onOffline,
     required this.onGenerateKey,
+    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -35,6 +36,7 @@ class _ShopHubPage extends StatelessWidget {
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
   final void Function(String shopId) onGenerateKey;
+  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -56,6 +58,7 @@ class _ShopHubPage extends StatelessWidget {
       onResetDevice: onResetDevice,
       onOffline: onOffline,
       onGenerateKey: onGenerateKey,
+      onGrantExtraDevice: onGrantExtraDevice,
       onViber: onViber,
       onResetPassword: onResetPassword,
       onUnlink: onUnlink,
@@ -79,6 +82,7 @@ class _ShopHubBody extends StatefulWidget {
     required this.onResetDevice,
     required this.onOffline,
     required this.onGenerateKey,
+    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -99,6 +103,7 @@ class _ShopHubBody extends StatefulWidget {
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
   final void Function(String shopId) onGenerateKey;
+  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -235,6 +240,7 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
           onResetDevice: widget.onResetDevice,
           onOffline: widget.onOffline,
           onGenerateKey: widget.onGenerateKey,
+          onGrantExtraDevice: widget.onGrantExtraDevice,
           onViber: widget.onViber,
           onResetPassword: widget.onResetPassword,
           onUnlink: widget.onUnlink,
@@ -255,7 +261,7 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   title: 'Select a shop.',
                   message:
                       'Search by name, email, phone, or device, then '
-                      'open it to extend, reset a phone, or fix a login.',
+                      'open it to extend, add a device, or fix a login.',
                 )
               : _ShopDetail(
                   shop: selected,
@@ -267,6 +273,7 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   onResetDevice: widget.onResetDevice,
                   onOffline: widget.onOffline,
                   onGenerateKey: widget.onGenerateKey,
+                  onGrantExtraDevice: widget.onGrantExtraDevice,
                   onViber: widget.onViber,
                   onResetPassword: widget.onResetPassword,
                   onUnlink: widget.onUnlink,
@@ -290,6 +297,7 @@ class _ShopDetail extends StatelessWidget {
     required this.onResetDevice,
     required this.onOffline,
     required this.onGenerateKey,
+    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -307,6 +315,7 @@ class _ShopDetail extends StatelessWidget {
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
   final void Function(String shopId) onGenerateKey;
+  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -373,6 +382,13 @@ class _ShopDetail extends StatelessWidget {
                     'Expires ${_date(shop['expires_at'])}',
           style: textTheme.bodyMedium,
         ),
+        if (!hasNoLicense) ...[
+          const SizedBox(height: AppTheme.space1),
+          Text(
+            _deviceAllowanceLabel(shop),
+            style: textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        ],
         const SizedBox(height: AppTheme.space4),
         Wrap(
           spacing: AppTheme.space2,
@@ -394,9 +410,8 @@ class _ShopDetail extends StatelessWidget {
                 onPressed: () {
                   String? deviceId;
                   for (final d in devices) {
-                    final id = '${d['device_id'] ?? ''}'.trim();
-                    if (id.isNotEmpty && id != 'null') {
-                      deviceId = id;
+                    if (deviceIsBound(d)) {
+                      deviceId = '${d['device_id']}'.trim();
                       break;
                     }
                   }
@@ -404,6 +419,11 @@ class _ShopDetail extends StatelessWidget {
                 },
                 icon: const Icon(Icons.phonelink),
                 label: const Text('Extend by device'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => onGrantExtraDevice(shop),
+                icon: const Icon(Icons.phonelink_setup),
+                label: const Text('Allow extra devices'),
               ),
             ],
             OutlinedButton.icon(
@@ -423,24 +443,30 @@ class _ShopDetail extends StatelessWidget {
         const SectionHeader(title: 'Devices'),
         if (devices.isEmpty)
           Text(
-            'No bound devices.',
+            'No devices yet.',
             style: textTheme.bodyMedium?.copyWith(color: muted),
           )
         else
           for (final d in devices)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const IconAvatar(icon: Icons.smartphone),
-              title: SelectableText('${d['device_id'] ?? 'Unbound'}'),
-              subtitle: Text(
-                'Key: ${d['key'] ?? '—'}  ·  ${_date(d['expires_at'])}',
+              leading: IconAvatar(
+                icon: deviceIsBound(d)
+                    ? Icons.smartphone
+                    : Icons.phonelink_setup,
               ),
-              trailing: (d['device_id'] == null || '${d['device_id']}'.isEmpty)
-                  ? null
-                  : TextButton(
+              title: SelectableText(
+                deviceIsBound(d)
+                    ? '${d['device_id']}'
+                    : 'Waiting for new phone / computer',
+              ),
+              subtitle: Text('Expires ${_date(d['expires_at'])}'),
+              trailing: deviceIsBound(d)
+                  ? TextButton(
                       onPressed: () => onResetDevice('${d['device_id']}'),
                       child: const Text('Reset'),
-                    ),
+                    )
+                  : null,
             ),
         const SizedBox(height: AppTheme.space4),
         const SectionHeader(title: 'Accounts'),
@@ -517,4 +543,16 @@ class _ShopDetail extends StatelessWidget {
       ],
     );
   }
+}
+
+String _deviceAllowanceLabel(Map<String, dynamic> shop) {
+  final extra = (shop['extra_slots'] as num?)?.toInt() ?? 0;
+  if (extra <= 0) {
+    return 'Free cap: this phone + 2 extras. After they pay, allow more — they sign in on the new device and tap Check for renewal (no key).';
+  }
+  final until = shop['extras_expires_at'];
+  final untilText = until == null || '$until'.trim().isEmpty
+      ? 'no end date'
+      : _date(until);
+  return 'Paid extras: $extra (until $untilText). New phone: sign in + Check for renewal — do not send a key.';
 }

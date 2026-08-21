@@ -77,6 +77,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonRetry => 'ထပ်စမ်းမည်';
 
   @override
+  String get commonPleaseWait => 'ခဏစောင့်ပါ…';
+
+  @override
   String get copied => 'ကူးယူပြီး';
 
   @override
@@ -1922,8 +1925,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get deviceSectionTitle => 'Device များ';
 
   @override
-  String get deviceAddOnlineHint =>
-      'ဖုန်းနောက်တစ်လုံး၊ ဒီ computer ရဲ့ invoice စာမျက်နှာ၊ သို့မဟုတ် Windows POS သုံးချင်ရင် တူညီသော ဆိုင် email/password နဲ့ sign in ဝင်ပါ (Settings → အကောင့်)။ Online mode မှာ license-key QR မသုံးပါ။';
+  String deviceAddOnlineHint(int free) {
+    return 'ဒီဖုန်းကို မရေပါ။ ဖုန်း/ကွန်ပျူတာ အပို: owner သို့မဟုတ် staff email နဲ့ sign in ဝင်ပြီး Check for renewal နှိပ်ပါ။ Key မလိုပါ။ အပို $free လုံး သုံးနိုင်ပါတယ် (ဖုန်းနဲ့ ကွန်ပျူတာ တူတူပဲ)။ အခမဲ့ ၂ လုံးကျော်ရင် Support က ခွင့်ပြုပေးပါတယ်။';
+  }
 
   @override
   String get premiumFeatureBodyOnline =>
@@ -1931,7 +1935,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String deviceCount(int used, int free) {
-    return 'အခမဲ့ device $used/$free သုံးထားပြီး';
+    return 'အပို device $used/$free သုံးထားပြီး';
   }
 
   @override
@@ -1976,7 +1980,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String devicePaymentRequiredBody(int free, String fee) {
-    return 'ဒီဆိုင်က အခမဲ့ device $free လုံးကို အသုံးပြုပြီးဖြစ်ပါသည်။ ထပ်ထည့်ရန် $fee (တစ်ကြိမ်တည်း) ကျသင့်ပါမည် — ပေးချေပြီးရင် သင့် App Reference ID နဲ့ support ကို ဆက်သွယ်ပြီး device အသစ်ရဲ့ key ကို ရယူပါ။';
+    return 'ဒီဆိုင်က ပင်မဖုန်းအပါအဝင် အခမဲ့ device $free လုံး သုံးပြီးပါပြီ။ ထပ်ထည့်ရန် $fee (တစ်ကြိမ်တည်း) ကျသင့်ပါမည် — ပေးချေပြီးရင် သင့် App Reference ID နဲ့ support ကို ဆက်သွယ်ပြီး device အသစ်ရဲ့ key ကို ရယူပါ။';
   }
 
   @override
@@ -2005,7 +2009,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invWebActivateHint =>
-      'ဖုန်းမှာ သုံးနေတဲ့ ဆိုင် email နဲ့ sign in ဝင်ပါ။ Account မရှိတဲ့ Free plan: Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ — key မလိုပါ။';
+      'ဖုန်းမှာ သုံးနေတဲ့ ဆိုင် email နဲ့ sign in ဝင်ပါ။ ဒီ computer က extra device တစ်လုံးအဖြစ် ရေပါတယ်။ Account မရှိတဲ့ Free plan: Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ — key မလိုပါ။';
 
   @override
   String get invWebFreeHint =>
@@ -2574,6 +2578,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get staffEnterPin => 'ပိုင်ရှင် PIN ရိုက်ထည့်';
 
   @override
+  String get staffConfirmPin => 'ပိုင်ရှင် PIN ထပ်ရိုက်ပါ';
+
+  @override
+  String get staffPinMismatch => 'PIN နှစ်ခု မတူပါ။';
+
+  @override
   String get staffWrongPin => 'PIN မှားနေပါသည်';
 
   @override
@@ -2992,21 +3002,25 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardShopBody => 'ဒါက ပြေစာပေါ်မှာ ပါဝင်ပါမယ်။';
 
   @override
-  String get onboardLicenseTitle => 'Free Plan သို့မဟုတ် License Key';
+  String get onboardLicenseTitle => 'Free Plan နဲ့ စသုံးပါမယ်';
 
   @override
   String get onboardLicenseBody =>
-      'Free Plan နဲ့ ဆက်လက်အသုံးပြုနိုင်ပါတယ် — ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုတွေ Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲအသုံးပြုနိုင်ပါမယ်။ Agent ဆီက license key ရှိပြီးသားလား? Premium ဖွင့်ဖို့ အခုပဲ activate လုပ်ပါ ဒါမှမဟုတ် နောက်မှ Settings ကနေ ထည့်နိုင်ပါတယ်။';
+      'ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Agent ဆီက license key ရှိရင် နောက်မှ Settings မှာ ထည့်နိုင်ပါတယ်။ ဆိုင် email ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။';
 
   @override
   String get onboardActivateNow => 'License key ချက်ချင်း activate';
 
   @override
-  String get onboardAccountTitle => 'Sign in (မလုပ်လည်းရ)';
+  String get onboardAccountTitle => 'Email အကောင့် (မလုပ်လည်းရ)';
 
   @override
   String get onboardAccountBody =>
-      'ဒီဆိုင်ကို device တခြားကနေ အသုံးပြုနေပြီးသားလား? Device တွေကြား sync လုပ်ဖို့၊ cloud backup ရဖို့၊ email နဲ့ ဝန်ထမ်းစီမံဖို့ Sign in လုပ်ပါ။ ဒီအဆင့်ကို ကျော်ထားလည်း ရပါတယ် — Settings ကနေ နောက်မှ Sign in လုပ်နိုင်ပါတယ်။';
+      'ဒီဖုန်းတစ်လုံးပဲ သုံးမယ်ဆိုရင် ကျော်နိုင်ပါတယ်။ Email အကောင့်က ဆိုင်အသစ်ရော၊ ဖုန်းတခြားမှာ သုံးပြီးသားဆိုင်ရော အတွက်ပါ။';
+
+  @override
+  String get onboardAccountBenefits =>
+      'Email နဲ့ သုံးရင်:\n• ဖုန်းတခြားမှာ ဒီဆိုင် ဖွင့်နိုင်\n• အင်တာနက်ရှိရင် cloud backup ရှိ\n• ဝန်ထမ်းကို သူ့ email နဲ့ ဝင်ခိုင်းနိုင်';
 
   @override
   String get onboardAccountSkip => 'အခုအတွက် ကျော်မည်';
@@ -3184,6 +3198,22 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get accountActionFailed =>
       'တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားကြည့်ပါ။';
+
+  @override
+  String get accountInvalidCredentials =>
+      'Email သို့မဟုတ် password မှားနေပါတယ်။';
+
+  @override
+  String get accountSignInSessionFailed =>
+      'Sign in ဝင်ပြီးပါပြီ။ ဒီဖုန်းက ဆိုင်ကို ဆွဲမရသေးပါ။ Sign in ကို ထပ်နှိပ်ပါ။';
+
+  @override
+  String get accountSignInNoShop =>
+      'ဒီ email ကို ဆိုင်နှင့် မချိတ်ရသေးပါ။ ပေးပြီးသားဆိုရင် Support ကို ပြောပါ — ပြီးရင် Check for renewal ကို နှိပ်ပါ။';
+
+  @override
+  String get accountSignInDeviceLimit =>
+      'ဒီဆိုင်က ပင်မဖုန်းအပြင် ဖုန်း/ကွန်ပျူတာ နောက်ထပ် ၂ လုံး ချိတ်ပြီးပါပြီ။ Device အဟောင်း ဖြုတ်ပေးဖို့ Support ကို ပြောပါ။';
 
   @override
   String get staffAccountsTitle => 'ဝန်ထမ်း Account (Email login)';
@@ -3579,7 +3609,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'ရှိပြီးသားဆိုင်၏ email နဲ့ password ကို သုံးပါ။';
 
   @override
-  String get onboardOnlineTabRegister => 'မှတ်ပုံတင်';
+  String get onboardOnlineTabRegister => 'အကောင့်ဖန်တီးမည်';
 
   @override
   String get onboardOnlineTabSignIn => 'ဝင်မည်';
@@ -3647,6 +3677,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get dailyGateWhoIsOpening => 'ဒီနေ့ဆိုင် ဘယ်သူဖွင့်မလဲ?';
+
+  @override
+  String get dailyGateCheckingShop => 'ဒီနေ့ဆိုင် စစ်နေပါတယ်…';
 
   @override
   String get operatingModeLabel => 'ဆိုင် mode';

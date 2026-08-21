@@ -4,6 +4,7 @@ import '../../core/env.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../license/invoke_error.dart';
 import '../license/license_model.dart';
 import '../license/license_repository.dart';
 import '../license/license_status.dart';
@@ -145,12 +146,15 @@ class AccountRepository {
       return const AccountActionResult.failure('no_backend');
     }
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      final authRes = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      if (authRes.session == null) {
+        return const AccountActionResult.failure('auth_failed');
+      }
     } on AuthException catch (e) {
-      return AccountActionResult.failure(e.message);
+      return AccountActionResult.failure(_authFailureCode(e));
     } catch (_) {
       return const AccountActionResult.failure('network_error');
     }
@@ -158,22 +162,26 @@ class AccountRepository {
     final shopId =
         Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
             as String?;
-    if (shopId == null) {
-      return const AccountActionResult.failure('not_activated');
-    }
-
     final currentLic = await _licenseRepository.current();
-    if (currentLic != null && currentLic.shopId == shopId) {
-      return AccountActionResult.success(null, license: currentLic);
+
+    // Same cloud shop already on this device — pull the current plan so a
+    // reinstall / Check-for-renewal isn't required to see Premium.
+    if (shopId != null &&
+        currentLic != null &&
+        currentLic.shopId == shopId &&
+        !isReplaceableLocalLicense(currentLic)) {
+      return _attachAccountLicense(fallback: currentLic);
     }
 
-    if (currentLic != null) {
-      // Scoped to a different shop already — don't wipe without the caller
-      // showing an explicit confirmation first.
+    // A real *other* shop is on this device. Onboarding's local Free
+    // identity (`free-…`) is not a real shop — skip the wipe dialog.
+    if (!isReplaceableLocalLicense(currentLic) &&
+        shopId != null &&
+        currentLic!.shopId != shopId) {
       return const AccountActionResult.needsWipeConfirmation();
     }
 
-    return _claimDeviceSlot();
+    return _finishSignInAttach();
   }
 
   /// Call only after the caller has shown the wipe-confirmation dialog
@@ -195,6 +203,10 @@ class AccountRepository {
         Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
             as String? ??
         '';
+    if (targetShopId.isEmpty) {
+      // JWT may not have shop_id yet; attaching will recover it.
+      return _finishSignInAttach();
+    }
     final prep = await _transition.prepareShopSwitch(
       fromShopId: currentLic?.shopId ?? '',
       toShopId: targetShopId,
@@ -202,7 +214,43 @@ class AccountRepository {
     if (!prep.usedWipeFallback && targetShopId.isNotEmpty) {
       await onShopDbSwap?.call(targetShopId);
     }
-    return _claimDeviceSlot();
+    return _finishSignInAttach();
+  }
+
+  Future<AccountActionResult> _finishSignInAttach() async {
+    final result = await _attachAccountLicense();
+    if (!result.ok) {
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+    }
+    return result;
+  }
+
+  /// Online Premium is account-tied: pull plan/expiry first. Claiming an
+  /// extra device slot is only the fallback when this shop has no license
+  /// row at all (so Check for renewal and a new-phone sign-in no longer
+  /// fail just because every slot is already bound).
+  Future<AccountActionResult> _attachAccountLicense({
+    CachedLicense? fallback,
+  }) async {
+    final pulled = await _licenseRepository.refreshAccountLicense();
+    if (pulled.ok && pulled.license != null) {
+      return AccountActionResult.success(null, license: pulled.license);
+    }
+    if (fallback != null &&
+        (pulled.errorCode == 'network_error' ||
+            pulled.errorCode == 'server_error')) {
+      return AccountActionResult.success(null, license: fallback);
+    }
+    if (pulled.errorCode == 'not_found' ||
+        pulled.errorCode == 'not_activated') {
+      final claimed = await _claimDeviceSlot();
+      if (claimed.ok) return claimed;
+    }
+    return AccountActionResult.failure(
+      pulled.errorCode ?? 'server_error',
+    );
   }
 
   Future<AccountActionResult> _claimDeviceSlot() async {
@@ -213,6 +261,18 @@ class AccountRepository {
     final result = await _licenseRepository.activate(slot.key!);
     if (!result.ok) return AccountActionResult.failure(result.errorCode);
     return AccountActionResult.success(null, license: result.license);
+  }
+
+  static String _authFailureCode(AuthException e) {
+    final msg = e.message.toLowerCase();
+    if (msg.contains('invalid login') ||
+        msg.contains('invalid_credentials') ||
+        msg.contains('invalid email or password') ||
+        msg.contains('user not found') ||
+        msg.contains('email not found')) {
+      return 'invalid_credentials';
+    }
+    return 'auth_failed';
   }
 
   /// Signs out of the real-login session. On an Online-tier shop, Premium is
@@ -255,10 +315,7 @@ class AccountRepository {
     if (!Env.hasBackend) return const AccountActionResult.failure('no_backend');
     Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'set_tier', 'tier': tier},
-      );
+      final res = await invokeActivate({'action': 'set_tier', 'tier': tier});
       data = res.data as Map<String, dynamic>;
     } catch (_) {
       return const AccountActionResult.failure('network_error');
@@ -293,19 +350,18 @@ class AccountRepository {
 
     Map<String, dynamic> data;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {
-          'action': 'signup_shop',
-          'shop_name': shopName,
-          'email': email,
-          'password': password,
-          'device_id': deviceId,
-        },
-      );
-      data = res.data as Map<String, dynamic>;
-    } catch (_) {
-      return const SignupResult.failure('network_error');
+      final res = await invokeActivate({
+        'action': 'signup_shop',
+        'shop_name': shopName,
+        'email': email,
+        'password': password,
+        'device_id': deviceId,
+      });
+      final parsed = parseInvokeData(res.data);
+      if (parsed == null) return const SignupResult.failure('server_error');
+      data = parsed;
+    } catch (e) {
+      return SignupResult.failure(classifyInvokeError(e));
     }
     if (data['ok'] != true) {
       return SignupResult.failure(data['error'] as String?);
@@ -319,7 +375,7 @@ class AccountRepository {
         password: password,
       );
     } on AuthException catch (e) {
-      return SignupResult.failure(e.message);
+      return SignupResult.failure(_authFailureCode(e));
     } catch (_) {
       return const SignupResult.failure('network_error');
     }
@@ -379,15 +435,15 @@ class AccountRepository {
       return const AccountActionResult.failure('no_backend');
     }
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {
-          'action': 'create_shop_login',
-          'email': email,
-          'password': password,
-        },
-      );
-      final data = res.data as Map<String, dynamic>;
+      final res = await invokeActivate({
+        'action': 'create_shop_login',
+        'email': email,
+        'password': password,
+      });
+      final data = parseInvokeData(res.data);
+      if (data == null) {
+        return const AccountActionResult.failure('server_error');
+      }
       if (data['ok'] == true) {
         // A real email/password login is the definition of "Online" — the
         // License screen's Renew/Upgrade dialog picks Offline vs Online by
@@ -408,8 +464,8 @@ class AccountRepository {
         );
       }
       return AccountActionResult.failure(data['error'] as String?);
-    } catch (_) {
-      return const AccountActionResult.failure('network_error');
+    } catch (e) {
+      return AccountActionResult.failure(classifyInvokeError(e));
     }
   }
 
@@ -418,10 +474,11 @@ class AccountRepository {
       return const AccountActionResult.failure('no_backend');
     }
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'invite_staff', 'email': email, 'password': password},
-      );
+      final res = await invokeActivate({
+        'action': 'invite_staff',
+        'email': email,
+        'password': password,
+      });
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] == true) {
         return AccountActionResult.success(data['user_id'] as String?);
@@ -435,10 +492,7 @@ class AccountRepository {
   Future<List<StaffAccount>> listStaffAccounts() async {
     if (!Env.hasBackend) return const [];
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'list_staff'},
-      );
+      final res = await invokeActivate({'action': 'list_staff'});
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] != true) return const [];
       final staff = (data['staff'] as List).cast<Map<String, dynamic>>();
@@ -459,10 +513,10 @@ class AccountRepository {
   Future<bool> revokeStaff(String userId) async {
     if (!Env.hasBackend) return false;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'revoke_staff', 'user_id': userId},
-      );
+      final res = await invokeActivate({
+        'action': 'revoke_staff',
+        'user_id': userId,
+      });
       final data = res.data as Map<String, dynamic>;
       return data['ok'] == true;
     } catch (_) {
@@ -484,10 +538,10 @@ class AccountRepository {
       return const AccountActionResult.failure('forbidden');
     }
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'activate',
-        body: {'action': 'delete_account', 'password': password},
-      );
+      final res = await invokeActivate({
+        'action': 'delete_account',
+        'password': password,
+      });
       final data = res.data as Map<String, dynamic>;
       if (data['ok'] != true) {
         return AccountActionResult.failure(data['error'] as String?);

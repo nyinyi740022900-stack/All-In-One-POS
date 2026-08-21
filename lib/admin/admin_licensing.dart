@@ -1,7 +1,7 @@
 part of 'admin_dashboard_screen.dart';
 
 /// Viber-paste extend: email or App Reference ID — nothing else.
-/// Reset / offline code / generate key live on Shops, next to the shop they
+/// Reset / offline code / generate key / extra device live on Shops, next to the shop they
 /// apply to.
 class _LicensingPage extends StatelessWidget {
   const _LicensingPage({
@@ -70,7 +70,7 @@ class _LicensingPage extends StatelessWidget {
         ),
         const SizedBox(height: AppTheme.space5),
         Text(
-          'Need to reset a phone, mint a key, or send an offline code?',
+          'Need to reset a phone, allow extra devices, mint a key, or send an offline code?',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted),
         ),
         const SizedBox(height: AppTheme.space2),

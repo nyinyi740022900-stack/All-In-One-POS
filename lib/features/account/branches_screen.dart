@@ -1317,7 +1317,7 @@ class _BranchesBodyState extends ConsumerState<_BranchesBody> {
         if (result.ok && result.license != null) {
           // onLicenseReady already applied; keep applyExternal for tests /
           // older call sites that skip the callback.
-          ref
+          await ref
               .read(licenseControllerProvider.notifier)
               .applyExternal(result.license!);
           ref.invalidate(branchesProvider);

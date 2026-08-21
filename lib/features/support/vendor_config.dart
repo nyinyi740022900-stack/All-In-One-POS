@@ -31,7 +31,7 @@ class VendorConfig {
     this.priceYearly = 0,
     this.priceMonthlyOnline = 0,
     this.priceYearlyOnline = 0,
-    this.deviceFreeLimit = 2,
+    this.deviceFreeLimit = 3,
     this.deviceExtraFee = 0,
   });
 
@@ -66,7 +66,7 @@ class VendorConfig {
           int.tryParse(m['price.monthly.online'] ?? '') ?? priceMonthly,
       priceYearlyOnline:
           int.tryParse(m['price.yearly.online'] ?? '') ?? priceYearly,
-      deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 2,
+      deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 3,
       deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
     );
   }

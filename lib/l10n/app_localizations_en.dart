@@ -76,6 +76,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Retry';
 
   @override
+  String get commonPleaseWait => 'Please wait…';
+
+  @override
   String get copied => 'Copied';
 
   @override
@@ -1905,8 +1908,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceSectionTitle => 'Devices';
 
   @override
-  String get deviceAddOnlineHint =>
-      'To use another phone, this computer\'s invoices page, or the Windows POS, sign in with the same shop email and password (Settings → Account). Online mode does not use a license-key QR.';
+  String deviceAddOnlineHint(int free) {
+    return 'This phone is included and does not count. Extra phones or computers: sign in with an owner or staff email, then tap Check for renewal. No license key. You can use $free extras (a phone and a computer each count as one). Support can allow more after the free 2.';
+  }
 
   @override
   String get premiumFeatureBodyOnline =>
@@ -1914,7 +1918,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String deviceCount(int used, int free) {
-    return '$used/$free free devices used';
+    return '$used/$free extra devices used';
   }
 
   @override
@@ -1959,7 +1963,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String devicePaymentRequiredBody(int free, String fee) {
-    return 'This shop already uses its $free free devices. Adding another costs $fee (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.';
+    return 'This shop already uses its main phone plus extras ($free devices total). Adding another costs $fee (one-time) — after paying, contact support with your App Reference ID to get your new device\'s key.';
   }
 
   @override
@@ -1988,7 +1992,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invWebActivateHint =>
-      'Sign in with the shop email you already use on the phone. Free plan with no account: use the Windows POS app and tap Continue Free — no key.';
+      'Sign in with the shop email you already use on the phone. This computer counts as one extra device. Free plan with no account: use the Windows POS app and tap Continue Free — no key.';
 
   @override
   String get invWebFreeHint =>
@@ -2562,6 +2566,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffEnterPin => 'Enter owner PIN';
 
   @override
+  String get staffConfirmPin => 'Confirm owner PIN';
+
+  @override
+  String get staffPinMismatch => 'The two PINs do not match.';
+
+  @override
   String get staffWrongPin => 'Wrong PIN';
 
   @override
@@ -2980,21 +2990,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardShopBody => 'This appears on your printed receipts.';
 
   @override
-  String get onboardLicenseTitle => 'Free plan or license key';
+  String get onboardLicenseTitle => 'You start on the Free plan';
 
   @override
   String get onboardLicenseBody =>
-      'Continue on the Free plan — Sell and Inventory work forever, no card, no signup, no key needed. Already have a license key from an agent? Activate it now to unlock Premium, or add one later from Settings.';
+      'Sell and Inventory work forever — no card, no signup, no key. A license key from an agent can be added later in Settings. If you already have a shop email, sign in on the next page.';
 
   @override
   String get onboardActivateNow => 'Activate a license key';
 
   @override
-  String get onboardAccountTitle => 'Sign in (optional)';
+  String get onboardAccountTitle => 'Email account (optional)';
 
   @override
   String get onboardAccountBody =>
-      'Already run this shop on another device? Sign in to sync across devices, get cloud backup, and manage staff by email. Skip this and it still works — you can sign in anytime later from Settings.';
+      'Skip if you only use this one phone. An email account is for new shops and for shops you already run on another device.';
+
+  @override
+  String get onboardAccountBenefits =>
+      'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email';
 
   @override
   String get onboardAccountSkip => 'Skip for now';
@@ -3171,6 +3185,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountActionFailed => 'Something went wrong. Please try again.';
+
+  @override
+  String get accountInvalidCredentials => 'Email or password is not correct.';
+
+  @override
+  String get accountSignInSessionFailed =>
+      'Signed in, but this phone could not load your shop. Try Sign in again.';
+
+  @override
+  String get accountSignInNoShop =>
+      'This email is not linked to a shop yet. If you already paid, message Support — then tap Check for renewal.';
+
+  @override
+  String get accountSignInDeviceLimit =>
+      'This shop already uses its main phone plus 2 extra phones or computers. Message Support if an old device should be removed.';
 
   @override
   String get staffAccountsTitle => 'Staff accounts (email login)';
@@ -3571,7 +3600,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use the email and password for an existing shop account.';
 
   @override
-  String get onboardOnlineTabRegister => 'Register';
+  String get onboardOnlineTabRegister => 'Create account';
 
   @override
   String get onboardOnlineTabSignIn => 'Sign in';
@@ -3639,6 +3668,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dailyGateWhoIsOpening => 'Who is opening the shop today?';
+
+  @override
+  String get dailyGateCheckingShop => 'Checking today\'s shop…';
 
   @override
   String get operatingModeLabel => 'Shop mode';

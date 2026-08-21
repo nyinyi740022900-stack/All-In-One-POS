@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,18 +10,21 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
+import '../account/account_action_error.dart';
 import '../account/auth_password_field.dart';
 import '../account/forgot_password_dialog.dart';
+import '../account/password_strength.dart';
 import '../account/saved_login_store.dart';
+import '../license/license_model.dart';
 import '../license/license_providers.dart';
-import '../license/license_screen.dart';
 import '../printing/printing_providers.dart';
 
-/// First-run, one-time flow: Welcome → Shop profile → License (key / free) →
-/// optional account sign-in (skippable — no more permanent mode choice) →
-/// Staff mode intro. Gated by `SettingsRepository.onboardingComplete`.
+/// First-run, one-time flow: Welcome → Shop profile → Free plan (explained,
+/// started automatically) → optional account sign-in → Staff mode intro.
+/// Gated by `SettingsRepository.onboardingComplete`.
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key, required this.onDone});
   final VoidCallback onDone;
@@ -35,7 +40,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   List<Widget> get _pages => [
     _WelcomePage(),
     _ShopProfilePage(),
-    _LicensePage(onContinue: () => _next(_pages.length)),
+    const _LicensePage(),
     _AccountPage(onDone: () => _next(_pages.length)),
     _StaffModePage(),
   ];
@@ -46,9 +51,32 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     super.dispose();
   }
 
-  void _next(int pageCount) {
+  bool _busyNav = false;
+
+  Future<void> _next(int pageCount) async {
+    if (_busyNav) return;
+    // Plan page: everyone starts Free. Key activation stays in Settings.
+    if (_page == 2 &&
+        ref.read(licenseControllerProvider).license == null) {
+      setState(() => _busyNav = true);
+      final ok = await ref
+          .read(licenseControllerProvider.notifier)
+          .continueFree();
+      if (!mounted) return;
+      setState(() => _busyNav = false);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)),
+        );
+        return;
+      }
+    }
     if (_page == pageCount - 1) {
-      _finish();
+      // Do not set [_busyNav] here: a stalled settings write used to leave
+      // Get started grey and untappable. Close the gate immediately; persist
+      // in the background.
+      unawaited(_persistOnboardingComplete());
+      widget.onDone();
       return;
     }
     _controller.nextPage(
@@ -64,15 +92,25 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     );
   }
 
-  Future<void> _finish() async {
-    await ref.read(settingsRepositoryProvider).markOnboardingComplete();
-    widget.onDone();
+  Future<void> _persistOnboardingComplete() async {
+    try {
+      await ref
+          .read(settingsRepositoryProvider)
+          .markOnboardingComplete()
+          .timeout(const Duration(seconds: 3));
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final pages = _pages;
+    // Email page: Sign in / Create account advance on success. Footer Next
+    // used to skip past a failed login — keep Skip on the page instead.
+    const accountPageIndex = 3;
+    final nextBlocked =
+        _page == accountPageIndex ||
+        (_busyNav && _page != pages.length - 1);
     return Scaffold(
       body: Column(
         children: [
@@ -131,8 +169,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                     style: AppTheme.authFilledButtonStyle(
                       minimumSize: const Size(88, 52),
                     ),
-                    onPressed: () => _next(pages.length),
-                    child: Text(
+                    onPressed: nextBlocked
+                        ? null
+                        : () => _next(pages.length),
+                    child: _busyNav
+                        ? const ButtonSpinner()
+                        : Text(
                       _page == pages.length - 1
                           ? l.onboardGetStarted
                           : l.onboardNext,
@@ -355,50 +397,8 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   }
 }
 
-class _LicensePage extends ConsumerStatefulWidget {
-  const _LicensePage({required this.onContinue});
-
-  /// Advances onboarding to the next page. Called automatically once a
-  /// choice here actually resolves — either "Continue Free" succeeds, or
-  /// [LicenseScreen] is popped after a successful activation — so the owner
-  /// never has to separately hunt for the bottom "Next" button too. Before
-  /// this, "Continue Free" only showed a toast and left the owner sitting on
-  /// this same page with no visible feedback that anything happened at
-  /// all — indistinguishable from the tap simply not registering.
-  final VoidCallback onContinue;
-
-  @override
-  ConsumerState<_LicensePage> createState() => _LicensePageState();
-}
-
-class _LicensePageState extends ConsumerState<_LicensePage> {
-  bool _busy = false;
-
-  Future<void> _activate() async {
-    setState(() => _busy = true);
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LicenseScreen()));
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (ref.read(isPremiumProvider)) widget.onContinue();
-  }
-
-  Future<void> _continueFree() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l = AppLocalizations.of(context);
-    setState(() => _busy = true);
-    final ok = await ref
-        .read(licenseControllerProvider.notifier)
-        .continueFree();
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (ok) {
-      widget.onContinue();
-    } else {
-      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
-  }
+class _LicensePage extends StatelessWidget {
+  const _LicensePage();
 
   @override
   Widget build(BuildContext context) {
@@ -407,34 +407,12 @@ class _LicensePageState extends ConsumerState<_LicensePage> {
       icon: Icons.verified_outlined,
       title: l.onboardLicenseTitle,
       body: l.onboardLicenseBody,
-      extra: Column(
-        children: [
-          OutlinedButton.icon(
-            style: AppTheme.authOutlinedButtonStyle(),
-            onPressed: _busy ? null : _activate,
-            icon: const Icon(Icons.key_outlined),
-            label: Text(l.onboardActivateNow),
-          ),
-          const SizedBox(height: AppTheme.space2),
-          TextButton(
-            onPressed: _busy ? null : _continueFree,
-            child: _busy
-                ? const ButtonSpinner(size: 16)
-                : Text(l.onboardingContinueFree),
-          ),
-        ],
-      ),
     );
   }
 }
 
-/// Optional — sign in to an existing shop account for cloud sync, backup,
-/// and multi-device login, whatever plan was just chosen on the License
-/// page. Skippable; revisitable later via Settings > Account, which is
-/// also where "create a new shop account" lives (deliberately not offered
-/// here too — signing up for a brand-new shop mid-onboarding, right after
-/// activating a key or continuing Free on the previous page, would silently
-/// strand whatever was just chosen behind two competing shop identities).
+/// Optional — email for a new shop (Create account) or an existing one
+/// (Sign in). Skippable; revisitable later via Settings → Account.
 class _AccountPage extends ConsumerStatefulWidget {
   const _AccountPage({required this.onDone});
   final VoidCallback onDone;
@@ -446,9 +424,12 @@ class _AccountPage extends ConsumerStatefulWidget {
 class _AccountPageState extends ConsumerState<_AccountPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  final _shopName = TextEditingController();
   late final SavedLoginBinder _savedLogin;
   bool _busy = false;
   bool _done = false;
+  bool _register = false;
   String? _error;
 
   @override
@@ -459,6 +440,10 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _savedLogin.load(ref.read(savedLoginStoreProvider));
+      final name = ref.read(shopProfileProvider).asData?.value.name.trim();
+      if (name != null && name.isNotEmpty && _shopName.text.isEmpty) {
+        _shopName.text = name;
+      }
     });
   }
 
@@ -467,18 +452,75 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     _savedLogin.detach();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
+    _shopName.dispose();
     super.dispose();
   }
 
-  String _errorMessage(AppLocalizations l, String? code) => switch (code) {
-    'email_taken' => l.accountEmailTaken,
-    'no_backend' => l.accountNoBackend,
-    'not_activated' => l.accountNotActivated,
-    'pending_sync' => l.accountPendingSync,
-    'stuck_outbox' => l.branchesSwitchBlockedStuckOutbox,
-    'trial_already_used' => l.accountTrialAlreadyUsed,
-    _ => l.accountActionFailed,
-  };
+  String _errorMessage(AppLocalizations l, String? code) =>
+      accountActionErrorMessage(l, code);
+
+  bool get _attachToThisShop =>
+      !isReplaceableLocalLicense(ref.read(licenseControllerProvider).license);
+
+  Future<void> _submit() async {
+    if (_register) {
+      await _createAccount();
+    } else {
+      await _signIn();
+    }
+  }
+
+  Future<void> _createAccount() async {
+    final l = AppLocalizations.of(context);
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    if (_password.text != _confirmPassword.text) {
+      setState(() => _error = l.accountPasswordMismatch);
+      return;
+    }
+    final attach = _attachToThisShop;
+    if (!attach && _shopName.text.trim().isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    if (attach) {
+      final created = await ref
+          .read(accountRepositoryProvider)
+          .createShopLogin(_email.text.trim(), _password.text);
+      if (!mounted) return;
+      if (!created.ok) {
+        setState(() {
+          _busy = false;
+          _error = _errorMessage(l, created.error);
+        });
+        return;
+      }
+      if (created.license != null) {
+        await ref
+            .read(licenseControllerProvider.notifier)
+            .applyExternal(created.license!);
+      }
+      await _signIn();
+      return;
+    }
+    final result = await ref
+        .read(accountRepositoryProvider)
+        .signupShop(
+          _shopName.text.trim(),
+          _email.text.trim(),
+          _password.text,
+        );
+    if (!mounted) return;
+    if (result.ok && result.license != null) {
+      await _finishWithLicense(result.license!);
+    } else {
+      setState(() {
+        _busy = false;
+        _error = _errorMessage(l, result.error);
+      });
+    }
+  }
 
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
@@ -524,25 +566,31 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     }
 
     if (result.ok && result.license != null) {
-      await _savedLogin.remember(
-        ref.read(savedLoginStoreProvider),
-        email: _email.text.trim(),
-        password: _password.text,
-      );
-      if (!mounted) return;
-      ref
-          .read(licenseControllerProvider.notifier)
-          .applyExternal(result.license!);
-      setState(() {
-        _busy = false;
-        _done = true;
-      });
+      await _finishWithLicense(result.license!);
     } else {
       setState(() {
         _busy = false;
         _error = _errorMessage(l, result.error);
       });
     }
+  }
+
+  Future<void> _finishWithLicense(CachedLicense license) async {
+    await _savedLogin.remember(
+      ref.read(savedLoginStoreProvider),
+      email: _email.text.trim(),
+      password: _password.text,
+    );
+    if (!mounted) return;
+    await ref.read(licenseControllerProvider.notifier).applyExternal(license);
+    ref.invalidate(hasRealAccountSessionProvider);
+    ref.read(syncControllerProvider.notifier).sync();
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _done = true;
+    });
+    widget.onDone();
   }
 
   @override
@@ -561,7 +609,46 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
       body: l.onboardAccountBody,
       extra: AutofillGroup(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              l.onboardAccountBenefits,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  label: Text(l.onboardOnlineTabSignIn),
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text(l.onboardOnlineTabRegister),
+                ),
+              ],
+              selected: {_register},
+              onSelectionChanged: _busy
+                  ? null
+                  : (s) => setState(() {
+                      _register = s.first;
+                      _error = null;
+                    }),
+            ),
+            const SizedBox(height: AppTheme.space4),
+            if (_register && !_attachToThisShop) ...[
+              TextField(
+                controller: _shopName,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.organizationName],
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: l.shopName,
+                  prefixIcon: const AuthFieldIcon(Icons.store_outlined),
+                ),
+              ),
+              const SizedBox(height: AppTheme.space3),
+            ],
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
@@ -579,23 +666,43 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
             AuthPasswordField(
               controller: _password,
               labelText: l.accountPassword,
-              autofillHints: const [AutofillHints.password],
-              helperText: l.accountPasswordRememberedHint,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _busy ? null : _signIn(),
+              autofillHints: _register
+                  ? const [AutofillHints.newPassword]
+                  : const [AutofillHints.password],
+              helperText: _register ? null : l.accountPasswordRememberedHint,
+              textInputAction: _register
+                  ? TextInputAction.next
+                  : TextInputAction.done,
+              onSubmitted: (_) {
+                if (!_busy && !_register) _signIn();
+              },
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _busy
-                    ? null
-                    : () => showForgotPasswordDialog(
-                        context,
-                        prefillEmail: _email.text.trim(),
-                      ),
-                child: Text(l.accountForgotPassword),
+            if (_register) ...[
+              PasswordStrengthMeter(controller: _password),
+              const SizedBox(height: AppTheme.space3),
+              AuthPasswordField(
+                controller: _confirmPassword,
+                labelText: l.accountConfirmPassword,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!_busy) _createAccount();
+                },
               ),
-            ),
+            ],
+            if (!_register)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () => showForgotPasswordDialog(
+                          context,
+                          prefillEmail: _email.text.trim(),
+                        ),
+                  child: Text(l.accountForgotPassword),
+                ),
+              ),
             if (_error != null) ...[
               const SizedBox(height: AppTheme.space2),
               InlineErrorBanner(message: _error!),
@@ -603,8 +710,14 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
             const SizedBox(height: AppTheme.space3),
             FilledButton(
               style: AppTheme.authFilledButtonStyle(),
-              onPressed: _busy ? null : _signIn,
-              child: Text(l.accountSignIn),
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? const ButtonSpinner()
+                  : Text(
+                      _register
+                          ? l.onboardOnlineCreateAccount
+                          : l.accountSignIn,
+                    ),
             ),
             const SizedBox(height: AppTheme.space2),
             TextButton(

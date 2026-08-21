@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/locale_controller.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_widgets.dart';
 import 'data/sync/sync_providers.dart';
 import 'features/accounts/payment_account_providers.dart';
 import 'features/expenses/recurring_expense_providers.dart';
@@ -23,6 +24,11 @@ import 'l10n/app_localizations.dart';
 final _onboardingDoneProvider = FutureProvider<bool>((ref) {
   return ref.watch(settingsRepositoryProvider).onboardingComplete();
 });
+
+/// Set when Get started is tapped so the gate can close even if the Drift
+/// write of `onboarding.done` is stalled (device-DB lock from Free-plan
+/// setup). Without this, the button stays grey forever on that page.
+final _onboardingForcedDoneProvider = StateProvider<bool>((ref) => false);
 
 class MmPosApp extends ConsumerWidget {
   const MmPosApp({super.key});
@@ -49,7 +55,9 @@ class MmPosApp extends ConsumerWidget {
     // Shown once per install, before the tabbed shell. Loading reads as
     // "done" so the (effectively instant) first Drift read never flashes
     // onboarding for a frame on every ordinary launch.
+    final forcedDone = ref.watch(_onboardingForcedDoneProvider);
     final showOnboarding =
+        !forcedDone &&
         ref.watch(_onboardingDoneProvider).valueOrNull == false;
     final showPasswordRecovery = ref.watch(passwordRecoveryPendingProvider);
     final dailyGateAsync = ref.watch(dailyGateNeededProvider);
@@ -76,21 +84,48 @@ class MmPosApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: appRouter,
       builder: (context, child) {
+        // These gates *replace* [child] (the go_router Navigator). PIN /
+        // confirm dialogs need a Navigator ancestor — without one,
+        // Continue as Owner throws in release and looks like a dead tap.
+        // SizedBox.expand is required: a bare Navigator in [builder] can
+        // paint full-screen while its hit-test box stays empty, so Get
+        // started / Continue look enabled but ignore taps.
+        Widget gated(Widget page) {
+          return SizedBox.expand(
+            child: Navigator(
+              onGenerateRoute: (_) => MaterialPageRoute<void>(
+                builder: (_) => page,
+                fullscreenDialog: true,
+              ),
+            ),
+          );
+        }
+
         if (showPasswordRecovery) {
-          return const ResetPasswordScreen();
+          return gated(const ResetPasswordScreen());
         }
         if (showOnboarding) {
-          return OnboardingFlow(
-              onDone: () => ref.invalidate(_onboardingDoneProvider));
+          return gated(
+            OnboardingFlow(
+              onDone: () {
+                ref.read(_onboardingForcedDoneProvider.notifier).state =
+                    true;
+                ref.invalidate(_onboardingDoneProvider);
+              },
+            ),
+          );
         }
         if (holdForDailyCheck) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          final l = AppLocalizations.of(context);
+          return Scaffold(
+            body: AppLoadingView(message: l.dailyGateCheckingShop),
           );
         }
         if (showDailyGate) {
-          return DailyGate(
-            onDone: () => ref.invalidate(dailyGateNeededProvider),
+          return gated(
+            DailyGate(
+              onDone: () => ref.invalidate(dailyGateNeededProvider),
+            ),
           );
         }
         return child!;

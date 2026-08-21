@@ -6,6 +6,15 @@ class ExtendLicenseResult {
   final bool created;
 }
 
+class DeviceAllowanceResult {
+  const DeviceAllowanceResult({
+    required this.extraSlots,
+    this.extrasExpiresAt,
+  });
+  final int extraSlots;
+  final String? extrasExpiresAt;
+}
+
 /// Thrown by [AdminApi.createLicense] when the shop already has a
 /// non-deleted license row — create_license has no shop_id uniqueness
 /// guard at the DB level, so the caller must be stopped from minting a
@@ -238,6 +247,31 @@ class AdminApi {
     }
     _throwIfError(res);
     return (res.data as Map)['key'] as String;
+  }
+
+  /// Sets how many paid extra devices this shop may use (on top of the
+  /// free main phone + 2) and for how many months. No key is issued —
+  /// they sign in on the new device and tap Check for renewal.
+  Future<DeviceAllowanceResult> setDeviceAllowance({
+    required String shopId,
+    required int extraSlots,
+    required int months,
+  }) async {
+    final res = await _c.functions.invoke(
+      'admin',
+      body: {
+        'action': 'set_device_allowance',
+        'shop_id': shopId,
+        'extra_slots': extraSlots,
+        'months': months,
+      },
+    );
+    _throwIfError(res);
+    final data = res.data as Map;
+    return DeviceAllowanceResult(
+      extraSlots: (data['extra_slots'] as num?)?.toInt() ?? extraSlots,
+      extrasExpiresAt: data['extras_expires_at'] as String?,
+    );
   }
 
   void _throwIfError(FunctionResponse res) {

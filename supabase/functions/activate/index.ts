@@ -76,7 +76,13 @@
 //                                                 extend) onto the device,
 //                                                 no key. Binds this device
 //                                                 if the license row is
-//                                                 unbound.
+//                                                 unbound. If the latest row
+//                                                 is already bound to a
+//                                                 *different* device, claims
+//                                                 an extra slot (main phone
+//                                                 + extras up to
+//                                                 device.free_limit, default
+//                                                 3) or payment_required.
 //   start_trial { shop_name?, device_id }      -> no-account self-serve
 //                                                 trial mint for a device
 //                                                 currently on the Free plan
@@ -417,9 +423,57 @@ async function checkAndRecordRateLimit(
 }
 
 function shopIdOf(user: SupabaseUser): string | null {
-  const meta = user.app_metadata as Record<string, unknown> | null;
-  const shopId = meta?.shop_id;
-  return typeof shopId === "string" && shopId.length > 0 ? shopId : null;
+  const app = user.app_metadata as Record<string, unknown> | null;
+  const um = user.user_metadata as Record<string, unknown> | null;
+  for (const shopId of [app?.shop_id, um?.shop_id]) {
+    if (typeof shopId === "string" && shopId.length > 0) return shopId;
+  }
+  return null;
+}
+
+/// JWT claim first; if a reinstall / stale session dropped `shop_id`, recover
+/// it from `org_branches` (owner email logins) and restamp metadata so the
+/// next refresh carries the claim.
+async function resolveShopId(
+  admin: AdminClient,
+  user: SupabaseUser,
+): Promise<string | null> {
+  const fromJwt = shopIdOf(user);
+  if (fromJwt) return fromJwt;
+
+  const { data: branches, error } = await admin
+    .from("org_branches")
+    .select("shop_id")
+    .eq("owner_user_id", user.id);
+  if (error || !branches?.length) return null;
+
+  const shopIds = [
+    ...new Set(
+      branches
+        .map((b) => b.shop_id as string)
+        .filter((id) => typeof id === "string" && id.length > 0),
+    ),
+  ];
+  if (shopIds.length === 0) return null;
+
+  let shopId = shopIds[0];
+  if (shopIds.length > 1) {
+    const { data: licenses } = await admin
+      .from("licenses")
+      .select("shop_id, expires_at")
+      .in("shop_id", shopIds)
+      .eq("is_deleted", false)
+      .order("expires_at", { ascending: false })
+      .limit(1);
+    const latest = Array.isArray(licenses) ? licenses[0] : licenses;
+    if (latest?.shop_id) shopId = latest.shop_id as string;
+  }
+
+  const prev = (user.app_metadata ?? {}) as Record<string, unknown>;
+  await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: { ...prev, shop_id: shopId },
+  });
+  return shopId;
 }
 
 function roleOf(user: SupabaseUser): string | null {
@@ -1035,38 +1089,41 @@ async function handleResyncSession(
 // no local key (never claimed a slot after email sign-in, cache wiped, or
 // signup's 'SIGNUP' placeholder) so re-calling `activate` cannot pick up an
 // admin extend. Look up this shop's license (this device first, else the
-// shop's latest row), bind an unbound row to this device, return plan +
-// expiry. Do not steal another device's binding.
+// shop's latest row), bind an unbound row to this device. A different
+// physical device (extra phone or computer, owner or staff) claims a free
+// extra slot instead of borrowing another device's row. Do not steal
+// another device's binding.
 async function handleRefreshAccountLicense(
   admin: AdminClient,
   user: SupabaseUser,
   deviceId: string,
 ): Promise<Response> {
-  const shopId = shopIdOf(user);
+  const shopId = await resolveShopId(admin, user);
   if (!shopId) return json({ ok: false, error: "not_activated" }, 200);
-  if (!deviceId) return json({ ok: false, error: "bad_request" }, 400);
+  if (!deviceId) return json({ ok: false, error: "bad_request" }, 200);
 
   let license: Record<string, unknown> | null = null;
-  const { data: bound, error: boundErr } = await admin
+  const { data: boundRows, error: boundErr } = await admin
     .from("licenses")
     .select("*")
     .eq("shop_id", shopId)
     .eq("device_id", deviceId)
     .eq("is_deleted", false)
-    .maybeSingle();
+    .limit(1);
   if (boundErr) return json({ ok: false, error: "server_error" }, 500);
+  const bound = Array.isArray(boundRows) ? boundRows[0] : boundRows;
   if (bound) {
     license = bound as Record<string, unknown>;
   } else {
-    const { data: latest, error: latestErr } = await admin
+    const { data: latestRows, error: latestErr } = await admin
       .from("licenses")
       .select("*")
       .eq("shop_id", shopId)
       .eq("is_deleted", false)
       .order("expires_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
     if (latestErr) return json({ ok: false, error: "server_error" }, 500);
+    const latest = Array.isArray(latestRows) ? latestRows[0] : latestRows;
     license = (latest as Record<string, unknown> | null) ?? null;
   }
   if (!license) return json({ ok: false, error: "not_found" }, 200);
@@ -1074,15 +1131,16 @@ async function handleRefreshAccountLicense(
   const boundDevice = (license.device_id as string | null) ?? null;
   if (!boundDevice) {
     const now = new Date().toISOString();
-    const { data: updated, error: bindErr } = await admin
+    const { data: updatedRows, error: bindErr } = await admin
       .from("licenses")
       .update({ device_id: deviceId, last_verified_at: now, updated_at: now })
       .eq("id", license.id)
       .eq("shop_id", shopId)
       .is("device_id", null)
       .select("*")
-      .maybeSingle();
+      .limit(1);
     if (bindErr) return json({ ok: false, error: "server_error" }, 500);
+    const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
     if (updated) license = updated as Record<string, unknown>;
   } else if (boundDevice === deviceId) {
     const now = new Date().toISOString();
@@ -1091,6 +1149,17 @@ async function handleRefreshAccountLicense(
       .update({ last_verified_at: now, updated_at: now })
       .eq("id", license.id)
       .eq("shop_id", shopId);
+  } else {
+    // Extra phone/computer: claim a free slot (total cap = device.free_limit)
+    // rather than sharing Premium without counting as a device.
+    const claimed = await claimAndBindExtraDevice(admin, shopId, deviceId);
+    if (claimed.error || !claimed.license) {
+      return json(
+        { ok: false, error: claimed.error ?? "server_error", fee: claimed.fee },
+        200,
+      );
+    }
+    license = claimed.license;
   }
 
   const ownsRow = ((license.device_id as string | null) ?? null) === deviceId ||
@@ -1108,6 +1177,48 @@ async function handleRefreshAccountLicense(
     tier: license.tier ?? "online",
     key: ownsRow ? license.key : null,
   }, 200);
+}
+
+async function claimAndBindExtraDevice(
+  admin: AdminClient,
+  shopId: string,
+  deviceId: string,
+): Promise<{
+  license?: Record<string, unknown>;
+  error?: string;
+  fee?: number;
+}> {
+  const { data: key, error } = await admin.rpc("claim_device_slot", {
+    p_shop_id: shopId,
+  });
+  if (error) return { error: "server_error" };
+  if (!key) {
+    const { data: feeRow } = await admin
+      .from("app_config")
+      .select("value")
+      .eq("key", "device.extra_fee")
+      .maybeSingle();
+    const fee = Number(feeRow?.value ?? "0") || 0;
+    return { error: "payment_required", fee };
+  }
+  const now = new Date().toISOString();
+  const { data: updatedRows, error: bindErr } = await admin
+    .from("licenses")
+    .update({
+      device_id: deviceId,
+      last_verified_at: now,
+      updated_at: now,
+      activated_at: now,
+    })
+    .eq("key", key)
+    .eq("shop_id", shopId)
+    .is("device_id", null)
+    .select("*")
+    .limit(1);
+  if (bindErr) return { error: "server_error" };
+  const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
+  if (!updated) return { error: "server_error" };
+  return { license: updated as Record<string, unknown> };
 }
 
 // Self-serve, no-account trial mint for a device currently on the local
