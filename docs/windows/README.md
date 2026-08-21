@@ -30,10 +30,10 @@ Without secrets the build still succeeds; the app runs with empty defines
 
 ### Download a CI build
 
-**Latest (2026-08-21, this printer / cashier / barcode-gun build):**
-https://github.com/nyinyi740022900-stack/goldposmm/actions/runs/32475588114
+**Latest (2026-08-21, extra-device allowance + invoices web counts as a device):**
+https://github.com/nyinyi740022900-stack/goldposmm/actions/runs/32489234018
 
-Open that page while signed into GitHub → Artifacts → `AllInOnePOS-windows-25044f6…` (kept ~14 days).
+Open that page while signed into GitHub → Artifacts → `AllInOnePOS-windows-7c3bfff…` (kept ~14 days).
 
 Always-current list of builds:
 https://github.com/nyinyi740022900-stack/goldposmm/actions/workflows/windows_desktop.yml
