@@ -82,14 +82,15 @@ jobs:
           if (-not (Test-Path $src)) { throw "Missing $src" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item -Recurse -Force $src dist/AllInOnePOS-windows
-          @"
-All In One POS for Windows
-
-1. Double-click AllInOnePOS.exe (keep this folder together — the .dll files must stay next to the exe).
-2. The first launch creates an "All In One POS" icon on the Desktop and in the Start Menu.
-
-Do not rename or move AllInOnePOS.exe out of this folder by itself.
-"@ | Set-Content -Path dist/AllInOnePOS-windows/README.txt -Encoding utf8
+          $readme = @(
+            'All In One POS for Windows',
+            '',
+            '1. Double-click AllInOnePOS.exe (keep this folder together — the .dll files must stay next to the exe).',
+            '2. The first launch creates an "All In One POS" icon on the Desktop and in the Start Menu.',
+            '',
+            'Do not rename or move AllInOnePOS.exe out of this folder by itself.'
+          ) -join "`r`n"
+          Set-Content -Path dist/AllInOnePOS-windows/README.txt -Value $readme -Encoding utf8
           Get-ChildItem dist/AllInOnePOS-windows | Select-Object Name, Length
 
       - name: Upload artifact
