@@ -358,6 +358,8 @@ project's existing convention for UI-only changes.
 
 | 2026-08-20 | 174 | **Onboarding shop page: Address + receipt footer; daily-gate hero shows the shop logo when one is set.** The "Your shop" step only collected name/phone and silently preserved address/footer from Settings. Both fields are now on that page (same `saveShopProfile` keys as Settings → Shop, so receipts pick them up). `BrandHeroPanel` accepts an optional logo URL — Start today's shop (and the Welcome / Your shop wave headers) show the photo in the rounded plate, falling back to the storefront icon if the URL is empty, still loading, or offline. |
 
+| 2026-08-21 | 193 | **Shipped #189–#192 to the phone and the Windows zip.** iPhone release reinstall (`com.allinonepos.app`). Computer download: GitHub Actions run https://github.com/nyinyi740022900-stack/goldposmm/actions/runs/32475588114 (artifact `AllInOnePOS-windows-25044f6…`, ~14 days). |
+
 | 2026-08-21 | 192 | **HID barcode / daily-gate follow-up.** Sign-in on Start today's shop no longer skips Owner vs named-staff + PIN when a roster exists. Sell and Inventory search boxes follow a wedge scan (same as Invoices). |
 
 | 2026-08-21 | 191 | **USB / Bluetooth barcode guns work on computer, tablet, and phone.** HID "keyboard wedge" scanners (USB on PC/tablet, Bluetooth paired as a keyboard on any device) type the code + Enter; Sell adds to cart, Inventory searches, product edit fills barcode, Invoices search by number. Camera scan stays on phones/tablets; Windows scan screen waits for the gun instead of a black camera. Settings → Barcode scanner explains how to plug in / pair — nothing to pair inside the app. |

@@ -30,9 +30,16 @@ Without secrets the build still succeeds; the app runs with empty defines
 
 ### Download a CI build
 
-1. GitHub → Actions → **Windows desktop** → latest green run.
-2. Artifacts → download `AllInOnePOS-windows-…`.
-3. Unzip → run `AllInOnePOS.exe`. The first launch puts **All In One POS**
+**Latest (2026-08-21, this printer / cashier / barcode-gun build):**
+https://github.com/nyinyi740022900-stack/goldposmm/actions/runs/32475588114
+
+Open that page while signed into GitHub → Artifacts → `AllInOnePOS-windows-25044f6…` (kept ~14 days).
+
+Always-current list of builds:
+https://github.com/nyinyi740022900-stack/goldposmm/actions/workflows/windows_desktop.yml
+
+1. Download the zip from Artifacts.
+2. Unzip → run `AllInOnePOS.exe`. The first launch puts **All In One POS**
    on the Desktop and in the Start Menu so you do not have to search for
    `mm_pos.exe`.
 
