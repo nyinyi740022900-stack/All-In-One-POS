@@ -45,6 +45,11 @@ class HeldSalesNotifier extends StateNotifier<List<HeldSale>> {
   void remove(String id) {
     state = state.where((e) => e.id != id).toList();
   }
+
+  /// Drops every held cart — used when the device switches shops, so a
+  /// parked cart of the previous shop's products can't be resumed into the
+  /// next one (audit QA-C2).
+  void clearAll() => state = const [];
 }
 
 final heldSalesProvider =

@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
+import '../sell/sell_session_reset.dart';
 import 'branch_repository.dart';
 
 final branchRepositoryProvider = Provider<BranchRepository>((ref) {
@@ -14,6 +15,11 @@ final branchRepositoryProvider = Provider<BranchRepository>((ref) {
     onShopDbSwap: (toShopId) async {
       final session = ref.read(databaseSessionProvider);
       await session?.reopenForShop(toShopId);
+      // The old shop's cart / held carts / search text / category filter
+      // are in-memory only — none of them is shop-scoped, so they must be
+      // dropped before a single interaction can happen as the new shop
+      // (audit QA-C2).
+      resetSellSessionState(ref);
     },
     onLicenseReady: (lic) async {
       await ref.read(licenseControllerProvider.notifier).applyExternal(lic);

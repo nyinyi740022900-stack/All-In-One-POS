@@ -322,6 +322,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashNoHistory => 'No past sessions yet.';
 
   @override
+  String get cashSessionAlreadyOpen =>
+      'A cash session is already open — close it first';
+
+  @override
   String get cashRegisterOpenedMsg => 'Register opened';
 
   @override
@@ -1370,6 +1374,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get printerWifiNoneFound =>
       'No Wi-Fi printers found. Enter the IP from the printer\'s test page.';
+
+  @override
+  String get printerWifiDeniedHint =>
+      'Still nothing? On iPhone: Settings > Privacy & Security > Local Network — allow All In One POS, then Refresh. Printer and phone must also be on the same Wi-Fi.';
 
   @override
   String get printerWifiList => 'Printers on this Wi-Fi';
@@ -2453,6 +2461,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderDelete => 'Delete order';
+
+  @override
+  String get orderDeleteConvertedWarn =>
+      'This order already produced an invoice. Deleting the order only detaches it — that invoice and any refund stay in your Invoices list.';
+
+  @override
+  String get orderInvalidLine =>
+      'Check the item rows — a filled row needs both a name and a quantity';
 
   @override
   String get orderDeleteConfirm => 'Delete this order? This cannot be undone.';

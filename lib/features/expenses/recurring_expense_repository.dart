@@ -136,6 +136,11 @@ class RecurringExpenseRepository {
       if (effectiveNow.day < triggerDay) continue;
 
       await _expenseRepository.upsertExpense(
+        // Deterministic id (audit QA-M1): two offline devices reaching the
+        // same trigger day both mint 'auto-<template>-<period>', so their
+        // sync upserts converge on ONE remote expense row instead of
+        // double-charging rent for a month.
+        id: 'auto-${t.id}-$period',
         category: t.category,
         amount: t.amount,
         date: effectiveNow,

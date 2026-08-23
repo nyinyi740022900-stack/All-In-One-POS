@@ -54,11 +54,20 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
   }
 }
 
-/// "1,200,000" → 1200000; anything unparsable → 0. The inverse of
-/// [ThousandsSeparatorInputFormatter.formatThousandsText] for reading a
-/// formatted field back into the int-kyat domain.
-int parseThousands(String s) =>
-    int.tryParse(ThousandsSeparatorInputFormatter.digitsOf(s)) ?? 0;
+/// The largest amount any money input accepts — 10 digits, matching the
+/// checkout keypad's own ceiling. Past this, a field is clamped here rather
+/// than silently reading as 0 (audit QA-L3: `int.tryParse` returns null for
+/// a >19-digit paste and the old fallback swallowed it into zero).
+const int maxMoneyInputKyat = 9999999999;
+
+/// "1,200,000" → 1200000; anything unparsable → 0; absurd digit runs clamp
+/// to [maxMoneyInputKyat] instead of wrapping to null→0.
+int parseThousands(String s) {
+  final digits = ThousandsSeparatorInputFormatter.digitsOf(s);
+  final value = int.tryParse(digits);
+  if (value == null) return digits.isEmpty ? 0 : maxMoneyInputKyat;
+  return value;
+}
 
 /// 1200000 → "1,200,000" — for writing a programmatic amount into a
 /// formatted field so it displays exactly like user-typed text.

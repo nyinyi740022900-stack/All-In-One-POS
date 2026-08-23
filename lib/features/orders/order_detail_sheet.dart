@@ -221,7 +221,10 @@ class OrderDetailSheet extends ConsumerWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => isCancelled
-                        ? repo.setStatus(orderId, 'new')
+                        // QA-L1: a cancelled order with a saleId points at an
+                        // already-refunded sale — restoring detaches it so
+                        // the order can convert again.
+                        ? repo.restoreOrder(orderId)
                         : _markReturn(context, ref, o),
                     icon: Icon(isCancelled
                         ? Icons.restore
@@ -261,7 +264,8 @@ class OrderDetailSheet extends ConsumerWidget {
             // actually reads on near-black) and no soft fill — a pastel plate
             // here would make deleting an order look like a state badge.
             TextButton.icon(
-              onPressed: () => _confirmDelete(context, ref),
+              onPressed: () => _confirmDelete(context, ref,
+                  converted: o.saleId != null),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.of(context).danger,
               ),
@@ -455,7 +459,11 @@ class OrderDetailSheet extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref, {
+    bool converted = false,
+  }) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -465,7 +473,12 @@ class OrderDetailSheet extends ConsumerWidget {
       // dismissing the sheet underneath while leaving the dialog stuck open.
       // Use the dialog's own builder context instead.
       builder: (dialogContext) => AlertDialog(
-        content: Text(l.orderDeleteConfirm),
+        content: Text(
+          // QA-L2: a converted order's invoice survives in the ledger — say
+          // so, or an owner deleting "just the order" thinks the money
+          // record vanished too.
+          converted ? l.orderDeleteConvertedWarn : l.orderDeleteConfirm,
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),

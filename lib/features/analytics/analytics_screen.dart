@@ -29,8 +29,10 @@ class AnalyticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
 
-    // Business analytics are owner-only.
-    if (!ref.watch(isEffectiveOwnerProvider)) {
+    // Business analytics are owner-only — and FAIL CLOSED while the role
+    // stream is still resolving, so a cold-start deep link can't render
+    // them in Staff mode (audit QA-M5; the router also bounces /analytics).
+    if (!ref.watch(isResolvedOwnerProvider)) {
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
         body: const OwnerOnlyGate(

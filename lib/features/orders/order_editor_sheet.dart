@@ -159,6 +159,19 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
       messenger.showSnackBar(SnackBar(content: Text(l.orderNeedsName)));
       return;
     }
+    // QA-L6: a fully blank row (the "+ Add item" default) is skipped
+    // silently, but a row the seller PARTIALLY filled — a name with no qty,
+    // or a price with no name — used to vanish on save without a word.
+    // Block instead and point at the problem.
+    for (final d in _lines) {
+      final hasName = d.name.text.trim().isNotEmpty;
+      final invalid =
+          (hasName && d.qtyVal <= 0) || (!hasName && d.priceVal > 0);
+      if (invalid) {
+        messenger.showSnackBar(SnackBar(content: Text(l.orderInvalidLine)));
+        return;
+      }
+    }
     final lines = _lines
         .where((d) => d.name.text.trim().isNotEmpty && d.qtyVal > 0)
         .map((d) => OrderDraftLine(

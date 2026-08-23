@@ -103,6 +103,21 @@ class CashSessionRepository {
     final id = _uuid.v4();
     final now = DateTime.now();
     await _db.transaction(() async {
+      // Audit QA-M4: at most one open session per shop. The check lives
+      // INSIDE the transaction (Drift serializes transactions) so a
+      // double-tap or a stale "closed" screen can't race a second session
+      // into existence — overlapping windows would double-count cash-in on
+      // both. Cross-device offline opens remain a documented residual.
+      final open = await (_db.select(_db.cashSessions)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.closedAt.isNull())
+            ..limit(1))
+          .get();
+      if (open.isNotEmpty) {
+        throw StateError('session_already_open');
+      }
       await _db.into(_db.cashSessions).insert(CashSessionsCompanion.insert(
             id: id,
             shopId: _shopId,
@@ -164,8 +179,16 @@ class CashSessionRepository {
           ..where((t) {
             var pred = t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.date.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.date.isSmallerThanValue(end);
+                // Fold by createdAt, NOT the business `date` (audit QA-M6):
+                // the cash physically left the till when the expense was
+                // RECORDED, so a back-dated entry made during this session
+                // must still reduce the drawer — while an entry recorded
+                // yesterday but dated today correctly belongs to the
+                // previous session. Reports/P&L keep using `date`.
+                t.createdAt.isBiggerOrEqualValue(session.openedAt);
+            if (end != null) {
+              pred = pred & t.createdAt.isSmallerThanValue(end);
+            }
             return pred;
           }))
         .get();
@@ -207,8 +230,13 @@ class CashSessionRepository {
           ..where((t) {
             var pred = t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.date.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.date.isSmallerThanValue(end);
+                // Same createdAt window as [expectedCash] — the itemized
+                // report must reconcile against the same physical drawer
+                // math (audit QA-M6).
+                t.createdAt.isBiggerOrEqualValue(session.openedAt);
+            if (end != null) {
+              pred = pred & t.createdAt.isSmallerThanValue(end);
+            }
             return pred;
           }))
         .get();

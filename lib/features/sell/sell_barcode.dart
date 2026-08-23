@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../inventory/inventory_providers.dart';
+import '../printing/printing_providers.dart';
 import 'sales_providers.dart';
 import 'cart.dart';
 import 'scan_sounds.dart';
+import 'sell_feedback.dart';
 
 /// Looks a scanned / typed code up against product barcode or SKU and
 /// either adds to the cart or drops the code into Sell search.
@@ -40,8 +42,19 @@ void applyScannedSellCode(
       ));
   }
   if (match != null) {
+    // Same cap the grid path enforces (sell_screen passes maxQty from the
+    // same quantity) — audit QA-H3: an uncapped scan let a cashier scan
+    // past the shelf count into negative stock.
+    final trackStock = ref.read(trackStockProvider).valueOrNull ?? true;
+    final added = ref
+        .read(cartProvider.notifier)
+        .addProduct(match.product, maxQty: trackStock ? match.quantity : null);
+    if (!added) {
+      unawaited(ScanSounds.instance.error());
+      showStockCapSnackBar(context, l, match.quantity);
+      return;
+    }
     unawaited(ScanSounds.instance.success());
-    ref.read(cartProvider.notifier).addProduct(match.product);
     if (ref.read(sellSearchProvider).trim() == code) {
       ref.read(sellSearchProvider.notifier).state = '';
     }

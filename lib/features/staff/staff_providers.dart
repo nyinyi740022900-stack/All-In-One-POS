@@ -130,6 +130,20 @@ final isEffectiveOwnerProvider = Provider<bool>((ref) {
   return ref.watch(sessionScopeProvider).isEffectiveOwner;
 });
 
+/// Fail-closed owner check for SECURITY gates (audit QA-M5): unlike
+/// [isEffectiveOwnerProvider] — which defaults to 'owner' while the role
+/// stream is still loading so ordinary UI renders instantly — this answers
+/// "not yet" until the local role has actually been read from settings (or
+/// the backend role already rules ownership out). A cold-start deep link to
+/// /analytics must never render business data in Staff mode during that
+/// loading window.
+final isResolvedOwnerProvider = Provider<bool>((ref) {
+  final backendRole = ref.watch(backendAccountRoleProvider);
+  if (backendRole != null && backendRole != 'owner') return false;
+  final role = ref.watch(staffRoleProvider);
+  return role.hasValue && role.value == 'owner';
+});
+
 /// Backward-compatible alias for existing call sites.
 final isOwnerProvider = Provider<bool>((ref) {
   return ref.watch(isEffectiveOwnerProvider);

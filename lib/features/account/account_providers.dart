@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
+import '../sell/sell_session_reset.dart';
 import 'account_repository.dart';
 import 'saved_login_store.dart';
 
@@ -18,6 +19,10 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
     onShopDbSwap: (toShopId) async {
       final session = ref.read(databaseSessionProvider);
       await session?.reopenForShop(toShopId);
+      // Same shop-swap hygiene as BranchRepository's switch: drop the old
+      // shop's in-memory Sell state before the new identity is used
+      // (audit QA-C2).
+      resetSellSessionState(ref);
     },
     onShopPromoted: (fromShopId, toShopId) async {
       final session = ref.read(databaseSessionProvider);
@@ -25,6 +30,8 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
         fromShopId: fromShopId,
         toShopId: toShopId,
       );
+      // The promoted shop gets a fresh database file too — same rule.
+      resetSellSessionState(ref);
     },
   );
 });

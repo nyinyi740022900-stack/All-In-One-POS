@@ -680,6 +680,12 @@ abstract class AppLocalizations {
   /// **'No past sessions yet.'**
   String get cashNoHistory;
 
+  /// No description provided for @cashSessionAlreadyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'A cash session is already open — close it first'**
+  String get cashSessionAlreadyOpen;
+
   /// No description provided for @cashRegisterOpenedMsg.
   ///
   /// In en, this message translates to:
@@ -2618,6 +2624,12 @@ abstract class AppLocalizations {
   /// **'No Wi-Fi printers found. Enter the IP from the printer\'s test page.'**
   String get printerWifiNoneFound;
 
+  /// No description provided for @printerWifiDeniedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Still nothing? On iPhone: Settings > Privacy & Security > Local Network — allow All In One POS, then Refresh. Printer and phone must also be on the same Wi-Fi.'**
+  String get printerWifiDeniedHint;
+
   /// No description provided for @printerWifiList.
   ///
   /// In en, this message translates to:
@@ -4537,6 +4549,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete order'**
   String get orderDelete;
+
+  /// No description provided for @orderDeleteConvertedWarn.
+  ///
+  /// In en, this message translates to:
+  /// **'This order already produced an invoice. Deleting the order only detaches it — that invoice and any refund stay in your Invoices list.'**
+  String get orderDeleteConvertedWarn;
+
+  /// No description provided for @orderInvalidLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the item rows — a filled row needs both a name and a quantity'**
+  String get orderInvalidLine;
 
   /// No description provided for @orderDeleteConfirm.
   ///

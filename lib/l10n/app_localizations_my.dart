@@ -323,6 +323,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashNoHistory => 'ယခင် session မှတ်တမ်း မရှိသေးပါ။';
 
   @override
+  String get cashSessionAlreadyOpen =>
+      'ငွေတိုက် ဆက်ရှင်း ဖွင့်ထားပြီးသား — အရင်ပိတ်ပါ';
+
+  @override
   String get cashRegisterOpenedMsg => 'ငွေတိုက် ဖွင့်ပြီး';
 
   @override
@@ -1366,6 +1370,10 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get printerWifiNoneFound =>
       'Wi-Fi ပရင်တာ မတွေ့ပါ။ ပရင်တာ စမ်းထုတ် စာမျက်နှာက IP ကို ရိုက်ထည့်ပါ။';
+
+  @override
+  String get printerWifiDeniedHint =>
+      'မတွေ့သေးဘူးဆိုရင် — iPhone မှာ Settings > Privacy & Security > Local Network ထဲမှာ All In One POS ကို ခွင့်ပြုပြီး Refresh နှိပ်ပါ။ ပရင်တာနဲ့ ဖုန်းက တစ် Wi-Fi တည်းပေါ်မှာ ရှိနေရပါမယ်။';
 
   @override
   String get printerWifiList => 'ဒီ Wi-Fi ပေါ်က ပရင်တာများ';
@@ -2459,6 +2467,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get orderDelete => 'အော်ဒါ ဖျက်';
+
+  @override
+  String get orderDeleteConvertedWarn =>
+      'ဒီအော်ဒါက ငွေတောင်းခံလွှာ ထွက်ပြီးသား။ အော်ဒါ ဖျက်လိုက်ရုံသာ — ငွေတောင်းခံလွှာနှင့် ပြန်အမ်းငွေတို့က Invoices စာရင်းမှာ ရှိနေမည်။';
+
+  @override
+  String get orderInvalidLine =>
+      'အတန်းများ စစ်ပါ — ဖြည့်ထားသော အတန်းတိုင်းမှာ အမည်နှင့် အရေအတွက် နှစ်ခုလုံး လိုသည်';
 
   @override
   String get orderDeleteConfirm => 'ဒီအော်ဒါ ဖျက်မလား? ပြန်ဖျက်၍ မရပါ။';

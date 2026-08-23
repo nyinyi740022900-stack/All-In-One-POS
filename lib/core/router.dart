@@ -95,6 +95,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (needed && state.matchedLocation != '/onboarding') {
         return '/onboarding';
       }
+      // Analytics is owner-only AT THE ROUTER, not just in the tab bar — a
+      // deep link straight to /analytics must not render it (audit QA-M5).
+      // Fail-closed: while the role stream is still resolving, bounce to
+      // Sell; an owner tapping again a moment later gets through.
+      if (state.matchedLocation.startsWith('/analytics') &&
+          !ref.read(isResolvedOwnerProvider)) {
+        return '/sell';
+      }
       return null;
     },
     routes: buildAppRoutes(),

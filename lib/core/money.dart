@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'input/thousands_formatter.dart';
+
 /// Money value object for Myanmar Kyat (MMK).
 ///
 /// MMK has no commonly used minor unit, so we store whole kyat as an [int].
@@ -13,7 +15,14 @@ class Money implements Comparable<Money> {
 
   factory Money.fromString(String raw) {
     final cleaned = raw.replaceAll(RegExp(r'[^0-9-]'), '');
-    return Money(int.tryParse(cleaned) ?? 0);
+    final value = int.tryParse(cleaned);
+    if (value == null) {
+      // Audit QA-L3: an overlong digit run must not collapse to 0 — clamp
+      // its magnitude so a pasted giant reads as "very large", not "free".
+      final negative = cleaned.startsWith('-');
+      return Money(negative ? -maxMoneyInputKyat : maxMoneyInputKyat);
+    }
+    return Money(value);
   }
 
   Money operator +(Money other) => Money(kyat + other.kyat);

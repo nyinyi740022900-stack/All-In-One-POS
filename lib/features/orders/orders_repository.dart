@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
+import '../../data/repositories/stock_lots.dart';
 
 /// Order pipeline statuses. Deliberately just two — `new` (received, not yet
 /// handed to a carrier) and `delivered` (handed off) — collapsed from an
@@ -224,9 +225,33 @@ class OrdersRepository {
     });
   }
 
-  /// Tombstones the order and its items.
-  Future<void> deleteOrder(String orderId) async {
+  /// Restores a cancelled order to the 'new' pipeline (audit QA-L1).
+  ///
+  /// Cancel-with-sale always refunds that sale first (see the detail sheet's
+  /// return flow), so a cancelled order carrying a [Orders.saleId] points at
+  /// an already-reversed, append-only refund pair. Simply flipping status
+  /// back used to strand it: convert is gated on `saleId == null`, so the
+  /// order sat in the pipeline unable to ever convert again. Restoring
+  /// therefore DETACHES the refunded sale and resets payment state — the old
+  /// sale/refund stay in the ledger for audit, and converting again mints a
+  /// fresh sale.
+  Future<void> restoreOrder(String orderId) async {
     final now = DateTime.now();
+    await _db.transaction(() async {
+      await (_db.update(_db.orders)..where((o) => o.id.equals(orderId)))
+          .write(OrdersCompanion(
+        status: const Value('new'),
+        saleId: const Value(null),
+        paymentStatus: const Value('unpaid'),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueueOrder(orderId);
+    });
+  }
+
+  /// Tombstones the order and its items.
+  Future<void> deleteOrder(String orderId) async {    final now = DateTime.now();
     await _db.transaction(() async {
       await (_db.update(_db.orders)..where((o) => o.id.equals(orderId)))
           .write(OrdersCompanion(
@@ -252,8 +277,12 @@ class OrdersRepository {
   }
 
   /// Converts a delivered order into an append-only [Sales] row (+ items,
-  /// payment, and stock movements). Idempotent: returns the existing sale id if
-  /// already converted. This is the ONLY path that writes stock for an order.
+  /// payment, and stock movements). Idempotent: returns the existing sale id
+  /// if already converted — the guard is checked BOTH outside and INSIDE the
+  /// write transaction (audit QA-H1): Drift serializes transactions, so two
+  /// concurrent conversions (double-tap race) can no longer both pass an
+  /// outside-only check; the loser re-reads the winner's committed saleId
+  /// and returns it instead of minting a second append-only sale.
   Future<String> convertToSale(
     String orderId, {
     String paymentMethod = 'cash',
@@ -269,7 +298,17 @@ class OrdersRepository {
     // no discount), so the `subtotal − discount = total` invariant holds.
     final total = order.itemsTotal + order.deliveryFee;
 
+    var effectiveSaleId = saleId;
     await _db.transaction(() async {
+      // Re-read inside the transaction — see the doc comment above.
+      final fresh =
+          await (_db.select(_db.orders)..where((o) => o.id.equals(orderId)))
+              .getSingle();
+      if (fresh.saleId != null) {
+        effectiveSaleId = fresh.saleId!;
+        return;
+      }
+
       final invoiceNo = await _nextInvoiceNo(now);
       await _db.into(_db.sales).insert(SalesCompanion.insert(
             id: saleId,
@@ -290,6 +329,16 @@ class OrdersRepository {
       await _enqueue('sales', saleId, 'upsert');
 
       for (final it in lines) {
+        // Stock movement (ledger) + decrement the cached level + FIFO cost
+        // of goods sold — the same accounting the Sell-screen checkout does
+        // (audit QA-C1). Skipping this used to leave costSnapshot null, so
+        // refunding such a sale restored stock as a unit_cost-0 return
+        // movement and the next ledger rebuild re-entered those units at
+        // COST ZERO, overstating profit by their full real cost.
+        final costSnapshot = trackStock && it.productId != null
+            ? await _recordStockOut(it.productId!, it.qty, saleId, now)
+            : null;
+
         final siId = _uuid.v4();
         await _db.into(_db.saleItems).insert(SaleItemsCompanion.insert(
               id: siId,
@@ -300,13 +349,10 @@ class OrdersRepository {
               priceSnapshot: it.priceSnapshot,
               qty: it.qty,
               lineTotal: it.lineTotal,
+              costSnapshot: Value(costSnapshot),
               updatedAt: Value(now),
             ));
         await _enqueue('sale_items', siId, 'upsert');
-
-        if (trackStock && it.productId != null) {
-          await _recordStockOut(it.productId!, it.qty, saleId, now);
-        }
       }
 
       final payId = _uuid.v4();
@@ -330,7 +376,7 @@ class OrdersRepository {
       ));
       await _enqueueOrder(orderId);
     });
-    return saleId;
+    return effectiveSaleId;
   }
 
   // ---- internals ---------------------------------------------------------
@@ -346,8 +392,19 @@ class OrdersRepository {
     return '$address, $township';
   }
 
-  Future<void> _recordStockOut(
+  /// Records the sale's stock movement + FIFO cost of goods sold, mirroring
+  /// `SalesRepository._recordStockOut` exactly (audit QA-C1) — consumes lots
+  /// oldest-first (falling back to the product's flat cost for any
+  /// shortfall), stamps the movement with the per-unit average, and returns
+  /// the total cost for [SaleItems.costSnapshot].
+  Future<int> _recordStockOut(
       String productId, int qty, String saleId, DateTime now) async {
+    final product =
+        await (_db.select(_db.products)..where((p) => p.id.equals(productId)))
+            .getSingle();
+    final cost = await consumeStockLots(_db,
+        productId: productId, qty: qty, fallbackUnitCost: product.costPrice);
+
     final moveId = _uuid.v4();
     await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
           id: moveId,
@@ -355,6 +412,7 @@ class OrdersRepository {
           productId: productId,
           type: 'sale',
           qtyDelta: -qty,
+          unitCost: Value(qty > 0 ? (cost / qty).round() : 0),
           refId: Value(saleId),
           updatedAt: Value(now),
         ));
@@ -373,6 +431,8 @@ class OrdersRepository {
       // No stock_levels enqueue — quantity is a counter reconciled from the
       // stock_movements ledger on every device, never an absolute LWW push.
     }
+
+    return cost;
   }
 
   /// Per-shop, per-day sequential order number: `ORD-yyyyMMdd-NNN`.

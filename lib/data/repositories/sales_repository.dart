@@ -80,6 +80,16 @@ class SalesRepository {
       }
       refundNo = await _nextRefundNo(now);
 
+      // Did the original sale actually deduct stock? An invoice-only shop
+      // (trackStock=false) records no stock-out movement — its refund must
+      // not reopen any lot either (audit QA-C1 guard).
+      final stockOuts = await (_db.select(_db.stockMovements)
+            ..where(
+                (m) => m.refId.equals(saleId) & m.type.equals('sale'))
+            ..limit(1))
+          .get();
+      final originalTrackedStock = stockOuts.isNotEmpty;
+
       final refund = SalesCompanion.insert(
         id: refundId,
         shopId: _shopId,
@@ -120,12 +130,27 @@ class SalesRepository {
         if (trackStock) {
           // Restore the original cost basis, not whatever it costs today —
           // this is the same physical stock coming back. Per-unit average
-          // when we know the line's exact COGS; null (no lot pushed) for a
-          // pre-FIFO sale with no costSnapshot, since there's nothing to
-          // restore it at.
-          final unitCost = item.costSnapshot == null || item.qty == 0
-              ? null
-              : (item.costSnapshot! / item.qty).round();
+          // when we know the line's exact COGS. Audit QA-C1: lines with no
+          // costSnapshot (legacy order conversions, pre-FIFO sales) used to
+          // reopen NO lot while their return movement stamped unit_cost 0 —
+          // the next ledger rebuild then re-entered those units at COST
+          // ZERO and every later sale of them overstated profit by their
+          // full real cost. Fall back to the product's current cost so the
+          // lot reopens at a real figure; skipped when there is no product
+          // (free-text line) or the original never deducted stock.
+          int? unitCost;
+          if (item.qty != 0 &&
+              item.productId.isNotEmpty &&
+              originalTrackedStock) {
+            if (item.costSnapshot != null) {
+              unitCost = (item.costSnapshot! / item.qty).round();
+            } else {
+              final product = await (_db.select(_db.products)
+                    ..where((p) => p.id.equals(item.productId)))
+                  .getSingleOrNull();
+              unitCost = product?.costPrice;
+            }
+          }
           await _recordStockReturn(
               item.productId, item.qty, refundId, now, unitCost);
         }

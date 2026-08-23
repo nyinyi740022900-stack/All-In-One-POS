@@ -92,6 +92,16 @@ class CashSessionScreen extends ConsumerWidget {
           .read(cashSessionRepositoryProvider)
           .openSession(openingAmount: amount, deviceId: deviceId);
       messenger.showSnackBar(SnackBar(content: Text(l.cashRegisterOpenedMsg)));
+    } on StateError catch (e) {
+      // Repository guard (audit QA-M4) — the screen only offers Open when
+      // its watch says none is open, so this is the stale-UI / double-tap
+      // path.
+      if (e.message.contains('session_already_open')) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l.cashSessionAlreadyOpen)));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
