@@ -71,14 +71,16 @@ class OrderDetailSheet extends ConsumerWidget {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.space4, 0, AppTheme.space4, AppTheme.space4,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 Icon(orderChannelIcon(o.channel), size: 18),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppTheme.space2),
                 Text(o.orderNo,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
@@ -87,7 +89,7 @@ class OrderDetailSheet extends ConsumerWidget {
                   tone: orderStatusTone(o.status),
                   showDot: true,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppTheme.space1),
                 // Explicit close — the content can be tall enough (items +
                 // payment proof photo + delivery section) that the sheet's
                 // drag-handle swipe-to-dismiss isn't an obvious way out.
@@ -101,17 +103,17 @@ class OrderDetailSheet extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppTheme.space1),
             Text(orderChannelLabel(l, o.channel),
                 style: Theme.of(context).textTheme.bodySmall),
             // Carrier hand-off is the single most-used action on this sheet
             // (it's what actually moves an order along) — surfaced first so
             // it never requires scrolling past customer/item detail.
             if (!isCancelled) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: AppTheme.space4),
               _CarrierHandoffSection(order: o),
             ],
-            const Divider(height: 20),
+            const Divider(),
             _kv(context, Icons.person_outline, o.customerName),
             if (o.customerPhone != null && o.customerPhone!.isNotEmpty)
               Row(
@@ -134,10 +136,10 @@ class OrderDetailSheet extends ConsumerWidget {
               _kv(context, Icons.map_outlined, o.township!),
             if (o.note != null && o.note!.isNotEmpty)
               _kv(context, Icons.sticky_note_2_outlined, o.note!),
-            const Divider(height: 20),
+            const Divider(),
             for (final it in items)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
                 child: Row(
                   children: [
                     if (it.lowStockAtOrder) ...[
@@ -148,7 +150,7 @@ class OrderDetailSheet extends ConsumerWidget {
                         child: Icon(Icons.warning_amber_rounded,
                             size: 16, color: AppColors.of(context).warning),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppTheme.space1),
                     ],
                     Expanded(child: Text('${it.nameSnapshot}  ×${it.qty}')),
                     Text(Money(it.lineTotal).withSymbol(sym)),
@@ -157,7 +159,7 @@ class OrderDetailSheet extends ConsumerWidget {
               ),
             if (o.deliveryFee > 0)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -166,7 +168,7 @@ class OrderDetailSheet extends ConsumerWidget {
                   ],
                 ),
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppTheme.space1),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -176,9 +178,9 @@ class OrderDetailSheet extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             _PaymentSection(order: o),
-            const Divider(height: 24),
+            const Divider(),
 
             // --- actions ---
             if (canConvert)
@@ -189,17 +191,17 @@ class OrderDetailSheet extends ConsumerWidget {
               ),
             if (o.saleId != null)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
                 child: Row(
                   children: [
                     Icon(Icons.check_circle,
                         color: AppColors.of(context).success, size: 18),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppTheme.space2),
                     Expanded(child: Text(l.orderAlreadySale)),
                   ],
                 ),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             Row(
               children: [
                 Expanded(
@@ -215,7 +217,7 @@ class OrderDetailSheet extends ConsumerWidget {
                     label: Text(l.orderEdit),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.space2),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => isCancelled
@@ -229,7 +231,7 @@ class OrderDetailSheet extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             Row(
               children: [
                 Expanded(
@@ -241,7 +243,7 @@ class OrderDetailSheet extends ConsumerWidget {
                     label: Text(l.orderPrint),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.space2),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: items.isEmpty
@@ -253,7 +255,7 @@ class OrderDetailSheet extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space2),
             // Destructive, but *not* a status: it takes the solid danger tone
             // (from the palette, so dark mode gets the lighter red that
             // actually reads on near-black) and no soft fill — a pastel plate
@@ -274,12 +276,12 @@ class OrderDetailSheet extends ConsumerWidget {
 
   Widget _kv(BuildContext context, IconData icon, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: Theme.of(context).colorScheme.outline),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.space2),
           Expanded(child: Text(value)),
         ],
       ),
@@ -321,7 +323,9 @@ class OrderDetailSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space4, 0, AppTheme.space4, AppTheme.space2,
+                ),
               child: Row(
                 children: [
                   Text(l.orderPickPaymentMethod,
@@ -330,20 +334,48 @@ class OrderDetailSheet extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4),
               child: Text(l.orderConvertHint,
                   style: Theme.of(context).textTheme.bodySmall),
             ),
-            const SizedBox(height: 8),
-            for (final m in paymentMethodIds(
-                ref.read(paymentAccountsProvider).valueOrNull ?? const []))
-              ListTile(
-                title: Text(paymentLabel(l, m,
-                    accounts:
-                        ref.read(paymentAccountsProvider).valueOrNull)),
-                onTap: () => Navigator.of(context).pop(m),
+            const SizedBox(height: AppTheme.space2),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.space4,
+                0,
+                AppTheme.space4,
+                AppTheme.space4,
               ),
-            const SizedBox(height: 8),
+              // Same icon-chip language as checkout's payment-method row —
+              // the seller shouldn't have to learn a second control for the
+              // same decision, and bare ListTiles were both smaller targets
+              // and said nothing at a glance.
+              child: Wrap(
+                spacing: AppTheme.space2,
+                runSpacing: AppTheme.space2,
+                children: [
+                  for (final m in paymentMethodIds(
+                      ref.read(paymentAccountsProvider).valueOrNull ?? const []))
+                    ChoiceChip(
+                      avatar: Icon(
+                        paymentIcon(m),
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      showCheckmark: false,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.space3,
+                        vertical: AppTheme.space2,
+                      ),
+                      label: Text(paymentLabel(l, m,
+                          accounts:
+                              ref.read(paymentAccountsProvider).valueOrNull)),
+                      selected: false,
+                      onSelected: (_) => Navigator.of(context).pop(m),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -508,6 +540,64 @@ class _PaymentProofState extends State<_PaymentProof> {
         .createSignedUrl(widget.path, 3600);
   }
 
+  /// Fullscreen pinch-zoom viewer. Reviewing a transfer screenshot is the
+  /// whole point of this section — squinting at a 200px-tall thumbnail
+  /// compressed by the customer's own screenshot-of-a-screenshot is how
+  /// amounts get misread. Tap the thumbnail to open it full-screen.
+  void _openViewer(BuildContext context, String url) {
+    final l = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      useSafeArea: true,
+      barrierColor: Colors.black,
+      builder: (dialogContext) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                maxScale: 5,
+                // Generous cap, not display-fit: this is the PINCH-ZOOM
+                // viewer, and proof uploads are already ≤1280px — the cap
+                // just stops an unbounded decode if a future source isn't.
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  cacheWidth: 1536,
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  tooltip: MaterialLocalizations.of(
+                    dialogContext,
+                  ).closeButtonTooltip,
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space4),
+                  child: Text(
+                    l.orderPaymentProof,
+                    style: Theme.of(dialogContext).textTheme.bodySmall
+                        ?.copyWith(color: Colors.white70),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
@@ -520,14 +610,24 @@ class _PaymentProofState extends State<_PaymentProof> {
         if (snap.hasError || snap.data == null) {
           return const Icon(Icons.broken_image_outlined);
         }
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            snap.data!,
-            height: 200,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) =>
-                const Icon(Icons.broken_image_outlined),
+        // The zoom affordance is the tap itself — a screenshot thumbnail is
+        // universally understood as "tap to enlarge" at a counter.
+        return GestureDetector(
+          onTap: () => _openViewer(context, snap.data!),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            child: Image.network(
+              snap.data!,
+              height: 200,
+              fit: BoxFit.contain,
+              // A ~200pt thumbnail used to decode the FULL proof screenshot —
+              // several MB of RGBA for a box a quarter of the screen (audit
+              // H2). Decode at display size instead.
+              cacheWidth: ProductThumb.cacheWidthFor(
+                  200, MediaQuery.devicePixelRatioOf(context)),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.broken_image_outlined),
+            ),
           ),
         );
       },
@@ -592,13 +692,13 @@ class _PaymentSectionState extends ConsumerState<_PaymentSection> {
     // badge/toggle UI as a transfer order, not the plain note.
     if (o.paymentMethod == 'cod' && !isPaid) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.local_shipping_outlined,
                 size: 18, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTheme.space2),
             Expanded(child: Text(l.orderPaymentCodNote)),
             if (o.saleId == null)
               TextButton(
@@ -629,7 +729,7 @@ class _PaymentSectionState extends ConsumerState<_PaymentSection> {
           children: [
             if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty) ...[
               _PaymentMethodChip(method: o.paymentMethod!),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.space2),
             ],
             StatusPill(
               label: isPaid ? l.orderPayPaid : l.orderAwaitingPayment,
@@ -642,14 +742,14 @@ class _PaymentSectionState extends ConsumerState<_PaymentSection> {
         ),
         if (o.paymentProofPath != null &&
             o.paymentProofPath!.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           Text(l.orderPaymentProof,
               style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppTheme.space1),
           _PaymentProof(path: o.paymentProofPath!),
         ],
         if (canToggle) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           Align(
             alignment: Alignment.centerLeft,
             child: isPaid
@@ -746,6 +846,10 @@ class _CarrierHandoffSection extends ConsumerStatefulWidget {
 class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> {
   late final TextEditingController _carrier;
   late final TextEditingController _tracking;
+  // State-owned, not created inline in build: a fresh node per rebuild both
+  // leaks every old one (never disposed) and drops keyboard focus whenever
+  // the section re-renders mid-typing.
+  late final FocusNode _carrierFocus = FocusNode();
   bool _editing = false;
   bool _saving = false;
   bool _savingTracking = false;
@@ -761,6 +865,7 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
   void dispose() {
     _carrier.dispose();
     _tracking.dispose();
+    _carrierFocus.dispose();
     super.dispose();
   }
 
@@ -820,7 +925,7 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
             children: [
               Icon(Icons.local_shipping_outlined,
                   color: AppColors.of(context).success, size: 18),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppTheme.space2),
               Expanded(
                   child: Text(
                       l.orderHandedOffTo(widget.order.deliveryCarrier ?? ''))),
@@ -830,7 +935,7 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           // Waybill/tracking number is only ever known once the carrier has
           // actually picked the parcel up — asking for it before hand-off
           // (as an always-visible field) just means an empty box nobody can
@@ -847,7 +952,7 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.space2),
               TextButton.icon(
                 onPressed: _savingTracking ? null : _saveTracking,
                 icon: _savingTracking
@@ -871,10 +976,10 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l.deliveryCarrier, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         RawAutocomplete<String>(
           textEditingController: _carrier,
-          focusNode: FocusNode(),
+          focusNode: _carrierFocus,
           optionsBuilder: (v) {
             final q = v.text.trim().toLowerCase();
             if (q.isEmpty) return suggestions;
@@ -897,7 +1002,7 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
               alignment: Alignment.topLeft,
               child: Material(
                 elevation: 4,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
                   child: ListView(

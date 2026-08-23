@@ -1,26 +1,29 @@
 import 'outbox_error.dart';
 
-/// Append-only / money / stock ledger tables — never silently drop on
-/// `rejected_invalid`; keep queued for a later app heal + Sentry.
-const kLedgerSyncTables = {
-  'sales',
-  'sale_items',
-  'payments',
-  'stock_levels',
-  'stock_movements',
-  'credit_payments',
-  'supplier_payments',
-  'orders',
-  'order_items',
-  'expenses',
-  'cash_sessions',
-  'equity_entries',
-  'purchase_orders',
-  'purchase_order_items',
-  'license_payments',
+/// Directory-like tables whose local rows may SAFELY outlive a permanently
+/// rejected push (a product/customer/staff entry can sit local-only for UI
+/// purposes without corrupting books). Everything else in the [syncTables]
+/// registry — money / stock / append-only ledgers — is treated as protected.
+///
+/// Deliberately INVERTED from the old hardcoded `kLedgerSyncTables` allow-
+/// list (audit Low #1): adding a new synced table without touching this
+/// file now defaults it to PROTECTED (never silently dropped on
+/// `rejected_invalid`) instead of silently droppable. A typo here shrinks
+/// protection by one directory table, never loses a ledger row.
+const kNonLedgerSyncTables = {
+  'categories',
+  'products',
+  'customers',
+  'suppliers',
+  'staff_members',
+  'device_labels',
+  'recurring_expenses',
+  'payment_accounts',
+  'shop_profiles',
 };
 
-bool isLedgerSyncTable(String table) => kLedgerSyncTables.contains(table);
+bool isLedgerSyncTable(String table) =>
+    !kNonLedgerSyncTables.contains(table);
 
 bool isNotFoundOutboxError(String? lastError) {
   if (lastError == null || lastError.isEmpty) return false;

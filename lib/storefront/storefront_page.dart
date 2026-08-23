@@ -543,7 +543,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
     // Shrink before upload — phone screenshots are often several MB.
-    final c = compressImage(
+    final c = await compressImage(
       Uint8List.fromList(file.bytes!),
       fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
     );
@@ -580,6 +580,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         proofPath = await widget.api.uploadPaymentProof(
           _proofBytes!,
           _proofExt ?? 'jpg',
+          folder: widget.info.shopId,
         );
       }
       final no = await widget.api.submitOrder(

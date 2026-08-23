@@ -466,6 +466,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _confirmPayment(Map<String, dynamic> request) async {
+    if (!mounted) return;
+    // One accidental click used to fulfil irreversibly (mint/extend the
+    // license, mark fulfilled) — the dialog is both the safety gate and the
+    // at-a-glance verification surface for amount/shop/txn before commit.
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ConfirmPaymentDialog(request: request),
+    );
+    if (ok != true || !mounted) return;
     try {
       final key = await widget.api.confirmPayment(
         requestId: '${request['id']}',

@@ -148,7 +148,6 @@ class ShopDataTransitionService {
               entityTable: entityTable,
               rowId: id,
               op: 'upsert',
-              payload: '{}',
             ),
           );
     }

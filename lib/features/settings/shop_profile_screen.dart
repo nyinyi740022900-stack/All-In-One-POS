@@ -71,7 +71,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     try {
       // Downscale before upload — phone photos are often several MB, and this
       // logo also gets embedded directly into the printed receipt.
-      final c = compressImage(file.bytes!,
+      final c = await compressImage(file.bytes!,
           fallbackExt: (file.extension ?? 'jpg').toLowerCase());
       final path = 'shop-logo-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
       final storage = Supabase.instance.client.storage.from('product-images');
@@ -207,6 +207,8 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
               ? const Icon(Icons.storefront, size: 32)
               : Image.network(_logoUrl!,
                   fit: BoxFit.cover,
+                  cacheWidth: ProductThumb.cacheWidthFor(
+                      72, MediaQuery.devicePixelRatioOf(context)),
                   errorBuilder: (_, _, _) =>
                       const Icon(Icons.broken_image_outlined)),
         ),

@@ -19,6 +19,11 @@ class StoreProduct {
 
 /// Public shop info + payment numbers shown to customers.
 class StoreInfo {
+  /// The shop's tenant id. Not a secret (RLS gates every read) — the guest
+  /// checkout needs it to upload the payment proof into the shop's own
+  /// `{shop_id}/` bucket folder, which is what the read policy (migration
+  /// 0066) scopes visibility to.
+  final String shopId;
   final String? displayName;
   final String? phone;
   final String? address;
@@ -34,6 +39,7 @@ class StoreInfo {
   final int? closeMinute;
 
   const StoreInfo({
+    required this.shopId,
     this.displayName,
     this.phone,
     this.address,
@@ -91,6 +97,7 @@ class StorefrontApi {
         .toList();
     return Catalog(
       StoreInfo(
+        shopId: s['shop_id'] as String? ?? '',
         displayName: s['display_name'] as String?,
         phone: s['phone'] as String?,
         address: s['address'] as String?,
@@ -109,12 +116,20 @@ class StorefrontApi {
     );
   }
 
-  /// Uploads a payment screenshot to the private `payment-proofs` bucket and
-  /// returns its storage path (to attach to the order). Anon uploads are
+  /// Uploads a payment screenshot to the private `payment-proofs` bucket
+  /// and returns its storage path (to attach to the order). [folder] is the
+  /// path prefix the caller may write into: the shop's `{shop_id}/` folder
+  /// for storefront orders, `_admin/` for license-request proofs — the read
+  /// policy (migration 0066) scopes visibility by that first segment, and
+  /// the anon-INSERT policy only accepts those two shapes. Anon uploads are
   /// allowed by policy; reads happen later via signed URLs on the shop side.
-  Future<String> uploadPaymentProof(List<int> bytes, String ext) async {
+  Future<String> uploadPaymentProof(
+    List<int> bytes,
+    String ext, {
+    required String folder,
+  }) async {
     final path =
-        'proof-${DateTime.now().millisecondsSinceEpoch}-${bytes.length}.$ext';
+        '$folder/proof-${DateTime.now().millisecondsSinceEpoch}-${bytes.length}.$ext';
     await _c.storage.from('payment-proofs').uploadBinary(
           path,
           Uint8List.fromList(bytes),

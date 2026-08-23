@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/search_debounce.dart';
 import '../../data/local/database.dart';
 import '../sell/sales_providers.dart';
 import 'orders_repository.dart';
@@ -19,6 +20,13 @@ final ordersStreamProvider = StreamProvider<List<Order>>((ref) {
 
 /// Board search query (matches customer name, phone, or order number).
 final orderSearchProvider = StateProvider<String>((ref) => '');
+
+/// The query the board/list filters consume — settles [kSearchDebounce]
+/// after typing pauses (audit H1). The text field and the "filters active"
+/// clear button keep watching [orderSearchProvider] so they react on the
+/// same keystroke.
+final debouncedOrderSearchProvider =
+    debouncedSearchProvider(orderSearchProvider);
 
 /// Channel filter (`null` = all channels).
 final orderChannelFilterProvider = StateProvider<String?>((ref) => null);
@@ -59,7 +67,7 @@ final ordersByStatusProvider = Provider<Map<String, List<Order>>>((ref) {
   final all = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
   return groupOrdersForBoard(
     all,
-    query: ref.watch(orderSearchProvider),
+    query: ref.watch(debouncedOrderSearchProvider),
     channel: ref.watch(orderChannelFilterProvider),
     payment: ref.watch(orderPaymentFilterProvider),
   );
@@ -97,12 +105,19 @@ Map<String, List<Order>> groupOrdersForBoard(
 /// in [watchOrders]' order (newest-updated first). Replaced the old
 /// side-scrolling Kanban board — with only two real statuses left (new,
 /// delivered) a board added more chrome than it saved.
+///
+/// Deliberately watches [salesStreamProvider] (audit H1 re-check): the
+/// search matches the INVOICE number of the sale an order was converted to
+/// ([filterOrders.invoiceNoBySaleId]), and sales are an append-only ledger
+/// that only ever grows — so this fires once per real sale event (already
+/// transaction-batched by finalizeSale / sync), never per keystroke. It is
+/// load-bearing, not a ripple leak.
 final filteredOrdersListProvider = Provider<List<Order>>((ref) {
   final all = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
   final sales = ref.watch(salesStreamProvider).valueOrNull ?? const [];
   return filterOrders(
     all,
-    query: ref.watch(orderSearchProvider),
+    query: ref.watch(debouncedOrderSearchProvider),
     channel: ref.watch(orderChannelFilterProvider),
     payment: ref.watch(orderPaymentFilterProvider),
     status: ref.watch(orderStatusFilterProvider),

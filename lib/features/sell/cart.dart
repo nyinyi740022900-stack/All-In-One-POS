@@ -144,6 +144,11 @@ class CartNotifier extends StateNotifier<CartState> {
         clearCustomerTier: tier == null,
       );
 
+  /// Replaces the whole cart with a previously held one (see
+  /// `held_sales_provider.dart`). The only mutation that writes a complete
+  /// foreign [CartState] — lines, discount and customer tier together.
+  void restore(CartState cart) => state = cart;
+
   void clear() => state = const CartState();
 }
 

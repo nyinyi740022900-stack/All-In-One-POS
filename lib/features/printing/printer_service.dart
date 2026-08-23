@@ -1,7 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart' as esc;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 import '../invoices/receipt_data.dart';
@@ -22,6 +24,33 @@ class BtDevice {
   final String name;
   final String mac;
   const BtDevice(this.name, this.mac);
+}
+
+/// ESC/POS monochrome raster packing is a per-pixel Dart loop across the
+/// whole receipt/report bitmap — pure CPU work that used to run inline on
+/// the UI isolate and janked the till for the duration of a print (audit
+/// M6). Runs on a background isolate; the capability profile is loaded on
+/// the caller (it fetches an asset) and shipped into the worker.
+List<int> _packEscPosRaster(
+  (img.Image, esc.CapabilityProfile, esc.PaperSize) args,
+) {
+  final (image, profile, paperSize) = args;
+  return esc.Generator(paperSize, profile).imageRaster(image);
+}
+
+/// TSPL packing has the same per-pixel BITMAP loop — see
+/// [_packEscPosRaster].
+List<int> _packTsplLabel(
+  (img.Image, String, String, LabelSize, int) args,
+) {
+  final (nameImage, priceText, barcodeValue, size, copies) = args;
+  return buildTsplLabelBytes(
+    nameImage: nameImage,
+    priceText: priceText,
+    barcodeValue: barcodeValue,
+    size: size,
+    copies: copies,
+  );
 }
 
 /// Builds ESC/POS (or TSPL) bytes, then hands them to whichever transport
@@ -121,7 +150,13 @@ class PrinterService {
     );
 
     final bytes = <int>[];
-    bytes.addAll(generator.imageRaster(image));
+    bytes.addAll(await compute(
+        _packEscPosRaster,
+        (
+          image,
+          profile,
+          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+        )));
     bytes.addAll(generator.feed(1));
     // Code128 handles the hyphenated alphanumeric invoice/refund numbers
     // (e.g. INV-20260722-001) that CODE39/EAN/ITF can't cleanly encode.
@@ -176,7 +211,13 @@ class PrinterService {
     );
 
     final bytes = <int>[];
-    bytes.addAll(generator.imageRaster(image));
+    bytes.addAll(await compute(
+        _packEscPosRaster,
+        (
+          image,
+          profile,
+          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+        )));
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
     return bytes;
@@ -230,7 +271,13 @@ class PrinterService {
     );
 
     final bytes = <int>[];
-    bytes.addAll(generator.imageRaster(image));
+    bytes.addAll(await compute(
+        _packEscPosRaster,
+        (
+          image,
+          profile,
+          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+        )));
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
     return bytes;
@@ -277,10 +324,20 @@ class PrinterService {
       profile,
     );
 
+    // Pack the name raster ONCE off-isolate; the copies loop just repeats
+    // the already-packed bytes (audit M6).
+    final packedName = await compute(
+        _packEscPosRaster,
+        (
+          nameImage,
+          profile,
+          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+        ));
+
     final chars = data.barcode.split('');
     final bytes = <int>[];
     for (var i = 0; i < copies; i++) {
-      bytes.addAll(generator.imageRaster(nameImage));
+      bytes.addAll(packedName);
       bytes.addAll(
         generator.text(
           data.priceText,
@@ -328,13 +385,8 @@ class PrinterService {
       size.widthDots,
       fontSize: 20,
     );
-    return buildTsplLabelBytes(
-      nameImage: nameImage,
-      priceText: data.priceText,
-      barcodeValue: data.barcode,
-      size: size,
-      copies: copies,
-    );
+    return compute(_packTsplLabel,
+        (nameImage, data.priceText, data.barcode, size, copies));
   }
 
   Future<PrintResult> printTsplLabel(

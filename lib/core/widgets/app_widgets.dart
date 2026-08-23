@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -390,6 +391,19 @@ class ProductThumb extends StatelessWidget {
     return words.first.characters.take(2).toString().toUpperCase();
   }
 
+  /// Decoded-pixel budget for the photo band: rendered side × device pixel
+  /// ratio, clamped. Product photos upload at up to 1280 px; without
+  /// [Image.cacheWidth] every thumb decoded at FULL source resolution —
+  /// ~4–6 MB of RGBA per photo — so scrolling the Sell grid churned tens of
+  /// MB through the image cache and janked on mid-range Android (audit H2).
+  /// The clamp keeps a huge source from decoding full-res into a 48 pt row
+  /// while never asking for an absurdly small decode either.
+  @visibleForTesting
+  static int cacheWidthFor(double renderedSide, double devicePixelRatio) {
+    final px = renderedSide * devicePixelRatio;
+    return px.round().clamp(96, 1024);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tone = AppColors.of(context).identityTone(name);
@@ -402,20 +416,36 @@ class ProductThumb extends StatelessWidget {
 
     Widget content = plate;
     if (url.isNotEmpty) {
-      content = Image.network(
-        url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        // No spinner and no broken-image icon: the plate stands in while the
-        // bytes are in flight and stays put if they never arrive, so the tile
-        // never changes size or flashes an error glyph mid-sale.
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
-            AnimatedSwitcher(
-              duration: AppTheme.motionMedium,
-              child: wasSynchronouslyLoaded || frame != null ? child : plate,
-            ),
-        errorBuilder: (_, _, _) => plate,
+      // LayoutBuilder so the decode budget comes from the space the thumb
+      // actually occupies (fixed `size`, or the parent-given band on Sell's
+      // grid), not from nothing.
+      content = LayoutBuilder(
+        builder: (context, constraints) {
+          final side = size ??
+              (constraints.maxWidth.isFinite && constraints.maxWidth > 0
+                  ? constraints.maxWidth
+                  : (constraints.maxHeight.isFinite &&
+                          constraints.maxHeight > 0
+                      ? constraints.maxHeight
+                      : 40.0));
+          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+          // Disk-cached load (audit H2): photos now survive app restarts
+          // instead of re-downloading on every launch, and `memCacheWidth`
+          // carries the #227 decode budget into the cache key. The initials
+          // plate is BOTH placeholder and error widget — no spinner, no
+          // broken-image glyph — so an offline morning looks identical to an
+          // in-flight one.
+          return CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            memCacheWidth: cacheWidthFor(side, dpr),
+            fadeInDuration: AppTheme.motionMedium,
+            placeholder: (_, _) => plate,
+            errorWidget: (_, _, _) => plate,
+          );
+        },
       );
     }
 
@@ -1125,6 +1155,8 @@ class BrandHeroPanel extends StatelessWidget {
         width: 72,
         height: 72,
         fit: BoxFit.cover,
+        cacheWidth: ProductThumb.cacheWidthFor(
+            72, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0),
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
             wasSynchronouslyLoaded || frame != null ? child : fallback,
         errorBuilder: (_, _, _) => fallback,

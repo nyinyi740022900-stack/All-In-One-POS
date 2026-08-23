@@ -60,7 +60,8 @@ class BranchesScreen extends ConsumerWidget {
   /// `TextField` that is still on screen — "A TextEditingController was used
   /// after being disposed", then a cascade of framework assertions and a red
   /// screen. Same shape already fixed in `checkout_sheet.dart`'s
-  /// `_LineDiscountDialog`, `categories_screen.dart`'s `_CategoryNameDialog`,
+  /// (since-replaced) line-discount dialog, `categories_screen.dart`'s
+  /// `_CategoryNameDialog`,
   /// `customers_screen.dart`'s `_CustomerEditorDialog` and
   /// `payment_accounts_screen.dart`'s `_PaymentAccountEditorDialog`.
   Future<void> _createBranch(BuildContext context, WidgetRef ref) async {

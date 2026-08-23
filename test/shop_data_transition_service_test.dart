@@ -25,7 +25,6 @@ void main() {
               entityTable: 'products',
               rowId: 'row-$i',
               op: 'upsert',
-              payload: '{}',
               attempts: Value(i == 2 ? kOutboxStuckThreshold : 0),
             ),
           );
@@ -44,7 +43,6 @@ void main() {
             entityTable: 'products',
             rowId: 'stuck-1',
             op: 'upsert',
-            payload: '{}',
             attempts: Value(kOutboxStuckThreshold),
           ),
         );
@@ -59,7 +57,6 @@ void main() {
             entityTable: 'products',
             rowId: 'pending-1',
             op: 'upsert',
-            payload: '{}',
           ),
         );
     expect(await service.assertSafeToClear(), 'pending_sync');

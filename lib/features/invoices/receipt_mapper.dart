@@ -18,7 +18,21 @@ ReceiptData receiptFromSale(
   required String paymentMethodLabel,
   String? defaultFooter,
   String? cashier,
+  Map<String, int>? owedBySaleId,
 }) {
+  // Credit repayments never mutate the sale row — thread the FIFO
+  // allocation so a reprinted thermal receipt reflects what's actually
+  // still owed (see outstandingForDisplay).
+  final outstanding = outstandingForDisplay(
+    total: sale.total,
+    paid: sale.paid,
+    isRefundRow: sale.refundOfSaleId != null,
+    owedBySaleId: owedBySaleId,
+    saleId: sale.id,
+  );
+  final effectivePaid = sale.refundOfSaleId != null
+      ? sale.paid
+      : (sale.total - outstanding < 0 ? 0 : sale.total - outstanding);
   return ReceiptData(
     shopName: shop.name,
     address: shop.address,
@@ -43,7 +57,7 @@ ReceiptData receiptFromSale(
     subtotal: sale.subtotal,
     discount: sale.discount,
     total: sale.total,
-    paid: sale.paid,
+    paid: effectivePaid,
     change: sale.changeDue,
     paymentMethod: paymentMethodLabel,
     footer: (shop.footer != null && shop.footer!.isNotEmpty)
@@ -62,7 +76,21 @@ InvoiceData invoiceDataFromSale(
   String? cashier,
   String? paymentMethodCustomName,
   String? defaultFooter,
+  Map<String, int>? owedBySaleId,
 }) {
+  // Same credit-allocation awareness as receiptFromSale: the header pill,
+  // share PNG and A4 PDF must all agree with the credit book.
+  final isRefund = sale.refundOfSaleId != null;
+  final outstanding = outstandingForDisplay(
+    total: sale.total,
+    paid: sale.paid,
+    isRefundRow: isRefund,
+    owedBySaleId: owedBySaleId,
+    saleId: sale.id,
+  );
+  final effectivePaid = isRefund
+      ? sale.paid
+      : (sale.total - outstanding < 0 ? 0 : sale.total - outstanding);
   return InvoiceData(
     shopName: shop.name,
     shopLogoUrl: shop.logoUrl,
@@ -83,9 +111,12 @@ InvoiceData invoiceDataFromSale(
         ),
     ],
     discount: sale.discount,
-    paid: sale.paid,
+    paid: effectivePaid,
     changeDue: sale.changeDue,
-    paymentStatus: invoicePaymentStatusCode(paid: sale.paid, total: sale.total),
+    paymentStatus: invoicePaymentStatusCode(
+      paid: effectivePaid,
+      total: sale.total,
+    ),
     paymentMethodCode: sale.paymentMethod,
     paymentMethodCustomName: paymentMethodCustomName,
     cashier: cashier,

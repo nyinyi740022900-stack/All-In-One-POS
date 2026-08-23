@@ -14,6 +14,7 @@ import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/invoices/invoices_screen.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/orders/orders_screen.dart';
+import 'package:mm_pos/features/onboarding/onboarding_state.dart';
 import 'package:mm_pos/features/onboarding/operating_mode_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
 import 'package:mm_pos/features/sell/sales_providers.dart';
@@ -25,6 +26,7 @@ import 'package:mm_pos/features/staff/staff_providers.dart';
 /// `/invoices` deep link (used three times by analytics_screen.dart) must
 /// still open the Invoices sub-tab rather than the branch's default.
 void main() {
+  late ProviderContainer container;
   Future<void> pump(WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -38,8 +40,7 @@ void main() {
     await settings.setOperatingMode(SettingsRepository.operatingModeOffline);
     await settings.confirmOperatingMode();
 
-    await tester.pumpWidget(
-      ProviderScope(
+    container = ProviderContainer(
         // Single-value streams so nothing stays pending under the fake clock.
         overrides: [
           databaseProvider.overrideWithValue(db),
@@ -65,7 +66,14 @@ void main() {
           // The daily gate is universal now (every shop, every plan) — this
           // test verifies hub navigation chrome, not the gate itself.
           dailyGateNeededProvider.overrideWith((ref) async => false),
-        ],
+          // Hub chrome, not first-run routing: keep the router's redirect
+          // inert so the onboarding completion read (a real Drift read)
+          // never runs under the fake clock.
+          onboardingStillNeededProvider.overrideWith((ref) => false),
+        ]);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
         child: const MmPosApp(),
       ),
     );
@@ -78,6 +86,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Disposes the app container BEFORE the test finishes: the recurring-
+  /// expense generator defers its work on a 3-second Timer created during
+  /// mount, and flutter_test's pending-timer invariant fires before
+  /// addTearDown cleanups run. Closing here cancels/fires it under the
+  /// fake clock (one 4s pump flushes it).
+  Future<void> closeApp(WidgetTester tester) async {
+    container.dispose();
+    await tester.pump(const Duration(seconds: 4));
+  }
+
   testWidgets('hub shows both sub-tabs under one nav destination',
       (tester) async {
     await pump(tester);
@@ -87,6 +105,7 @@ void main() {
     expect(find.byType(Tab), findsNWidgets(2));
     // Orders is the default sub-tab; Invoices is not built until selected.
     expect(find.byType(OrdersScreen), findsOneWidget);
+    await closeApp(tester);
   });
 
   testWidgets('chrome follows the selected sub-tab: FAB on Orders, '
@@ -111,6 +130,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.byIcon(Icons.summarize_outlined), findsNothing);
+    await closeApp(tester);
   });
 
   // Runs last on purpose: `appRouter` is a top-level singleton, so the branch
@@ -120,8 +140,10 @@ void main() {
       (tester) async {
     await pump(tester);
 
-    // What analytics_screen.dart does in three places.
-    appRouter.go('/invoices');
+    // What analytics_screen.dart does in three places. The router is built
+    // by appRouterProvider now (it reads onboarding state for its redirect),
+    // so grab the same instance the app is using via the shared container.
+    container.read(appRouterProvider).go('/invoices');
     await tester.pumpAndSettle();
 
     expect(find.byType(InvoicesScreen), findsOneWidget);
@@ -129,5 +151,6 @@ void main() {
     expect(find.byType(FloatingActionButton), findsNothing);
     // Still one merged destination, not a resurrected sixth tab.
     expect(find.byType(NavigationDestination), findsNWidgets(5));
+    await closeApp(tester);
   });
 }

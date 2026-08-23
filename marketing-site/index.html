@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All In One POS — မြန်မာ့ SME များအတွက် အရောင်းဆိုင် စီမံခန့်ခွဲမှု App</title>
+<meta name="description" content="အင်တာနက်မလိုပဲ အရောင်းလုပ်နိုင်တဲ့ Offline-first POS App — Inventory, Sell, Bluetooth Printing, Cloud Sync, Analytics အားလုံး တစ်ခုတည်းထဲမှာ။" />
+<link rel="icon" href="assets/app_mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="noise-overlay" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand">
+      <img src="assets/app_mark.png" alt="All In One POS" class="brand-mark" />
+      <span>All In One POS</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">ဝန်ဆောင်မှုများ</a>
+      <a href="#how">အသုံးပြုပုံ</a>
+      <a href="#download">ဒေါင်းလုပ်</a>
+    </nav>
+    <a href="#download" class="btn btn-primary btn-sm">ယခုစတင်ပါ</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO — cinematic photo + motion blend: a slow Ken-Burns background
+       plate at one parallax speed, a separately-shot foreground portrait
+       card at another, so the two layers visibly separate as the visitor
+       scrolls (see script.js's [data-speed] handler). -->
+  <section class="hero cinematic-hero">
+    <div class="hero-bg-layer" data-speed="0.12" aria-hidden="true">
+      <picture>
+        <source srcset="assets/photos/hero-bg.webp" type="image/webp" />
+        <img src="assets/photos/hero-bg.jpg" alt="" class="ken-burns" />
+      </picture>
+      <div class="hero-scrim"></div>
+    </div>
+
+    <div class="hero-content reveal">
+      <p class="eyebrow eyebrow-on-photo">မြန်မာ့ ကုန်စုံဆိုင် • စတိုးဆိုင် • စားသောက်ဆိုင်များအတွက်</p>
+      <h1 class="on-photo">ဆိုင်တစ်ဆိုင်လုံးကို<br /><span class="text-accent">လက်ထဲထဲသို့</span></h1>
+      <p class="hero-sub on-photo-sub">
+        အင်တာနက်ရှိလည်း မရှိလည်း အရောင်းရပ်တန့်စရာမလိုတော့ပါ — ကုန်ပစ္စည်း၊ အရောင်း၊
+        ပြေစာထုတ်ခြင်း၊ ငွေစာရင်းနှင့် အကျိုးအမြတ် အားလုံးကို App တစ်ခုတည်းနဲ့ ပိုင်နိုင်စွာ
+        စီမံလိုက်ပါ။
+      </p>
+      <div class="hero-cta">
+        <a href="#download" class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ဒေါင်းလုပ်ဆွဲမည်
+        </a>
+        <a href="#how" class="btn btn-ghost btn-ghost-on-photo btn-lg">အသုံးပြုပုံ ကြည့်မည်</a>
+      </div>
+      <div class="hero-trust hero-trust-on-photo">
+        <div class="trust-item"><strong>Offline-first</strong><span>အင်တာနက်မရှိလည်း အသုံးပြုနိုင်</span></div>
+        <div class="trust-item"><strong>မြန်မာ + English</strong><span>ဘာသာနှစ်မျိုး လုံးဝ ပြည့်စုံ</span></div>
+        <div class="trust-item"><strong>Cloud Sync</strong><span>ဆိုင်ခွဲများအတွက် Real-time ချိတ်ဆက်</span></div>
+      </div>
+    </div>
+
+    <div class="hero-portrait-card reveal" data-speed="-0.14">
+      <picture>
+        <source srcset="assets/photos/hero-portrait.webp" type="image/webp" />
+        <img src="assets/photos/hero-portrait.jpg" alt="All In One POS ကို အသုံးပြုနေသော ဆိုင်ရှင်တစ်ဦး" />
+      </picture>
+    </div>
+
+    <a href="#features" class="scroll-cue scroll-cue-on-photo" aria-label="scroll down">
+      <span></span>
+    </a>
+  </section>
+
+  <!-- LOGO STRIP -->
+  <section class="strip">
+    <div class="strip-inner reveal">
+      <span>ကုန်စုံဆိုင်</span><span>·</span>
+      <span>ကော်ဖီဆိုင် / ကဖေး</span><span>·</span>
+      <span>အထည်ဆိုင်</span><span>·</span>
+      <span>ဆေးဆိုင်</span><span>·</span>
+      <span>ဆိုင်ခွဲများ ရှိသော လုပ်ငန်း</span>
+    </div>
+  </section>
+
+  <!-- FEATURES — cinematic alternating showcase for the 3 headline
+       features (real photography, Ken-Burns zoom, scroll-reveal), then a
+       condensed icon strip for the rest. -->
+  <section id="features" class="section showcase-section">
+    <div class="section-head reveal">
+      <p class="eyebrow eyebrow-dark">ဝန်ဆောင်မှုများ</p>
+      <h2>ဆိုင်စီမံခန့်ခွဲမှု လိုအပ်သမျှ<br/>တစ်နေရာတည်းမှာ</h2>
+      <p class="section-sub">လက်ငင်းရောင်းချခြင်းမှသည် နှစ်ချုပ်စာရင်း ထုတ်ခြင်းအထိ — code မတတ်လည်း လွယ်ကူစွာ အသုံးပြုနိုင်အောင် ဒီဇိုင်းလုပ်ထားပါတယ်။</p>
+    </div>
+
+    <div class="showcase-row reveal">
+      <div class="showcase-media">
+        <picture>
+          <source srcset="assets/photos/feature-sell.webp" type="image/webp" />
+          <img src="assets/photos/feature-sell.jpg" alt="ဆိုင်ရှင်တစ်ဦး ဖုန်းနှင့် ငွေသားဖြင့် ငွေရှင်းနေသည့်မြင်ကွင်း" loading="lazy" class="ken-burns ken-burns-soft" />
+        </picture>
+      </div>
+      <div class="showcase-text">
+        <span class="showcase-num">၀၁</span>
+        <h3>အမြန်ရောင်းချခြင်း</h3>
+        <p>ကုန်ပစ္စည်း Grid ကနေ Cart ထဲထည့်၊ ငွေရှင်း — Cash, KBZPay, WavePay, AYAPay, CBPay အားလုံးလက်ခံ။ ပြေစာနံပါတ် အလိုအလျောက်ရိုက်ပေးတယ်။</p>
+      </div>
+    </div>
+
+    <div class="showcase-row reverse reveal">
+      <div class="showcase-media">
+        <picture>
+          <source srcset="assets/photos/feature-printing.webp" type="image/webp" />
+          <img src="assets/photos/feature-printing.jpg" alt="မြန်မာဘာသာဖြင့် ပြေစာထုတ်နေသည့် Thermal Printer" loading="lazy" class="ken-burns ken-burns-soft" />
+        </picture>
+      </div>
+      <div class="showcase-text">
+        <span class="showcase-num">၀၂</span>
+        <h3>Bluetooth ပရင့်ထုတ်ခြင်း</h3>
+        <p>58/80mm Thermal Printer အားလုံးနှင့် တွဲသုံးလို့ရ — Font မရှိတဲ့ Printer တွေအတွက်တောင် မြန်မာစာ Raster ပုံနှိပ်စနစ်ပါ ထည့်ပေးထားပါတယ်။</p>
+      </div>
+    </div>
+
+    <div class="showcase-row reveal">
+      <div class="showcase-media">
+        <picture>
+          <source srcset="assets/photos/feature-sync.webp" type="image/webp" />
+          <img src="assets/photos/feature-sync.jpg" alt="ဆိုင်တွင်း Tablet ပေါ်ရှိ အရောင်းဒေတာ Dashboard" loading="lazy" class="ken-burns ken-burns-soft" />
+        </picture>
+      </div>
+      <div class="showcase-text">
+        <span class="showcase-num">၀၃</span>
+        <h3>Cloud Sync &amp; Analytics</h3>
+        <p>Offline မှာ အရောင်းဆက်လုပ်ပြီး အင်တာနက်ရသည်နှင့် အလိုအလျောက် Sync ဖြစ်သွားပါတယ် — ဆိုင်ခွဲများအားလုံးအတွက် စာရင်းချုပ်၊ ဝင်ငွေ၊ အမြတ်အစွန်းကို တစ်နေရာတည်းမှာ တွေ့နိုင်ပါတယ်။</p>
+      </div>
+    </div>
+
+    <div class="feature-grid feature-grid-compact">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="--i:1"><svg viewBox="0 0 24 24" fill="none"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Inventory စီမံခန့်ခွဲမှု</h3>
+        <p>Category, Barcode, Stock အနည်းဆုံးအဆင့် သတိပေးချက်များ — ကုန်ပစ္စည်း ကုန်ခန်းကို အချိန်နှင့်တပြေးညီ စောင့်ကြည့်နိုင်ပါတယ်။</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="--i:4"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5m0 14h16M8 15v-4m4 4V9m4 6v-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>အစီရင်ခံစာ</h3>
+        <p>နေ့စဉ်ဝင်ငွေ၊ အမြတ်အစွန်း၊ ရောင်းရဆုံးကုန်ပစ္စည်း စသည်တို့ကို Chart နှင့်အတူ Offline အခြေအနေမှာပင် ကြည့်ရှုနိုင်ပါတယ်။</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="--i:5"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 003-3V7a3 3 0 00-6 0v5a3 3 0 003 3zM19 11v1a7 7 0 01-14 0v-1M12 19v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Credit Book &amp; Expenses</h3>
+        <p>ဖောက်သည်ချေးငွေစာရင်း၊ ဆိုင်ကုန်ကျစရိတ် (Expenses) များကို တစ်နေရာတည်းမှာ မှတ်တမ်းတင် စီမံနိုင်ပါတယ်။</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="section section-tint">
+    <div class="section-head reveal">
+      <p class="eyebrow eyebrow-dark">အသုံးပြုပုံ</p>
+      <h2>မိနစ်အနည်းငယ်အတွင်း<br/>စတင်နိုင်ပါပြီ</h2>
+      <p class="section-sub">Setup ရှုပ်ထွေးမှုမရှိပါ — Download ချပြီး လိုက်လုပ်ရုံပါပဲ။</p>
+    </div>
+
+    <div class="steps">
+      <div class="steps-line" aria-hidden="true"></div>
+
+      <div class="step reveal">
+        <div class="step-num">၁</div>
+        <div class="step-body">
+          <h3>App ကို ဒေါင်းလုပ်ဆွဲပါ</h3>
+          <p>ဖုန်း (Android/iOS) သို့မဟုတ် Windows Computer အတွက် အောက်က Download ကဏ္ဍမှာ ဆွဲယူပါ။</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">၂</div>
+        <div class="step-body">
+          <h3>ဆိုင်အချက်အလက် ထည့်ပါ</h3>
+          <p>ဆိုင်နာမည်၊ ကုန်ပစ္စည်းစာရင်း ထည့်ပါ — Excel ကနေ Import လုပ်လည်း ရပါတယ်။ 2 လ အခမဲ့ စမ်းသပ်ကာလ ရရှိပါမယ်။</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">၃</div>
+        <div class="step-body">
+          <h3>ရောင်းချစတင်ပါ</h3>
+          <p>အင်တာနက်ရှိလည်း မရှိလည်း ဆက်လက်ရောင်းချနိုင်ပါတယ် — ပြေစာကို ပရင့်ထုတ် (သို့) ဓာတ်ပုံအဖြစ် ပို့ပေးနိုင်ပါတယ်။</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">၄</div>
+        <div class="step-body">
+          <h3>အစီရင်ခံစာ ကြည့်ရှုပါ</h3>
+          <p>ဝင်ငွေ၊ အမြတ်၊ ကုန်ပစ္စည်း အခြေအနေများကို Analytics စာမျက်နှာမှာ တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်ပါတယ်။</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD — full-bleed cinematic photo background (same Ken-Burns +
+       parallax technique as the hero), glass-morphism cards on top. -->
+  <section id="download" class="section download-section">
+    <div class="download-bg-layer" data-speed="0.1" aria-hidden="true">
+      <picture>
+        <source srcset="assets/photos/download-desk.webp" type="image/webp" />
+        <img src="assets/photos/download-desk.jpg" alt="" class="ken-burns" loading="lazy" />
+      </picture>
+      <div class="download-scrim"></div>
+    </div>
+
+    <div class="section-head reveal">
+      <p class="eyebrow eyebrow-on-photo">ဒေါင်းလုပ်</p>
+      <h2 class="on-photo">ယနေ့ပင် စတင်လိုက်ပါ</h2>
+      <p class="section-sub on-photo-sub">Device မည်သည့်ပလက်ဖောင်းပေါ်တွင်မဆို All In One POS ကို အသုံးပြုနိုင်ပါတယ်။</p>
+    </div>
+
+    <div class="download-grid">
+      <div class="download-card download-card-ready download-card-glass reveal">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Windows</h3>
+        <p>Computer / Laptop အတွက် — Zip ဖိုင်ကို Extract လုပ်ပြီး AllInOnePOS.exe ကို ဖွင့်ရုံပါပဲ။</p>
+        <a class="btn btn-primary btn-block" href="https://github.com/nyinyi740022900-stack/goldposmm/releases/download/windows-latest/AllInOnePOS-windows.zip">
+          Windows အတွက် ဒေါင်းလုပ်ဆွဲမည်
+        </a>
+        <span class="dl-note dl-note-on-photo">.zip ဖိုင် • နောက်ဆုံးထုတ်ဗားရှင်း အလိုအလျောက် အသစ်ပြောင်းပေးသည်</span>
+      </div>
+
+      <div class="download-card download-card-glass reveal">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="2" width="12" height="20" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M11 19h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>iOS</h3>
+        <p>iPhone / iPad အတွက် App Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
+        <span class="badge-soon">မကြာမီ လာမည်</span>
+        <span class="dl-note dl-note-on-photo">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
+      </div>
+
+      <div class="download-card download-card-glass reveal">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2 3M8 5l2-3M4 9a8 8 0 1116 0v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h.01M16 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Android</h3>
+        <p>Android ဖုန်း / Tablet အတွက် Play Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
+        <span class="badge-soon">မကြာမီ လာမည်</span>
+        <span class="dl-note dl-note-on-photo">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="#top" class="brand">
+      <img src="assets/app_mark.png" alt="All In One POS" class="brand-mark" />
+      <span>All In One POS</span>
+    </a>
+    <p class="footer-tagline">မြန်မာ့ SME လုပ်ငန်းများအတွက် Offline-first POS ဖြေရှင်းချက်</p>
+    <div class="footer-links">
+      <a href="https://allinonepos-legal.vercel.app" target="_blank" rel="noopener">စည်းမျဉ်းစည်းကမ်း</a>
+      <a href="https://allinonepos-legal.vercel.app/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+    </div>
+    <p class="footer-copy">© <span id="year"></span> All In One POS. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -12,6 +11,7 @@ import '../accounts/payment_account_providers.dart';
 import '../sell/payment_labels.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
+import 'repayment_dialog.dart';
 
 /// The credit book (အကြွေးစာရင်း): customers who owe, and their balances.
 class CreditScreen extends ConsumerWidget {
@@ -164,6 +164,70 @@ class CreditCustomerScreen extends ConsumerWidget {
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     final colors = AppColors.of(context);
+    // Owed figure per invoice, FIFO-adjusted (same rule as the Credit book
+    // list above) — computed once here so row builders stay declarative.
+    final invoiceRows = [
+      for (final s in sales)
+        (sale: s, owed: owedBySale[s.id] ?? (s.total - s.paid)),
+    ];
+
+    // Lazy builder over a flat row list (audit H3): a long-time customer's
+    // invoices + repayments grow for years, and the old
+    // `ListView(children: ...)` built EVERY ListTile up front. Widget
+    // configs here are cheap; only visible rows are now laid out/built.
+    final rows = <Widget>[
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l.creditOutstanding,
+                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                Money(customer.outstanding).withSymbol(currency),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color:
+                          customer.outstanding > 0 ? colors.danger : colors.success,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      Text(l.creditInvoices, style: Theme.of(context).textTheme.titleSmall),
+      for (final (:sale, :owed) in invoiceRows)
+        ListTile(
+          key: ValueKey('inv-${sale.id}'),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(sale.invoiceNo),
+          subtitle: Text(df.format(sale.finalizedAt)),
+          trailing: Text(
+            owed > 0
+                ? Money(owed).withSymbol(currency)
+                : l.creditSettled,
+            style: TextStyle(
+                color: owed > 0 ? colors.danger : colors.success),
+          ),
+        ),
+      if (repayments.isNotEmpty) ...[
+        const SizedBox(height: AppTheme.space3),
+        Text(l.creditRepayments, style: Theme.of(context).textTheme.titleSmall),
+        for (final p in repayments)
+          ListTile(
+            key: ValueKey('rep-${p.id}'),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.check_circle, color: colors.success),
+            title: Text('+${Money(p.amount).withSymbol(currency)}'),
+            subtitle: Text(
+                '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
+          ),
+      ],
+    ];
 
     return Scaffold(
       appBar: AppBar(title: Text(customerName)),
@@ -174,179 +238,16 @@ class CreditCustomerScreen extends ConsumerWidget {
               label: Text(l.creditRecordRepayment),
             )
           : null,
-      body: ListView(
+      body: ListView.builder(
         padding: const EdgeInsets.all(AppTheme.space4),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(l.creditOutstanding,
-                      style: Theme.of(context).textTheme.titleMedium),
-                  Text(
-                    Money(customer.outstanding).withSymbol(currency),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: customer.outstanding > 0
-                              ? colors.danger
-                              : colors.success,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          Text(l.creditInvoices,
-              style: Theme.of(context).textTheme.titleSmall),
-          ...sales.map((s) {
-            final owed = owedBySale[s.id] ?? (s.total - s.paid);
-            return ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(s.invoiceNo),
-              subtitle: Text(df.format(s.finalizedAt)),
-              trailing: Text(
-                owed > 0
-                    ? Money(owed).withSymbol(currency)
-                    : l.creditSettled,
-                style: TextStyle(
-                    color: owed > 0 ? colors.danger : colors.success),
-              ),
-            );
-          }),
-          if (repayments.isNotEmpty) ...[
-            const SizedBox(height: AppTheme.space3),
-            Text(l.creditRepayments,
-                style: Theme.of(context).textTheme.titleSmall),
-            ...repayments.map((p) => ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.check_circle, color: colors.success),
-                  title: Text('+${Money(p.amount).withSymbol(currency)}'),
-                  subtitle: Text(
-                      '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
-                )),
-          ],
-        ],
+        itemCount: rows.length,
+        itemBuilder: (context, i) => rows[i],
       ),
     );
   }
 
   Future<void> _recordRepayment(
       BuildContext context, WidgetRef ref, CreditCustomer customer) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => _RepaymentDialog(customer: customer),
-    );
-  }
-}
-
-class _RepaymentDialog extends ConsumerStatefulWidget {
-  const _RepaymentDialog({required this.customer});
-  final CreditCustomer customer;
-
-  @override
-  ConsumerState<_RepaymentDialog> createState() => _RepaymentDialogState();
-}
-
-class _RepaymentDialogState extends ConsumerState<_RepaymentDialog> {
-  final _amount = TextEditingController();
-  String _method = 'cash';
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _amount.text = '${widget.customer.outstanding}';
-  }
-
-  @override
-  void dispose() {
-    _amount.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final l = AppLocalizations.of(context);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    if (amount <= 0 || amount > widget.customer.outstanding) return;
-    setState(() => _saving = true);
-    try {
-      await ref.read(creditRepositoryProvider).recordRepayment(
-            customerName: widget.customer.name,
-            customerId: widget.customer.customerId,
-            amount: amount,
-            method: _method,
-          );
-      navigator.pop();
-      messenger.showSnackBar(SnackBar(content: Text(l.creditRepaymentSaved)));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    // Repayments settle a debt — 'credit' isn't a tender here, so this is
-    // just cash + accounts (never includes it, unlike checkout).
-    final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
-    final methods = paymentMethodIds(accounts);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
-    final exceedsOutstanding = amount > widget.customer.outstanding;
-    return AlertDialog(
-      title: Text(l.creditRecordRepayment),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _amount,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
-            ],
-            decoration: InputDecoration(
-              labelText: l.creditAmount,
-              errorText: exceedsOutstanding
-                  ? l.creditRepaymentExceedsOutstanding(
-                      Money(widget.customer.outstanding)
-                          .withSymbol(l.currencySymbol))
-                  : null,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          Wrap(
-            spacing: AppTheme.space2,
-            children: [
-              for (final m in methods)
-                ChoiceChip(
-                  label: Text(paymentLabel(l, m, accounts: accounts)),
-                  selected: _method == m,
-                  onSelected: (_) => setState(() => _method = m),
-                ),
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: Text(l.commonCancel),
-        ),
-        FilledButton(
-          onPressed:
-              _saving || amount <= 0 || exceedsOutstanding ? null : _save,
-          child: Text(l.commonSave),
-        ),
-      ],
-    );
+    await showRepaymentDialog(context, customer);
   }
 }

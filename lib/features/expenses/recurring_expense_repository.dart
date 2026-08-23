@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -158,14 +157,10 @@ class RecurringExpenseRepository {
   }
 
   Future<void> _enqueue(String id) async {
-    final row = await (_db.select(_db.recurringExpenses)
-          ..where((t) => t.id.equals(id)))
-        .getSingle();
     await _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: 'recurring_expenses',
           rowId: id,
           op: 'upsert',
-          payload: jsonEncode(row.toJson()),
         ));
   }
 }

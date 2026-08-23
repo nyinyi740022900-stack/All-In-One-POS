@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -19,6 +20,16 @@ import '../printing/printing_providers.dart';
 import 'cash_providers.dart';
 import 'cash_session_report_formatter.dart';
 import 'cash_session_report_pdf.dart';
+
+/// "Exact" / "short by X" / "over by X" — shared by the close dialog's live
+/// preview and the history tiles so the two can never drift apart.
+String _varianceTextFor(AppLocalizations l, int variance) {
+  final sym = l.currencySymbol;
+  if (variance == 0) return l.cashVarianceExact;
+  return variance < 0
+      ? l.cashVarianceShort(Money(-variance).withSymbol(sym))
+      : l.cashVarianceOver(Money(variance).withSymbol(sym));
+}
 
 /// Cash-drawer session: open with a declared float, watch what the drawer
 /// should hold live, close with a counted amount to see the variance.
@@ -99,6 +110,10 @@ class CashSessionScreen extends ConsumerWidget {
         amountLabel: l.cashClosingAmount,
         confirmLabel: l.cashCloseRegister,
         warningText: l.cashCloseWarning,
+        // The figure the cashier is counting AGAINST — without it inside the
+        // dialog they'd have to memorise it off the card behind the overlay.
+        expectedCash:
+            ref.read(expectedCashProvider).valueOrNull ?? session.openingAmount,
       ),
     );
     if (amount == null || !context.mounted) return;
@@ -195,19 +210,32 @@ class _OpenCard extends ConsumerWidget {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
+                  // Tap to retry — a dead '—' tooltip left the till's core
+                  // number unrecoverable until the screen was reopened.
                   error: (e, _) => Tooltip(
                     message: l.commonUnexpectedError,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 16,
-                          color: colors.danger,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      onTap: () => ref.invalidate(expectedCashProvider),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTheme.space1),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 16,
+                              color: colors.danger,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l.commonRetry,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.danger),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        Text('—', style: TextStyle(color: colors.danger)),
-                      ],
+                      ),
                     ),
                   ),
                   data: (v) => MoneyText(
@@ -244,23 +272,29 @@ class _OpenCard extends ConsumerWidget {
   }
 }
 
-class _HistoryTile extends ConsumerWidget {
+class _HistoryTile extends ConsumerStatefulWidget {
   const _HistoryTile({required this.session});
   final CashSession session;
 
-  String _varianceText(AppLocalizations l, int variance) {
-    final sym = l.currencySymbol;
-    if (variance == 0) return l.cashVarianceExact;
-    return variance < 0
-        ? l.cashVarianceShort(Money(-variance).withSymbol(sym))
-        : l.cashVarianceOver(Money(variance).withSymbol(sym));
-  }
+  @override
+  ConsumerState<_HistoryTile> createState() => _HistoryTileState();
+}
+
+class _HistoryTileState extends ConsumerState<_HistoryTile> {
+  /// A closed session's window is frozen (`closedAt` is set), so its
+  /// expected figure never changes — compute ONCE instead of re-querying on
+  /// every parent rebuild (the old per-build `ref.read` inside
+  /// FutureBuilder re-ran the whole sales/expenses window query each time).
+  late final Future<int> _expected = ref
+      .read(cashSessionRepositoryProvider)
+      .expectedCash(widget.session);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final sym = l.currencySymbol;
     final df = DateFormat('yyyy-MM-dd HH:mm');
+    final session = widget.session;
     final closing = session.closingAmount;
 
     return ListTile(
@@ -288,21 +322,31 @@ class _HistoryTile extends ConsumerWidget {
                   // the session's window) — not vs. the opening amount
                   // alone, which would flag every normal day of sales as
                   // "over."
-                  future: ref
-                      .read(cashSessionRepositoryProvider)
-                      .expectedCash(session),
+                  future: _expected,
                   builder: (context, snap) {
-                    if (!snap.hasData) {
+                    if (snap.connectionState != ConnectionState.done) {
                       return const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       );
                     }
+                    // An errored read used to spin forever (`!hasData`
+                    // caught errors too) — show an honest dash instead.
+                    if (snap.hasError || snap.data == null) {
+                      return Tooltip(
+                        message: l.commonUnexpectedError,
+                        child: Text(
+                          '—',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.of(context).muted),
+                        ),
+                      );
+                    }
                     final variance = closing - snap.data!;
                     final colors = AppColors.of(context);
                     return Text(
-                      _varianceText(l, variance),
+                      _varianceTextFor(l, variance),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: variance == 0 ? colors.success : colors.danger,
                       ),
@@ -324,7 +368,7 @@ class _HistoryTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final printerConfig = await ref.read(printerConfigProvider.future);
     if (!context.mounted) return;
-    await showModalBottomSheet<void>(
+    await showAppModal<void>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
@@ -371,10 +415,10 @@ class _HistoryTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final report = await ref
         .read(cashSessionRepositoryProvider)
-        .reportFor(session);
+        .reportFor(widget.session);
     final varianceText = report.variance == null
         ? null
-        : _varianceText(l, report.variance!);
+        : _varianceTextFor(l, report.variance!);
     final profile = await ref.read(shopProfileProvider.future);
     final printerConfig = await ref.read(printerConfigProvider.future);
     return buildCashSessionReportPdf(
@@ -393,8 +437,8 @@ class _HistoryTile extends ConsumerWidget {
       expensesLabel: l.expensesTitle,
       expectedCashLabel: l.cashExpectedNow,
       countedCashLabel: l.cashClosingAmount,
-      openedAt: session.openedAt,
-      closedAt: session.closedAt,
+      openedAt: widget.session.openedAt,
+      closedAt: widget.session.closedAt,
       varianceLabel: l.cashVariance,
       varianceText: varianceText,
       pageFormat: printerConfig.pdfPaperSize,
@@ -426,10 +470,10 @@ class _HistoryTile extends ConsumerWidget {
     try {
       final report = await ref
           .read(cashSessionRepositoryProvider)
-          .reportFor(session);
+          .reportFor(widget.session);
       final varianceText = report.variance == null
           ? null
-          : _varianceText(l, report.variance!);
+          : _varianceTextFor(l, report.variance!);
       final lines =
           CashSessionReportFormatter(
             paper: paper,
@@ -445,8 +489,8 @@ class _HistoryTile extends ConsumerWidget {
             expensesLabel: l.expensesTitle,
             expectedCashLabel: l.cashExpectedNow,
             countedCashLabel: l.cashClosingAmount,
-            openedAt: session.openedAt,
-            closedAt: session.closedAt,
+            openedAt: widget.session.openedAt,
+            closedAt: widget.session.closedAt,
             varianceLabel: l.cashVariance,
             varianceText: varianceText,
           );
@@ -476,7 +520,12 @@ class _HistoryTile extends ConsumerWidget {
     try {
       final bytes = await _pdfBytes(context, ref);
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/cash-session-report.pdf');
+      // Dated so a shop sharing a week of reports to the owner can tell
+      // them apart in the chat thread.
+      final stamp = DateFormat(
+        'yyyyMMdd-HHmm',
+      ).format(widget.session.closedAt ?? widget.session.openedAt);
+      final file = File('${dir.path}/cash-report-$stamp.pdf');
       await file.writeAsBytes(bytes);
       await SharePlus.instance.share(
         ShareParams(
@@ -496,11 +545,17 @@ class _AmountDialog extends StatefulWidget {
     required this.amountLabel,
     required this.confirmLabel,
     this.warningText,
+    this.expectedCash,
   });
   final String title;
   final String amountLabel;
   final String confirmLabel;
   final String? warningText;
+
+  /// Close-flow only: the drawer's expected contents, shown above the field
+  /// with a live variance preview as the cashier types their count — the
+  /// last chance to catch a miscount before the (final) close commits.
+  final int? expectedCash;
 
   @override
   State<_AmountDialog> createState() => _AmountDialogState();
@@ -508,11 +563,61 @@ class _AmountDialog extends StatefulWidget {
 
 class _AmountDialogState extends State<_AmountDialog> {
   final _amount = TextEditingController();
+  String? _error;
 
   @override
   void dispose() {
     _amount.dispose();
     super.dispose();
+  }
+
+  /// An empty confirm used to fall through `int.tryParse('') ?? 0` and
+  /// record counted=0 — an irreversible −expected variance. Empty is now a
+  /// validation error; an explicit "0" stays allowed (a genuinely empty
+  /// float/drawer is legitimate).
+  void _submit() {
+    if (_amount.text.trim().isEmpty) {
+      setState(
+        () => _error = AppLocalizations.of(context).cashAmountRequired,
+      );
+      return;
+    }
+    Navigator.of(context).pop(int.tryParse(_amount.text.trim()) ?? 0);
+  }
+
+  /// Live variance under the field while typing the count — green when it
+  /// matches expectations, red with the short/over figure otherwise.
+  List<Widget> _variancePreview(BuildContext context, AppLocalizations l) {
+    if (widget.expectedCash == null || _amount.text.trim().isEmpty) {
+      return const [];
+    }
+    final amount = int.tryParse(_amount.text.trim());
+    if (amount == null) return const [];
+    final variance = amount - widget.expectedCash!;
+    final colors = AppColors.of(context);
+    final color = variance == 0 ? colors.success : colors.danger;
+    return [
+      const SizedBox(height: AppTheme.space1),
+      Row(
+        children: [
+          Icon(
+            variance == 0 ? Icons.check_circle_outline : Icons.error_outline,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: AppTheme.space1),
+          Expanded(
+            child: Text(
+              _varianceTextFor(l, variance),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: color,
+                fontFeatures: AppTheme.tabularFigures,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
   }
 
   @override
@@ -524,16 +629,32 @@ class _AmountDialogState extends State<_AmountDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (widget.expectedCash != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space2),
+              child: SummaryRow(
+                l.cashExpectedNow,
+                Money(widget.expectedCash!).withSymbol(l.currencySymbol),
+                emphasis: true,
+              ),
+            ),
           TextField(
             controller: _amount,
             autofocus: true,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            // Rebuilds on every keystroke so the live variance preview tracks
+            // the count, and any validation error clears as soon as they type.
+            onChanged: (_) => setState(() {
+              if (_error != null) _error = null;
+            }),
             decoration: InputDecoration(
               labelText: widget.amountLabel,
               suffixText: l.currencySymbol,
+              errorText: _error,
             ),
           ),
+          ..._variancePreview(context, l),
           if (widget.warningText != null) ...[
             const SizedBox(height: AppTheme.space2),
             Text(
@@ -548,13 +669,7 @@ class _AmountDialogState extends State<_AmountDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l.commonCancel),
         ),
-        FilledButton(
-          onPressed: () {
-            final v = int.tryParse(_amount.text.trim()) ?? 0;
-            Navigator.of(context).pop(v);
-          },
-          child: Text(widget.confirmLabel),
-        ),
+        FilledButton(onPressed: _submit, child: Text(widget.confirmLabel)),
       ],
     );
   }

@@ -362,8 +362,8 @@ class _CustomerDraft {
 /// red error screen over the app. Owning the controllers in a real
 /// `StatefulWidget` ties their lifetime to the dialog's actual place in the
 /// widget tree. (Third instance of this bug in the app: see
-/// `checkout_sheet.dart`'s `_LineDiscountDialog` and `categories_screen.dart`'s
-/// `_CategoryNameDialog`.)
+/// `checkout_sheet.dart`'s (since-replaced) line-discount dialog and
+/// `categories_screen.dart`'s `_CategoryNameDialog`.)
 class _CustomerEditorDialog extends StatefulWidget {
   const _CustomerEditorDialog({this.existing});
 

@@ -167,7 +167,7 @@ class InvoiceView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _header(),
+          _header(context),
           const SizedBox(height: 16),
           const Divider(height: 1, color: _line),
           const SizedBox(height: 14),
@@ -199,7 +199,7 @@ class InvoiceView extends StatelessWidget {
     );
   }
 
-  Widget _header() {
+  Widget _header(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -216,6 +216,8 @@ class InvoiceView extends StatelessWidget {
               : Image.network(
                   data.shopLogoUrl!,
                   fit: BoxFit.cover,
+                  cacheWidth: ProductThumb.cacheWidthFor(
+                      48, MediaQuery.devicePixelRatioOf(context)),
                   errorBuilder: (_, _, _) =>
                       const Icon(Icons.storefront, color: _accent),
                 ),

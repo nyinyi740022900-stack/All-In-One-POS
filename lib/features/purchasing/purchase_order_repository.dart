@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -108,8 +107,7 @@ class PurchaseOrderRepository {
           updatedAt: Value(now),
           dirty: const Value(true),
         ));
-        await _enqueue(
-            'purchase_order_items', o.id, 'delete', '{"id":"${o.id}"}');
+        await _enqueue('purchase_order_items', o.id, 'delete');
       }
       for (final l in lines) {
         final itemId = _uuid.v4();
@@ -127,14 +125,7 @@ class PurchaseOrderRepository {
                 updatedAt: Value(now),
               ),
             );
-        await _enqueue(
-            'purchase_order_items',
-            itemId,
-            'upsert',
-            jsonEncode((await (_db.select(_db.purchaseOrderItems)
-                      ..where((t) => t.id.equals(itemId)))
-                    .getSingle())
-                .toJson()));
+        await _enqueue('purchase_order_items', itemId, 'upsert');
       }
     });
     return poId;
@@ -223,26 +214,20 @@ class PurchaseOrderRepository {
           updatedAt: Value(now),
           dirty: const Value(true),
         ));
-        await _enqueue(
-            'purchase_order_items', l.id, 'delete', '{"id":"${l.id}"}');
+        await _enqueue('purchase_order_items', l.id, 'delete');
       }
     });
   }
 
   Future<void> _enqueuePO(String poId) async {
-    final row = await (_db.select(_db.purchaseOrders)
-          ..where((t) => t.id.equals(poId)))
-        .getSingle();
-    await _enqueue('purchase_orders', poId, 'upsert', jsonEncode(row.toJson()));
+    await _enqueue('purchase_orders', poId, 'upsert');
   }
 
-  Future<void> _enqueue(
-      String table, String rowId, String op, String payload) {
+  Future<void> _enqueue(String table, String rowId, String op) {
     return _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: table,
           rowId: rowId,
           op: op,
-          payload: payload,
         ));
   }
 }

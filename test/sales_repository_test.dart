@@ -1,8 +1,10 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/sales_repository.dart';
+import 'package:mm_pos/features/credit/credit_repository.dart';
 import 'package:mm_pos/features/sell/cart.dart';
 
 void main() {
@@ -32,6 +34,55 @@ void main() {
         .firstWhere((p) => p.product.id == id)
         .product;
   }
+
+  test('invoice numbering uses max-seq scan: gaps and refund rows never '
+      'collide or inflate the sequence (audit M3)', () async {
+    final now = DateTime.now();
+    final prefix = 'INV-'
+        '${now.year.toString().padLeft(4, '0')}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}-';
+
+    // Seed today's ledger with a gap (001 and 003 exist — e.g. a pulled row
+    // from another device) plus a refund credit-note (RFD prefix).
+    Future<void> seedSale(String invoiceNo) async {
+      await db.into(db.sales).insert(SalesCompanion.insert(
+            id: invoiceNo, // unique enough for the test
+            shopId: 'shop-1',
+            invoiceNo: invoiceNo,
+            subtotal: const Value(100),
+            total: const Value(100),
+            finalizedAt: Value(now),
+            updatedAt: Value(now),
+          ));
+    }
+
+    await seedSale('${prefix}001');
+    await seedSale('${prefix}003');
+    await seedSale('RFD-${prefix.substring(4)}001');
+
+    // Counting rows (3) would mint 004 — colliding with nothing but wrong;
+    // the old count also broke when refunds shared the day. Max-scan mints
+    // the true next number after the highest seen sequence.
+    final result = await sales.finalizeSale(
+      cart: CartState(lines: [
+        CartLine(product: await seedProduct(name: 'X', price: 10, qty: 5), qty: 1)
+      ]),
+      paymentMethod: 'cash',
+      paid: 10,
+    );
+    expect(result.invoiceNo, '${prefix}004');
+
+    // And the next one continues the sequence.
+    final second = await sales.finalizeSale(
+      cart: CartState(lines: [
+        CartLine(product: await seedProduct(name: 'Y', price: 10, qty: 5), qty: 1)
+      ]),
+      paymentMethod: 'cash',
+      paid: 10,
+    );
+    expect(second.invoiceNo, '${prefix}005');
+  });
 
   test('finalizeSale writes sale, items, payment and decrements stock',
       () async {
@@ -310,6 +361,105 @@ void main() {
       expect(refundPayments, isEmpty);
     });
 
+    test('refunding a partially-repaid credit sale closes nothing — the '
+        'debt was already settled (audit H-2)', () async {
+      final p = await seedProduct(name: 'Rice bag', price: 10000, qty: 5);
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        paymentMethod: 'credit',
+        paid: 4000,
+        customerName: 'Ma Ma',
+      );
+      // The customer settles the remaining 6000 through the credit book.
+      await CreditRepository(db, 'shop-1')
+          .recordRepayment(customerName: 'Ma Ma', amount: 6000);
+
+      await sales.refundSale(sold.saleId);
+
+      // No phantom closure row on top of the real repayment — the old raw
+      // `total - paid` math minted +6000 again, wiping the customer's
+      // other real debts via FIFO spillover.
+      final repayments = await (db.select(db.creditPayments)
+            ..where((c) => c.customerName.equals('Ma Ma')))
+          .get();
+      expect(
+        repayments
+            .where((r) => (r.note ?? '').startsWith('Refund closure')),
+        isEmpty,
+      );
+    });
+
+    test('refund closure covers only this invoice when repayments spread '
+        'across invoices, and is method=credit (audit H-2)', () async {
+      final rice = await seedProduct(name: 'Rice', price: 5000, qty: 10);
+      final oil = await seedProduct(name: 'Oil', price: 8000, qty: 10);
+      // Older invoice (5,000 owed), then newer invoice (8,000 owed).
+      final older = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: rice, qty: 1)]),
+        paymentMethod: 'credit',
+        paid: 0,
+        customerName: 'Ko Ko',
+      );
+      final newer = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: oil, qty: 1)]),
+        paymentMethod: 'credit',
+        paid: 0,
+        customerName: 'Ko Ko',
+      );
+      // Pool of 9,000 allocated oldest-first: clears `older`, leaves 4,000
+      // still owed on `newer`.
+      await CreditRepository(db, 'shop-1')
+          .recordRepayment(customerName: 'Ko Ko', amount: 9000);
+
+      await sales.refundSale(older.saleId);
+      var koKoPayments = await (db.select(db.creditPayments)
+            ..where((c) => c.customerName.equals('Ko Ko')))
+          .get();
+      var closures = koKoPayments
+          .where((r) => (r.note ?? '').startsWith('Refund closure'))
+          .toList();
+      expect(closures, isEmpty); // older was already fully repaid
+
+      await sales.refundSale(newer.saleId);
+      koKoPayments = await (db.select(db.creditPayments)
+            ..where((c) => c.customerName.equals('Ko Ko')))
+          .get();
+      closures = koKoPayments
+          .where((r) => (r.note ?? '').startsWith('Refund closure'))
+          .toList();
+      expect(closures.single.amount, 4000); // only the still-unpaid part
+      expect(closures.single.method, 'credit'); // never drawer cash
+    });
+
+    test('a second reversal row for the same sale is rejected by the '
+        'sales_refund_once unique index (audit H-1 cross-device backstop)',
+        () async {
+      final p = await seedProduct(name: 'Soap', price: 800, qty: 20);
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        paymentMethod: 'cash',
+        paid: 800,
+      );
+      await sales.refundSale(sold.saleId);
+
+      // Simulates another device's refund row arriving via sync pull while
+      // this device's own refund already exists locally.
+      final now = DateTime.now();
+      await expectLater(
+        db.into(db.sales).insert(SalesCompanion.insert(
+              id: 'other-device-refund',
+              shopId: 'shop-1',
+              invoiceNo: 'INV-dup',
+              total: const Value(-800),
+              paid: const Value(-800),
+              refundOfSaleId: Value(sold.saleId),
+              finalizedAt: Value(now),
+              updatedAt: Value(now),
+            )),
+        throwsA(anything),
+      );
+    });
+
     test('outbox queues rows for every affected table', () async {
       final p = await seedProduct(name: 'Match', price: 100, qty: 50);
       final sold = await sales.finalizeSale(
@@ -329,9 +479,12 @@ void main() {
             'sales',
             'sale_items',
             'stock_movements',
-            'stock_levels',
             'credit_payments',
           }));
+      // stock_levels is deliberately ABSENT: its quantity is a counter
+      // reconciled from the stock_movements ledger on every device — it
+      // must never be pushed as an absolute LWW value (audit finding H1).
+      expect(tables, isNot(contains('stock_levels')));
     });
   });
 

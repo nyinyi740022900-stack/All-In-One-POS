@@ -13,22 +13,17 @@ import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
 import 'features/onboarding/daily_gate.dart';
-import 'features/onboarding/onboarding_flow.dart';
+import 'features/onboarding/full_screen_gate.dart';
+import 'features/onboarding/onboarding_state.dart';
 import 'features/onboarding/operating_mode_providers.dart';
-import 'features/printing/printing_providers.dart';
 import 'features/referral/referral_watcher.dart';
 import 'features/storefront/storefront_order_watcher.dart';
 import 'l10n/app_localizations.dart';
 
-/// Whether the one-time first-run onboarding has been completed.
-final _onboardingDoneProvider = FutureProvider<bool>((ref) {
-  return ref.watch(settingsRepositoryProvider).onboardingComplete();
-});
-
-/// Set when Get started is tapped so the gate can close even if the Drift
-/// write of `onboarding.done` is stalled (device-DB lock from Free-plan
-/// setup). Without this, the button stays grey forever on that page.
-final _onboardingForcedDoneProvider = StateProvider<bool>((ref) => false);
+/// Shown once per install, before the tabbed shell. Onboarding itself lives
+/// at the router route `/onboarding` (see `appRouterProvider`); this screen
+/// only holds launch while the completion flag is being read.
+final _onboardingForcedDoneProvider = onboardingForcedDoneProvider;
 
 class MmPosApp extends ConsumerWidget {
   const MmPosApp({super.key});
@@ -52,20 +47,20 @@ class MmPosApp extends ConsumerWidget {
     // Listen for password-recovery deep links for the whole app lifetime.
     ref.watch(passwordRecoveryWatcherProvider);
 
-    // Shown once per install, before the tabbed shell. Loading reads as
-    // "done" so the (effectively instant) first Drift read never flashes
-    // onboarding for a frame on every ordinary launch.
+    // Loading reads as "done" so the (effectively instant) first Drift read
+    // never flashes onboarding for a frame on every ordinary launch.
     final forcedDone = ref.watch(_onboardingForcedDoneProvider);
-    final showOnboarding =
-        !forcedDone &&
-        ref.watch(_onboardingDoneProvider).valueOrNull == false;
     final showPasswordRecovery = ref.watch(passwordRecoveryPendingProvider);
     final dailyGateAsync = ref.watch(dailyGateNeededProvider);
+    // Onboarding is a router route now; while it's up, neither the hold
+    // screen nor the daily gate may paint over it.
+    final onboardingNeeded = !forcedDone &&
+        ref.watch(onboardingCompleteProvider).valueOrNull == false;
     // Every install must not flash the Sell shell while we resolve whether
     // today's entry gate is still needed.
-    final holdForDailyCheck = !showOnboarding && !dailyGateAsync.hasValue;
+    final holdForDailyCheck = !onboardingNeeded && !dailyGateAsync.hasValue;
     final showDailyGate =
-        !showOnboarding && (dailyGateAsync.valueOrNull == true);
+        !onboardingNeeded && (dailyGateAsync.valueOrNull == true);
 
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
@@ -82,37 +77,30 @@ class MmPosApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: appRouter,
+      routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {
-        // These gates *replace* [child] (the go_router Navigator). PIN /
-        // confirm dialogs need a Navigator ancestor — without one,
+        // PIN / confirm dialogs need a Navigator ancestor — without one,
         // Continue as Owner throws in release and looks like a dead tap.
-        // SizedBox.expand is required: a bare Navigator in [builder] can
-        // paint full-screen while its hit-test box stays empty, so Get
-        // started / Continue look enabled but ignore taps.
-        Widget gated(Widget page) {
-          return SizedBox.expand(
-            child: Navigator(
-              onGenerateRoute: (_) => MaterialPageRoute<void>(
-                builder: (_) => page,
-                fullscreenDialog: true,
-              ),
-            ),
-          );
-        }
+        Widget gated(Widget page) =>
+            FullScreenGate(page: page, underneath: child);
 
         if (showPasswordRecovery) {
           return gated(const ResetPasswordScreen());
         }
-        if (showOnboarding) {
-          return gated(
-            OnboardingFlow(
-              onDone: () {
-                ref.read(_onboardingForcedDoneProvider.notifier).state =
-                    true;
-                ref.invalidate(_onboardingDoneProvider);
-              },
-            ),
+        // Onboarding moved OUT of this builder into a real router route
+        // (`/onboarding`, see appRouterProvider): the overlay's close path
+        // — provider write → this builder swapping the subtree — silently
+        // never painted on one owner device even though every step ran,
+        // leaving Get started looking dead. A route leaves via ordinary
+        // navigation. The loading-hold stays here so launch never flashes
+        // the shell before the (instant) first DB read resolves.
+        if (!forcedDone &&
+            ref.watch(onboardingCompleteProvider).isLoading &&
+            !ref.watch(onboardingCompleteProvider).hasValue &&
+            !ref.watch(onboardingCompleteProvider).hasError) {
+          final l = AppLocalizations.of(context);
+          return Scaffold(
+            body: AppLoadingView(message: l.dailyGateCheckingShop),
           );
         }
         if (holdForDailyCheck) {

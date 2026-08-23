@@ -1,14 +1,14 @@
 {
   "@@locale": "en",
   "appTitle": "All In One POS",
-  "@appTitle": { "description": "Application title" },
-
+  "@appTitle": {
+    "description": "Application title"
+  },
   "navSell": "Sell",
   "navInventory": "Inventory",
   "navInvoices": "Invoices",
   "navAnalytics": "Analytics",
   "navSettings": "Settings",
-
   "commonUnexpectedError": "Something went wrong. Please try again.",
   "commonSave": "Save",
   "commonCancel": "Cancel",
@@ -27,10 +27,15 @@
   "commonRetry": "Retry",
   "commonPleaseWait": "Please wait…",
   "copied": "Copied",
-
   "sellTitle": "Sell",
   "sellStockCap": "Only {count} in stock",
-  "@sellStockCap": { "placeholders": { "count": { "type": "int" } } },
+  "@sellStockCap": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sellCart": "Cart",
   "sellEmptyCart": "No items yet. Tap a product to add.",
   "ordersSelectHint": "Select an order",
@@ -39,7 +44,13 @@
   "sellSubtotal": "Subtotal",
   "sellDiscount": "Discount",
   "sellItemDiscountTitle": "Discount for {item}",
-  "@sellItemDiscountTitle": { "placeholders": { "item": { "type": "String" } } },
+  "@sellItemDiscountTitle": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
   "sellPaymentMethod": "Payment method",
   "sellAmountPaid": "Amount paid",
   "sellTenderExact": "Exact",
@@ -55,11 +66,25 @@
   "scanFlip": "Flip camera",
   "scanHint": "Point the camera at a barcode",
   "scanAdded": "Added {name}",
-  "@scanAdded": { "placeholders": { "name": { "type": "String" } } },
+  "@scanAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "scanNotFound": "No product for barcode {code}",
-  "@scanNotFound": { "placeholders": { "code": { "type": "String" } } },
+  "@scanNotFound": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "scanHardwareHint": "Camera, or a USB / Bluetooth scanner",
   "scanHardwareOnlyHint": "Plug in a USB scanner or pair a Bluetooth scanner in system settings, then scan. Keep this screen open.",
+  "scanDone": "Done",
+  "scanContinuousHint": "Scan as many items as you like — each one is added to the cart. Tap Done when finished.",
   "scannerSettings": "Barcode scanner",
   "scannerSettingsIntro": "A handheld scanner works like a keyboard. Pair it on the computer, tablet, or phone — this app does not need a separate Bluetooth pairing screen.",
   "scannerUsbTitle": "USB scanner",
@@ -71,6 +96,12 @@
   "sellCompleted": "Sale completed",
   "sellCheckoutFailed": "Sale wasn't saved — nothing was charged. Please try again.",
   "sellInsufficientPaid": "Amount paid is less than total.",
+  "sellHoldSale": "Hold sale",
+  "sellCartHeld": "Cart held",
+  "sellHeldTitle": "Held sales",
+  "sellHeldEmpty": "No held sales.",
+  "sellHeldRemoved": "Held sale removed",
+  "sellAutoHeldPrevious": "Previous cart held",
   "paymentCash": "Cash",
   "paymentKbzPay": "KBZPay",
   "paymentWavePay": "WavePay",
@@ -78,7 +109,6 @@
   "paymentCbPay": "CBPay",
   "paymentCredit": "Credit",
   "paymentCod": "COD (Cash on Delivery)",
-
   "cashRegisterTitle": "Cash register",
   "cashRegisterOpen": "Open",
   "cashRegisterClosed": "Closed",
@@ -89,11 +119,24 @@
   "cashOpenedAt": "Opened",
   "cashClosingAmount": "Counted cash",
   "cashCloseWarning": "Once closed, this count is final — the session and its variance can't be edited afterward.",
+  "cashAmountRequired": "Enter an amount first.",
   "cashVariance": "Variance",
   "cashVarianceShort": "Short by {amount}",
-  "@cashVarianceShort": { "placeholders": { "amount": { "type": "String" } } },
+  "@cashVarianceShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "cashVarianceOver": "Over by {amount}",
-  "@cashVarianceOver": { "placeholders": { "amount": { "type": "String" } } },
+  "@cashVarianceOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "cashVarianceExact": "Matches exactly",
   "cashNote": "Note (optional)",
   "cashHistory": "History",
@@ -107,7 +150,6 @@
   "cashReportSharePdf": "Share PDF",
   "cashReportCashSales": "Cash sales",
   "cashReportCashRepayments": "Cash repayments",
-
   "creditTitle": "Credit book",
   "creditCustomerName": "Customer name",
   "customerPhone": "Phone (optional)",
@@ -116,7 +158,26 @@
   "checkoutSaveToDirectory": "Save to customer list",
   "checkoutPickCustomer": "Pick from customers",
   "checkoutTierPricingApplied": "{tier} pricing applied to this sale",
-  "@checkoutTierPricingApplied": { "placeholders": { "tier": { "type": "String" } } },
+  "@checkoutTierPricingApplied": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "checkoutItemsCount": "{count, plural, one{{count} item} other{{count} items}}",
+  "@checkoutItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkoutShortfallCreditHint": "The shortfall will be recorded as credit — a customer name is required.",
+  "checkoutDone": "Done",
+  "checkoutOwnerPinTitle": "Owner PIN",
+  "checkoutOwnerPinExplain": "Discounts are owner-only. Enter the owner PIN to unlock them for this sale.",
+  "checkoutOwnerPinWrong": "Wrong PIN.",
   "creditCustomerRequired": "Enter a customer name for a credit sale.",
   "creditPaidNow": "Paid now (optional)",
   "creditOwed": "Owed",
@@ -126,11 +187,23 @@
   "creditTotalBalanceDue": "Total balance due",
   "creditTotalOutstanding": "Total outstanding",
   "creditTotalDue": "{amount} outstanding",
-  "@creditTotalDue": { "placeholders": { "amount": { "type": "String" } } },
+  "@creditTotalDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "creditNoneDue": "No outstanding credit",
   "creditEmpty": "No one owes you right now.",
   "creditOpenInvoices": "{count} open {count, plural, one{invoice} other{invoices}}",
-  "@creditOpenInvoices": { "placeholders": { "count": { "type": "int" } } },
+  "@creditOpenInvoices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creditOutstanding": "Outstanding",
   "creditInvoices": "Credit invoices",
   "creditSettled": "Settled",
@@ -140,7 +213,13 @@
   "creditRecordRepayment": "Record repayment",
   "creditAmount": "Amount",
   "creditRepaymentExceedsOutstanding": "This is more than the amount owed ({outstanding}).",
-  "@creditRepaymentExceedsOutstanding": { "placeholders": { "outstanding": { "type": "String" } } },
+  "@creditRepaymentExceedsOutstanding": {
+    "placeholders": {
+      "outstanding": {
+        "type": "String"
+      }
+    }
+  },
   "accountsPayableTitle": "Accounts payable",
   "apNoneDue": "Nothing owed to suppliers",
   "apOutstanding": "Outstanding",
@@ -178,9 +257,14 @@
   "customerSaved": "Customer saved",
   "customerDeleteConfirmTitle": "Remove this customer?",
   "customerDeleteConfirmBody": "{name} will no longer appear as a suggestion at checkout. Past invoices still show their name.",
-  "@customerDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@customerDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "customerDeleted": "Customer removed",
-
   "suppliersTitle": "Suppliers",
   "suppliersEmpty": "No suppliers yet. Add your first supplier.",
   "supplierAdd": "Add supplier",
@@ -189,9 +273,24 @@
   "supplierSaved": "Supplier saved",
   "supplierDeleteConfirmTitle": "Remove this supplier?",
   "supplierDeleteConfirmBody": "{name} will no longer appear as a suggestion on new purchase orders. Past purchase orders still show their name.",
-  "@supplierDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@supplierDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "supplierDeleteConfirmApWarning": "{name} still owes {amount} in Accounts Payable. Deleting the supplier won't cancel that debt — it stays visible in Accounts Payable under their saved name.",
-  "@supplierDeleteConfirmApWarning": { "placeholders": { "name": { "type": "String" }, "amount": { "type": "String" } } },
+  "@supplierDeleteConfirmApWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "supplierDeleted": "Supplier removed",
   "paymentAccountsTitle": "Payment accounts",
   "paymentAccountsEmpty": "No payment accounts yet. Add your first account.",
@@ -202,10 +301,15 @@
   "paymentAccountSaved": "Account saved",
   "paymentAccountDeleteConfirmTitle": "Remove this account?",
   "paymentAccountDeleteConfirmBody": "{name} will no longer appear as a payment option at checkout. Past sales still show its name.",
-  "@paymentAccountDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@paymentAccountDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "paymentAccountDeleted": "Account removed",
   "expensePaidFrom": "Paid from",
-
   "purchaseOrdersTitle": "Purchase orders",
   "purchaseOrdersEmpty": "No purchase orders yet.",
   "poCreate": "Create purchase order",
@@ -232,7 +336,6 @@
   "poDeleteConfirmTitle": "Delete this purchase order?",
   "poDeleteConfirmBody": "This permanently removes the draft and its line items. This cannot be undone.",
   "poDeleteFailedReceived": "Can't delete a purchase order that's already been received.",
-
   "inventoryTitle": "Inventory",
   "inventoryExportCsv": "Export CSV",
   "inventoryEmpty": "No products yet. Add your first product.",
@@ -241,10 +344,18 @@
   "inventoryEditProduct": "Edit product",
   "inventoryNoResults": "No products match your search.",
   "inventoryFilteredCount": "{count} products",
-  "@inventoryFilteredCount": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryFilteredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryOutOfStock": "Out of stock",
   "inventoryOutOfStockBadge": "Sold out",
-  "@inventoryOutOfStockBadge": { "description": "Compact form of inventoryOutOfStock for the badge laid over a product tile's photo — must stay short enough to sit on one line inside a phone-width grid tile." },
+  "@inventoryOutOfStockBadge": {
+    "description": "Compact form of inventoryOutOfStock for the badge laid over a product tile's photo — must stay short enough to sit on one line inside a phone-width grid tile."
+  },
   "productName": "Product name",
   "productPhoto": "Product photo",
   "productPrice": "Sale price",
@@ -274,13 +385,37 @@
   "stockAdjustSave": "Save",
   "stockAdjustInvalid": "Enter a valid quantity",
   "stockAdjustBelowZero": "This would take stock below zero (currently {quantity}).",
-  "@stockAdjustBelowZero": { "placeholders": { "quantity": { "type": "int" } } },
+  "@stockAdjustBelowZero": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      }
+    }
+  },
   "stockAdjustRace": "Stock changed on another device — refresh and try again.",
   "stockAdjustCurrentStock": "Current stock: {quantity}",
-  "@stockAdjustCurrentStock": { "placeholders": { "quantity": { "type": "int" } } },
+  "@stockAdjustCurrentStock": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      }
+    }
+  },
   "stockAdjustConfirmTitle": "Confirm stock change",
   "stockAdjustConfirmBody": "{name}: stock changes from {before} to {after}. This is recorded in stock history but not automatically reversible.",
-  "@stockAdjustConfirmBody": { "placeholders": { "name": { "type": "String" }, "before": { "type": "int" }, "after": { "type": "int" } } },
+  "@stockAdjustConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "before": {
+        "type": "int"
+      },
+      "after": {
+        "type": "int"
+      }
+    }
+  },
   "stockReasonDamaged": "Damaged",
   "stockReasonLost": "Lost / stolen",
   "stockReasonCount": "Stock count correction",
@@ -302,7 +437,6 @@
   "deleteConfirmBody": "This item will be removed.",
   "productDeleteConfirmBody": "It will be hidden from Sell and Inventory, but stays visible on past sales, invoices, and stock history.",
   "categoryDeleteConfirmBody": "Products in this category keep their prices and stock, but show as uncategorized.",
-
   "settingsTitle": "Settings",
   "settingsSectionBusiness": "Business",
   "settingsSectionFinance": "Finance",
@@ -334,7 +468,6 @@
   "settingsTrackStockHint": "Off = invoice only (no stock counts or alerts).",
   "settingsAskCustomer": "Ask for customer",
   "settingsAskCustomerHint": "Show optional customer name + phone at checkout.",
-
   "shopProfileHint": "Shown on printed receipts.",
   "shopLogo": "Shop logo",
   "shopName": "Shop name",
@@ -342,17 +475,22 @@
   "shopPhone": "Phone",
   "receiptFooter": "Receipt footer",
   "shopProfileSaved": "Shop profile saved",
-
   "languageEnglish": "English",
   "languageMyanmar": "Myanmar",
-
   "invoicesEmpty": "No sales yet.",
   "invoiceFilterAll": "All",
   "invoiceFilterCredit": "Credit",
   "invoiceOwed": "Owed {amount}",
-  "@invoiceOwed": { "placeholders": { "amount": { "type": "String" } } },
+  "@invoiceOwed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "invoicePrint": "Print",
   "invoiceReprint": "Reprint",
+  "invoiceShare": "Share invoice",
   "invoiceDetail": "Invoice",
   "invoiceSearchHint": "Search invoice #, customer, phone",
   "invoiceScanToSearch": "Scan barcode",
@@ -366,9 +504,21 @@
   "invoiceRefundConfirmTitle": "Refund this invoice?",
   "invoiceRefundConfirmBody": "This reverses the sale, restores stock, and cannot be undone.",
   "invoiceRefundOf": "Refund of {invoiceNo}",
-  "@invoiceRefundOf": { "placeholders": { "invoiceNo": { "type": "String" } } },
+  "@invoiceRefundOf": {
+    "placeholders": {
+      "invoiceNo": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceRefundSuccess": "Refunded ({refundNo}).",
-  "@invoiceRefundSuccess": { "placeholders": { "refundNo": { "type": "String" } } },
+  "@invoiceRefundSuccess": {
+    "placeholders": {
+      "refundNo": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceAlreadyRefunded": "This invoice was already refunded.",
   "invoiceCustomerName": "Customer Name",
   "invoicePhoneNumber": "Phone Number",
@@ -393,7 +543,13 @@
   "salesReportNoPrinter": "No printer set up — see Printer settings.",
   "documentPrint": "Print",
   "salesReportCount": "{count} sales",
-  "@salesReportCount": { "placeholders": { "count": { "type": "int" } } },
+  "@salesReportCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pnlTitle": "Profit & Loss",
   "pnlDateRange": "Date range",
   "pnlRevenue": "Revenue",
@@ -447,7 +603,6 @@
   "printerUsbHint": "Plug the printer into this computer with a USB cable, then pick it from the list. Windows must already show it under Printers.",
   "printerUsbNoneFound": "No printers found. Plug the printer in, install it in Windows if asked, then tap Refresh.",
   "printerUsbRefresh": "Refresh",
-
   "settingsLabelPrinter": "Label printer",
   "settingsDeviceName": "Device name",
   "settingsDeviceNameUnset": "Not set — tap to name this device",
@@ -463,7 +618,6 @@
   "labelPrintTargetStrip": "Prints as a strip on the receipt printer",
   "labelPrintTargetDedicated": "Prints on the label printer",
   "labelPrintNoTarget": "No printer connected. Set one up in Settings.",
-
   "categoriesTitle": "Categories",
   "manageCategories": "Manage categories",
   "categoryAdd": "Add category",
@@ -473,7 +627,6 @@
   "categoryAll": "All",
   "categoriesEmpty": "No categories yet.",
   "productCategory": "Category",
-
   "analyticsRevenue": "Revenue",
   "analyticsProfit": "Gross profit",
   "analyticsExpenses": "Total expenses",
@@ -489,7 +642,6 @@
   "analyticsDailyRevenue": "Daily revenue",
   "analyticsCollected": "Collected",
   "analyticsCreditOutstanding": "Credit outstanding",
-
   "expensesTitle": "Expenses",
   "expensesEmpty": "No expenses logged for this period.",
   "expensesTotal": "Total expenses",
@@ -513,7 +665,6 @@
   "expenseDeleteConfirmTitle": "Delete this expense?",
   "expenseDeleteConfirmBody": "This permanently removes the expense record. This cannot be undone.",
   "expenseDeleted": "Expense deleted",
-
   "licenseActivateTitle": "Activate license",
   "licenseKeyLabel": "License key",
   "licenseActivateBtn": "Activate",
@@ -522,9 +673,21 @@
   "licenseStatusExpired": "Expired",
   "licenseStatusNone": "Not activated",
   "licenseExpires": "Expires: {date}",
-  "@licenseExpires": { "placeholders": { "date": { "type": "String" } } },
+  "@licenseExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "licenseGraceLeft": "{days} days of grace left",
-  "@licenseGraceLeft": { "placeholders": { "days": { "type": "int" } } },
+  "@licenseGraceLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "licenseReadOnly": "This shop isn't set up yet, so you can't complete a sale.",
   "licenseInvalidKey": "Invalid or unknown license key.",
   "licenseActivateFailed": "Activation failed. Check your connection.",
@@ -546,7 +709,13 @@
   "licensePlanMonthly": "Monthly",
   "licensePlanFree": "Free plan",
   "premiumFeatureTitle": "{featureName} is a Premium feature",
-  "@premiumFeatureTitle": { "placeholders": { "featureName": { "type": "String" } } },
+  "@premiumFeatureTitle": {
+    "placeholders": {
+      "featureName": {
+        "type": "String"
+      }
+    }
+  },
   "premiumFeatureBody": "You're on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Premium subscription or license key.",
   "premiumUpgradeCta": "Upgrade",
   "analyticsBenefit1": "See your best-selling products at a glance",
@@ -605,7 +774,13 @@
   "supportViberOpenFailed": "Couldn't open Viber. The number was copied — paste it in Viber.",
   "licenseAfterPaymentTitle": "Already paid or asked Support?",
   "licenseExpiringSoon": "License expires in {days} days — tap to renew.",
-  "@licenseExpiringSoon": { "placeholders": { "days": { "type": "int" } } },
+  "@licenseExpiringSoon": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "licenseThankYouTitle": "Thank you!",
   "licenseThankYou24h": "We'll verify your payment and your access will begin within 24 hours.",
   "licenseFreeTrial": "Try Premium",
@@ -622,7 +797,13 @@
   "licenseAccountEmailMissing": "Sign in under Account so Support can find your account.",
   "licenseRequestSent": "Request sent. We'll review your payment and send your key.",
   "licenseRequestSentViber": "Request sent. We'll send your key via Viber {viber}.",
-  "@licenseRequestSentViber": { "placeholders": { "viber": { "type": "String" } } },
+  "@licenseRequestSentViber": {
+    "placeholders": {
+      "viber": {
+        "type": "String"
+      }
+    }
+  },
   "licenseCheckRenewal": "Check for renewal",
   "licenseRefreshed": "License status updated",
   "licenseRenewHint": "After Support extends your license, tap Check for renewal (or activate a new key).",
@@ -630,13 +811,34 @@
   "licenseRenewNotFound": "No subscription found for this account yet. After Support extends it, try Check for renewal again.",
   "deviceSectionTitle": "Devices",
   "deviceAddOnlineHint": "This phone is included and does not count. Extra phones or computers: sign in with an owner or staff email, then tap Check for renewal. No license key. You can use {free} extras (a phone and a computer each count as one). Support can allow more after the free 2.",
-  "@deviceAddOnlineHint": { "placeholders": { "free": { "type": "int" } } },
+  "@deviceAddOnlineHint": {
+    "placeholders": {
+      "free": {
+        "type": "int"
+      }
+    }
+  },
   "premiumFeatureBodyOnline": "You're on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Online Premium subscription on your shop account.",
   "deviceCount": "{used}/{free} extra devices used",
-  "@deviceCount": { "placeholders": { "used": { "type": "int" }, "free": { "type": "int" } } },
+  "@deviceCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "free": {
+        "type": "int"
+      }
+    }
+  },
   "deviceThisDevice": "This device",
   "deviceLastActive": "Last active {when}",
-  "@deviceLastActive": { "placeholders": { "when": { "type": "String" } } },
+  "@deviceLastActive": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "deviceNeverVerified": "Not yet activated",
   "deviceAdd": "Add a device",
   "deviceRelease": "Release",
@@ -648,14 +850,22 @@
   "deviceKeyCopied": "Key copied",
   "devicePaymentRequiredTitle": "Device fee required",
   "devicePaymentRequiredBody": "This shop already uses its main phone plus extras ({free} devices total). Adding another costs {fee} (one-time) — after paying, contact support with your App Reference ID to get your new device's key.",
-  "@devicePaymentRequiredBody": { "placeholders": { "free": { "type": "int" }, "fee": { "type": "String" } } },
+  "@devicePaymentRequiredBody": {
+    "placeholders": {
+      "free": {
+        "type": "int"
+      },
+      "fee": {
+        "type": "String"
+      }
+    }
+  },
   "deviceOnlyOnPaidPlan": "Add a device once you have an active subscription (not available during the free trial).",
   "deviceRequestFailed": "Couldn't add a device — try again.",
   "deviceRoleTitle": "Who is this device for?",
   "deviceRoleHint": "Picked now, so the new phone is already set up correctly the moment it activates — no separate step needed on it.",
   "deviceRoleStaffMember": "Staff member (optional)",
   "deviceRoleAppliesOnScan": "Staff mode will be applied automatically when this QR is scanned to activate.",
-
   "invWebActivateTitle": "Open invoices on this computer",
   "invWebActivateHint": "Sign in with the shop email you already use on the phone. This computer counts as one extra device. Free plan with no account: use the Windows POS app and tap Continue Free — no key.",
   "invWebFreeHint": "Free plan does not need activation. Sell on this computer with the Windows POS app (Continue Free). This page only shows invoices after you sign in to a shop account.",
@@ -675,29 +885,55 @@
   "invWebDownloadPdf": "Download PDF",
   "invWebSearchHint": "Search invoice #, customer, or phone",
   "invWebNoResults": "No invoices match your search.",
-
   "referralTitle": "Refer & earn",
   "referralSubtitle": "Share your code. Every month a shop you referred pays, you earn — added straight to your license.",
   "referralMyCode": "My referral code",
   "referralShare": "Share code",
   "referralCopied": "Code copied",
   "referralShareText": "Use All In One POS for your shop! Enter my referral code {code} when you subscribe. — {shop}",
-  "@referralShareText": { "placeholders": { "code": { "type": "String" }, "shop": { "type": "String" } } },
+  "@referralShareText": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "shop": {
+        "type": "String"
+      }
+    }
+  },
   "referralBalance": "Your earnings",
   "referralEarnedTotal": "Total earned",
   "referralActiveShops": "Shops you referred",
   "referralRedeem": "Redeem for license days",
   "referralRedeemDone": "Added {months} month(s) to your license!",
-  "@referralRedeemDone": { "placeholders": { "months": { "type": "int" } } },
+  "@referralRedeemDone": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
   "referralRedeemNotEnough": "Not enough balance yet — refer one more shop!",
   "referralNextGoal": "{amount} more until your next free month",
-  "@referralNextGoal": { "placeholders": { "amount": { "type": "String" } } },
+  "@referralNextGoal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralCodeOptional": "Referral code (optional)",
   "referralCodeHint": "Got a friend's code? Enter it — they earn when your payment is approved.",
   "referralEmpty": "No referrals yet. Share your code to start earning every month.",
   "referralNotifTitle": "🎉 Commission earned!",
   "referralNotifBody": "{amount} was added to your referral wallet. Open the app to redeem it for free license days.",
-  "@referralNotifBody": { "placeholders": { "amount": { "type": "String" } } },
+  "@referralNotifBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralHowTitle": "How Refer & earn works",
   "referralStep1": "Share your code with other shop owners.",
   "referralStep2": "They type your code when they subscribe and pay.",
@@ -707,9 +943,17 @@
   "referralHaveCodeHint": "A friend gave you one? Enter it below — they earn when your payment is approved. Leave blank if you don't have one.",
   "referralRedeemConfirmTitle": "Redeem now?",
   "referralRedeemConfirmBody": "Add {months} month(s) to your license and use {amount} from your balance?",
-  "@referralRedeemConfirmBody": { "placeholders": { "months": { "type": "int" }, "amount": { "type": "String" } } },
+  "@referralRedeemConfirmBody": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralRedeemAction": "Redeem",
-
   "backupTitle": "Backup & restore",
   "backupHint": "Your data is stored on this device. Export a backup file and keep it safe (e.g. send it to Viber → My Notes).",
   "backupExport": "Export backup",
@@ -722,11 +966,22 @@
   "backupImportConfirmBody": "This will erase the current products, sales and credit data and replace them with the backup. This cannot be undone.",
   "backupImportConfirmAction": "Replace",
   "backupImportDone": "Restored {count} rows",
-  "@backupImportDone": { "placeholders": { "count": { "type": "int" } } },
+  "@backupImportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "backupFailed": "Backup failed: {error}",
-  "@backupFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@backupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "backupInvalidFile": "This doesn't look like a valid backup file.",
-
   "settingsSync": "Cloud sync",
   "syncNow": "Sync now",
   "syncIdle": "Up to date",
@@ -738,35 +993,55 @@
   "syncDisabled": "Cloud sync not configured",
   "syncNever": "Never synced",
   "syncLastSynced": "Last synced: {time}",
-  "@syncLastSynced": { "placeholders": { "time": { "type": "String" } } },
+  "@syncLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "syncRealtimeOn": "Live updates on",
   "syncIssuesTitle": "{count, plural, one{Sync status} other{Sync status}}",
-  "@syncIssuesTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@syncIssuesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "syncIssuesEmpty": "Nothing waiting — sync is clear.",
   "syncIssuesBackgroundHint": "Background sync finishes any held uploads automatically. If you were offline, they complete when you are back online. Tap Sync now to retry now.",
   "syncIssuesPendingHint": "{count} upload(s) still retrying — tap Sync now.",
-  "@syncIssuesPendingHint": { "placeholders": { "count": { "type": "int" } } },
+  "@syncIssuesPendingHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "syncIssuesQuarantinedRow": "Finishing: {table}",
-  "@syncIssuesQuarantinedRow": { "placeholders": { "table": { "type": "String" } } },
+  "@syncIssuesQuarantinedRow": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
   "syncIssuesQuarantinedHeld": "Kept on this device until cloud sync completes automatically.",
-
   "navOrders": "Orders",
   "ordersTitle": "Social Orders",
   "ordersEmpty": "No orders yet. Tap + to add one.",
   "orderNew": "New order",
   "orderEditTitle": "Edit order",
-
   "orderStatusNew": "New",
   "orderStatusDelivered": "Delivered",
   "orderStatusCancelled": "Return",
-
   "orderChannelFacebook": "Facebook",
   "orderChannelViber": "Viber",
   "orderChannelTiktok": "TikTok",
   "orderChannelPhone": "Phone",
   "orderChannelStorefront": "Web",
   "orderChannelOther": "Other",
-
   "orderCustomerName": "Customer name",
   "orderCustomerPhone": "Phone (optional)",
   "orderChannel": "Channel",
@@ -790,38 +1065,67 @@
   "orderAwaitingPayment": "Awaiting payment",
   "orderMarkAsPaid": "Mark as paid",
   "orderMarkAsUnpaid": "Mark as unpaid",
-
   "orderSave": "Save order",
   "orderEdit": "Edit",
   "orderDelete": "Delete order",
   "orderDeleteConfirm": "Delete this order? This cannot be undone.",
   "orderBlockCustomer": "Block this customer",
   "orderBlockCustomerConfirm": "Block {phone} from placing new orders on your storefront?",
-  "@orderBlockCustomerConfirm": { "placeholders": { "phone": { "type": "String" } } },
+  "@orderBlockCustomerConfirm": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
   "orderCustomerBlocked": "Customer blocked",
   "orderLowStockAtOrder": "Requested more than the recorded stock at the time of this order",
   "orderCarrierHint": "Type or pick a carrier",
   "orderHandOffButton": "Handed off to carrier",
   "orderHandedOffTo": "Handed off to {carrier}",
-  "@orderHandedOffTo": { "placeholders": { "carrier": { "type": "String" } } },
+  "@orderHandedOffTo": {
+    "placeholders": {
+      "carrier": {
+        "type": "String"
+      }
+    }
+  },
   "orderChangeCarrier": "Change",
   "orderConvertToSale": "Convert to sale",
   "orderConvertHint": "Creates an invoice and deducts stock for catalog items.",
   "orderConverted": "Order converted to a sale ({invoice}).",
-  "@orderConverted": { "placeholders": { "invoice": { "type": "String" } } },
+  "@orderConverted": {
+    "placeholders": {
+      "invoice": {
+        "type": "String"
+      }
+    }
+  },
   "orderConvertFailed": "Couldn't convert this order to a sale. Please try again.",
   "orderAlreadySale": "Already recorded as a sale.",
   "orderCancel": "Mark as return",
   "orderRestore": "Undo return",
   "orderReturnConfirmTitle": "Return this order?",
   "orderReturnConfirmBody": "This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.",
-  "@orderReturnConfirmBody": { "placeholders": { "amount": { "type": "String" } } },
+  "@orderReturnConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "orderReturnFailed": "Couldn't process the return. Please check Invoices before trying again.",
   "orderNeedsName": "Enter a customer name.",
   "orderNeedsItem": "Add at least one item.",
   "orderSaved": "Order saved.",
   "orderItemsCount": "{count} items",
-  "@orderItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@orderItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "orderPickPaymentMethod": "Payment method",
   "orderPaymentProof": "Payment screenshot",
   "orderInvoice": "Share invoice",
@@ -840,14 +1144,25 @@
   "ordersClearFilters": "Clear filters",
   "orderFilterChannel": "Channel",
   "orderFilterPayment": "Payment",
-
   "staffMode": "Staff mode",
   "staffRoleOwner": "Owner",
   "staffRoleStaff": "Staff",
   "staffCurrentRole": "Current: {role}",
-  "@staffCurrentRole": { "placeholders": { "role": { "type": "String" } } },
+  "@staffCurrentRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "staffSwitchTo": "Switch to {role}",
-  "@staffSwitchTo": { "placeholders": { "role": { "type": "String" } } },
+  "@staffSwitchTo": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "staffUnlockOwner": "Unlock Owner",
   "staffSetPin": "Set owner PIN",
   "staffChangePin": "Change owner PIN",
@@ -856,7 +1171,13 @@
   "staffPinMismatch": "The two PINs do not match.",
   "staffWrongPin": "Wrong PIN",
   "staffPinTryAgainIn": "Too many attempts. Try again in {seconds}s",
-  "@staffPinTryAgainIn": { "placeholders": { "seconds": { "type": "int" } } },
+  "@staffPinTryAgainIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "staffPinHint": "4–6 digits",
   "staffPinSaved": "PIN saved",
   "staffOwnerOnly": "Owner only",
@@ -874,11 +1195,16 @@
   "staffRemoveMember": "Remove",
   "staffRemoveConfirmTitle": "Remove this staff member?",
   "staffRemoveConfirmBody": "{name} will no longer appear when switching to Staff mode. Past sales still show their name.",
-  "@staffRemoveConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@staffRemoveConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "staffMemberRemoved": "Staff member removed",
   "staffWhoAreYou": "Who's using this device?",
   "staffNoNamedStaff": "No name — just Staff mode",
-
   "storefrontTitle": "My web storefront",
   "storefrontDesc": "Publish a public catalog your customers can order from — no app needed.",
   "storefrontPublish": "Publish storefront",
@@ -898,8 +1224,12 @@
   "storefrontShareText": "{name}\nOrder here: {url}",
   "@storefrontShareText": {
     "placeholders": {
-      "name": { "type": "String" },
-      "url": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
     }
   },
   "storefrontClosed": "This shop is closed for online orders right now. Please try again during opening hours.",
@@ -915,7 +1245,9 @@
   "storefrontOrderNotifBody": "{count} new storefront order(s) — open Orders to review.",
   "@storefrontOrderNotifBody": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "storefrontBlockedCustomers": "Blocked customers",
@@ -935,10 +1267,25 @@
   "storefrontOutOfStock": "Sorry, one of your items just sold out online. Please adjust your cart and try again.",
   "storefrontInvalidProduct": "One of the items in your cart is no longer available. Please remove it and try again.",
   "storefrontOnlineLeft": "{count} left online",
-  "@storefrontOnlineLeft": { "placeholders": { "count": { "type": "int" } } },
+  "@storefrontOnlineLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "storefrontSoldOut": "Sold out online",
   "storefrontCheckoutBar": "Checkout · {count} item(s) · {total}",
-  "@storefrontCheckoutBar": { "placeholders": { "count": { "type": "int" }, "total": { "type": "String" } } },
+  "@storefrontCheckoutBar": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontShopFallbackName": "Shop",
   "storefrontPhoneCopied": "Phone number copied",
   "storefrontAdd": "Add",
@@ -950,21 +1297,45 @@
   "storefrontPayTo": "Pay to:",
   "storefrontAttachProof": "Attach payment screenshot",
   "storefrontProofAttached": "Screenshot: {name}",
-  "@storefrontProofAttached": { "placeholders": { "name": { "type": "String" } } },
+  "@storefrontProofAttached": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontCodNoticeBeforeOrder": "You'll pay cash to the courier when your order arrives.",
   "storefrontTotal": "Total: {amount}",
-  "@storefrontTotal": { "placeholders": { "amount": { "type": "String" } } },
+  "@storefrontTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontPlaceOrder": "Place order",
   "storefrontOrderPlaced": "Order placed!",
   "storefrontOrderNo": "Order no: {orderNo}",
-  "@storefrontOrderNo": { "placeholders": { "orderNo": { "type": "String" } } },
+  "@storefrontOrderNo": {
+    "placeholders": {
+      "orderNo": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontTransferInstructions": "Transfer and send the screenshot to the shop:",
   "storefrontCodNoticeAfterOrder": "You'll pay cash to the courier on delivery.",
   "storefrontSaveToPhotos": "Save to Photos",
   "storefrontDone": "Done",
   "storefrontCopyNumber": "Copy number",
   "storefrontNotFound": "Shop \"{slug}\" not found or not published.",
-  "@storefrontNotFound": { "placeholders": { "slug": { "type": "String" } } },
+  "@storefrontNotFound": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontOpenShopLink": "Open a shop link, e.g. /your-shop-slug",
   "storefrontRenewTitle": "Renew subscription",
   "storefrontRenewHint": "Submit your payment details below and we'll review it to extend your subscription.",
@@ -974,9 +1345,21 @@
   "storefrontRenewEmailHint": "Have this? You don't need the App Reference ID above — either one is enough.",
   "storefrontRenewPlan": "Plan",
   "storefrontRenewPricePerMonth": "{price} / month",
-  "@storefrontRenewPricePerMonth": { "placeholders": { "price": { "type": "String" } } },
+  "@storefrontRenewPricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontRenewPricePerYear": "{price} / year",
-  "@storefrontRenewPricePerYear": { "placeholders": { "price": { "type": "String" } } },
+  "@storefrontRenewPricePerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontRenewMonths": "Months",
   "storefrontRenewAmountLockedHint": "This is the fixed amount for your plan — please transfer exactly this much.",
   "storefrontRenewAmountPaid": "Amount to pay (Ks) *",
@@ -985,12 +1368,17 @@
   "storefrontRenewSubmit": "Submit request",
   "storefrontRenewSubmitted": "Request submitted! We'll review your payment and extend your subscription soon.",
   "storefrontRenewRequestId": "Reference: {requestId}",
-  "@storefrontRenewRequestId": { "placeholders": { "requestId": { "type": "String" } } },
+  "@storefrontRenewRequestId": {
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontRenewFailed": "Something went wrong. Please try again or contact support.",
   "storefrontRenewRateLimited": "Too many requests submitted recently — please wait a few minutes and try again.",
   "storefrontRenewMissingFields": "Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.",
   "storefrontRenewMonthsTooHigh": "Months can't be more than 60 (5 years). Please enter a smaller number.",
-
   "onboardWelcomeTitle": "Welcome to All In One POS",
   "onboardWelcomeBody": "Offline-first point of sale for Myanmar shops. Let's get your shop set up — it only takes a minute.",
   "onboardNext": "Next",
@@ -1008,8 +1396,8 @@
   "onboardAccountSkip": "Skip for now",
   "onboardAccountSignedInTitle": "Signed in",
   "onboardStaffTitle": "Owner and Staff modes",
-  "onboardStaffBody": "You're in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who's opening the shop each day.",
-
+  "onboardStaffBody": "You're in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.",
+  "onboardAccountMissingFields": "Fill in the required fields first.",
   "accountShopLoginTitle": "Account",
   "accountShopLoginHint": "Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.",
   "accountProfileSubtitleSignedOut": "Sign in or create a shop login",
@@ -1063,7 +1451,6 @@
   "accountSignInSessionFailed": "Signed in, but this phone could not load your shop. Try Sign in again.",
   "accountSignInNoShop": "This email is not linked to a shop yet. If you already paid, message Support — then tap Check for renewal.",
   "accountSignInDeviceLimit": "This shop already uses its main phone plus 2 extra phones or computers. Message Support if an old device should be removed.",
-
   "staffAccountsTitle": "Staff accounts (email login)",
   "staffAccountsSubtitle": "Online: each staff signs in with their own email and password.",
   "staffModeSubtitle": "This phone only: lock the device with an owner PIN (works offline too).",
@@ -1075,8 +1462,13 @@
   "staffAccountsRevoke": "Revoke",
   "staffAccountsRevokeConfirmTitle": "Revoke this account?",
   "staffAccountsRevokeConfirmBody": "{email} will no longer be able to sign in.",
-  "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
-
+  "@staffAccountsRevokeConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "branchesTitle": "Branches",
   "branchesCreate": "Create a new branch",
   "branchesCreated": "Branch created.",
@@ -1089,34 +1481,88 @@
   "branchesHealthSafeSwitch": "Safe to switch",
   "branchesHealthSyncNeeded": "Sync needed",
   "branchesRowPending": "This device — pending uploads: {count}",
-  "@branchesRowPending": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesRowPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesRowLastSync": "Last synced: {time}",
-  "@branchesRowLastSync": { "placeholders": { "time": { "type": "String" } } },
+  "@branchesRowLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "branchesCurrent": "Current",
   "branchesSwitch": "Switch",
   "branchesSwitched": "Switched branch.",
   "branchesSwitchSyncing": "Syncing this shop's data — this may take a moment on a slow connection.",
   "branchesSwitchConfirmTitle": "Switch to this branch?",
   "branchesSwitchConfirmBody": "This replaces all local data on this device with \"{label}\"'s data. Make sure everything is already synced first — this cannot be undone.",
-  "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+  "@branchesSwitchConfirmBody": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "branchesSwitchBlockedTitle": "Fix sync issues first",
   "branchesSwitchBlockedStuckOutbox": "Some uploads are still retrying. Tap Sync now, wait a moment, then try switching again.",
   "branchesSwitchFixSyncIssues": "View sync status",
   "branchesPendingSync": "This device still has unsynced changes. Wait for sync to finish, then try again.",
   "branchesPreflightTitle": "Ready to switch to \"{label}\"?",
-  "@branchesPreflightTitle": { "placeholders": { "label": { "type": "String" } } },
+  "@branchesPreflightTitle": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightTarget": "Target branch",
   "branchesPreflightPending": "Pending local changes: {count}",
-  "@branchesPreflightPending": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesPreflightPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightStuck": "Uploads still retrying: {count}",
-  "@branchesPreflightStuck": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesPreflightStuck": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightNetwork": "Network: {status}",
-  "@branchesPreflightNetwork": { "placeholders": { "status": { "type": "String" } } },
+  "@branchesPreflightNetwork": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightLastSync": "Last synced: {time}",
-  "@branchesPreflightLastSync": { "placeholders": { "time": { "type": "String" } } },
+  "@branchesPreflightLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightNeedSync": "Sync first before switching so no local changes are lost.",
   "branchesSwitchUploadFailed": "Could not upload {count} local change(s) yet. Tap Sync now and try switching again. Held items finish automatically in the background and do not block switching.",
-  "@branchesSwitchUploadFailed": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesSwitchUploadFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightNeedOnline": "You are offline. Connect to the internet before switching.",
   "branchesPreflightSyncAndSwitch": "Sync and switch",
   "branchesPreflightSyncFirst": "Sync first",
@@ -1137,9 +1583,24 @@
   "branchesSwitchStepClearingOldData": "Opening this shop's data",
   "branchesSwitchStepSyncingNewData": "Syncing new branch data",
   "branchesRecoveryBody": "Branch switch to {shopId} was interrupted before setup completed. You can retry sync now.",
-  "@branchesRecoveryBody": { "placeholders": { "shopId": { "type": "String" } } },
+  "@branchesRecoveryBody": {
+    "placeholders": {
+      "shopId": {
+        "type": "String"
+      }
+    }
+  },
   "branchesRecoveryBodyWithError": "Branch switch to {shopId} is still incomplete: {error}.",
-  "@branchesRecoveryBodyWithError": { "placeholders": { "shopId": { "type": "String" }, "error": { "type": "String" } } },
+  "@branchesRecoveryBodyWithError": {
+    "placeholders": {
+      "shopId": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "branchesRecoveryRetrySync": "Retry sync",
   "branchesRecoveryDismiss": "Dismiss",
   "branchesRecoveryResolved": "Branch setup completed.",
@@ -1156,9 +1617,13 @@
   "branchesUnlink": "Unlink",
   "branchesUnlinkConfirmTitle": "Unlink this branch?",
   "branchesUnlinkConfirmBody": "\"{label}\" will be removed from your branch list. You can re-link it later with its key.",
-  "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
-
-
+  "@branchesUnlinkConfirmBody": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "recurringExpenseTitle": "Recurring expenses",
   "recurringExpenseManage": "Manage recurring expenses",
   "recurringExpenseAddFromTemplate": "Add from template",
@@ -1174,8 +1639,16 @@
   "recurringExpenseTimingStart": "Day 1",
   "recurringExpenseTimingEnd": "Last day",
   "recurringExpenseAutoAdded": "{count, plural, one{1 recurring expense added automatically} other{{count} recurring expenses added automatically}}: {names}",
-  "@recurringExpenseAutoAdded": { "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } } },
-
+  "@recurringExpenseAutoAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "onboardModeTitle": "How will you use All In One POS?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "Start free with Sell + Inventory, no account needed. Add a license key anytime to unlock Premium.",
@@ -1219,6 +1692,5 @@
   "licenseAccountLinked": "Cloud account linked",
   "operatingModeOnline": "Online",
   "operatingModeOffline": "Offline",
-
   "currencySymbol": "Ks"
 }

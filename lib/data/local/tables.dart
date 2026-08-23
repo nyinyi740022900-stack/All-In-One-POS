@@ -16,6 +16,14 @@ mixin SyncColumns on Table {
       dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  TextColumn get hlc => text().nullable()();
 }
 
 class Categories extends Table with SyncColumns {
@@ -359,8 +367,9 @@ class SupplierPayments extends Table with SyncColumns {
 /// silently reduce [AnalyticsSummary.netProfit]/the P&L the way a business
 /// expense correctly does. Paid-in capital = Σ(contribution amounts) −
 /// Σ(drawing amounts); combined with Retained Earnings (cumulative Net
-/// Profit since inception, derived from `AnalyticsRepository.summary()` —
-/// not stored here) into Owner's Equity for an eventual Balance Sheet.
+/// Profit since inception, derived from
+/// `AnalyticsRepository.cumulativeNetProfit` — not stored here) into
+/// Owner's Equity for an eventual Balance Sheet.
 class EquityEntries extends Table with SyncColumns {
   /// contribution | drawing
   TextColumn get type => text()();
@@ -591,8 +600,6 @@ class Outbox extends Table {
   /// upsert | delete
   TextColumn get op => text()();
 
-  /// JSON payload of the row at enqueue time.
-  TextColumn get payload => text()();
   DateTimeColumn get enqueuedAt =>
       dateTime().withDefault(currentDateAndTime)();
   IntColumn get attempts => integer().withDefault(const Constant(0))();

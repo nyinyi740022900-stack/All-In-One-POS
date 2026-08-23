@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/layout.dart';
@@ -21,13 +22,26 @@ import '../account/saved_login_store.dart';
 import '../license/license_model.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
+import 'onboarding_state.dart';
 
 /// First-run, one-time flow: Welcome → Shop profile → Free plan (explained,
 /// started automatically) → optional account sign-in → Staff mode intro.
-/// Gated by `SettingsRepository.onboardingComplete`.
+/// Gated by `onboardingCompleteProvider` and hosted at the router route
+/// `/onboarding` — a real route, not a MaterialApp.builder overlay, so
+/// leaving it is an ordinary `context.go('/sell')` (the builder-overlay
+/// variant's gate swap silently never painted on one owner device).
 class OnboardingFlow extends ConsumerStatefulWidget {
-  const OnboardingFlow({super.key, required this.onDone});
-  final VoidCallback onDone;
+  const OnboardingFlow({
+    super.key,
+    this.onDone,
+    this.routed = false,
+  });
+
+  /// Optional extra hook (used by tests). The routed flow advances itself.
+  final VoidCallback? onDone;
+
+  /// True when hosted at `/onboarding`: finishing navigates via the router.
+  final bool routed;
 
   @override
   ConsumerState<OnboardingFlow> createState() => _OnboardingFlowState();
@@ -52,8 +66,38 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   }
 
   bool _busyNav = false;
+  // Set the instant Get started is tapped. The flow swaps ITSELF to a
+  // waiting screen through the exact same local-setState machinery the
+  // working Next button uses — on the owner's device the tap provably ran
+  // (the background persist landed) yet the app-level gate swap never
+  // painted, so the last page just sat there looking dead. Visible progress
+  // first; the app-level close follows.
+  bool _completing = false;
+
+  /// Get started — never wait on [_busyNav] or a Drift write. Those used to
+  /// swallow the tap (button looked enabled, nothing happened).
+  void _finishOnboarding() {
+    if (_completing) return;
+    // Release-visible breadcrumb: the owner's device ran the persist (a
+    // restart landed on the daily gate) while the gate stayed painted —
+    // this proves whether the tap reaches the handler at all.
+    debugPrint('[onboarding] Get started tapped');
+    setState(() => _completing = true);
+    unawaited(_persistOnboardingComplete());
+    widget.onDone?.call();
+    if (!widget.routed) return;
+    // The routed flow leaves via ordinary navigation — the same mechanism
+    // as every tab/tab switch that provably works on every device.
+    ref.read(onboardingForcedDoneProvider.notifier).state = true;
+    ref.invalidate(onboardingCompleteProvider);
+    context.go('/sell');
+  }
 
   Future<void> _next(int pageCount) async {
+    if (_page == pageCount - 1) {
+      _finishOnboarding();
+      return;
+    }
     if (_busyNav) return;
     // Plan page: everyone starts Free. Key activation stays in Settings.
     if (_page == 2 &&
@@ -70,14 +114,6 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         );
         return;
       }
-    }
-    if (_page == pageCount - 1) {
-      // Do not set [_busyNav] here: a stalled settings write used to leave
-      // Get started grey and untappable. Close the gate immediately; persist
-      // in the background.
-      unawaited(_persistOnboardingComplete());
-      widget.onDone();
-      return;
     }
     _controller.nextPage(
       duration: const Duration(milliseconds: 250),
@@ -104,13 +140,17 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Get started tapped: the very next paint is this waiting screen —
+    // driven by the same local setState that makes Next work everywhere,
+    // never by the app-level gate swap that silently failed on one device.
+    if (_completing) {
+      return Scaffold(body: AppLoadingView(message: l.commonPleaseWait));
+    }
     final pages = _pages;
     // Email page: Sign in / Create account advance on success. Footer Next
     // used to skip past a failed login — keep Skip on the page instead.
     const accountPageIndex = 3;
-    final nextBlocked =
-        _page == accountPageIndex ||
-        (_busyNav && _page != pages.length - 1);
+    final busy = _busyNav && _page != pages.length - 1;
     return Scaffold(
       body: Column(
         children: [
@@ -156,30 +196,33 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                     ),
                     const SizedBox(width: AppTheme.space2),
                   ],
-                  // Explicit finite minimumSize: the theme's FilledButton
-                  // default is Size.fromHeight(52), which sets width to
-                  // double.infinity (most buttons in this app are meant to
-                  // fill their container) — inside this Row, that infinite
-                  // demand was being resolved against a maxWidth: 220
-                  // ConstrainedBox into a forced 220pt-wide button no matter
-                  // how short its text was, overflowing the Row on narrow
-                  // phones once page dots + a "Back" button were also
-                  // present. A real minimum width lets it size to content.
-                  FilledButton(
-                    style: AppTheme.authFilledButtonStyle(
-                      minimumSize: const Size(88, 52),
+                  // The account page owns its navigation (Sign in / Skip for
+                  // now on the page itself). Its footer button used to render
+                  // permanently *disabled* — a greyed "Next" at the bottom of
+                  // every other page's rhythm reads as broken, and owners
+                  // reported tapping it and nothing happening. Absent beats
+                  // dead.
+                  if (_page != accountPageIndex)
+                    // minimumSize is a real finite size on purpose: the
+                    // theme default's width-infinity demand overflows this
+                    // Row once page dots + Back share it (see git history).
+                    FilledButton(
+                      style: AppTheme.authFilledButtonStyle(
+                        minimumSize: const Size(88, 52),
+                      ),
+                      onPressed: busy
+                          ? null
+                          : _page == pages.length - 1
+                              ? _finishOnboarding
+                              : () => _next(pages.length),
+                      child: busy
+                          ? const ButtonSpinner()
+                          : Text(
+                              _page == pages.length - 1
+                                  ? l.onboardGetStarted
+                                  : l.onboardNext,
+                            ),
                     ),
-                    onPressed: nextBlocked
-                        ? null
-                        : () => _next(pages.length),
-                    child: _busyNav
-                        ? const ButtonSpinner()
-                        : Text(
-                      _page == pages.length - 1
-                          ? l.onboardGetStarted
-                          : l.onboardNext,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -473,13 +516,19 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
 
   Future<void> _createAccount() async {
     final l = AppLocalizations.of(context);
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    if (_email.text.trim().isEmpty ||
+        _password.text.isEmpty ||
+        (!_attachToThisShop && _shopName.text.trim().isEmpty)) {
+      // Silent returns here used to read as a dead button — say what's
+      // missing instead of doing nothing.
+      setState(() => _error = l.onboardAccountMissingFields);
+      return;
+    }
     if (_password.text != _confirmPassword.text) {
       setState(() => _error = l.accountPasswordMismatch);
       return;
     }
     final attach = _attachToThisShop;
-    if (!attach && _shopName.text.trim().isEmpty) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -524,7 +573,11 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
 
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
+      // Same as _createAccount: a silent return reads as a dead button.
+      setState(() => _error = l.onboardAccountMissingFields);
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;

@@ -148,65 +148,65 @@ class BackupService {
       for (final m in rows('categories')) {
         final row = Category.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.categories).insert(row);
-        await _enqueue('categories', row.id, row.toJson());
+        await _enqueue('categories', row.id);
         written++;
       }
       for (final m in rows('products')) {
         final row = Product.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.products).insert(row);
-        await _enqueue('products', row.id, row.toJson());
+        await _enqueue('products', row.id);
         written++;
       }
       for (final m in rows('stock_levels')) {
         final row =
             StockLevel.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.stockLevels).insert(row);
-        await _enqueue('stock_levels', row.id, row.toJson());
+        await _enqueue('stock_levels', row.id);
         written++;
       }
       for (final m in rows('stock_movements')) {
         final row =
             StockMovement.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.stockMovements).insert(row);
-        await _enqueue('stock_movements', row.id, row.toJson());
+        await _enqueue('stock_movements', row.id);
         written++;
       }
       for (final m in rows('sales')) {
         final row = Sale.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.sales).insert(row);
-        await _enqueue('sales', row.id, row.toJson());
+        await _enqueue('sales', row.id);
         written++;
       }
       for (final m in rows('sale_items')) {
         final row = SaleItem.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.saleItems).insert(row);
-        await _enqueue('sale_items', row.id, row.toJson());
+        await _enqueue('sale_items', row.id);
         written++;
       }
       for (final m in rows('payments')) {
         final row = Payment.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.payments).insert(row);
-        await _enqueue('payments', row.id, row.toJson());
+        await _enqueue('payments', row.id);
         written++;
       }
       for (final m in rows('credit_payments')) {
         final row =
             CreditPayment.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.creditPayments).insert(row);
-        await _enqueue('credit_payments', row.id, row.toJson());
+        await _enqueue('credit_payments', row.id);
         written++;
       }
       for (final m in rows('license_payments')) {
         final row =
             LicensePayment.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.licensePayments).insert(row);
-        await _enqueue('license_payments', row.id, row.toJson());
+        await _enqueue('license_payments', row.id);
         written++;
       }
       for (final m in rows('expenses')) {
         final row = Expense.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.expenses).insert(row);
-        await _enqueue('expenses', row.id, row.toJson());
+        await _enqueue('expenses', row.id);
         written++;
       }
     });
@@ -216,13 +216,11 @@ class BackupService {
     return written;
   }
 
-  Future<void> _enqueue(
-      String table, String rowId, Map<String, dynamic> payload) {
+  Future<void> _enqueue(String table, String rowId) {
     return _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: table,
           rowId: rowId,
           op: 'upsert',
-          payload: jsonEncode(payload),
         ));
   }
 }

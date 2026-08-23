@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,14 +39,10 @@ class ShopProfileSyncRepository {
               dirty: const Value(true),
             ),
           );
-      final row = await (_db.select(_db.shopProfiles)
-            ..where((t) => t.id.equals(shopId)))
-          .getSingle();
       await _db.into(_db.outbox).insert(OutboxCompanion.insert(
             entityTable: 'shop_profiles',
             rowId: shopId,
             op: 'upsert',
-            payload: jsonEncode(row.toJson()),
           ));
     });
   }

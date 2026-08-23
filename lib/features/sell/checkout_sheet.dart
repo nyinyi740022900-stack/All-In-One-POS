@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/numeric_keypad.dart';
+import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
@@ -19,6 +25,7 @@ import 'cart.dart';
 import 'cash_tender.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
+import 'sell_feedback.dart';
 
 class CheckoutSheet extends ConsumerStatefulWidget {
   const CheckoutSheet({super.key});
@@ -30,6 +37,7 @@ class CheckoutSheet extends ConsumerStatefulWidget {
 class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   String _method = 'cash';
   final _paid = TextEditingController();
+  final _paidFieldKey = GlobalKey();
   final _customer = TextEditingController();
   final _customerFocus = FocusNode();
   final _phone = TextEditingController();
@@ -53,6 +61,24 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   // True once `_confirm` has cleared the cart on a successful sale — guards
   // `dispose` so a cancelled/dismissed sheet reverts any tier it applied.
   bool _confirmed = false;
+  // Cart lines collapse to a one-row summary ("3 items … total") so a simple
+  // cash sale reads top-to-bottom without scrolling; tap to expand and edit.
+  // Lines start EXPANDED — a cashier mid-scan needs to see what's on the
+  // ticket without tapping the summary row first (owner request). Still
+  // collapsible for the quick cash-sale glance.
+  bool _linesExpanded = true;
+  // The big-button pad under the amount-paid field. The OS keyboard is gone
+  // from this field entirely — its viewport jump mid-checkout was the very
+  // thing that used to push the confirm button off-screen.
+  bool _padVisible = false;
+  // Staff mode: once the owner PIN has been verified this session, per-line
+  // and order-level discounts stay open for the rest of the sheet's life.
+  bool _discountUnlocked = false;
+  // Non-null after a committed sale — swaps the whole sheet for the success
+  // panel, whose job is to keep the change-due figure on screen while the
+  // cashier counts it out (the old flow popped instantly and the figure
+  // vanished at the exact moment it was needed).
+  _SaleSuccess? _success;
 
   @override
   void dispose() {
@@ -69,7 +95,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     super.dispose();
   }
 
-  int get _paidAmount => int.tryParse(_paid.text.trim()) ?? 0;
+  int get _paidAmount => parseThousands(_paid.text);
 
   /// This customer's outstanding credit-book balance *before* this sale —
   /// 0 if they have none (or aren't a directory customer at all).
@@ -78,28 +104,6 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       if (c.customerId == customerId) return c.outstanding;
     }
     return 0;
-  }
-
-  /// Opens a small dialog to set (or clear) a flat-Kyat discount on just
-  /// this one cart line — distinct from the order-level discount below,
-  /// which still applies on top.
-  ///
-  /// The controller lives inside [_LineDiscountDialog] rather than here.
-  /// `await showDialog(...)` resolves the moment the route is *popped*, not
-  /// when its exit animation ends, so disposing a locally-owned controller
-  /// on the next line tears it out from under a TextField that is still on
-  /// screen — "A TextEditingController was used after being disposed",
-  /// followed by a cascade of framework assertions and a red screen over the
-  /// checkout sheet. (Observed live on this build from the identical pattern
-  /// in `categories_screen.dart:66-89`; the same shape is in
-  /// `settings_screen.dart` — see DESIGN_PASS.md.)
-  Future<void> _editLineDiscount(CartLine line) async {
-    final value = await showDialog<int>(
-      context: context,
-      builder: (_) => _LineDiscountDialog(line: line),
-    );
-    if (value == null || !mounted) return;
-    ref.read(cartProvider.notifier).setLineDiscount(line.product.id, value);
   }
 
   /// Amount tendered. Empty field means "paid in full" for a normal method, or
@@ -114,18 +118,106 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   /// zero down, so Exact has to write the number.
   void _applyTenderExact(int total) {
     if (_method == 'credit') {
-      _paid.text = '$total';
-      _paid.selection = TextSelection.collapsed(offset: _paid.text.length);
+      _setPaidDigits('$total');
     } else {
-      _paid.clear();
+      _setPaidDigits('');
     }
     setState(() {});
   }
 
   void _applyTenderAmount(int kyat) {
-    _paid.text = '$kyat';
-    _paid.selection = TextSelection.collapsed(offset: _paid.text.length);
+    // setState is REQUIRED here: the pad path re-renders via _padDigit's own
+    // setState, but chip writes only notified the TextField — Change/Owed
+    // rows kept showing stale zeros until the next unrelated rebuild
+    // (owner report: tapping 3,000/5,000/10,000 never showed the change).
+    setState(() => _setPaidDigits('$kyat'));
+  }
+
+  /// Writes [digits] into the paid field, grouped with thousands separators
+  /// exactly as if typed — programmatic writes bypass input formatters, so
+  /// chip values would otherwise display ungrouped next to grouped typing.
+  void _setPaidDigits(String digits) {
+    final text = ThousandsSeparatorInputFormatter.formatThousandsText(digits);
+    _paid.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _padDigit(String d) {
+    final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
+    final next = digits + d;
+    // 10 digits ≈ up to 9,999,999,999 Ks — far past any retail ticket.
+    if (next.length > 10) return;
+    _setPaidDigits(next);
     setState(() {});
+  }
+
+  void _padBackspace() {
+    final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
+    if (digits.isNotEmpty) {
+      _setPaidDigits(digits.substring(0, digits.length - 1));
+    }
+    setState(() {});
+  }
+
+  /// Discounts are an owner capability. Staff mode has to clear a gate first
+  /// — the device's owner PIN (no PIN configured = allowed through, matching
+  /// `StaffController.switchRole`'s documented behavior). One unlock covers
+  /// every discount edit in this sheet.
+  Future<bool> _ensureDiscountAllowed() async {
+    if (ref.read(isEffectiveOwnerProvider) || _discountUnlocked) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => _OwnerPinDialog(
+        verify: (pin) =>
+            ref.read(staffControllerProvider).verifyOwnerPin(pin),
+      ),
+    );
+    if (!mounted) return false;
+    if (ok == true) _discountUnlocked = true;
+    return ok == true;
+  }
+
+  /// Order-level flat-Kyat discount editor — a big-button pad with quick
+  /// percentage chips, replacing the old 120pt inline TextField that was
+  /// both a tiny target and keyboard-bound.
+  Future<void> _editOrderDiscount(int subtotal) async {
+    if (!await _ensureDiscountAllowed()) return;
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    final value = await showDialog<int>(
+      context: context,
+      builder: (_) => _AmountPadDialog(
+        title: l.sellDiscount,
+        currency: l.currencySymbol,
+        initial: ref.read(cartProvider).discount,
+        percentBase: subtotal,
+      ),
+    );
+    if (value == null || !mounted) return;
+    ref.read(cartProvider.notifier).setDiscount(value);
+  }
+
+  /// Per-line flat-Kyat discount editor — same pad dialog, percentage base
+  /// is just this line.
+  Future<void> _editLineDiscount(CartLine line) async {
+    if (!await _ensureDiscountAllowed()) return;
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    final cart = ref.read(cartProvider);
+    final value = await showDialog<int>(
+      context: context,
+      builder: (_) => _AmountPadDialog(
+        title: l.sellItemDiscountTitle(line.product.name),
+        currency: l.currencySymbol,
+        initial: line.discount,
+        percentBase:
+            resolveUnitPrice(line.product, cart.customerTier) * line.qty,
+      ),
+    );
+    if (value == null || !mounted) return;
+    ref.read(cartProvider.notifier).setLineDiscount(line.product.id, value);
   }
 
   Future<void> _confirm(CartState cart, int total) async {
@@ -160,9 +252,6 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
     setState(() => _submitting = true);
     final messenger = ScaffoldMessenger.of(context);
-    // Resolved before any `await`/pop below — this state's `context` may be
-    // unmounted by the time the sale finishes (the sheet closes on success).
-    final successColor = AppColors.of(context).success;
     try {
       final salesRepo = ref.read(salesRepositoryProvider);
       final phone = _phone.text.trim();
@@ -199,36 +288,46 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
       // The sale is committed as of here — everything below is best-effort
       // convenience (auto-print) and must never surface as "sale failed" or
-      // block clearing the cart, since retrying at this point would double
-      // the sale, not fix a failure. printSaleReceipt already reports its
-      // own outcome via a snackbar and never throws.
+      // block showing the success panel. printSaleReceipt already reports
+      // its own outcome via a snackbar and never throws.
+      //
+      // Receipt data is fetched *before* the success panel appears (local
+      // reads — milliseconds), so a cashier who taps Done instantly doesn't
+      // cancel their own receipt; the print itself then runs unawaited while
+      // the change figure is on screen. The old flow awaited the whole print
+      // before closing, leaving the till spinning on a slow printer for a
+      // sale that had already committed.
+      Sale? printSale;
+      List<SaleItem>? printItems;
       try {
         final config = await ref
             .read(settingsRepositoryProvider)
             .printerConfig();
         if (config.hasPrinter && mounted) {
-          final sale = await salesRepo.getSale(result.saleId);
-          final items = await salesRepo.saleItems(result.saleId);
-          if (mounted) {
-            await printSaleReceipt(context, ref, sale: sale, items: items);
-          }
+          printSale = await salesRepo.getSale(result.saleId);
+          printItems = await salesRepo.saleItems(result.saleId);
         }
       } catch (_) {}
 
       _confirmed = true;
       ref.read(cartProvider.notifier).clear();
-      if (mounted) Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: successColor, size: 20),
-              const SizedBox(width: AppTheme.space2),
-              Expanded(child: Text(l.sellCompleted)),
-            ],
-          ),
-        ),
-      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _submitting = false;
+        _success = _SaleSuccess(
+          total: total,
+          paid: paid,
+          change: paid > total ? paid - total : 0,
+          owed: total - paid > 0 ? total - paid : 0,
+          isCredit: _method == 'credit',
+        );
+      });
+      if (printSale != null && printItems != null) {
+        unawaited(
+          printSaleReceipt(context, ref, sale: printSale, items: printItems),
+        );
+      }
     } catch (e) {
       // Reached only if finalizeSale (or the customer-directory lookup
       // before it) itself threw — nothing was charged, the cart is intact,
@@ -237,7 +336,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         messenger.showSnackBar(SnackBar(content: Text(l.sellCheckoutFailed)));
       }
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted && _success == null) setState(() => _submitting = false);
     }
   }
 
@@ -249,10 +348,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     // Live stock per product, to cap the qty steppers (no overselling).
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
-    final stockById = <String, int>{
-      for (final p in ref.watch(productsStreamProvider).valueOrNull ?? const [])
-        p.product.id: p.quantity,
-    };
+    // Audit M3: this map used to be rebuilt inside every build — i.e. on
+    // EVERY keypad digit tap — by scanning the whole product stream. It now
+    // lives in stockByIdProvider, which only recomputes when products do.
+    final stockById = ref.watch(stockByIdProvider);
     final total = cart.total.kyat;
     final paid = _resolvePaid(total);
     final change = paid > total ? paid - total : 0;
@@ -260,6 +359,14 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // Credit / any shortfall forces the customer fields (name is then required).
     final forced = _method == 'credit' || owed > 0;
     final showCustomer = _addCustomer || forced;
+
+    // A committed sale replaces the whole sheet: the one figure the cashier
+    // still needs — change due, or the balance being booked as credit — stays
+    // up until they tap Done, instead of vanishing with the sheet.
+    final success = _success;
+    if (success != null) {
+      return _SuccessBody(success: success, onDone: () => Navigator.of(context).pop());
+    }
 
     // Keep the sheet clear of the status bar. A full cart grew this sheet to
     // the entire height of its host area, which slid the "Checkout" title
@@ -309,55 +416,127 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           l.sellCheckout,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
+                        const SizedBox(height: AppTheme.space1),
+
+                        // Customer first — the row a credit/partial sale needs is
+                        // the one that used to sit at the very bottom of the
+                        // scroll, past every field. Collapsed it shows who's on
+                        // the ticket (and their outstanding balance); tap to
+                        // expand the name/phone/address card.
+                        _customerSection(context, l, forced, showCustomer),
+                        // The expanded card lives DIRECTLY under its row — it
+                        // used to render at the very bottom of the scroll,
+                        // past every payment field, so tapping "Add customer"
+                        // appeared to do nothing until the seller dragged the
+                        // whole sheet up (owner report).
+                        if (showCustomer)
+                          _customerCard(context, l, cart, forced),
                         const SizedBox(height: AppTheme.space2),
 
-                        // Cart lines with qty steppers, hairline-separated — with a
-                        // thumbnail on every row they read as distinct records rather
-                        // than a run-on block of text.
-                        ...cart.lines.asMap().entries.expand((entry) sync* {
-                          final line = entry.value;
-                          if (entry.key > 0) yield const Divider(height: 1);
-                          yield _CartLineTile(
-                            line: line,
-                            lineTotal: cart.lineTotalFor(line),
-                            currency: currency,
-                            onDiscountTap: () => _editLineDiscount(line),
-                            onInc: () {
-                              final ok = ref
-                                  .read(cartProvider.notifier)
-                                  .increment(
-                                    line.product.id,
-                                    maxQty: trackStock
-                                        ? stockById[line.product.id]
-                                        : null,
-                                  );
-                              if (!ok) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      l.sellStockCap(
-                                        stockById[line.product.id] ?? 0,
+                        // Cart lines collapse to a one-row summary so a simple
+                        // cash sale reads top-to-bottom without scrolling; tap
+                        // to expand and adjust quantities.
+                        InkWell(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                          onTap: () =>
+                              setState(() => _linesExpanded = !_linesExpanded),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppTheme.space2,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  l.checkoutItemsCount(cart.itemCount),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
-                                    ),
-                                    duration: const Duration(seconds: 1),
+                                ),
+                                const Spacer(),
+                                MoneyText(
+                                  cart.total.withSymbol(currency),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                  emphasis: true,
+                                ),
+                                AnimatedRotation(
+                                  turns: _linesExpanded ? 0.5 : 0,
+                                  duration: AppTheme.motionFast,
+                                  child: Icon(
+                                    Icons.expand_more,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        AnimatedCrossFade(
+                          duration: AppTheme.motionMedium,
+                          sizeCurve: AppTheme.curveStandard,
+                          crossFadeState: _linesExpanded
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          // Cart lines with qty steppers, hairline-separated —
+                          // with a thumbnail on every row they read as distinct
+                          // records rather than a run-on block of text.
+                          secondChild: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...cart.lines.asMap().entries.expand((entry) sync* {
+                                final line = entry.value;
+                                if (entry.key > 0) yield const Divider(height: 1);
+                                yield _CartLineTile(
+                                  line: line,
+                                  lineTotal: cart.lineTotalFor(line),
+                                  currency: currency,
+                                  onDiscountTap: () => _editLineDiscount(line),
+                                  onInc: () {
+                                    HapticFeedback.selectionClick();
+                                    final ok = ref
+                                        .read(cartProvider.notifier)
+                                        .increment(
+                                          line.product.id,
+                                          maxQty: trackStock
+                                              ? stockById[line.product.id]
+                                              : null,
+                                        );
+                                    if (!ok) {
+                                      showStockCapSnackBar(
+                                        context,
+                                        l,
+                                        stockById[line.product.id] ?? 0,
+                                      );
+                                    }
+                                  },
+                                  onDec: () {
+                                    HapticFeedback.selectionClick();
+                                    ref
+                                        .read(cartProvider.notifier)
+                                        .decrement(line.product.id);
+                                  },
                                 );
-                              }
-                            },
-                            onDec: () => ref
-                                .read(cartProvider.notifier)
-                                .decrement(line.product.id),
-                          );
-                        }),
+                              }),
+                            ],
+                          ),
+                          firstChild: const SizedBox(width: double.infinity),
+                        ),
                         const Divider(),
 
                         SummaryRow(
                           l.sellSubtotal,
                           cart.subtotal.withSymbol(currency),
                         ),
-                        _DiscountField(
-                          onChanged: (v) =>
-                              ref.read(cartProvider.notifier).setDiscount(v),
+                        _DiscountRow(
+                          discount: cart.discount,
+                          currency: currency,
+                          onTap: () => _editOrderDiscount(cart.subtotal.kyat),
                         ),
                         SummaryRow(
                           l.commonTotal,
@@ -393,6 +572,14 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                                 // unreadable smudge. The filled `primaryContainer` pill
                                 // plus the darkened icon/label already say "selected".
                                 showCheckmark: false,
+                                // Same generous padding as CategoryFilterBar — a
+                                // payment method is aimed at with a thumb while a
+                                // customer waits, and the default chip height sat
+                                // under the 48dp target.
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.space3,
+                                  vertical: AppTheme.space2,
+                                ),
                                 label: Text(
                                   paymentLabel(l, m, accounts: accounts),
                                 ),
@@ -404,20 +591,43 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
                         const SizedBox(height: AppTheme.space3),
                         // Amount paid — shown for every method. Leave blank to pay in full.
+                        // Read-only: taps toggle the big-button pad below instead of
+                        // summoning the OS keyboard (whose viewport jump used to push
+                        // this sheet's footer around mid-sale).
                         TextField(
+                          key: _paidFieldKey,
                           controller: _paid,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(9),
-                          ],
+                          readOnly: true,
+                          showCursor: true,
+                          onTap: () {
+                            setState(() => _padVisible = !_padVisible);
+                            if (_padVisible) {
+                              // The pinned pad grows the sheet; make sure the
+                              // field it edits is on-screen, not scrolled off
+                              // under an expanded cart.
+                              SchedulerBinding.instance.addPostFrameCallback((_) {
+                                final ctx = _paidFieldKey.currentContext;
+                                if (ctx != null && mounted) {
+                                  Scrollable.ensureVisible(
+                                    ctx,
+                                    duration: AppTheme.motionMedium,
+                                    alignment: 0.1,
+                                  );
+                                }
+                              });
+                            }
+                          },
                           decoration: InputDecoration(
                             labelText: _method == 'credit'
                                 ? l.creditPaidNow
                                 : l.sellAmountPaid,
                             hintText: Money(total).withSymbol(currency),
+                            suffixIcon: Icon(
+                              _padVisible
+                                  ? Icons.keyboard_hide_outlined
+                                  : Icons.dialpad_outlined,
+                            ),
                           ),
-                          onChanged: (_) => setState(() {}),
                         ),
                         if (total > 0) ...[
                           const SizedBox(height: AppTheme.space2),
@@ -433,7 +643,6 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                             onAmount: _applyTenderAmount,
                           ),
                         ],
-                        const SizedBox(height: AppTheme.space2),
                         // Credit sales get an explicit deposit/balance-due breakdown
                         // rather than the generic Owed-or-Change row every other method
                         // shares, so a down payment always reads clearly as "this much
@@ -449,152 +658,30 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                             Money(owed).withSymbol(currency),
                             emphasis: true,
                           ),
-                        ] else if (owed > 0)
+                        ] else if (owed > 0) ...[
                           SummaryRow(
                             l.creditOwed,
                             Money(owed).withSymbol(currency),
                             emphasis: true,
-                          )
-                        else
+                          ),
+                          // A typed shortfall silently becomes credit at confirm
+                          // time — say so *here*, while the cashier can still fix
+                          // the number, instead of letting the "customer name
+                          // required" error be the first hint at the very end.
+                          if (_paid.text.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTheme.space1,
+                              ),
+                              child: _HintBanner(
+                                icon: Icons.info_outline,
+                                text: l.checkoutShortfallCreditHint,
+                              ),
+                            ),
+                        ] else
                           SummaryRow(
                             l.sellChange,
                             Money(change).withSymbol(currency),
-                          ),
-
-                        // Inline switch so the seller can add customer details on demand.
-                        // Forced on (and locked) for credit / partial-payment sales.
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          title: Text(l.checkoutAddCustomer),
-                          value: showCustomer,
-                          onChanged: forced
-                              ? null
-                              : (v) => setState(() {
-                                  _addCustomer = v;
-                                  // Turning the switch off hides these fields — clear
-                                  // them too, so leftover typed text can't silently
-                                  // still get attached to the sale/directory at
-                                  // confirm time even though the fields are gone.
-                                  if (!v) {
-                                    _customer.clear();
-                                    _phone.clear();
-                                    _address.clear();
-                                    _selectedCustomerId = null;
-                                    _previousBalance = 0;
-                                    ref
-                                        .read(cartProvider.notifier)
-                                        .setCustomerTier(null);
-                                  }
-                                }),
-                        ),
-
-                        if (showCustomer)
-                          Card(
-                            margin: const EdgeInsets.only(top: AppTheme.space2),
-                            child: Padding(
-                              padding: const EdgeInsets.all(AppTheme.space3),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  CustomerAutocomplete(
-                                    controller: _customer,
-                                    focusNode: _customerFocus,
-                                    labelText: forced
-                                        ? '${l.creditCustomerName} *'
-                                        : l.creditCustomerName,
-                                    helperText: forced
-                                        ? l.creditCustomerRequired
-                                        : null,
-                                    onChanged: () => setState(() {}),
-                                    onSelected: (c) => setState(() {
-                                      _selectedCustomerId = c.id;
-                                      _customer.text = c.name;
-                                      _phone.text = c.phone ?? '';
-                                      _address.text = c.address ?? '';
-                                      _previousBalance = _outstandingFor(c.id);
-                                      ref
-                                          .read(cartProvider.notifier)
-                                          .setCustomerTier(
-                                            c.tier == 'retail' ? null : c.tier,
-                                          );
-                                    }),
-                                    onEditedByHand: () {
-                                      _selectedCustomerId = null;
-                                      _previousBalance = 0;
-                                      ref
-                                          .read(cartProvider.notifier)
-                                          .setCustomerTier(null);
-                                    },
-                                  ),
-                                  const SizedBox(height: AppTheme.space3),
-                                  TextField(
-                                    controller: _phone,
-                                    keyboardType: TextInputType.phone,
-                                    autofillHints: const [
-                                      AutofillHints.telephoneNumber,
-                                    ],
-                                    decoration: InputDecoration(
-                                      labelText: l.customerPhone,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppTheme.space3),
-                                  TextField(
-                                    controller: _address,
-                                    autofillHints: const [
-                                      AutofillHints.streetAddressLine1,
-                                    ],
-                                    decoration: InputDecoration(
-                                      labelText: l.customerAddress,
-                                    ),
-                                  ),
-                                  // Only meaningful for a freshly-typed name: an
-                                  // already-picked directory customer is already saved,
-                                  // and a forced (credit) sale must save regardless (the
-                                  // credit book needs the link).
-                                  if (!forced && _selectedCustomerId == null)
-                                    CheckboxListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      dense: true,
-                                      controlAffinity:
-                                          ListTileControlAffinity.leading,
-                                      title: Text(l.checkoutSaveToDirectory),
-                                      value: _saveToDirectory,
-                                      onChanged: (v) => setState(
-                                        () => _saveToDirectory = v ?? true,
-                                      ),
-                                    ),
-                                  if (_previousBalance > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: AppTheme.space2,
-                                      ),
-                                      child: SummaryRow(
-                                        l.creditPreviousBalance,
-                                        Money(
-                                          _previousBalance,
-                                        ).withSymbol(currency),
-                                      ),
-                                    ),
-                                  if (cart.customerTier != null) ...[
-                                    const SizedBox(height: AppTheme.space2),
-                                    Text(
-                                      l.checkoutTierPricingApplied(
-                                        _tierLabel(l, cart.customerTier!),
-                                      ),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
                           ),
 
                         const SizedBox(height: AppTheme.space3),
@@ -602,6 +689,18 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                     ),
                   ),
                 ),
+                // The numeric pad is PINNED above the footer, outside the
+                // scroll — opening it used to push it below the fold of a
+                // full cart, so the seller had to drag the sheet down to see
+                // what they were typing into (owner report).
+                if (_padVisible)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppTheme.space2),
+                    child: NumericKeypad(
+                      onDigit: _padDigit,
+                      onBackspace: _padBackspace,
+                    ),
+                  ),
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.only(top: AppTheme.space3),
@@ -650,6 +749,170 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     'vip' => l.customerTierVip,
     _ => l.customerTierRetail,
   };
+
+  /// The customer row, pinned at the *top* of the sheet. Collapsed it already
+  /// answers "who is this ticket for?" — picked name, or their outstanding
+  /// credit balance — so a seller can confirm at a glance without expanding.
+  Widget _customerSection(
+    BuildContext context,
+    AppLocalizations l,
+    bool forced,
+    bool showCustomer,
+  ) {
+    final colors = AppColors.of(context);
+    final name = _customer.text.trim();
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      onTap: () => setState(() {
+        final v = !showCustomer;
+        _addCustomer = v;
+        // Collapsing hides these fields — clear them too, so leftover typed
+        // text can't silently still get attached to the sale/directory at
+        // confirm time even though the fields are gone.
+        if (!v) {
+          _customer.clear();
+          _phone.clear();
+          _address.clear();
+          _selectedCustomerId = null;
+          _previousBalance = 0;
+          ref.read(cartProvider.notifier).setCustomerTier(null);
+        }
+      }),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
+        child: Row(
+          children: [
+            IconAvatar(
+              icon: name.isEmpty
+                  ? Icons.person_add_alt_1
+                  : Icons.person_outline,
+              tone: forced && name.isEmpty ? StatusTone.attention : null,
+            ),
+            const SizedBox(width: AppTheme.space3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name.isEmpty ? l.checkoutAddCustomer : name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (forced && name.isEmpty)
+                    Text(
+                      l.creditCustomerRequired,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.warning,
+                      ),
+                    )
+                  else if (_previousBalance > 0)
+                    Text(
+                      '${l.creditPreviousBalance} · '
+                      '${Money(_previousBalance).withSymbol(l.currencySymbol)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontFeatures: AppTheme.tabularFigures,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            AnimatedRotation(
+              turns: showCustomer ? 0.5 : 0,
+              duration: AppTheme.motionFast,
+              child: Icon(
+                Icons.expand_more,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The expanded customer card (name autocomplete / phone / address /
+  /// save-to-directory), revealed under the row above.
+  Widget _customerCard(
+    BuildContext context,
+    AppLocalizations l,
+    CartState cart,
+    bool forced,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(top: AppTheme.space1),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CustomerAutocomplete(
+              controller: _customer,
+              focusNode: _customerFocus,
+              labelText: forced
+                  ? '${l.creditCustomerName} *'
+                  : l.creditCustomerName,
+              helperText: forced ? l.creditCustomerRequired : null,
+              onChanged: () => setState(() {}),
+              onSelected: (c) => setState(() {
+                _selectedCustomerId = c.id;
+                _customer.text = c.name;
+                _phone.text = c.phone ?? '';
+                _address.text = c.address ?? '';
+                _previousBalance = _outstandingFor(c.id);
+                ref
+                    .read(cartProvider.notifier)
+                    .setCustomerTier(c.tier == 'retail' ? null : c.tier);
+              }),
+              onEditedByHand: () {
+                _selectedCustomerId = null;
+                _previousBalance = 0;
+                ref.read(cartProvider.notifier).setCustomerTier(null);
+              },
+            ),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              autofillHints: const [AutofillHints.telephoneNumber],
+              decoration: InputDecoration(labelText: l.customerPhone),
+            ),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _address,
+              autofillHints: const [AutofillHints.streetAddressLine1],
+              decoration: InputDecoration(labelText: l.customerAddress),
+            ),
+            // Only meaningful for a freshly-typed name: an already-picked
+            // directory customer is already saved, and a forced (credit) sale
+            // must save regardless (the credit book needs the link).
+            if (!forced && _selectedCustomerId == null)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(l.checkoutSaveToDirectory),
+                value: _saveToDirectory,
+                onChanged: (v) =>
+                    setState(() => _saveToDirectory = v ?? true),
+              ),
+            if (cart.customerTier != null) ...[
+              const SizedBox(height: AppTheme.space2),
+              Text(
+                l.checkoutTierPricingApplied(
+                  _tierLabel(l, cart.customerTier!),
+                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Quick-tender chips under the amount-paid field. Exact plus the next few
@@ -692,6 +955,12 @@ class _TenderChips extends StatelessWidget {
       children: [
         ChoiceChip(
           showCheckmark: false,
+          // Same generous padding as the payment-method chips — tender
+          // amounts are tapped at speed with a customer waiting.
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.space3,
+            vertical: AppTheme.space2,
+          ),
           label: Text(exactLabel),
           selected: _exactSelected,
           onSelected: (_) => onExact(),
@@ -699,6 +968,10 @@ class _TenderChips extends StatelessWidget {
         for (final amount in extras)
           ChoiceChip(
             showCheckmark: false,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.space3,
+              vertical: AppTheme.space2,
+            ),
             label: Text(
               Money(amount).withSymbol(currency),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -713,43 +986,183 @@ class _TenderChips extends StatelessWidget {
   }
 }
 
-/// Per-line flat-Kyat discount editor. A `StatefulWidget` purely so the
-/// `TextEditingController` is owned by something whose `dispose` runs when
-/// the route is actually gone — see `_editLineDiscount`.
-class _LineDiscountDialog extends StatefulWidget {
-  const _LineDiscountDialog({required this.line});
+/// Flat-Kyat amount editor on the big-button pad — used for both the
+/// order-level discount and per-line discounts. No text field at all: the
+/// value lives as an int, displayed grouped, edited by [NumericKeypad] with
+/// optional quick-percentage chips computed off [percentBase].
+///
+/// Replaces the old system-keyboard TextField dialogs, which were both a
+/// small target and a viewport jump inside a dialog.
+class _AmountPadDialog extends StatefulWidget {
+  const _AmountPadDialog({
+    required this.title,
+    required this.currency,
+    this.initial = 0,
+    this.percentBase,
+  });
 
-  final CartLine line;
+  final String title;
+  final String currency;
+  final int initial;
+
+  /// When set, offers 5/10/15/20% quick chips of this base amount.
+  final int? percentBase;
 
   @override
-  State<_LineDiscountDialog> createState() => _LineDiscountDialogState();
+  State<_AmountPadDialog> createState() => _AmountPadDialogState();
 }
 
-class _LineDiscountDialogState extends State<_LineDiscountDialog> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.line.discount > 0 ? '${widget.line.discount}' : '',
-  );
+class _AmountPadDialogState extends State<_AmountPadDialog> {
+  late int _value = widget.initial;
+
+  static const _percents = [5, 10, 15, 20];
+
+  void _digit(String d) {
+    setState(() {
+      // Append: "5" shifts by one digit, "00" by two ("0" on a zero value
+      // stays zero — amounts have no leading zeros).
+      final next = _value * d.length + int.parse(d);
+      if ('$next'.length > 10) return;
+      _value = next;
+    });
+  }
+
+  void _backspace() => setState(() => _value ~/= 10);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.space3,
+              vertical: AppTheme.space3,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: MoneyText(
+              Money(_value).withSymbol(widget.currency),
+              style: Theme.of(context).textTheme.headlineSmall,
+              emphasis: true,
+            ),
+          ),
+          if (widget.percentBase != null && widget.percentBase! > 0) ...[
+            const SizedBox(height: AppTheme.space2),
+            Wrap(
+              spacing: AppTheme.space2,
+              runSpacing: AppTheme.space1,
+              children: [
+                for (final p in _percents)
+                  ChoiceChip(
+                    label: Text('$p%'),
+                    selected: _value == widget.percentBase! * p ~/ 100,
+                    onSelected: (_) => setState(
+                      () => _value = widget.percentBase! * p ~/ 100,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppTheme.space2),
+          NumericKeypad(onDigit: _digit, onBackspace: _backspace, keyHeight: 48),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => setState(() => _value = 0),
+          child: Text(l.commonClear),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_value),
+          child: Text(l.commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+/// The staff-mode gate for discounts: enter the device's owner PIN to unlock
+/// discount editing for this sheet. No PIN configured = allowed through
+/// (same contract as `StaffController.switchRole`). Wrong PINs count toward
+/// the controller's own lockout — this dialog just surfaces the failure.
+class _OwnerPinDialog extends StatefulWidget {
+  const _OwnerPinDialog({required this.verify});
+
+  final Future<bool> Function(String pin) verify;
+
+  @override
+  State<_OwnerPinDialog> createState() => _OwnerPinDialogState();
+}
+
+class _OwnerPinDialogState extends State<_OwnerPinDialog> {
+  final _pin = TextEditingController();
+  bool _checking = false;
+  bool _wrong = false;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pin.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _checking = true;
+      _wrong = false;
+    });
+    final ok = await widget.verify(_pin.text.trim());
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _checking = false;
+        _wrong = true;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(l.sellItemDiscountTitle(widget.line.product.name)),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(9),
+      title: Text(l.checkoutOwnerPinTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l.checkoutOwnerPinExplain,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppTheme.space3),
+          TextField(
+            controller: _pin,
+            autofocus: true,
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              counterText: '',
+              errorText: _wrong ? l.checkoutOwnerPinWrong : null,
+            ),
+          ),
         ],
-        decoration: InputDecoration(labelText: l.sellDiscount),
       ),
       actions: [
         TextButton(
@@ -757,10 +1170,8 @@ class _LineDiscountDialogState extends State<_LineDiscountDialog> {
           child: Text(l.commonCancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(
-            context,
-          ).pop(int.tryParse(_controller.text.trim()) ?? 0),
-          child: Text(l.commonSave),
+          onPressed: _checking || _pin.text.trim().isEmpty ? null : _submit,
+          child: Text(l.commonOk),
         ),
       ],
     );
@@ -922,30 +1333,194 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
-class _DiscountField extends StatelessWidget {
-  const _DiscountField({required this.onChanged});
+/// The order-level discount as a tappable summary row — full-width target,
+/// opens the pad dialog. Replaces the old 120pt inline TextField (a tiny
+/// target wedged between money rows, bound to the OS keyboard).
+class _DiscountRow extends StatelessWidget {
+  const _DiscountRow({
+    required this.discount,
+    required this.currency,
+    required this.onTap,
+  });
 
-  final ValueChanged<int> onChanged;
+  final int discount;
+  final String currency;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
+        child: Row(
+          children: [
+            Expanded(child: Text(l.sellDiscount)),
+            MoneyText(
+              Money(discount).withSymbol(currency),
+              color: discount > 0 ? scheme.primary : null,
+            ),
+            const SizedBox(width: AppTheme.space1),
+            Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: scheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Snapshot of the committed sale, captured at confirm time (the cart is
+/// cleared the moment after — these figures must not read live state).
+class _SaleSuccess {
+  const _SaleSuccess({
+    required this.total,
+    required this.paid,
+    required this.change,
+    required this.owed,
+    required this.isCredit,
+  });
+
+  final int total;
+  final int paid;
+  final int change;
+  final int owed;
+  final bool isCredit;
+}
+
+/// The post-sale panel. Its whole reason to exist: the change-due figure is
+/// needed *while counting money into the customer's hand*, and the old flow
+/// popped the sheet — figure and all — the instant the sale committed.
+class _SuccessBody extends StatelessWidget {
+  const _SuccessBody({required this.success, required this.onDone});
+
+  final _SaleSuccess success;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final currency = l.currencySymbol;
+    String fmt(int v) => Money(v).withSymbol(currency);
+
+    // The one figure the cashier acts on next: change to hand over, the
+    // credit balance just booked, or the total collected.
+    final headline = success.isCredit
+        ? (label: l.creditBalanceDue, value: success.owed)
+        : success.change > 0
+        ? (label: l.sellChange, value: success.change)
+        : (label: l.commonTotal, value: success.total);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(
+        AppTheme.space4,
+        AppTheme.space2,
+        AppTheme.space4,
+        AppTheme.space4 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: Text(l.sellDiscount)),
-          SizedBox(
-            width: 120,
-            child: TextField(
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(9),
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space4),
+            decoration: BoxDecoration(
+              color: colors.successSurface,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: colors.success, size: 44),
+                const SizedBox(width: AppTheme.space3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l.sellCompleted,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: AppTheme.space1),
+                      Text(
+                        headline.label,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      MoneyText(
+                        fmt(headline.value),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        emphasis: true,
+                        color: colors.success,
+                        textAlign: TextAlign.left,
+                      ),
+                    ],
+                  ),
+                ),
               ],
-              textAlign: TextAlign.right,
-              decoration: const InputDecoration(isDense: true, hintText: '0'),
-              onChanged: (v) => onChanged(int.tryParse(v.trim()) ?? 0),
+            ),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          SummaryRow(l.commonTotal, fmt(success.total)),
+          SummaryRow(l.sellAmountPaid, fmt(success.paid)),
+          if (!success.isCredit && success.change > 0)
+            SummaryRow(
+              l.sellChange,
+              fmt(success.change),
+              emphasis: true,
+              color: colors.success,
+            ),
+          const SizedBox(height: AppTheme.space2),
+          FilledButton(
+            onPressed: onDone,
+            child: Text(l.checkoutDone),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A soft warning-tone inline hint (shortfall-becomes-credit and friends) —
+/// informational, not an error, so it uses the warning soft-fill tier rather
+/// than [InlineErrorBanner]'s danger container.
+class _HintBanner extends StatelessWidget {
+  const _HintBanner({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space3,
+        vertical: AppTheme.space2,
+      ),
+      decoration: BoxDecoration(
+        color: colors.warningSurface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: colors.warning),
+          const SizedBox(width: AppTheme.space2),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.warning),
             ),
           ),
         ],

@@ -1,13 +1,11 @@
 {
   "@@locale": "my",
   "appTitle": "All In One POS",
-
   "navSell": "ရောင်းချ",
   "navInventory": "ကုန်ပစ္စည်း",
   "navInvoices": "ပြေစာများ",
   "navAnalytics": "စာရင်းအင်း",
   "navSettings": "ဆက်တင်",
-
   "commonUnexpectedError": "တစ်ခုခု မှားယွင်းသွားပါတယ်။ ထပ်ကြိုးစားပေးပါ။",
   "commonSave": "သိမ်းမည်",
   "commonCancel": "မလုပ်တော့ပါ",
@@ -26,10 +24,15 @@
   "commonRetry": "ထပ်စမ်းမည်",
   "commonPleaseWait": "ခဏစောင့်ပါ…",
   "copied": "ကူးယူပြီး",
-
   "sellTitle": "ရောင်းချ",
   "sellStockCap": "လက်ကျန် {count} ခုသာ ရှိပါသည်",
-  "@sellStockCap": { "placeholders": { "count": { "type": "int" } } },
+  "@sellStockCap": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sellCart": "ခြင်းတောင်း",
   "sellEmptyCart": "ပစ္စည်းမရှိသေးပါ။ ထည့်ရန် ပစ္စည်းကို နှိပ်ပါ။",
   "ordersSelectHint": "အော်ဒါတစ်ခု ရွေးပါ",
@@ -38,7 +41,13 @@
   "sellSubtotal": "ကုန်ကျ",
   "sellDiscount": "လျှော့ဈေး",
   "sellItemDiscountTitle": "{item} အတွက် လျှော့ဈေး",
-  "@sellItemDiscountTitle": { "placeholders": { "item": { "type": "String" } } },
+  "@sellItemDiscountTitle": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
   "sellPaymentMethod": "ငွေပေးချေမှုနည်းလမ်း",
   "sellAmountPaid": "ပေးချေငွေ",
   "sellTenderExact": "အတိအကျ",
@@ -54,11 +63,25 @@
   "scanFlip": "ကင်မရာ ပြောင်း",
   "scanHint": "Barcode ကို ကင်မရာနဲ့ ချိန်ပါ",
   "scanAdded": "{name} ထည့်ပြီး",
-  "@scanAdded": { "placeholders": { "name": { "type": "String" } } },
+  "@scanAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "scanNotFound": "barcode {code} နဲ့ ပစ္စည်း မတွေ့ပါ",
-  "@scanNotFound": { "placeholders": { "code": { "type": "String" } } },
+  "@scanNotFound": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "scanHardwareHint": "ကင်မရာ (သို့) USB / Bluetooth scanner",
   "scanHardwareOnlyHint": "USB scanner တပ်ပါ (သို့) Bluetooth scanner ကို စက်ရဲ့ Bluetooth ဆက်တင်မှာ ချိတ်ပါ။ ဒီစာမျက်နှာ ဖွင့်ထားပြီး scan ပါ။",
+  "scanDone": "ပြီးပြီ",
+  "scanContinuousHint": "စိတ်ကြိုက် အရေအတွက် scan ပါ — scan သမျှ cart ထဲ ထည့်ပေးပါမယ်။ ပြီးရင် ပြီးပြီ ခလုတ် နှိပ်ပါ။",
   "scannerSettings": "Barcode scanner",
   "scannerSettingsIntro": "လက်ကိုင် scanner က ကီးဘုတ်လို ရိုက်သွင်းပါတယ်။ ကွန်ပျူတာ၊ တက်ဘလက်၊ ဖုန်းရဲ့ Bluetooth/USB မှာ ချိတ်ရုံပါ — ဒီ app ထဲမှာ သီးသန့် ချိတ်စရာ မလိုပါ။",
   "scannerUsbTitle": "USB scanner",
@@ -70,6 +93,12 @@
   "sellCompleted": "ရောင်းချမှု ပြီးဆုံးပါပြီ",
   "sellCheckoutFailed": "ရောင်းချမှု မသိမ်းနိုင်ခဲ့ပါ — ငွေ ဘာမှ မကောက်ရသေးပါ။ ထပ်စမ်းကြည့်ပါ။",
   "sellInsufficientPaid": "ပေးချေငွေသည် စုစုပေါင်းထက် နည်းနေသည်။",
+  "sellHoldSale": "အရောင်း သိမ်းထား",
+  "sellCartHeld": "ခြင်းတောင်း သိမ်းထားပြီး",
+  "sellHeldTitle": "သိမ်းထားသော အရောင်းများ",
+  "sellHeldEmpty": "သိမ်းထားသော အရောင်း မရှိပါ။",
+  "sellHeldRemoved": "သိမ်းထားသည်ကို ဖျက်ပြီး",
+  "sellAutoHeldPrevious": "အရင်ခြင်းတောင်းကို သိမ်းထားလိုက်ပါပြီ",
   "paymentCash": "ငွေသား",
   "paymentKbzPay": "KBZPay",
   "paymentWavePay": "WavePay",
@@ -77,7 +106,6 @@
   "paymentCbPay": "CBPay",
   "paymentCredit": "အကြွေး",
   "paymentCod": "COD (အရောက်ငွေချေ)",
-
   "cashRegisterTitle": "ငွေတိုက်",
   "cashRegisterOpen": "ဖွင့်ထား",
   "cashRegisterClosed": "ပိတ်ပြီး",
@@ -88,6 +116,7 @@
   "cashOpenedAt": "ဖွင့်ချိန်",
   "cashClosingAmount": "ရေတွက်ရရှိသည့် ငွေပမာဏ",
   "cashCloseWarning": "ပိတ်လိုက်ပြီးရင် ဒီအရေအတွက်က အပြီးအပိုင်ဖြစ်သွားပါမည် — session နှင့် variance ကို နောက်မှ ပြင်လို့မရတော့ပါ။",
+  "cashAmountRequired": "အရင် ငွေပမာဏ ဖြည့်ပါ။",
   "cashVariance": "ကွာခြားချက်",
   "cashVarianceShort": "{amount} လျော့နေသည်",
   "cashVarianceOver": "{amount} ပိုနေသည်",
@@ -104,7 +133,6 @@
   "cashReportSharePdf": "PDF မျှဝေမည်",
   "cashReportCashSales": "ငွေသား ရောင်းအား",
   "cashReportCashRepayments": "ငွေသား ကြွေးဆပ်ငွေ",
-
   "creditTitle": "အကြွေးစာရင်း",
   "creditCustomerName": "ဝယ်သူအမည်",
   "customerPhone": "ဖုန်း (မဖြည့်လည်းရ)",
@@ -113,7 +141,26 @@
   "checkoutSaveToDirectory": "Customer list ထဲ သိမ်းရန်",
   "checkoutPickCustomer": "Customer list ကနေ ရွေးရန်",
   "checkoutTierPricingApplied": "ဒီအရောင်းအတွက် {tier} ဈေးနှုန်း သုံးထားသည်",
-  "@checkoutTierPricingApplied": { "placeholders": { "tier": { "type": "String" } } },
+  "@checkoutTierPricingApplied": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "checkoutItemsCount": "ကုန်ပစ္စည်း {count} မျိုး",
+  "@checkoutItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkoutShortfallCreditHint": "လိုငွေကို အကြွေးအဖြစ် မှတ်တမ်းတင်ပါမည် — ဝယ်သူအမည် ထည့်ရန် လိုအပ်သည်။",
+  "checkoutDone": "ပြီးပါပြီ",
+  "checkoutOwnerPinTitle": "ပိုင်ရှင် PIN",
+  "checkoutOwnerPinExplain": "လျှော့ဈေးကို ပိုင်ရှင်သာ လုပ်ပိုင်ခွင့်ရှိသည်။ ဒီအရောင်းအတွက် ဖွင့်ရန် ပိုင်ရှင် PIN ထည့်ပါ။",
+  "checkoutOwnerPinWrong": "PIN မှားနေပါသည်။",
   "creditCustomerRequired": "အကြွေးရောင်းရန် ဝယ်သူအမည် ထည့်ပါ။",
   "creditPaidNow": "ယခုပေးငွေ (မဖြည့်လည်းရ)",
   "creditOwed": "ကျန်ငွေ",
@@ -123,11 +170,23 @@
   "creditTotalBalanceDue": "စုစုပေါင်း ကျန်ငွေ (ပေးရမည်)",
   "creditTotalOutstanding": "စုစုပေါင်း ကျန်ရှိငွေ",
   "creditTotalDue": "ကျန်ငွေ {amount}",
-  "@creditTotalDue": { "placeholders": { "amount": { "type": "String" } } },
+  "@creditTotalDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "creditNoneDue": "အကြွေးကျန် မရှိပါ",
   "creditEmpty": "အကြွေးတင်နေသူ မရှိသေးပါ။",
   "creditOpenInvoices": "မဆပ်ရသေး ပြေစာ {count} စောင်",
-  "@creditOpenInvoices": { "placeholders": { "count": { "type": "int" } } },
+  "@creditOpenInvoices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creditOutstanding": "ကျန်ရှိငွေ",
   "creditInvoices": "အကြွေး ပြေစာများ",
   "creditSettled": "ဆပ်ပြီး",
@@ -174,9 +233,14 @@
   "customerSaved": "ဖောက်သည်အချက်အလက် သိမ်းပြီး",
   "customerDeleteConfirmTitle": "ဒီဖောက်သည်ကို ဖယ်ရှားမှာလား?",
   "customerDeleteConfirmBody": "{name} ကို checkout မှာ suggestion အဖြစ် နောက်ထပ် မမြင်ရတော့ပါ။ ယခင် invoice တွေမှာတော့ နာမည် ဆက်ပြနေပါမည်။",
-  "@customerDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@customerDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "customerDeleted": "ဖောက်သည် ဖယ်ရှားပြီး",
-
   "suppliersTitle": "ကုန်ပို့သူများ",
   "suppliersEmpty": "ကုန်ပို့သူ မထည့်ရသေးပါ။ ပထမဆုံး ကုန်ပို့သူကို ထည့်ပါ။",
   "supplierAdd": "ကုန်ပို့သူ ထည့်မည်",
@@ -185,9 +249,24 @@
   "supplierSaved": "ကုန်ပို့သူ သိမ်းပြီးပါပြီ။",
   "supplierDeleteConfirmTitle": "ဒီကုန်ပို့သူကို ဖယ်ရှားမလား?",
   "supplierDeleteConfirmBody": "{name} ကို Purchase order အသစ်တွေမှာ အကြံပြုမှာ မဟုတ်တော့ပါ။ ယခင် Purchase order တွေမှာတော့ အမည် ဆက်ပြပါလိမ့်မယ်။",
-  "@supplierDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@supplierDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "supplierDeleteConfirmApWarning": "{name} က Accounts Payable မှာ {amount} ကျန်နေပါသေးတယ်။ Supplier ကို ဖျက်လိုက်ရင် အဲ့ကြွေးကျန်ကို ပယ်ဖျက်မသွားပါဘူး — သူတို့ရဲ့ သိမ်းထားတဲ့ အမည်နဲ့ Accounts Payable မှာ ဆက်ပြနေပါမယ်။",
-  "@supplierDeleteConfirmApWarning": { "placeholders": { "name": { "type": "String" }, "amount": { "type": "String" } } },
+  "@supplierDeleteConfirmApWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "supplierDeleted": "ကုန်ပို့သူ ဖယ်ရှားပြီး",
   "paymentAccountsTitle": "ငွေပေးချေမှု အကောင့်များ",
   "paymentAccountsEmpty": "Account မထည့်ရသေးပါ။ ပထမဆုံး Account ကို ထည့်ပါ။",
@@ -198,10 +277,15 @@
   "paymentAccountSaved": "Account သိမ်းပြီးပါပြီ။",
   "paymentAccountDeleteConfirmTitle": "ဒီ Account ကို ဖယ်ရှားမလား?",
   "paymentAccountDeleteConfirmBody": "{name} ကို ငွေရှင်းချိန် payment option အနေနဲ့ ထပ်မပေါ်တော့ပါ။ ယခင်အရောင်းများမှာတော့ အမည် ဆက်ပြပါလိမ့်မယ်။",
-  "@paymentAccountDeleteConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@paymentAccountDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "paymentAccountDeleted": "Account ဖယ်ရှားပြီး",
   "expensePaidFrom": "ဘယ် Account ကနေ ပေးလဲ",
-
   "purchaseOrdersTitle": "ကုန်ဝယ်အမှာစာများ",
   "purchaseOrdersEmpty": "ကုန်ဝယ်အမှာစာ မရှိသေးပါ။",
   "poCreate": "ကုန်ဝယ်အမှာစာ ဖန်တီးမည်",
@@ -228,7 +312,6 @@
   "poDeleteConfirmTitle": "ဒီကုန်ဝယ်အမှာစာကို ဖျက်မလား?",
   "poDeleteConfirmBody": "ဒီ draft နှင့် line item အားလုံးကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။",
   "poDeleteFailedReceived": "လက်ခံရရှိပြီးသား ကုန်ဝယ်အမှာစာကို ဖျက်၍မရပါ။",
-
   "inventoryTitle": "ကုန်ပစ္စည်း",
   "inventoryExportCsv": "CSV ထုတ်",
   "inventoryEmpty": "ပစ္စည်းမရှိသေးပါ။ ပထမဆုံး ပစ္စည်းထည့်ပါ။",
@@ -237,7 +320,13 @@
   "inventoryEditProduct": "ပစ္စည်းပြင်ဆင်",
   "inventoryNoResults": "ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။",
   "inventoryFilteredCount": "ပစ္စည်း {count} ခု",
-  "@inventoryFilteredCount": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryFilteredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryOutOfStock": "ကုန်ပစ္စည်း ကုန်သွားပါပြီ",
   "inventoryOutOfStockBadge": "ကုန်ပြီ",
   "productName": "ပစ္စည်းအမည်",
@@ -271,10 +360,28 @@
   "stockAdjustBelowZero": "ဒါလုပ်ရင် stock က ဇီးရိုထက်နည်းသွားပါမယ် (လက်ရှိ {quantity})။",
   "stockAdjustRace": "Stock ကို အခြားစက်တစ်ခုတွင် ပြောင်းလဲလိုက်ပါသည် — ပြန်လည်စတင်ပြီး ထပ်ကြိုးစားပါ။",
   "stockAdjustCurrentStock": "လက်ရှိလက်ကျန်: {quantity}",
-  "@stockAdjustCurrentStock": { "placeholders": { "quantity": { "type": "int" } } },
+  "@stockAdjustCurrentStock": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      }
+    }
+  },
   "stockAdjustConfirmTitle": "လက်ကျန် ပြောင်းလဲမှု အတည်ပြုပါ",
   "stockAdjustConfirmBody": "{name}: လက်ကျန် {before} ကနေ {after} ကို ပြောင်းသွားပါမည်။ ဒါကို stock history မှာ မှတ်တမ်းတင်ထားပေမယ့် အလိုအလျောက် ပြန်ပြင်လို့ မရပါ။",
-  "@stockAdjustConfirmBody": { "placeholders": { "name": { "type": "String" }, "before": { "type": "int" }, "after": { "type": "int" } } },
+  "@stockAdjustConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "before": {
+        "type": "int"
+      },
+      "after": {
+        "type": "int"
+      }
+    }
+  },
   "stockReasonDamaged": "ပျက်စီး",
   "stockReasonLost": "ပျောက်ဆုံး/ခိုးမှု",
   "stockReasonCount": "ရေတွက်မှား ပြင်ဆင်ခြင်း",
@@ -296,7 +403,6 @@
   "deleteConfirmBody": "ဤပစ္စည်းကို ဖယ်ရှားပါမည်။",
   "productDeleteConfirmBody": "Sell နှင့် Inventory ကနေ ဖျောက်ထားမှာပါ၊ ဒါပေမယ့် past sales/invoices/stock history မှာတော့ ဆက်ပေါ်နေပါလိမ့်မယ်။",
   "categoryDeleteConfirmBody": "ဒီ category ထဲက products တွေရဲ့ ဈေးနှုန်း/stock ကတော့ ဒီအတိုင်းရှိမှာပါ၊ category မရှိတော့ဘဲ ပြပါလိမ့်မယ်။",
-
   "settingsTitle": "ဆက်တင်",
   "settingsSectionBusiness": "ရောင်းဝယ်ရေး",
   "settingsSectionFinance": "ငွေကြေး",
@@ -328,7 +434,6 @@
   "settingsTrackStockHint": "ပိတ်ထားရင် = invoice သီးသန့် (stock ရေတွက်/သတိပေးမှု မရှိ)။",
   "settingsAskCustomer": "ဝယ်သူ မေးမြန်း",
   "settingsAskCustomerHint": "Checkout မှာ ဝယ်သူအမည် + ဖုန်း (optional) ပြ။",
-
   "shopProfileHint": "ပြေစာပေါ်တွင် ဖော်ပြပါမည်။",
   "shopLogo": "ဆိုင်လိုဂို",
   "shopName": "ဆိုင်အမည်",
@@ -336,17 +441,22 @@
   "shopPhone": "ဖုန်း",
   "receiptFooter": "ပြေစာအောက်ခြေ စာသား",
   "shopProfileSaved": "ဆိုင်အချက်အလက် သိမ်းပြီးပါပြီ",
-
   "languageEnglish": "အင်္ဂလိပ်",
   "languageMyanmar": "မြန်မာ",
-
   "invoicesEmpty": "ရောင်းချမှု မရှိသေးပါ။",
   "invoiceFilterAll": "အားလုံး",
   "invoiceFilterCredit": "အကြွေး",
   "invoiceOwed": "ကျန်ငွေ {amount}",
-  "@invoiceOwed": { "placeholders": { "amount": { "type": "String" } } },
+  "@invoiceOwed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "invoicePrint": "ပရင့်ထုတ်",
   "invoiceReprint": "ပြန်ထုတ်",
+  "invoiceShare": "ပြေစာ မျှဝေမည်",
   "invoiceDetail": "ပြေစာ",
   "invoiceSearchHint": "ပြေစာနံပါတ်၊ ဖောက်သည်နာမည်၊ ဖုန်းနံပါတ် ရှာပါ",
   "invoiceScanToSearch": "barcode ဖတ်ရန်",
@@ -360,9 +470,21 @@
   "invoiceRefundConfirmTitle": "ဒီပြေစာကို ပြန်အမ်းမှာလား?",
   "invoiceRefundConfirmBody": "ရောင်းချမှုကို ပြန်ပြင်ပြီး ကုန်ပစ္စည်းအရေအတွက် ပြန်ဖြည့်ပါမည်။ နောက်ပြန်ရုတ်သိမ်း၍ မရပါ။",
   "invoiceRefundOf": "{invoiceNo} ၏ ပြန်အမ်းငွေ",
-  "@invoiceRefundOf": { "placeholders": { "invoiceNo": { "type": "String" } } },
+  "@invoiceRefundOf": {
+    "placeholders": {
+      "invoiceNo": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceRefundSuccess": "ပြန်အမ်းပြီးပါပြီ ({refundNo})။",
-  "@invoiceRefundSuccess": { "placeholders": { "refundNo": { "type": "String" } } },
+  "@invoiceRefundSuccess": {
+    "placeholders": {
+      "refundNo": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceAlreadyRefunded": "ဒီပြေစာကို ပြန်အမ်းပြီးသားဖြစ်ပါသည်။",
   "invoiceCustomerName": "ဖောက်သည်အမည်",
   "invoicePhoneNumber": "ဖုန်းနံပါတ်",
@@ -387,7 +509,13 @@
   "salesReportNoPrinter": "ပရင်တာ မသတ်မှတ်ရသေးပါ — ပရင်တာ ဆက်တင် ကြည့်ပါ။",
   "documentPrint": "ပရင့်ထုတ်",
   "salesReportCount": "အရောင်း {count} ခု",
-  "@salesReportCount": { "placeholders": { "count": { "type": "int" } } },
+  "@salesReportCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pnlTitle": "အမြတ်-အရှုံး စာရင်း",
   "pnlDateRange": "ရက်စွဲကာလ",
   "pnlRevenue": "စုစုပေါင်း ဝင်ငွေ",
@@ -441,7 +569,6 @@
   "printerUsbHint": "ပရင်တာကို ဒီကွန်ပျူတာနဲ့ USB ကြိုးချိတ်ပြီး စာရင်းထဲက ရွေးပါ။ Windows ရဲ့ Printers ထဲမှာ ပေါ်နေရပါမယ်။",
   "printerUsbNoneFound": "ပရင်တာ မတွေ့ပါ။ ကြိုးချိတ်ပါ၊ Windows က တောင်းရင် install လုပ်ပါ၊ ပြီးရင် Refresh နှိပ်ပါ။",
   "printerUsbRefresh": "ပြန်ရှာမည်",
-
   "settingsLabelPrinter": "Label ပရင်တာ",
   "settingsDeviceName": "စက်ပစ္စည်းအမည်",
   "settingsDeviceNameUnset": "မသတ်မှတ်ရသေးပါ — ဒီစက်ကို နာမည်ပေးရန် နှိပ်ပါ",
@@ -457,7 +584,6 @@
   "labelPrintTargetStrip": "ပြေစာပရင်တာပေါ်မှာ strip အနေနဲ့ ထုတ်ပါမည်",
   "labelPrintTargetDedicated": "Label ပရင်တာပေါ်မှာ ထုတ်ပါမည်",
   "labelPrintNoTarget": "ပရင်တာ ချိတ်ဆက်မထားပါ။ Settings ထဲမှာ ပရင်တာတစ်ခု ဦးစွာ ချိတ်ဆက်ပါ။",
-
   "categoriesTitle": "အမျိုးအစားများ",
   "manageCategories": "အမျိုးအစား စီမံ",
   "categoryAdd": "အမျိုးအစား ထည့်",
@@ -467,7 +593,6 @@
   "categoryAll": "အားလုံး",
   "categoriesEmpty": "အမျိုးအစား မရှိသေးပါ။",
   "productCategory": "အမျိုးအစား",
-
   "analyticsRevenue": "ရောင်းရငွေ",
   "analyticsProfit": "စုစုပေါင်းအမြတ်",
   "analyticsExpenses": "ကုန်ကျစရိတ် စုစုပေါင်း",
@@ -483,7 +608,6 @@
   "analyticsDailyRevenue": "နေ့စဉ် ရောင်းရငွေ",
   "analyticsCollected": "လက်ခံရရှိငွေ",
   "analyticsCreditOutstanding": "အကြွေးကျန်",
-
   "expensesTitle": "ကုန်ကျစရိတ်များ",
   "expensesEmpty": "ဤကာလအတွင်း ကုန်ကျစရိတ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။",
   "expensesTotal": "ကုန်ကျစရိတ် စုစုပေါင်း",
@@ -507,7 +631,6 @@
   "expenseDeleteConfirmTitle": "ဒီကုန်ကျစရိတ်ကို ဖျက်မလား?",
   "expenseDeleteConfirmBody": "ဒီကုန်ကျစရိတ် မှတ်တမ်းကို အပြီးဖျက်ပစ်ပါမည်။ ဒါကို ပြန်ပြင်လို့မရပါ။",
   "expenseDeleted": "ကုန်ကျစရိတ် ဖျက်ပြီးပါပြီ",
-
   "licenseActivateTitle": "လိုင်စင် အသက်သွင်း",
   "licenseKeyLabel": "လိုင်စင် key",
   "licenseActivateBtn": "အသက်သွင်း",
@@ -516,9 +639,21 @@
   "licenseStatusExpired": "သက်တမ်းကုန်",
   "licenseStatusNone": "အသက်မသွင်းရသေး",
   "licenseExpires": "သက်တမ်းကုန်: {date}",
-  "@licenseExpires": { "placeholders": { "date": { "type": "String" } } },
+  "@licenseExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "licenseGraceLeft": "ဆိုင်းငံ့ရက် {days} ရက် ကျန်",
-  "@licenseGraceLeft": { "placeholders": { "days": { "type": "int" } } },
+  "@licenseGraceLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "licenseReadOnly": "ဆိုင်အချက်အလက် မပြည့်သေးလို့ ရောင်းချမှု မပြီးနိုင်ပါ။",
   "licenseInvalidKey": "လိုင်စင် key မမှန်ကန်ပါ။",
   "licenseActivateFailed": "အသက်သွင်း၍ မရပါ။ အင်တာနက် စစ်ဆေးပါ။",
@@ -598,7 +733,13 @@
   "supportViberOpenFailed": "Viber မဖွင့်နိုင်ပါ။ နံပါတ်ကို ကူးပြီးပါပြီ — Viber ထဲမှာ paste လုပ်ပါ။",
   "licenseAfterPaymentTitle": "ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?",
   "licenseExpiringSoon": "License သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",
-  "@licenseExpiringSoon": { "placeholders": { "days": { "type": "int" } } },
+  "@licenseExpiringSoon": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "licenseThankYouTitle": "ကျေးဇူးတင်ပါတယ်!",
   "licenseThankYou24h": "ငွေစစ်ဆေးပြီး ၂၄ နာရီအတွင်း စတင်အသုံးပြုလို့ရပါမယ်။",
   "licenseFreeTrial": "Premium စမ်းကြည့်ရန်",
@@ -615,7 +756,13 @@
   "licenseAccountEmailMissing": "Support က ရှာနိုင်အောင် Settings → အကောင့် မှာ sign in ဝင်ထားပါ။",
   "licenseRequestSent": "တောင်းဆိုမှု ပို့ပြီးပါပြီ။ ငွေစစ်ဆေးပြီး key ပို့ပေးပါမယ်။",
   "licenseRequestSentViber": "တောင်းဆိုမှု ပို့ပြီးပါပြီ။ Viber {viber} ကနေ key ပို့ပေးပါမယ်။",
-  "@licenseRequestSentViber": { "placeholders": { "viber": { "type": "String" } } },
+  "@licenseRequestSentViber": {
+    "placeholders": {
+      "viber": {
+        "type": "String"
+      }
+    }
+  },
   "licenseCheckRenewal": "သက်တမ်းတိုး စစ်ဆေး",
   "licenseRefreshed": "လိုင်စင်အခြေအနေ update ဖြစ်ပြီး",
   "licenseRenewHint": "Support က သက်တမ်းတိုးပေးပြီးရင် 'သက်တမ်းတိုး စစ်ဆေး' ကို နှိပ်ပါ (သို့မဟုတ် key အသစ် activate လုပ်ပါ)။",
@@ -623,13 +770,34 @@
   "licenseRenewNotFound": "ဒီ account အတွက် subscription မတွေ့သေးပါ။ Support က သက်တမ်းတိုးပြီးရင် 'သက်တမ်းတိုး စစ်ဆေး' ကို ထပ်နှိပ်ပါ။",
   "deviceSectionTitle": "Device များ",
   "deviceAddOnlineHint": "ဒီဖုန်းကို မရေပါ။ ဖုန်း/ကွန်ပျူတာ အပို: owner သို့မဟုတ် staff email နဲ့ sign in ဝင်ပြီး Check for renewal နှိပ်ပါ။ Key မလိုပါ။ အပို {free} လုံး သုံးနိုင်ပါတယ် (ဖုန်းနဲ့ ကွန်ပျူတာ တူတူပဲ)။ အခမဲ့ ၂ လုံးကျော်ရင် Support က ခွင့်ပြုပေးပါတယ်။",
-  "@deviceAddOnlineHint": { "placeholders": { "free": { "type": "int" } } },
+  "@deviceAddOnlineHint": {
+    "placeholders": {
+      "free": {
+        "type": "int"
+      }
+    }
+  },
   "premiumFeatureBodyOnline": "Free plan ဖြစ်နေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ ဆက်သုံးနိုင်ပြီး ဤ feature အတွက် Online Premium subscription လိုအပ်ပါတယ်။",
   "deviceCount": "အပို device {used}/{free} သုံးထားပြီး",
-  "@deviceCount": { "placeholders": { "used": { "type": "int" }, "free": { "type": "int" } } },
+  "@deviceCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "free": {
+        "type": "int"
+      }
+    }
+  },
   "deviceThisDevice": "ဒီ device",
   "deviceLastActive": "နောက်ဆုံးအသုံးပြုခဲ့သည် {when}",
-  "@deviceLastActive": { "placeholders": { "when": { "type": "String" } } },
+  "@deviceLastActive": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "deviceNeverVerified": "မ activate လုပ်ရသေးပါ",
   "deviceAdd": "Device အသစ်ထည့်ရန်",
   "deviceRelease": "ဖြုတ်ရန်",
@@ -641,14 +809,22 @@
   "deviceKeyCopied": "Key ကို ကူးယူပြီးပါပြီ",
   "devicePaymentRequiredTitle": "Device fee ပေးချေရန် လိုအပ်သည်",
   "devicePaymentRequiredBody": "ဒီဆိုင်က ပင်မဖုန်းအပါအဝင် အခမဲ့ device {free} လုံး သုံးပြီးပါပြီ။ ထပ်ထည့်ရန် {fee} (တစ်ကြိမ်တည်း) ကျသင့်ပါမည် — ပေးချေပြီးရင် သင့် App Reference ID နဲ့ support ကို ဆက်သွယ်ပြီး device အသစ်ရဲ့ key ကို ရယူပါ။",
-  "@devicePaymentRequiredBody": { "placeholders": { "free": { "type": "int" }, "fee": { "type": "String" } } },
+  "@devicePaymentRequiredBody": {
+    "placeholders": {
+      "free": {
+        "type": "int"
+      },
+      "fee": {
+        "type": "String"
+      }
+    }
+  },
   "deviceOnlyOnPaidPlan": "Subscription active ဖြစ်မှသာ device ထပ်ထည့်နိုင်ပါသည် (free trial အတွင်း မရနိုင်ပါ)။",
   "deviceRequestFailed": "Device ထပ်ထည့်လို့ မရပါ — ထပ်စမ်းကြည့်ပါ။",
   "deviceRoleTitle": "ဒီ device ကို ဘယ်သူ့အတွက် ထည့်မှာလဲ?",
   "deviceRoleHint": "အခုပဲ ရွေးထားလိုက်ရင် — device အသစ် activate ဖြစ်တာနဲ့ ချက်ချင်း မှန်ကန်စွာ ပြင်ဆင်ပြီးသားဖြစ်နေပါမယ် — device အသစ်ပေါ်မှာ ထပ်ပြင်စရာ မလိုတော့ပါ။",
   "deviceRoleStaffMember": "ဝန်ထမ်း (ရွေးချယ်ခွင့်)",
   "deviceRoleAppliesOnScan": "ဒီ QR ကို scan ဖတ်ပြီး activate လုပ်တဲ့အခါ Staff mode ကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။",
-
   "invWebActivateTitle": "ဒီ computer မှာ invoice ကြည့်ရန်",
   "invWebActivateHint": "ဖုန်းမှာ သုံးနေတဲ့ ဆိုင် email နဲ့ sign in ဝင်ပါ။ ဒီ computer က extra device တစ်လုံးအဖြစ် ရေပါတယ်။ Account မရှိတဲ့ Free plan: Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ — key မလိုပါ။",
   "invWebFreeHint": "Free plan က activate မလိုပါ။ ဒီ computer မှာ ရောင်းချင်ရင် Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ။ ဒီစာမျက်နှာက ဆိုင် account နဲ့ sign in ဝင်မှ invoice ပြပါတယ်။",
@@ -668,29 +844,55 @@
   "invWebDownloadPdf": "PDF ဒေါင်းလုဒ်",
   "invWebSearchHint": "Invoice နံပါတ်၊ ဝယ်သူအမည်၊ (သို့) ဖုန်းနံပါတ်ဖြင့် ရှာပါ",
   "invWebNoResults": "ရှာဖွေမှုနှင့် ကိုက်ညီသော invoice မရှိပါ။",
-
   "referralTitle": "မိတ်ဆွေမျှ၍ ဝင်ငွေရ",
   "referralSubtitle": "သင့်ကုဒ်ကို မျှဝေပါ။ သင်စပ်ပေးထားတဲ့ ဆိုင်က လတိုင်း ကြေးပေးတိုင်း သင် commission ရပြီး license သက်တမ်းထဲ တိုက်ရိုက် ပေါင်းသွားပါမယ်။",
   "referralMyCode": "ကျွန်ုပ်၏ referral ကုဒ်",
   "referralShare": "ကုဒ် မျှဝေမည်",
   "referralCopied": "ကုဒ် ကူးယူပြီးပါပြီ",
   "referralShareText": "သင့်ဆိုင်အတွက် All In One POS သုံးပါ! စာရင်းသွင်းတဲ့အခါ ကျွန်ုပ်၏ referral ကုဒ် {code} ကို ထည့်ပါ။ — {shop}",
-  "@referralShareText": { "placeholders": { "code": { "type": "String" }, "shop": { "type": "String" } } },
+  "@referralShareText": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "shop": {
+        "type": "String"
+      }
+    }
+  },
   "referralBalance": "သင့် ဝင်ငွေ",
   "referralEarnedTotal": "စုစုပေါင်း ရရှိပြီး",
   "referralActiveShops": "သင်စပ်ပေးထားသော ဆိုင်များ",
   "referralRedeem": "License ရက်အဖြစ် လဲယူမည်",
   "referralRedeemDone": "သင့် license ကို {months} လ ပေါင်းထည့်ပြီးပါပြီ!",
-  "@referralRedeemDone": { "placeholders": { "months": { "type": "int" } } },
+  "@referralRedeemDone": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
   "referralRedeemNotEnough": "လက်ကျန်ငွေ မလုံလောက်သေးပါ — နောက်ထပ် ၁ ဆိုင် စပ်ပေးပါ!",
   "referralNextGoal": "နောက် အခမဲ့ ၁ လ အတွက် {amount} လိုပါသေးသည်",
-  "@referralNextGoal": { "placeholders": { "amount": { "type": "String" } } },
+  "@referralNextGoal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralCodeOptional": "Referral ကုဒ် (ရွေးချယ်နိုင်)",
   "referralCodeHint": "မိတ်ဆွေ့ရဲ့ ကုဒ် ရှိလား? ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်တဲ့အခါ သူ commission ရပါမယ်။",
   "referralEmpty": "referral မရှိသေးပါ။ ကုဒ်ကို မျှဝေပြီး လတိုင်း ဝင်ငွေ စတင်ရှာပါ။",
   "referralNotifTitle": "🎉 Commission ဝင်ပါပြီ!",
   "referralNotifBody": "{amount} ကို သင့် referral wallet ထဲ ပေါင်းထည့်လိုက်ပါပြီ။ App ဖွင့်၍ license အခမဲ့ရက်အဖြစ် လဲယူပါ။",
-  "@referralNotifBody": { "placeholders": { "amount": { "type": "String" } } },
+  "@referralNotifBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralHowTitle": "Refer & earn ဘယ်လို အလုပ်လုပ်လဲ",
   "referralStep1": "သင့်ကုဒ်ကို တခြားဆိုင်ရှင်များထံ မျှဝေပါ။",
   "referralStep2": "သူတို့ subscribe လုပ်ပြီး ကြေးပေးတဲ့အခါ သင့်ကုဒ်ကို ရိုက်ထည့်ပါတယ်။",
@@ -700,9 +902,17 @@
   "referralHaveCodeHint": "မိတ်ဆွေက ကုဒ်ပေးထားလား? အောက်မှာ ရိုက်ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်ရင် သူ commission ရပါမယ်။ မရှိရင် ကွက်လပ်ထားခဲ့ပါ။",
   "referralRedeemConfirmTitle": "လဲယူမလား?",
   "referralRedeemConfirmBody": "သင့် balance မှ {amount} သုံးပြီး license ကို {months} လ ပေါင်းထည့်မလား?",
-  "@referralRedeemConfirmBody": { "placeholders": { "months": { "type": "int" }, "amount": { "type": "String" } } },
+  "@referralRedeemConfirmBody": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "referralRedeemAction": "လဲယူမည်",
-
   "backupTitle": "Backup & ပြန်ယူ",
   "backupHint": "သင့် data ကို ဒီဖုန်းထဲမှာ သိမ်းထားပါတယ်။ Backup file ထုတ်ပြီး လုံခြုံစွာ သိမ်းပါ (ဥပမာ Viber → My Notes သို့ ပို့ပါ)။",
   "backupExport": "Backup ထုတ်",
@@ -715,11 +925,22 @@
   "backupImportConfirmBody": "ဒါက လက်ရှိ ကုန်ပစ္စည်း၊ အရောင်း၊ အကြွေး data တွေကို ဖျက်ပြီး backup နဲ့ အစားထိုးမှာပါ။ ပြန်ပြင်လို့ မရပါ။",
   "backupImportConfirmAction": "အစားထိုး",
   "backupImportDone": "row {count} ခု ပြန်ယူပြီး",
-  "@backupImportDone": { "placeholders": { "count": { "type": "int" } } },
+  "@backupImportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "backupFailed": "Backup မအောင်မြင်: {error}",
-  "@backupFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@backupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "backupInvalidFile": "ဒါက မှန်ကန်တဲ့ backup ဖိုင် မဟုတ်ပုံရပါတယ်။",
-
   "settingsSync": "Cloud ချိတ်ဆက်မှု",
   "syncNow": "ယခု sync လုပ်",
   "syncIdle": "အသစ်ဖြစ်နေသည်",
@@ -731,35 +952,55 @@
   "syncDisabled": "Cloud sync မသတ်မှတ်ရသေးပါ",
   "syncNever": "sync မလုပ်ရသေးပါ",
   "syncLastSynced": "နောက်ဆုံး sync: {time}",
-  "@syncLastSynced": { "placeholders": { "time": { "type": "String" } } },
+  "@syncLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "syncRealtimeOn": "Live update ဖွင့်ထားသည်",
   "syncIssuesTitle": "Sync အခြေအနေ ({count})",
-  "@syncIssuesTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@syncIssuesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "syncIssuesEmpty": "စောင့်ဆိုင်းနေသည် မရှိ — sync ရှင်းပါပြီ။",
   "syncIssuesBackgroundHint": "Held uploads ကို background sync က အလိုအလျောက် ပြီးစေပါတယ်။ Offline ဖြစ်ခဲ့ရင် online ပြန်ရောက်မှ ပြီးပါမယ်။ ယခု ပြန်လုပ်ချင်ရင် Sync now နှိပ်ပါ။",
   "syncIssuesPendingHint": "Upload {count} ခု ပြန်ကြိုးစားနေဆဲ — Sync now နှိပ်ပါ။",
-  "@syncIssuesPendingHint": { "placeholders": { "count": { "type": "int" } } },
+  "@syncIssuesPendingHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "syncIssuesQuarantinedRow": "ပြီးဆုံးနေသည်: {table}",
-  "@syncIssuesQuarantinedRow": { "placeholders": { "table": { "type": "String" } } },
+  "@syncIssuesQuarantinedRow": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
   "syncIssuesQuarantinedHeld": "Cloud sync အလိုအလျောက် ပြီးသည်အထိ ဒီစက်မှာ ထားထားသည်။",
-
   "navOrders": "အော်ဒါ",
   "ordersTitle": "Social အော်ဒါများ",
   "ordersEmpty": "အော်ဒါ မရှိသေးပါ။ ထည့်ရန် + ကိုနှိပ်ပါ။",
   "orderNew": "အော်ဒါအသစ်",
   "orderEditTitle": "အော်ဒါ ပြင်ဆင်",
-
   "orderStatusNew": "အသစ်",
   "orderStatusDelivered": "ရောက်ရှိပြီး",
   "orderStatusCancelled": "ပြန်ပို့ပြီး",
-
   "orderChannelFacebook": "Facebook",
   "orderChannelViber": "Viber",
   "orderChannelTiktok": "TikTok",
   "orderChannelPhone": "ဖုန်း",
   "orderChannelStorefront": "ဝက်ဘ်ဆိုက်",
   "orderChannelOther": "အခြား",
-
   "orderCustomerName": "ဖောက်သည်အမည်",
   "orderCustomerPhone": "ဖုန်း (ရွေးချယ်နိုင်)",
   "orderChannel": "ချန်နယ်",
@@ -783,26 +1024,43 @@
   "orderAwaitingPayment": "ငွေမရရှိသေးပါ",
   "orderMarkAsPaid": "ငွေရရှိပြီဟု မှတ်သားရန်",
   "orderMarkAsUnpaid": "ငွေမရရှိသေးဟု ပြန်ပြင်ရန်",
-
   "orderSave": "အော်ဒါ သိမ်း",
   "orderEdit": "ပြင်ဆင်",
   "orderDelete": "အော်ဒါ ဖျက်",
   "orderDeleteConfirm": "ဒီအော်ဒါ ဖျက်မလား? ပြန်ဖျက်၍ မရပါ။",
   "orderBlockCustomer": "ဒီဝယ်သူကို ပိတ်ပင်မည်",
   "orderBlockCustomerConfirm": "{phone} ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?",
-  "@orderBlockCustomerConfirm": { "placeholders": { "phone": { "type": "String" } } },
+  "@orderBlockCustomerConfirm": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
   "orderCustomerBlocked": "ဝယ်သူ ပိတ်ပင်ပြီး",
   "orderLowStockAtOrder": "ဒီ order တင်တဲ့အချိန်မှာ မှတ်တမ်းတင်ထားတဲ့ လက်ကျန်ထက် ပိုတောင်းထားပါတယ်",
   "orderCarrierHint": "Carrier ရိုက်ထည့် (သို့) ရွေးပါ",
   "orderHandOffButton": "Carrier ကို အပ်ပြီး",
   "orderHandedOffTo": "{carrier} ကို အပ်ပြီး",
-  "@orderHandedOffTo": { "placeholders": { "carrier": { "type": "String" } } },
+  "@orderHandedOffTo": {
+    "placeholders": {
+      "carrier": {
+        "type": "String"
+      }
+    }
+  },
   "orderChangeCarrier": "ပြောင်းမည်",
   "orderConvertToSale": "အရောင်းအဖြစ် ပြောင်း",
   "orderConvertHint": "ပြေစာထုတ်ပြီး catalog ပစ္စည်းများအတွက် stock နှုတ်ပါမည်။",
   "orderConverted": "အော်ဒါကို အရောင်းအဖြစ် ပြောင်းပြီး ({invoice})။",
   "orderConvertFailed": "ဒီအော်ဒါကို အရောင်းအဖြစ် ပြောင်း၍မရပါ။ ထပ်ကြိုးစားကြည့်ပါ။",
-  "@orderConverted": { "placeholders": { "invoice": { "type": "String" } } },
+  "@orderConverted": {
+    "placeholders": {
+      "invoice": {
+        "type": "String"
+      }
+    }
+  },
   "orderAlreadySale": "အရောင်းအဖြစ် မှတ်တမ်းတင်ပြီးပြီ။",
   "orderCancel": "ပြန်ပို့အဖြစ် မှတ်မည်",
   "orderRestore": "ပြန်ပို့မှု ပြန်ရုပ်သိမ်းမည်",
@@ -813,7 +1071,13 @@
   "orderNeedsItem": "ပစ္စည်း အနည်းဆုံး တစ်ခု ထည့်ပါ။",
   "orderSaved": "အော်ဒါ သိမ်းပြီး။",
   "orderItemsCount": "ပစ္စည်း {count} ခု",
-  "@orderItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@orderItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "orderPickPaymentMethod": "ငွေပေးချေနည်း",
   "orderPaymentProof": "ငွေပေးချေမှု screenshot",
   "orderInvoice": "ဘောက်ချာ မျှဝေ",
@@ -832,14 +1096,25 @@
   "ordersClearFilters": "filter ရှင်း",
   "orderFilterChannel": "ချန်နယ်",
   "orderFilterPayment": "ငွေပေးချေမှု",
-
   "staffMode": "ဝန်ထမ်း mode",
   "staffRoleOwner": "ပိုင်ရှင်",
   "staffRoleStaff": "ဝန်ထမ်း",
   "staffCurrentRole": "လက်ရှိ: {role}",
-  "@staffCurrentRole": { "placeholders": { "role": { "type": "String" } } },
+  "@staffCurrentRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "staffSwitchTo": "{role} သို့ ပြောင်း",
-  "@staffSwitchTo": { "placeholders": { "role": { "type": "String" } } },
+  "@staffSwitchTo": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "staffUnlockOwner": "ပိုင်ရှင် ဖွင့်",
   "staffSetPin": "ပိုင်ရှင် PIN သတ်မှတ်",
   "staffChangePin": "ပိုင်ရှင် PIN ပြောင်း",
@@ -848,7 +1123,13 @@
   "staffPinMismatch": "PIN နှစ်ခု မတူပါ။",
   "staffWrongPin": "PIN မှားနေပါသည်",
   "staffPinTryAgainIn": "ကြိမ်နှုန်းများနေပါသည်။ {seconds} စက္ကန့်အကြာ ပြန်စမ်းပါ",
-  "@staffPinTryAgainIn": { "placeholders": { "seconds": { "type": "int" } } },
+  "@staffPinTryAgainIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "staffPinHint": "ဂဏန်း ၄–၆ လုံး",
   "staffPinSaved": "PIN သိမ်းပြီး",
   "staffOwnerOnly": "ပိုင်ရှင်သာ ကြည့်နိုင်",
@@ -866,11 +1147,16 @@
   "staffRemoveMember": "ဖယ်ရှားရန်",
   "staffRemoveConfirmTitle": "ဒီဝန်ထမ်းကို ဖယ်ရှားမှာလား?",
   "staffRemoveConfirmBody": "{name} ကို Staff mode ပြောင်းတဲ့အခါ နောက်ထပ် မမြင်ရတော့ပါ။ ယခင်ရောင်းချမှုတွေမှာတော့ နာမည် ဆက်ပြနေပါမည်။",
-  "@staffRemoveConfirmBody": { "placeholders": { "name": { "type": "String" } } },
+  "@staffRemoveConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "staffMemberRemoved": "ဝန်ထမ်း ဖယ်ရှားပြီး",
   "staffWhoAreYou": "ဒီ device ကို ဘယ်သူသုံးနေလဲ?",
   "staffNoNamedStaff": "အမည်မထည့်ဘဲ — Staff mode ပဲသုံးမည်",
-
   "storefrontTitle": "ကျွန်ုပ်၏ Web ဆိုင်",
   "storefrontDesc": "ဖောက်သည်များ app မလိုဘဲ order တင်နိုင်တဲ့ public catalog ထုတ်ဝေပါ။",
   "storefrontPublish": "ဆိုင် ထုတ်ဝေမည်",
@@ -890,8 +1176,12 @@
   "storefrontShareText": "{name}\nဒီနေရာမှာ မှာယူပါ: {url}",
   "@storefrontShareText": {
     "placeholders": {
-      "name": { "type": "String" },
-      "url": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
     }
   },
   "storefrontClosed": "ဒီဆိုင်သည် အွန်လိုင်း မှာယူမှု လက်မခံသေးပါ။ ဖွင့်ချိန်အတွင်း ထပ်ကြိုးစားပါ။",
@@ -907,7 +1197,9 @@
   "storefrontOrderNotifBody": "Storefront မှာယူမှု အသစ် {count} ခု — Orders ကို ဖွင့်ကြည့်ပါ။",
   "@storefrontOrderNotifBody": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "storefrontBlockedCustomers": "ပိတ်ပင်ထားသော ဝယ်သူများ",
@@ -927,10 +1219,25 @@
   "storefrontOutOfStock": "စိတ်မကောင်းပါဘူး၊ Cart ထဲက ပစ္စည်းတစ်ခု Online မှာ ကုန်သွားပါပြီ။ Cart ကို ပြင်ပြီး ထပ်ကြိုးစားပါ။",
   "storefrontInvalidProduct": "Cart ထဲက ပစ္စည်းတစ်ခုသည် ရရှိနိုင်တော့ပါ။ ၎င်းကို ဖယ်ရှားပြီး ထပ်ကြိုးစားပါ။",
   "storefrontOnlineLeft": "Online ကျန် {count} ခု",
-  "@storefrontOnlineLeft": { "placeholders": { "count": { "type": "int" } } },
+  "@storefrontOnlineLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "storefrontSoldOut": "Online မှာ ကုန်သွားပါပြီ",
   "storefrontCheckoutBar": "ငွေရှင်း · {count} item(s) · {total}",
-  "@storefrontCheckoutBar": { "placeholders": { "count": { "type": "int" }, "total": { "type": "String" } } },
+  "@storefrontCheckoutBar": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontShopFallbackName": "ဆိုင်",
   "storefrontPhoneCopied": "ဖုန်းနံပါတ် ကူးယူပြီး",
   "storefrontAdd": "ထည့်မည်",
@@ -942,21 +1249,45 @@
   "storefrontPayTo": "ငွေလွှဲရန်:",
   "storefrontAttachProof": "ငွေလွှဲ screenshot ပူးတွဲပါ",
   "storefrontProofAttached": "Screenshot: {name}",
-  "@storefrontProofAttached": { "placeholders": { "name": { "type": "String" } } },
+  "@storefrontProofAttached": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontCodNoticeBeforeOrder": "အော်ဒါ ရောက်ရှိချိန်မှာ courier ကို ငွေသားပေးချေရပါမည်။",
   "storefrontTotal": "စုစုပေါင်း: {amount}",
-  "@storefrontTotal": { "placeholders": { "amount": { "type": "String" } } },
+  "@storefrontTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontPlaceOrder": "အော်ဒါတင်မည်",
   "storefrontOrderPlaced": "အော်ဒါတင်ပြီးပါပြီ!",
   "storefrontOrderNo": "အော်ဒါနံပါတ်: {orderNo}",
-  "@storefrontOrderNo": { "placeholders": { "orderNo": { "type": "String" } } },
+  "@storefrontOrderNo": {
+    "placeholders": {
+      "orderNo": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontTransferInstructions": "ငွေလွှဲပြီး screenshot ကို ဆိုင်ဆီ ပို့ပါ:",
   "storefrontCodNoticeAfterOrder": "ပစ္စည်းရောက်ရှိချိန် courier ကို ငွေသားပေးချေရပါမည်။",
   "storefrontSaveToPhotos": "Photos ထဲ သိမ်းမည်",
   "storefrontDone": "ပြီးပါပြီ",
   "storefrontCopyNumber": "နံပါတ် ကူးယူရန်",
   "storefrontNotFound": "\"{slug}\" ဆိုင်ကို ရှာမတွေ့ပါ သို့မဟုတ် မထုတ်ပြန်ရသေးပါ။",
-  "@storefrontNotFound": { "placeholders": { "slug": { "type": "String" } } },
+  "@storefrontNotFound": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontOpenShopLink": "ဆိုင်လင့်ခ်ကို ဖွင့်ပါ၊ ဥပမာ - /your-shop-slug",
   "storefrontRenewTitle": "စာရင်းသွင်းမှု သက်တမ်းတိုးရန်",
   "storefrontRenewHint": "အောက်တွင် ငွေပေးချေမှု အချက်အလက်များ ဖြည့်သွင်းပါ — စစ်ဆေးပြီး သင့်စာရင်းသွင်းမှု သက်တမ်းကို တိုးပေးပါမည်။",
@@ -966,9 +1297,21 @@
   "storefrontRenewEmailHint": "ဒါရှိရင် အပေါ်က App Reference ID မလိုပါဘူး — တစ်ခုပဲ ဖြည့်ရင် ရပါတယ်။",
   "storefrontRenewPlan": "အစီအစဉ်",
   "storefrontRenewPricePerMonth": "{price} / လ",
-  "@storefrontRenewPricePerMonth": { "placeholders": { "price": { "type": "String" } } },
+  "@storefrontRenewPricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontRenewPricePerYear": "{price} / နှစ်",
-  "@storefrontRenewPricePerYear": { "placeholders": { "price": { "type": "String" } } },
+  "@storefrontRenewPricePerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontRenewMonths": "လအရေအတွက်",
   "storefrontRenewAmountLockedHint": "ဒါက သင့် plan အတွက် သတ်မှတ်ထားတဲ့ ပမာဏ ဖြစ်ပါတယ် — ဒီပမာဏအတိုင်း လွှဲပေးပါ။",
   "storefrontRenewAmountPaid": "ပေးချေရမည့် ငွေပမာဏ (ကျပ်) *",
@@ -981,7 +1324,6 @@
   "storefrontRenewRateLimited": "တောင်းဆိုမှု အကြိမ်များစွာ ပို့ထားပါသည် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။",
   "storefrontRenewMissingFields": "ဆိုင်အမည်၊ App Reference ID (သို့) email၊ လအရေအတွက်၊ ငွေပမာဏနှင့် transaction number ရဲ့ နောက်ဆုံး ၆ လုံးတို့ကို ဖြည့်သွင်းပါ။",
   "storefrontRenewMonthsTooHigh": "လအရေအတွက်သည် ၆၀ လ (၅ နှစ်) ထက် ပိုမနိုင်ပါ။ ကျေးဇူးပြု၍ ပိုနည်းသောနံပါတ်တစ်ခု ထည့်ပါ။",
-
   "onboardWelcomeTitle": "All In One POS မှ ကြိုဆိုပါတယ်",
   "onboardWelcomeBody": "မြန်မာဆိုင်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။",
   "onboardNext": "ရှေ့ဆက်",
@@ -999,8 +1341,8 @@
   "onboardAccountSkip": "အခုအတွက် ကျော်မည်",
   "onboardAccountSignedInTitle": "Sign in ဝင်ပြီးပါပြီ",
   "onboardStaffTitle": "Owner နှင့် Staff Mode",
-  "onboardStaffBody": "အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။ ဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။",
-
+  "onboardStaffBody": "အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။\nဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။\nStaff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။\nဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။",
+  "onboardAccountMissingFields": "အရင် လိုအပ်တဲ့အချက်အလက်တွေ ဖြည့်ပါ။",
   "accountShopLoginTitle": "အကောင့်",
   "accountShopLoginHint": "ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။",
   "accountProfileSubtitleSignedOut": "ဝင်ရောက်မည် သို့မဟုတ် ဆိုင် login ဖန်တီးမည်",
@@ -1054,7 +1396,6 @@
   "accountSignInSessionFailed": "Sign in ဝင်ပြီးပါပြီ။ ဒီဖုန်းက ဆိုင်ကို ဆွဲမရသေးပါ။ Sign in ကို ထပ်နှိပ်ပါ။",
   "accountSignInNoShop": "ဒီ email ကို ဆိုင်နှင့် မချိတ်ရသေးပါ။ ပေးပြီးသားဆိုရင် Support ကို ပြောပါ — ပြီးရင် Check for renewal ကို နှိပ်ပါ။",
   "accountSignInDeviceLimit": "ဒီဆိုင်က ပင်မဖုန်းအပြင် ဖုန်း/ကွန်ပျူတာ နောက်ထပ် ၂ လုံး ချိတ်ပြီးပါပြီ။ Device အဟောင်း ဖြုတ်ပေးဖို့ Support ကို ပြောပါ။",
-
   "staffAccountsTitle": "ဝန်ထမ်း Account (Email login)",
   "staffAccountsSubtitle": "အွန်လိုင်း: ဝန်ထမ်းတစ်ဦးချင်းစီက မိမိ email + password နဲ့ login ဝင်သည်။",
   "staffModeSubtitle": "ဒီဖုန်းအတွက်သာ: Owner PIN နဲ့ device ကို သော့ခတ်သည် (offline မှာလည်း အလုပ်လုပ်သည်)။",
@@ -1066,8 +1407,13 @@
   "staffAccountsRevoke": "ပယ်ဖျက်မည်",
   "staffAccountsRevokeConfirmTitle": "ဒီ Account ကို ပယ်ဖျက်မလား?",
   "staffAccountsRevokeConfirmBody": "{email} ဟာ နောက်ထပ် ဝင်ရောက်လို့ မရတော့ပါ။",
-  "@staffAccountsRevokeConfirmBody": { "placeholders": { "email": { "type": "String" } } },
-
+  "@staffAccountsRevokeConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "branchesTitle": "ဆိုင်ခွဲများ",
   "branchesCreate": "ဆိုင်ခွဲ အသစ် ဖန်တီးမည်",
   "branchesCreated": "ဆိုင်ခွဲ ဖန်တီးပြီးပါပြီ။",
@@ -1080,34 +1426,88 @@
   "branchesHealthSafeSwitch": "ပြောင်းရန် အဆင်ပြေ",
   "branchesHealthSyncNeeded": "Sync လိုအပ်",
   "branchesRowPending": "ဒီစက် — တင်မရသေးသော uploads: {count}",
-  "@branchesRowPending": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesRowPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesRowLastSync": "နောက်ဆုံး sync: {time}",
-  "@branchesRowLastSync": { "placeholders": { "time": { "type": "String" } } },
+  "@branchesRowLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "branchesCurrent": "လက်ရှိ",
   "branchesSwitch": "ပြောင်းမည်",
   "branchesSwitched": "ဆိုင်ခွဲ ပြောင်းပြီးပါပြီ။",
   "branchesSwitchSyncing": "ဒီဆိုင်ရဲ့ ဒေတာကို sync လုပ်နေပါသည် — connection နှေးရင် အချိန် အနည်းငယ် ကြာနိုင်ပါသည်။",
   "branchesSwitchConfirmTitle": "ဒီဆိုင်ခွဲကို ပြောင်းမလား?",
   "branchesSwitchConfirmBody": "ဒီစက်ပေါ်က Data အားလုံးကို \"{label}\" ရဲ့ Data နဲ့ အစားထိုးပါလိမ့်မယ်။ Data အားလုံး sync ပြီးသားဖြစ်ကြောင်း သေချာအောင် စစ်ပါ — ပြန်လှည့်လို့ မရပါ။",
-  "@branchesSwitchConfirmBody": { "placeholders": { "label": { "type": "String" } } },
+  "@branchesSwitchConfirmBody": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "branchesSwitchBlockedTitle": "အရင် Sync ပြဿနာဖြေရှင်းပါ",
   "branchesSwitchBlockedStuckOutbox": "Upload တချို့ ပြန်ကြိုးစားနေဆဲပါ။ Sync now နှိပ်ပြီး ခဏစောင့်ကာ ပြန် switch ပါ။",
   "branchesSwitchFixSyncIssues": "Sync အခြေအနေ ကြည့်မည်",
   "branchesPendingSync": "ဒီစက်မှာ sync မလုပ်ရသေးတဲ့ ပြောင်းလဲမှုတွေ ရှိပါတယ်။ Sync ပြီးအောင်စောင့်ပြီး ထပ်ကြိုးစားပါ။",
   "branchesPreflightTitle": "\"{label}\" သို့ ပြောင်းရန် အဆင်သင့်ဖြစ်ပြီလား?",
-  "@branchesPreflightTitle": { "placeholders": { "label": { "type": "String" } } },
+  "@branchesPreflightTitle": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightTarget": "ပြောင်းမည့် ဆိုင်ခွဲ",
   "branchesPreflightPending": "မ sync ရသေးတဲ့ local ပြောင်းလဲမှု: {count}",
-  "@branchesPreflightPending": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesPreflightPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightStuck": "ပြန်ကြိုးစားနေသော uploads: {count}",
-  "@branchesPreflightStuck": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesPreflightStuck": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightNetwork": "Network: {status}",
-  "@branchesPreflightNetwork": { "placeholders": { "status": { "type": "String" } } },
+  "@branchesPreflightNetwork": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightLastSync": "နောက်ဆုံး sync: {time}",
-  "@branchesPreflightLastSync": { "placeholders": { "time": { "type": "String" } } },
+  "@branchesPreflightLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "branchesPreflightNeedSync": "local data မပျောက်အောင် အရင် Sync လုပ်ပြီးမှ ပြောင်းပါ။",
   "branchesSwitchUploadFailed": "Local ပြောင်းလဲမှု {count} ခု မတင်ရသေးပါ။ Sync now နှိပ်ပြီး ပြန် switch ပါ။ ထိန်းထားသော items က background မှာ အလိုအလျောက် ပြီးပြီး switch မပိတ်ပါ။",
-  "@branchesSwitchUploadFailed": { "placeholders": { "count": { "type": "int" } } },
+  "@branchesSwitchUploadFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "branchesPreflightNeedOnline": "လက်ရှိ Offline ဖြစ်နေပါတယ်။ branch ပြောင်းရန် internet ချိတ်ပါ။",
   "branchesPreflightSyncAndSwitch": "Sync လုပ်ပြီး ပြောင်းမည်",
   "branchesPreflightSyncFirst": "အရင် Sync လုပ်မည်",
@@ -1128,9 +1528,24 @@
   "branchesSwitchStepClearingOldData": "ဒီဆိုင်ရဲ့ data ဖွင့်နေသည်",
   "branchesSwitchStepSyncingNewData": "ဆိုင်အသစ် data Sync လုပ်နေသည်",
   "branchesRecoveryBody": "{shopId} သို့ branch ပြောင်းခြင်း လုပ်ငန်းစဉ် မပြီးသေးပါ။ Sync ကို ထပ်စမ်းနိုင်ပါတယ်။",
-  "@branchesRecoveryBody": { "placeholders": { "shopId": { "type": "String" } } },
+  "@branchesRecoveryBody": {
+    "placeholders": {
+      "shopId": {
+        "type": "String"
+      }
+    }
+  },
   "branchesRecoveryBodyWithError": "{shopId} သို့ branch ပြောင်းခြင်း မပြီးသေးပါ — {error}",
-  "@branchesRecoveryBodyWithError": { "placeholders": { "shopId": { "type": "String" }, "error": { "type": "String" } } },
+  "@branchesRecoveryBodyWithError": {
+    "placeholders": {
+      "shopId": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "branchesRecoveryRetrySync": "Sync ပြန်လုပ်မည်",
   "branchesRecoveryDismiss": "ဖျောက်မည်",
   "branchesRecoveryResolved": "Branch setup ပြီးစီးပါပြီ။",
@@ -1147,9 +1562,13 @@
   "branchesUnlink": "ဖြုတ်မည်",
   "branchesUnlinkConfirmTitle": "ဒီဆိုင်ခွဲကို ဖြုတ်မလား?",
   "branchesUnlinkConfirmBody": "\"{label}\" ကို ဆိုင်ခွဲစာရင်းမှ ဖယ်ရှားပါလိမ့်မယ်။ Key နဲ့ နောက်ပိုင်း ပြန်ချိတ်နိုင်ပါတယ်။",
-  "@branchesUnlinkConfirmBody": { "placeholders": { "label": { "type": "String" } } },
-
-
+  "@branchesUnlinkConfirmBody": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "recurringExpenseTitle": "လစဉ် ပုံသေ ကုန်ကျစရိတ်",
   "recurringExpenseManage": "လစဉ် ကုန်ကျစရိတ် စီမံမည်",
   "recurringExpenseAddFromTemplate": "Template မှ ထည့်မည်",
@@ -1165,8 +1584,16 @@
   "recurringExpenseTimingStart": "လ၏ ၁ ရက်နေ့",
   "recurringExpenseTimingEnd": "လကုန်ရက်",
   "recurringExpenseAutoAdded": "လစဉ်ကုန်ကျစရိတ် {count} ခု အလိုအလျောက် ထည့်ပြီးပါပြီ — {names}",
-  "@recurringExpenseAutoAdded": { "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } } },
-
+  "@recurringExpenseAutoAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "onboardModeTitle": "All In One POS ကို ဘယ်လို သုံးမှာလဲ?",
   "onboardModeOfflineTitle": "Offline",
   "onboardModeOfflineBody": "ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုနဲ့ Account မလိုဘဲ အခမဲ့ စတင်နိုင်ပါတယ်။ Premium ဖွင့်ချင်ရင် License key ကို အချိန်မရွေး ထည့်နိုင်ပါတယ်။",
@@ -1210,6 +1637,5 @@
   "licenseAccountLinked": "Cloud account ချိတ်ဆက်ထားပြီး",
   "operatingModeOnline": "Online",
   "operatingModeOffline": "Offline",
-
   "currencySymbol": "ကျပ်"
 }

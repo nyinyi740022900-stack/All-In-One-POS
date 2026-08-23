@@ -29,6 +29,9 @@ dependencies:
   supabase_flutter: ^2.8.0
   connectivity_plus: ^6.1.0
 
+  # Scan feedback sounds (beep on accepted / error tone on rejected)
+  audioplayers: ^6.1.0
+
   # Utilities
   intl: ^0.20.1
   uuid: ^4.5.1
@@ -68,9 +71,16 @@ dependencies:
   # Windows USB/Wi-Fi office printers) — not the thermal ESC/POS path.
   printing: ^5.14.2
   url_launcher: ^6.3.2
+  cached_network_image: ^3.4.1
+  sqflite_common_ffi: ^2.3.7+1
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # Real-device/simulator interaction tests (`flutter test integration_test
+  # -d <device>`) — taps go through the real hit-testing pipeline, which is
+  # what the "Get started does nothing" class of bug needs to reproduce.
+  integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 
@@ -86,6 +96,7 @@ flutter:
     - assets/
     - assets/branding/
     - assets/fonts/
+    - assets/sounds/
 
   fonts:
     - family: NotoSansMyanmar

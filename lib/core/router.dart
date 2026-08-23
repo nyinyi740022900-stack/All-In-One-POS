@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/analytics/analytics_screen.dart';
 import '../features/inventory/inventory_screen.dart';
+import '../features/onboarding/onboarding_flow.dart';
+import '../features/onboarding/onboarding_state.dart';
 import '../features/orders/orders_invoices_hub_screen.dart';
 import '../features/sell/sell_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -11,9 +13,18 @@ import '../features/staff/staff_providers.dart';
 import '../l10n/app_localizations.dart';
 import 'layout.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/sell',
-  routes: [
+/// The app's routes — shared by the production [appRouterProvider] and by
+/// widget tests that need the real shell/chrome without the onboarding
+/// redirect.
+List<RouteBase> buildAppRoutes() => [
+
+        // Outside the shell — no bottom nav while onboarding.
+        GoRoute(
+        path: '/onboarding',
+        builder: (_, _) => const Scaffold(
+          body: SafeArea(child: OnboardingFlow(routed: true)),
+        ),
+      ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _ShellScaffold(shell: shell),
       branches: [
@@ -69,8 +80,30 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-  ],
-);
+  ];
+
+/// Built inside a [Provider] so the redirect guard can read the onboarding
+/// state; `app.dart` watches this provider for its `routerConfig`.
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final router = GoRouter(
+    initialLocation: '/sell',
+    redirect: (context, state) {
+      // First-run onboarding owns the whole screen until done. Read (not
+      // watch) here: the flow itself drives leaving via context.go, and
+      // GoRouter re-runs this guard on every navigation anyway.
+      final needed = ref.read(onboardingStillNeededProvider);
+      if (needed && state.matchedLocation != '/onboarding') {
+        return '/onboarding';
+      }
+      return null;
+    },
+    routes: buildAppRoutes(),
+  );
+  // Test containers dispose providers eagerly; a live GoRouter keeps
+  // internal observers/scheduled work alive past the tree's teardown.
+  ref.onDispose(router.dispose);
+  return router;
+});
 
 class _ShellScaffold extends ConsumerWidget {
   const _ShellScaffold({required this.shell});

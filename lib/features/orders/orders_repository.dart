@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
@@ -128,7 +127,7 @@ class OrdersRepository {
           updatedAt: Value(now),
           dirty: const Value(true),
         ));
-        await _enqueue('order_items', o.id, 'delete', '{"id":"${o.id}"}');
+        await _enqueue('order_items', o.id, 'delete');
       }
       for (final l in lines) {
         final itemId = _uuid.v4();
@@ -143,8 +142,7 @@ class OrdersRepository {
               lineTotal: l.lineTotal,
               updatedAt: Value(now),
             ));
-        await _enqueue('order_items', itemId, 'upsert', jsonEncode(
-            (await _one(_db.orderItems, (t) => t.id.equals(itemId))).toJson()));
+        await _enqueue('order_items', itemId, 'upsert');
       }
     });
     return orderId;
@@ -236,7 +234,7 @@ class OrdersRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue('orders', orderId, 'delete', '{"id":"$orderId"}');
+      await _enqueue('orders', orderId, 'delete');
 
       final its = await (_db.select(_db.orderItems)
             ..where((i) => i.orderId.equals(orderId)))
@@ -248,7 +246,7 @@ class OrdersRepository {
           updatedAt: Value(now),
           dirty: const Value(true),
         ));
-        await _enqueue('order_items', it.id, 'delete', '{"id":"${it.id}"}');
+        await _enqueue('order_items', it.id, 'delete');
       }
     });
   }
@@ -289,8 +287,7 @@ class OrdersRepository {
             finalizedAt: Value(now),
             updatedAt: Value(now),
           ));
-      await _enqueue('sales', saleId, 'upsert', jsonEncode(
-          (await _one(_db.sales, (t) => t.id.equals(saleId))).toJson()));
+      await _enqueue('sales', saleId, 'upsert');
 
       for (final it in lines) {
         final siId = _uuid.v4();
@@ -305,8 +302,7 @@ class OrdersRepository {
               lineTotal: it.lineTotal,
               updatedAt: Value(now),
             ));
-        await _enqueue('sale_items', siId, 'upsert', jsonEncode(
-            (await _one(_db.saleItems, (t) => t.id.equals(siId))).toJson()));
+        await _enqueue('sale_items', siId, 'upsert');
 
         if (trackStock && it.productId != null) {
           await _recordStockOut(it.productId!, it.qty, saleId, now);
@@ -322,8 +318,7 @@ class OrdersRepository {
             amount: total,
             updatedAt: Value(now),
           ));
-      await _enqueue('payments', payId, 'upsert', jsonEncode(
-          (await _one(_db.payments, (t) => t.id.equals(payId))).toJson()));
+      await _enqueue('payments', payId, 'upsert');
 
       await (_db.update(_db.orders)..where((o) => o.id.equals(orderId)))
           .write(OrdersCompanion(
@@ -363,8 +358,7 @@ class OrdersRepository {
           refId: Value(saleId),
           updatedAt: Value(now),
         ));
-    await _enqueue('stock_movements', moveId, 'upsert', jsonEncode(
-        (await _one(_db.stockMovements, (t) => t.id.equals(moveId))).toJson()));
+    await _enqueue('stock_movements', moveId, 'upsert');
 
     final level = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
@@ -376,55 +370,54 @@ class OrdersRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue('stock_levels', level.id, 'upsert', jsonEncode(
-          (await _one(_db.stockLevels, (t) => t.id.equals(level.id))).toJson()));
+      // No stock_levels enqueue — quantity is a counter reconciled from the
+      // stock_movements ledger on every device, never an absolute LWW push.
     }
   }
 
   /// Per-shop, per-day sequential order number: `ORD-yyyyMMdd-NNN`.
+  /// Max-seq scan over existing numbers rather than row-counting — same
+  /// reasoning as SalesRepository's invoice numbers (audit M3).
   Future<String> _nextOrderNo(DateTime now) async {
-    final dayStart = DateTime(now.year, now.month, now.day);
-    final todays = await (_db.select(_db.orders)
+    final prefix = 'ORD-${DateFormat('yyyyMMdd').format(now)}-';
+    final rows = await (_db.select(_db.orders)
           ..where((o) =>
-              o.shopId.equals(_shopId) &
-              o.createdAt.isBiggerOrEqualValue(dayStart)))
+              o.shopId.equals(_shopId) & o.orderNo.like('$prefix%')))
         .get();
-    final seq = (todays.length + 1).toString().padLeft(3, '0');
-    return 'ORD-${DateFormat('yyyyMMdd').format(now)}-$seq';
+    var max = 0;
+    for (final o in rows) {
+      final n = int.tryParse(o.orderNo.substring(prefix.length));
+      if (n != null && n > max) max = n;
+    }
+    return '$prefix${(max + 1).toString().padLeft(3, '0')}';
   }
 
   /// Per-shop, per-day sequential invoice number: `INV-yyyyMMdd-NNN`. Mirrors
-  /// `SalesRepository` so converted orders share the shop's invoice sequence.
+  /// `SalesRepository` so converted orders share the shop's invoice sequence
+  /// — including its max-seq scan (audit M3).
   Future<String> _nextInvoiceNo(DateTime now) async {
-    final dayStart = DateTime(now.year, now.month, now.day);
-    final todays = await (_db.select(_db.sales)
+    final prefix = 'INV-${DateFormat('yyyyMMdd').format(now)}-';
+    final rows = await (_db.select(_db.sales)
           ..where((s) =>
-              s.shopId.equals(_shopId) &
-              s.finalizedAt.isBiggerOrEqualValue(dayStart)))
+              s.shopId.equals(_shopId) & s.invoiceNo.like('$prefix%')))
         .get();
-    final seq = (todays.length + 1).toString().padLeft(3, '0');
-    return 'INV-${DateFormat('yyyyMMdd').format(now)}-$seq';
-  }
-
-  Future<D> _one<T extends Table, D>(
-    TableInfo<T, D> table,
-    Expression<bool> Function(T) filter,
-  ) {
-    return (_db.select(table)..where(filter)).getSingle();
+    var max = 0;
+    for (final s in rows) {
+      final n = int.tryParse(s.invoiceNo.substring(prefix.length));
+      if (n != null && n > max) max = n;
+    }
+    return '$prefix${(max + 1).toString().padLeft(3, '0')}';
   }
 
   Future<void> _enqueueOrder(String orderId) async {
-    final row = await _one(_db.orders, (t) => t.id.equals(orderId));
-    await _enqueue('orders', orderId, 'upsert', jsonEncode(row.toJson()));
+    await _enqueue('orders', orderId, 'upsert');
   }
 
-  Future<void> _enqueue(
-      String table, String rowId, String op, String payload) {
+  Future<void> _enqueue(String table, String rowId, String op) {
     return _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: table,
           rowId: rowId,
           op: op,
-          payload: payload,
         ));
   }
 }

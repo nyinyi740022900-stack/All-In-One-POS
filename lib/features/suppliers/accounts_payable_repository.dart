@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -58,14 +57,10 @@ class AccountsPayableRepository {
               updatedAt: Value(now),
             ),
           );
-      final row = await (_db.select(_db.supplierPayments)
-            ..where((t) => t.id.equals(id)))
-          .getSingle();
       await _db.into(_db.outbox).insert(OutboxCompanion.insert(
             entityTable: 'supplier_payments',
             rowId: id,
             op: 'upsert',
-            payload: jsonEncode(row.toJson()),
           ));
     });
   }

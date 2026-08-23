@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 /// Downscales + re-encodes an image to keep uploads small (payment screenshots
@@ -9,12 +8,28 @@ import 'package:image/image.dart' as img;
 /// re-encodes as JPEG at [quality]. Returns `(bytes, 'jpg')`. If decoding
 /// fails (unknown format), returns the original bytes + [fallbackExt] so the
 /// upload still succeeds — never blocks the user over a compression miss.
-({Uint8List bytes, String ext}) compressImage(
+///
+/// The decode/resize/encode pipeline is pure-Dart CPU work (`package:image`)
+/// that used to run inline on the UI isolate — picking a product photo or a
+/// payment proof froze every frame for seconds on a multi-MB camera shot
+/// (audit C3). It now runs on a background isolate via [compute]; on Flutter
+/// web (storefront guests) `compute` degrades to the main thread, so the web
+/// path keeps its old behaviour rather than breaking.
+Future<({Uint8List bytes, String ext})> compressImage(
   Uint8List input, {
   String fallbackExt = 'jpg',
   int maxDim = 1280,
   int quality = 78,
 }) {
+  return compute(_compressImageSync, (input, fallbackExt, maxDim, quality));
+}
+
+/// Synchronous worker behind [compressImage] — a top-level function so
+/// [compute] can send it across the isolate boundary.
+({Uint8List bytes, String ext}) _compressImageSync(
+  (Uint8List, String, int, int) args,
+) {
+  final (input, fallbackExt, maxDim, quality) = args;
   try {
     final decoded = img.decodeImage(input);
     if (decoded == null) return (bytes: input, ext: fallbackExt);

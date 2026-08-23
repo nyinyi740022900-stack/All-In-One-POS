@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/layout.dart';
 import '../../core/money.dart';
@@ -84,7 +85,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                         AppTheme.space3,
                       ),
                       itemCount: filtered.length,
+                      // Stable per-order keys (audit Low): when the list
+                      // shifts (new order lands via sync), elements match by
+                      // identity instead of position.
                       itemBuilder: (context, i) => _OrderCard(
+                        key: ValueKey('order-${filtered[i].id}'),
                         order: filtered[i],
                         selected: split && filtered[i].id == _selectedOrderId,
                         onTap: () => openOrder(filtered[i]),
@@ -273,7 +278,6 @@ class _FilterChip extends StatelessWidget {
         label: Text(label),
         selected: selected,
         onSelected: (_) => onSelected(),
-        visualDensity: VisualDensity.compact,
       ),
     );
   }
@@ -281,6 +285,7 @@ class _FilterChip extends StatelessWidget {
 
 class _OrderCard extends StatelessWidget {
   const _OrderCard({
+    super.key,
     required this.order,
     required this.onTap,
     this.selected = false,
@@ -334,9 +339,15 @@ class _OrderCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppTheme.space1),
+                // When the order came in — a social-order pipeline is worked
+                // oldest-first, and without a timestamp on the card every
+                // row looks equally urgent.
                 Text(
-                  order.orderNo,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  '${order.orderNo} · '
+                  '${DateFormat('dd/MM HH:mm').format(order.createdAt)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontFeatures: AppTheme.tabularFigures,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.space2),
                 Row(

@@ -177,6 +177,13 @@ class AppLocalizationsMy extends AppLocalizations {
       'USB scanner တပ်ပါ (သို့) Bluetooth scanner ကို စက်ရဲ့ Bluetooth ဆက်တင်မှာ ချိတ်ပါ။ ဒီစာမျက်နှာ ဖွင့်ထားပြီး scan ပါ။';
 
   @override
+  String get scanDone => 'ပြီးပြီ';
+
+  @override
+  String get scanContinuousHint =>
+      'စိတ်ကြိုက် အရေအတွက် scan ပါ — scan သမျှ cart ထဲ ထည့်ပေးပါမယ်။ ပြီးရင် ပြီးပြီ ခလုတ် နှိပ်ပါ။';
+
+  @override
   String get scannerSettings => 'Barcode scanner';
 
   @override
@@ -213,6 +220,24 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sellInsufficientPaid => 'ပေးချေငွေသည် စုစုပေါင်းထက် နည်းနေသည်။';
+
+  @override
+  String get sellHoldSale => 'အရောင်း သိမ်းထား';
+
+  @override
+  String get sellCartHeld => 'ခြင်းတောင်း သိမ်းထားပြီး';
+
+  @override
+  String get sellHeldTitle => 'သိမ်းထားသော အရောင်းများ';
+
+  @override
+  String get sellHeldEmpty => 'သိမ်းထားသော အရောင်း မရှိပါ။';
+
+  @override
+  String get sellHeldRemoved => 'သိမ်းထားသည်ကို ဖျက်ပြီး';
+
+  @override
+  String get sellAutoHeldPrevious => 'အရင်ခြင်းတောင်းကို သိမ်းထားလိုက်ပါပြီ';
 
   @override
   String get paymentCash => 'ငွေသား';
@@ -265,6 +290,9 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get cashCloseWarning =>
       'ပိတ်လိုက်ပြီးရင် ဒီအရေအတွက်က အပြီးအပိုင်ဖြစ်သွားပါမည် — session နှင့် variance ကို နောက်မှ ပြင်လို့မရတော့ပါ။';
+
+  @override
+  String get cashAmountRequired => 'အရင် ငွေပမာဏ ဖြည့်ပါ။';
 
   @override
   String get cashVariance => 'ကွာခြားချက်';
@@ -344,6 +372,28 @@ class AppLocalizationsMy extends AppLocalizations {
   String checkoutTierPricingApplied(String tier) {
     return 'ဒီအရောင်းအတွက် $tier ဈေးနှုန်း သုံးထားသည်';
   }
+
+  @override
+  String checkoutItemsCount(int count) {
+    return 'ကုန်ပစ္စည်း $count မျိုး';
+  }
+
+  @override
+  String get checkoutShortfallCreditHint =>
+      'လိုငွေကို အကြွေးအဖြစ် မှတ်တမ်းတင်ပါမည် — ဝယ်သူအမည် ထည့်ရန် လိုအပ်သည်။';
+
+  @override
+  String get checkoutDone => 'ပြီးပါပြီ';
+
+  @override
+  String get checkoutOwnerPinTitle => 'ပိုင်ရှင် PIN';
+
+  @override
+  String get checkoutOwnerPinExplain =>
+      'လျှော့ဈေးကို ပိုင်ရှင်သာ လုပ်ပိုင်ခွင့်ရှိသည်။ ဒီအရောင်းအတွက် ဖွင့်ရန် ပိုင်ရှင် PIN ထည့်ပါ။';
+
+  @override
+  String get checkoutOwnerPinWrong => 'PIN မှားနေပါသည်။';
 
   @override
   String get creditCustomerRequired => 'အကြွေးရောင်းရန် ဝယ်သူအမည် ထည့်ပါ။';
@@ -1045,6 +1095,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invoiceReprint => 'ပြန်ထုတ်';
+
+  @override
+  String get invoiceShare => 'ပြေစာ မျှဝေမည်';
 
   @override
   String get invoiceDetail => 'ပြေစာ';
@@ -3033,7 +3086,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardStaffBody =>
-      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။ ဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။ Staff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။ ဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
+      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။\nဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။\nStaff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။\nဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
+
+  @override
+  String get onboardAccountMissingFields =>
+      'အရင် လိုအပ်တဲ့အချက်အလက်တွေ ဖြည့်ပါ။';
 
   @override
   String get accountShopLoginTitle => 'အကောင့်';

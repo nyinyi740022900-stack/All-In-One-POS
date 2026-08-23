@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -162,8 +161,7 @@ class InventoryRepository {
       await _db
           .into(_db.products)
           .insertOnConflictUpdate(companion);
-      await _enqueue('products', productId, 'upsert',
-          (await _productJson(productId)));
+      await _enqueue('products', productId, 'upsert');
 
       if (quantity != null) {
         await _setStockLevel(productId, quantity, reorderLevel, now, costPrice);
@@ -235,11 +233,7 @@ class InventoryRepository {
             createdAt: Value(now),
             updatedAt: Value(now),
           ));
-      await _enqueue('stock_movements', moveId, 'upsert', jsonEncode(
-          (await (_db.select(_db.stockMovements)
-                    ..where((m) => m.id.equals(moveId)))
-                  .getSingle())
-              .toJson()));
+      await _enqueue('stock_movements', moveId, 'upsert');
 
       await _db.into(_db.stockLevels).insertOnConflictUpdate(StockLevelsCompanion(
             id: Value(rowId),
@@ -250,11 +244,9 @@ class InventoryRepository {
             updatedAt: Value(now),
             dirty: const Value(true),
           ));
-      final row = await (_db.select(_db.stockLevels)
-            ..where((s) => s.id.equals(rowId)))
-          .getSingle();
-      await _enqueue(
-          'stock_levels', rowId, 'upsert', jsonEncode(row.toJson()));
+      // NOTE: no stock_levels outbox enqueue here — `quantity` is a counter
+      // and must never sync as an absolute LWW value; only genuine
+      // reorder-level edits are pushed (see _setStockLevel).
     });
   }
 
@@ -267,7 +259,7 @@ class InventoryRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue('products', productId, 'delete', '{"id":"$productId"}');
+      await _enqueue('products', productId, 'delete');
     });
   }
 
@@ -283,10 +275,7 @@ class InventoryRepository {
     );
     await _db.transaction(() async {
       await _db.into(_db.categories).insertOnConflictUpdate(companion);
-      final row = await (_db.select(_db.categories)
-            ..where((c) => c.id.equals(categoryId)))
-          .getSingle();
-      await _enqueue('categories', categoryId, 'upsert', jsonEncode(row.toJson()));
+      await _enqueue('categories', categoryId, 'upsert');
     });
     return categoryId;
   }
@@ -302,8 +291,7 @@ class InventoryRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue(
-          'categories', categoryId, 'delete', '{"id":"$categoryId"}');
+      await _enqueue('categories', categoryId, 'delete');
     });
   }
 
@@ -345,10 +333,7 @@ class InventoryRepository {
             createdAt: Value(now),
             updatedAt: Value(now),
           ));
-      await _enqueue('stock_movements', moveId, 'upsert', jsonEncode(
-          (await (_db.select(_db.stockMovements)..where((m) => m.id.equals(moveId)))
-                  .getSingle())
-              .toJson()));
+      await _enqueue('stock_movements', moveId, 'upsert');
     }
 
     await _db.into(_db.stockLevels).insertOnConflictUpdate(StockLevelsCompanion(
@@ -360,26 +345,19 @@ class InventoryRepository {
           updatedAt: Value(now),
           dirty: const Value(true),
         ));
-    final row = await (_db.select(_db.stockLevels)
-          ..where((s) => s.id.equals(rowId)))
-        .getSingle();
-    await _enqueue('stock_levels', rowId, 'upsert', jsonEncode(row.toJson()));
+    // Push the level row ONLY when it's new or the reorder level actually
+    // changed — those carry real settings. `quantity` is a device-reconciled
+    // counter (see adjustStock's NOTE + sync_mappers.dart's _stockLevels).
+    if (existing == null || existing.reorderLevel != reorderLevel) {
+      await _enqueue('stock_levels', rowId, 'upsert');
+    }
   }
 
-  Future<String> _productJson(String productId) async {
-    final row = await (_db.select(_db.products)
-          ..where((p) => p.id.equals(productId)))
-        .getSingle();
-    return jsonEncode(row.toJson());
-  }
-
-  Future<void> _enqueue(
-      String table, String rowId, String op, String payload) {
+  Future<void> _enqueue(String table, String rowId, String op) {
     return _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: table,
           rowId: rowId,
           op: op,
-          payload: payload,
         ));
   }
 }

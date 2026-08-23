@@ -176,6 +176,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Plug in a USB scanner or pair a Bluetooth scanner in system settings, then scan. Keep this screen open.';
 
   @override
+  String get scanDone => 'Done';
+
+  @override
+  String get scanContinuousHint =>
+      'Scan as many items as you like — each one is added to the cart. Tap Done when finished.';
+
+  @override
   String get scannerSettings => 'Barcode scanner';
 
   @override
@@ -212,6 +219,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sellInsufficientPaid => 'Amount paid is less than total.';
+
+  @override
+  String get sellHoldSale => 'Hold sale';
+
+  @override
+  String get sellCartHeld => 'Cart held';
+
+  @override
+  String get sellHeldTitle => 'Held sales';
+
+  @override
+  String get sellHeldEmpty => 'No held sales.';
+
+  @override
+  String get sellHeldRemoved => 'Held sale removed';
+
+  @override
+  String get sellAutoHeldPrevious => 'Previous cart held';
 
   @override
   String get paymentCash => 'Cash';
@@ -264,6 +289,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cashCloseWarning =>
       'Once closed, this count is final — the session and its variance can\'t be edited afterward.';
+
+  @override
+  String get cashAmountRequired => 'Enter an amount first.';
 
   @override
   String get cashVariance => 'Variance';
@@ -343,6 +371,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String checkoutTierPricingApplied(String tier) {
     return '$tier pricing applied to this sale';
   }
+
+  @override
+  String checkoutItemsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '$count item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get checkoutShortfallCreditHint =>
+      'The shortfall will be recorded as credit — a customer name is required.';
+
+  @override
+  String get checkoutDone => 'Done';
+
+  @override
+  String get checkoutOwnerPinTitle => 'Owner PIN';
+
+  @override
+  String get checkoutOwnerPinExplain =>
+      'Discounts are owner-only. Enter the owner PIN to unlock them for this sale.';
+
+  @override
+  String get checkoutOwnerPinWrong => 'Wrong PIN.';
 
   @override
   String get creditCustomerRequired =>
@@ -1045,6 +1101,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceReprint => 'Reprint';
+
+  @override
+  String get invoiceShare => 'Share invoice';
 
   @override
   String get invoiceDetail => 'Invoice';
@@ -3021,7 +3080,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardStaffBody =>
-      'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who\'s opening the shop each day.';
+      'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.';
+
+  @override
+  String get onboardAccountMissingFields =>
+      'Fill in the required fields first.';
 
   @override
   String get accountShopLoginTitle => 'Account';

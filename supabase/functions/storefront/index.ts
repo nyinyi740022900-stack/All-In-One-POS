@@ -191,6 +191,11 @@ async function handleSubmitLicenseRequest(
     : null;
   const phone = `${body.phone ?? ""}`.trim() || null;
   const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
+  // Renew-page proofs always live under `_admin/` (0066's folder scoping —
+  // only the platform admin reads these). Reject any other prefix.
+  if (proofPath && !proofPath.startsWith("_admin/")) {
+    return json({ error: "bad_proof_path" }, 400);
+  }
 
   // Optional: an online-tier shop (has a Supabase Auth account) can give
   // its account email instead of hunting for its device_id — resolves to
@@ -356,6 +361,11 @@ Deno.serve(async (req) => {
 
     return json({
       storefront: {
+        // Needed by the guest page to upload its proof into the shop's own
+        // `{shop_id}/` folder — the bucket read policy (0066) scopes every
+        // shop to its folder, so the path must carry the shop_id prefix.
+        // A bare UUID tenant key, not a secret (RLS still gates all reads).
+        shop_id: sf.shop_id,
         display_name: sf.display_name,
         phone: sf.phone,
         address: sf.address,
@@ -436,6 +446,13 @@ Deno.serve(async (req) => {
     const requireProof = sf.require_transfer_proof !== false;
     if (paymentMethod === "transfer" && requireProof && !proofPath) {
       return json({ error: "proof_required" }, 400);
+    }
+    // The guest uploads into THIS shop's own `{shop_id}/` folder (0066
+    // scopes bucket reads by that first path segment). Reject any other
+    // prefix — a crafted path must not point at another tenant's folder or
+    // an unviewable location.
+    if (proofPath && !proofPath.startsWith(`${sf.shop_id}/`)) {
+      return json({ error: "bad_proof_path" }, 400);
     }
 
     // Security: every line must name a real, active product belonging to

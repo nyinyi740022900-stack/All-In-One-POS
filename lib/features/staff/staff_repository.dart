@@ -1,6 +1,7 @@
-import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -116,14 +117,10 @@ class StaffRepository {
   }
 
   Future<void> _enqueue(String memberId) async {
-    final row = await (_db.select(_db.staffMembers)
-          ..where((t) => t.id.equals(memberId)))
-        .getSingle();
     await _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: 'staff_members',
           rowId: memberId,
           op: 'upsert',
-          payload: jsonEncode(row.toJson()),
         ));
   }
 }

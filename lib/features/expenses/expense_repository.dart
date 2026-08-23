@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -94,13 +93,10 @@ class ExpenseRepository {
   }
 
   Future<void> _enqueue(String id) async {
-    final row = await (_db.select(_db.expenses)..where((t) => t.id.equals(id)))
-        .getSingle();
     await _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: 'expenses',
           rowId: id,
           op: 'upsert',
-          payload: jsonEncode(row.toJson()),
         ));
   }
 }

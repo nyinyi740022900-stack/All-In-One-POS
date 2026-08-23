@@ -51,14 +51,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   void initState() {
     super.initState();
     _search = TextEditingController();
-    // Seed demo data on first run (debug/local convenience).
+    // Debug seeding + one-shot per-shop duplicate cleanup (audit M2 — the
+    // cleanup used to rescan the whole catalogue on every tab mount; a
+    // per-shop settings flag now runs it once).
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final db = ref.read(databaseProvider);
-      final repo = ref.read(inventoryRepositoryProvider);
-      final shopId = ref.read(shopIdProvider);
-      final seed = DemoSeed(db, repo, shopId);
-      await seed.ensureSeeded();
-      await seed.collapseDuplicates();
+      await runInventoryStartupMaintenance(
+        db: ref.read(databaseProvider),
+        repo: ref.read(inventoryRepositoryProvider),
+        shopId: ref.read(shopIdProvider),
+        settings: ref.read(settingsRepositoryProvider),
+      );
     });
   }
 
@@ -272,6 +274,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                 itemBuilder: (context, i) {
                                   final p = products[i];
                                   return Card(
+                                    // Stable per-product key (audit Low).
+                                    key: ValueKey('prod-${p.product.id}'),
                                     clipBehavior: Clip.antiAlias,
                                     child: _ProductTile(
                                       p: p,
@@ -298,6 +302,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                 itemBuilder: (context, i) {
                                   final p = products[i];
                                   return Card(
+                                    key: ValueKey('prod-${p.product.id}'),
                                     clipBehavior: Clip.antiAlias,
                                     child: _ProductTile(
                                       p: p,

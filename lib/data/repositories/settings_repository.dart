@@ -61,6 +61,7 @@ class SettingsRepository {
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
   static const _kStorefrontSeenOrderMs = 'storefront.seen_order_ms';
+  static const _kSeedCleanupDone = 'inventory.seed_cleanup_done';
   static const _kBranchSwitchState = 'branch.switch.state';
   static const _kShopPromotePending = 'shop.promote.pending';
   static const _kStaffRole = 'staff.role';
@@ -491,6 +492,16 @@ class SettingsRepository {
   Future<void> setStorefrontSeenOrderCreatedMs(String shopId, int ms) =>
       _set(_shopKey(_kStorefrontSeenOrderMs, shopId), '$ms');
 
+  /// One-shot marker: this SHOP's duplicate-seed cleanup (#177) has already
+  /// run on this device, so Inventory mounts stop rescanning the whole
+  /// catalogue every time (audit M2). Shop-scoped on purpose — a device that
+  /// switches branches must still clean the NEXT shop once.
+  Future<bool> seedCleanupDone(String shopId) async =>
+      (await _get(_shopKey(_kSeedCleanupDone, shopId))) == 'true';
+
+  Future<void> setSeedCleanupDone(String shopId) =>
+      _set(_shopKey(_kSeedCleanupDone, shopId), 'true');
+
   /// Persisted branch-switch recovery marker (feature/account scoped JSON).
   Future<String?> branchSwitchStateJson() => _get(_kBranchSwitchState);
   Future<void> setBranchSwitchStateJson(String json) =>
@@ -527,33 +538,18 @@ class SettingsRepository {
     )..where((s) => s.key.equals(_kLicense))).go();
   }
 
-  // ---- Sync cursors (per-table high-water mark of pulled updated_at) -------
+  // ---- Sync cursors (per-table high-water mark of pulled received_at) -----
 
-  Future<DateTime?> syncCursor(String table) async {
-    final raw = await _get('sync.cursor.$table');
+  /// The pull cursor rides the SERVER-stamped `received_at` column
+  /// (migration 0064) — never client clocks, so a slow-clock device's rows
+  /// can't fall permanently below another device's watermark.
+  Future<DateTime?> syncReceivedCursor(String table) async {
+    final raw = await _get('sync.rcursor.$table');
     return raw == null ? null : DateTime.tryParse(raw);
   }
 
-  Future<void> setSyncCursor(String table, DateTime value) =>
-      _set('sync.cursor.$table', value.toUtc().toIso8601String());
-
-  /// Row ids already applied at the exact `updated_at` timestamp the cursor
-  /// sits on. The pull filter is inclusive (`gte`, not `gt`) — because
-  /// Drift's second-precision `DateTimeColumn` storage means two changes
-  /// within the same second collide on `updated_at` — so the same
-  /// boundary row can be re-fetched on the next pull. This set lets
-  /// [SyncEngine] tell "already applied, skip" apart from "a new tie-partner
-  /// landed at this same timestamp after the fact, apply it" instead of
-  /// either silently dropping the latter (a strict `gt` would) or
-  /// re-applying the former forever.
-  Future<Set<String>> syncCursorTieIds(String table) async {
-    final raw = await _get('sync.cursor.ids.$table');
-    if (raw == null || raw.isEmpty) return {};
-    return raw.split(',').toSet();
-  }
-
-  Future<void> setSyncCursorTieIds(String table, Set<String> ids) =>
-      _set('sync.cursor.ids.$table', ids.join(','));
+  Future<void> setSyncReceivedCursor(String table, DateTime value) =>
+      _set('sync.rcursor.$table', value.toUtc().toIso8601String());
 
   /// Resets a table's pull cursor entirely, so the next sync re-fetches its
   /// FULL remote history from scratch (every mapper's own LWW / idempotent
@@ -562,9 +558,14 @@ class SettingsRepository {
   /// current cloud state, and the cursor from before the restore would
   /// otherwise make the next pull skip any remote row not present in the
   /// backup file, permanently losing it locally.
+  ///
+  /// Clears BOTH cursor domains — the legacy client-clock `sync.cursor.*`
+  /// keys written by pre-0064 installs still sit in this shop's AppSettings,
+  /// and leaving them would let a stale watermark survive a restore.
   Future<void> clearSyncCursor(String table) async {
-    await _delete('sync.cursor.$table');
+    await _delete('sync.rcursor.$table');
     await _delete('sync.cursor.ids.$table');
+    await _delete('sync.cursor.$table');
   }
 
   /// The shop's profile (name/address/phone/logo/footer) for [shopId] —

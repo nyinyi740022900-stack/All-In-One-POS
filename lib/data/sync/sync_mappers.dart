@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../local/database.dart';
+import 'hlc.dart';
 
 const _syncMappersUuid = Uuid();
 
@@ -9,13 +10,17 @@ const _syncMappersUuid = Uuid();
 ///
 /// [toRemote] reads the current local row and returns a snake_case map (or null
 /// if the row vanished). [upsertLocal] applies a remote row using last-write-
-/// wins: a remote change is only written when its `updated_at` is newer than
-/// the local copy, so unsynced local edits are never clobbered.
+/// wins on `updated_at`; an exact TIE is resolved dirty-aware (audit M4): a
+/// clean local copy defers to the remote row (converging same-second edits),
+/// a dirty unsynced edit keeps winning until it has been pushed. Returns
+/// true when the row was actually written — false means "already have an
+/// equal-or-newer copy", letting the pull loop skip no-op re-applications
+/// (the pull cursor re-fetches a small overlap window by design).
 class SyncTableDef {
   final String name;
   final Future<Map<String, dynamic>?> Function(AppDatabase db, String id)
       toRemote;
-  final Future<void> Function(AppDatabase db, Map<String, dynamic> remote)
+  final Future<bool> Function(AppDatabase db, Map<String, dynamic> remote)
       upsertLocal;
 
   /// PostgREST `on_conflict` target. Null → table primary key (usually `id`).
@@ -31,7 +36,15 @@ class SyncTableDef {
 }
 
 String _iso(DateTime d) => d.toUtc().toIso8601String();
-DateTime _dt(dynamic v) => DateTime.parse(v as String).toLocal();
+
+/// Parses a remote timestamp down to whole seconds — Drift stores DateTimes
+/// with second precision, so comparing a freshly-parsed sub-second stamp
+/// against the truncated local copy would never be "equal" and every pull
+/// would re-apply (and re-count) unchanged rows forever.
+DateTime _dt(dynamic v) {
+  final d = DateTime.parse(v as String).toLocal();
+  return DateTime(d.year, d.month, d.day, d.hour, d.minute, d.second);
+}
 int _int(dynamic v) => (v as num).toInt();
 bool _bool(dynamic v) => v == true;
 
@@ -78,6 +91,7 @@ final _categories = SyncTableDef(
       'sort': r.sort,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -86,7 +100,16 @@ final _categories = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.categories)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.categories).insertOnConflictUpdate(CategoriesCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -94,9 +117,11 @@ final _categories = SyncTableDef(
           sort: Value(_int(m['sort'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -116,6 +141,7 @@ final _staffMembers = SyncTableDef(
       'active': r.active,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -125,7 +151,16 @@ final _staffMembers = SyncTableDef(
     final local = await (db.select(db.staffMembers)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.staffMembers).insertOnConflictUpdate(
         StaffMembersCompanion(
           id: Value(id),
@@ -135,9 +170,11 @@ final _staffMembers = SyncTableDef(
           active: Value(_bool(m['active'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -158,6 +195,7 @@ final _customers = SyncTableDef(
       'tier': r.tier,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -167,7 +205,16 @@ final _customers = SyncTableDef(
     final local = await (db.select(db.customers)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.customers).insertOnConflictUpdate(CustomersCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -178,9 +225,11 @@ final _customers = SyncTableDef(
           tier: Value((m['tier'] as String?) ?? 'retail'),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -209,6 +258,7 @@ final _products = SyncTableDef(
       'is_active': r.isActive,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -217,7 +267,16 @@ final _products = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.products)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.products).insertOnConflictUpdate(ProductsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -240,9 +299,11 @@ final _products = SyncTableDef(
           isActive: Value(m['is_active'] == null ? true : _bool(m['is_active'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -261,6 +322,7 @@ final _stockLevels = SyncTableDef(
       'reorder_level': r.reorderLevel,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -277,7 +339,16 @@ final _stockLevels = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.stockLevels)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.stockLevels).insertOnConflictUpdate(StockLevelsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -285,9 +356,11 @@ final _stockLevels = SyncTableDef(
           reorderLevel: Value(_int(m['reorder_level'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -309,17 +382,27 @@ final _stockMovements = SyncTableDef(
       'note': r.note,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
   upsertLocal: (db, m) async {
     final id = m['id'] as String;
     final updated = _dt(m['updated_at']);
-    await db.transaction(() async {
+    return db.transaction<bool>(() async {
       final local =
           await (db.select(db.stockMovements)..where((t) => t.id.equals(id)))
               .getSingleOrNull();
-      if (local != null && !local.updatedAt.isBefore(updated)) return;
+      final hlc = hlcOfRemoteRow(m);
+      if (local != null) {
+        final cmpHlc = compareHlc(
+            hlc,
+            local.hlc ??
+                synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+        if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+          return false;
+        }
+      }
       // A movement never seen on this device before originated on ANOTHER
       // device — reconcile the cached `stock_levels.quantity` by applying its
       // delta now, exactly once. A movement this device created itself
@@ -341,6 +424,7 @@ final _stockMovements = SyncTableDef(
             note: Value(m['note'] as String?),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ));
@@ -371,6 +455,7 @@ final _stockMovements = SyncTableDef(
               ));
         }
       }
+      return true;
     });
   },
 );
@@ -403,6 +488,7 @@ final _sales = SyncTableDef(
       'finalized_at': _iso(r.finalizedAt),
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -411,7 +497,16 @@ final _sales = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.sales)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.sales).insertOnConflictUpdate(SalesCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -433,9 +528,11 @@ final _sales = SyncTableDef(
           finalizedAt: Value(_dt(m['finalized_at'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -458,6 +555,7 @@ final _saleItems = SyncTableDef(
       'cost_snapshot': r.costSnapshot,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -466,7 +564,16 @@ final _saleItems = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.saleItems)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.saleItems).insertOnConflictUpdate(SaleItemsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -480,9 +587,11 @@ final _saleItems = SyncTableDef(
               m['cost_snapshot'] == null ? null : _int(m['cost_snapshot'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -505,6 +614,7 @@ final _licensePayments = SyncTableDef(
       'reconciled': r.reconciled,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -514,7 +624,16 @@ final _licensePayments = SyncTableDef(
     final local =
         await (db.select(db.licensePayments)..where((t) => t.id.equals(id)))
             .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db
         .into(db.licensePayments)
         .insertOnConflictUpdate(LicensePaymentsCompanion(
@@ -529,9 +648,11 @@ final _licensePayments = SyncTableDef(
           reconciled: Value(_bool(m['reconciled'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -552,6 +673,7 @@ final _creditPayments = SyncTableDef(
       'note': r.note,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -561,7 +683,16 @@ final _creditPayments = SyncTableDef(
     final local =
         await (db.select(db.creditPayments)..where((t) => t.id.equals(id)))
             .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db
         .into(db.creditPayments)
         .insertOnConflictUpdate(CreditPaymentsCompanion(
@@ -574,9 +705,11 @@ final _creditPayments = SyncTableDef(
           note: Value(m['note'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -598,6 +731,7 @@ final _supplierPayments = SyncTableDef(
       'note': r.note,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -607,7 +741,16 @@ final _supplierPayments = SyncTableDef(
     final local = await (db.select(db.supplierPayments)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.supplierPayments).insertOnConflictUpdate(
           SupplierPaymentsCompanion(
             id: Value(id),
@@ -619,10 +762,12 @@ final _supplierPayments = SyncTableDef(
             note: Value(m['note'] as String?),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );
 
@@ -656,6 +801,7 @@ final _orders = SyncTableDef(
       'customer_id': r.customerId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -664,7 +810,16 @@ final _orders = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.orders)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.orders).insertOnConflictUpdate(OrdersCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -688,9 +843,11 @@ final _orders = SyncTableDef(
           customerId: Value(m['customer_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -713,6 +870,7 @@ final _orderItems = SyncTableDef(
       'low_stock_at_order': r.lowStockAtOrder,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -721,7 +879,16 @@ final _orderItems = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.orderItems)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.orderItems).insertOnConflictUpdate(OrderItemsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -734,9 +901,11 @@ final _orderItems = SyncTableDef(
           lowStockAtOrder: Value(_bool(m['low_stock_at_order'])),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -756,6 +925,7 @@ final _payments = SyncTableDef(
       'ref_no': r.refNo,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -764,7 +934,16 @@ final _payments = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.payments)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.payments).insertOnConflictUpdate(PaymentsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -774,9 +953,11 @@ final _payments = SyncTableDef(
           refNo: Value(m['ref_no'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -800,6 +981,7 @@ final _expenses = SyncTableDef(
       'account_id': r.accountId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -808,7 +990,16 @@ final _expenses = SyncTableDef(
     final updated = _dt(m['updated_at']);
     final local = await (db.select(db.expenses)..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.expenses).insertOnConflictUpdate(ExpensesCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -819,9 +1010,11 @@ final _expenses = SyncTableDef(
           accountId: Value(m['account_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -843,6 +1036,7 @@ final _cashSessions = SyncTableDef(
       'device_id': r.deviceId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -852,7 +1046,16 @@ final _cashSessions = SyncTableDef(
     final local = await (db.select(db.cashSessions)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.cashSessions).insertOnConflictUpdate(CashSessionsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -866,9 +1069,11 @@ final _cashSessions = SyncTableDef(
           deviceId: Value(m['device_id'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -886,6 +1091,7 @@ final _deviceLabels = SyncTableDef(
       'label': r.label,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -895,7 +1101,16 @@ final _deviceLabels = SyncTableDef(
     final local = await (db.select(db.deviceLabels)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.deviceLabels).insertOnConflictUpdate(DeviceLabelsCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -903,9 +1118,11 @@ final _deviceLabels = SyncTableDef(
           label: Value(m['label'] as String),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -929,6 +1146,7 @@ final _recurringExpenses = SyncTableDef(
       'last_generated_period': r.lastGeneratedPeriod,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -938,7 +1156,16 @@ final _recurringExpenses = SyncTableDef(
     final local = await (db.select(db.recurringExpenses)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.recurringExpenses).insertOnConflictUpdate(
           RecurringExpensesCompanion(
             id: Value(id),
@@ -953,10 +1180,12 @@ final _recurringExpenses = SyncTableDef(
             lastGeneratedPeriod: Value(m['last_generated_period'] as String?),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );
 
@@ -976,6 +1205,7 @@ final _suppliers = SyncTableDef(
       'note': r.note,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -985,7 +1215,16 @@ final _suppliers = SyncTableDef(
     final local = await (db.select(db.suppliers)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.suppliers).insertOnConflictUpdate(SuppliersCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -995,9 +1234,11 @@ final _suppliers = SyncTableDef(
           note: Value(m['note'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -1016,6 +1257,7 @@ final _shopProfiles = SyncTableDef(
       'address': r.address,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -1025,7 +1267,16 @@ final _shopProfiles = SyncTableDef(
     final local = await (db.select(db.shopProfiles)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.shopProfiles).insertOnConflictUpdate(ShopProfilesCompanion(
           id: Value(id),
           shopId: Value(m['shop_id'] as String),
@@ -1034,9 +1285,11 @@ final _shopProfiles = SyncTableDef(
           address: Value(m['address'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
+          hlc: Value(hlc),
           isDeleted: Value(_bool(m['is_deleted'])),
           dirty: const Value(false),
         ));
+    return true;
   },
 );
 
@@ -1056,6 +1309,7 @@ final _paymentAccounts = SyncTableDef(
       'opening_balance': r.openingBalance,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -1065,7 +1319,16 @@ final _paymentAccounts = SyncTableDef(
     final local = await (db.select(db.paymentAccounts)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.paymentAccounts).insertOnConflictUpdate(
           PaymentAccountsCompanion(
             id: Value(id),
@@ -1074,10 +1337,12 @@ final _paymentAccounts = SyncTableDef(
             openingBalance: Value(_int(m['opening_balance'])),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );
 
@@ -1098,6 +1363,7 @@ final _equityEntries = SyncTableDef(
       'note': r.note,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -1107,7 +1373,16 @@ final _equityEntries = SyncTableDef(
     final local = await (db.select(db.equityEntries)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.equityEntries).insertOnConflictUpdate(
           EquityEntriesCompanion(
             id: Value(id),
@@ -1118,10 +1393,12 @@ final _equityEntries = SyncTableDef(
             note: Value(m['note'] as String?),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );
 
@@ -1145,6 +1422,7 @@ final _purchaseOrders = SyncTableDef(
       'received_at': r.receivedAt == null ? null : _iso(r.receivedAt!),
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -1154,7 +1432,16 @@ final _purchaseOrders = SyncTableDef(
     final local = await (db.select(db.purchaseOrders)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.purchaseOrders).insertOnConflictUpdate(
           PurchaseOrdersCompanion(
             id: Value(id),
@@ -1169,10 +1456,12 @@ final _purchaseOrders = SyncTableDef(
                 m['received_at'] == null ? null : _dt(m['received_at'])),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );
 
@@ -1195,6 +1484,7 @@ final _purchaseOrderItems = SyncTableDef(
       'line_total': r.lineTotal,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
       'is_deleted': r.isDeleted,
     };
   },
@@ -1204,7 +1494,16 @@ final _purchaseOrderItems = SyncTableDef(
     final local = await (db.select(db.purchaseOrderItems)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    if (local != null && !local.updatedAt.isBefore(updated)) return;
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
     await db.into(db.purchaseOrderItems).insertOnConflictUpdate(
           PurchaseOrderItemsCompanion(
             id: Value(id),
@@ -1217,9 +1516,11 @@ final _purchaseOrderItems = SyncTableDef(
             lineTotal: Value(_int(m['line_total'])),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
+            hlc: Value(hlc),
             isDeleted: Value(_bool(m['is_deleted'])),
             dirty: const Value(false),
           ),
         );
+    return true;
   },
 );

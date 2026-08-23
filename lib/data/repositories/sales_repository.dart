@@ -1,9 +1,9 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../features/credit/credit_repository.dart';
 import '../../features/sell/cart.dart';
 import '../local/database.dart';
 import 'stock_lots.dart';
@@ -61,9 +61,6 @@ class SalesRepository {
   ///
   /// Throws [StateError] if [saleId] has already been refunded.
   Future<SaleResult> refundSale(String saleId, {bool trackStock = true}) async {
-    if (await refundOf(saleId) != null) {
-      throw StateError('already_refunded');
-    }
     final original = await getSale(saleId);
     final originalItems = await saleItems(saleId);
 
@@ -72,6 +69,15 @@ class SalesRepository {
     late final String refundNo;
 
     await _db.transaction(() async {
+      // Single-refund guard — INSIDE the transaction (audit H-1). Drift
+      // transactions are serialized, so this is atomic against concurrent
+      // local refunds; the `sales_refund_once` unique index (schema v32 /
+      // remote migration 0067) is the cross-device backstop, failing a
+      // second device's push loudly into sync quarantine instead of letting
+      // a duplicate reversal double-restore stock and double-reverse cash.
+      if (await refundOf(saleId) != null) {
+        throw StateError('already_refunded');
+      }
       refundNo = await _nextRefundNo(now);
 
       final refund = SalesCompanion.insert(
@@ -92,8 +98,7 @@ class SalesRepository {
         updatedAt: Value(now),
       );
       await _db.into(_db.sales).insert(refund);
-      await _enqueue('sales', refundId, jsonEncode(
-          (await _one(_db.sales, (t) => t.id.equals(refundId))).toJson()));
+      await _enqueue('sales', refundId);
 
       for (final item in originalItems) {
         final itemId = _uuid.v4();
@@ -110,8 +115,7 @@ class SalesRepository {
                   item.costSnapshot == null ? null : -item.costSnapshot!),
               updatedAt: Value(now),
             ));
-        await _enqueue('sale_items', itemId, jsonEncode(
-            (await _one(_db.saleItems, (t) => t.id.equals(itemId))).toJson()));
+        await _enqueue('sale_items', itemId);
 
         if (trackStock) {
           // Restore the original cost basis, not whatever it costs today —
@@ -139,16 +143,24 @@ class SalesRepository {
               amount: -original.paid,
               updatedAt: Value(now),
             ));
-        await _enqueue('payments', payId, jsonEncode(
-            (await _one(_db.payments, (t) => t.id.equals(payId))).toJson()));
+        await _enqueue('payments', payId);
       }
 
-      // If the original was still owed money (an unpaid/partial credit sale),
-      // close that obligation via the existing FIFO repayment mechanism —
-      // the customer no longer owes for goods they've returned. Reuses
-      // CreditRepository's own ledger rather than mutating the sale.
-      final owed = original.total - original.paid;
-      if (owed > 0 &&
+      // If the original was still owed money (an unpaid/partial credit
+      // sale), close that obligation via the existing FIFO repayment
+      // mechanism — the customer no longer owes for goods they've returned.
+      // Reuses CreditRepository's own ledger rather than mutating the sale.
+      //
+      // The closure amount is what is STILL owed on this specific invoice
+      // after every recorded repayment is FIFO-allocated across the
+      // customer's open invoices (audit H-2) — NOT raw `total - paid`,
+      // which double-counts debt the credit book already absorbed and used
+      // to mint a phantom credit that wiped the customer's other real
+      // debts. Method stays 'credit' so Cash Register's expected-cash math
+      // (which folds only method='cash' rows) never counts this non-cash
+      // bookkeeping entry as money in the drawer.
+      final owedRemaining = await _remainingCreditOwed(original);
+      if (owedRemaining > 0 &&
           original.customerName != null &&
           original.customerName!.trim().isNotEmpty) {
         final repayId = _uuid.v4();
@@ -158,17 +170,35 @@ class SalesRepository {
               shopId: _shopId,
               customerName: original.customerName!.trim(),
               customerId: Value(original.customerId),
-              amount: owed,
+              amount: owedRemaining,
+              method: const Value('credit'),
               note: Value('Refund closure for ${original.invoiceNo}'),
               updatedAt: Value(now),
             ));
-        await _enqueue('credit_payments', repayId, jsonEncode(
-            (await _one(_db.creditPayments, (t) => t.id.equals(repayId)))
-                .toJson()));
+        await _enqueue('credit_payments', repayId);
       }
     });
 
     return SaleResult(refundId, refundNo);
+  }
+
+  /// What the customer still genuinely owes on [original] after every
+  /// recorded repayment is FIFO-allocated across their open invoices
+  /// (audit H-2). Falls back to the raw billed-minus-paid figure only when
+  /// the sale can't be found in the allocation map (e.g. no customer name).
+  Future<int> _remainingCreditOwed(Sale original) async {
+    final creditSales = await (_db.select(_db.sales)
+          ..where((s) =>
+              s.shopId.equals(_shopId) &
+              s.isDeleted.equals(false) &
+              s.paid.isSmallerThan(s.total)))
+        .get();
+    final repayments = await (_db.select(_db.creditPayments)
+          ..where((p) =>
+              p.shopId.equals(_shopId) & p.isDeleted.equals(false)))
+        .get();
+    final owed = CreditRepository.owedBySale(creditSales, repayments);
+    return owed[original.id] ?? (original.total - original.paid);
   }
 
   /// Finalizes [cart] and returns the new invoice reference.
@@ -215,8 +245,7 @@ class SalesRepository {
         updatedAt: Value(now),
       );
       await _db.into(_db.sales).insert(sale);
-      await _enqueue('sales', saleId, jsonEncode(
-          (await _one(_db.sales, (t) => t.id.equals(saleId))).toJson()));
+      await _enqueue('sales', saleId);
 
       for (final line in cart.lines) {
         // Stock movement (ledger) + decrement the cached level + FIFO cost
@@ -240,8 +269,7 @@ class SalesRepository {
               costSnapshot: Value(costSnapshot),
               updatedAt: Value(now),
             ));
-        await _enqueue('sale_items', itemId, jsonEncode(
-            (await _one(_db.saleItems, (t) => t.id.equals(itemId))).toJson()));
+        await _enqueue('sale_items', itemId);
       }
 
       // Tender actually collected. For cash/digital this equals the total
@@ -257,8 +285,7 @@ class SalesRepository {
             amount: settled,
             updatedAt: Value(now),
           ));
-      await _enqueue('payments', payId, jsonEncode(
-          (await _one(_db.payments, (t) => t.id.equals(payId))).toJson()));
+      await _enqueue('payments', payId);
     });
 
     // Re-read invoice number for the return value.
@@ -292,10 +319,12 @@ class SalesRepository {
           refId: Value(saleId),
           updatedAt: Value(now),
         ));
-    await _enqueue('stock_movements', moveId, jsonEncode(
-        (await _one(_db.stockMovements, (t) => t.id.equals(moveId))).toJson()));
+    await _enqueue('stock_movements', moveId);
 
-    // Decrement the denormalized stock level if present.
+    // Decrement the denormalized stock level if present. Local cache only —
+    // NO stock_levels outbox enqueue: `quantity` is a counter reconciled from
+    // the append-only movement ledger above on every device (see
+    // sync_mappers.dart's _stockLevels), never an absolute LWW sync value.
     final level = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
         .getSingleOrNull();
@@ -306,38 +335,52 @@ class SalesRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue('stock_levels', level.id, jsonEncode(
-          (await _one(_db.stockLevels, (t) => t.id.equals(level.id))).toJson()));
     }
 
     return cost;
   }
 
   /// Per-shop, per-day sequential invoice number: `INV-yyyyMMdd-NNN`.
+  ///
+  /// Scans today's existing numbers for the MAX sequence rather than
+  /// counting rows (audit M3): counting breaks whenever non-invoice sale
+  /// rows share the day (refund credit-notes) or a pulled/pushed row makes
+  /// counts and sequences disagree, producing duplicate numbers. Max-scan
+  /// is idempotent against any mix. Cross-device caveat: two devices
+  /// offline simultaneously can still mint the same number (there is no
+  /// server-side uniqueness by design — the ledger keys on row id), but the
+  /// window is now limited to truly simultaneous generation.
   Future<String> _nextInvoiceNo(DateTime now) async {
-    final dayStart = DateTime(now.year, now.month, now.day);
-    final todays = await (_db.select(_db.sales)
-          ..where((s) =>
-              s.shopId.equals(_shopId) &
-              s.finalizedAt.isBiggerOrEqualValue(dayStart)))
-        .get();
-    final seq = (todays.length + 1).toString().padLeft(3, '0');
-    return 'INV-${DateFormat('yyyyMMdd').format(now)}-$seq';
+    final prefix = 'INV-${DateFormat('yyyyMMdd').format(now)}-';
+    final seq = await _maxSeqForPrefix(prefix);
+    return '$prefix${(seq + 1).toString().padLeft(3, '0')}';
   }
 
   /// Per-shop, per-day sequential refund number: `RFD-yyyyMMdd-NNN` — a
   /// separate sequence from invoices so a refund reads as its own document
-  /// (a credit note), not just another invoice.
+  /// (a credit note), not just another invoice. Same max-seq scan as
+  /// [_nextInvoiceNo].
   Future<String> _nextRefundNo(DateTime now) async {
-    final dayStart = DateTime(now.year, now.month, now.day);
-    final todays = await (_db.select(_db.sales)
+    final prefix = 'RFD-${DateFormat('yyyyMMdd').format(now)}-';
+    final seq = await _maxSeqForPrefix(prefix);
+    return '$prefix${(seq + 1).toString().padLeft(3, '0')}';
+  }
+
+  /// Scans today's invoice numbers for [prefix] (already shop-scoped) and
+  /// returns the max numeric suffix.
+  Future<int> _maxSeqForPrefix(String prefix) async {
+    final rows = await (_db.select(_db.sales)
           ..where((s) =>
-              s.shopId.equals(_shopId) &
-              s.refundOfSaleId.isNotNull() &
-              s.finalizedAt.isBiggerOrEqualValue(dayStart)))
+              s.shopId.equals(_shopId) & s.invoiceNo.like('$prefix%')))
         .get();
-    final seq = (todays.length + 1).toString().padLeft(3, '0');
-    return 'RFD-${DateFormat('yyyyMMdd').format(now)}-$seq';
+    var max = 0;
+    for (final r in rows) {
+      final no = r.invoiceNo;
+      if (!no.startsWith(prefix)) continue;
+      final n = int.tryParse(no.substring(prefix.length));
+      if (n != null && n > max) max = n;
+    }
+    return max;
   }
 
   /// Restores stock for a refunded item — the inverse of [_recordStockOut].
@@ -361,8 +404,7 @@ class SalesRepository {
           refId: Value(refundSaleId),
           updatedAt: Value(now),
         ));
-    await _enqueue('stock_movements', moveId, jsonEncode(
-        (await _one(_db.stockMovements, (t) => t.id.equals(moveId))).toJson()));
+    await _enqueue('stock_movements', moveId);
 
     final level = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
@@ -374,8 +416,7 @@ class SalesRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      await _enqueue('stock_levels', level.id, jsonEncode(
-          (await _one(_db.stockLevels, (t) => t.id.equals(level.id))).toJson()));
+      // No stock_levels enqueue — same counter rule as _recordStockOut.
     }
   }
 
@@ -386,12 +427,11 @@ class SalesRepository {
     return (_db.select(table)..where(filter)).getSingle();
   }
 
-  Future<void> _enqueue(String table, String rowId, String payload) {
+  Future<void> _enqueue(String table, String rowId) {
     return _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: table,
           rowId: rowId,
           op: 'upsert',
-          payload: payload,
         ));
   }
 }

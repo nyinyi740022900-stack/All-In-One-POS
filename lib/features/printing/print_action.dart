@@ -18,6 +18,7 @@ Future<void> printSaleReceipt(
   WidgetRef ref, {
   required Sale sale,
   required List<SaleItem> items,
+  Map<String, int>? owedBySaleId,
 }) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -40,6 +41,7 @@ Future<void> printSaleReceipt(
       sale,
       items,
       shop,
+      owedBySaleId: owedBySaleId,
       paymentMethodLabel: paymentLabel(
         l,
         sale.paymentMethod,

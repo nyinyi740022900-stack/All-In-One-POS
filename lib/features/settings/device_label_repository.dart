@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -49,14 +48,10 @@ class DeviceLabelRepository {
             updatedAt: Value(now),
             dirty: const Value(true),
           ));
-      final row = await (_db.select(_db.deviceLabels)
-            ..where((t) => t.id.equals(id)))
-          .getSingle();
       await _db.into(_db.outbox).insert(OutboxCompanion.insert(
             entityTable: 'device_labels',
             rowId: id,
             op: 'upsert',
-            payload: jsonEncode(row.toJson()),
           ));
     });
   }

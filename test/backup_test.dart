@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -134,14 +135,28 @@ void main() {
       'license_payments',
       'expenses',
     ]) {
-      await settings.setSyncCursor(table, future);
+      await settings.setSyncReceivedCursor(table, future);
+      // Legacy pre-0064 cursor keys (client-clock domain) must be cleared
+      // too — written directly since the repository no longer exposes the
+      // old accessors.
+      await db.into(db.appSettings).insertOnConflictUpdate(
+            AppSettingsCompanion(
+              key: Value('sync.cursor.$table'),
+              value: Value(future.toUtc().toIso8601String()),
+            ),
+          );
     }
 
     await backup.importReplaceAll(snapshot);
 
     for (final table in ['products', 'stock_levels', 'stock_movements']) {
-      expect(await settings.syncCursor(table), isNull,
-          reason: '$table cursor should be cleared after restore');
+      expect(await settings.syncReceivedCursor(table), isNull,
+          reason: '$table received-cursor should be cleared after restore');
+      final legacy = await (db.select(db.appSettings)
+            ..where((s) => s.key.equals('sync.cursor.$table')))
+          .getSingleOrNull();
+      expect(legacy, isNull,
+          reason: '$table legacy cursor should be cleared after restore');
     }
   });
 

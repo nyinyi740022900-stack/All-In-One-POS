@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -27,6 +28,7 @@ class _SharedFakeRemote implements SyncRemote {
     String id,
     DateTime updatedAt, {
     String? shopId,
+    String? hlc,
   }) async {
     final row = store[table]?[id];
     if (row != null) {
@@ -38,6 +40,8 @@ class _SharedFakeRemote implements SyncRemote {
       }
       row['is_deleted'] = true;
       row['updated_at'] = updatedAt.toUtc().toIso8601String();
+      if (hlc != null) row['hlc'] = hlc;
+      if (hlc != null) row['hlc'] = hlc;
     }
   }
 
@@ -62,18 +66,34 @@ class _SharedFakeRemote implements SyncRemote {
   @override
   Future<List<Map<String, dynamic>>> fetchChanges(
       String table, String shopId, DateTime? since) async {
-    // Inclusive (>=), matching SupabaseSyncRemote's `gte` filter.
+    // Server-stamped `received_at` semantics (migration 0064) — see
+    // sync_engine_test.dart's FakeSyncRemote.
+    DateTime receivedOf(Map<String, dynamic> r) =>
+        DateTime.parse((r['received_at'] ?? r['updated_at']) as String);
     final rows = (store[table] ?? {})
         .values
         .where((r) =>
             r['shop_id'] == shopId &&
-            (since == null ||
-                !DateTime.parse(r['updated_at'] as String).isBefore(since)))
-        .map((e) => Map<String, dynamic>.from(e))
+            (since == null || !receivedOf(r).isBefore(since)))
+        .map((e) => Map<String, dynamic>.from(e)
+          ..['received_at'] ??= e['updated_at'])
         .toList()
-      ..sort((a, b) => DateTime.parse(a['updated_at'] as String)
-          .compareTo(DateTime.parse(b['updated_at'] as String)));
+      ..sort((a, b) => receivedOf(a).compareTo(receivedOf(b)));
     return rows;
+  }
+
+  @override
+  Future<Map<String, ({String updatedAt, String? hlc})>?>
+      fetchRowStampsByIds(String table, String shopId, Set<String> ids) async {
+    if (ids.isEmpty) return {};
+    return {
+      for (final r in (store[table] ?? {}).values)
+        if (r['shop_id'] == shopId && ids.contains(r['id']))
+          r['id'] as String: (
+            updatedAt: r['updated_at'] as String,
+            hlc: r['hlc'] as String?,
+          ),
+    };
   }
 }
 
@@ -140,6 +160,63 @@ void main() {
     // (ending at 15 or 7, never the true combined 12).
     expect(aAfter, 12);
     expect(bAfter, 12);
+
+    await dbA.close();
+    await dbB.close();
+  });
+
+  test(
+      'two devices editing the same row within the same wall-clock second '
+      'converge on ONE deterministic winner everywhere (audit H2 residual: '
+      'raw updated_at LWW split-brained on this exact scenario)',
+      () async {
+    final remote = _SharedFakeRemote();
+
+    final dbA = AppDatabase.forTesting(NativeDatabase.memory());
+    final inventoryA = InventoryRepository(dbA, 'shop-1');
+    final settingsA = SettingsRepository(dbA);
+    final engineA = SyncEngine(
+        db: dbA, remote: remote, settings: settingsA, shopId: 'shop-1');
+
+    final dbB = AppDatabase.forTesting(NativeDatabase.memory());
+    final inventoryB = InventoryRepository(dbB, 'shop-1');
+    final settingsB = SettingsRepository(dbB);
+    final engineB = SyncEngine(
+        db: dbB, remote: remote, settings: settingsB, shopId: 'shop-1');
+
+    // Shared baseline: A creates the row, both devices know it.
+    final productId = await inventoryA.upsertProduct(name: 'Coke', salePrice: 700);
+    await engineA.syncNow();
+    await engineB.syncNow();
+
+    // Both edit — different content, and force IDENTICAL updated_at stamps
+    // (the worst case the old second-precision LWW could not resolve).
+    await inventoryA.upsertProduct(id: productId, name: 'Version A', salePrice: 700);
+    await inventoryB.upsertProduct(id: productId, name: 'Version B', salePrice: 700);
+    final sameSec =
+        DateTime.fromMillisecondsSinceEpoch(1700000000000, isUtc: true);
+    for (final db in [dbA, dbB]) {
+      await (db.update(db.products)..where((t) => t.id.equals(productId)))
+          .write(ProductsCompanion(updatedAt: Value(sameSec)));
+    }
+
+    // Interleaved syncs, mirroring real usage.
+    await engineA.syncNow(); // A pushes first
+    await engineB.syncNow(); // B pushes (its HLC > A's — it received A's row)
+    await engineA.syncNow(); // A pulls the winner and converges
+    await engineB.syncNow();
+
+    Future<String> nameOf(AppDatabase db) async {
+      final row = await (db.select(db.products)).getSingle();
+      return row.name;
+    }
+
+    final aName = await nameOf(dbA);
+    final bName = await nameOf(dbB);
+    expect(aName, bName,
+        reason: 'both devices MUST agree — no split-brain');
+    expect(remote.store['products']![productId]!['name'], bName,
+        reason: 'the server holds the same winner the devices converged on');
 
     await dbA.close();
     await dbB.close();

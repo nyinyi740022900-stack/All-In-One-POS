@@ -155,7 +155,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     );
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
-    final c = compressImage(Uint8List.fromList(file.bytes!),
+    final c = await compressImage(Uint8List.fromList(file.bytes!),
         fallbackExt: (file.extension ?? 'jpg').toLowerCase());
     setState(() {
       _proofBytes = c.bytes;
@@ -192,8 +192,13 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     try {
       String? proofPath;
       if (_proofBytes != null) {
-        proofPath =
-            await _api.uploadPaymentProof(_proofBytes!, _proofExt ?? 'jpg');
+        // Renew proofs are admin-review-only — the `_admin/` folder is the
+        // one bucket folder no shop session can read (migration 0066).
+        proofPath = await _api.uploadPaymentProof(
+          _proofBytes!,
+          _proofExt ?? 'jpg',
+          folder: '_admin',
+        );
       }
       final requestId = await _api.submitLicenseRequest(
         shopName: shopName,

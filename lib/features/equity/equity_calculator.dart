@@ -6,7 +6,7 @@ const equityTypeDrawing = 'drawing';
 /// Owner's Equity summary for an eventual Balance Sheet — Paid-in Capital
 /// (what the owner has put in vs taken out) plus Retained Earnings
 /// (cumulative Net Profit since inception, from the P&L — never stored
-/// here, always derived via `AnalyticsRepository.summary()`).
+/// here, always derived via `AnalyticsRepository.cumulativeNetProfit`).
 class EquitySummary {
   final int paidInCapital;
   final int retainedEarnings;

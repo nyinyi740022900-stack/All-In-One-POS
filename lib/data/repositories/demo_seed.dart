@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../local/database.dart';
+import '../repositories/settings_repository.dart';
 import 'inventory_repository.dart';
 
 /// One row of the debug-only minimart catalogue. Also used to recognize
@@ -169,4 +170,32 @@ class DemoSeed {
   /// Test-only: the process-wide lock survives across DemoSeed instances.
   @visibleForTesting
   static void resetInFlightForTest() => _inFlight.clear();
+}
+
+/// Everything Inventory's first frame used to do inline on EVERY tab mount
+/// (audit M2), now behind a one-shot per-shop flag:
+///   1. debug-only demo seeding (unchanged),
+///   2. the #177 duplicate-seed cleanup — runs ONCE per shop per device,
+///      then [SettingsRepository.seedCleanupDone] short-circuits every later
+///      mount so release builds stop full-table-scanning `products` each
+///      time the tab opens. Shop-scoped key: branch switch must still clean
+///      the next shop once.
+Future<void> runInventoryStartupMaintenance({
+  required AppDatabase db,
+  required InventoryRepository repo,
+  required String shopId,
+  SettingsRepository? settings,
+}) async {
+  if (shopId.isEmpty) return;
+  final seed = DemoSeed(db, repo, shopId);
+  await seed.ensureSeeded();
+
+  // Null settings (callers without one, older tests) keeps the old
+  // always-run behaviour rather than silently skipping cleanup.
+  final skipCleanup =
+      settings != null && await settings.seedCleanupDone(shopId);
+  if (skipCleanup) return;
+
+  await seed.collapseDuplicates();
+  await settings?.setSeedCleanupDone(shopId);
 }

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/core/theme/app_theme.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/core/widgets/app_widgets.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/features/onboarding/full_screen_gate.dart';
 import 'package:mm_pos/features/onboarding/onboarding_flow.dart';
 import 'package:mm_pos/l10n/app_localizations.dart';
 
@@ -62,6 +64,7 @@ void main() {
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(db)],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -98,6 +101,7 @@ void main() {
         ProviderScope(
           overrides: [databaseProvider.overrideWithValue(db)],
           child: MaterialApp(
+          theme: AppTheme.light(),
             locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -121,11 +125,95 @@ void main() {
 
       expect(find.text('You start on the Free plan'), findsNothing);
       expect(find.text('Email account (optional)'), findsOneWidget);
-      // Footer Next stays off so a failed Sign in cannot skip ahead.
-      final next = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Next'),
+      // Footer Next is fully ABSENT here, not merely disabled — a greyed
+      // "Next" read as broken (owners tapped it and nothing happened). The
+      // page advances via its own Sign in / Skip for now actions.
+      expect(find.widgetWithText(FilledButton, 'Next'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Get started on Owner and Staff modes completes onboarding',
+    (tester) async {
+      var done = 0;
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: MaterialApp(
+          theme: AppTheme.light(),
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: OnboardingFlow(onDone: () => done++),
+          ),
+        ),
       );
-      expect(next.onPressed, isNull);
+      await tester.pump();
+
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Skip for now'));
+      await tester.tap(find.text('Skip for now'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Owner and Staff modes'), findsOneWidget);
+      final getStarted = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Get started'),
+      );
+      expect(getStarted.onPressed, isNotNull);
+
+      await tester.tap(find.text('Get started'));
+      await tester.pump();
+      expect(done, 1);
+    },
+  );
+
+  testWidgets(
+    'Get started still completes when shown from MaterialApp.builder over a router child',
+    (tester) async {
+      var done = 0;
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: MaterialApp(
+          theme: AppTheme.light(),
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => FullScreenGate(
+              underneath: child,
+              page: OnboardingFlow(onDone: () => done++),
+            ),
+            home: const ColoredBox(color: Color(0xFF888888)),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Skip for now'));
+      await tester.tap(find.text('Skip for now'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Owner and Staff modes'), findsOneWidget);
+      await tester.tap(find.text('Get started'));
+      await tester.pump();
+      expect(done, 1);
     },
   );
 }

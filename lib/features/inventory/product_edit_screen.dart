@@ -8,6 +8,7 @@ import '../../core/env.dart';
 import '../../core/image_util.dart';
 import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
@@ -109,7 +110,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     if (file == null || file.bytes == null) return;
     setState(() => _uploading = true);
     try {
-      final c = compressImage(
+      final c = await compressImage(
         Uint8List.fromList(file.bytes!),
         fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
       );
@@ -399,6 +400,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 : Image.network(
                     _imageUrl!,
                     fit: BoxFit.cover,
+                    cacheWidth: ProductThumb.cacheWidthFor(
+                        72, MediaQuery.devicePixelRatioOf(context)),
                     errorBuilder: (_, _, _) => Icon(
                       Icons.broken_image_outlined,
                       color: scheme.onSurfaceVariant,

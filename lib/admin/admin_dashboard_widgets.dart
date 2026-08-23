@@ -182,17 +182,39 @@ class _RequestsTab extends StatelessWidget {
               ),
             ],
           ),
-          subtitle: Text(
-            '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}\n'
-            'Phone: ${r['phone'] ?? '—'}  ·  Txn: ${r['ref_no'] ?? '—'}\n'
-            'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
-            '${fulfilled ? '  ·  Key: ${r['issued_key']}' : ''}'
-            '${rejected && rejectReason != null && rejectReason.isNotEmpty ? '\nReason: $rejectReason' : ''}'
-            // Renewal (an existing shop) vs a brand-new one — see
-            // fulfill_request's shop_id-first lookup.
-            '${shopId != null && shopId.isNotEmpty ? '\nRenewal for shop: $shopId' : '\n(No shop_id — treated as a new shop)'}',
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}'
+                '  ·  ${_date(r['created_at'])}',
+                style: textTheme.bodySmall,
+              ),
+              // The values support actually verifies/sends every day get
+              // one-tap copy instead of fragile browser text selection.
+              Wrap(
+                spacing: AppTheme.space3,
+                children: [
+                  _CopyField('Txn', '${r['ref_no'] ?? ''}'),
+                  _CopyField('Phone', '${r['phone'] ?? ''}'),
+                  if (fulfilled && '${r['issued_key']}'.isNotEmpty)
+                    _CopyField('Key', '${r['issued_key']}'),
+                ],
+              ),
+              Text('Device: ${r['device_id'] ?? '—'}',
+                  style: textTheme.bodySmall),
+              if (rejected && rejectReason != null && rejectReason.isNotEmpty)
+                Text('Reason: $rejectReason', style: textTheme.bodySmall),
+              // Renewal (an existing shop) vs a brand-new one — see
+              // fulfill_request's shop_id-first lookup.
+              Text(
+                shopId != null && shopId.isNotEmpty
+                    ? 'Renewal for shop: $shopId'
+                    : '(No shop_id — treated as a new shop)',
+                style: textTheme.bodySmall,
+              ),
+            ],
           ),
-          isThreeLine: true,
           trailing: fulfilled
               ? const StatusPill(label: 'Confirmed', tone: StatusTone.positive)
               : rejected
@@ -221,17 +243,33 @@ class _RequestsTab extends StatelessWidget {
   }
 
   Future<void> _showProof(BuildContext context, String path) async {
+    // Fullscreen pinch-zoom: verifying the transferred amount on a
+    // screenshot-of-a-screenshot needs every pixel, not a 400px dialog.
     await showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Payment screenshot'),
-        content: SizedBox(width: 400, child: _RequestProofImage(path: path)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+      barrierColor: Colors.black,
+      builder: (dialogContext) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                maxScale: 5,
+                child: _RequestProofImage(path: path),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  tooltip: 'Close',
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -268,6 +306,7 @@ class _DeclineReasonDialogState extends State<_DeclineReasonDialog> {
           TextField(
             controller: _reason,
             autofocus: true,
+            onSubmitted: (v) => Navigator.pop(context, v.trim()),
             decoration: const InputDecoration(labelText: 'Reason (optional)'),
           ),
         ],
@@ -812,6 +851,7 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
           TextField(
             controller: _code,
             autofocus: true,
+            onSubmitted: (v) => Navigator.pop(context, v.trim()),
             decoration: InputDecoration(labelText: widget.label),
           ),
           if (widget.warning != null) ...[
@@ -835,6 +875,123 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
           child: Text(widget.action),
         ),
       ],
+    );
+  }
+}
+
+/// One copyable fact on a request row — "Txn: 123456 ⧉". Tap copies to the
+/// clipboard with a short confirmation; empty/placeholder values vanish.
+class _CopyField extends StatelessWidget {
+  const _CopyField(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = value.trim();
+    if (v.isEmpty || v == '—') return const SizedBox.shrink();
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusXs),
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: v));
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('$label copied'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$label: $v', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(width: AppTheme.space1),
+            Icon(
+              Icons.copy,
+              size: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The irreversible "Confirm payment" gate: at-a-glance verification of
+/// shop / amount / plan / txn (with one-tap copy for the txn ref against
+/// the bank app), Enter-to-confirm, and an explicit cannot-be-undone line.
+class _ConfirmPaymentDialog extends StatelessWidget {
+  const _ConfirmPaymentDialog({required this.request});
+  final Map<String, dynamic> request;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = request;
+    final amount = (r['amount'] as num?)?.toInt() ?? 0;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): () =>
+            Navigator.pop(context, true),
+      },
+      child: Focus(
+        autofocus: true,
+        child: AlertDialog(
+          title: const Text('Confirm this payment?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${r['shop_name'] ?? '—'}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppTheme.space2),
+              SummaryRow(
+                'Amount',
+                _ks(amount),
+                emphasis: true,
+              ),
+              SummaryRow('Plan',
+                  '${r['months']} months · ${r['tier'] ?? 'offline'}',
+                  isMoney: false),
+              Wrap(
+                spacing: AppTheme.space3,
+                children: [
+                  _CopyField('Txn', '${r['ref_no'] ?? ''}'),
+                  _CopyField('Phone', '${r['phone'] ?? ''}'),
+                ],
+              ),
+              if ((r['device_id'] ?? '').toString().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.space1),
+                  child: Text('Device: ${r['device_id']}',
+                      style: Theme.of(context).textTheme.bodySmall),
+                ),
+              const SizedBox(height: AppTheme.space3),
+              Text(
+                'This issues/extends the license and marks the request '
+                'fulfilled — it cannot be undone.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.of(context).danger,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm payment'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1035,6 +1192,12 @@ class _RequestProofImageState extends State<_RequestProofImage> {
           fit: size != null ? BoxFit.cover : BoxFit.contain,
           width: size,
           height: size,
+          // Thumbnail case decodes at display size; fullscreen keeps native
+          // resolution (capped) so pinch-zoom stays legible.
+          cacheWidth: size != null
+              ? ProductThumb.cacheWidthFor(
+                  size!, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0)
+              : 1536,
         );
         if (size == null) return image;
         return ClipRRect(

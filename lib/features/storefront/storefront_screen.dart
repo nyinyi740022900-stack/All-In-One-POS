@@ -369,6 +369,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
                     : Image.network(
                         _logoUrl!,
                         fit: BoxFit.cover,
+                        cacheWidth: ProductThumb.cacheWidthFor(
+                            84, MediaQuery.devicePixelRatioOf(context)),
                         errorBuilder: (_, _, _) =>
                             const Icon(Icons.broken_image_outlined),
                       ),

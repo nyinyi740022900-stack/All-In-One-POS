@@ -164,6 +164,64 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     final colors = AppColors.of(context);
 
+    // Lazy builder over a flat row list (audit H3): a supplier's received
+    // POs and payment history grow for years, and the old
+    // `ListView(children: ...)` built EVERY ListTile up front. Widget
+    // configs here are cheap; only visible rows are now laid out/built.
+    final rows = <Widget>[
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l.apOutstanding,
+                  style: Theme.of(context).textTheme.titleMedium),
+              MoneyText(
+                Money(balance.outstanding).withSymbol(currency),
+                emphasis: true,
+                style: Theme.of(context).textTheme.titleLarge,
+                color: balance.outstanding > 0
+                    ? colors.danger
+                    : colors.success,
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: AppTheme.space3),
+      Text(l.apReceivedPOs, style: Theme.of(context).textTheme.titleSmall),
+      for (final po in pos)
+        ListTile(
+          key: ValueKey('po-${po.id}'),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(po.poNo),
+          subtitle: po.receivedAt != null
+              ? Text(df.format(po.receivedAt!))
+              : null,
+          trailing: MoneyText(Money(po.itemsTotal).withSymbol(currency)),
+        ),
+      if (payments.isNotEmpty) ...[
+        const SizedBox(height: AppTheme.space3),
+        Text(l.apPayments, style: Theme.of(context).textTheme.titleSmall),
+        for (final p in payments)
+          ListTile(
+            key: ValueKey('pay-${p.id}'),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.check_circle, color: colors.success),
+            title: MoneyText(
+              '-${Money(p.amount).withSymbol(currency)}',
+              textAlign: TextAlign.left,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            subtitle: Text(
+                '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
+          ),
+      ],
+    ];
+
     return Scaffold(
       appBar: AppBar(title: Text(supplierName)),
       floatingActionButton: balance.outstanding > 0
@@ -173,57 +231,10 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
               label: Text(l.apRecordPayment),
             )
           : null,
-      body: ListView(
+      body: ListView.builder(
         padding: const EdgeInsets.all(AppTheme.space4),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(l.apOutstanding,
-                      style: Theme.of(context).textTheme.titleMedium),
-                  MoneyText(
-                    Money(balance.outstanding).withSymbol(currency),
-                    emphasis: true,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    color: balance.outstanding > 0
-                        ? colors.danger
-                        : colors.success,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          Text(l.apReceivedPOs, style: Theme.of(context).textTheme.titleSmall),
-          ...pos.map((po) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(po.poNo),
-                subtitle: po.receivedAt != null
-                    ? Text(df.format(po.receivedAt!))
-                    : null,
-                trailing: MoneyText(Money(po.itemsTotal).withSymbol(currency)),
-              )),
-          if (payments.isNotEmpty) ...[
-            const SizedBox(height: AppTheme.space3),
-            Text(l.apPayments, style: Theme.of(context).textTheme.titleSmall),
-            ...payments.map((p) => ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.check_circle, color: colors.success),
-                  title: MoneyText(
-                    '-${Money(p.amount).withSymbol(currency)}',
-                    textAlign: TextAlign.left,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  subtitle: Text(
-                      '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
-                )),
-          ],
-        ],
+        itemCount: rows.length,
+        itemBuilder: (context, i) => rows[i],
       ),
     );
   }

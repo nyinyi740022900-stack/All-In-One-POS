@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -173,6 +172,15 @@ class CreditRepository {
 
   /// Records a repayment against a customer's outstanding credit and queues it
   /// for sync.
+  ///
+  /// Repository-level validation (audit H-3 — the repayment dialog's cap is
+  /// UI-only): non-positive amounts are rejected outright; amounts beyond
+  /// the customer's currently-known outstanding balance throw [StateError].
+  /// The outstanding check is best-effort by design — this is an
+  /// offline-first ledger, so a concurrent repayment on another device can
+  /// still land after the check (the derived balance then floors at zero
+  /// rather than corrupting); rejecting here closes the trivial
+  /// modified-client hole while leaving the sync model intact.
   Future<void> recordRepayment({
     required String customerName,
     String? customerId,
@@ -180,6 +188,14 @@ class CreditRepository {
     String method = 'cash',
     String? note,
   }) async {
+    if (amount <= 0) {
+      throw ArgumentError.value(amount, 'amount', 'must be positive');
+    }
+    final key = creditKeyFor(customerId, customerName);
+    final outstanding = await _outstandingFor(key);
+    if (amount > outstanding) {
+      throw StateError('repayment_exceeds_outstanding');
+    }
     final id = _uuid.v4();
     final now = DateTime.now();
     await _db.transaction(() async {
@@ -193,15 +209,30 @@ class CreditRepository {
             note: Value(note),
             updatedAt: Value(now),
           ));
-      final row = await (_db.select(_db.creditPayments)
-            ..where((t) => t.id.equals(id)))
-          .getSingle();
       await _db.into(_db.outbox).insert(OutboxCompanion.insert(
             entityTable: 'credit_payments',
             rowId: id,
             op: 'upsert',
-            payload: jsonEncode(row.toJson()),
           ));
     });
+  }
+
+  /// The customer's current outstanding balance, folded the same way
+  /// [aggregate] does (open credit sales minus all recorded repayments).
+  Future<int> _outstandingFor(String key) async {
+    final creditSales = await (_db.select(_db.sales)
+          ..where((s) =>
+              s.shopId.equals(_shopId) &
+              s.isDeleted.equals(false) &
+              s.paid.isSmallerThan(s.total)))
+        .get();
+    final repayments = await (_db.select(_db.creditPayments)
+          ..where((p) =>
+              p.shopId.equals(_shopId) & p.isDeleted.equals(false)))
+        .get();
+    for (final c in aggregate(creditSales, repayments)) {
+      if (c.key == key) return c.outstanding;
+    }
+    return 0;
   }
 }

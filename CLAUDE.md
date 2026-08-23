@@ -101,6 +101,10 @@ Before calling a change done:
 
 ## Workflow
 - Before any build: `flutter analyze` (clean) + `flutter test` (all pass).
+- **Owner rule (2026-08-22): once you START a fix, do not stop until it is
+  fully done** — code + `analyze` + full `flutter test` + changelog entry,
+  then deploy to device if it's an app change. Report only after all of that,
+  and end with a written "what's next / what to verify" list.
 - **Before marking a feature done, run the ripple-effect check above** —
   don't wait for the user to request a separate audit pass to catch a stale
   provider or a device-global key that should've been per-shop.

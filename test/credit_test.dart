@@ -276,7 +276,22 @@ void main() {
       expect(customers.single.phone, '09123');
     });
 
+    Future<void> seedCreditSale(String name, int total, int paid) async {
+      final id = await inventory.upsertProduct(
+          name: 'Item for $name', salePrice: total, quantity: 5);
+      final product = (await inventory.watchProducts().first)
+          .firstWhere((p) => p.product.id == id)
+          .product;
+      await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 1)]),
+        paymentMethod: 'credit',
+        paid: paid,
+        customerName: name,
+      );
+    }
+
     test('recordRepayment writes row + enqueues outbox', () async {
+      await seedCreditSale('Daw Mya', 10000, 4000); // outstanding 6000
       await credit.recordRepayment(
           customerName: 'Daw Mya', amount: 6000, method: 'kbzpay');
 
@@ -288,6 +303,56 @@ void main() {
       final outbox =
           (await db.select(db.outbox).get()).map((o) => o.entityTable).toSet();
       expect(outbox, contains('credit_payments'));
+    });
+
+    test('recordRepayment rejects non-positive amounts (audit H-3)',
+        () async {
+      await seedCreditSale('Ma Ma', 10000, 0);
+      expect(
+        () => credit.recordRepayment(customerName: 'Ma Ma', amount: 0),
+        throwsArgumentError,
+      );
+      expect(
+        () => credit.recordRepayment(customerName: 'Ma Ma', amount: -1000),
+        throwsArgumentError,
+      );
+      // Nothing was written.
+      expect(await db.select(db.creditPayments).get(), isEmpty);
+    });
+
+    test('recordRepayment rejects over-repayment beyond outstanding '
+        '(audit H-3)', () async {
+      await seedCreditSale('Ko Ko', 10000, 4000); // outstanding 6000
+      // The dialog caps at outstanding; a modified client skipping it must
+      // still be stopped at the repository layer.
+      expect(
+        () => credit.recordRepayment(
+            customerName: 'Ko Ko', amount: 99999),
+        throwsStateError,
+      );
+      expect(await db.select(db.creditPayments).get(), isEmpty);
+
+      // A repayment within the balance is fine, and consumes the room.
+      await credit.recordRepayment(customerName: 'Ko Ko', amount: 5000);
+      expect(
+        () =>
+            credit.recordRepayment(customerName: 'Ko Ko', amount: 2000),
+        throwsStateError,
+      );
+      // The remaining 1000 is still allowed.
+      await credit.recordRepayment(customerName: 'Ko Ko', amount: 1000);
+      expect((await db.select(db.creditPayments).get()).length, 2);
+    });
+
+    test('recordRepayment matches by directory id or typed name like the '
+        'aggregate does', () async {
+      await seedCreditSale('Mya Mya', 8000, 0);
+      await credit.recordRepayment(customerName: '  mya mya ', amount: 3000);
+      final customers = CreditRepository.aggregate(
+        await credit.watchCreditSales().first,
+        await credit.watchRepayments().first,
+      );
+      expect(customers.single.outstanding, 5000);
     });
   });
 }

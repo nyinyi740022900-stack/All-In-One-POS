@@ -71,7 +71,7 @@ class CategoriesScreen extends ConsumerWidget {
   /// after being disposed", then a cascade of framework assertions and a red
   /// screen. **This was observed crashing live** on Inventory ➜ Categories ➜
   /// add; the identical bug was fixed the same way in `checkout_sheet.dart`'s
-  /// `_LineDiscountDialog`.
+  /// (since-replaced) line-discount dialog.
   Future<void> _edit(BuildContext context, WidgetRef ref,
       [Category? existing]) async {
     final name = await showDialog<String>(

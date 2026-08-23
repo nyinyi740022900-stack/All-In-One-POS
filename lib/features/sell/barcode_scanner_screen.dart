@@ -4,12 +4,33 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'hardware_scanner_listener.dart';
+import 'scan_gate.dart';
 
 /// Full-screen barcode capture. Uses the camera on phones/tablets, and a
 /// USB / Bluetooth HID scanner on computers (and as a second path on
-/// mobile). Pops with the first decoded value.
+/// mobile).
+///
+/// Two modes:
+/// - default (`const BarcodeScannerScreen()`): pops with the FIRST decoded
+///   value — for one-shot lookups (product form, license, invoices).
+/// - [BarcodeScannerScreen.continuous]: stays open and fires [onCode] for
+///   EVERY scan so a cashier can add many items in one session; the Done
+///   button (or back) closes it (owner request: scan-scan-scan → done,
+///   instead of re-opening the camera per item).
 class BarcodeScannerScreen extends StatefulWidget {
-  const BarcodeScannerScreen({super.key});
+  const BarcodeScannerScreen({super.key})
+      : continuous = false,
+        onCode = null;
+
+  const BarcodeScannerScreen.continuous({super.key, required this.onCode})
+      : continuous = true;
+
+  /// Whether scans keep the screen open ([true]) or pop with the first
+  /// code ([false]).
+  final bool continuous;
+
+  /// Continuous-mode sink for each decoded barcode.
+  final ValueChanged<String>? onCode;
 
   @override
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
@@ -17,13 +38,19 @@ class BarcodeScannerScreen extends StatefulWidget {
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   MobileScannerController? _controller;
-  bool _handled = false;
+
+  /// One physical scan = one addition. Camera decoders re-fire while a
+  /// barcode sits in frame; this swallows the duplicates (POS-standard
+  /// per-code cooldown) without blocking deliberate later re-scans.
+  final _gate = ScanGate();
 
   @override
   void initState() {
     super.initState();
     if (isCameraBarcodeSupported) {
       _controller = MobileScannerController(
+        // noDuplicates only suppresses identical CONSECUTIVE captures, so
+        // deliberately re-scanning an item still adds it again.
         detectionSpeed: DetectionSpeed.noDuplicates,
       );
     }
@@ -36,9 +63,13 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   }
 
   void _finish(String code) {
-    if (_handled || code.isEmpty) return;
-    _handled = true;
-    Navigator.of(context).pop(code);
+    if (code.isEmpty) return;
+    if (widget.continuous) {
+      if (!_gate.accept(code, DateTime.now())) return;
+      widget.onCode?.call(code);
+    } else {
+      Navigator.of(context).pop(code);
+    }
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -84,10 +115,18 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                 onPressed: () => camera.switchCamera(),
               ),
             ],
+            if (widget.continuous)
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.check),
+                label: Text(l.scanDone),
+              ),
           ],
         ),
         body: camera == null
-            ? _HardwareOnlyBody(message: l.scanHardwareOnlyHint)
+            ? _HardwareOnlyBody(
+                message:
+                    widget.continuous ? l.scanContinuousHint : l.scanHardwareOnlyHint)
             : Stack(
                 alignment: Alignment.center,
                 children: [
@@ -118,7 +157,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                               vertical: AppTheme.space2,
                             ),
                             child: Text(
-                              l.scanHardwareHint,
+                              widget.continuous
+                                  ? l.scanContinuousHint
+                                  : l.scanHardwareHint,
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: Colors.white),

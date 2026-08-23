@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/layout.dart';
@@ -15,8 +16,11 @@ import 'barcode_scanner_screen.dart';
 import 'cart.dart';
 import 'checkout_sheet.dart';
 import 'hardware_scanner_listener.dart';
+import 'held_sales_provider.dart';
+import 'held_sales_sheet.dart';
 import 'sales_providers.dart';
 import 'sell_barcode.dart';
+import 'sell_feedback.dart';
 
 class SellScreen extends ConsumerWidget {
   const SellScreen({super.key});
@@ -46,20 +50,64 @@ class SellScreen extends ConsumerWidget {
     if (ok == true) ref.read(cartProvider.notifier).clear();
   }
 
+  /// Opens the scanner in CONTINUOUS mode (owner request): every scan adds
+  /// straight to the cart while the camera stays open — no re-opening per
+  /// item — and the cashier taps Done when finished.
   Future<void> _scanAndAdd(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l,
   ) async {
-    final code = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => BarcodeScannerScreen.continuous(
+          onCode: (code) => applyScannedSellCode(context, ref, l, code),
+        ),
+      ),
     );
-    if (code == null || !context.mounted) return;
-    applyScannedSellCode(context, ref, l, code);
   }
 
   void _openCheckout(BuildContext context) {
     showAppModal<void>(context: context, builder: (_) => const CheckoutSheet());
+  }
+
+  /// Parks the current cart ("customer will be right back") so the counter
+  /// can serve the next one immediately.
+  void _holdCart(BuildContext context, WidgetRef ref, AppLocalizations l) {
+    final cart = ref.read(cartProvider);
+    if (cart.isEmpty) return;
+    ref.read(heldSalesProvider.notifier).hold(cart);
+    ref.read(cartProvider.notifier).clear();
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.sellCartHeld)));
+  }
+
+  /// Opens the held-sales list. Resuming while another cart is active holds
+  /// that one first — a built cart is never silently discarded, and the
+  /// cashier never faces a dead-end "clear your cart first" dialog.
+  Future<void> _openHeldSales(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+  ) async {
+    await showHeldSalesSheet(
+      context,
+      ref,
+      onResumed: (cart) {
+        final current = ref.read(cartProvider);
+        final messenger = ScaffoldMessenger.of(context);
+        if (!current.isEmpty) {
+          ref.read(heldSalesProvider.notifier).hold(current);
+          messenger.showSnackBar(
+            SnackBar(content: Text(l.sellAutoHeldPrevious)),
+          );
+        }
+        ref.read(cartProvider.notifier).restore(cart);
+        HapticFeedback.mediumImpact();
+      },
+    );
   }
 
   @override
@@ -87,6 +135,7 @@ class SellScreen extends ConsumerWidget {
         daysLeft >= 0 &&
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);
+    final heldCount = ref.watch(heldSalesProvider).length;
     final split = isMediumPlus(context);
     // Sized so a phone keeps **three** columns now that each tile carries a
     // photo band: `SliverGridDelegateWithMaxCrossAxisExtent` counts the
@@ -172,7 +221,11 @@ class SellScreen extends ConsumerWidget {
                 itemCount: filtered.length,
                 itemBuilder: (context, i) {
                   final p = filtered[i];
+                  // Stateful card (tap-bump animation): a stable key stops a
+                  // mid-scroll insertion from attaching one row's pressed
+                  // state to another product (audit Low).
                   return _ProductCard(
+                    key: ValueKey('sell-${p.product.id}'),
                     name: p.product.name,
                     price: Money(p.product.salePrice).withSymbol(currency),
                     imageUrl: p.product.imageUrl,
@@ -184,13 +237,12 @@ class SellScreen extends ConsumerWidget {
                             p.product,
                             maxQty: trackStock ? p.quantity : null,
                           );
-                      if (!ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l.sellStockCap(p.quantity)),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
+                      if (ok) {
+                        // A noisy shop confirms the add by touch — the bump
+                        // animation below can be out of the eye line.
+                        HapticFeedback.selectionClick();
+                      } else {
+                        showStockCapSnackBar(context, l, p.quantity);
                       }
                     },
                   );
@@ -213,6 +265,21 @@ class SellScreen extends ConsumerWidget {
               icon: const Icon(Icons.qr_code_scanner),
               onPressed: () => _scanAndAdd(context, ref, l),
             ),
+            if (!cart.isEmpty)
+              IconButton(
+                tooltip: l.sellHoldSale,
+                icon: const Icon(Icons.pause_circle_outline),
+                onPressed: () => _holdCart(context, ref, l),
+              ),
+            if (heldCount > 0)
+              Badge.count(
+                count: heldCount,
+                child: IconButton(
+                  tooltip: l.sellHeldTitle,
+                  icon: const Icon(Icons.bookmark_border),
+                  onPressed: () => _openHeldSales(context, ref, l),
+                ),
+              ),
             if (!cart.isEmpty)
               IconButton(
                 tooltip: l.sellClear,
@@ -275,10 +342,8 @@ class _CartPanel extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final currency = l.currencySymbol;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
-    final stockById = <String, int>{
-      for (final p in ref.watch(productsStreamProvider).valueOrNull ?? const [])
-        p.product.id: p.quantity,
-    };
+    // Audit M3: rebuilt per cart mutation before; now products-only.
+    final stockById = ref.watch(stockByIdProvider);
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -343,9 +408,12 @@ class _CartPanel extends ConsumerWidget {
                             IconButton(
                               visualDensity: VisualDensity.compact,
                               icon: const Icon(Icons.remove),
-                              onPressed: () => ref
-                                  .read(cartProvider.notifier)
-                                  .decrement(line.product.id),
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                ref
+                                    .read(cartProvider.notifier)
+                                    .decrement(line.product.id);
+                              },
                             ),
                             SizedBox(
                               width: 24,
@@ -362,6 +430,7 @@ class _CartPanel extends ConsumerWidget {
                               visualDensity: VisualDensity.compact,
                               icon: const Icon(Icons.add),
                               onPressed: () {
+                                HapticFeedback.selectionClick();
                                 final ok = ref
                                     .read(cartProvider.notifier)
                                     .increment(
@@ -371,15 +440,10 @@ class _CartPanel extends ConsumerWidget {
                                           : null,
                                     );
                                 if (!ok) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l.sellStockCap(
-                                          stockById[line.product.id] ?? 0,
-                                        ),
-                                      ),
-                                      duration: const Duration(seconds: 1),
-                                    ),
+                                  showStockCapSnackBar(
+                                    context,
+                                    l,
+                                    stockById[line.product.id] ?? 0,
                                   );
                                 }
                               },
@@ -469,6 +533,7 @@ class _SellCategoryFilterBar extends ConsumerWidget {
 /// they're keying in the next item.
 class _ProductCard extends StatefulWidget {
   const _ProductCard({
+    super.key,
     required this.name,
     required this.price,
     required this.imageUrl,

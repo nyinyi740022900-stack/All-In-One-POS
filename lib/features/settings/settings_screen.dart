@@ -852,7 +852,7 @@ class _DeviceLabelTile extends ConsumerWidget {
 /// controller created and disposed inline around `await showDialog` crashes
 /// with "A TextEditingController was used after being disposed" because the
 /// still-animating `TextField` outlives it. Same fix as
-/// `checkout_sheet.dart`'s `_LineDiscountDialog` and friends.
+/// `checkout_sheet.dart`'s (since-replaced) line-discount dialog and friends.
 class _DeviceLabelDialog extends StatefulWidget {
   const _DeviceLabelDialog({required this.initial});
   final String initial;

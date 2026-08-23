@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/search_debounce.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/inventory_repository.dart';
 import '../../domain/product_with_stock.dart';
@@ -13,6 +14,14 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 
 /// Search query for the inventory list.
 final inventorySearchProvider = StateProvider<String>((ref) => '');
+
+/// The query the EXPENSIVE listeners (list filter, category counts) consume
+/// — settles [kSearchDebounce] after typing pauses so a burst of keystrokes
+/// refilters the catalogue once, not once per character (audit H1). The
+/// text field itself and the "no results" label keep watching
+/// [inventorySearchProvider] for same-keystroke response.
+final debouncedInventorySearchProvider =
+    debouncedSearchProvider(inventorySearchProvider);
 
 final productsStreamProvider =
     StreamProvider<List<ProductWithStock>>((ref) {
@@ -35,7 +44,8 @@ bool _matchesInventoryQuery(Product prod, String q) {
 /// the selected category.
 final filteredProductsProvider = Provider<List<ProductWithStock>>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
-  final q = ref.watch(inventorySearchProvider).trim().toLowerCase();
+  final q =
+      ref.watch(debouncedInventorySearchProvider).trim().toLowerCase();
   final categoryId = ref.watch(inventoryCategoryProvider);
 
   return all.where((p) {
@@ -51,7 +61,8 @@ final filteredProductsProvider = Provider<List<ProductWithStock>>((ref) {
 /// `CategoryFilterBar`.
 final inventoryCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
-  final q = ref.watch(inventorySearchProvider).trim().toLowerCase();
+  final q =
+      ref.watch(debouncedInventorySearchProvider).trim().toLowerCase();
   final counts = <String?, int>{};
   var total = 0;
   for (final p in all) {
@@ -67,6 +78,16 @@ final inventoryCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
 final lowStockCountProvider = Provider<int>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
   return all.where((p) => p.isLowStock).length;
+});
+
+/// Live quantity per product id, rebuilt ONLY when the products×stock stream
+/// emits (audit M3). Cart UIs used to build this exact map inside their own
+/// `build` — watching the cart too — so every qty tap / keypad digit
+/// re-scanned the whole catalogue just to look up two or three ids. Reading
+/// `ref.watch(stockByIdProvider)[id]` from the sheet costs O(1) per rebuild.
+final stockByIdProvider = Provider<Map<String, int>>((ref) {
+  final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
+  return {for (final p in all) p.product.id: p.quantity};
 });
 
 final categoriesStreamProvider = StreamProvider<List<Category>>((ref) {

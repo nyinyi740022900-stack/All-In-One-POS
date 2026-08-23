@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -8,11 +12,15 @@ import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
+import '../credit/credit_repository.dart';
+import '../credit/repayment_dialog.dart';
 import '../printing/document_print.dart';
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'cashier_label.dart';
+import 'invoice_capture.dart';
+import 'invoice_payment_status.dart';
 import 'invoice_pdf.dart';
 import 'invoice_view.dart';
 import 'receipt_mapper.dart';
@@ -77,6 +85,39 @@ class InvoiceDetailScreen extends ConsumerWidget {
     }
   }
 
+  /// Captures the already-built [invoice] document as a PNG and opens the
+  /// share sheet — the counter's most common post-sale action (send the
+  /// invoice to the customer on Viber/Messenger). Orders could always do
+  /// this; the finalized-sale record itself couldn't.
+  Future<void> _shareInvoiceImage(
+    BuildContext context,
+    AppLocalizations l,
+    InvoiceData invoice,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await captureWidgetAsPng(
+        context,
+        InvoiceView(data: invoice),
+      );
+      if (!context.mounted) return;
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/invoice-${invoice.invoiceNo}.png');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'image/png')],
+          subject: 'Invoice ${invoice.invoiceNo}',
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.commonUnexpectedError)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -93,7 +134,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
             )
           : AppBar(title: Text(l.invoiceDetail)),
       body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const AppLoadingView(),
         error: (e, _) => EmptyStateView(
           icon: Icons.error_outline,
           title: l.commonUnexpectedError,
@@ -107,7 +148,19 @@ class InvoiceDetailScreen extends ConsumerWidget {
           // This invoice's own shortfall, plus the customer's total credit-book
           // balance (which already includes this invoice, once finalized) —
           // "previous balance" is just the difference, not separately stored.
-          final thisOwed = s.total > s.paid ? s.total - s.paid : 0;
+          //
+          // The shortfall MUST come from the credit book's FIFO allocation,
+          // not the raw `total - paid`: repayments never mutate the immutable
+          // sale row, so raw stayed "unpaid" forever after a customer repaid
+          // via the credit book (owner-reported). Same source as the list.
+          final owedBySaleMap = ref.watch(creditOwedBySaleProvider);
+          final thisOwed = outstandingForDisplay(
+            total: s.total,
+            paid: s.paid,
+            isRefundRow: s.refundOfSaleId != null,
+            owedBySaleId: owedBySaleMap,
+            saleId: s.id,
+          );
           var totalOutstanding = thisOwed;
           if (s.customerId != null) {
             for (final c in ref.watch(creditCustomersProvider)) {
@@ -153,6 +206,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
             s,
             d.items,
             profile,
+            owedBySaleId: owedBySaleMap,
             currencySymbol: currency,
             cashier: cashier,
             paymentMethodCustomName: customName,
@@ -163,6 +217,20 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 280.0,
                 420.0,
               );
+          // The counter flow "customer walks in to pay their credit" used to
+          // dead-end here: the balance was shown but the only repayment
+          // action lived in Settings → Credit book. Match this sale to its
+          // credit-book customer and surface the same dialog right here.
+          final CreditCustomer? repayCustomer = thisOwed > 0
+              ? ref
+                  .watch(creditCustomersProvider)
+                  .where(
+                    (c) =>
+                        c.key ==
+                        creditKeyFor(s.customerId, s.customerName ?? ''),
+                  )
+                  .firstOrNull
+              : null;
           return ListView(
             padding: const EdgeInsets.all(AppTheme.space4),
             children: [
@@ -218,13 +286,32 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     ],
                   ],
                 ),
+                if (repayCustomer != null && repayCustomer.outstanding > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppTheme.space3),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () =>
+                            showRepaymentDialog(context, repayCustomer),
+                        icon: const Icon(Icons.payments_outlined),
+                        label: Text(l.creditRecordRepayment),
+                      ),
+                    ),
+                  ),
               ],
               const SizedBox(height: AppTheme.space5),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () =>
-                      printSaleReceipt(context, ref, sale: s, items: d.items),
+                      printSaleReceipt(
+                        context,
+                        ref,
+                        sale: s,
+                        items: d.items,
+                        owedBySaleId: owedBySaleMap,
+                      ),
                   icon: const Icon(Icons.print),
                   label: Text(l.invoiceReprint),
                 ),
@@ -250,6 +337,15 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.print_outlined),
                   label: Text(l.documentPrint),
+                ),
+              ),
+              const SizedBox(height: AppTheme.space2),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _shareInvoiceImage(context, l, invoice),
+                  icon: const Icon(Icons.share_outlined),
+                  label: Text(l.invoiceShare),
                 ),
               ),
               if (!reversed) ...[

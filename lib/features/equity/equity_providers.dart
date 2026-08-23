@@ -20,46 +20,32 @@ final equityEntriesProvider = StreamProvider<List<EquityEntry>>((ref) {
 });
 
 /// Cumulative Net Profit since inception — the P&L's own `netProfit`,
-/// computed over a wide-open all-time range (no new Analytics code; reuses
-/// `AnalyticsRepository.summary()` unmodified). `DateTime(2020, 1, 1)`
-/// matches the same "all time" floor already used elsewhere (e.g. the
-/// Expense date picker's `firstDate`).
+/// computed over a wide-open all-time range as THREE SQL aggregates in one
+/// statement (`AnalyticsRepository.cumulativeNetProfit`): Σ sale totals −
+/// Σ item cost − Σ expenses. It never materialises rows into Dart (audit
+/// C2: this used to reuse `summary()`, loading every sale, item, product
+/// AND stock level ever recorded on every recompute — O(business history)
+/// on the UI isolate, growing every year the shop trades).
+///
+/// `DateTime(2020, 1, 1)` matches the same "all time" floor already used
+/// elsewhere (e.g. the Expense date picker's `firstDate`).
+///
+/// Triggers are the consolidated narrowed signals (audit M4): sales, the
+/// shared expense signal, and the memoized product-cost map — each
+/// recompute is now three indexed SUMs, not a full history load. The FIFO
+/// credit map is deliberately NOT watched: it only affects
+/// `creditOutstanding`/`collected`, never `netProfit`, so a repayment no
+/// longer re-runs this aggregation for an identical result. Stock levels
+/// are not watched either — `netProfit` never reads `stockValue`.
 final cumulativeNetProfitProvider = FutureProvider<int>((ref) async {
   ref.watch(salesStreamProvider);
-  ref.watch(_equityExpenseChangesProvider);
-  ref.watch(_equityProductChangesProvider);
-  final now = DateTime.now();
-  final summary = await ref
-      .watch(analyticsRepositoryProvider)
-      .summary(DateTime(2020, 1, 1), now.add(const Duration(days: 1)));
-  return summary.netProfit;
-});
-
-/// Invalidation-only signal for [cumulativeNetProfitProvider] — same
-/// pattern as `analytics_providers.dart`'s `_expenseChangesProvider` /
-/// `pnl_providers.dart`'s `_pnlExpenseChangesProvider`, needed because
-/// `AnalyticsRepository.summary()`'s Net Profit depends on Expenses and
-/// there's nothing else in this provider's watch list that changes when
-/// an expense is added/edited/deleted.
-final _equityExpenseChangesProvider = StreamProvider<List<Expense>>((ref) {
-  final db = ref.watch(databaseProvider);
-  final shopId = ref.watch(shopIdProvider);
-  return (db.select(db.expenses)
-        ..where((e) => e.shopId.equals(shopId) & e.isDeleted.equals(false)))
-      .watch();
-});
-
-/// Same reasoning as [_equityExpenseChangesProvider] — a sale line with no
-/// `costSnapshot` (untracked-stock shops, see `AnalyticsRepository.summary`)
-/// falls back to the product's *current* cost price, so editing a cost
-/// price can change `netProfit` with no sale involved. Not watching
-/// stock levels here too — unlike Analytics/P&L, this provider's `netProfit`
-/// never reads `stockValue`.
-final _equityProductChangesProvider = StreamProvider<List<Product>>((ref) {
-  final db = ref.watch(databaseProvider);
-  final shopId = ref.watch(shopIdProvider);
-  return (db.select(db.products)..where((p) => p.shopId.equals(shopId)))
-      .watch();
+  ref.watch(expenseChangesProvider);
+  ref.watch(productCostMapProvider);
+  final end = DateTime.now().add(const Duration(days: 1));
+  return ref.watch(analyticsRepositoryProvider).cumulativeNetProfit(
+        start: DateTime(2020, 1, 1),
+        end: end,
+      );
 });
 
 final equitySummaryProvider = FutureProvider<EquitySummary>((ref) async {

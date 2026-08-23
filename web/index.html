@@ -40,13 +40,57 @@
 </head>
 <body>
   <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+    Branded boot splash (audit H4): on a 3G Myanmar phone the Flutter engine
+    (main.dart.js + CanvasKit wasm) takes seconds to download and compile —
+    until now that was a blank white page, which read as "site broken". This
+    paints the brand mark + spinner instantly from plain HTML, then removes
+    itself once the first Flutter frame is rendered.
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <div id="boot-splash">
+    <img src="favicon.svg" alt="">
+    <div class="ring"></div>
+  </div>
+  <style>
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: #f6f8f7;
+      z-index: 2147483647;
+    }
+    @media (prefers-color-scheme: dark) {
+      #boot-splash { background: #101512; }
+    }
+    #boot-splash img { width: 72px; height: 72px; }
+    #boot-splash .ring {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid rgba(15, 92, 62, 0.25);
+      border-top-color: #0f5c3e;
+      animation: boot-spin 0.8s linear infinite;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+  </style>
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+    _flutter.loader.load({
+      serviceWorkerSettings: {
+        serviceWorkerVersion: {{flutter_service_worker_version}},
+      },
+      onEntrypointLoaded: async function (engineInitializer) {
+        const appRunner = await engineInitializer.initializeEngine();
+        // Resolves after the first frame — only then is the real UI on
+        // screen and the splash safe to drop.
+        await appRunner.runApp();
+        document.getElementById('boot-splash')?.remove();
+      },
+    });
+  </script>
 </body>
 </html>

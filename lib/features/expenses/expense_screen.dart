@@ -374,7 +374,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _savingReceipt = true);
     try {
-      final c = compressImage(Uint8List.fromList(file.bytes!),
+      final c = await compressImage(Uint8List.fromList(file.bytes!),
           fallbackExt: (file.extension ?? 'jpg').toLowerCase());
       final path = await ref
           .read(expenseRepositoryProvider)

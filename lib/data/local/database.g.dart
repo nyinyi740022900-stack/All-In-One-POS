@@ -79,6 +79,15 @@ class $CategoriesTable extends Categories
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -106,6 +115,7 @@ class $CategoriesTable extends Categories
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     sort,
   ];
@@ -158,6 +168,12 @@ class $CategoriesTable extends Categories
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
       );
     }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -205,6 +221,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -229,6 +249,14 @@ class Category extends DataClass implements Insertable<Category> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final int sort;
   const Category({
@@ -238,6 +266,7 @@ class Category extends DataClass implements Insertable<Category> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     required this.sort,
   });
@@ -250,6 +279,9 @@ class Category extends DataClass implements Insertable<Category> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     map['sort'] = Variable<int>(sort);
     return map;
@@ -263,6 +295,7 @@ class Category extends DataClass implements Insertable<Category> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       sort: Value(sort),
     );
@@ -280,6 +313,7 @@ class Category extends DataClass implements Insertable<Category> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       sort: serializer.fromJson<int>(json['sort']),
     );
@@ -294,6 +328,7 @@ class Category extends DataClass implements Insertable<Category> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'sort': serializer.toJson<int>(sort),
     };
@@ -306,6 +341,7 @@ class Category extends DataClass implements Insertable<Category> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     int? sort,
   }) => Category(
@@ -315,6 +351,7 @@ class Category extends DataClass implements Insertable<Category> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     sort: sort ?? this.sort,
   );
@@ -326,6 +363,7 @@ class Category extends DataClass implements Insertable<Category> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       sort: data.sort.present ? data.sort.value : this.sort,
     );
@@ -340,6 +378,7 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('sort: $sort')
           ..write(')'))
@@ -354,6 +393,7 @@ class Category extends DataClass implements Insertable<Category> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     sort,
   );
@@ -367,6 +407,7 @@ class Category extends DataClass implements Insertable<Category> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.sort == this.sort);
 }
@@ -378,6 +419,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<int> sort;
   final Value<int> rowid;
@@ -388,6 +430,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.sort = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -399,6 +442,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.sort = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -412,6 +456,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<int>? sort,
     Expression<int>? rowid,
@@ -423,6 +468,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (sort != null) 'sort': sort,
       if (rowid != null) 'rowid': rowid,
@@ -436,6 +482,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<int>? sort,
     Value<int>? rowid,
@@ -447,6 +494,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       sort: sort ?? this.sort,
       rowid: rowid ?? this.rowid,
@@ -474,6 +522,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -495,6 +546,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('sort: $sort, ')
           ..write('rowid: $rowid')
@@ -577,6 +629,15 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       'CHECK ("dirty" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -730,6 +791,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     sku,
     barcode,
@@ -791,6 +853,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -912,6 +980,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -980,6 +1052,14 @@ class Product extends DataClass implements Insertable<Product> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final String? sku;
   final String? barcode;
@@ -1013,6 +1093,7 @@ class Product extends DataClass implements Insertable<Product> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     this.sku,
     this.barcode,
@@ -1036,6 +1117,9 @@ class Product extends DataClass implements Insertable<Product> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || sku != null) {
       map['sku'] = Variable<String>(sku);
@@ -1076,6 +1160,7 @@ class Product extends DataClass implements Insertable<Product> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       sku: sku == null && nullToAbsent ? const Value.absent() : Value(sku),
       barcode: barcode == null && nullToAbsent
@@ -1118,6 +1203,7 @@ class Product extends DataClass implements Insertable<Product> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       sku: serializer.fromJson<String?>(json['sku']),
       barcode: serializer.fromJson<String?>(json['barcode']),
@@ -1143,6 +1229,7 @@ class Product extends DataClass implements Insertable<Product> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'sku': serializer.toJson<String?>(sku),
       'barcode': serializer.toJson<String?>(barcode),
@@ -1166,6 +1253,7 @@ class Product extends DataClass implements Insertable<Product> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     Value<String?> sku = const Value.absent(),
     Value<String?> barcode = const Value.absent(),
@@ -1186,6 +1274,7 @@ class Product extends DataClass implements Insertable<Product> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     sku: sku.present ? sku.value : this.sku,
     barcode: barcode.present ? barcode.value : this.barcode,
@@ -1212,6 +1301,7 @@ class Product extends DataClass implements Insertable<Product> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       sku: data.sku.present ? data.sku.value : this.sku,
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
@@ -1243,6 +1333,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('sku: $sku, ')
           ..write('barcode: $barcode, ')
@@ -1268,6 +1359,7 @@ class Product extends DataClass implements Insertable<Product> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     sku,
     barcode,
@@ -1292,6 +1384,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.sku == this.sku &&
           other.barcode == this.barcode &&
@@ -1314,6 +1407,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<String?> sku;
   final Value<String?> barcode;
@@ -1335,6 +1429,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.sku = const Value.absent(),
     this.barcode = const Value.absent(),
@@ -1357,6 +1452,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.sku = const Value.absent(),
     this.barcode = const Value.absent(),
@@ -1381,6 +1477,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<String>? sku,
     Expression<String>? barcode,
@@ -1403,6 +1500,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (sku != null) 'sku': sku,
       if (barcode != null) 'barcode': barcode,
@@ -1427,6 +1525,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<String?>? sku,
     Value<String?>? barcode,
@@ -1449,6 +1548,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       sku: sku ?? this.sku,
       barcode: barcode ?? this.barcode,
@@ -1486,6 +1586,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1541,6 +1644,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('sku: $sku, ')
           ..write('barcode: $barcode, ')
@@ -1636,6 +1740,15 @@ class $StockLevelsTable extends StockLevels
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _productIdMeta = const VerificationMeta(
     'productId',
   );
@@ -1679,6 +1792,7 @@ class $StockLevelsTable extends StockLevels
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     productId,
     quantity,
     reorderLevel,
@@ -1730,6 +1844,12 @@ class $StockLevelsTable extends StockLevels
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('product_id')) {
@@ -1788,6 +1908,10 @@ class $StockLevelsTable extends StockLevels
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       productId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}product_id'],
@@ -1816,6 +1940,14 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String productId;
   final int quantity;
   final int reorderLevel;
@@ -1826,6 +1958,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.productId,
     required this.quantity,
     required this.reorderLevel,
@@ -1839,6 +1972,9 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['product_id'] = Variable<String>(productId);
     map['quantity'] = Variable<int>(quantity);
     map['reorder_level'] = Variable<int>(reorderLevel);
@@ -1853,6 +1989,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       productId: Value(productId),
       quantity: Value(quantity),
       reorderLevel: Value(reorderLevel),
@@ -1871,6 +2008,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       productId: serializer.fromJson<String>(json['productId']),
       quantity: serializer.fromJson<int>(json['quantity']),
       reorderLevel: serializer.fromJson<int>(json['reorderLevel']),
@@ -1886,6 +2024,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'productId': serializer.toJson<String>(productId),
       'quantity': serializer.toJson<int>(quantity),
       'reorderLevel': serializer.toJson<int>(reorderLevel),
@@ -1899,6 +2038,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? productId,
     int? quantity,
     int? reorderLevel,
@@ -1909,6 +2049,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     productId: productId ?? this.productId,
     quantity: quantity ?? this.quantity,
     reorderLevel: reorderLevel ?? this.reorderLevel,
@@ -1921,6 +2062,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       productId: data.productId.present ? data.productId.value : this.productId,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       reorderLevel: data.reorderLevel.present
@@ -1938,6 +2080,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
           ..write('reorderLevel: $reorderLevel')
@@ -1953,6 +2096,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     productId,
     quantity,
     reorderLevel,
@@ -1967,6 +2111,7 @@ class StockLevel extends DataClass implements Insertable<StockLevel> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.productId == this.productId &&
           other.quantity == this.quantity &&
           other.reorderLevel == this.reorderLevel);
@@ -1979,6 +2124,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> productId;
   final Value<int> quantity;
   final Value<int> reorderLevel;
@@ -1990,6 +2136,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.productId = const Value.absent(),
     this.quantity = const Value.absent(),
     this.reorderLevel = const Value.absent(),
@@ -2002,6 +2149,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String productId,
     this.quantity = const Value.absent(),
     this.reorderLevel = const Value.absent(),
@@ -2016,6 +2164,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? productId,
     Expression<int>? quantity,
     Expression<int>? reorderLevel,
@@ -2028,6 +2177,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (productId != null) 'product_id': productId,
       if (quantity != null) 'quantity': quantity,
       if (reorderLevel != null) 'reorder_level': reorderLevel,
@@ -2042,6 +2192,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? productId,
     Value<int>? quantity,
     Value<int>? reorderLevel,
@@ -2054,6 +2205,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       productId: productId ?? this.productId,
       quantity: quantity ?? this.quantity,
       reorderLevel: reorderLevel ?? this.reorderLevel,
@@ -2082,6 +2234,9 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (productId.present) {
       map['product_id'] = Variable<String>(productId.value);
     }
@@ -2106,6 +2261,7 @@ class StockLevelsCompanion extends UpdateCompanion<StockLevel> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
           ..write('reorderLevel: $reorderLevel, ')
@@ -2504,6 +2660,15 @@ class $StockMovementsTable extends StockMovements
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _productIdMeta = const VerificationMeta(
     'productId',
   );
@@ -2573,6 +2738,7 @@ class $StockMovementsTable extends StockMovements
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     productId,
     type,
     qtyDelta,
@@ -2627,6 +2793,12 @@ class $StockMovementsTable extends StockMovements
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('product_id')) {
@@ -2704,6 +2876,10 @@ class $StockMovementsTable extends StockMovements
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       productId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}product_id'],
@@ -2744,6 +2920,14 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String productId;
 
   /// purchase | sale | adjustment | return
@@ -2759,6 +2943,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.productId,
     required this.type,
     required this.qtyDelta,
@@ -2775,6 +2960,9 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['product_id'] = Variable<String>(productId);
     map['type'] = Variable<String>(type);
     map['qty_delta'] = Variable<int>(qtyDelta);
@@ -2796,6 +2984,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       productId: Value(productId),
       type: Value(type),
       qtyDelta: Value(qtyDelta),
@@ -2819,6 +3008,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       productId: serializer.fromJson<String>(json['productId']),
       type: serializer.fromJson<String>(json['type']),
       qtyDelta: serializer.fromJson<int>(json['qtyDelta']),
@@ -2837,6 +3027,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'productId': serializer.toJson<String>(productId),
       'type': serializer.toJson<String>(type),
       'qtyDelta': serializer.toJson<int>(qtyDelta),
@@ -2853,6 +3044,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? productId,
     String? type,
     int? qtyDelta,
@@ -2866,6 +3058,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     productId: productId ?? this.productId,
     type: type ?? this.type,
     qtyDelta: qtyDelta ?? this.qtyDelta,
@@ -2881,6 +3074,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       productId: data.productId.present ? data.productId.value : this.productId,
       type: data.type.present ? data.type.value : this.type,
       qtyDelta: data.qtyDelta.present ? data.qtyDelta.value : this.qtyDelta,
@@ -2899,6 +3093,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('productId: $productId, ')
           ..write('type: $type, ')
           ..write('qtyDelta: $qtyDelta, ')
@@ -2917,6 +3112,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     productId,
     type,
     qtyDelta,
@@ -2934,6 +3130,7 @@ class StockMovement extends DataClass implements Insertable<StockMovement> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.productId == this.productId &&
           other.type == this.type &&
           other.qtyDelta == this.qtyDelta &&
@@ -2949,6 +3146,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> productId;
   final Value<String> type;
   final Value<int> qtyDelta;
@@ -2963,6 +3161,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.productId = const Value.absent(),
     this.type = const Value.absent(),
     this.qtyDelta = const Value.absent(),
@@ -2978,6 +3177,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String productId,
     required String type,
     required int qtyDelta,
@@ -2997,6 +3197,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? productId,
     Expression<String>? type,
     Expression<int>? qtyDelta,
@@ -3012,6 +3213,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (productId != null) 'product_id': productId,
       if (type != null) 'type': type,
       if (qtyDelta != null) 'qty_delta': qtyDelta,
@@ -3029,6 +3231,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? productId,
     Value<String>? type,
     Value<int>? qtyDelta,
@@ -3044,6 +3247,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       productId: productId ?? this.productId,
       type: type ?? this.type,
       qtyDelta: qtyDelta ?? this.qtyDelta,
@@ -3074,6 +3278,9 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (productId.present) {
       map['product_id'] = Variable<String>(productId.value);
@@ -3108,6 +3315,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovement> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('productId: $productId, ')
           ..write('type: $type, ')
           ..write('qtyDelta: $qtyDelta, ')
@@ -3194,6 +3402,15 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
       'CHECK ("dirty" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _invoiceNoMeta = const VerificationMeta(
     'invoiceNo',
@@ -3380,6 +3597,7 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     invoiceNo,
     staffId,
     subtotal,
@@ -3444,6 +3662,12 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('invoice_no')) {
@@ -3595,6 +3819,10 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       invoiceNo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}invoice_no'],
@@ -3675,6 +3903,14 @@ class Sale extends DataClass implements Insertable<Sale> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String invoiceNo;
   final String? staffId;
   final int subtotal;
@@ -3722,6 +3958,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.invoiceNo,
     this.staffId,
     required this.subtotal,
@@ -3748,6 +3985,9 @@ class Sale extends DataClass implements Insertable<Sale> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['invoice_no'] = Variable<String>(invoiceNo);
     if (!nullToAbsent || staffId != null) {
       map['staff_id'] = Variable<String>(staffId);
@@ -3791,6 +4031,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       invoiceNo: Value(invoiceNo),
       staffId: staffId == null && nullToAbsent
           ? const Value.absent()
@@ -3836,6 +4077,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       invoiceNo: serializer.fromJson<String>(json['invoiceNo']),
       staffId: serializer.fromJson<String?>(json['staffId']),
       subtotal: serializer.fromJson<int>(json['subtotal']),
@@ -3864,6 +4106,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'invoiceNo': serializer.toJson<String>(invoiceNo),
       'staffId': serializer.toJson<String?>(staffId),
       'subtotal': serializer.toJson<int>(subtotal),
@@ -3890,6 +4133,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? invoiceNo,
     Value<String?> staffId = const Value.absent(),
     int? subtotal,
@@ -3913,6 +4157,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     invoiceNo: invoiceNo ?? this.invoiceNo,
     staffId: staffId.present ? staffId.value : this.staffId,
     subtotal: subtotal ?? this.subtotal,
@@ -3944,6 +4189,7 @@ class Sale extends DataClass implements Insertable<Sale> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       invoiceNo: data.invoiceNo.present ? data.invoiceNo.value : this.invoiceNo,
       staffId: data.staffId.present ? data.staffId.value : this.staffId,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
@@ -3986,6 +4232,7 @@ class Sale extends DataClass implements Insertable<Sale> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('invoiceNo: $invoiceNo, ')
           ..write('staffId: $staffId, ')
           ..write('subtotal: $subtotal, ')
@@ -4014,6 +4261,7 @@ class Sale extends DataClass implements Insertable<Sale> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     invoiceNo,
     staffId,
     subtotal,
@@ -4041,6 +4289,7 @@ class Sale extends DataClass implements Insertable<Sale> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.invoiceNo == this.invoiceNo &&
           other.staffId == this.staffId &&
           other.subtotal == this.subtotal &&
@@ -4066,6 +4315,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> invoiceNo;
   final Value<String?> staffId;
   final Value<int> subtotal;
@@ -4090,6 +4340,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.invoiceNo = const Value.absent(),
     this.staffId = const Value.absent(),
     this.subtotal = const Value.absent(),
@@ -4115,6 +4366,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String invoiceNo,
     this.staffId = const Value.absent(),
     this.subtotal = const Value.absent(),
@@ -4142,6 +4394,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? invoiceNo,
     Expression<String>? staffId,
     Expression<int>? subtotal,
@@ -4167,6 +4420,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       if (staffId != null) 'staff_id': staffId,
       if (subtotal != null) 'subtotal': subtotal,
@@ -4194,6 +4448,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? invoiceNo,
     Value<String?>? staffId,
     Value<int>? subtotal,
@@ -4219,6 +4474,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       invoiceNo: invoiceNo ?? this.invoiceNo,
       staffId: staffId ?? this.staffId,
       subtotal: subtotal ?? this.subtotal,
@@ -4259,6 +4515,9 @@ class SalesCompanion extends UpdateCompanion<Sale> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (invoiceNo.present) {
       map['invoice_no'] = Variable<String>(invoiceNo.value);
@@ -4323,6 +4582,7 @@ class SalesCompanion extends UpdateCompanion<Sale> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('invoiceNo: $invoiceNo, ')
           ..write('staffId: $staffId, ')
           ..write('subtotal: $subtotal, ')
@@ -4421,6 +4681,15 @@ class $SaleItemsTable extends SaleItems
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
   @override
   late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
@@ -4502,6 +4771,7 @@ class $SaleItemsTable extends SaleItems
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     saleId,
     productId,
     nameSnapshot,
@@ -4557,6 +4827,12 @@ class $SaleItemsTable extends SaleItems
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('sale_id')) {
@@ -4655,6 +4931,10 @@ class $SaleItemsTable extends SaleItems
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       saleId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sale_id'],
@@ -4699,6 +4979,14 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String saleId;
   final String productId;
 
@@ -4723,6 +5011,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.saleId,
     required this.productId,
     required this.nameSnapshot,
@@ -4740,6 +5029,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['sale_id'] = Variable<String>(saleId);
     map['product_id'] = Variable<String>(productId);
     map['name_snapshot'] = Variable<String>(nameSnapshot);
@@ -4760,6 +5052,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       saleId: Value(saleId),
       productId: Value(productId),
       nameSnapshot: Value(nameSnapshot),
@@ -4784,6 +5077,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       saleId: serializer.fromJson<String>(json['saleId']),
       productId: serializer.fromJson<String>(json['productId']),
       nameSnapshot: serializer.fromJson<String>(json['nameSnapshot']),
@@ -4803,6 +5097,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'saleId': serializer.toJson<String>(saleId),
       'productId': serializer.toJson<String>(productId),
       'nameSnapshot': serializer.toJson<String>(nameSnapshot),
@@ -4820,6 +5115,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? saleId,
     String? productId,
     String? nameSnapshot,
@@ -4834,6 +5130,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     saleId: saleId ?? this.saleId,
     productId: productId ?? this.productId,
     nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -4850,6 +5147,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       saleId: data.saleId.present ? data.saleId.value : this.saleId,
       productId: data.productId.present ? data.productId.value : this.productId,
       nameSnapshot: data.nameSnapshot.present
@@ -4875,6 +5173,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('saleId: $saleId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -4894,6 +5193,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     saleId,
     productId,
     nameSnapshot,
@@ -4912,6 +5212,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.saleId == this.saleId &&
           other.productId == this.productId &&
           other.nameSnapshot == this.nameSnapshot &&
@@ -4928,6 +5229,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> saleId;
   final Value<String> productId;
   final Value<String> nameSnapshot;
@@ -4943,6 +5245,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.saleId = const Value.absent(),
     this.productId = const Value.absent(),
     this.nameSnapshot = const Value.absent(),
@@ -4959,6 +5262,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String saleId,
     required String productId,
     required String nameSnapshot,
@@ -4982,6 +5286,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? saleId,
     Expression<String>? productId,
     Expression<String>? nameSnapshot,
@@ -4998,6 +5303,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (saleId != null) 'sale_id': saleId,
       if (productId != null) 'product_id': productId,
       if (nameSnapshot != null) 'name_snapshot': nameSnapshot,
@@ -5016,6 +5322,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? saleId,
     Value<String>? productId,
     Value<String>? nameSnapshot,
@@ -5032,6 +5339,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       saleId: saleId ?? this.saleId,
       productId: productId ?? this.productId,
       nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -5063,6 +5371,9 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (saleId.present) {
       map['sale_id'] = Variable<String>(saleId.value);
@@ -5100,6 +5411,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('saleId: $saleId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -5188,6 +5500,15 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
   @override
   late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
@@ -5232,6 +5553,7 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     saleId,
     method,
     amount,
@@ -5284,6 +5606,12 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('sale_id')) {
@@ -5349,6 +5677,10 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       saleId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sale_id'],
@@ -5381,6 +5713,14 @@ class Payment extends DataClass implements Insertable<Payment> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String saleId;
 
   /// cash | kbzpay | wavepay | ayapay | cbpay
@@ -5394,6 +5734,7 @@ class Payment extends DataClass implements Insertable<Payment> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.saleId,
     required this.method,
     required this.amount,
@@ -5408,6 +5749,9 @@ class Payment extends DataClass implements Insertable<Payment> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['sale_id'] = Variable<String>(saleId);
     map['method'] = Variable<String>(method);
     map['amount'] = Variable<int>(amount);
@@ -5425,6 +5769,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       saleId: Value(saleId),
       method: Value(method),
       amount: Value(amount),
@@ -5446,6 +5791,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       saleId: serializer.fromJson<String>(json['saleId']),
       method: serializer.fromJson<String>(json['method']),
       amount: serializer.fromJson<int>(json['amount']),
@@ -5462,6 +5808,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'saleId': serializer.toJson<String>(saleId),
       'method': serializer.toJson<String>(method),
       'amount': serializer.toJson<int>(amount),
@@ -5476,6 +5823,7 @@ class Payment extends DataClass implements Insertable<Payment> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? saleId,
     String? method,
     int? amount,
@@ -5487,6 +5835,7 @@ class Payment extends DataClass implements Insertable<Payment> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     saleId: saleId ?? this.saleId,
     method: method ?? this.method,
     amount: amount ?? this.amount,
@@ -5500,6 +5849,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       saleId: data.saleId.present ? data.saleId.value : this.saleId,
       method: data.method.present ? data.method.value : this.method,
       amount: data.amount.present ? data.amount.value : this.amount,
@@ -5516,6 +5866,7 @@ class Payment extends DataClass implements Insertable<Payment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -5532,6 +5883,7 @@ class Payment extends DataClass implements Insertable<Payment> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     saleId,
     method,
     amount,
@@ -5547,6 +5899,7 @@ class Payment extends DataClass implements Insertable<Payment> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.saleId == this.saleId &&
           other.method == this.method &&
           other.amount == this.amount &&
@@ -5560,6 +5913,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> saleId;
   final Value<String> method;
   final Value<int> amount;
@@ -5572,6 +5926,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.saleId = const Value.absent(),
     this.method = const Value.absent(),
     this.amount = const Value.absent(),
@@ -5585,6 +5940,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String saleId,
     required String method,
     required int amount,
@@ -5602,6 +5958,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? saleId,
     Expression<String>? method,
     Expression<int>? amount,
@@ -5615,6 +5972,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (saleId != null) 'sale_id': saleId,
       if (method != null) 'method': method,
       if (amount != null) 'amount': amount,
@@ -5630,6 +5988,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? saleId,
     Value<String>? method,
     Value<int>? amount,
@@ -5643,6 +6002,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       saleId: saleId ?? this.saleId,
       method: method ?? this.method,
       amount: amount ?? this.amount,
@@ -5672,6 +6032,9 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (saleId.present) {
       map['sale_id'] = Variable<String>(saleId.value);
     }
@@ -5699,6 +6062,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -5785,6 +6149,15 @@ class $LicensePaymentsTable extends LicensePayments
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _licenseKeyMeta = const VerificationMeta(
     'licenseKey',
   );
@@ -5866,6 +6239,7 @@ class $LicensePaymentsTable extends LicensePayments
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     licenseKey,
     method,
     amount,
@@ -5921,6 +6295,12 @@ class $LicensePaymentsTable extends LicensePayments
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('license_key')) {
@@ -6004,6 +6384,10 @@ class $LicensePaymentsTable extends LicensePayments
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       licenseKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}license_key'],
@@ -6048,6 +6432,14 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String licenseKey;
 
   /// cash | kbzpay | wavepay | ayapay | cbpay
@@ -6067,6 +6459,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.licenseKey,
     required this.method,
     required this.amount,
@@ -6084,6 +6477,9 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['license_key'] = Variable<String>(licenseKey);
     map['method'] = Variable<String>(method);
     map['amount'] = Variable<int>(amount);
@@ -6108,6 +6504,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       licenseKey: Value(licenseKey),
       method: Value(method),
       amount: Value(amount),
@@ -6134,6 +6531,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       licenseKey: serializer.fromJson<String>(json['licenseKey']),
       method: serializer.fromJson<String>(json['method']),
       amount: serializer.fromJson<int>(json['amount']),
@@ -6153,6 +6551,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'licenseKey': serializer.toJson<String>(licenseKey),
       'method': serializer.toJson<String>(method),
       'amount': serializer.toJson<int>(amount),
@@ -6170,6 +6569,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? licenseKey,
     String? method,
     int? amount,
@@ -6184,6 +6584,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     licenseKey: licenseKey ?? this.licenseKey,
     method: method ?? this.method,
     amount: amount ?? this.amount,
@@ -6200,6 +6601,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       licenseKey: data.licenseKey.present
           ? data.licenseKey.value
           : this.licenseKey,
@@ -6223,6 +6625,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('licenseKey: $licenseKey, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -6242,6 +6645,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     licenseKey,
     method,
     amount,
@@ -6260,6 +6664,7 @@ class LicensePayment extends DataClass implements Insertable<LicensePayment> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.licenseKey == this.licenseKey &&
           other.method == this.method &&
           other.amount == this.amount &&
@@ -6276,6 +6681,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> licenseKey;
   final Value<String> method;
   final Value<int> amount;
@@ -6291,6 +6697,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.licenseKey = const Value.absent(),
     this.method = const Value.absent(),
     this.amount = const Value.absent(),
@@ -6307,6 +6714,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String licenseKey,
     required String method,
     required int amount,
@@ -6327,6 +6735,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? licenseKey,
     Expression<String>? method,
     Expression<int>? amount,
@@ -6343,6 +6752,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (licenseKey != null) 'license_key': licenseKey,
       if (method != null) 'method': method,
       if (amount != null) 'amount': amount,
@@ -6361,6 +6771,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? licenseKey,
     Value<String>? method,
     Value<int>? amount,
@@ -6377,6 +6788,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       licenseKey: licenseKey ?? this.licenseKey,
       method: method ?? this.method,
       amount: amount ?? this.amount,
@@ -6408,6 +6820,9 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (licenseKey.present) {
       map['license_key'] = Variable<String>(licenseKey.value);
@@ -6445,6 +6860,7 @@ class LicensePaymentsCompanion extends UpdateCompanion<LicensePayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('licenseKey: $licenseKey, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -6534,6 +6950,15 @@ class $CreditPaymentsTable extends CreditPayments
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _customerNameMeta = const VerificationMeta(
     'customerName',
   );
@@ -6592,6 +7017,7 @@ class $CreditPaymentsTable extends CreditPayments
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     customerName,
     method,
     amount,
@@ -6645,6 +7071,12 @@ class $CreditPaymentsTable extends CreditPayments
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('customer_name')) {
@@ -6717,6 +7149,10 @@ class $CreditPaymentsTable extends CreditPayments
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       customerName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}customer_name'],
@@ -6753,6 +7189,14 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String customerName;
 
   /// cash | kbzpay | wavepay | ayapay | cbpay
@@ -6770,6 +7214,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.customerName,
     required this.method,
     required this.amount,
@@ -6785,6 +7230,9 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['customer_name'] = Variable<String>(customerName);
     map['method'] = Variable<String>(method);
     map['amount'] = Variable<int>(amount);
@@ -6805,6 +7253,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       customerName: Value(customerName),
       method: Value(method),
       amount: Value(amount),
@@ -6827,6 +7276,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       customerName: serializer.fromJson<String>(json['customerName']),
       method: serializer.fromJson<String>(json['method']),
       amount: serializer.fromJson<int>(json['amount']),
@@ -6844,6 +7294,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'customerName': serializer.toJson<String>(customerName),
       'method': serializer.toJson<String>(method),
       'amount': serializer.toJson<int>(amount),
@@ -6859,6 +7310,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? customerName,
     String? method,
     int? amount,
@@ -6871,6 +7323,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     customerName: customerName ?? this.customerName,
     method: method ?? this.method,
     amount: amount ?? this.amount,
@@ -6885,6 +7338,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       customerName: data.customerName.present
           ? data.customerName.value
           : this.customerName,
@@ -6906,6 +7360,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('customerName: $customerName, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -6923,6 +7378,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     customerName,
     method,
     amount,
@@ -6939,6 +7395,7 @@ class CreditPayment extends DataClass implements Insertable<CreditPayment> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.customerName == this.customerName &&
           other.method == this.method &&
           other.amount == this.amount &&
@@ -6953,6 +7410,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> customerName;
   final Value<String> method;
   final Value<int> amount;
@@ -6966,6 +7424,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.customerName = const Value.absent(),
     this.method = const Value.absent(),
     this.amount = const Value.absent(),
@@ -6980,6 +7439,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String customerName,
     this.method = const Value.absent(),
     required int amount,
@@ -6997,6 +7457,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? customerName,
     Expression<String>? method,
     Expression<int>? amount,
@@ -7011,6 +7472,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (customerName != null) 'customer_name': customerName,
       if (method != null) 'method': method,
       if (amount != null) 'amount': amount,
@@ -7027,6 +7489,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? customerName,
     Value<String>? method,
     Value<int>? amount,
@@ -7041,6 +7504,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       customerName: customerName ?? this.customerName,
       method: method ?? this.method,
       amount: amount ?? this.amount,
@@ -7070,6 +7534,9 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (customerName.present) {
       map['customer_name'] = Variable<String>(customerName.value);
@@ -7101,6 +7568,7 @@ class CreditPaymentsCompanion extends UpdateCompanion<CreditPayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('customerName: $customerName, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -7186,6 +7654,15 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
       'CHECK ("dirty" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _orderNoMeta = const VerificationMeta(
     'orderNo',
@@ -7392,6 +7869,7 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     orderNo,
     channel,
     status,
@@ -7458,6 +7936,12 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('order_no')) {
@@ -7635,6 +8119,10 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       orderNo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}order_no'],
@@ -7724,6 +8212,14 @@ class Order extends DataClass implements Insertable<Order> {
   final bool isDeleted;
   final bool dirty;
 
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
+
   /// Per-shop, per-day sequential: `ORD-yyyyMMdd-NNN`.
   final String orderNo;
 
@@ -7785,6 +8281,7 @@ class Order extends DataClass implements Insertable<Order> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.orderNo,
     required this.channel,
     required this.status,
@@ -7813,6 +8310,9 @@ class Order extends DataClass implements Insertable<Order> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['order_no'] = Variable<String>(orderNo);
     map['channel'] = Variable<String>(channel);
     map['status'] = Variable<String>(status);
@@ -7864,6 +8364,7 @@ class Order extends DataClass implements Insertable<Order> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       orderNo: Value(orderNo),
       channel: Value(channel),
       status: Value(status),
@@ -7917,6 +8418,7 @@ class Order extends DataClass implements Insertable<Order> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       orderNo: serializer.fromJson<String>(json['orderNo']),
       channel: serializer.fromJson<String>(json['channel']),
       status: serializer.fromJson<String>(json['status']),
@@ -7947,6 +8449,7 @@ class Order extends DataClass implements Insertable<Order> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'orderNo': serializer.toJson<String>(orderNo),
       'channel': serializer.toJson<String>(channel),
       'status': serializer.toJson<String>(status),
@@ -7975,6 +8478,7 @@ class Order extends DataClass implements Insertable<Order> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? orderNo,
     String? channel,
     String? status,
@@ -8000,6 +8504,7 @@ class Order extends DataClass implements Insertable<Order> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     orderNo: orderNo ?? this.orderNo,
     channel: channel ?? this.channel,
     status: status ?? this.status,
@@ -8041,6 +8546,7 @@ class Order extends DataClass implements Insertable<Order> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       orderNo: data.orderNo.present ? data.orderNo.value : this.orderNo,
       channel: data.channel.present ? data.channel.value : this.channel,
       status: data.status.present ? data.status.value : this.status,
@@ -8095,6 +8601,7 @@ class Order extends DataClass implements Insertable<Order> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('orderNo: $orderNo, ')
           ..write('channel: $channel, ')
           ..write('status: $status, ')
@@ -8125,6 +8632,7 @@ class Order extends DataClass implements Insertable<Order> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     orderNo,
     channel,
     status,
@@ -8154,6 +8662,7 @@ class Order extends DataClass implements Insertable<Order> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.orderNo == this.orderNo &&
           other.channel == this.channel &&
           other.status == this.status &&
@@ -8181,6 +8690,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> orderNo;
   final Value<String> channel;
   final Value<String> status;
@@ -8207,6 +8717,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.orderNo = const Value.absent(),
     this.channel = const Value.absent(),
     this.status = const Value.absent(),
@@ -8234,6 +8745,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String orderNo,
     this.channel = const Value.absent(),
     this.status = const Value.absent(),
@@ -8264,6 +8776,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? orderNo,
     Expression<String>? channel,
     Expression<String>? status,
@@ -8291,6 +8804,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (orderNo != null) 'order_no': orderNo,
       if (channel != null) 'channel': channel,
       if (status != null) 'status': status,
@@ -8320,6 +8834,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? orderNo,
     Value<String>? channel,
     Value<String>? status,
@@ -8347,6 +8862,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       orderNo: orderNo ?? this.orderNo,
       channel: channel ?? this.channel,
       status: status ?? this.status,
@@ -8389,6 +8905,9 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (orderNo.present) {
       map['order_no'] = Variable<String>(orderNo.value);
@@ -8459,6 +8978,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('orderNo: $orderNo, ')
           ..write('channel: $channel, ')
           ..write('status: $status, ')
@@ -8559,6 +9079,15 @@ class $OrderItemsTable extends OrderItems
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _orderIdMeta = const VerificationMeta(
     'orderId',
   );
@@ -8646,6 +9175,7 @@ class $OrderItemsTable extends OrderItems
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     orderId,
     productId,
     nameSnapshot,
@@ -8701,6 +9231,12 @@ class $OrderItemsTable extends OrderItems
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('order_id')) {
@@ -8797,6 +9333,10 @@ class $OrderItemsTable extends OrderItems
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       orderId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}order_id'],
@@ -8841,6 +9381,14 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String orderId;
 
   /// Nullable: a social order line may be a free-text item not in the catalog.
@@ -8864,6 +9412,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.orderId,
     this.productId,
     required this.nameSnapshot,
@@ -8881,6 +9430,9 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['order_id'] = Variable<String>(orderId);
     if (!nullToAbsent || productId != null) {
       map['product_id'] = Variable<String>(productId);
@@ -8901,6 +9453,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       orderId: Value(orderId),
       productId: productId == null && nullToAbsent
           ? const Value.absent()
@@ -8925,6 +9478,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       orderId: serializer.fromJson<String>(json['orderId']),
       productId: serializer.fromJson<String?>(json['productId']),
       nameSnapshot: serializer.fromJson<String>(json['nameSnapshot']),
@@ -8944,6 +9498,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'orderId': serializer.toJson<String>(orderId),
       'productId': serializer.toJson<String?>(productId),
       'nameSnapshot': serializer.toJson<String>(nameSnapshot),
@@ -8961,6 +9516,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? orderId,
     Value<String?> productId = const Value.absent(),
     String? nameSnapshot,
@@ -8975,6 +9531,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     orderId: orderId ?? this.orderId,
     productId: productId.present ? productId.value : this.productId,
     nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -8991,6 +9548,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       orderId: data.orderId.present ? data.orderId.value : this.orderId,
       productId: data.productId.present ? data.productId.value : this.productId,
       nameSnapshot: data.nameSnapshot.present
@@ -9016,6 +9574,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('orderId: $orderId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -9035,6 +9594,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     orderId,
     productId,
     nameSnapshot,
@@ -9053,6 +9613,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.orderId == this.orderId &&
           other.productId == this.productId &&
           other.nameSnapshot == this.nameSnapshot &&
@@ -9069,6 +9630,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> orderId;
   final Value<String?> productId;
   final Value<String> nameSnapshot;
@@ -9084,6 +9646,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.orderId = const Value.absent(),
     this.productId = const Value.absent(),
     this.nameSnapshot = const Value.absent(),
@@ -9100,6 +9663,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String orderId,
     this.productId = const Value.absent(),
     required String nameSnapshot,
@@ -9122,6 +9686,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? orderId,
     Expression<String>? productId,
     Expression<String>? nameSnapshot,
@@ -9138,6 +9703,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (orderId != null) 'order_id': orderId,
       if (productId != null) 'product_id': productId,
       if (nameSnapshot != null) 'name_snapshot': nameSnapshot,
@@ -9156,6 +9722,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? orderId,
     Value<String?>? productId,
     Value<String>? nameSnapshot,
@@ -9172,6 +9739,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       orderId: orderId ?? this.orderId,
       productId: productId ?? this.productId,
       nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -9203,6 +9771,9 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (orderId.present) {
       map['order_id'] = Variable<String>(orderId.value);
@@ -9240,6 +9811,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('orderId: $orderId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -9329,6 +9901,15 @@ class $StaffMembersTable extends StaffMembers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -9368,6 +9949,7 @@ class $StaffMembersTable extends StaffMembers
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     pin,
     active,
@@ -9419,6 +10001,12 @@ class $StaffMembersTable extends StaffMembers
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -9476,6 +10064,10 @@ class $StaffMembersTable extends StaffMembers
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -9504,6 +10096,14 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final String pin;
   final bool active;
@@ -9514,6 +10114,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     required this.pin,
     required this.active,
@@ -9527,6 +10128,9 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     map['pin'] = Variable<String>(pin);
     map['active'] = Variable<bool>(active);
@@ -9541,6 +10145,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       pin: Value(pin),
       active: Value(active),
@@ -9559,6 +10164,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       pin: serializer.fromJson<String>(json['pin']),
       active: serializer.fromJson<bool>(json['active']),
@@ -9574,6 +10180,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'pin': serializer.toJson<String>(pin),
       'active': serializer.toJson<bool>(active),
@@ -9587,6 +10194,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     String? pin,
     bool? active,
@@ -9597,6 +10205,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     pin: pin ?? this.pin,
     active: active ?? this.active,
@@ -9609,6 +10218,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       pin: data.pin.present ? data.pin.value : this.pin,
       active: data.active.present ? data.active.value : this.active,
@@ -9624,6 +10234,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('pin: $pin, ')
           ..write('active: $active')
@@ -9639,6 +10250,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     pin,
     active,
@@ -9653,6 +10265,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.pin == this.pin &&
           other.active == this.active);
@@ -9665,6 +10278,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<String> pin;
   final Value<bool> active;
@@ -9676,6 +10290,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.pin = const Value.absent(),
     this.active = const Value.absent(),
@@ -9688,6 +10303,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     required String pin,
     this.active = const Value.absent(),
@@ -9703,6 +10319,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<String>? pin,
     Expression<bool>? active,
@@ -9715,6 +10332,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (pin != null) 'pin': pin,
       if (active != null) 'active': active,
@@ -9729,6 +10347,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<String>? pin,
     Value<bool>? active,
@@ -9741,6 +10360,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       pin: pin ?? this.pin,
       active: active ?? this.active,
@@ -9769,6 +10389,9 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -9793,6 +10416,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('pin: $pin, ')
           ..write('active: $active, ')
@@ -9878,6 +10502,15 @@ class $CustomersTable extends Customers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -9936,6 +10569,7 @@ class $CustomersTable extends Customers
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -9989,6 +10623,12 @@ class $CustomersTable extends Customers
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -10056,6 +10696,10 @@ class $CustomersTable extends Customers
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -10092,6 +10736,14 @@ class Customer extends DataClass implements Insertable<Customer> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final String? phone;
   final String? address;
@@ -10107,6 +10759,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     this.phone,
     this.address,
@@ -10122,6 +10775,9 @@ class Customer extends DataClass implements Insertable<Customer> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
@@ -10144,6 +10800,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       phone: phone == null && nullToAbsent
           ? const Value.absent()
@@ -10170,6 +10827,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       address: serializer.fromJson<String?>(json['address']),
@@ -10187,6 +10845,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'address': serializer.toJson<String?>(address),
@@ -10202,6 +10861,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     Value<String?> phone = const Value.absent(),
     Value<String?> address = const Value.absent(),
@@ -10214,6 +10874,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     phone: phone.present ? phone.value : this.phone,
     address: address.present ? address.value : this.address,
@@ -10228,6 +10889,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
@@ -10245,6 +10907,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
@@ -10262,6 +10925,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -10278,6 +10942,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.phone == this.phone &&
           other.address == this.address &&
@@ -10292,6 +10957,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> address;
@@ -10305,6 +10971,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -10319,6 +10986,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -10335,6 +11003,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? address,
@@ -10349,6 +11018,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
@@ -10365,6 +11035,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<String?>? phone,
     Value<String?>? address,
@@ -10379,6 +11050,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
@@ -10408,6 +11080,9 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -10439,6 +11114,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
@@ -10525,6 +11201,15 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _categoryMeta = const VerificationMeta(
     'category',
   );
@@ -10593,6 +11278,7 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     category,
     amount,
     date,
@@ -10647,6 +11333,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('category')) {
@@ -10727,6 +11419,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       category: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}category'],
@@ -10768,6 +11464,14 @@ class Expense extends DataClass implements Insertable<Expense> {
   final bool isDeleted;
   final bool dirty;
 
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
+
   /// rent | utilities | wages | transport | packaging | other
   final String category;
   final int amount;
@@ -10786,6 +11490,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.category,
     required this.amount,
     required this.date,
@@ -10802,6 +11507,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['category'] = Variable<String>(category);
     map['amount'] = Variable<int>(amount);
     map['date'] = Variable<DateTime>(date);
@@ -10825,6 +11533,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       category: Value(category),
       amount: Value(amount),
       date: Value(date),
@@ -10850,6 +11559,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       category: serializer.fromJson<String>(json['category']),
       amount: serializer.fromJson<int>(json['amount']),
       date: serializer.fromJson<DateTime>(json['date']),
@@ -10868,6 +11578,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'category': serializer.toJson<String>(category),
       'amount': serializer.toJson<int>(amount),
       'date': serializer.toJson<DateTime>(date),
@@ -10884,6 +11595,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? category,
     int? amount,
     DateTime? date,
@@ -10897,6 +11609,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     category: category ?? this.category,
     amount: amount ?? this.amount,
     date: date ?? this.date,
@@ -10914,6 +11627,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       category: data.category.present ? data.category.value : this.category,
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
@@ -10934,6 +11648,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
@@ -10952,6 +11667,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     category,
     amount,
     date,
@@ -10969,6 +11685,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.category == this.category &&
           other.amount == this.amount &&
           other.date == this.date &&
@@ -10984,6 +11701,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> category;
   final Value<int> amount;
   final Value<DateTime> date;
@@ -10998,6 +11716,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.category = const Value.absent(),
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
@@ -11013,6 +11732,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String category,
     required int amount,
     required DateTime date,
@@ -11032,6 +11752,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? category,
     Expression<int>? amount,
     Expression<DateTime>? date,
@@ -11047,6 +11768,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (category != null) 'category': category,
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
@@ -11064,6 +11786,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? category,
     Value<int>? amount,
     Value<DateTime>? date,
@@ -11079,6 +11802,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       category: category ?? this.category,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -11109,6 +11833,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (category.present) {
       map['category'] = Variable<String>(category.value);
@@ -11143,6 +11870,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
@@ -11231,6 +11959,15 @@ class $CashSessionsTable extends CashSessions
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _openedAtMeta = const VerificationMeta(
     'openedAt',
   );
@@ -11303,6 +12040,7 @@ class $CashSessionsTable extends CashSessions
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     openedAt,
     openingAmount,
     closedAt,
@@ -11357,6 +12095,12 @@ class $CashSessionsTable extends CashSessions
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('opened_at')) {
@@ -11438,6 +12182,10 @@ class $CashSessionsTable extends CashSessions
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       openedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}opened_at'],
@@ -11478,6 +12226,14 @@ class CashSession extends DataClass implements Insertable<CashSession> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final DateTime openedAt;
   final int openingAmount;
   final DateTime? closedAt;
@@ -11495,6 +12251,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.openedAt,
     required this.openingAmount,
     this.closedAt,
@@ -11511,6 +12268,9 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['opened_at'] = Variable<DateTime>(openedAt);
     map['opening_amount'] = Variable<int>(openingAmount);
     if (!nullToAbsent || closedAt != null) {
@@ -11536,6 +12296,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       openedAt: Value(openedAt),
       openingAmount: Value(openingAmount),
       closedAt: closedAt == null && nullToAbsent
@@ -11563,6 +12324,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       openedAt: serializer.fromJson<DateTime>(json['openedAt']),
       openingAmount: serializer.fromJson<int>(json['openingAmount']),
       closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
@@ -11581,6 +12343,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'openedAt': serializer.toJson<DateTime>(openedAt),
       'openingAmount': serializer.toJson<int>(openingAmount),
       'closedAt': serializer.toJson<DateTime?>(closedAt),
@@ -11597,6 +12360,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     DateTime? openedAt,
     int? openingAmount,
     Value<DateTime?> closedAt = const Value.absent(),
@@ -11610,6 +12374,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     openedAt: openedAt ?? this.openedAt,
     openingAmount: openingAmount ?? this.openingAmount,
     closedAt: closedAt.present ? closedAt.value : this.closedAt,
@@ -11627,6 +12392,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
       openingAmount: data.openingAmount.present
           ? data.openingAmount.value
@@ -11649,6 +12415,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('openedAt: $openedAt, ')
           ..write('openingAmount: $openingAmount, ')
           ..write('closedAt: $closedAt, ')
@@ -11667,6 +12434,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     openedAt,
     openingAmount,
     closedAt,
@@ -11684,6 +12452,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.openedAt == this.openedAt &&
           other.openingAmount == this.openingAmount &&
           other.closedAt == this.closedAt &&
@@ -11699,6 +12468,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<DateTime> openedAt;
   final Value<int> openingAmount;
   final Value<DateTime?> closedAt;
@@ -11713,6 +12483,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.openedAt = const Value.absent(),
     this.openingAmount = const Value.absent(),
     this.closedAt = const Value.absent(),
@@ -11728,6 +12499,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required DateTime openedAt,
     required int openingAmount,
     this.closedAt = const Value.absent(),
@@ -11746,6 +12518,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<DateTime>? openedAt,
     Expression<int>? openingAmount,
     Expression<DateTime>? closedAt,
@@ -11761,6 +12534,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (openedAt != null) 'opened_at': openedAt,
       if (openingAmount != null) 'opening_amount': openingAmount,
       if (closedAt != null) 'closed_at': closedAt,
@@ -11778,6 +12552,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<DateTime>? openedAt,
     Value<int>? openingAmount,
     Value<DateTime?>? closedAt,
@@ -11793,6 +12568,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       openedAt: openedAt ?? this.openedAt,
       openingAmount: openingAmount ?? this.openingAmount,
       closedAt: closedAt ?? this.closedAt,
@@ -11823,6 +12599,9 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (openedAt.present) {
       map['opened_at'] = Variable<DateTime>(openedAt.value);
@@ -11857,6 +12636,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('openedAt: $openedAt, ')
           ..write('openingAmount: $openingAmount, ')
           ..write('closedAt: $closedAt, ')
@@ -11945,6 +12725,15 @@ class $DeviceLabelsTable extends DeviceLabels
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deviceIdMeta = const VerificationMeta(
     'deviceId',
   );
@@ -11973,6 +12762,7 @@ class $DeviceLabelsTable extends DeviceLabels
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     deviceId,
     label,
   ];
@@ -12025,6 +12815,12 @@ class $DeviceLabelsTable extends DeviceLabels
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
       );
     }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    }
     if (data.containsKey('device_id')) {
       context.handle(
         _deviceIdMeta,
@@ -12074,6 +12870,10 @@ class $DeviceLabelsTable extends DeviceLabels
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       deviceId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
@@ -12098,6 +12898,14 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String deviceId;
   final String label;
   const DeviceLabel({
@@ -12107,6 +12915,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.deviceId,
     required this.label,
   });
@@ -12119,6 +12928,9 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['device_id'] = Variable<String>(deviceId);
     map['label'] = Variable<String>(label);
     return map;
@@ -12132,6 +12944,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       deviceId: Value(deviceId),
       label: Value(label),
     );
@@ -12149,6 +12962,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       label: serializer.fromJson<String>(json['label']),
     );
@@ -12163,6 +12977,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'deviceId': serializer.toJson<String>(deviceId),
       'label': serializer.toJson<String>(label),
     };
@@ -12175,6 +12990,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? deviceId,
     String? label,
   }) => DeviceLabel(
@@ -12184,6 +13000,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     deviceId: deviceId ?? this.deviceId,
     label: label ?? this.label,
   );
@@ -12195,6 +13012,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       label: data.label.present ? data.label.value : this.label,
     );
@@ -12209,6 +13027,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('deviceId: $deviceId, ')
           ..write('label: $label')
           ..write(')'))
@@ -12223,6 +13042,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     deviceId,
     label,
   );
@@ -12236,6 +13056,7 @@ class DeviceLabel extends DataClass implements Insertable<DeviceLabel> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.deviceId == this.deviceId &&
           other.label == this.label);
 }
@@ -12247,6 +13068,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> deviceId;
   final Value<String> label;
   final Value<int> rowid;
@@ -12257,6 +13079,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.label = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -12268,6 +13091,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String deviceId,
     required String label,
     this.rowid = const Value.absent(),
@@ -12282,6 +13106,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? deviceId,
     Expression<String>? label,
     Expression<int>? rowid,
@@ -12293,6 +13118,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (deviceId != null) 'device_id': deviceId,
       if (label != null) 'label': label,
       if (rowid != null) 'rowid': rowid,
@@ -12306,6 +13132,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? deviceId,
     Value<String>? label,
     Value<int>? rowid,
@@ -12317,6 +13144,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       deviceId: deviceId ?? this.deviceId,
       label: label ?? this.label,
       rowid: rowid ?? this.rowid,
@@ -12344,6 +13172,9 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
     }
@@ -12365,6 +13196,7 @@ class DeviceLabelsCompanion extends UpdateCompanion<DeviceLabel> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('deviceId: $deviceId, ')
           ..write('label: $label, ')
           ..write('rowid: $rowid')
@@ -12448,6 +13280,15 @@ class $RecurringExpensesTable extends RecurringExpenses
       'CHECK ("dirty" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _categoryMeta = const VerificationMeta(
     'category',
@@ -12537,6 +13378,7 @@ class $RecurringExpensesTable extends RecurringExpenses
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     category,
     amount,
     note,
@@ -12592,6 +13434,12 @@ class $RecurringExpensesTable extends RecurringExpenses
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('category')) {
@@ -12682,6 +13530,10 @@ class $RecurringExpensesTable extends RecurringExpenses
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       category: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}category'],
@@ -12727,6 +13579,14 @@ class RecurringExpense extends DataClass
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String category;
   final int amount;
   final String? note;
@@ -12741,6 +13601,7 @@ class RecurringExpense extends DataClass
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.category,
     required this.amount,
     this.note,
@@ -12758,6 +13619,9 @@ class RecurringExpense extends DataClass
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['category'] = Variable<String>(category);
     map['amount'] = Variable<int>(amount);
     if (!nullToAbsent || note != null) {
@@ -12780,6 +13644,7 @@ class RecurringExpense extends DataClass
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       category: Value(category),
       amount: Value(amount),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
@@ -12804,6 +13669,7 @@ class RecurringExpense extends DataClass
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       category: serializer.fromJson<String>(json['category']),
       amount: serializer.fromJson<int>(json['amount']),
       note: serializer.fromJson<String?>(json['note']),
@@ -12825,6 +13691,7 @@ class RecurringExpense extends DataClass
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'category': serializer.toJson<String>(category),
       'amount': serializer.toJson<int>(amount),
       'note': serializer.toJson<String?>(note),
@@ -12842,6 +13709,7 @@ class RecurringExpense extends DataClass
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? category,
     int? amount,
     Value<String?> note = const Value.absent(),
@@ -12856,6 +13724,7 @@ class RecurringExpense extends DataClass
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     category: category ?? this.category,
     amount: amount ?? this.amount,
     note: note.present ? note.value : this.note,
@@ -12874,6 +13743,7 @@ class RecurringExpense extends DataClass
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       category: data.category.present ? data.category.value : this.category,
       amount: data.amount.present ? data.amount.value : this.amount,
       note: data.note.present ? data.note.value : this.note,
@@ -12899,6 +13769,7 @@ class RecurringExpense extends DataClass
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
@@ -12918,6 +13789,7 @@ class RecurringExpense extends DataClass
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     category,
     amount,
     note,
@@ -12936,6 +13808,7 @@ class RecurringExpense extends DataClass
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.category == this.category &&
           other.amount == this.amount &&
           other.note == this.note &&
@@ -12952,6 +13825,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> category;
   final Value<int> amount;
   final Value<String?> note;
@@ -12967,6 +13841,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.category = const Value.absent(),
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
@@ -12983,6 +13858,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String category,
     required int amount,
     this.note = const Value.absent(),
@@ -13002,6 +13878,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? category,
     Expression<int>? amount,
     Expression<String>? note,
@@ -13018,6 +13895,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (category != null) 'category': category,
       if (amount != null) 'amount': amount,
       if (note != null) 'note': note,
@@ -13037,6 +13915,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? category,
     Value<int>? amount,
     Value<String?>? note,
@@ -13053,6 +13932,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       category: category ?? this.category,
       amount: amount ?? this.amount,
       note: note ?? this.note,
@@ -13084,6 +13964,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (category.present) {
       map['category'] = Variable<String>(category.value);
@@ -13123,6 +14006,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
@@ -13212,6 +14096,15 @@ class $SuppliersTable extends Suppliers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -13258,6 +14151,7 @@ class $SuppliersTable extends Suppliers
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -13310,6 +14204,12 @@ class $SuppliersTable extends Suppliers
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -13371,6 +14271,10 @@ class $SuppliersTable extends Suppliers
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -13403,6 +14307,14 @@ class Supplier extends DataClass implements Insertable<Supplier> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final String? phone;
   final String? address;
@@ -13414,6 +14326,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     this.phone,
     this.address,
@@ -13428,6 +14341,9 @@ class Supplier extends DataClass implements Insertable<Supplier> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
@@ -13449,6 +14365,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       phone: phone == null && nullToAbsent
           ? const Value.absent()
@@ -13472,6 +14389,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       address: serializer.fromJson<String?>(json['address']),
@@ -13488,6 +14406,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'address': serializer.toJson<String?>(address),
@@ -13502,6 +14421,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     Value<String?> phone = const Value.absent(),
     Value<String?> address = const Value.absent(),
@@ -13513,6 +14433,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     phone: phone.present ? phone.value : this.phone,
     address: address.present ? address.value : this.address,
@@ -13526,6 +14447,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
@@ -13542,6 +14464,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
@@ -13558,6 +14481,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -13573,6 +14497,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.phone == this.phone &&
           other.address == this.address &&
@@ -13586,6 +14511,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> address;
@@ -13598,6 +14524,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -13611,6 +14538,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -13626,6 +14554,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? address,
@@ -13639,6 +14568,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
@@ -13654,6 +14584,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<String?>? phone,
     Value<String?>? address,
@@ -13667,6 +14598,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
@@ -13696,6 +14628,9 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -13723,6 +14658,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
@@ -13809,6 +14745,15 @@ class $PurchaseOrdersTable extends PurchaseOrders
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _poNoMeta = const VerificationMeta('poNo');
   @override
   late final GeneratedColumn<String> poNo = GeneratedColumn<String>(
@@ -13890,6 +14835,7 @@ class $PurchaseOrdersTable extends PurchaseOrders
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     poNo,
     supplierId,
     supplierName,
@@ -13945,6 +14891,12 @@ class $PurchaseOrdersTable extends PurchaseOrders
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('po_no')) {
@@ -14029,6 +14981,10 @@ class $PurchaseOrdersTable extends PurchaseOrders
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       poNo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}po_no'],
@@ -14073,6 +15029,14 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String poNo;
   final String? supplierId;
   final String supplierName;
@@ -14087,6 +15051,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.poNo,
     this.supplierId,
     required this.supplierName,
@@ -14104,6 +15069,9 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['po_no'] = Variable<String>(poNo);
     if (!nullToAbsent || supplierId != null) {
       map['supplier_id'] = Variable<String>(supplierId);
@@ -14128,6 +15096,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       poNo: Value(poNo),
       supplierId: supplierId == null && nullToAbsent
           ? const Value.absent()
@@ -14154,6 +15123,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       poNo: serializer.fromJson<String>(json['poNo']),
       supplierId: serializer.fromJson<String?>(json['supplierId']),
       supplierName: serializer.fromJson<String>(json['supplierName']),
@@ -14173,6 +15143,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'poNo': serializer.toJson<String>(poNo),
       'supplierId': serializer.toJson<String?>(supplierId),
       'supplierName': serializer.toJson<String>(supplierName),
@@ -14190,6 +15161,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? poNo,
     Value<String?> supplierId = const Value.absent(),
     String? supplierName,
@@ -14204,6 +15176,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     poNo: poNo ?? this.poNo,
     supplierId: supplierId.present ? supplierId.value : this.supplierId,
     supplierName: supplierName ?? this.supplierName,
@@ -14220,6 +15193,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       poNo: data.poNo.present ? data.poNo.value : this.poNo,
       supplierId: data.supplierId.present
           ? data.supplierId.value
@@ -14247,6 +15221,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('poNo: $poNo, ')
           ..write('supplierId: $supplierId, ')
           ..write('supplierName: $supplierName, ')
@@ -14266,6 +15241,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     poNo,
     supplierId,
     supplierName,
@@ -14284,6 +15260,7 @@ class PurchaseOrder extends DataClass implements Insertable<PurchaseOrder> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.poNo == this.poNo &&
           other.supplierId == this.supplierId &&
           other.supplierName == this.supplierName &&
@@ -14300,6 +15277,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> poNo;
   final Value<String?> supplierId;
   final Value<String> supplierName;
@@ -14315,6 +15293,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.poNo = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.supplierName = const Value.absent(),
@@ -14331,6 +15310,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String poNo,
     this.supplierId = const Value.absent(),
     required String supplierName,
@@ -14350,6 +15330,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? poNo,
     Expression<String>? supplierId,
     Expression<String>? supplierName,
@@ -14366,6 +15347,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (poNo != null) 'po_no': poNo,
       if (supplierId != null) 'supplier_id': supplierId,
       if (supplierName != null) 'supplier_name': supplierName,
@@ -14384,6 +15366,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? poNo,
     Value<String?>? supplierId,
     Value<String>? supplierName,
@@ -14400,6 +15383,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       poNo: poNo ?? this.poNo,
       supplierId: supplierId ?? this.supplierId,
       supplierName: supplierName ?? this.supplierName,
@@ -14431,6 +15415,9 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (poNo.present) {
       map['po_no'] = Variable<String>(poNo.value);
@@ -14468,6 +15455,7 @@ class PurchaseOrdersCompanion extends UpdateCompanion<PurchaseOrder> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('poNo: $poNo, ')
           ..write('supplierId: $supplierId, ')
           ..write('supplierName: $supplierName, ')
@@ -14557,6 +15545,15 @@ class $PurchaseOrderItemsTable extends PurchaseOrderItems
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _poIdMeta = const VerificationMeta('poId');
   @override
   late final GeneratedColumn<String> poId = GeneratedColumn<String>(
@@ -14627,6 +15624,7 @@ class $PurchaseOrderItemsTable extends PurchaseOrderItems
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     poId,
     productId,
     nameSnapshot,
@@ -14681,6 +15679,12 @@ class $PurchaseOrderItemsTable extends PurchaseOrderItems
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('po_id')) {
@@ -14767,6 +15771,10 @@ class $PurchaseOrderItemsTable extends PurchaseOrderItems
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       poId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}po_id'],
@@ -14808,6 +15816,14 @@ class PurchaseOrderItem extends DataClass
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String poId;
   final String productId;
   final String nameSnapshot;
@@ -14821,6 +15837,7 @@ class PurchaseOrderItem extends DataClass
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.poId,
     required this.productId,
     required this.nameSnapshot,
@@ -14837,6 +15854,9 @@ class PurchaseOrderItem extends DataClass
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['po_id'] = Variable<String>(poId);
     map['product_id'] = Variable<String>(productId);
     map['name_snapshot'] = Variable<String>(nameSnapshot);
@@ -14854,6 +15874,7 @@ class PurchaseOrderItem extends DataClass
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       poId: Value(poId),
       productId: Value(productId),
       nameSnapshot: Value(nameSnapshot),
@@ -14875,6 +15896,7 @@ class PurchaseOrderItem extends DataClass
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       poId: serializer.fromJson<String>(json['poId']),
       productId: serializer.fromJson<String>(json['productId']),
       nameSnapshot: serializer.fromJson<String>(json['nameSnapshot']),
@@ -14893,6 +15915,7 @@ class PurchaseOrderItem extends DataClass
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'poId': serializer.toJson<String>(poId),
       'productId': serializer.toJson<String>(productId),
       'nameSnapshot': serializer.toJson<String>(nameSnapshot),
@@ -14909,6 +15932,7 @@ class PurchaseOrderItem extends DataClass
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? poId,
     String? productId,
     String? nameSnapshot,
@@ -14922,6 +15946,7 @@ class PurchaseOrderItem extends DataClass
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     poId: poId ?? this.poId,
     productId: productId ?? this.productId,
     nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -14937,6 +15962,7 @@ class PurchaseOrderItem extends DataClass
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       poId: data.poId.present ? data.poId.value : this.poId,
       productId: data.productId.present ? data.productId.value : this.productId,
       nameSnapshot: data.nameSnapshot.present
@@ -14957,6 +15983,7 @@ class PurchaseOrderItem extends DataClass
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('poId: $poId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -14975,6 +16002,7 @@ class PurchaseOrderItem extends DataClass
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     poId,
     productId,
     nameSnapshot,
@@ -14992,6 +16020,7 @@ class PurchaseOrderItem extends DataClass
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.poId == this.poId &&
           other.productId == this.productId &&
           other.nameSnapshot == this.nameSnapshot &&
@@ -15007,6 +16036,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> poId;
   final Value<String> productId;
   final Value<String> nameSnapshot;
@@ -15021,6 +16051,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.poId = const Value.absent(),
     this.productId = const Value.absent(),
     this.nameSnapshot = const Value.absent(),
@@ -15036,6 +16067,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String poId,
     required String productId,
     required String nameSnapshot,
@@ -15058,6 +16090,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? poId,
     Expression<String>? productId,
     Expression<String>? nameSnapshot,
@@ -15073,6 +16106,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (poId != null) 'po_id': poId,
       if (productId != null) 'product_id': productId,
       if (nameSnapshot != null) 'name_snapshot': nameSnapshot,
@@ -15090,6 +16124,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? poId,
     Value<String>? productId,
     Value<String>? nameSnapshot,
@@ -15105,6 +16140,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       poId: poId ?? this.poId,
       productId: productId ?? this.productId,
       nameSnapshot: nameSnapshot ?? this.nameSnapshot,
@@ -15135,6 +16171,9 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (poId.present) {
       map['po_id'] = Variable<String>(poId.value);
@@ -15169,6 +16208,7 @@ class PurchaseOrderItemsCompanion extends UpdateCompanion<PurchaseOrderItem> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('poId: $poId, ')
           ..write('productId: $productId, ')
           ..write('nameSnapshot: $nameSnapshot, ')
@@ -15257,6 +16297,15 @@ class $PaymentAccountsTable extends PaymentAccounts
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -15286,6 +16335,7 @@ class $PaymentAccountsTable extends PaymentAccounts
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     openingBalance,
   ];
@@ -15338,6 +16388,12 @@ class $PaymentAccountsTable extends PaymentAccounts
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
       );
     }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -15388,6 +16444,10 @@ class $PaymentAccountsTable extends PaymentAccounts
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -15412,6 +16472,14 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final int openingBalance;
   const PaymentAccount({
@@ -15421,6 +16489,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     required this.openingBalance,
   });
@@ -15433,6 +16502,9 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     map['opening_balance'] = Variable<int>(openingBalance);
     return map;
@@ -15446,6 +16518,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       openingBalance: Value(openingBalance),
     );
@@ -15463,6 +16536,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       openingBalance: serializer.fromJson<int>(json['openingBalance']),
     );
@@ -15477,6 +16551,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'openingBalance': serializer.toJson<int>(openingBalance),
     };
@@ -15489,6 +16564,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     int? openingBalance,
   }) => PaymentAccount(
@@ -15498,6 +16574,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     openingBalance: openingBalance ?? this.openingBalance,
   );
@@ -15509,6 +16586,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       openingBalance: data.openingBalance.present
           ? data.openingBalance.value
@@ -15525,6 +16603,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('openingBalance: $openingBalance')
           ..write(')'))
@@ -15539,6 +16618,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     openingBalance,
   );
@@ -15552,6 +16632,7 @@ class PaymentAccount extends DataClass implements Insertable<PaymentAccount> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.openingBalance == this.openingBalance);
 }
@@ -15563,6 +16644,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<int> openingBalance;
   final Value<int> rowid;
@@ -15573,6 +16655,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.openingBalance = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15584,6 +16667,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.openingBalance = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15597,6 +16681,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<int>? openingBalance,
     Expression<int>? rowid,
@@ -15608,6 +16693,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (openingBalance != null) 'opening_balance': openingBalance,
       if (rowid != null) 'rowid': rowid,
@@ -15621,6 +16707,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<int>? openingBalance,
     Value<int>? rowid,
@@ -15632,6 +16719,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       openingBalance: openingBalance ?? this.openingBalance,
       rowid: rowid ?? this.rowid,
@@ -15659,6 +16747,9 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -15680,6 +16771,7 @@ class PaymentAccountsCompanion extends UpdateCompanion<PaymentAccount> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('openingBalance: $openingBalance, ')
           ..write('rowid: $rowid')
@@ -15764,6 +16856,15 @@ class $SupplierPaymentsTable extends SupplierPayments
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _supplierNameMeta = const VerificationMeta(
     'supplierName',
   );
@@ -15822,6 +16923,7 @@ class $SupplierPaymentsTable extends SupplierPayments
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     supplierName,
     method,
     amount,
@@ -15875,6 +16977,12 @@ class $SupplierPaymentsTable extends SupplierPayments
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('supplier_name')) {
@@ -15947,6 +17055,10 @@ class $SupplierPaymentsTable extends SupplierPayments
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       supplierName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}supplier_name'],
@@ -15983,6 +17095,14 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String supplierName;
 
   /// cash | kbzpay | wavepay | ayapay | cbpay
@@ -16000,6 +17120,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.supplierName,
     required this.method,
     required this.amount,
@@ -16015,6 +17136,9 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['supplier_name'] = Variable<String>(supplierName);
     map['method'] = Variable<String>(method);
     map['amount'] = Variable<int>(amount);
@@ -16035,6 +17159,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       supplierName: Value(supplierName),
       method: Value(method),
       amount: Value(amount),
@@ -16057,6 +17182,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       supplierName: serializer.fromJson<String>(json['supplierName']),
       method: serializer.fromJson<String>(json['method']),
       amount: serializer.fromJson<int>(json['amount']),
@@ -16074,6 +17200,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'supplierName': serializer.toJson<String>(supplierName),
       'method': serializer.toJson<String>(method),
       'amount': serializer.toJson<int>(amount),
@@ -16089,6 +17216,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? supplierName,
     String? method,
     int? amount,
@@ -16101,6 +17229,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     supplierName: supplierName ?? this.supplierName,
     method: method ?? this.method,
     amount: amount ?? this.amount,
@@ -16115,6 +17244,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       supplierName: data.supplierName.present
           ? data.supplierName.value
           : this.supplierName,
@@ -16136,6 +17266,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('supplierName: $supplierName, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -16153,6 +17284,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     supplierName,
     method,
     amount,
@@ -16169,6 +17301,7 @@ class SupplierPayment extends DataClass implements Insertable<SupplierPayment> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.supplierName == this.supplierName &&
           other.method == this.method &&
           other.amount == this.amount &&
@@ -16183,6 +17316,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> supplierName;
   final Value<String> method;
   final Value<int> amount;
@@ -16196,6 +17330,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.supplierName = const Value.absent(),
     this.method = const Value.absent(),
     this.amount = const Value.absent(),
@@ -16210,6 +17345,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String supplierName,
     this.method = const Value.absent(),
     required int amount,
@@ -16227,6 +17363,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? supplierName,
     Expression<String>? method,
     Expression<int>? amount,
@@ -16241,6 +17378,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (supplierName != null) 'supplier_name': supplierName,
       if (method != null) 'method': method,
       if (amount != null) 'amount': amount,
@@ -16257,6 +17395,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? supplierName,
     Value<String>? method,
     Value<int>? amount,
@@ -16271,6 +17410,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       supplierName: supplierName ?? this.supplierName,
       method: method ?? this.method,
       amount: amount ?? this.amount,
@@ -16300,6 +17440,9 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
     }
     if (supplierName.present) {
       map['supplier_name'] = Variable<String>(supplierName.value);
@@ -16331,6 +17474,7 @@ class SupplierPaymentsCompanion extends UpdateCompanion<SupplierPayment> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('supplierName: $supplierName, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
@@ -16418,6 +17562,15 @@ class $EquityEntriesTable extends EquityEntries
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
@@ -16462,6 +17615,7 @@ class $EquityEntriesTable extends EquityEntries
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     type,
     amount,
     date,
@@ -16514,6 +17668,12 @@ class $EquityEntriesTable extends EquityEntries
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('type')) {
@@ -16579,6 +17739,10 @@ class $EquityEntriesTable extends EquityEntries
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}type'],
@@ -16612,6 +17776,14 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
   final bool isDeleted;
   final bool dirty;
 
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
+
   /// contribution | drawing
   final String type;
   final int amount;
@@ -16624,6 +17796,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.type,
     required this.amount,
     required this.date,
@@ -16638,6 +17811,9 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<int>(amount);
     map['date'] = Variable<DateTime>(date);
@@ -16655,6 +17831,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       type: Value(type),
       amount: Value(amount),
       date: Value(date),
@@ -16674,6 +17851,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<int>(json['amount']),
       date: serializer.fromJson<DateTime>(json['date']),
@@ -16690,6 +17868,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<int>(amount),
       'date': serializer.toJson<DateTime>(date),
@@ -16704,6 +17883,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? type,
     int? amount,
     DateTime? date,
@@ -16715,6 +17895,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     type: type ?? this.type,
     amount: amount ?? this.amount,
     date: date ?? this.date,
@@ -16728,6 +17909,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       type: data.type.present ? data.type.value : this.type,
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
@@ -16744,6 +17926,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
@@ -16760,6 +17943,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     type,
     amount,
     date,
@@ -16775,6 +17959,7 @@ class EquityEntry extends DataClass implements Insertable<EquityEntry> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.type == this.type &&
           other.amount == this.amount &&
           other.date == this.date &&
@@ -16788,6 +17973,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> type;
   final Value<int> amount;
   final Value<DateTime> date;
@@ -16800,6 +17986,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
@@ -16813,6 +18000,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String type,
     required int amount,
     required DateTime date,
@@ -16830,6 +18018,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? type,
     Expression<int>? amount,
     Expression<DateTime>? date,
@@ -16843,6 +18032,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
@@ -16858,6 +18048,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? type,
     Value<int>? amount,
     Value<DateTime>? date,
@@ -16871,6 +18062,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       type: type ?? this.type,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -16900,6 +18092,9 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
@@ -16927,6 +18122,7 @@ class EquityEntriesCompanion extends UpdateCompanion<EquityEntry> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
@@ -17192,17 +18388,6 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _payloadMeta = const VerificationMeta(
-    'payload',
-  );
-  @override
-  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
-    'payload',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _enqueuedAtMeta = const VerificationMeta(
     'enqueuedAt',
   );
@@ -17259,7 +18444,6 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
     entityTable,
     rowId,
     op,
-    payload,
     enqueuedAt,
     attempts,
     lastError,
@@ -17306,14 +18490,6 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
       context.handle(_opMeta, op.isAcceptableOrUnknown(data['op']!, _opMeta));
     } else if (isInserting) {
       context.missing(_opMeta);
-    }
-    if (data.containsKey('payload')) {
-      context.handle(
-        _payloadMeta,
-        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_payloadMeta);
     }
     if (data.containsKey('enqueued_at')) {
       context.handle(
@@ -17367,10 +18543,6 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxData> {
         DriftSqlType.string,
         data['${effectivePrefix}op'],
       )!,
-      payload: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}payload'],
-      )!,
       enqueuedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}enqueued_at'],
@@ -17403,9 +18575,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
 
   /// upsert | delete
   final String op;
-
-  /// JSON payload of the row at enqueue time.
-  final String payload;
   final DateTime enqueuedAt;
   final int attempts;
 
@@ -17424,7 +18593,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     required this.entityTable,
     required this.rowId,
     required this.op,
-    required this.payload,
     required this.enqueuedAt,
     required this.attempts,
     this.lastError,
@@ -17437,7 +18605,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     map['entity_table'] = Variable<String>(entityTable);
     map['row_id'] = Variable<String>(rowId);
     map['op'] = Variable<String>(op);
-    map['payload'] = Variable<String>(payload);
     map['enqueued_at'] = Variable<DateTime>(enqueuedAt);
     map['attempts'] = Variable<int>(attempts);
     if (!nullToAbsent || lastError != null) {
@@ -17453,7 +18620,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       entityTable: Value(entityTable),
       rowId: Value(rowId),
       op: Value(op),
-      payload: Value(payload),
       enqueuedAt: Value(enqueuedAt),
       attempts: Value(attempts),
       lastError: lastError == null && nullToAbsent
@@ -17473,7 +18639,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       entityTable: serializer.fromJson<String>(json['entityTable']),
       rowId: serializer.fromJson<String>(json['rowId']),
       op: serializer.fromJson<String>(json['op']),
-      payload: serializer.fromJson<String>(json['payload']),
       enqueuedAt: serializer.fromJson<DateTime>(json['enqueuedAt']),
       attempts: serializer.fromJson<int>(json['attempts']),
       lastError: serializer.fromJson<String?>(json['lastError']),
@@ -17488,7 +18653,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
       'entityTable': serializer.toJson<String>(entityTable),
       'rowId': serializer.toJson<String>(rowId),
       'op': serializer.toJson<String>(op),
-      'payload': serializer.toJson<String>(payload),
       'enqueuedAt': serializer.toJson<DateTime>(enqueuedAt),
       'attempts': serializer.toJson<int>(attempts),
       'lastError': serializer.toJson<String?>(lastError),
@@ -17501,7 +18665,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     String? entityTable,
     String? rowId,
     String? op,
-    String? payload,
     DateTime? enqueuedAt,
     int? attempts,
     Value<String?> lastError = const Value.absent(),
@@ -17511,7 +18674,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     entityTable: entityTable ?? this.entityTable,
     rowId: rowId ?? this.rowId,
     op: op ?? this.op,
-    payload: payload ?? this.payload,
     enqueuedAt: enqueuedAt ?? this.enqueuedAt,
     attempts: attempts ?? this.attempts,
     lastError: lastError.present ? lastError.value : this.lastError,
@@ -17525,7 +18687,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           : this.entityTable,
       rowId: data.rowId.present ? data.rowId.value : this.rowId,
       op: data.op.present ? data.op.value : this.op,
-      payload: data.payload.present ? data.payload.value : this.payload,
       enqueuedAt: data.enqueuedAt.present
           ? data.enqueuedAt.value
           : this.enqueuedAt,
@@ -17544,7 +18705,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           ..write('entityTable: $entityTable, ')
           ..write('rowId: $rowId, ')
           ..write('op: $op, ')
-          ..write('payload: $payload, ')
           ..write('enqueuedAt: $enqueuedAt, ')
           ..write('attempts: $attempts, ')
           ..write('lastError: $lastError, ')
@@ -17559,7 +18719,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
     entityTable,
     rowId,
     op,
-    payload,
     enqueuedAt,
     attempts,
     lastError,
@@ -17573,7 +18732,6 @@ class OutboxData extends DataClass implements Insertable<OutboxData> {
           other.entityTable == this.entityTable &&
           other.rowId == this.rowId &&
           other.op == this.op &&
-          other.payload == this.payload &&
           other.enqueuedAt == this.enqueuedAt &&
           other.attempts == this.attempts &&
           other.lastError == this.lastError &&
@@ -17585,7 +18743,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
   final Value<String> entityTable;
   final Value<String> rowId;
   final Value<String> op;
-  final Value<String> payload;
   final Value<DateTime> enqueuedAt;
   final Value<int> attempts;
   final Value<String?> lastError;
@@ -17595,7 +18752,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     this.entityTable = const Value.absent(),
     this.rowId = const Value.absent(),
     this.op = const Value.absent(),
-    this.payload = const Value.absent(),
     this.enqueuedAt = const Value.absent(),
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
@@ -17606,21 +18762,18 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     required String entityTable,
     required String rowId,
     required String op,
-    required String payload,
     this.enqueuedAt = const Value.absent(),
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
     this.quarantined = const Value.absent(),
   }) : entityTable = Value(entityTable),
        rowId = Value(rowId),
-       op = Value(op),
-       payload = Value(payload);
+       op = Value(op);
   static Insertable<OutboxData> custom({
     Expression<int>? seq,
     Expression<String>? entityTable,
     Expression<String>? rowId,
     Expression<String>? op,
-    Expression<String>? payload,
     Expression<DateTime>? enqueuedAt,
     Expression<int>? attempts,
     Expression<String>? lastError,
@@ -17631,7 +18784,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
       if (entityTable != null) 'entity_table': entityTable,
       if (rowId != null) 'row_id': rowId,
       if (op != null) 'op': op,
-      if (payload != null) 'payload': payload,
       if (enqueuedAt != null) 'enqueued_at': enqueuedAt,
       if (attempts != null) 'attempts': attempts,
       if (lastError != null) 'last_error': lastError,
@@ -17644,7 +18796,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     Value<String>? entityTable,
     Value<String>? rowId,
     Value<String>? op,
-    Value<String>? payload,
     Value<DateTime>? enqueuedAt,
     Value<int>? attempts,
     Value<String?>? lastError,
@@ -17655,7 +18806,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
       entityTable: entityTable ?? this.entityTable,
       rowId: rowId ?? this.rowId,
       op: op ?? this.op,
-      payload: payload ?? this.payload,
       enqueuedAt: enqueuedAt ?? this.enqueuedAt,
       attempts: attempts ?? this.attempts,
       lastError: lastError ?? this.lastError,
@@ -17677,9 +18827,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
     }
     if (op.present) {
       map['op'] = Variable<String>(op.value);
-    }
-    if (payload.present) {
-      map['payload'] = Variable<String>(payload.value);
     }
     if (enqueuedAt.present) {
       map['enqueued_at'] = Variable<DateTime>(enqueuedAt.value);
@@ -17703,7 +18850,6 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
           ..write('entityTable: $entityTable, ')
           ..write('rowId: $rowId, ')
           ..write('op: $op, ')
-          ..write('payload: $payload, ')
           ..write('enqueuedAt: $enqueuedAt, ')
           ..write('attempts: $attempts, ')
           ..write('lastError: $lastError, ')
@@ -17789,6 +18935,15 @@ class $ShopProfilesTable extends ShopProfiles
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -17826,6 +18981,7 @@ class $ShopProfilesTable extends ShopProfiles
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -17877,6 +19033,12 @@ class $ShopProfilesTable extends ShopProfiles
       context.handle(
         _dirtyMeta,
         dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -17932,6 +19094,10 @@ class $ShopProfilesTable extends ShopProfiles
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -17960,6 +19126,14 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
   final String name;
   final String? phone;
   final String? address;
@@ -17970,6 +19144,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     required this.updatedAt,
     required this.isDeleted,
     required this.dirty,
+    this.hlc,
     required this.name,
     this.phone,
     this.address,
@@ -17983,6 +19158,9 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
@@ -18001,6 +19179,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
       name: Value(name),
       phone: phone == null && nullToAbsent
           ? const Value.absent()
@@ -18023,6 +19202,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       address: serializer.fromJson<String?>(json['address']),
@@ -18038,6 +19218,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'address': serializer.toJson<String?>(address),
@@ -18051,6 +19232,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? dirty,
+    Value<String?> hlc = const Value.absent(),
     String? name,
     Value<String?> phone = const Value.absent(),
     Value<String?> address = const Value.absent(),
@@ -18061,6 +19243,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
     name: name ?? this.name,
     phone: phone.present ? phone.value : this.phone,
     address: address.present ? address.value : this.address,
@@ -18073,6 +19256,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
@@ -18088,6 +19272,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address')
@@ -18103,6 +19288,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     updatedAt,
     isDeleted,
     dirty,
+    hlc,
     name,
     phone,
     address,
@@ -18117,6 +19303,7 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
           other.name == this.name &&
           other.phone == this.phone &&
           other.address == this.address);
@@ -18129,6 +19316,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> dirty;
+  final Value<String?> hlc;
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> address;
@@ -18140,6 +19328,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -18152,6 +19341,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
     required String name,
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
@@ -18166,6 +19356,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? dirty,
+    Expression<String>? hlc,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? address,
@@ -18178,6 +19369,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
@@ -18192,6 +19384,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? dirty,
+    Value<String?>? hlc,
     Value<String>? name,
     Value<String?>? phone,
     Value<String?>? address,
@@ -18204,6 +19397,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
@@ -18232,6 +19426,9 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -18256,6 +19453,7 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
@@ -18346,6 +19544,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<int> sort,
       Value<int> rowid,
@@ -18358,6 +19557,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<int> sort,
       Value<int> rowid,
@@ -18399,6 +19599,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18452,6 +19657,11 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -18489,6 +19699,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -18531,6 +19744,7 @@ class $$CategoriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> sort = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -18541,6 +19755,7 @@ class $$CategoriesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 sort: sort,
                 rowid: rowid,
@@ -18553,6 +19768,7 @@ class $$CategoriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<int> sort = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -18563,6 +19779,7 @@ class $$CategoriesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 sort: sort,
                 rowid: rowid,
@@ -18597,6 +19814,7 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<String?> sku,
       Value<String?> barcode,
@@ -18620,6 +19838,7 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<String?> sku,
       Value<String?> barcode,
@@ -18672,6 +19891,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18780,6 +20004,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -18873,6 +20102,9 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -18953,6 +20185,7 @@ class $$ProductsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> sku = const Value.absent(),
                 Value<String?> barcode = const Value.absent(),
@@ -18974,6 +20207,7 @@ class $$ProductsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 sku: sku,
                 barcode: barcode,
@@ -18997,6 +20231,7 @@ class $$ProductsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<String?> sku = const Value.absent(),
                 Value<String?> barcode = const Value.absent(),
@@ -19018,6 +20253,7 @@ class $$ProductsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 sku: sku,
                 barcode: barcode,
@@ -19063,6 +20299,7 @@ typedef $$StockLevelsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String productId,
       Value<int> quantity,
       Value<int> reorderLevel,
@@ -19076,6 +20313,7 @@ typedef $$StockLevelsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> productId,
       Value<int> quantity,
       Value<int> reorderLevel,
@@ -19118,6 +20356,11 @@ class $$StockLevelsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19176,6 +20419,11 @@ class $$StockLevelsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get productId => $composableBuilder(
     column: $table.productId,
     builder: (column) => ColumnOrderings(column),
@@ -19218,6 +20466,9 @@ class $$StockLevelsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get productId =>
       $composableBuilder(column: $table.productId, builder: (column) => column);
@@ -19268,6 +20519,7 @@ class $$StockLevelsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> productId = const Value.absent(),
                 Value<int> quantity = const Value.absent(),
                 Value<int> reorderLevel = const Value.absent(),
@@ -19279,6 +20531,7 @@ class $$StockLevelsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 productId: productId,
                 quantity: quantity,
                 reorderLevel: reorderLevel,
@@ -19292,6 +20545,7 @@ class $$StockLevelsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String productId,
                 Value<int> quantity = const Value.absent(),
                 Value<int> reorderLevel = const Value.absent(),
@@ -19303,6 +20557,7 @@ class $$StockLevelsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 productId: productId,
                 quantity: quantity,
                 reorderLevel: reorderLevel,
@@ -19512,6 +20767,7 @@ typedef $$StockMovementsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String productId,
       required String type,
       required int qtyDelta,
@@ -19528,6 +20784,7 @@ typedef $$StockMovementsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> productId,
       Value<String> type,
       Value<int> qtyDelta,
@@ -19573,6 +20830,11 @@ class $$StockMovementsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19646,6 +20908,11 @@ class $$StockMovementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get productId => $composableBuilder(
     column: $table.productId,
     builder: (column) => ColumnOrderings(column),
@@ -19703,6 +20970,9 @@ class $$StockMovementsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get productId =>
       $composableBuilder(column: $table.productId, builder: (column) => column);
@@ -19762,6 +21032,7 @@ class $$StockMovementsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> productId = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int> qtyDelta = const Value.absent(),
@@ -19776,6 +21047,7 @@ class $$StockMovementsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 productId: productId,
                 type: type,
                 qtyDelta: qtyDelta,
@@ -19792,6 +21064,7 @@ class $$StockMovementsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String productId,
                 required String type,
                 required int qtyDelta,
@@ -19806,6 +21079,7 @@ class $$StockMovementsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 productId: productId,
                 type: type,
                 qtyDelta: qtyDelta,
@@ -19847,6 +21121,7 @@ typedef $$SalesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String invoiceNo,
       Value<String?> staffId,
       Value<int> subtotal,
@@ -19873,6 +21148,7 @@ typedef $$SalesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> invoiceNo,
       Value<String?> staffId,
       Value<int> subtotal,
@@ -19927,6 +21203,11 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20050,6 +21331,11 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get invoiceNo => $composableBuilder(
     column: $table.invoiceNo,
     builder: (column) => ColumnOrderings(column),
@@ -20158,6 +21444,9 @@ class $$SalesTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get invoiceNo =>
       $composableBuilder(column: $table.invoiceNo, builder: (column) => column);
 
@@ -20255,6 +21544,7 @@ class $$SalesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> invoiceNo = const Value.absent(),
                 Value<String?> staffId = const Value.absent(),
                 Value<int> subtotal = const Value.absent(),
@@ -20279,6 +21569,7 @@ class $$SalesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 invoiceNo: invoiceNo,
                 staffId: staffId,
                 subtotal: subtotal,
@@ -20305,6 +21596,7 @@ class $$SalesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String invoiceNo,
                 Value<String?> staffId = const Value.absent(),
                 Value<int> subtotal = const Value.absent(),
@@ -20329,6 +21621,7 @@ class $$SalesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 invoiceNo: invoiceNo,
                 staffId: staffId,
                 subtotal: subtotal,
@@ -20377,6 +21670,7 @@ typedef $$SaleItemsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String saleId,
       required String productId,
       required String nameSnapshot,
@@ -20394,6 +21688,7 @@ typedef $$SaleItemsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> saleId,
       Value<String> productId,
       Value<String> nameSnapshot,
@@ -20440,6 +21735,11 @@ class $$SaleItemsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20518,6 +21818,11 @@ class $$SaleItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get saleId => $composableBuilder(
     column: $table.saleId,
     builder: (column) => ColumnOrderings(column),
@@ -20581,6 +21886,9 @@ class $$SaleItemsTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get saleId =>
       $composableBuilder(column: $table.saleId, builder: (column) => column);
 
@@ -20643,6 +21951,7 @@ class $$SaleItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> saleId = const Value.absent(),
                 Value<String> productId = const Value.absent(),
                 Value<String> nameSnapshot = const Value.absent(),
@@ -20658,6 +21967,7 @@ class $$SaleItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 saleId: saleId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -20675,6 +21985,7 @@ class $$SaleItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String saleId,
                 required String productId,
                 required String nameSnapshot,
@@ -20690,6 +22001,7 @@ class $$SaleItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 saleId: saleId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -20729,6 +22041,7 @@ typedef $$PaymentsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String saleId,
       required String method,
       required int amount,
@@ -20743,6 +22056,7 @@ typedef $$PaymentsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> saleId,
       Value<String> method,
       Value<int> amount,
@@ -20786,6 +22100,11 @@ class $$PaymentsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20849,6 +22168,11 @@ class $$PaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get saleId => $composableBuilder(
     column: $table.saleId,
     builder: (column) => ColumnOrderings(column),
@@ -20897,6 +22221,9 @@ class $$PaymentsTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get saleId =>
       $composableBuilder(column: $table.saleId, builder: (column) => column);
 
@@ -20944,6 +22271,7 @@ class $$PaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> saleId = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<int> amount = const Value.absent(),
@@ -20956,6 +22284,7 @@ class $$PaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 saleId: saleId,
                 method: method,
                 amount: amount,
@@ -20970,6 +22299,7 @@ class $$PaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String saleId,
                 required String method,
                 required int amount,
@@ -20982,6 +22312,7 @@ class $$PaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 saleId: saleId,
                 method: method,
                 amount: amount,
@@ -21018,6 +22349,7 @@ typedef $$LicensePaymentsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String licenseKey,
       required String method,
       required int amount,
@@ -21035,6 +22367,7 @@ typedef $$LicensePaymentsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> licenseKey,
       Value<String> method,
       Value<int> amount,
@@ -21081,6 +22414,11 @@ class $$LicensePaymentsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21159,6 +22497,11 @@ class $$LicensePaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get licenseKey => $composableBuilder(
     column: $table.licenseKey,
     builder: (column) => ColumnOrderings(column),
@@ -21221,6 +22564,9 @@ class $$LicensePaymentsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get licenseKey => $composableBuilder(
     column: $table.licenseKey,
@@ -21291,6 +22637,7 @@ class $$LicensePaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> licenseKey = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<int> amount = const Value.absent(),
@@ -21306,6 +22653,7 @@ class $$LicensePaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 licenseKey: licenseKey,
                 method: method,
                 amount: amount,
@@ -21323,6 +22671,7 @@ class $$LicensePaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String licenseKey,
                 required String method,
                 required int amount,
@@ -21338,6 +22687,7 @@ class $$LicensePaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 licenseKey: licenseKey,
                 method: method,
                 amount: amount,
@@ -21380,6 +22730,7 @@ typedef $$CreditPaymentsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String customerName,
       Value<String> method,
       required int amount,
@@ -21395,6 +22746,7 @@ typedef $$CreditPaymentsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> customerName,
       Value<String> method,
       Value<int> amount,
@@ -21439,6 +22791,11 @@ class $$CreditPaymentsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21507,6 +22864,11 @@ class $$CreditPaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get customerName => $composableBuilder(
     column: $table.customerName,
     builder: (column) => ColumnOrderings(column),
@@ -21559,6 +22921,9 @@ class $$CreditPaymentsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get customerName => $composableBuilder(
     column: $table.customerName,
@@ -21619,6 +22984,7 @@ class $$CreditPaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> customerName = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<int> amount = const Value.absent(),
@@ -21632,6 +22998,7 @@ class $$CreditPaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 customerName: customerName,
                 method: method,
                 amount: amount,
@@ -21647,6 +23014,7 @@ class $$CreditPaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String customerName,
                 Value<String> method = const Value.absent(),
                 required int amount,
@@ -21660,6 +23028,7 @@ class $$CreditPaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 customerName: customerName,
                 method: method,
                 amount: amount,
@@ -21700,6 +23069,7 @@ typedef $$OrdersTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String orderNo,
       Value<String> channel,
       Value<String> status,
@@ -21728,6 +23098,7 @@ typedef $$OrdersTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> orderNo,
       Value<String> channel,
       Value<String> status,
@@ -21785,6 +23156,11 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21918,6 +23294,11 @@ class $$OrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get orderNo => $composableBuilder(
     column: $table.orderNo,
     builder: (column) => ColumnOrderings(column),
@@ -22036,6 +23417,9 @@ class $$OrdersTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get orderNo =>
       $composableBuilder(column: $table.orderNo, builder: (column) => column);
 
@@ -22149,6 +23533,7 @@ class $$OrdersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> orderNo = const Value.absent(),
                 Value<String> channel = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -22175,6 +23560,7 @@ class $$OrdersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 orderNo: orderNo,
                 channel: channel,
                 status: status,
@@ -22203,6 +23589,7 @@ class $$OrdersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String orderNo,
                 Value<String> channel = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -22229,6 +23616,7 @@ class $$OrdersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 orderNo: orderNo,
                 channel: channel,
                 status: status,
@@ -22279,6 +23667,7 @@ typedef $$OrderItemsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String orderId,
       Value<String?> productId,
       required String nameSnapshot,
@@ -22296,6 +23685,7 @@ typedef $$OrderItemsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> orderId,
       Value<String?> productId,
       Value<String> nameSnapshot,
@@ -22342,6 +23732,11 @@ class $$OrderItemsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22420,6 +23815,11 @@ class $$OrderItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get orderId => $composableBuilder(
     column: $table.orderId,
     builder: (column) => ColumnOrderings(column),
@@ -22482,6 +23882,9 @@ class $$OrderItemsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get orderId =>
       $composableBuilder(column: $table.orderId, builder: (column) => column);
@@ -22548,6 +23951,7 @@ class $$OrderItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> orderId = const Value.absent(),
                 Value<String?> productId = const Value.absent(),
                 Value<String> nameSnapshot = const Value.absent(),
@@ -22563,6 +23967,7 @@ class $$OrderItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 orderId: orderId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -22580,6 +23985,7 @@ class $$OrderItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String orderId,
                 Value<String?> productId = const Value.absent(),
                 required String nameSnapshot,
@@ -22595,6 +24001,7 @@ class $$OrderItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 orderId: orderId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -22634,6 +24041,7 @@ typedef $$StaffMembersTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       required String pin,
       Value<bool> active,
@@ -22647,6 +24055,7 @@ typedef $$StaffMembersTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<String> pin,
       Value<bool> active,
@@ -22689,6 +24098,11 @@ class $$StaffMembersTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22747,6 +24161,11 @@ class $$StaffMembersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -22789,6 +24208,9 @@ class $$StaffMembersTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -22837,6 +24259,7 @@ class $$StaffMembersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> pin = const Value.absent(),
                 Value<bool> active = const Value.absent(),
@@ -22848,6 +24271,7 @@ class $$StaffMembersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 pin: pin,
                 active: active,
@@ -22861,6 +24285,7 @@ class $$StaffMembersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 required String pin,
                 Value<bool> active = const Value.absent(),
@@ -22872,6 +24297,7 @@ class $$StaffMembersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 pin: pin,
                 active: active,
@@ -22910,6 +24336,7 @@ typedef $$CustomersTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<String?> phone,
       Value<String?> address,
@@ -22925,6 +24352,7 @@ typedef $$CustomersTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<String?> phone,
       Value<String?> address,
@@ -22969,6 +24397,11 @@ class $$CustomersTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23037,6 +24470,11 @@ class $$CustomersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -23090,6 +24528,9 @@ class $$CustomersTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -23140,6 +24581,7 @@ class $$CustomersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -23153,6 +24595,7 @@ class $$CustomersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,
@@ -23168,6 +24611,7 @@ class $$CustomersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -23181,6 +24625,7 @@ class $$CustomersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,
@@ -23218,6 +24663,7 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String category,
       required int amount,
       required DateTime date,
@@ -23234,6 +24680,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> category,
       Value<int> amount,
       Value<DateTime> date,
@@ -23279,6 +24726,11 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23352,6 +24804,11 @@ class $$ExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get category => $composableBuilder(
     column: $table.category,
     builder: (column) => ColumnOrderings(column),
@@ -23410,6 +24867,9 @@ class $$ExpensesTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
 
@@ -23465,6 +24925,7 @@ class $$ExpensesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<int> amount = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
@@ -23479,6 +24940,7 @@ class $$ExpensesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 category: category,
                 amount: amount,
                 date: date,
@@ -23495,6 +24957,7 @@ class $$ExpensesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String category,
                 required int amount,
                 required DateTime date,
@@ -23509,6 +24972,7 @@ class $$ExpensesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 category: category,
                 amount: amount,
                 date: date,
@@ -23547,6 +25011,7 @@ typedef $$CashSessionsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required DateTime openedAt,
       required int openingAmount,
       Value<DateTime?> closedAt,
@@ -23563,6 +25028,7 @@ typedef $$CashSessionsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<DateTime> openedAt,
       Value<int> openingAmount,
       Value<DateTime?> closedAt,
@@ -23608,6 +25074,11 @@ class $$CashSessionsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23681,6 +25152,11 @@ class $$CashSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get openedAt => $composableBuilder(
     column: $table.openedAt,
     builder: (column) => ColumnOrderings(column),
@@ -23738,6 +25214,9 @@ class $$CashSessionsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<DateTime> get openedAt =>
       $composableBuilder(column: $table.openedAt, builder: (column) => column);
@@ -23799,6 +25278,7 @@ class $$CashSessionsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<DateTime> openedAt = const Value.absent(),
                 Value<int> openingAmount = const Value.absent(),
                 Value<DateTime?> closedAt = const Value.absent(),
@@ -23813,6 +25293,7 @@ class $$CashSessionsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 openedAt: openedAt,
                 openingAmount: openingAmount,
                 closedAt: closedAt,
@@ -23829,6 +25310,7 @@ class $$CashSessionsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required DateTime openedAt,
                 required int openingAmount,
                 Value<DateTime?> closedAt = const Value.absent(),
@@ -23843,6 +25325,7 @@ class $$CashSessionsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 openedAt: openedAt,
                 openingAmount: openingAmount,
                 closedAt: closedAt,
@@ -23884,6 +25367,7 @@ typedef $$DeviceLabelsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String deviceId,
       required String label,
       Value<int> rowid,
@@ -23896,6 +25380,7 @@ typedef $$DeviceLabelsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> deviceId,
       Value<String> label,
       Value<int> rowid,
@@ -23937,6 +25422,11 @@ class $$DeviceLabelsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23990,6 +25480,11 @@ class $$DeviceLabelsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
     builder: (column) => ColumnOrderings(column),
@@ -24027,6 +25522,9 @@ class $$DeviceLabelsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
@@ -24072,6 +25570,7 @@ class $$DeviceLabelsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<String> label = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -24082,6 +25581,7 @@ class $$DeviceLabelsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 deviceId: deviceId,
                 label: label,
                 rowid: rowid,
@@ -24094,6 +25594,7 @@ class $$DeviceLabelsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String deviceId,
                 required String label,
                 Value<int> rowid = const Value.absent(),
@@ -24104,6 +25605,7 @@ class $$DeviceLabelsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 deviceId: deviceId,
                 label: label,
                 rowid: rowid,
@@ -24141,6 +25643,7 @@ typedef $$RecurringExpensesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String category,
       required int amount,
       Value<String?> note,
@@ -24158,6 +25661,7 @@ typedef $$RecurringExpensesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> category,
       Value<int> amount,
       Value<String?> note,
@@ -24204,6 +25708,11 @@ class $$RecurringExpensesTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24282,6 +25791,11 @@ class $$RecurringExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get category => $composableBuilder(
     column: $table.category,
     builder: (column) => ColumnOrderings(column),
@@ -24344,6 +25858,9 @@ class $$RecurringExpensesTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
@@ -24419,6 +25936,7 @@ class $$RecurringExpensesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<int> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
@@ -24434,6 +25952,7 @@ class $$RecurringExpensesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 category: category,
                 amount: amount,
                 note: note,
@@ -24451,6 +25970,7 @@ class $$RecurringExpensesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String category,
                 required int amount,
                 Value<String?> note = const Value.absent(),
@@ -24466,6 +25986,7 @@ class $$RecurringExpensesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 category: category,
                 amount: amount,
                 note: note,
@@ -24512,6 +26033,7 @@ typedef $$SuppliersTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<String?> phone,
       Value<String?> address,
@@ -24526,6 +26048,7 @@ typedef $$SuppliersTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<String?> phone,
       Value<String?> address,
@@ -24569,6 +26092,11 @@ class $$SuppliersTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24632,6 +26160,11 @@ class $$SuppliersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -24680,6 +26213,9 @@ class $$SuppliersTableAnnotationComposer
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -24727,6 +26263,7 @@ class $$SuppliersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -24739,6 +26276,7 @@ class $$SuppliersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,
@@ -24753,6 +26291,7 @@ class $$SuppliersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -24765,6 +26304,7 @@ class $$SuppliersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,
@@ -24801,6 +26341,7 @@ typedef $$PurchaseOrdersTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String poNo,
       Value<String?> supplierId,
       required String supplierName,
@@ -24818,6 +26359,7 @@ typedef $$PurchaseOrdersTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> poNo,
       Value<String?> supplierId,
       Value<String> supplierName,
@@ -24864,6 +26406,11 @@ class $$PurchaseOrdersTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24942,6 +26489,11 @@ class $$PurchaseOrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get poNo => $composableBuilder(
     column: $table.poNo,
     builder: (column) => ColumnOrderings(column),
@@ -25004,6 +26556,9 @@ class $$PurchaseOrdersTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get poNo =>
       $composableBuilder(column: $table.poNo, builder: (column) => column);
@@ -25074,6 +26629,7 @@ class $$PurchaseOrdersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> poNo = const Value.absent(),
                 Value<String?> supplierId = const Value.absent(),
                 Value<String> supplierName = const Value.absent(),
@@ -25089,6 +26645,7 @@ class $$PurchaseOrdersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 poNo: poNo,
                 supplierId: supplierId,
                 supplierName: supplierName,
@@ -25106,6 +26663,7 @@ class $$PurchaseOrdersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String poNo,
                 Value<String?> supplierId = const Value.absent(),
                 required String supplierName,
@@ -25121,6 +26679,7 @@ class $$PurchaseOrdersTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 poNo: poNo,
                 supplierId: supplierId,
                 supplierName: supplierName,
@@ -25163,6 +26722,7 @@ typedef $$PurchaseOrderItemsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String poId,
       required String productId,
       required String nameSnapshot,
@@ -25179,6 +26739,7 @@ typedef $$PurchaseOrderItemsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> poId,
       Value<String> productId,
       Value<String> nameSnapshot,
@@ -25224,6 +26785,11 @@ class $$PurchaseOrderItemsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25297,6 +26863,11 @@ class $$PurchaseOrderItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get poId => $composableBuilder(
     column: $table.poId,
     builder: (column) => ColumnOrderings(column),
@@ -25354,6 +26925,9 @@ class $$PurchaseOrderItemsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get poId =>
       $composableBuilder(column: $table.poId, builder: (column) => column);
@@ -25422,6 +26996,7 @@ class $$PurchaseOrderItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> poId = const Value.absent(),
                 Value<String> productId = const Value.absent(),
                 Value<String> nameSnapshot = const Value.absent(),
@@ -25436,6 +27011,7 @@ class $$PurchaseOrderItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 poId: poId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -25452,6 +27028,7 @@ class $$PurchaseOrderItemsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String poId,
                 required String productId,
                 required String nameSnapshot,
@@ -25466,6 +27043,7 @@ class $$PurchaseOrderItemsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 poId: poId,
                 productId: productId,
                 nameSnapshot: nameSnapshot,
@@ -25511,6 +27089,7 @@ typedef $$PaymentAccountsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<int> openingBalance,
       Value<int> rowid,
@@ -25523,6 +27102,7 @@ typedef $$PaymentAccountsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<int> openingBalance,
       Value<int> rowid,
@@ -25564,6 +27144,11 @@ class $$PaymentAccountsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25617,6 +27202,11 @@ class $$PaymentAccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -25654,6 +27244,9 @@ class $$PaymentAccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -25707,6 +27300,7 @@ class $$PaymentAccountsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> openingBalance = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -25717,6 +27311,7 @@ class $$PaymentAccountsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 openingBalance: openingBalance,
                 rowid: rowid,
@@ -25729,6 +27324,7 @@ class $$PaymentAccountsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<int> openingBalance = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -25739,6 +27335,7 @@ class $$PaymentAccountsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 openingBalance: openingBalance,
                 rowid: rowid,
@@ -25776,6 +27373,7 @@ typedef $$SupplierPaymentsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String supplierName,
       Value<String> method,
       required int amount,
@@ -25791,6 +27389,7 @@ typedef $$SupplierPaymentsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> supplierName,
       Value<String> method,
       Value<int> amount,
@@ -25835,6 +27434,11 @@ class $$SupplierPaymentsTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25903,6 +27507,11 @@ class $$SupplierPaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get supplierName => $composableBuilder(
     column: $table.supplierName,
     builder: (column) => ColumnOrderings(column),
@@ -25955,6 +27564,9 @@ class $$SupplierPaymentsTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get supplierName => $composableBuilder(
     column: $table.supplierName,
@@ -26019,6 +27631,7 @@ class $$SupplierPaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> supplierName = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<int> amount = const Value.absent(),
@@ -26032,6 +27645,7 @@ class $$SupplierPaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 supplierName: supplierName,
                 method: method,
                 amount: amount,
@@ -26047,6 +27661,7 @@ class $$SupplierPaymentsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String supplierName,
                 Value<String> method = const Value.absent(),
                 required int amount,
@@ -26060,6 +27675,7 @@ class $$SupplierPaymentsTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 supplierName: supplierName,
                 method: method,
                 amount: amount,
@@ -26100,6 +27716,7 @@ typedef $$EquityEntriesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String type,
       required int amount,
       required DateTime date,
@@ -26114,6 +27731,7 @@ typedef $$EquityEntriesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> type,
       Value<int> amount,
       Value<DateTime> date,
@@ -26157,6 +27775,11 @@ class $$EquityEntriesTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -26220,6 +27843,11 @@ class $$EquityEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnOrderings(column),
@@ -26267,6 +27895,9 @@ class $$EquityEntriesTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
@@ -26318,6 +27949,7 @@ class $$EquityEntriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int> amount = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
@@ -26330,6 +27962,7 @@ class $$EquityEntriesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 type: type,
                 amount: amount,
                 date: date,
@@ -26344,6 +27977,7 @@ class $$EquityEntriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String type,
                 required int amount,
                 required DateTime date,
@@ -26356,6 +27990,7 @@ class $$EquityEntriesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 type: type,
                 amount: amount,
                 date: date,
@@ -26532,7 +28167,6 @@ typedef $$OutboxTableCreateCompanionBuilder =
       required String entityTable,
       required String rowId,
       required String op,
-      required String payload,
       Value<DateTime> enqueuedAt,
       Value<int> attempts,
       Value<String?> lastError,
@@ -26544,7 +28178,6 @@ typedef $$OutboxTableUpdateCompanionBuilder =
       Value<String> entityTable,
       Value<String> rowId,
       Value<String> op,
-      Value<String> payload,
       Value<DateTime> enqueuedAt,
       Value<int> attempts,
       Value<String?> lastError,
@@ -26577,11 +28210,6 @@ class $$OutboxTableFilterComposer
 
   ColumnFilters<String> get op => $composableBuilder(
     column: $table.op,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get payload => $composableBuilder(
-    column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -26635,11 +28263,6 @@ class $$OutboxTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get payload => $composableBuilder(
-    column: $table.payload,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<DateTime> get enqueuedAt => $composableBuilder(
     column: $table.enqueuedAt,
     builder: (column) => ColumnOrderings(column),
@@ -26683,9 +28306,6 @@ class $$OutboxTableAnnotationComposer
 
   GeneratedColumn<String> get op =>
       $composableBuilder(column: $table.op, builder: (column) => column);
-
-  GeneratedColumn<String> get payload =>
-      $composableBuilder(column: $table.payload, builder: (column) => column);
 
   GeneratedColumn<DateTime> get enqueuedAt => $composableBuilder(
     column: $table.enqueuedAt,
@@ -26736,7 +28356,6 @@ class $$OutboxTableTableManager
                 Value<String> entityTable = const Value.absent(),
                 Value<String> rowId = const Value.absent(),
                 Value<String> op = const Value.absent(),
-                Value<String> payload = const Value.absent(),
                 Value<DateTime> enqueuedAt = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
@@ -26746,7 +28365,6 @@ class $$OutboxTableTableManager
                 entityTable: entityTable,
                 rowId: rowId,
                 op: op,
-                payload: payload,
                 enqueuedAt: enqueuedAt,
                 attempts: attempts,
                 lastError: lastError,
@@ -26758,7 +28376,6 @@ class $$OutboxTableTableManager
                 required String entityTable,
                 required String rowId,
                 required String op,
-                required String payload,
                 Value<DateTime> enqueuedAt = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
@@ -26768,7 +28385,6 @@ class $$OutboxTableTableManager
                 entityTable: entityTable,
                 rowId: rowId,
                 op: op,
-                payload: payload,
                 enqueuedAt: enqueuedAt,
                 attempts: attempts,
                 lastError: lastError,
@@ -26804,6 +28420,7 @@ typedef $$ShopProfilesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       required String name,
       Value<String?> phone,
       Value<String?> address,
@@ -26817,6 +28434,7 @@ typedef $$ShopProfilesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> dirty,
+      Value<String?> hlc,
       Value<String> name,
       Value<String?> phone,
       Value<String?> address,
@@ -26859,6 +28477,11 @@ class $$ShopProfilesTableFilterComposer
 
   ColumnFilters<bool> get dirty => $composableBuilder(
     column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -26917,6 +28540,11 @@ class $$ShopProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -26959,6 +28587,9 @@ class $$ShopProfilesTableAnnotationComposer
 
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -27007,6 +28638,7 @@ class $$ShopProfilesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -27018,6 +28650,7 @@ class $$ShopProfilesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,
@@ -27031,6 +28664,7 @@ class $$ShopProfilesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
                 required String name,
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
@@ -27042,6 +28676,7 @@ class $$ShopProfilesTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 dirty: dirty,
+                hlc: hlc,
                 name: name,
                 phone: phone,
                 address: address,

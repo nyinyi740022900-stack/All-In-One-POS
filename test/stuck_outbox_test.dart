@@ -36,7 +36,6 @@ void main() {
             entityTable: 'products',
             rowId: 'p1',
             op: 'upsert',
-            payload: '{}',
             attempts: Value(attempts),
             lastError: Value(lastError),
             quarantined: Value(quarantined),

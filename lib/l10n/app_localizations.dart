@@ -410,6 +410,18 @@ abstract class AppLocalizations {
   /// **'Plug in a USB scanner or pair a Bluetooth scanner in system settings, then scan. Keep this screen open.'**
   String get scanHardwareOnlyHint;
 
+  /// No description provided for @scanDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get scanDone;
+
+  /// No description provided for @scanContinuousHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan as many items as you like — each one is added to the cart. Tap Done when finished.'**
+  String get scanContinuousHint;
+
   /// No description provided for @scannerSettings.
   ///
   /// In en, this message translates to:
@@ -475,6 +487,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Amount paid is less than total.'**
   String get sellInsufficientPaid;
+
+  /// No description provided for @sellHoldSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold sale'**
+  String get sellHoldSale;
+
+  /// No description provided for @sellCartHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart held'**
+  String get sellCartHeld;
+
+  /// No description provided for @sellHeldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Held sales'**
+  String get sellHeldTitle;
+
+  /// No description provided for @sellHeldEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No held sales.'**
+  String get sellHeldEmpty;
+
+  /// No description provided for @sellHeldRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Held sale removed'**
+  String get sellHeldRemoved;
+
+  /// No description provided for @sellAutoHeldPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous cart held'**
+  String get sellAutoHeldPrevious;
 
   /// No description provided for @paymentCash.
   ///
@@ -577,6 +625,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Once closed, this count is final — the session and its variance can\'t be edited afterward.'**
   String get cashCloseWarning;
+
+  /// No description provided for @cashAmountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount first.'**
+  String get cashAmountRequired;
 
   /// No description provided for @cashVariance.
   ///
@@ -721,6 +775,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{tier} pricing applied to this sale'**
   String checkoutTierPricingApplied(String tier);
+
+  /// No description provided for @checkoutItemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} item} other{{count} items}}'**
+  String checkoutItemsCount(int count);
+
+  /// No description provided for @checkoutShortfallCreditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The shortfall will be recorded as credit — a customer name is required.'**
+  String get checkoutShortfallCreditHint;
+
+  /// No description provided for @checkoutDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get checkoutDone;
+
+  /// No description provided for @checkoutOwnerPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner PIN'**
+  String get checkoutOwnerPinTitle;
+
+  /// No description provided for @checkoutOwnerPinExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Discounts are owner-only. Enter the owner PIN to unlock them for this sale.'**
+  String get checkoutOwnerPinExplain;
+
+  /// No description provided for @checkoutOwnerPinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN.'**
+  String get checkoutOwnerPinWrong;
 
   /// No description provided for @creditCustomerRequired.
   ///
@@ -2017,6 +2107,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reprint'**
   String get invoiceReprint;
+
+  /// No description provided for @invoiceShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share invoice'**
+  String get invoiceShare;
 
   /// No description provided for @invoiceDetail.
   ///
@@ -5537,8 +5633,14 @@ abstract class AppLocalizations {
   /// No description provided for @onboardStaffBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re in Owner mode — full access. Handing the phone to an employee? Go to Settings → Owner Tools → Switch to Staff. Staff mode only shows Sell and Orders; a PIN is needed to switch back to Owner. This same PIN also confirms who\'s opening the shop each day.'**
+  /// **'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.'**
   String get onboardStaffBody;
+
+  /// No description provided for @onboardAccountMissingFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the required fields first.'**
+  String get onboardAccountMissingFields;
 
   /// No description provided for @accountShopLoginTitle.
   ///

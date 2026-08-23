@@ -2,6 +2,7 @@
 // unit-testable. The repository fetches rows from Drift and feeds them here.
 
 typedef SaleRow = ({
+  String id,
   int total,
   int paid,
   String paymentMethod,
@@ -105,6 +106,12 @@ AnalyticsSummary computeAnalytics({
   required DateTime end,
   int expenses = 0,
   int topN = 5,
+
+  /// Remaining owed per sale id AFTER repayments are allocated (the same
+  /// FIFO map the Credit book uses — CreditRepository.owedBySale). When
+  /// supplied, a repaid credit sale no longer counts as outstanding and its
+  /// money counts as collected. Absent entries fall back to raw total − paid.
+  Map<String, int> creditOwedBySaleId = const {},
 }) {
   var revenue = 0;
   var discount = 0;
@@ -116,7 +123,10 @@ AnalyticsSummary computeAnalytics({
     revenue += s.total;
     discount += s.discount;
     if (!s.isRefund) salesCount += 1;
-    final owed = s.total - s.paid;
+    // Repayment-aware (fix for the Analytics-vs-Credit-book mismatch): use
+    // the FIFO allocation when the map knows this sale, else raw difference.
+    final override = creditOwedBySaleId[s.id];
+    final owed = override ?? (s.total - s.paid);
     if (owed > 0) {
       creditSales += 1;
       creditOutstanding += owed;

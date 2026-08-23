@@ -61,11 +61,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) async => m.createAll(),
+    onCreate: (m) async {
+      await m.createAll();
+      await _ensureRefundUniqueIndex(m);
+    },
     onUpgrade: (m, from, to) async {
       // v2: credit book — repayments against customer credit.
       if (from < 2) {
@@ -247,8 +250,79 @@ class AppDatabase extends _$AppDatabase {
       if (from < 29) {
         await m.createTable(shopProfiles);
       }
+      // v30: drop outbox.payload — a snapshot "at enqueue time" that no
+      // reader ever used (the push path re-serializes the CURRENT local row
+      // so retries carry latest state, and reconciliation compares live
+      // timestamps). Dead weight in every row of the hottest local table.
+      if (from < 30) {
+        await m.database.customStatement(
+          'ALTER TABLE outbox DROP COLUMN payload',
+        );
+      }
+      // v31: hybrid logical clock stamp on every synced table (audit H2
+      // residual) — nullable, minted lazily by the sync engine at push
+      // time; see lib/data/sync/hlc.dart.
+      if (from < 31) {
+        await _safeAddColumn(m, categories, categories.hlc);
+        await _safeAddColumn(m, products, products.hlc);
+        await _safeAddColumn(m, stockLevels, stockLevels.hlc);
+        await _safeAddColumn(m, stockMovements, stockMovements.hlc);
+        await _safeAddColumn(m, sales, sales.hlc);
+        await _safeAddColumn(m, saleItems, saleItems.hlc);
+        await _safeAddColumn(m, payments, payments.hlc);
+        await _safeAddColumn(m, licensePayments, licensePayments.hlc);
+        await _safeAddColumn(m, creditPayments, creditPayments.hlc);
+        await _safeAddColumn(m, orders, orders.hlc);
+        await _safeAddColumn(m, orderItems, orderItems.hlc);
+        await _safeAddColumn(m, staffMembers, staffMembers.hlc);
+        await _safeAddColumn(m, customers, customers.hlc);
+        await _safeAddColumn(m, expenses, expenses.hlc);
+        await _safeAddColumn(m, cashSessions, cashSessions.hlc);
+        await _safeAddColumn(m, deviceLabels, deviceLabels.hlc);
+        await _safeAddColumn(m, recurringExpenses, recurringExpenses.hlc);
+        await _safeAddColumn(m, suppliers, suppliers.hlc);
+        await _safeAddColumn(m, purchaseOrders, purchaseOrders.hlc);
+        await _safeAddColumn(m, purchaseOrderItems, purchaseOrderItems.hlc);
+        await _safeAddColumn(m, paymentAccounts, paymentAccounts.hlc);
+        await _safeAddColumn(m, supplierPayments, supplierPayments.hlc);
+        await _safeAddColumn(m, equityEntries, equityEntries.hlc);
+        await _safeAddColumn(m, shopProfiles, shopProfiles.hlc);
+      }
+      // v32: a sale can only be refunded once — enforced by a partial
+      // UNIQUE index (audit H-1). Until now the rule lived only in app code;
+      // two devices refunding the same sale offline double-restored stock
+      // and double-reversed cash on sync. Mirrors remote migration 0067.
+      if (from < 32) {
+        await _ensureRefundUniqueIndex(m);
+      }
     },
   );
+
+  /// Backstops `SalesRepository.refundSale`'s in-transaction guard: at most
+  /// one non-null `refund_of_sale_id` per (shop, original sale). Any
+  /// historical duplicates (the pre-index bug) are soft-deleted first,
+  /// keeping the earliest refund as the canonical reversal, so index
+  /// creation can't fail on legacy data.
+  Future<void> _ensureRefundUniqueIndex(Migrator m) async {
+    await m.database.customStatement('''
+      UPDATE sales SET is_deleted = 1
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY shop_id, refund_of_sale_id
+            ORDER BY finalized_at ASC, id ASC
+          ) AS rn
+          FROM sales
+          WHERE refund_of_sale_id IS NOT NULL
+        ) WHERE rn > 1
+      )
+    ''');
+    await m.database.customStatement(
+      'CREATE UNIQUE INDEX IF NOT EXISTS sales_refund_once '
+      'ON sales (shop_id, refund_of_sale_id) '
+      'WHERE refund_of_sale_id IS NOT NULL',
+    );
+  }
 
   Future<void> _safeAddColumn(
     Migrator m,
@@ -307,7 +381,10 @@ class AppDatabase extends _$AppDatabase {
       await delete(shopProfiles).go();
       await (delete(
         appSettings,
-      )..where((s) => s.key.like('sync.cursor.%'))).go();
+      )..where((s) =>
+          s.key.like('sync.cursor.%') |
+          s.key.like('sync.rcursor.%') |
+          s.key.like('sync.hlc.%'))).go();
       // `staffMembers` (this shop's roster) is wiped above, but which one
       // was "active" is a separate device-local flag (SettingsRepository's
       // `staff.active_id`) that otherwise survives a shop switch and would

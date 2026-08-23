@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/search_debounce.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/sales_repository.dart';
 import '../../domain/product_with_stock.dart';
@@ -38,6 +39,14 @@ final refundOfProvider =
 final sellSearchProvider = StateProvider<String>((ref) => '');
 final sellCategoryProvider = StateProvider<String?>((ref) => null);
 
+/// The query the EXPENSIVE listeners (grid filter, category counts) consume
+/// — settles [kSearchDebounce] after typing pauses so a burst of keystrokes
+/// refilters the catalogue once, not once per character (audit H1). The
+/// text field itself and the empty-state label keep watching
+/// [sellSearchProvider] for same-keystroke response.
+final debouncedSellSearchProvider =
+    debouncedSearchProvider(sellSearchProvider);
+
 /// Shared by [sellProductsProvider] and [sellCategoryCountsProvider] so the
 /// chip counts can never disagree with the grid they describe.
 bool _matchesSellQuery(Product prod, String q) {
@@ -51,7 +60,7 @@ bool _matchesSellQuery(Product prod, String q) {
 /// (name / sku / barcode) and selected category.
 final sellProductsProvider = Provider<List<ProductWithStock>>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
-  final q = ref.watch(sellSearchProvider).trim().toLowerCase();
+  final q = ref.watch(debouncedSellSearchProvider).trim().toLowerCase();
   final categoryId = ref.watch(sellCategoryProvider);
 
   return all.where((p) {
@@ -68,7 +77,7 @@ final sellProductsProvider = Provider<List<ProductWithStock>>((ref) {
 /// actually change.
 final sellCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
-  final q = ref.watch(sellSearchProvider).trim().toLowerCase();
+  final q = ref.watch(debouncedSellSearchProvider).trim().toLowerCase();
   final counts = <String?, int>{};
   var total = 0;
   for (final p in all) {

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/layout.dart';
 import '../../core/money.dart';
+import '../../core/search_debounce.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
@@ -21,6 +22,14 @@ final invoiceFilterProvider = StateProvider<InvoiceFilter>(
   (ref) => InvoiceFilter.all,
 );
 final invoiceSearchProvider = StateProvider<String>((ref) => '');
+
+/// The query the ledger list consumes — settles [kSearchDebounce] after
+/// typing pauses, so a burst of keystrokes refilters the WHOLE sales table
+/// (and rebuilds the day groups) once instead of once per character
+/// (audit H1). The text field and scan-to-search keep writing to
+/// [invoiceSearchProvider]; only this expensive read is debounced.
+final debouncedInvoiceSearchProvider =
+    debouncedSearchProvider(invoiceSearchProvider);
 
 class InvoicesScreen extends ConsumerStatefulWidget {
   const InvoicesScreen({super.key, this.embedded = false});
@@ -52,7 +61,8 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     final l = AppLocalizations.of(context);
     final sales = ref.watch(salesStreamProvider);
     final filter = ref.watch(invoiceFilterProvider);
-    final query = ref.watch(invoiceSearchProvider).trim().toLowerCase();
+    final query =
+        ref.watch(debouncedInvoiceSearchProvider).trim().toLowerCase();
     final owedBySale = ref.watch(creditOwedBySaleProvider);
     final currency = l.currencySymbol;
     final split = isMediumPlus(context);
@@ -86,6 +96,25 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
             if (mounted) setState(() => _selectedSaleId = null);
           });
         }
+
+        // Day sections over the *filtered* list — "yesterday's takings" is
+        // answered by scrolling to one header instead of mentally summing a
+        // flat ledger. The stream arrives newest-first, so consecutive runs
+        // of the same calendar day are exactly the groups.
+        final days = <_DayGroup>[];
+        for (final s in list) {
+          final f = s.finalizedAt;
+          final day = DateTime(f.year, f.month, f.day);
+          if (days.isEmpty || days.last.day != day) {
+            days.add(_DayGroup(day));
+          }
+          days.last
+            ..sales.add(s)
+            ..total += s.total;
+        }
+        final rows = <Object>[
+          for (final d in days) ...[d, ...d.sales],
+        ];
 
         void openSale(Sale s) {
           if (split) {
@@ -133,16 +162,56 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
               ),
             ),
             Expanded(
-              child: list.isEmpty
+              child: rows.isEmpty
                   ? EmptyStateView(
                       icon: Icons.receipt_long_outlined,
                       title: l.invoicesEmpty,
                     )
                   : ListView.separated(
-                      itemCount: list.length,
+                      itemCount: rows.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) {
-                        final s = list[i];
+                        final row = rows[i];
+                        if (row is _DayGroup) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppTheme.space4,
+                              AppTheme.space3,
+                              AppTheme.space4,
+                              AppTheme.space1,
+                            ),
+                            child: Row(
+                              children: [
+                                // Flexes so a long figure beside it can
+                                // never push the date off-tile; the total
+                                // itself must never ellipsize.
+                                Expanded(
+                                  child: Text(
+                                    DateFormat('dd/MM/yyyy').format(row.day),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          fontFeatures:
+                                              AppTheme.tabularFigures,
+                                        ),
+                                  ),
+                                ),
+                                MoneyText(
+                                  Money(row.total).withSymbol(currency),
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                  emphasis: true,
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        final s = row as Sale;
                         final owed = owedOf(s);
                         final isCredit = owed > 0;
                         final isRefund = s.refundOfSaleId != null;
@@ -154,18 +223,37 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                         ].join(' · ');
                         final selected = split && s.id == _selectedSaleId;
                         return ListTile(
+                          // Stable per-sale key (audit Low): day groups shift
+                          // as new sales land — match by identity, not
+                          // position.
+                          key: ValueKey('sale-${s.id}'),
                           selected: selected,
                           selectedTileColor: Theme.of(
                             context,
                           ).colorScheme.secondaryContainer,
                           title: Row(
                             children: [
-                              Flexible(child: Text(s.invoiceNo)),
+                              // Expanded, not loose-Flexible: on a narrow
+                              // device at large text scale the trailing
+                              // totals squeeze this row hard, and an
+                              // unconstrained pill + unflexed number
+                              // overflowed it in testing. The invoice no
+                              // ellipsizes; the pill's own label wraps to
+                              // two lines when it has to.
+                              Expanded(
+                                child: Text(
+                                  s.invoiceNo,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               if (isRefund) ...[
                                 const SizedBox(width: AppTheme.space2),
-                                StatusPill(
-                                  label: l.invoiceRefunded,
-                                  tone: StatusTone.critical,
+                                Flexible(
+                                  child: StatusPill(
+                                    label: l.invoiceRefunded,
+                                    tone: StatusTone.critical,
+                                  ),
                                 ),
                               ] else if (isCredit) ...[
                                 const SizedBox(width: AppTheme.space2),
@@ -175,9 +263,11 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                 // routine follow-up (attention), not an
                                 // error (the old badge painted it
                                 // `colorScheme.error` red).
-                                StatusPill(
-                                  label: l.paymentCredit,
-                                  tone: StatusTone.attention,
+                                Flexible(
+                                  child: StatusPill(
+                                    label: l.paymentCredit,
+                                    tone: StatusTone.attention,
+                                  ),
                                 ),
                               ],
                             ],
@@ -205,9 +295,13 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.error,
+                                        // Same fact as the attention-tone
+                                        // credit pill on the left — money
+                                        // still to collect, routine
+                                        // follow-up, not an error. The two
+                                        // marks must agree.
+                                        color:
+                                            AppColors.of(context).warning,
                                       ),
                                 ),
                             ],
@@ -269,6 +363,15 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
       ),
     );
   }
+}
+
+/// One calendar day's slice of the ledger — a section header row (date +
+/// that day's net total) plus the sales under it.
+class _DayGroup {
+  _DayGroup(this.day);
+  final DateTime day;
+  final List<Sale> sales = [];
+  int total = 0;
 }
 
 class _InvoiceSearchField extends ConsumerStatefulWidget {

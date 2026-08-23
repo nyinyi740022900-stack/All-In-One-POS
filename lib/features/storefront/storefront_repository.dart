@@ -207,7 +207,7 @@ class StorefrontRepository {
   /// Uploads a logo image to the shared public product-images bucket and
   /// returns its public URL.
   Future<String> uploadLogo(List<int> bytes, String ext) async {
-    final c = compressImage(Uint8List.fromList(bytes), fallbackExt: ext);
+    final c = await compressImage(Uint8List.fromList(bytes), fallbackExt: ext);
     final path =
         'logo-$_shopId-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
     final storage = _c.storage.from('product-images');

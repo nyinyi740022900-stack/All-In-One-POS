@@ -9,12 +9,14 @@ void main() {
 
   // A fully-paid cash sale by default; override for credit cases.
   SaleRow sale(int total,
-          {int? paid,
+          {String id = 'sale',
+          int? paid,
           String method = 'cash',
           int discount = 0,
           DateTime? at,
           bool isRefund = false}) =>
       (
+        id: id,
         total: total,
         paid: paid ?? total,
         paymentMethod: method,
@@ -197,4 +199,59 @@ void main() {
     expect(s.revenue, 0); // fully netted out
     expect(s.salesCount, 1); // the refund row itself isn't counted as a sale
   });
+
+  test('creditOutstanding/collected respect FIFO repayment allocation '
+      '(regression: a fully-repaid credit sale kept showing as outstanding '
+      'in Analytics while the Credit book correctly showed 0)', () {
+    final s = computeAnalytics(
+      sales: [
+        sale(1900, paid: 0, method: 'credit', id: 'c1', at: d1),
+        sale(1000, at: d2),
+      ],
+      items: const [],
+      productCost: const {},
+      stockValue: 0,
+      start: DateTime(2026, 7, 1),
+      end: DateTime(2026, 8, 1),
+    );
+    // Without the allocation map, raw LWW behaviour applies.
+    expect(s.creditOutstanding, 1900);
+    expect(s.collected, 1000);
+
+    // Fully repaid via the Credit book → no longer outstanding, money
+    // counts as collected (matches what the Credit book shows).
+    final repaid = computeAnalytics(
+      sales: [
+        sale(1900, paid: 0, method: 'credit', id: 'c1', at: d1),
+        sale(1000, at: d2),
+      ],
+      items: const [],
+      productCost: const {},
+      stockValue: 0,
+      start: DateTime(2026, 7, 1),
+      end: DateTime(2026, 8, 1),
+      creditOwedBySaleId: const {'c1': 0},
+    );
+    expect(repaid.creditOutstanding, 0);
+    expect(repaid.collected, 2900);
+
+    // Partially repaid (500 of 1900) → only the remainder is outstanding.
+    final partial = computeAnalytics(
+      sales: [
+        sale(1900, paid: 0, method: 'credit', id: 'c1', at: d1),
+        sale(1000, at: d2),
+      ],
+      items: const [],
+      productCost: const {},
+      stockValue: 0,
+      start: DateTime(2026, 7, 1),
+      end: DateTime(2026, 8, 1),
+      creditOwedBySaleId: const {'c1': 1400},
+    );
+    expect(partial.creditOutstanding, 1400);
+    // revenue(2900) − remaining outstanding(1400): the 500 repaid counts as
+    // collected because the full billed amount is in revenue.
+    expect(partial.collected, 1500);
+  });
+
 }

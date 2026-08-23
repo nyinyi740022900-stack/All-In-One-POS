@@ -40,6 +40,8 @@ jobs:
     name: flutter build windows
     runs-on: windows-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -100,3 +102,26 @@ jobs:
           path: dist/AllInOnePOS-windows
           if-no-files-found: error
           retention-days: 14
+
+      # Rolling "windows-latest" GitHub Release — gives the marketing site
+      # a permanent, no-login download URL that always points at the newest
+      # build, instead of an Actions artifact link that expires in 14 days
+      # and requires a GitHub session to fetch.
+      - name: Zip for release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: Compress-Archive -Path dist/AllInOnePOS-windows/* -DestinationPath dist/AllInOnePOS-windows.zip -Force
+
+      - name: Publish rolling Windows release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-latest
+          name: All In One POS — Windows (latest)
+          body: |
+            Automatically updated on every push to `main` that touches the app.
+            Built from commit ${{ github.sha }}.
+
+            Download **AllInOnePOS-windows.zip**, extract it, and run `AllInOnePOS.exe`.
+          files: dist/AllInOnePOS-windows.zip
+          make_latest: false
