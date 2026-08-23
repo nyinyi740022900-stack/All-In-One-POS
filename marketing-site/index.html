@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="icons.css" />
 </head>
 <body>
 
@@ -22,11 +23,13 @@
       <span>All In One POS</span>
     </a>
     <nav class="nav-links">
-      <a href="#features">ဝန်ဆောင်မှုများ</a>
-      <a href="#how">အသုံးပြုပုံ</a>
-      <a href="#download">ဒေါင်းလုပ်</a>
+      <a href="#features" data-i18n-en="Features">ဝန်ဆောင်မှုများ</a>
+      <a href="#plans" data-i18n-en="Pricing">ဈေးနှုန်း</a>
+      <a href="#how" data-i18n-en="How it works">အသုံးပြုပုံ</a>
+      <a href="#download" data-i18n-en="Download">ဒေါင်းလုပ်</a>
     </nav>
-    <a href="#download" class="btn btn-primary btn-sm">ယခုစတင်ပါ</a>
+    <button type="button" class="lang-toggle">English</button>
+    <a href="#download" class="btn btn-primary btn-sm" data-i18n-en="Get Started">ယခုစတင်ပါ</a>
   </div>
 </header>
 
@@ -46,24 +49,24 @@
     </div>
 
     <div class="hero-content reveal">
-      <p class="eyebrow eyebrow-on-photo">မြန်မာ့ ကုန်စုံဆိုင် • စတိုးဆိုင် • စားသောက်ဆိုင်များအတွက်</p>
-      <h1 class="on-photo">ဆိုင်တစ်ဆိုင်လုံးကို<br /><span class="text-accent">လက်ထဲထဲသို့</span></h1>
-      <p class="hero-sub on-photo-sub">
-        အင်တာနက်ရှိလည်း မရှိလည်း အရောင်းရပ်တန့်စရာမလိုတော့ပါ — ကုန်ပစ္စည်း၊ အရောင်း၊
+      <p class="eyebrow eyebrow-on-photo" data-i18n-en="For Myanmar grocery, retail &amp; F&amp;B shops">မြန်မာ့ ကုန်စုံဆိုင် • စတိုးဆိုင် • စားသောက်ဆိုင်များအတွက်</p>
+      <h1 class="on-photo" data-i18n-en="Manage your whole shop<br />with just one phone">ဆိုင်တစ်ဆိုင်လုံးကို<br /><span class="text-accent">ဖုန်းတစ်လုံးနဲ့ စီမံလိုက်ပါ</span></h1>
+      <p class="hero-sub on-photo-sub" data-i18n-en="Never stop selling, online or offline. Manage inventory, sales, invoices, finances, and profit, all in one app.">
+        အင်တာနက် ရှိသည်ဖြစ်စေ မရှိသည်ဖြစ်စေ အရောင်းရပ်ရန် မလိုတော့ပါ — ကုန်ပစ္စည်း၊ အရောင်း၊
         ပြေစာထုတ်ခြင်း၊ ငွေစာရင်းနှင့် အကျိုးအမြတ် အားလုံးကို App တစ်ခုတည်းနဲ့ ပိုင်နိုင်စွာ
         စီမံလိုက်ပါ။
       </p>
       <div class="hero-cta">
         <a href="#download" class="btn btn-primary btn-lg">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          ဒေါင်းလုပ်ဆွဲမည်
+          <span data-i18n-en="Download Now">ဒေါင်းလုပ်ဆွဲမည်</span>
         </a>
-        <a href="#how" class="btn btn-ghost btn-ghost-on-photo btn-lg">အသုံးပြုပုံ ကြည့်မည်</a>
+        <a href="#how" class="btn btn-ghost btn-ghost-on-photo btn-lg" data-i18n-en="See How It Works">အသုံးပြုပုံ ကြည့်မည်</a>
       </div>
       <div class="hero-trust hero-trust-on-photo">
-        <div class="trust-item"><strong>Offline-first</strong><span>အင်တာနက်မရှိလည်း အသုံးပြုနိုင်</span></div>
-        <div class="trust-item"><strong>မြန်မာ + English</strong><span>ဘာသာနှစ်မျိုး လုံးဝ ပြည့်စုံ</span></div>
-        <div class="trust-item"><strong>Cloud Sync</strong><span>ဆိုင်ခွဲများအတွက် Real-time ချိတ်ဆက်</span></div>
+        <div class="trust-item"><strong>Offline-first</strong><span data-i18n-en="Works without internet">အင်တာနက်မရှိလည်း အသုံးပြုနိုင်</span></div>
+        <div class="trust-item"><strong>မြန်မာ + English</strong><span data-i18n-en="Fully bilingual">ဘာသာနှစ်မျိုး လုံးဝ ပြည့်စုံ</span></div>
+        <div class="trust-item"><strong>Cloud Sync</strong><span data-i18n-en="Real-time sync across branches">ဆိုင်ခွဲများအတွက် Real-time ချိတ်ဆက်</span></div>
       </div>
     </div>
 
@@ -82,11 +85,11 @@
   <!-- LOGO STRIP -->
   <section class="strip">
     <div class="strip-inner reveal">
-      <span>ကုန်စုံဆိုင်</span><span>·</span>
-      <span>ကော်ဖီဆိုင် / ကဖေး</span><span>·</span>
-      <span>အထည်ဆိုင်</span><span>·</span>
-      <span>ဆေးဆိုင်</span><span>·</span>
-      <span>ဆိုင်ခွဲများ ရှိသော လုပ်ငန်း</span>
+      <span data-i18n-en="Grocery Stores">ကုန်စုံဆိုင်</span><span>·</span>
+      <span data-i18n-en="Coffee Shops / Caf&eacute;s">ကော်ဖီဆိုင် / ကဖေး</span><span>·</span>
+      <span data-i18n-en="Clothing Stores">အထည်ဆိုင်</span><span>·</span>
+      <span data-i18n-en="Pharmacies">ဆေးဆိုင်</span><span>·</span>
+      <span data-i18n-en="Multi-branch Businesses">ဆိုင်ခွဲများ ရှိသော လုပ်ငန်း</span>
     </div>
   </section>
 
@@ -95,9 +98,9 @@
        condensed icon strip for the rest. -->
   <section id="features" class="section showcase-section">
     <div class="section-head reveal">
-      <p class="eyebrow eyebrow-dark">ဝန်ဆောင်မှုများ</p>
-      <h2>ဆိုင်စီမံခန့်ခွဲမှု လိုအပ်သမျှ<br/>တစ်နေရာတည်းမှာ</h2>
-      <p class="section-sub">လက်ငင်းရောင်းချခြင်းမှသည် နှစ်ချုပ်စာရင်း ထုတ်ခြင်းအထိ — code မတတ်လည်း လွယ်ကူစွာ အသုံးပြုနိုင်အောင် ဒီဇိုင်းလုပ်ထားပါတယ်။</p>
+      <p class="eyebrow eyebrow-dark" data-i18n-en="Features">ဝန်ဆောင်မှုများ</p>
+      <h2 data-i18n-en="Everything your shop needs<br/>in one place">ဆိုင်စီမံခန့်ခွဲမှု လိုအပ်သမျှ<br/>တစ်နေရာတည်းမှာ</h2>
+      <p class="section-sub" data-i18n-en="From a quick sale to a year-end report, designed to be easy even without any coding experience.">လက်ငင်းရောင်းချခြင်းမှသည် နှစ်ချုပ်စာရင်း ထုတ်ခြင်းအထိ — code မတတ်လည်း လွယ်ကူစွာ အသုံးပြုနိုင်အောင် ဒီဇိုင်းလုပ်ထားပါတယ်။</p>
     </div>
 
     <div class="showcase-row reveal">
@@ -108,9 +111,9 @@
         </picture>
       </div>
       <div class="showcase-text">
-        <span class="showcase-num">၀၁</span>
-        <h3>အမြန်ရောင်းချခြင်း</h3>
-        <p>ကုန်ပစ္စည်း Grid ကနေ Cart ထဲထည့်၊ ငွေရှင်း — Cash, KBZPay, WavePay, AYAPay, CBPay အားလုံးလက်ခံ။ ပြေစာနံပါတ် အလိုအလျောက်ရိုက်ပေးတယ်။</p>
+        <span class="showcase-num" data-i18n-en="01">၀၁</span>
+        <h3 data-i18n-en="Fast Checkout">အမြန်ရောင်းချခြင်း</h3>
+        <p data-i18n-en="Tap a product to add it to the cart, then check out &mdash; Cash, KBZPay, WavePay, AYAPay, and CBPay all accepted. Invoice numbers are generated automatically.">ကုန်ပစ္စည်း Grid ကနေ Cart ထဲထည့်၊ ငွေရှင်း — Cash, KBZPay, WavePay, AYAPay, CBPay အားလုံးလက်ခံ။ ပြေစာနံပါတ် အလိုအလျောက်ရိုက်ပေးတယ်။</p>
       </div>
     </div>
 
@@ -122,9 +125,9 @@
         </picture>
       </div>
       <div class="showcase-text">
-        <span class="showcase-num">၀၂</span>
-        <h3>Bluetooth ပရင့်ထုတ်ခြင်း</h3>
-        <p>58/80mm Thermal Printer အားလုံးနှင့် တွဲသုံးလို့ရ — Font မရှိတဲ့ Printer တွေအတွက်တောင် မြန်မာစာ Raster ပုံနှိပ်စနစ်ပါ ထည့်ပေးထားပါတယ်။</p>
+        <span class="showcase-num" data-i18n-en="02">၀၂</span>
+        <h3 data-i18n-en="Bluetooth Printing">Bluetooth ပရင့်ထုတ်ခြင်း</h3>
+        <p data-i18n-en="Works with any 58/80mm thermal printer &mdash; a Myanmar-text raster fallback prints correctly even on printers with no Myanmar font.">58/80mm Thermal Printer အားလုံးနှင့် တွဲသုံးလို့ရ — Font မရှိတဲ့ Printer တွေအတွက်တောင် မြန်မာစာ Raster ပုံနှိပ်စနစ်ပါ ထည့်ပေးထားပါတယ်။</p>
       </div>
     </div>
 
@@ -136,27 +139,164 @@
         </picture>
       </div>
       <div class="showcase-text">
-        <span class="showcase-num">၀၃</span>
+        <span class="showcase-num" data-i18n-en="03">၀၃</span>
         <h3>Cloud Sync &amp; Analytics</h3>
-        <p>Offline မှာ အရောင်းဆက်လုပ်ပြီး အင်တာနက်ရသည်နှင့် အလိုအလျောက် Sync ဖြစ်သွားပါတယ် — ဆိုင်ခွဲများအားလုံးအတွက် စာရင်းချုပ်၊ ဝင်ငွေ၊ အမြတ်အစွန်းကို တစ်နေရာတည်းမှာ တွေ့နိုင်ပါတယ်။</p>
+        <p data-i18n-en="Keep selling offline &mdash; it syncs automatically once you are back online. See combined revenue and profit across every branch in one place.">Offline မှာ အရောင်းဆက်လုပ်ပြီး အင်တာနက်ရသည်နှင့် အလိုအလျောက် Sync ဖြစ်သွားပါတယ် — ဆိုင်ခွဲများအားလုံးအတွက် စာရင်းချုပ်၊ ဝင်ငွေ၊ အမြတ်အစွန်းကို တစ်နေရာတည်းမှာ တွေ့နိုင်ပါတယ်။</p>
       </div>
     </div>
 
     <div class="feature-grid feature-grid-compact">
       <div class="feature-card reveal">
         <div class="feature-icon" style="--i:1"><svg viewBox="0 0 24 24" fill="none"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Inventory စီမံခန့်ခွဲမှု</h3>
-        <p>Category, Barcode, Stock အနည်းဆုံးအဆင့် သတိပေးချက်များ — ကုန်ပစ္စည်း ကုန်ခန်းကို အချိန်နှင့်တပြေးညီ စောင့်ကြည့်နိုင်ပါတယ်။</p>
+        <h3 data-i18n-en="Inventory Management">Inventory စီမံခန့်ခွဲမှု</h3>
+        <p data-i18n-en="Categories, barcodes, low-stock alerts &mdash; track your stock room in real time.">Category, Barcode, Stock အနည်းဆုံးအဆင့် သတိပေးချက်များ — ကုန်ပစ္စည်း ကုန်ခန်းကို အချိန်နှင့်တပြေးညီ စောင့်ကြည့်နိုင်ပါတယ်။</p>
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon" style="--i:4"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5m0 14h16M8 15v-4m4 4V9m4 6v-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>အစီရင်ခံစာ</h3>
-        <p>နေ့စဉ်ဝင်ငွေ၊ အမြတ်အစွန်း၊ ရောင်းရဆုံးကုန်ပစ္စည်း စသည်တို့ကို Chart နှင့်အတူ Offline အခြေအနေမှာပင် ကြည့်ရှုနိုင်ပါတယ်။</p>
+        <h3 data-i18n-en="Reports">အစီရင်ခံစာ</h3>
+        <p data-i18n-en="See daily revenue, profit, and best-selling products with charts &mdash; even while offline.">နေ့စဉ်ဝင်ငွေ၊ အမြတ်အစွန်း၊ ရောင်းရဆုံးကုန်ပစ္စည်း စသည်တို့ကို Chart နှင့်အတူ Offline အခြေအနေမှာပင် ကြည့်ရှုနိုင်ပါတယ်။</p>
       </div>
       <div class="feature-card reveal">
-        <div class="feature-icon" style="--i:5"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 003-3V7a3 3 0 00-6 0v5a3 3 0 003 3zM19 11v1a7 7 0 01-14 0v-1M12 19v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="feature-icon" style="--i:5"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 012-2h13a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 11h4v3h-4a1.5 1.5 0 010-3z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h3>Credit Book &amp; Expenses</h3>
-        <p>ဖောက်သည်ချေးငွေစာရင်း၊ ဆိုင်ကုန်ကျစရိတ် (Expenses) များကို တစ်နေရာတည်းမှာ မှတ်တမ်းတင် စီမံနိုင်ပါတယ်။</p>
+        <p data-i18n-en="Track customer credit and shop expenses, all in one place.">ဖောက်သည်ချေးငွေစာရင်း၊ ဆိုင်ကုန်ကျစရိတ် (Expenses) များကို တစ်နေရာတည်းမှာ မှတ်တမ်းတင် စီမံနိုင်ပါတယ်။</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE HUB — every feature area, each with its own full step-by-step
+       tutorial page (real app screenshots). Icons are custom animated
+       SVGs (icons.css): a one-shot entrance on scroll-reveal plus a slow
+       continuous micro-loop hinting at what each feature does. -->
+  <section id="all-features" class="section section-tint hub-section">
+    <div class="section-head reveal">
+      <p class="eyebrow eyebrow-dark" data-i18n-en="Complete Guide">အပြည့်အစုံ လမ်းညွှန်</p>
+      <h2 data-i18n-en="A Detailed Tutorial<br/>for Every Feature">Feature တိုင်းအတွက်<br/>အသေးစိတ် Tutorial</h2>
+      <p class="section-sub" data-i18n-en="Step-by-step tutorial pages for every screen, with real app screenshots.">Screen တစ်ခုချင်းစီကို အဆင့်ဆင့် ရှင်းပြထားတဲ့ tutorial page များ — real app screenshot များနဲ့တကွ။</p>
+    </div>
+
+    <div class="hub-grid">
+      <a class="hub-card reveal" href="features/sell.html">
+        <div class="ficon ficon-sell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="icon-motion"><path d="M3 4h2l.6 3M6.6 7h13.8l-1.6 7H8.2M6.6 7L8.2 14M8.2 14l-.8 2h12"/><circle cx="10" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></g></svg></div>
+        <h3 data-i18n-en="Sell">ရောင်းချခြင်း</h3>
+        <p data-i18n-en="Cart, checkout, payments, hold sale">Cart, checkout, ငွေပေးချေမှု, Hold sale</p>
+      </a>
+      <a class="hub-card reveal" href="features/inventory.html">
+        <div class="ficon ficon-inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l8-4 8 4-8 4-8-4z"/><g class="icon-motion"><path d="M4 8v8l8 4M20 8v8l-8 4M12 12v8"/></g></svg></div>
+        <h3>Inventory</h3>
+        <p data-i18n-en="Products, stock, barcode, labels">ကုန်ပစ္စည်း, လက်ကျန်, Barcode, Label</p>
+      </a>
+      <a class="hub-card reveal" href="features/invoices.html">
+        <div class="ficon ficon-invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6V3z"/><g class="icon-motion"><path d="M9 8h6M9 12h6M9 16h4"/></g></svg></div>
+        <h3 data-i18n-en="Invoices">ပြေစာများ</h3>
+        <p data-i18n-en="Invoice list, reprint, refund, sales report">ပြေစာစာရင်း, Reprint, Refund, Sales report</p>
+      </a>
+      <a class="hub-card reveal" href="features/printing.html">
+        <div class="ficon ficon-printing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5M6 18H4a1 1 0 01-1-1v-5a1 1 0 011-1h16a1 1 0 011 1v5a1 1 0 01-1 1h-2"/><g class="icon-motion"><path d="M6 14h12v7H6v-7z"/></g></svg></div>
+        <h3 data-i18n-en="Printer Setup">ပရင်တာ ချိတ်ဆက်ခြင်း</h3>
+        <p>Bluetooth/Wi-Fi/USB, Test print, Label</p>
+      </a>
+      <a class="hub-card reveal" href="features/analytics.html">
+        <div class="ficon ficon-analytics"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect class="bar1" x="4" y="12" width="4" height="8" rx="1"/><rect class="bar2" x="10" y="7" width="4" height="13" rx="1"/><rect class="bar3" x="16" y="3" width="4" height="17" rx="1"/></svg></div>
+        <h3>Analytics &amp; P&amp;L</h3>
+        <p data-i18n-en="KPI, bar chart, top products, profit &amp; loss">KPI, Bar chart, Top products, အမြတ်-အရှုံး</p>
+      </a>
+      <a class="hub-card reveal" href="features/credit.html">
+        <div class="ficon ficon-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h13a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><g class="icon-motion"><path d="M15 11h4v3h-4a1.5 1.5 0 010-3z"/></g></svg></div>
+        <h3 data-i18n-en="Credit Book">အကြွေးစာရင်း</h3>
+        <p data-i18n-en="Credit book, repayments, customer credit">Credit book, Repayment, ဖောက်သည်ချေးငွေ</p>
+      </a>
+      <a class="hub-card reveal" href="features/expenses.html">
+        <div class="ficon ficon-expenses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l1 4-1 14-2-2-2 2-2-2-2 2-2-2-1-14 1-4z"/><g class="icon-motion"><path d="M9 10h6"/></g></svg></div>
+        <h3 data-i18n-en="Expenses">ကုန်ကျစရိတ်</h3>
+        <p>Expenses, Recurring template</p>
+      </a>
+      <a class="hub-card reveal" href="features/cash.html">
+        <div class="ficon ficon-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l2-4h16l2 4M4 8h16v11H4V8z"/><g class="icon-motion"><path d="M9 12h6"/></g></svg></div>
+        <h3 data-i18n-en="Cash Register">ငွေတိုက် (Cash Register)</h3>
+        <p>Open/Close register, Variance check</p>
+      </a>
+      <a class="hub-card reveal" href="features/customers.html">
+        <div class="ficon ficon-customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="icon-motion"><circle cx="12" cy="8" r="4"/></g><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+        <h3 data-i18n-en="Customers">ဖောက်သည်များ</h3>
+        <p>Customer directory, Tier pricing</p>
+      </a>
+      <a class="hub-card reveal" href="features/orders.html">
+        <div class="ficon ficon-orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4zM3 8v8l9 4 9-4V8M12 12v8"/><g class="icon-motion"><path d="M19 4h3M19 7h2"/></g></svg></div>
+        <h3 data-i18n-en="Orders">အော်ဒါများ</h3>
+        <p>Social order, Convert to sale</p>
+      </a>
+      <a class="hub-card reveal" href="features/accounts.html">
+        <div class="ficon ficon-accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><rect class="icon-shine" x="3" y="6" width="5" height="12" fill="#fff" stroke="none" opacity="0.55"/></svg></div>
+        <h3>Payment Accounts</h3>
+        <p>KBZPay/WavePay/AYAPay/CBPay balance</p>
+      </a>
+      <a class="hub-card reveal" href="features/equity.html">
+        <div class="ficon ficon-equity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M12 6L4 9m8-3l8 3M12 3v3"/><g class="icon-motion"><path d="M6 9l-3 6a3 3 0 006 0l-3-6zM18 9l-3 6a3 3 0 006 0l-3-6z"/></g><path d="M8 21h8M12 18v3"/></svg></div>
+        <h3>Owner Equity</h3>
+        <p>Capital, Drawing, Retained earnings</p>
+      </a>
+      <a class="hub-card reveal" href="features/backup.html">
+        <div class="ficon ficon-backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 01-1-7.9A5 5 0 0116 8a4 4 0 011 7.9"/><g class="icon-motion"><path d="M12 11v6M9 14l3-3 3 3"/></g></svg></div>
+        <h3>Backup &amp; Restore</h3>
+        <p data-i18n-en="JSON export/import, data recovery">JSON export/import, ဒေတာပြန်ယူခြင်း</p>
+      </a>
+      <a class="hub-card reveal" href="features/license.html">
+        <div class="ficon ficon-license"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/><path class="icon-check" d="M9 12l2 2 4-4"/></svg></div>
+        <h3>License</h3>
+        <p>Activate, Free trial, Renew</p>
+      </a>
+      <a class="hub-card reveal" href="features/branches.html">
+        <div class="ficon ficon-branches"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-5h14l1 5M4 9v9a1 1 0 001 1h4v-6h6v6h4a1 1 0 001-1V9M4 9h16"/></svg></div>
+        <h3 data-i18n-en="Branches">ဆိုင်ခွဲများ</h3>
+        <p>Multi-branch, Switch shop</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- FREE vs PREMIUM — Premium is a strict superset of Free; the card
+       shows it as "everything in Free, plus...". No price shown here since
+       it isn't finalized — the License page/website is the source of truth
+       for that once it exists. -->
+  <section id="plans" class="section">
+    <div class="section-head reveal">
+      <p class="eyebrow eyebrow-dark" data-i18n-en="Pricing">ဈေးနှုန်း</p>
+      <h2 data-i18n-en="Free and Premium&mdash;<br/>What&#8217;s the Difference?">Free နဲ့ Premium —<br/>ဘာတွေ ကွာသလဲ</h2>
+      <p class="section-sub" data-i18n-en="Run your day-to-day shop for free, forever. Upgrade when you want deeper financial insight or multiple branches.">နေ့စဉ်ဆိုင်လည်ပတ်ရေးကို အခမဲ့ အကန့်အသတ်မရှိ သုံးနိုင်ပါတယ်။ ငွေကြေးအနက်ရှိုင်းစွာ လေ့လာချင်ရင် (သို့) ဆိုင်ခွဲများရင် Premium ကို Upgrade လုပ်ပါ။</p>
+    </div>
+
+    <div class="plans-grid">
+      <div class="plan-card reveal">
+        <div class="plan-head">
+          <h3 data-i18n-en="Free">Free</h3>
+          <p class="plan-tag" data-i18n-en="Forever free, no card needed">အမြဲအခမဲ့ — Card မလို</p>
+        </div>
+        <ul class="plan-list">
+          <li data-i18n-en="Sell &mdash; full POS checkout, all payment methods">ရောင်းချခြင်း — POS checkout အပြည့်အစုံ၊ ငွေပေးချေမှုနည်းလမ်းအားလုံး</li>
+          <li data-i18n-en="Inventory &mdash; products, barcodes, labels">Inventory — ကုန်ပစ္စည်း၊ Barcode၊ Label</li>
+          <li data-i18n-en="Invoices &mdash; reprint, refund, sales report">ပြေစာများ — ပြန်ထုတ်၊ Refund၊ Sales report</li>
+          <li data-i18n-en="Printer setup &mdash; Bluetooth/Wi-Fi/USB">ပရင်တာ ချိတ်ဆက်ခြင်း — Bluetooth/Wi-Fi/USB</li>
+          <li data-i18n-en="Credit Book &amp; Expenses">အကြွေးစာရင်းနှင့် ကုန်ကျစရိတ်</li>
+          <li data-i18n-en="Cash Register with variance check">ငွေတိုက် (Cash Register) — Variance check ပါ</li>
+          <li data-i18n-en="Customers &amp; Orders (social orders included)">ဖောက်သည်များနှင့် အော်ဒါများ (Social Order ပါ)</li>
+          <li data-i18n-en="Backup &amp; Restore (local JSON)">Backup &amp; Restore (Local JSON)</li>
+          <li data-i18n-en="Free 2-month trial on activation">Activate လုပ်လျှင် 2 လ အခမဲ့ Trial</li>
+        </ul>
+      </div>
+
+      <div class="plan-card plan-card-premium reveal">
+        <div class="plan-ribbon" data-i18n-en="Premium">Premium</div>
+        <div class="plan-head">
+          <h3 data-i18n-en="Premium">Premium</h3>
+          <p class="plan-tag" data-i18n-en="Everything in Free, plus:">Free ပါ အရာအားလုံး + အောက်ပါများ</p>
+        </div>
+        <ul class="plan-list">
+          <li data-i18n-en="Analytics &amp; P&amp;L &mdash; revenue, profit, best sellers, profit &amp; loss statement">Analytics &amp; P&amp;L — ဝင်ငွေ၊ အမြတ်၊ အရောင်းရဆုံးပစ္စည်း၊ အမြတ်-အရှုံးစာရင်း</li>
+          <li data-i18n-en="Payment Accounts &mdash; KBZPay/WavePay/AYAPay/CBPay balance tracking">Payment Accounts — KBZPay/WavePay/AYAPay/CBPay လက်ကျန် ခြေရာခံခြင်း</li>
+          <li data-i18n-en="Owner Equity &mdash; capital, drawings, retained earnings">Owner Equity — အရင်းအနှီး၊ ထုတ်ယူငွေ၊ Retained Earnings</li>
+          <li data-i18n-en="Branches &mdash; multi-branch management with cloud sync">ဆိုင်ခွဲများ — Cloud Sync ပါသော Multi-branch စီမံခန့်ခွဲမှု</li>
+        </ul>
+        <a href="features/license.html" class="plan-link" data-i18n-en="See how to upgrade &rarr;">Upgrade လုပ်နည်း ကြည့်ရန် →</a>
       </div>
     </div>
   </section>
@@ -164,40 +304,40 @@
   <!-- HOW IT WORKS -->
   <section id="how" class="section section-tint">
     <div class="section-head reveal">
-      <p class="eyebrow eyebrow-dark">အသုံးပြုပုံ</p>
-      <h2>မိနစ်အနည်းငယ်အတွင်း<br/>စတင်နိုင်ပါပြီ</h2>
-      <p class="section-sub">Setup ရှုပ်ထွေးမှုမရှိပါ — Download ချပြီး လိုက်လုပ်ရုံပါပဲ။</p>
+      <p class="eyebrow eyebrow-dark" data-i18n-en="How It Works">အသုံးပြုပုံ</p>
+      <h2 data-i18n-en="Get Started in<br/>Just a Few Minutes">မိနစ်အနည်းငယ်အတွင်း<br/>စတင်နိုင်ပါပြီ</h2>
+      <p class="section-sub" data-i18n-en="No complicated setup, just download and follow along.">Setup ရှုပ်ထွေးမှုမရှိပါ — Download ချပြီး လိုက်လုပ်ရုံပါပဲ။</p>
     </div>
 
     <div class="steps">
       <div class="steps-line" aria-hidden="true"></div>
 
       <div class="step reveal">
-        <div class="step-num">၁</div>
+        <div class="step-num" data-i18n-en="1">၁</div>
         <div class="step-body">
-          <h3>App ကို ဒေါင်းလုပ်ဆွဲပါ</h3>
-          <p>ဖုန်း (Android/iOS) သို့မဟုတ် Windows Computer အတွက် အောက်က Download ကဏ္ဍမှာ ဆွဲယူပါ။</p>
+          <h3 data-i18n-en="Download the App">App ကို ဒေါင်းလုပ်ဆွဲပါ</h3>
+          <p data-i18n-en="Get it for your phone (Android/iOS) or Windows computer from the Download section below.">ဖုန်း (Android/iOS) သို့မဟုတ် Windows Computer အတွက် အောက်က Download ကဏ္ဍမှာ ဆွဲယူပါ။</p>
         </div>
       </div>
       <div class="step reveal">
-        <div class="step-num">၂</div>
+        <div class="step-num" data-i18n-en="2">၂</div>
         <div class="step-body">
-          <h3>ဆိုင်အချက်အလက် ထည့်ပါ</h3>
-          <p>ဆိုင်နာမည်၊ ကုန်ပစ္စည်းစာရင်း ထည့်ပါ — Excel ကနေ Import လုပ်လည်း ရပါတယ်။ 2 လ အခမဲ့ စမ်းသပ်ကာလ ရရှိပါမယ်။</p>
+          <h3 data-i18n-en="Set Up Your Shop">ဆိုင်အချက်အလက် ထည့်ပါ</h3>
+          <p data-i18n-en="Add your shop name and product list &mdash; you can also import from Excel. You will get a free 2-month trial.">ဆိုင်နာမည်၊ ကုန်ပစ္စည်းစာရင်း ထည့်ပါ — Excel ကနေ Import လုပ်လည်း ရပါတယ်။ 2 လ အခမဲ့ စမ်းသပ်ကာလ ရရှိပါမယ်။</p>
         </div>
       </div>
       <div class="step reveal">
-        <div class="step-num">၃</div>
+        <div class="step-num" data-i18n-en="3">၃</div>
         <div class="step-body">
-          <h3>ရောင်းချစတင်ပါ</h3>
-          <p>အင်တာနက်ရှိလည်း မရှိလည်း ဆက်လက်ရောင်းချနိုင်ပါတယ် — ပြေစာကို ပရင့်ထုတ် (သို့) ဓာတ်ပုံအဖြစ် ပို့ပေးနိုင်ပါတယ်။</p>
+          <h3 data-i18n-en="Start Selling">ရောင်းချစတင်ပါ</h3>
+          <p data-i18n-en="Keep selling with or without internet &mdash; print the receipt or share it as a photo.">အင်တာနက်ရှိလည်း မရှိလည်း ဆက်လက်ရောင်းချနိုင်ပါတယ် — ပြေစာကို ပရင့်ထုတ် (သို့) ဓာတ်ပုံအဖြစ် ပို့ပေးနိုင်ပါတယ်။</p>
         </div>
       </div>
       <div class="step reveal">
-        <div class="step-num">၄</div>
+        <div class="step-num" data-i18n-en="4">၄</div>
         <div class="step-body">
-          <h3>အစီရင်ခံစာ ကြည့်ရှုပါ</h3>
-          <p>ဝင်ငွေ၊ အမြတ်၊ ကုန်ပစ္စည်း အခြေအနေများကို Analytics စာမျက်နှာမှာ တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်ပါတယ်။</p>
+          <h3 data-i18n-en="Check Your Reports">အစီရင်ခံစာ ကြည့်ရှုပါ</h3>
+          <p data-i18n-en="See revenue, profit, and stock status at a glance on the Analytics page.">ဝင်ငွေ၊ အမြတ်၊ ကုန်ပစ္စည်း အခြေအနေများကို Analytics စာမျက်နှာမှာ တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်ပါတယ်။</p>
         </div>
       </div>
     </div>
@@ -215,9 +355,9 @@
     </div>
 
     <div class="section-head reveal">
-      <p class="eyebrow eyebrow-on-photo">ဒေါင်းလုပ်</p>
-      <h2 class="on-photo">ယနေ့ပင် စတင်လိုက်ပါ</h2>
-      <p class="section-sub on-photo-sub">Device မည်သည့်ပလက်ဖောင်းပေါ်တွင်မဆို All In One POS ကို အသုံးပြုနိုင်ပါတယ်။</p>
+      <p class="eyebrow eyebrow-on-photo" data-i18n-en="Download">ဒေါင်းလုပ်</p>
+      <h2 class="on-photo" data-i18n-en="Get Started Today">ယနေ့ပင် စတင်လိုက်ပါ</h2>
+      <p class="section-sub on-photo-sub" data-i18n-en="Use All In One POS on any device, any platform.">Device မည်သည့်ပလက်ဖောင်းပေါ်တွင်မဆို All In One POS ကို အသုံးပြုနိုင်ပါတယ်။</p>
     </div>
 
     <div class="download-grid">
@@ -226,11 +366,11 @@
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
         <h3>Windows</h3>
-        <p>Computer / Laptop အတွက် — Zip ဖိုင်ကို Extract လုပ်ပြီး AllInOnePOS.exe ကို ဖွင့်ရုံပါပဲ။</p>
+        <p data-i18n-en="For Computer / Laptop &mdash; extract the zip file and just open AllInOnePOS.exe.">Computer / Laptop အတွက် — Zip ဖိုင်ကို Extract လုပ်ပြီး AllInOnePOS.exe ကို ဖွင့်ရုံပါပဲ။</p>
         <a class="btn btn-primary btn-block" href="https://github.com/nyinyi740022900-stack/goldposmm/releases/download/windows-latest/AllInOnePOS-windows.zip">
-          Windows အတွက် ဒေါင်းလုပ်ဆွဲမည်
+          <span data-i18n-en="Download for Windows">Windows အတွက် ဒေါင်းလုပ်ဆွဲမည်</span>
         </a>
-        <span class="dl-note dl-note-on-photo">.zip ဖိုင် • နောက်ဆုံးထုတ်ဗားရှင်း အလိုအလျောက် အသစ်ပြောင်းပေးသည်</span>
+        <span class="dl-note dl-note-on-photo" data-i18n-en=".zip file &bull; always the latest version, updated automatically">.zip ဖိုင် • နောက်ဆုံးထုတ်ဗားရှင်း အလိုအလျောက် အသစ်ပြောင်းပေးသည်</span>
       </div>
 
       <div class="download-card download-card-glass reveal">
@@ -238,9 +378,9 @@
           <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="2" width="12" height="20" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M11 19h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
         <h3>iOS</h3>
-        <p>iPhone / iPad အတွက် App Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
-        <span class="badge-soon">မကြာမီ လာမည်</span>
-        <span class="dl-note dl-note-on-photo">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
+        <p data-i18n-en="Preparing to launch on the App Store for iPhone / iPad.">iPhone / iPad အတွက် App Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
+        <span class="badge-soon" data-i18n-en="Coming Soon">မကြာမီ လာမည်</span>
+        <span class="dl-note dl-note-on-photo" data-i18n-en="Contact Support now for early access">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
       </div>
 
       <div class="download-card download-card-glass reveal">
@@ -248,9 +388,9 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2 3M8 5l2-3M4 9a8 8 0 1116 0v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h.01M16 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
         <h3>Android</h3>
-        <p>Android ဖုန်း / Tablet အတွက် Play Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
-        <span class="badge-soon">မကြာမီ လာမည်</span>
-        <span class="dl-note dl-note-on-photo">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
+        <p data-i18n-en="Preparing to launch on the Play Store for Android phone / tablet.">Android ဖုန်း / Tablet အတွက် Play Store ထုတ်ဝေရန် ပြင်ဆင်နေပါသည်။</p>
+        <span class="badge-soon" data-i18n-en="Coming Soon">မကြာမီ လာမည်</span>
+        <span class="dl-note dl-note-on-photo" data-i18n-en="Contact Support now for early access">အခုအချိန်တွင် Support ကို ဆက်သွယ်ပါက သီးသန့် Access ရနိုင်ပါသည်</span>
       </div>
     </div>
   </section>
@@ -263,9 +403,9 @@
       <img src="assets/app_mark.png" alt="All In One POS" class="brand-mark" />
       <span>All In One POS</span>
     </a>
-    <p class="footer-tagline">မြန်မာ့ SME လုပ်ငန်းများအတွက် Offline-first POS ဖြေရှင်းချက်</p>
+    <p class="footer-tagline" data-i18n-en="An offline-first POS solution for Myanmar SMEs">မြန်မာ့ SME လုပ်ငန်းများအတွက် Offline-first POS ဖြေရှင်းချက်</p>
     <div class="footer-links">
-      <a href="https://allinonepos-legal.vercel.app" target="_blank" rel="noopener">စည်းမျဉ်းစည်းကမ်း</a>
+      <a href="https://allinonepos-legal.vercel.app" target="_blank" rel="noopener" data-i18n-en="Terms of Service">စည်းမျဉ်းစည်းကမ်း</a>
       <a href="https://allinonepos-legal.vercel.app/privacy" target="_blank" rel="noopener">Privacy Policy</a>
     </div>
     <p class="footer-copy">© <span id="year"></span> All In One POS. All rights reserved.</p>

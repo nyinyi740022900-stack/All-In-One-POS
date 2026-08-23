@@ -15,16 +15,69 @@ different deploy lifecycles.
 
 ```
 marketing-site/
-  index.html          all sections (hero, features, how-it-works, download, footer)
+  index.html          home: hero, cinematic showcase, feature hub, how-it-works, download
   styles.css          brand tokens + cinematic photo/parallax/reveal styling
-  script.js           scroll-reveal (IntersectionObserver) + parallax (rAF)
+  icons.css           animated custom icon set (entrance + continuous micro-loop per feature)
+  feature-page.css    shared layout for the 15 feature tutorial pages
+  script.js           scroll-reveal (IntersectionObserver) + parallax (rAF) + phone-shot
+                       fallback + language toggle
+  features/           one full "how to use" tutorial page per feature area —
+                       sell.html, inventory.html, invoices.html, printing.html,
+                       analytics.html, credit.html, expenses.html, cash.html,
+                       customers.html, orders.html, accounts.html, equity.html,
+                       backup.html, license.html, branches.html — each with
+                       numbered steps, real app screenshots, tips, and related links
   assets/
     app_icon.png, app_mark.png   (copied from assets/branding/)
-    photos/           hero + feature photography (Ken-Burns background
+    photos/           hero + showcase photography (Ken-Burns background
                        plates and foreground portrait/product shots), each
                        as .jpg + .webp (picture element serves webp first)
+    screenshots/<feature>/NN-name.jpg   real app screenshots per tutorial step
+                       (converted to actual JPEG regardless of source format —
+                       see "Adding a tutorial screenshot" below)
   vercel.json         static hosting config
 ```
+
+### Feature tutorial pages
+
+Each `features/*.html` follows the same structure (`.fhero` → `.tutorial`
+with numbered `.tstep` rows → `.tips-section` → `.related-section` → `.fcta`).
+A `.tstep`'s screenshot sits in a `.phone-shot` frame; if the referenced
+image 404s, `script.js` adds `.img-missing` and CSS shows a dashed
+placeholder ("Screenshot ထည့်ရန် စောင့်နေသည်") instead of a broken-image
+icon — so a page stays presentable even before every screenshot exists.
+Three slots are still placeholders pending a screenshot: `sell/01-grid.jpg`
+(product grid), `expenses/01-add.jpg` (add-expense dialog),
+`customers/02-add.jpg` (add-customer dialog).
+
+### Adding a tutorial screenshot
+
+Drop the raw screenshot anywhere and convert it to a real JPEG at a
+consistent width (source format doesn't matter — HEIC/WebP/PNG all work;
+`sips` reads and converts them):
+```bash
+sips -Z 700 -s format jpeg -s formatOptions 82 raw-screenshot.png \
+  --out assets/screenshots/<feature>/NN-name.jpg
+```
+The `<img>` in the matching `features/<feature>.html` `.tstep` already
+points at that path — no HTML change needed once the file lands there.
+
+### Language toggle (English / Myanmar)
+
+Every page ships bilingual. The Myanmar text is the page's real markup, as
+always; an element that needs an English version just gets a
+`data-i18n-en="..."` attribute holding the English HTML as a string (so
+inline tags like `<strong>` survive — write them HTML-entity-escaped,
+e.g. `&lt;strong&gt;`, since the attribute value is parsed once by the
+browser and only literal `<`/`>` inside it would break the tag). `script.js`
+caches each element's original Myanmar `innerHTML` on load, then swaps
+`innerHTML` between the cached Myanmar and the `data-i18n-en` string when
+the `.lang-toggle` button (present in every page's nav) is clicked. The
+choice is remembered in `localStorage` across pages.
+
+To add a new translatable element: write the Myanmar content normally, then
+add `data-i18n-en="English version"` to the same tag. Nothing else to wire
+up — no key registry, no per-page dictionary.
 
 ### Cinematic photo technique
 

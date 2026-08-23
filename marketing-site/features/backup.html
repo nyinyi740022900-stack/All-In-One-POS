@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Backup &amp; Restore — အသုံးပြုပုံ အပြည့်အစုံ | All In One POS</title>
+<meta name="description" content="ဆိုင်ဒေတာအားလုံးကို JSON file အဖြစ် Backup ထုတ်ခြင်း၊ ပြန်သွင်းခြင်း — All In One POS ရဲ့ Backup &amp; Restore အဆင့်ဆင့် လမ်းညွှန်ချက်။" />
+<link rel="icon" href="../assets/app_mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css" />
+<link rel="stylesheet" href="../icons.css" />
+<link rel="stylesheet" href="../feature-page.css" />
+</head>
+<body>
+
+<div class="noise-overlay" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="../index.html#top" class="brand">
+      <img src="../assets/app_mark.png" alt="All In One POS" class="brand-mark" />
+      <span>All In One POS</span>
+    </a>
+    <nav class="nav-links">
+      <a href="../index.html#all-features" data-i18n-en="Features">ဝန်ဆောင်မှုများ</a>
+      <a href="../index.html#how" data-i18n-en="How it works">အသုံးပြုပုံ</a>
+      <a href="../index.html#download" data-i18n-en="Download">ဒေါင်းလုပ်</a>
+    </nav>
+    <button type="button" class="lang-toggle">English</button>
+    <a href="../index.html#download" class="btn btn-primary btn-sm" data-i18n-en="Get Started">ယခုစတင်ပါ</a>
+  </div>
+</header>
+
+<main>
+  <div class="fhero">
+    <p class="crumb"><a href="../index.html#all-features" data-i18n-en="All Features">ဝန်ဆောင်မှုများ အားလုံး</a> / Backup &amp; Restore</p>
+    <div class="fhero-top reveal">
+      <div class="ficon ficon-lg ficon-backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 01-1-7.9A5 5 0 0116 8a4 4 0 011 7.9"/><g class="icon-motion"><path d="M12 11v6M9 14l3-3 3 3"/></g></svg></div>
+      <div><h1>Backup &amp; Restore</h1> <span class="fhero-badge">Free</span></div>
+    </div>
+    <p class="fhero-sub reveal" data-i18n-en="Export and import your entire shop&#8217;s data yourself as a single JSON file, separately from Cloud Sync &mdash; a backup path that needs no internet.">
+      ဆိုင်ဒေတာအားလုံးကို Cloud Sync နှင့် သီးခြားစွာ JSON file တစ်ခုအဖြစ် ကိုယ်တိုင် Export/Import
+      လုပ်နိုင်ပါတယ် — Internet မလိုအပ်သော Backup နည်းလမ်း။
+    </p>
+  </div>
+
+  <div class="tutorial">
+    <div class="tutorial-head reveal"><h2 data-i18n-en="Step by Step">အဆင့်ဆင့် အသုံးပြုနည်း</h2></div>
+
+    <div class="tstep reveal">
+      <div class="tstep-media">
+        <div class="phone-shot"><img src="../assets/screenshots/backup/01-screen.jpg" alt="Backup & Restore screen — Backup ထုတ်ရန်/ပြန်သွင်းရန်" /></div>
+      </div>
+      <div class="tstep-text">
+        <span class="tstep-num" data-i18n-en="1">၁</span>
+        <h3 data-i18n-en="Export or Restore a Backup">Backup ထုတ်ပါ (သို့) ပြန်သွင်းပါ</h3>
+        <p data-i18n-en="&lt;strong&gt;Export Backup&lt;/strong&gt; writes all shop data to a JSON file in one tap and opens the OS share sheet &mdash; for example, sending it to Viber &quot;My Notes&quot;. &lt;strong&gt;Import Backup&lt;/strong&gt; asks you to pick a .json file, then warns clearly that this is a destructive replace-all before proceeding.">
+          <strong>Backup ထုတ်</strong> ကို နှိပ်ရင် ဆိုင်ဒေတာအားလုံးကို JSON file တစ်ခုအဖြစ်
+          တစ်ချက်တည်းနှိပ်၍ ရေးထုတ်ပြီး OS Share Sheet ဖွင့်ပေးသည် — ဥပမာ Viber "My Notes"
+          ကို ပို့ထားနိုင်သည်။ <strong>Backup ပြန်သွင်း</strong> ကို နှိပ်ရင် .json file
+          ရွေးရမည်ဖြစ်ပြီး၊ ဒေတာအားလုံးကို ရှင်းလင်းပြီး အစားထိုးမည့်အကြောင်း (Destructive
+          Replace-all) ကို သတိပေး Confirm Dialog ပြပါလိမ့်မယ်။
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tips-section reveal">
+    <h2 data-i18n-en="Tips Worth Knowing">သိထားသင့်တဲ့ Tips</h2>
+    <div class="tips-grid">
+      <div class="tip-card"><span class="tip-dot"></span><p data-i18n-en="&lt;strong&gt;For Cloud Sync&lt;/strong&gt; &mdash; that is enabled separately via Branches; this Backup feature is a local file backup only."><strong>Cloud Sync လိုချင်ရင်</strong> — Cloud Sync ကို ဆိုင်ခွဲများ (Branches) feature ကနေ သီးခြား ဖွင့်ရသည် — ဒီ Backup feature က local file backup ပဲဖြစ်သည်။</p></div>
+      <div class="tip-card"><span class="tip-dot"></span><p data-i18n-en="&lt;strong&gt;Error handling&lt;/strong&gt; &mdash; issues like an invalid file format show a clear message in plain language, not a raw error code."><strong>Error Handling</strong> — File format မမှန်ကန်ခြင်း စသော Error များကို ရှင်းလင်းသော မြန်မာစာသားဖြင့် ပြပေးသည် (Raw error code မဟုတ်ပါ)။</p></div>
+    </div>
+  </div>
+
+  <div class="related-section reveal">
+    <h2 data-i18n-en="Related Features">ဆက်စပ်ဝန်ဆောင်မှုများ</h2>
+    <div class="related-links">
+      <a href="branches.html"><span data-i18n-en="Branches">ဆိုင်ခွဲများ</span> →</a>
+      <a href="license.html">License →</a>
+    </div>
+  </div>
+
+  <div class="fcta reveal">
+    <h2 data-i18n-en="Try All In One POS Today">All In One POS ကို ယနေ့ပင် စမ်းကြည့်ပါ</h2>
+    <p data-i18n-en="A free 2-month trial &mdash; no card, no sign up.">2 လ အခမဲ့ စမ်းသပ်ကာလ — Card မလို၊ Sign up မလို။</p>
+    <a href="../index.html#download" class="btn btn-primary btn-lg" data-i18n-en="Download Now">ဒေါင်းလုပ်ဆွဲမည်</a>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="../index.html#top" class="brand">
+      <img src="../assets/app_mark.png" alt="All In One POS" class="brand-mark" />
+      <span>All In One POS</span>
+    </a>
+    <p class="footer-tagline" data-i18n-en="An offline-first POS solution for Myanmar SMEs">မြန်မာ့ SME လုပ်ငန်းများအတွက် Offline-first POS ဖြေရှင်းချက်</p>
+    <div class="footer-links">
+      <a href="https://allinonepos-legal.vercel.app" target="_blank" rel="noopener" data-i18n-en="Terms of Service">စည်းမျဉ်းစည်းကမ်း</a>
+      <a href="https://allinonepos-legal.vercel.app/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+    </div>
+    <p class="footer-copy">© <span id="year"></span> All In One POS. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="../script.js"></script>
+</body>
+</html>

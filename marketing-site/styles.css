@@ -23,6 +23,13 @@
   --font-en: 'Inter', 'Padauk', sans-serif;
 }
 
+/* English mode: Padauk (a Myanmar script font) mis-kerns Latin glyphs when
+   asked to render them as a fallback, producing uneven letter-spacing. Once
+   script.js sets <html lang="en">, switch body copy and headings to Inter's
+   own Latin metrics instead of letting Padauk render them. */
+html[lang="en"] body { font-family: var(--font-en); }
+html[lang="en"] h1, html[lang="en"] h2, html[lang="en"] h3 { font-family: var(--font-en); }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -104,6 +111,25 @@ img { max-width: 100%; display: block; }
 .brand-mark { width: 32px; height: 32px; border-radius: 9px; }
 .nav-links { display: flex; gap: 32px; font-weight: 600; font-size: 15px; color: var(--muted); }
 .nav-links a:hover { color: var(--brand-dark); }
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-en);
+}
+.lang-toggle:hover { background: var(--border); }
+.lang-toggle::before {
+  content: '\1F310';
+  font-size: 13px;
+}
 
 /* ---------- hero (cinematic photo + motion blend) ---------- */
 .hero {
@@ -178,7 +204,7 @@ img { max-width: 100%; display: block; }
   font-size: 17px;
   color: var(--muted);
 }
-.on-photo-sub { color: rgba(255,255,255,0.82); }
+.hero-sub.on-photo-sub, .section-sub.on-photo-sub { color: rgba(255,255,255,0.82); }
 .hero-cta { display: flex; gap: 16px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
 .btn-ghost-on-photo { color: #fff; border-color: rgba(255,255,255,0.4); }
 .btn-ghost-on-photo:hover { border-color: #fff; background: rgba(255,255,255,0.12); }
@@ -328,6 +354,100 @@ img { max-width: 100%; display: block; }
 .showcase-text h3 { font-size: 26px; font-weight: 800; margin-bottom: 14px; color: var(--ink); }
 .showcase-text p { color: var(--muted); font-size: 16px; max-width: 420px; }
 
+/* ---------- feature hub grid ---------- */
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 22px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.hub-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: transparent; }
+.hub-card h3 { font-size: 16.5px; font-weight: 700; color: var(--ink); }
+.hub-card p { font-size: 13px; color: var(--muted); }
+
+/* ---------- free vs premium plans ---------- */
+.plans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  max-width: 880px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+.plan-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+}
+.plan-card-premium {
+  border: 2px solid var(--brand);
+  background: linear-gradient(180deg, var(--brand-tint), var(--surface) 55%);
+  box-shadow: var(--shadow);
+}
+.plan-ribbon {
+  position: absolute;
+  top: -14px;
+  right: 28px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  box-shadow: 0 8px 16px -6px rgba(15,92,62,0.5);
+}
+.plan-head { margin-bottom: 24px; }
+.plan-head h3 { font-size: 24px; font-weight: 800; color: var(--ink); }
+.plan-tag { margin-top: 6px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.plan-list { list-style: none; margin: 0 0 24px; padding: 0; flex: 1; }
+.plan-list li {
+  position: relative;
+  padding: 10px 0 10px 30px;
+  font-size: 14.5px;
+  color: var(--ink);
+  border-top: 1px solid var(--border);
+}
+.plan-list li:first-child { border-top: none; }
+.plan-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230F5C3E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+}
+.plan-card-premium .plan-list li { border-top-color: rgba(15,92,62,0.14); }
+.plan-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--brand-dark);
+}
+.plan-link:hover { text-decoration: underline; }
+
 /* ---------- steps ---------- */
 .steps { position: relative; max-width: 720px; margin: 0 auto; }
 .steps-line {
@@ -405,7 +525,7 @@ img { max-width: 100%; display: block; }
 }
 .download-card-glass.download-card-ready { background: rgba(143,224,180,0.14); border-color: rgba(143,224,180,0.4); }
 .download-card-glass h3 { color: #fff; }
-.download-card-glass p { color: rgba(255,255,255,0.75); }
+.download-card.download-card-glass p { color: rgba(255,255,255,0.75); }
 .dl-icon {
   width: 56px; height: 56px; border-radius: 16px;
   display: flex; align-items: center; justify-content: center;
@@ -415,7 +535,7 @@ img { max-width: 100%; display: block; }
 .download-card h3 { font-size: 20px; font-weight: 800; }
 .download-card p { color: var(--muted); font-size: 14.5px; }
 .dl-note { font-size: 12.5px; color: var(--muted); opacity: 0.8; }
-.dl-note-on-photo { color: rgba(255,255,255,0.65); }
+.dl-note.dl-note-on-photo { color: rgba(255,255,255,0.65); }
 .badge-soon {
   display: inline-block;
   background: var(--surface-tint);
@@ -456,7 +576,9 @@ img { max-width: 100%; display: block; }
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
   .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .hub-grid { grid-template-columns: repeat(2, 1fr); }
   .download-grid { grid-template-columns: 1fr; }
+  .plans-grid { grid-template-columns: 1fr; max-width: 480px; }
   .showcase-row, .showcase-row.reverse {
     grid-template-columns: 1fr;
     gap: 28px;
@@ -468,6 +590,7 @@ img { max-width: 100%; display: block; }
 @media (max-width: 640px) {
   .nav-links { display: none; }
   .feature-grid { grid-template-columns: 1fr; }
+  .hub-grid { grid-template-columns: 1fr; }
   .feature-grid-compact { margin-top: 64px; }
   .section { padding: 80px 20px; }
   .hero { padding-top: 120px; }

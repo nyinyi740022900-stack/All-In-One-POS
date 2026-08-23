@@ -1,0 +1,106 @@
+/* ---------------------------------------------------------------
+   Animated feature icons — replaces flat/static line-icon cards with a
+   small "motion design" pass: every icon plays a one-shot entrance when it
+   scrolls into view (reusing script.js's .reveal/.in-view mechanism) and a
+   slow, subtle continuous loop so the icon set feels alive without being
+   distracting on a page full of them.
+   --------------------------------------------------------------- */
+
+.ficon {
+  --ficon-size: 52px;
+  width: var(--ficon-size);
+  height: var(--ficon-size);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  background: var(--brand-tint);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.ficon svg {
+  width: 60%;
+  height: 60%;
+  overflow: visible;
+}
+.ficon-lg { --ficon-size: 76px; border-radius: 22px; }
+.ficon-lg svg { width: 56%; height: 56%; }
+
+/* Entrance: icons start slightly scaled/rotated down and settle in — plays
+   once when the parent .reveal gets .in-view (same trigger script.js
+   already applies), each icon's own transform-origin center. */
+.ficon svg { transition: transform 0.7s cubic-bezier(.34,1.56,.64,1); }
+.reveal .ficon svg { transform: scale(0.4) rotate(-12deg); }
+.reveal.in-view .ficon svg { transform: scale(1) rotate(0deg); }
+
+/* Continuous micro-loops — one per feature, chosen to hint at what the
+   feature does (a bouncing cart, a sliding receipt, growing bars, ...).
+   Kept slow (2.4-4s) and small-amplitude so a grid of them reads as
+   "alive", not "busy". Disabled entirely under reduced-motion. */
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes iconSlideX {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+@keyframes iconSlideY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+@keyframes iconTilt {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes iconSpinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes iconDraw {
+  from { stroke-dashoffset: var(--dash, 60); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes iconBlink {
+  0%, 40%, 100% { opacity: 1; }
+  20% { opacity: 0.35; }
+}
+@keyframes iconRise {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.18); }
+}
+@keyframes iconShine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  60%, 100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+.reveal.in-view .ficon-sell .icon-motion   { animation: iconBounce 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.reveal.in-view .ficon-inventory .icon-motion { animation: iconSlideY 3.2s ease-in-out infinite; }
+.reveal.in-view .ficon-invoices .icon-motion  { animation: iconSlideX 3s ease-in-out infinite; }
+.reveal.in-view .ficon-printing .icon-motion  { animation: iconSlideY 2.4s ease-in-out infinite; transform-origin: 50% 0%; }
+.reveal.in-view .ficon-analytics .bar1 { animation: iconRise 2.6s ease-in-out infinite; transform-origin: bottom; }
+.reveal.in-view .ficon-analytics .bar2 { animation: iconRise 2.6s ease-in-out 0.3s infinite; transform-origin: bottom; }
+.reveal.in-view .ficon-analytics .bar3 { animation: iconRise 2.6s ease-in-out 0.6s infinite; transform-origin: bottom; }
+.reveal.in-view .ficon-credit .icon-motion    { animation: iconTilt 3.4s ease-in-out infinite; transform-origin: 30% 100%; }
+.reveal.in-view .ficon-expenses .icon-motion  { animation: iconBounce 2.8s ease-in-out infinite; }
+.reveal.in-view .ficon-cash .icon-motion      { animation: iconSlideY 2.6s ease-in-out infinite; transform-origin: 50% 0%; }
+.reveal.in-view .ficon-customers .icon-motion { animation: iconPulse 3s ease-in-out infinite; transform-origin: 50% 100%; }
+.reveal.in-view .ficon-orders .icon-motion    { animation: iconSlideX 3.4s ease-in-out infinite; }
+.reveal.in-view .ficon-accounts .icon-shine   { animation: iconShine 3.6s ease-in-out infinite; }
+.reveal.in-view .ficon-equity .icon-motion    { animation: iconTilt 3s ease-in-out infinite; transform-origin: 50% 60%; }
+.reveal.in-view .ficon-backup .icon-motion    { animation: iconSlideY 2.8s ease-in-out infinite; }
+.reveal.in-view .ficon-license .icon-check    { animation: iconBlink 3.6s ease-in-out infinite; }
+.reveal.in-view .ficon-branches .icon-motion  { animation: iconSpinSlow 6s linear infinite; transform-origin: 50% 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ficon svg, .icon-motion, .bar1, .bar2, .bar3, .icon-shine, .icon-check {
+    animation: none !important;
+    transform: none !important;
+  }
+  .reveal .ficon svg, .reveal.in-view .ficon svg { transform: none; }
+}
