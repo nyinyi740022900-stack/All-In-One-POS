@@ -55,18 +55,50 @@ void main() {
   });
 
   group('lanScanPlan', () {
-    test('uses the first real IPv4 /24 and skips this device', () {
+    test('prefers the Wi-Fi interface over cellular', () {
       final plan = lanScanPlan([
-        InternetAddress.loopbackIPv4,
-        InternetAddress('192.168.1.42'),
-        InternetAddress('10.0.0.5'),
+        (
+          name: 'pdp_ip0',
+          addresses: [InternetAddress('10.44.12.9')],
+        ),
+        (
+          name: 'en0',
+          addresses: [InternetAddress('192.168.1.42')],
+        ),
       ]);
       expect(plan.prefix, '192.168.1');
-      expect(plan.skip, {'192.168.1.42', '10.0.0.5'});
+      // The phone's own cellular address is skipped as a candidate too.
+      expect(plan.skip, {'10.44.12.9', '192.168.1.42'});
+    });
+
+    test('skips VPN tunnels', () {
+      final plan = lanScanPlan([
+        (
+          name: 'utun3',
+          addresses: [InternetAddress('10.8.0.2')],
+        ),
+        (
+          name: 'wlan0',
+          addresses: [InternetAddress('192.168.4.7')],
+        ),
+      ]);
+      expect(plan.prefix, '192.168.4');
+    });
+
+    test('falls back to any non-cellular IPv4 when no lan-shaped name', () {
+      final plan = lanScanPlan([
+        (
+          name: 'something0',
+          addresses: [InternetAddress('192.168.9.5')],
+        ),
+      ]);
+      expect(plan.prefix, '192.168.9');
     });
 
     test('empty or loopback-only yields no prefix', () {
-      final plan = lanScanPlan([InternetAddress.loopbackIPv4]);
+      final plan = lanScanPlan([
+        (name: 'lo0', addresses: [InternetAddress.loopbackIPv4]),
+      ]);
       expect(plan.prefix, isNull);
       expect(plan.skip, isEmpty);
     });

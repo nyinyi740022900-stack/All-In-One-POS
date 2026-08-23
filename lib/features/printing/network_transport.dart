@@ -31,16 +31,42 @@ Future<PrintResult> sendNetworkBytes(List<int> bytes, String address) async {
 }
 
 /// Which /24 to walk, and which hosts are *this* device (never a printer).
+///
+/// Phones expose SEVERAL IPv4 interfaces at once — cellular (`pdp_ip0`,
+/// `rmnet`), VPN (`utun`), Wi-Fi (`en0`/`wlan0`). Taking the first address
+/// grabbed the CELLULAR /24 on iPhones with mobile data on, and the scan
+/// found nothing on the Wi-Fi network the printer lives on. Prefer the
+/// Wi-Fi/ethernet-shaped names; never scan through cellular or VPN; skip
+/// every local address so the phone itself never lists as a printer.
 ({String? prefix, Set<String> skip}) lanScanPlan(
-  Iterable<InternetAddress> addresses,
+  Iterable<({String name, List<InternetAddress> addresses})> interfaces,
 ) {
-  String? prefix;
   final skip = <String>{};
-  for (final addr in addresses) {
-    if (addr.type != InternetAddressType.IPv4 || addr.isLoopback) continue;
-    skip.add(addr.address);
-    prefix ??= ipv4Prefix24(addr.address);
+  String? preferred;
+  String? fallback;
+  for (final iface in interfaces) {
+    final v4 = [
+      for (final a in iface.addresses)
+        if (a.type == InternetAddressType.IPv4 && !a.isLoopback) a,
+    ];
+    for (final a in v4) {
+      skip.add(a.address);
+    }
+    if (v4.isEmpty) continue;
+    final n = iface.name.toLowerCase();
+    final cellular =
+        n.startsWith('pdp') || n.startsWith('rmnet') ||
+        n.startsWith('ccinet') || n.contains('wwan');
+    final vpn =
+        n.startsWith('utun') || n.startsWith('tap') || n.startsWith('tun');
+    if (cellular || vpn) continue;
+    final lanShaped =
+        n.startsWith('en') || n.startsWith('wlan') || n.startsWith('eth');
+    fallback ??= v4.first.address;
+    if (lanShaped && preferred == null) preferred = v4.first.address;
   }
+  final chosen = preferred ?? fallback;
+  final prefix = chosen == null ? null : ipv4Prefix24(chosen);
   return (prefix: prefix, skip: skip);
 }
 
@@ -61,7 +87,8 @@ Future<List<NetworkPrinterAddress>> scanNetworkPrinters({
     includeLinkLocal: false,
   );
   final plan = lanScanPlan([
-    for (final iface in interfaces) ...iface.addresses,
+    for (final iface in interfaces)
+      (name: iface.name, addresses: iface.addresses),
   ]);
   final prefix = plan.prefix;
   if (prefix == null) return const [];
@@ -86,7 +113,7 @@ Future<NetworkPrinterAddress?> _probe(String host, int port) async {
     final socket = await Socket.connect(
       host,
       port,
-      timeout: const Duration(milliseconds: 400),
+      timeout: const Duration(milliseconds: 700),
     );
     socket.destroy();
     return NetworkPrinterAddress(host, port: port);

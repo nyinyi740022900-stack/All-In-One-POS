@@ -328,8 +328,22 @@ class _PrinterTransportSectionState
                 ],
               ),
             )
-          else if (_scanned != null && _scanned!.isEmpty)
-            EmptyStateView(icon: Icons.wifi_off, title: l.printerWifiNoneFound)
+          else if (_scanned != null && _scanned!.isEmpty) ...[
+            EmptyStateView(icon: Icons.wifi_off, title: l.printerWifiNoneFound),
+            // The most common "found nothing" causes on iPhone: the OS-level
+            // Local Network permission denied on first prompt, or the phone
+            // scanning through cellular. Point at the fix instead of leaving
+            // a dead end above the manual IP entry.
+            Padding(
+              padding: const EdgeInsets.only(top: AppTheme.space2),
+              child: Text(
+                l.printerWifiDeniedHint,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ]
           else if (_scanned != null)
             Card(
               clipBehavior: Clip.antiAlias,
