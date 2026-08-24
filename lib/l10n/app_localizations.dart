@@ -2888,6 +2888,12 @@ abstract class AppLocalizations {
   /// **'No sales in this period.'**
   String get analyticsNoData;
 
+  /// No description provided for @analyticsUnitsSold.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sold'**
+  String analyticsUnitsSold(int count);
+
   /// No description provided for @analyticsDailyRevenue.
   ///
   /// In en, this message translates to:

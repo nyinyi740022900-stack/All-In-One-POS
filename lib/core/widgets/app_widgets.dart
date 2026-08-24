@@ -398,7 +398,6 @@ class ProductThumb extends StatelessWidget {
   /// MB through the image cache and janked on mid-range Android (audit H2).
   /// The clamp keeps a huge source from decoding full-res into a 48 pt row
   /// while never asking for an absurdly small decode either.
-  @visibleForTesting
   static int cacheWidthFor(double renderedSide, double devicePixelRatio) {
     final px = renderedSide * devicePixelRatio;
     return px.round().clamp(96, 1024);

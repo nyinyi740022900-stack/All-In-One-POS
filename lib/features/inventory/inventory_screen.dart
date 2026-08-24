@@ -147,6 +147,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           toolbarHeight:
               kToolbarHeight +
               (async.hasValue ? MediaQuery.textScalerOf(context).scale(20) : 0),
+          // The theme's default centerTitle: true optically centers a title
+          // between leading and actions — fine for a single-line title, but
+          // this screen's 3 trailing icons (vs. a single-width leading back
+          // button) unbalance that math and visibly push the two-line
+          // title+subtitle block left of the icon row's true center. A
+          // left-aligned title has no such asymmetry to fight.
+          centerTitle: false,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -544,11 +551,25 @@ class _StockBadge extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final scheme = Theme.of(context).colorScheme;
+    // Only the tiers that need attention (out of stock / low) get pill
+    // chrome. A healthy count is plain text — on a full list, every row
+    // wearing the same grey pill drowned out the handful that actually
+    // needed a glance, and a bare number gave no hint it was tappable.
+    final needsAttention = quantity <= 0 || low;
     final (Color bg, Color fg) = quantity <= 0
         ? (colors.dangerSurface, colors.danger)
         : low
         ? (colors.warningSurface, colors.warning)
-        : (scheme.surfaceContainerHigh, scheme.onSurfaceVariant);
+        : (Colors.transparent, scheme.onSurfaceVariant);
+
+    final number = Text(
+      '$quantity',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: fg,
+        fontFeatures: AppTheme.tabularFigures,
+      ),
+    );
 
     final pill = Container(
       // A floor wide enough for three digits so single- and triple-digit
@@ -562,14 +583,26 @@ class _StockBadge extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
-      child: Text(
-        '$quantity',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: fg,
-          fontFeatures: AppTheme.tabularFigures,
-        ),
-      ),
+      child: onTap == null
+          ? number
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                number,
+                const SizedBox(width: AppTheme.space1),
+                // The pencil is the only visual cue this plain-looking
+                // number is a button — without it a healthy count (now
+                // background-free, see above) is indistinguishable from
+                // static text.
+                Icon(
+                  Icons.edit_outlined,
+                  size: 14,
+                  color: needsAttention
+                      ? fg.withValues(alpha: 0.7)
+                      : scheme.outline,
+                ),
+              ],
+            ),
     );
 
     if (onTap == null) {

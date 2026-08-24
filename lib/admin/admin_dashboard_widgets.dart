@@ -1196,7 +1196,7 @@ class _RequestProofImageState extends State<_RequestProofImage> {
           // resolution (capped) so pinch-zoom stays legible.
           cacheWidth: size != null
               ? ProductThumb.cacheWidthFor(
-                  size!, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0)
+                  size, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0)
               : 1536,
         );
         if (size == null) return image;

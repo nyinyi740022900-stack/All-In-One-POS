@@ -1516,6 +1516,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analyticsNoData => 'No sales in this period.';
 
   @override
+  String analyticsUnitsSold(int count) {
+    return '$count sold';
+  }
+
+  @override
   String get analyticsDailyRevenue => 'Daily revenue';
 
   @override

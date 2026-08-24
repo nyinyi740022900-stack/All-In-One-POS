@@ -509,6 +509,16 @@ class _RevenueChartCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final maxY = daily.fold<int>(0, (m, d) => d.revenue > m ? d.revenue : m);
     final df = DateFormat('MM-dd');
+    // A 30-bar month has no room for a label per bar, but Today's single bar
+    // and a 7-day week both do — and without them the chart gave no way to
+    // tell which day was which without tapping every single bar.
+    final showDateLabels = daily.length > 1 && daily.length <= 7;
+    // Locale-explicit: a bare DateFormat('E') formats in en_US regardless of
+    // the app UI language, so the Myanmar default would have shown English
+    // weekday names. GlobalMaterialLocalizations loads Burmese date symbols,
+    // so passing localeName renders တနင်္လာ/အင်္ဂါ… under `my`.
+    final weekdayFmt = DateFormat.E(l.localeName);
+    final gridInterval = maxY == 0 ? 1.0 : math.max(1.0, maxY * 1.15 / 3);
 
     return Card(
       child: Padding(
@@ -518,9 +528,8 @@ class _RevenueChartCard extends StatelessWidget {
           children: [
             SectionHeader(
               title: l.analyticsDailyRevenue,
-              // The bars carry no axis labels (there is no room for 30 of
-              // them on a phone), so the peak is the only scale reference the
-              // chart can give at a glance without being tapped.
+              // The peak figure — still useful as a scale reference even
+              // now that gridlines carry most of that job.
               trailing: maxY == 0
                   ? null
                   : MoneyText(
@@ -531,7 +540,7 @@ class _RevenueChartCard extends StatelessWidget {
                     ),
             ),
             SizedBox(
-              height: 160,
+              height: showDateLabels ? 180 : 160,
               child: maxY == 0
                   ? EmptyStateView(
                       icon: Icons.bar_chart_outlined,
@@ -542,7 +551,20 @@ class _RevenueChartCard extends StatelessWidget {
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY.toDouble() * 1.15,
                         borderData: FlBorderData(show: false),
-                        gridData: const FlGridData(show: false),
+                        // Light horizontal rules so the bars have a scale to
+                        // read against at a glance, not just the one peak
+                        // figure above — kept faint enough not to compete
+                        // with the bars themselves.
+                        gridData: FlGridData(
+                          drawVerticalLine: false,
+                          horizontalInterval: gridInterval,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: scheme.outlineVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                            strokeWidth: 1,
+                          ),
+                        ),
                         // fl_chart's default tooltip is a hardcoded blue-grey
                         // plate printing the raw double ("12000.0"). Themed
                         // here so tapping a bar answers "which day, how
@@ -564,18 +586,41 @@ class _RevenueChartCard extends StatelessWidget {
                             },
                           ),
                         ),
-                        titlesData: const FlTitlesData(
-                          leftTitles: AxisTitles(
+                        titlesData: FlTitlesData(
+                          leftTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
-                          rightTitles: AxisTitles(
+                          rightTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
-                          topTitles: AxisTitles(
+                          topTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
                           bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
+                            sideTitles: showDateLabels
+                                ? SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 22,
+                                    getTitlesWidget: (value, meta) {
+                                      final i = value.round();
+                                      if (i < 0 || i >= daily.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: AppTheme.space1,
+                                        ),
+                                        child: Text(
+                                          weekdayFmt.format(daily[i].day),
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : const SideTitles(showTitles: false),
                           ),
                         ),
                         barGroups: [
@@ -626,18 +671,26 @@ class _TopProductsCard extends StatelessWidget {
                 title: l.analyticsNoData,
               )
             else
-              ...top.map(
-                (p) => ListTile(
+              ...top.asMap().entries.map(
+                (e) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  // The qty was a `CircleAvatar`, whose M3 default fill is
-                  // `primaryContainer` — the app's "selected/primary" green.
-                  // A stack of them competed with the tiles above.
-                  leading: IconAvatar(text: '${p.qty}', size: 32),
+                  // The badge shows the *rank*, not the quantity. A badge
+                  // reading "11" beside another reading "11" looked like a
+                  // broken leaderboard — a circled figure in the lead slot
+                  // of a list titled "Top products" reads as position, so
+                  // the quantity now says so in words underneath instead.
+                  leading: IconAvatar(text: '${e.key + 1}', size: 32),
                   // Two lines, not an ellipsis: a Myanmar product name runs
                   // ~20-40% longer and a truncated one is unidentifiable.
-                  title: Text(p.name, maxLines: 2),
-                  trailing: MoneyText(Money(p.revenue).withSymbol(cur)),
+                  title: Text(e.value.name, maxLines: 2),
+                  subtitle: Text(
+                    l.analyticsUnitsSold(e.value.qty),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: MoneyText(Money(e.value.revenue).withSymbol(cur)),
                 ),
               ),
           ],

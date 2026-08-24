@@ -1513,6 +1513,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get analyticsNoData => 'ဤကာလအတွင်း ရောင်းချမှု မရှိပါ။';
 
   @override
+  String analyticsUnitsSold(int count) {
+    return '$count ခု ရောင်းပြီး';
+  }
+
+  @override
   String get analyticsDailyRevenue => 'နေ့စဉ် ရောင်းရငွေ';
 
   @override

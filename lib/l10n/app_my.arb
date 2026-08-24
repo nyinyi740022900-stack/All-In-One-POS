@@ -607,6 +607,14 @@
   "analyticsRangeWeek": "၇ ရက်",
   "analyticsRangeMonth": "၃၀ ရက်",
   "analyticsNoData": "ဤကာလအတွင်း ရောင်းချမှု မရှိပါ။",
+  "analyticsUnitsSold": "{count} ခု ရောင်းပြီး",
+  "@analyticsUnitsSold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analyticsDailyRevenue": "နေ့စဉ် ရောင်းရငွေ",
   "analyticsCollected": "လက်ခံရရှိငွေ",
   "analyticsCreditOutstanding": "အကြွေးကျန်",

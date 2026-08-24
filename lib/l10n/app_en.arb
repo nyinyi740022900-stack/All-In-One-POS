@@ -641,6 +641,14 @@
   "analyticsRangeWeek": "7 days",
   "analyticsRangeMonth": "30 days",
   "analyticsNoData": "No sales in this period.",
+  "analyticsUnitsSold": "{count} sold",
+  "@analyticsUnitsSold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analyticsDailyRevenue": "Daily revenue",
   "analyticsCollected": "Collected",
   "analyticsCreditOutstanding": "Credit outstanding",
