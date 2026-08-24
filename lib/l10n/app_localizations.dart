@@ -1793,7 +1793,7 @@ abstract class AppLocalizations {
   /// No description provided for @stockMovementReturn.
   ///
   /// In en, this message translates to:
-  /// **'Refund return'**
+  /// **'Return'**
   String get stockMovementReturn;
 
   /// No description provided for @stockMovementPurchase.
@@ -4559,7 +4559,7 @@ abstract class AppLocalizations {
   /// No description provided for @orderPaymentTransfer.
   ///
   /// In en, this message translates to:
-  /// **'Bank transfer'**
+  /// **'Wallet transfer'**
   String get orderPaymentTransfer;
 
   /// No description provided for @orderPaymentCod.
@@ -5393,7 +5393,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontBankTransfer.
   ///
   /// In en, this message translates to:
-  /// **'Bank transfer'**
+  /// **'Wallet transfer'**
   String get storefrontBankTransfer;
 
   /// No description provided for @storefrontCashOnDelivery.

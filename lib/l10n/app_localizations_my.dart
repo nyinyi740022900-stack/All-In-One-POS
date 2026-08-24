@@ -926,7 +926,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get stockMovementSale => 'ရောင်းချမှု';
 
   @override
-  String get stockMovementReturn => 'ပြန်အမ်းငွေ';
+  String get stockMovementReturn => 'ပြန်လည်ရရှိခြင်း';
 
   @override
   String get stockMovementPurchase => 'ပစ္စည်းအသစ်ထည့်ခြင်း';
@@ -2473,7 +2473,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderPayUnpaid => 'မပေးရသေး';
 
   @override
-  String get orderPaymentTransfer => 'ငွေလွှဲ';
+  String get orderPaymentTransfer => 'ဝေလက် လွှဲပြောင်း';
 
   @override
   String get orderPaymentCod => 'အိမ်ရောက်ငွေချေ';
@@ -2938,7 +2938,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontPayment => 'ငွေပေးချေမှု';
 
   @override
-  String get storefrontBankTransfer => 'ဘဏ်လွှဲ';
+  String get storefrontBankTransfer => 'ဝေလက် လွှဲပြောင်း';
 
   @override
   String get storefrontCashOnDelivery => 'ပစ္စည်းရောက်မှ ငွေချေမည်';

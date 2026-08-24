@@ -254,28 +254,6 @@ void main() {
     expect(partial.collected, 1500);
   });
 
-  group('compactMoneyLabel (revenue-chart y axis)', () {
-    test('small values stay raw', () {
-      expect(compactMoneyLabel(0), '0');
-      expect(compactMoneyLabel(950), '950');
-    });
-
-    test('thousands compress to K, dropping the decimal when whole', () {
-      expect(compactMoneyLabel(1000), '1K');
-      expect(compactMoneyLabel(74000), '74K');
-      expect(compactMoneyLabel(74500), '74.5K');
-    });
-
-    test('millions compress to M', () {
-      expect(compactMoneyLabel(1000000), '1M');
-      expect(compactMoneyLabel(1500000), '1.5M');
-    });
-
-    test('negative clamps to zero (axis never renders below the floor)', () {
-      expect(compactMoneyLabel(-500), '0');
-    });
-  });
-
   group('barFillAlpha (volume-tinted revenue bars)', () {
     test('peak reads at full strength, quiet days stay visible', () {
       expect(barFillAlpha(175000, 175000), 1.0);

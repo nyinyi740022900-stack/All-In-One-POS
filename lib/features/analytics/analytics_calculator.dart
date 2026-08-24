@@ -179,27 +179,6 @@ AnalyticsSummary computeAnalytics({
   );
 }
 
-/// Axis-label money, compressed to fit a ~34pt gutter: 950 → "950",
-/// 74,000 → "74K", 1,500,000 → "1.5M". Locale-neutral on purpose — the
-/// abbreviations sit beside a chart, not in prose, and tabular digits keep
-/// them readable in either UI language.
-String compactMoneyLabel(int value) {
-  final v = value < 0 ? 0 : value;
-  if (v >= 1000000) {
-    final m = v / 1000000;
-    return m == m.roundToDouble()
-        ? '${m.round()}M'
-        : '${m.toStringAsFixed(1)}M';
-  }
-  if (v >= 1000) {
-    final k = v / 1000;
-    return k == k.roundToDouble()
-        ? '${k.round()}K'
-        : '${k.toStringAsFixed(1)}K';
-  }
-  return '$v';
-}
-
 /// How strongly a revenue bar is tinted, by its share of the range's peak.
 ///
 /// A flat single colour made a 5,000-Kyat day and a 175,000-Kyat day look

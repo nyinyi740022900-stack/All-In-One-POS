@@ -271,7 +271,7 @@ class _Dashboard extends StatelessWidget {
 /// and live low-stock (not ranged — stock is "now"). Number on top, label
 /// underneath, no icon — a 3-up row on a phone cannot spare StatCard's
 /// 32pt plate. Accent is spent only on a non-zero low-stock count.
-class _GlanceStrip extends StatelessWidget {
+class _GlanceStrip extends ConsumerWidget {
   const _GlanceStrip({
     required this.revenue,
     required this.salesCount,
@@ -285,7 +285,7 @@ class _GlanceStrip extends StatelessWidget {
   final bool trackStock;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Card(
@@ -317,7 +317,20 @@ class _GlanceStrip extends StatelessWidget {
                   value: '$lowStockCount',
                   label: l.inventoryLowStock,
                   tone: lowStockCount > 0 ? StatusTone.attention : null,
-                  onTap: () => context.go('/inventory'),
+                  // Two jobs: arm Inventory's low-stock filter so the list
+                  // opens ALREADY narrowed to the problem rows, and reset
+                  // the Inventory branch to its ROOT — a bare go() could
+                  // otherwise surface whatever screen was last pushed on
+                  // that branch's navigator (the owner landed on Stock
+                  // Movements this way), and initialLocation guarantees
+                  // the product list.
+                  onTap: () {
+                    ref.read(inventoryLowStockOnlyProvider.notifier).state =
+                        true;
+                    StatefulNavigationShell.of(
+                      context,
+                    ).goBranch(1, initialLocation: true);
+                  },
                 ),
               ),
             ],
@@ -613,27 +626,12 @@ class _RevenueChartCard extends StatelessWidget {
                           ),
                         ),
                         titlesData: FlTitlesData(
-                        // Y-axis money labels at the same intervals as the
-                        // gridlines — the owner reads "how big is a bar"
-                        // against these, not by tapping every bar.
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 34,
-                            interval: gridInterval,
-                            getTitlesWidget: (value, meta) => Padding(
-                              padding: const EdgeInsets.only(
-                                right: AppTheme.space2,
-                              ),
-                              child: Text(
-                                compactMoneyLabel(value.round()),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontFeatures: AppTheme.tabularFigures,
-                                ),
-                              ),
-                            ),
-                          ),
+                        // No y-axis money labels: the wrapped "221.8K"
+                        // strings crowded the gutter (owner call — the
+                        // header's peak figure plus the gridlines carry the
+                        // scale), and the tooltip has exact numbers.
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
                         ),
                         rightTitles: const AxisTitles(
                           sideTitles: SideTitles(showTitles: false),

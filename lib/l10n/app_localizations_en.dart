@@ -932,7 +932,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockMovementSale => 'Sale';
 
   @override
-  String get stockMovementReturn => 'Refund return';
+  String get stockMovementReturn => 'Return';
 
   @override
   String get stockMovementPurchase => 'Restock';
@@ -2467,7 +2467,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderPayUnpaid => 'Unpaid';
 
   @override
-  String get orderPaymentTransfer => 'Bank transfer';
+  String get orderPaymentTransfer => 'Wallet transfer';
 
   @override
   String get orderPaymentCod => 'Cash on delivery';
@@ -2933,7 +2933,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontPayment => 'Payment';
 
   @override
-  String get storefrontBankTransfer => 'Bank transfer';
+  String get storefrontBankTransfer => 'Wallet transfer';
 
   @override
   String get storefrontCashOnDelivery => 'Cash on delivery';
