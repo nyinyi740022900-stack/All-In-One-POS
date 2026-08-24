@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounting/accounting_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import 'equity_calculator.dart';
@@ -141,6 +142,17 @@ class OwnerEquityScreen extends ConsumerWidget {
   Future<void> _confirmDelete(
       BuildContext context, WidgetRef ref, EquityEntry e) async {
     final l = AppLocalizations.of(context);
+    // Year-end close: an entry dated in a closed book can't be deleted.
+    final closedThrough = await ref.read(booksClosedThroughProvider.future);
+    if (isDateInClosedBooks(closedThrough, e.date)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.yearEndClosedWarn(closedThrough!))),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

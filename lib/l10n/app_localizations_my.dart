@@ -502,6 +502,184 @@ class AppLocalizationsMy extends AppLocalizations {
   String get equityRetainedEarnings => 'ဆက်လက်ရှင်သန်နေသော အမြတ်';
 
   @override
+  String get accountingTitle => 'စာရင်းကိုင်';
+
+  @override
+  String get accountingBalanceSheet => 'ဘာလန်ရှိတ် စာရင်း';
+
+  @override
+  String get accountingBalanceSheetSubtitle =>
+      'ပိုင်ဆိုင်မှု၊ ကြွေးကျန်နှင့် ပိုင်ရှင်ရင်းနှီးငွေ ခြုံငုံကြည့်ရန်';
+
+  @override
+  String get accountingCashFlow => 'ငွေဝင်ငွေထွက် စာရင်း';
+
+  @override
+  String get accountingCashFlowSubtitle =>
+      'အကောင့်တစ်ခုချင်း ငွေဝင်/ငွေထွက်ကို ကာလရွေးကြည့်ရန်';
+
+  @override
+  String get accountingTaxSummary => 'အခွန် အစီရင်ခံစာ';
+
+  @override
+  String get accountingTaxSummarySubtitle =>
+      'အခွန်တင်သွင်းရန် ရောင်းအား/ကုန်ကျစရိတ် အချုပ်';
+
+  @override
+  String get accountingYearEndClose => 'နှစ်ကုန် ပိတ်စာရင်း';
+
+  @override
+  String get accountingYearEndCloseSubtitle =>
+      'ပြီးစီးသောနှစ်ကို ပြင်ဆင်ခွင့်ပိတ်ရန်';
+
+  @override
+  String get balanceSheetAssets => 'ပိုင်ဆိုင်မှုများ';
+
+  @override
+  String get balanceSheetCashAccounts => 'ငွေသားနှင့် အကောင့်များ';
+
+  @override
+  String get balanceSheetInventory => 'ကုန်လက်ကျန် (ကုန်ကျစရိတ်)';
+
+  @override
+  String get balanceSheetReceivables => 'အကြွေးရှင်များ ကျန်ငွေ';
+
+  @override
+  String get balanceSheetLiabilities => 'ကြွေးကျန်များ';
+
+  @override
+  String get balanceSheetPayables => 'ပေးရန်ကျန် (Supplier)';
+
+  @override
+  String get balanceSheetEquity => 'ပိုင်ရှင် ရင်းနှီးငွေ';
+
+  @override
+  String get balanceSheetUntracked => 'မှတ်တမ်းမဝင် (အစပိုင်း လက်ကျန်)';
+
+  @override
+  String get balanceSheetUntrackedNote =>
+      'ယောဘုာအားဖြင့် အစပိုင်းတွင် လက်ဖြင့် ထည့်သွင်းခဲ့သော ကုန်လက်ကျန်တန်ဖိုး (နှင့် လက်ဖြင့်ချိန်ညှိမှုများ) ဖြစ်ပါသည် — ဤစနစ်သည် double-entry စနစ်မဟုတ်သဖြင့် ကွာခြားချက်ကို ဖုံးကွယ်မထားဘဲ ပြထားပါသည်။';
+
+  @override
+  String get cashFlowOpening => 'အစလက်ကျန်';
+
+  @override
+  String get cashFlowInflow => 'ငွေဝင်';
+
+  @override
+  String get cashFlowOutflow => 'ငွေထွက်';
+
+  @override
+  String get cashFlowClosing => 'အဆုံးလက်ကျန်';
+
+  @override
+  String get cashFlowOwnerNote =>
+      'မှတ်ချက် — ပိုင်ရှင် ရင်းနှီးငွေထည့်/ထုတ်မှုများတွင် အကောင့်ကော်လံ မရှိသဖြင့် ဤစာရင်းတွင် မပါဝင်ပါ။ (ပိုင်ရှင်ရင်းနှီးငွေ စာရင်းတွင် ကြည့်ပါ။)';
+
+  @override
+  String get cashFlowEmpty => 'ဤကာလအတွင်း အကောင့်လှုပ်ရှားမှု မရှိပါ။';
+
+  @override
+  String get taxRevenueLabel => 'ရောင်းအား စုစုပေါင်း';
+
+  @override
+  String get taxNetProfitLabel => 'အမြတ်ငွေ (အခွန်တွက်ရန်)';
+
+  @override
+  String get taxNoComputationNote =>
+      'အခွန်နှုန်းများသည် ဥပဒေအလိုက် ပြောင်းလဲနိုင်သဖြင့် ဤအစီရင်ခံစာတွင် အချက်အလက်များသာ ပြထားပါသည် — အခွန်တွက်ချက်ခြင်းကို စာရင်းကိုင်ထံမှ လုပ်ပါ။';
+
+  @override
+  String get yearEndOpenChip => 'စာရင်း ဖွင့်လှစ်ထားပါသည်';
+
+  @override
+  String yearEndClosedChip(String date) {
+    return 'စာရင်းပိတ်ပြီး — $date အထိ';
+  }
+
+  @override
+  String get yearEndExplainer =>
+      'စာရင်းပိတ်လိုက်ပါက ဤဖုန်းရှိ ကုန်ကျစရိတ်နှင့် ရင်းနှီးငွေ မှတ်တမ်းများကို ပိတ်ထားသောနှစ်အတွင်း ပြင်ဆင်/ဖျက်ခွင့် မရှိတော့ပါ။ ရောင်းချမှုမှတ်တမ်းများက မူလကတည်းက ပြင်မရနိုင်ပါ။ အချိန်မရွေး ပြန်ဖွင့်နိုင်ပါသည်။';
+
+  @override
+  String yearEndCloseThroughYear(int year) {
+    return '$year အထိ စာရင်းပိတ်ရန်';
+  }
+
+  @override
+  String yearEndConfirmTitle(int year) {
+    return '$year အထိ စာရင်းပိတ်မလား?';
+  }
+
+  @override
+  String get yearEndConfirmBody =>
+      'ပိတ်ထားသောကာလအတွင်း ကုန်ကျစရိတ်နှင့် ရင်းနှီးငွေ မှတ်တမ်းများကို ဤဖုန်းမှ နောက်မှ ပြင်ဆင်/ဖျက်ခွင့် မရှိတော့ပါ။ အချိန်မရွေး ပြန်ဖွင့်နိုင်ပါသည်။';
+
+  @override
+  String get yearEndReopen => 'စာရင်း ပြန်ဖွင့်ရန်';
+
+  @override
+  String get yearEndReopened => 'စာရင်း ပြန်ဖွင့်ပြီးပါပြီ';
+
+  @override
+  String get yearEndReopenNote =>
+      'ပြန်ဖွင့်သည်နှင့်တပြိုင်နက ပိတ်ထားခံရသော မှတ်တမ်းများကို ပြင်ဆင်နိုင်ပါသည်။';
+
+  @override
+  String yearEndClosedWarn(String date) {
+    return 'စာရင်းကို $date အထိ ပိတ်ထားပါသည်။ ပြင်ဆင်ရန် စာရင်းကိုင် → နှစ်ကုန်ပိတ်စာရင်းမှ ပြန်ဖွင့်ပါ။';
+  }
+
+  @override
+  String get arExportCsv => 'အကြွေးကျန် စာရင်း CSV ထုတ်';
+
+  @override
+  String get arExportBenefit =>
+      'အကြွေးကျန်စာရင်းကို spreadsheet အဖြစ် export လုပ်နိုင်';
+
+  @override
+  String get arHeaderCustomer => 'ဝယ်ယူသူ';
+
+  @override
+  String get arHeaderPhone => 'ဖုန်း';
+
+  @override
+  String get arHeaderInvoice => 'ဘောင်ချာအမှတ်';
+
+  @override
+  String get arHeaderDays => 'ရက်';
+
+  @override
+  String get arHeaderBucket => 'ကာလ';
+
+  @override
+  String get arHeaderOutstanding => 'ကျန်ငွေ';
+
+  @override
+  String get agingBucket0 => '၀–၃၀ ရက်';
+
+  @override
+  String get agingBucket1 => '၃၁–၆၀ ရက်';
+
+  @override
+  String get agingBucket2 => '၆၁–၉၀ ရက်';
+
+  @override
+  String get agingBucket3 => '၉၀+ ရက်';
+
+  @override
+  String get apExportCsv => 'ပေးရန်ကျန် CSV ထုတ်';
+
+  @override
+  String get apBilledHeader => 'ကြွေးဖြစ်ငွေ';
+
+  @override
+  String get apPaidHeader => 'ပေးပြီးငွေ';
+
+  @override
+  String get expensesHeaderCategory => 'အမျိုးအစား';
+
+  @override
   String get equityTotal => 'စုစုပေါင်း အရင်းအနှီး';
 
   @override

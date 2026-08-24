@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/image_util.dart';
@@ -14,6 +15,8 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../accounting/accounting_csv.dart';
+import '../accounting/accounting_providers.dart';
 import '../analytics/analytics_providers.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
@@ -150,10 +153,46 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
     final range = ref.watch(analyticsRangeProvider);
     final df = DateFormat('yyyy-MM-dd');
 
+    Future<void> exportCsv() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final accounts = ref.read(paymentAccountsProvider).valueOrNull ?? const [];
+      final accountNameById = {for (final a in accounts) a.id: a.name};
+      try {
+        final csv = buildExpensesCsv(
+          expenses,
+          accountNameById: accountNameById,
+          categoryLabel: (c) => categoryLabel(l, c),
+          dateHeader: l.stockHistoryHeaderDate,
+          categoryHeader: l.expensesHeaderCategory,
+          amountHeader: l.expenseAmount,
+          accountHeader: l.paymentAccountNameLabel,
+          noteHeader: l.stockHistoryHeaderNote,
+        );
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/expenses.csv');
+        await file.writeAsString(csv);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'text/csv')],
+            subject: l.expensesTitle,
+          ),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l.expensesTitle),
         actions: [
+          IconButton(
+            tooltip: l.inventoryExportCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+            onPressed: expenses.isEmpty ? null : () => exportCsv(),
+          ),
           IconButton(
             tooltip: l.recurringExpenseAddFromTemplate,
             icon: const Icon(Icons.playlist_add),
@@ -248,7 +287,22 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
   }
 
   Future<void> _openDialog(BuildContext context,
-      {Expense? existing, ExpenseTemplatePrefill? prefill}) {
+      {Expense? existing, ExpenseTemplatePrefill? prefill}) async {
+    // Year-end close: an entry dated in a closed book is read-only —
+    // neither edit nor its delete path may open.
+    if (existing != null) {
+      final l = AppLocalizations.of(context);
+      final closedThrough =
+          await ref.read(booksClosedThroughProvider.future);
+      if (isDateInClosedBooks(closedThrough, existing.date)) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.yearEndClosedWarn(closedThrough!))),
+        );
+        return;
+      }
+    }
+    if (!context.mounted) return;
     return showDialog<void>(
       context: context,
       builder: (_) => _ExpenseDialog(existing: existing, prefill: prefill),

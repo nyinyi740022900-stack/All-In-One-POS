@@ -502,6 +502,23 @@ class SettingsRepository {
   Future<void> setSeedCleanupDone(String shopId) =>
       _set(_shopKey(_kSeedCleanupDone, shopId), 'true');
 
+  /// Year-end close: money records dated on/before this ISO `yyyy-MM-dd`
+  /// day are locked against edits and deletes (Expenses, Equity entries).
+  /// Null = books open. Shop-scoped — like every [AppSettings] key this is
+  /// DEVICE-local, so the lock is per shop per device (a second device
+  /// doesn't inherit the close; documented v1 limitation, not a synced
+  /// table).
+  static const _kBooksClosedThrough = 'accounting.books_closed_through';
+
+  Future<String?> booksClosedThrough(String shopId) =>
+      _getShopScoped(_kBooksClosedThrough, shopId, fallbackToLegacy: false);
+
+  Future<void> setBooksClosedThrough(String shopId, String isoDate) =>
+      _set(_shopKey(_kBooksClosedThrough, shopId), isoDate);
+
+  Future<void> clearBooksClosedThrough(String shopId) =>
+      _delete(_shopKey(_kBooksClosedThrough, shopId));
+
   /// Persisted branch-switch recovery marker (feature/account scoped JSON).
   Future<String?> branchSwitchStateJson() => _get(_kBranchSwitchState);
   Future<void> setBranchSwitchStateJson(String json) =>

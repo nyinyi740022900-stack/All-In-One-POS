@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -9,6 +13,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../accounting/accounting_csv.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../sell/payment_labels.dart';
@@ -42,8 +47,43 @@ class AccountsPayableScreen extends ConsumerWidget {
         : ref.watch(supplierBalancesProvider);
     final total = ref.watch(accountsPayableTotalProvider);
 
+    Future<void> exportCsv() async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        final csv = buildAccountsPayableCsv(
+          balances,
+          supplierHeader: l.supplierNameLabel,
+          billedHeader: l.apBilledHeader,
+          paidHeader: l.apPaidHeader,
+          outstandingHeader: l.apOutstanding,
+        );
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/accounts-payable.csv');
+        await file.writeAsString(csv);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'text/csv')],
+            subject: l.accountsPayableTitle,
+          ),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(l.accountsPayableTitle)),
+      appBar: AppBar(
+        title: Text(l.accountsPayableTitle),
+        actions: [
+          IconButton(
+            tooltip: l.apExportCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+            onPressed: exportCsv,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Container(

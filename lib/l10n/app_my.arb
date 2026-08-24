@@ -209,6 +209,87 @@
   "equityTitle": "ပိုင်ရှင် အရင်းအနှီး",
   "equityPaidInCapital": "ပေးသွင်းထားသော အရင်း",
   "equityRetainedEarnings": "ဆက်လက်ရှင်သန်နေသော အမြတ်",
+  "accountingTitle": "စာရင်းကိုင်",
+  "accountingBalanceSheet": "ဘာလန်ရှိတ် စာရင်း",
+  "accountingBalanceSheetSubtitle": "ပိုင်ဆိုင်မှု၊ ကြွေးကျန်နှင့် ပိုင်ရှင်ရင်းနှီးငွေ ခြုံငုံကြည့်ရန်",
+  "accountingCashFlow": "ငွေဝင်ငွေထွက် စာရင်း",
+  "accountingCashFlowSubtitle": "အကောင့်တစ်ခုချင်း ငွေဝင်/ငွေထွက်ကို ကာလရွေးကြည့်ရန်",
+  "accountingTaxSummary": "အခွန် အစီရင်ခံစာ",
+  "accountingTaxSummarySubtitle": "အခွန်တင်သွင်းရန် ရောင်းအား/ကုန်ကျစရိတ် အချုပ်",
+  "accountingYearEndClose": "နှစ်ကုန် ပိတ်စာရင်း",
+  "accountingYearEndCloseSubtitle": "ပြီးစီးသောနှစ်ကို ပြင်ဆင်ခွင့်ပိတ်ရန်",
+  "balanceSheetAssets": "ပိုင်ဆိုင်မှုများ",
+  "balanceSheetCashAccounts": "ငွေသားနှင့် အကောင့်များ",
+  "balanceSheetInventory": "ကုန်လက်ကျန် (ကုန်ကျစရိတ်)",
+  "balanceSheetReceivables": "အကြွေးရှင်များ ကျန်ငွေ",
+  "balanceSheetLiabilities": "ကြွေးကျန်များ",
+  "balanceSheetPayables": "ပေးရန်ကျန် (Supplier)",
+  "balanceSheetEquity": "ပိုင်ရှင် ရင်းနှီးငွေ",
+  "balanceSheetUntracked": "မှတ်တမ်းမဝင် (အစပိုင်း လက်ကျန်)",
+  "balanceSheetUntrackedNote": "ယောဘုာအားဖြင့် အစပိုင်းတွင် လက်ဖြင့် ထည့်သွင်းခဲ့သော ကုန်လက်ကျန်တန်ဖိုး (နှင့် လက်ဖြင့်ချိန်ညှိမှုများ) ဖြစ်ပါသည် — ဤစနစ်သည် double-entry စနစ်မဟုတ်သဖြင့် ကွာခြားချက်ကို ဖုံးကွယ်မထားဘဲ ပြထားပါသည်။",
+  "cashFlowOpening": "အစလက်ကျန်",
+  "cashFlowInflow": "ငွေဝင်",
+  "cashFlowOutflow": "ငွေထွက်",
+  "cashFlowClosing": "အဆုံးလက်ကျန်",
+  "cashFlowOwnerNote": "မှတ်ချက် — ပိုင်ရှင် ရင်းနှီးငွေထည့်/ထုတ်မှုများတွင် အကောင့်ကော်လံ မရှိသဖြင့် ဤစာရင်းတွင် မပါဝင်ပါ။ (ပိုင်ရှင်ရင်းနှီးငွေ စာရင်းတွင် ကြည့်ပါ။)",
+  "cashFlowEmpty": "ဤကာလအတွင်း အကောင့်လှုပ်ရှားမှု မရှိပါ။",
+  "taxRevenueLabel": "ရောင်းအား စုစုပေါင်း",
+  "taxNetProfitLabel": "အမြတ်ငွေ (အခွန်တွက်ရန်)",
+  "taxNoComputationNote": "အခွန်နှုန်းများသည် ဥပဒေအလိုက် ပြောင်းလဲနိုင်သဖြင့် ဤအစီရင်ခံစာတွင် အချက်အလက်များသာ ပြထားပါသည် — အခွန်တွက်ချက်ခြင်းကို စာရင်းကိုင်ထံမှ လုပ်ပါ။",
+  "yearEndOpenChip": "စာရင်း ဖွင့်လှစ်ထားပါသည်",
+  "yearEndClosedChip": "စာရင်းပိတ်ပြီး — {date} အထိ",
+  "@yearEndClosedChip": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "yearEndExplainer": "စာရင်းပိတ်လိုက်ပါက ဤဖုန်းရှိ ကုန်ကျစရိတ်နှင့် ရင်းနှီးငွေ မှတ်တမ်းများကို ပိတ်ထားသောနှစ်အတွင်း ပြင်ဆင်/ဖျက်ခွင့် မရှိတော့ပါ။ ရောင်းချမှုမှတ်တမ်းများက မူလကတည်းက ပြင်မရနိုင်ပါ။ အချိန်မရွေး ပြန်ဖွင့်နိုင်ပါသည်။",
+  "yearEndCloseThroughYear": "{year} အထိ စာရင်းပိတ်ရန်",
+  "@yearEndCloseThroughYear": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "yearEndConfirmTitle": "{year} အထိ စာရင်းပိတ်မလား?",
+  "@yearEndConfirmTitle": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "yearEndConfirmBody": "ပိတ်ထားသောကာလအတွင်း ကုန်ကျစရိတ်နှင့် ရင်းနှီးငွေ မှတ်တမ်းများကို ဤဖုန်းမှ နောက်မှ ပြင်ဆင်/ဖျက်ခွင့် မရှိတော့ပါ။ အချိန်မရွေး ပြန်ဖွင့်နိုင်ပါသည်။",
+  "yearEndReopen": "စာရင်း ပြန်ဖွင့်ရန်",
+  "yearEndReopened": "စာရင်း ပြန်ဖွင့်ပြီးပါပြီ",
+  "yearEndReopenNote": "ပြန်ဖွင့်သည်နှင့်တပြိုင်နက ပိတ်ထားခံရသော မှတ်တမ်းများကို ပြင်ဆင်နိုင်ပါသည်။",
+  "yearEndClosedWarn": "စာရင်းကို {date} အထိ ပိတ်ထားပါသည်။ ပြင်ဆင်ရန် စာရင်းကိုင် → နှစ်ကုန်ပိတ်စာရင်းမှ ပြန်ဖွင့်ပါ။",
+  "@yearEndClosedWarn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "arExportCsv": "အကြွေးကျန် စာရင်း CSV ထုတ်",
+  "arExportBenefit": "အကြွေးကျန်စာရင်းကို spreadsheet အဖြစ် export လုပ်နိုင်",
+  "arHeaderCustomer": "ဝယ်ယူသူ",
+  "arHeaderPhone": "ဖုန်း",
+  "arHeaderInvoice": "ဘောင်ချာအမှတ်",
+  "arHeaderDays": "ရက်",
+  "arHeaderBucket": "ကာလ",
+  "arHeaderOutstanding": "ကျန်ငွေ",
+  "agingBucket0": "၀–၃၀ ရက်",
+  "agingBucket1": "၃၁–၆၀ ရက်",
+  "agingBucket2": "၆၁–၉၀ ရက်",
+  "agingBucket3": "၉၀+ ရက်",
+  "apExportCsv": "ပေးရန်ကျန် CSV ထုတ်",
+  "apBilledHeader": "ကြွေးဖြစ်ငွေ",
+  "apPaidHeader": "ပေးပြီးငွေ",
+  "expensesHeaderCategory": "အမျိုးအစား",
   "equityTotal": "စုစုပေါင်း အရင်းအနှီး",
   "equityContribution": "အရင်းထည့်ဝင်ငွေ",
   "equityDrawing": "ထုတ်ယူငွေ",

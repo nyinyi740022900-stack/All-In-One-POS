@@ -1,17 +1,92 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../core/csv_util.dart' show csvField;
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../accounting/accounting_providers.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import '../sell/payment_labels.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
 import 'repayment_dialog.dart';
+
+final _agingDay = DateFormat('yyyy-MM-dd');
+
+String _agingBucketLabel(AppLocalizations l, int bucket) => switch (bucket) {
+      0 => l.agingBucket0,
+      1 => l.agingBucket1,
+      2 => l.agingBucket2,
+      _ => l.agingBucket3,
+    };
+
+/// Shares the aged receivables ledger as CSV: one row per still-owed sale
+/// with its age bucket, then a per-bucket totals block — the file an
+/// accountant chases debts from. Premium-gated by the caller, like every
+/// other export.
+Future<void> shareAgedReceivablesCsv(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final rows = ref.read(agedReceivablesProvider);
+  final totals = ref.read(agingTotalsProvider);
+  final csv = [
+    [
+      l.arHeaderCustomer,
+      l.arHeaderPhone,
+      l.arHeaderInvoice,
+      l.stockHistoryHeaderDate,
+      l.arHeaderDays,
+      l.arHeaderBucket,
+      l.arHeaderOutstanding,
+    ].map(csvField).join(','),
+    for (final r in rows)
+      [
+        r.customerName,
+        r.phone ?? '',
+        r.invoiceNo,
+        _agingDay.format(r.finalizedAt),
+        DateTime.now().difference(r.finalizedAt).inDays,
+        _agingBucketLabel(l, r.bucket),
+        r.outstanding,
+      ].map(csvField).join(','),
+    for (var i = 0; i < totals.length; i++)
+      [
+        _agingBucketLabel(l, i),
+        '',
+        '',
+        '',
+        '',
+        '',
+        totals[i],
+      ].map(csvField).join(','),
+  ].join('\r\n');
+  try {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/receivables-aging.csv');
+    await file.writeAsString(csv);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'text/csv')],
+        subject: l.creditTitle,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+  }
+}
 
 /// The credit book (အကြွေးစာရင်း): customers who owe, and their balances.
 class CreditScreen extends ConsumerWidget {
@@ -28,7 +103,26 @@ class CreditScreen extends ConsumerWidget {
     final total = ref.watch(creditOutstandingTotalProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.creditTitle)),
+      appBar: AppBar(
+        title: Text(l.creditTitle),
+        actions: [
+          IconButton(
+            tooltip: l.arExportCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+            onPressed: () {
+              if (!ref.read(isPremiumProvider)) {
+                showPremiumRequiredDialog(
+                  context,
+                  l.arExportCsv,
+                  benefit: l.arExportBenefit,
+                );
+                return;
+              }
+              shareAgedReceivablesCsv(context, ref);
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Container(
@@ -47,6 +141,8 @@ class CreditScreen extends ConsumerWidget {
                   emphasis: true,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
+                const SizedBox(height: AppTheme.space2),
+                _AgingStrip(),
               ],
             ),
           ),
@@ -249,5 +345,36 @@ class CreditCustomerScreen extends ConsumerWidget {
   Future<void> _recordRepayment(
       BuildContext context, WidgetRef ref, CreditCustomer customer) async {
     await showRepaymentDialog(context, customer);
+  }
+}
+
+/// The four aging buckets (0–30/31–60/61–90/90+) as a compact row under the
+/// total — where the money is stuck and how long it's been stuck, the two
+/// things a collection round needs before anything else.
+class _AgingStrip extends ConsumerWidget {
+  const _AgingStrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final totals = ref.watch(agingTotalsProvider);
+    final labels = [
+      l.agingBucket0,
+      l.agingBucket1,
+      l.agingBucket2,
+      l.agingBucket3,
+    ];
+    return Wrap(
+      spacing: AppTheme.space2,
+      runSpacing: AppTheme.space1,
+      children: [
+        for (var i = 0; i < totals.length; i++)
+          StatusPill(
+            label:
+                '${labels[i]}: ${Money(totals[i]).withSymbol(l.currencySymbol)}',
+            tone: totals[i] > 0 ? StatusTone.attention : StatusTone.neutral,
+          ),
+      ],
+    );
   }
 }

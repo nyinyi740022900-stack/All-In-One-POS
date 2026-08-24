@@ -35,13 +35,14 @@ final accountBalanceProvider =
     FutureProvider.family<int, PaymentAccount>((ref, account) async {
   ref.watch(salesStreamProvider);
   ref.watch(repaymentsProvider);
-  ref.watch(_accountExpensesWatchProvider);
-  ref.watch(_accountSupplierPaymentsWatchProvider);
+  ref.watch(accountExpensesWatchProvider);
+  ref.watch(accountSupplierPaymentsWatchProvider);
   return ref.read(paymentAccountRepositoryProvider).balanceFor(account);
 });
 
-/// Invalidation-only signal — see [accountBalanceProvider].
-final _accountExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
+/// Invalidation-only signal — see [accountBalanceProvider]. Public because
+/// the Balance Sheet / Cash Flow fold the same tables.
+final accountExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
   final db = ref.watch(databaseProvider);
   final shopId = ref.watch(shopIdProvider);
   return (db.select(db.expenses)
@@ -51,11 +52,23 @@ final _accountExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
 
 /// Invalidation-only signal — see [accountBalanceProvider]. A supplier
 /// payment made from an account is an outflow, same as an expense.
-final _accountSupplierPaymentsWatchProvider =
+final accountSupplierPaymentsWatchProvider =
     StreamProvider<List<SupplierPayment>>((ref) {
   final db = ref.watch(databaseProvider);
   final shopId = ref.watch(shopIdProvider);
   return (db.select(db.supplierPayments)
+        ..where((t) => t.shopId.equals(shopId) & t.isDeleted.equals(false)))
+      .watch();
+});
+
+/// Sale tenders (`Payments`) with dates — the inflow side of the account
+/// fold. The repository reads this table inside `balanceFor` with no
+/// stream, so the Cash Flow screen needs its own watch to split flows by
+/// period (and to invalidate when a tender changes).
+final accountPaymentsWatchProvider = StreamProvider<List<Payment>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.payments)
         ..where((t) => t.shopId.equals(shopId) & t.isDeleted.equals(false)))
       .watch();
 });

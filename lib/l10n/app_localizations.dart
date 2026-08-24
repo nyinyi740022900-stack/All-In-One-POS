@@ -1010,6 +1010,324 @@ abstract class AppLocalizations {
   /// **'Retained earnings'**
   String get equityRetainedEarnings;
 
+  /// No description provided for @accountingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounting'**
+  String get accountingTitle;
+
+  /// No description provided for @accountingBalanceSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance Sheet'**
+  String get accountingBalanceSheet;
+
+  /// No description provided for @accountingBalanceSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assets, liabilities and owner\'s equity at a glance'**
+  String get accountingBalanceSheetSubtitle;
+
+  /// No description provided for @accountingCashFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash flow'**
+  String get accountingCashFlow;
+
+  /// No description provided for @accountingCashFlowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Money in and out per account, for a chosen period'**
+  String get accountingCashFlowSubtitle;
+
+  /// No description provided for @accountingTaxSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax summary'**
+  String get accountingTaxSummary;
+
+  /// No description provided for @accountingTaxSummarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turnover, expenses and profit for a filing period'**
+  String get accountingTaxSummarySubtitle;
+
+  /// No description provided for @accountingYearEndClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Year-end close'**
+  String get accountingYearEndClose;
+
+  /// No description provided for @accountingYearEndCloseSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock a finished year against edits'**
+  String get accountingYearEndCloseSubtitle;
+
+  /// No description provided for @balanceSheetAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Assets'**
+  String get balanceSheetAssets;
+
+  /// No description provided for @balanceSheetCashAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash & accounts'**
+  String get balanceSheetCashAccounts;
+
+  /// No description provided for @balanceSheetInventory.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory (at cost)'**
+  String get balanceSheetInventory;
+
+  /// No description provided for @balanceSheetReceivables.
+  ///
+  /// In en, this message translates to:
+  /// **'Receivables (credit)'**
+  String get balanceSheetReceivables;
+
+  /// No description provided for @balanceSheetLiabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Liabilities'**
+  String get balanceSheetLiabilities;
+
+  /// No description provided for @balanceSheetPayables.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier payables'**
+  String get balanceSheetPayables;
+
+  /// No description provided for @balanceSheetEquity.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner\'s equity'**
+  String get balanceSheetEquity;
+
+  /// No description provided for @balanceSheetUntracked.
+  ///
+  /// In en, this message translates to:
+  /// **'Untracked (opening balances)'**
+  String get balanceSheetUntracked;
+
+  /// No description provided for @balanceSheetUntrackedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Usually the stock value entered by hand as opening stock (plus manual count adjustments) — this ledger was not born from a double-entry general ledger, so the three-way difference is shown instead of hidden.'**
+  String get balanceSheetUntrackedNote;
+
+  /// No description provided for @cashFlowOpening.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening'**
+  String get cashFlowOpening;
+
+  /// No description provided for @cashFlowInflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Money in'**
+  String get cashFlowInflow;
+
+  /// No description provided for @cashFlowOutflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Money out'**
+  String get cashFlowOutflow;
+
+  /// No description provided for @cashFlowClosing.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing'**
+  String get cashFlowClosing;
+
+  /// No description provided for @cashFlowOwnerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner contributions and drawings carry no account, so they are not part of this statement — see Owner\'s equity.'**
+  String get cashFlowOwnerNote;
+
+  /// No description provided for @cashFlowEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No account activity in this period.'**
+  String get cashFlowEmpty;
+
+  /// No description provided for @taxRevenueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Turnover'**
+  String get taxRevenueLabel;
+
+  /// No description provided for @taxNetProfitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Net profit (taxable)'**
+  String get taxNetProfitLabel;
+
+  /// No description provided for @taxNoComputationNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax rates change with law, so this report states the figures only — your accountant computes the tax.'**
+  String get taxNoComputationNote;
+
+  /// No description provided for @yearEndOpenChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Books are open'**
+  String get yearEndOpenChip;
+
+  /// No description provided for @yearEndClosedChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Books closed through {date}'**
+  String yearEndClosedChip(String date);
+
+  /// No description provided for @yearEndExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing locks this device\'s expenses and equity entries dated in the closed year against edits and deletes. Sales were always append-only. You can reopen at any time.'**
+  String get yearEndExplainer;
+
+  /// No description provided for @yearEndCloseThroughYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Close books through {year}'**
+  String yearEndCloseThroughYear(int year);
+
+  /// No description provided for @yearEndConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Close books through {year}?'**
+  String yearEndConfirmTitle(int year);
+
+  /// No description provided for @yearEndConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses and equity entries dated in the closed period can no longer be edited or deleted on this device. You can reopen at any time.'**
+  String get yearEndConfirmBody;
+
+  /// No description provided for @yearEndReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen books'**
+  String get yearEndReopen;
+
+  /// No description provided for @yearEndReopened.
+  ///
+  /// In en, this message translates to:
+  /// **'Books reopened'**
+  String get yearEndReopened;
+
+  /// No description provided for @yearEndReopenNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked records become editable again immediately.'**
+  String get yearEndReopenNote;
+
+  /// No description provided for @yearEndClosedWarn.
+  ///
+  /// In en, this message translates to:
+  /// **'Books are closed through {date}. Reopen from Accounting → Year-end close to edit.'**
+  String yearEndClosedWarn(String date);
+
+  /// No description provided for @arExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export receivables'**
+  String get arExportCsv;
+
+  /// No description provided for @arExportBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'Export the aged receivables list to a spreadsheet'**
+  String get arExportBenefit;
+
+  /// No description provided for @arHeaderCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get arHeaderCustomer;
+
+  /// No description provided for @arHeaderPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get arHeaderPhone;
+
+  /// No description provided for @arHeaderInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice no'**
+  String get arHeaderInvoice;
+
+  /// No description provided for @arHeaderDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get arHeaderDays;
+
+  /// No description provided for @arHeaderBucket.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get arHeaderBucket;
+
+  /// No description provided for @arHeaderOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get arHeaderOutstanding;
+
+  /// No description provided for @agingBucket0.
+  ///
+  /// In en, this message translates to:
+  /// **'0–30 days'**
+  String get agingBucket0;
+
+  /// No description provided for @agingBucket1.
+  ///
+  /// In en, this message translates to:
+  /// **'31–60 days'**
+  String get agingBucket1;
+
+  /// No description provided for @agingBucket2.
+  ///
+  /// In en, this message translates to:
+  /// **'61–90 days'**
+  String get agingBucket2;
+
+  /// No description provided for @agingBucket3.
+  ///
+  /// In en, this message translates to:
+  /// **'90+ days'**
+  String get agingBucket3;
+
+  /// No description provided for @apExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export payables'**
+  String get apExportCsv;
+
+  /// No description provided for @apBilledHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Billed'**
+  String get apBilledHeader;
+
+  /// No description provided for @apPaidHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get apPaidHeader;
+
+  /// No description provided for @expensesHeaderCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get expensesHeaderCategory;
+
   /// No description provided for @equityTotal.
   ///
   /// In en, this message translates to:

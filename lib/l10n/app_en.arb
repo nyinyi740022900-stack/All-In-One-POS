@@ -232,6 +232,87 @@
   "equityTitle": "Owner's equity",
   "equityPaidInCapital": "Paid-in capital",
   "equityRetainedEarnings": "Retained earnings",
+  "accountingTitle": "Accounting",
+  "accountingBalanceSheet": "Balance Sheet",
+  "accountingBalanceSheetSubtitle": "Assets, liabilities and owner's equity at a glance",
+  "accountingCashFlow": "Cash flow",
+  "accountingCashFlowSubtitle": "Money in and out per account, for a chosen period",
+  "accountingTaxSummary": "Tax summary",
+  "accountingTaxSummarySubtitle": "Turnover, expenses and profit for a filing period",
+  "accountingYearEndClose": "Year-end close",
+  "accountingYearEndCloseSubtitle": "Lock a finished year against edits",
+  "balanceSheetAssets": "Assets",
+  "balanceSheetCashAccounts": "Cash & accounts",
+  "balanceSheetInventory": "Inventory (at cost)",
+  "balanceSheetReceivables": "Receivables (credit)",
+  "balanceSheetLiabilities": "Liabilities",
+  "balanceSheetPayables": "Supplier payables",
+  "balanceSheetEquity": "Owner's equity",
+  "balanceSheetUntracked": "Untracked (opening balances)",
+  "balanceSheetUntrackedNote": "Usually the stock value entered by hand as opening stock (plus manual count adjustments) — this ledger was not born from a double-entry general ledger, so the three-way difference is shown instead of hidden.",
+  "cashFlowOpening": "Opening",
+  "cashFlowInflow": "Money in",
+  "cashFlowOutflow": "Money out",
+  "cashFlowClosing": "Closing",
+  "cashFlowOwnerNote": "Owner contributions and drawings carry no account, so they are not part of this statement — see Owner's equity.",
+  "cashFlowEmpty": "No account activity in this period.",
+  "taxRevenueLabel": "Turnover",
+  "taxNetProfitLabel": "Net profit (taxable)",
+  "taxNoComputationNote": "Tax rates change with law, so this report states the figures only — your accountant computes the tax.",
+  "yearEndOpenChip": "Books are open",
+  "yearEndClosedChip": "Books closed through {date}",
+  "@yearEndClosedChip": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "yearEndExplainer": "Closing locks this device's expenses and equity entries dated in the closed year against edits and deletes. Sales were always append-only. You can reopen at any time.",
+  "yearEndCloseThroughYear": "Close books through {year}",
+  "@yearEndCloseThroughYear": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "yearEndConfirmTitle": "Close books through {year}?",
+  "@yearEndConfirmTitle": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "yearEndConfirmBody": "Expenses and equity entries dated in the closed period can no longer be edited or deleted on this device. You can reopen at any time.",
+  "yearEndReopen": "Reopen books",
+  "yearEndReopened": "Books reopened",
+  "yearEndReopenNote": "Locked records become editable again immediately.",
+  "yearEndClosedWarn": "Books are closed through {date}. Reopen from Accounting → Year-end close to edit.",
+  "@yearEndClosedWarn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "arExportCsv": "Export receivables",
+  "arExportBenefit": "Export the aged receivables list to a spreadsheet",
+  "arHeaderCustomer": "Customer",
+  "arHeaderPhone": "Phone",
+  "arHeaderInvoice": "Invoice no",
+  "arHeaderDays": "Days",
+  "arHeaderBucket": "Age",
+  "arHeaderOutstanding": "Outstanding",
+  "agingBucket0": "0–30 days",
+  "agingBucket1": "31–60 days",
+  "agingBucket2": "61–90 days",
+  "agingBucket3": "90+ days",
+  "apExportCsv": "Export payables",
+  "apBilledHeader": "Billed",
+  "apPaidHeader": "Paid",
+  "expensesHeaderCategory": "Category",
   "equityTotal": "Total equity",
   "equityContribution": "Contribution",
   "equityDrawing": "Drawing",

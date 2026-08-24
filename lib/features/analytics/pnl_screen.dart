@@ -13,6 +13,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../expenses/expense_screen.dart' show categoryLabel;
 import '../invoices/receipt_data.dart';
+import '../accounting/accounting_screen.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../printing/document_print.dart';
@@ -260,6 +261,13 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       appBar: AppBar(
         title: Text(l.pnlTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.account_balance_outlined),
+            tooltip: l.accountingTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AccountingScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.date_range_outlined),
             tooltip: l.stockHistoryPickDateRange,

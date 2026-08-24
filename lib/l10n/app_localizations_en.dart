@@ -514,6 +514,184 @@ class AppLocalizationsEn extends AppLocalizations {
   String get equityRetainedEarnings => 'Retained earnings';
 
   @override
+  String get accountingTitle => 'Accounting';
+
+  @override
+  String get accountingBalanceSheet => 'Balance Sheet';
+
+  @override
+  String get accountingBalanceSheetSubtitle =>
+      'Assets, liabilities and owner\'s equity at a glance';
+
+  @override
+  String get accountingCashFlow => 'Cash flow';
+
+  @override
+  String get accountingCashFlowSubtitle =>
+      'Money in and out per account, for a chosen period';
+
+  @override
+  String get accountingTaxSummary => 'Tax summary';
+
+  @override
+  String get accountingTaxSummarySubtitle =>
+      'Turnover, expenses and profit for a filing period';
+
+  @override
+  String get accountingYearEndClose => 'Year-end close';
+
+  @override
+  String get accountingYearEndCloseSubtitle =>
+      'Lock a finished year against edits';
+
+  @override
+  String get balanceSheetAssets => 'Assets';
+
+  @override
+  String get balanceSheetCashAccounts => 'Cash & accounts';
+
+  @override
+  String get balanceSheetInventory => 'Inventory (at cost)';
+
+  @override
+  String get balanceSheetReceivables => 'Receivables (credit)';
+
+  @override
+  String get balanceSheetLiabilities => 'Liabilities';
+
+  @override
+  String get balanceSheetPayables => 'Supplier payables';
+
+  @override
+  String get balanceSheetEquity => 'Owner\'s equity';
+
+  @override
+  String get balanceSheetUntracked => 'Untracked (opening balances)';
+
+  @override
+  String get balanceSheetUntrackedNote =>
+      'Usually the stock value entered by hand as opening stock (plus manual count adjustments) — this ledger was not born from a double-entry general ledger, so the three-way difference is shown instead of hidden.';
+
+  @override
+  String get cashFlowOpening => 'Opening';
+
+  @override
+  String get cashFlowInflow => 'Money in';
+
+  @override
+  String get cashFlowOutflow => 'Money out';
+
+  @override
+  String get cashFlowClosing => 'Closing';
+
+  @override
+  String get cashFlowOwnerNote =>
+      'Owner contributions and drawings carry no account, so they are not part of this statement — see Owner\'s equity.';
+
+  @override
+  String get cashFlowEmpty => 'No account activity in this period.';
+
+  @override
+  String get taxRevenueLabel => 'Turnover';
+
+  @override
+  String get taxNetProfitLabel => 'Net profit (taxable)';
+
+  @override
+  String get taxNoComputationNote =>
+      'Tax rates change with law, so this report states the figures only — your accountant computes the tax.';
+
+  @override
+  String get yearEndOpenChip => 'Books are open';
+
+  @override
+  String yearEndClosedChip(String date) {
+    return 'Books closed through $date';
+  }
+
+  @override
+  String get yearEndExplainer =>
+      'Closing locks this device\'s expenses and equity entries dated in the closed year against edits and deletes. Sales were always append-only. You can reopen at any time.';
+
+  @override
+  String yearEndCloseThroughYear(int year) {
+    return 'Close books through $year';
+  }
+
+  @override
+  String yearEndConfirmTitle(int year) {
+    return 'Close books through $year?';
+  }
+
+  @override
+  String get yearEndConfirmBody =>
+      'Expenses and equity entries dated in the closed period can no longer be edited or deleted on this device. You can reopen at any time.';
+
+  @override
+  String get yearEndReopen => 'Reopen books';
+
+  @override
+  String get yearEndReopened => 'Books reopened';
+
+  @override
+  String get yearEndReopenNote =>
+      'Locked records become editable again immediately.';
+
+  @override
+  String yearEndClosedWarn(String date) {
+    return 'Books are closed through $date. Reopen from Accounting → Year-end close to edit.';
+  }
+
+  @override
+  String get arExportCsv => 'Export receivables';
+
+  @override
+  String get arExportBenefit =>
+      'Export the aged receivables list to a spreadsheet';
+
+  @override
+  String get arHeaderCustomer => 'Customer';
+
+  @override
+  String get arHeaderPhone => 'Phone';
+
+  @override
+  String get arHeaderInvoice => 'Invoice no';
+
+  @override
+  String get arHeaderDays => 'Days';
+
+  @override
+  String get arHeaderBucket => 'Age';
+
+  @override
+  String get arHeaderOutstanding => 'Outstanding';
+
+  @override
+  String get agingBucket0 => '0–30 days';
+
+  @override
+  String get agingBucket1 => '31–60 days';
+
+  @override
+  String get agingBucket2 => '61–90 days';
+
+  @override
+  String get agingBucket3 => '90+ days';
+
+  @override
+  String get apExportCsv => 'Export payables';
+
+  @override
+  String get apBilledHeader => 'Billed';
+
+  @override
+  String get apPaidHeader => 'Paid';
+
+  @override
+  String get expensesHeaderCategory => 'Category';
+
+  @override
   String get equityTotal => 'Total equity';
 
   @override
