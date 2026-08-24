@@ -1,12 +1,19 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../license/license_providers.dart';
+import '../license/premium_gate.dart';
 import 'inventory_providers.dart';
 import 'stock_history_screen.dart';
+import 'stock_movements_csv.dart';
 
 /// Every movement type a shop's stock ledger can have, in the order shown
 /// as filter chips.
@@ -81,6 +88,46 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
     return '${df.format(start)} → ${df.format(inclusiveEnd)}';
   }
 
+  /// Shares the CURRENTLY FILTERED ledger as CSV — the file can never
+  /// disagree with what the screen is showing. Premium-gated like the
+  /// inventory CSV export.
+  Future<void> _exportCsv(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    if (!ref.read(isPremiumProvider)) {
+      await showPremiumRequiredDialog(
+        context,
+        l.stockHistoryExportCsv,
+        benefit: l.stockHistoryCsvBenefit,
+      );
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final movements = ref.read(filteredMovementsProvider);
+    try {
+      final csv = buildStockMovementsCsv(
+        movements,
+        dateHeader: l.stockHistoryHeaderDate,
+        productHeader: l.productName,
+        typeHeader: l.stockHistoryHeaderType,
+        qtyChangeHeader: l.stockHistoryHeaderQtyChange,
+        unitCostHeader: l.stockHistoryHeaderUnitCost,
+        noteHeader: l.stockHistoryHeaderNote,
+        typeLabel: (t) => stockMovementTypeLabel(l, t),
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/stock-history.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l.stockHistoryTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -113,6 +160,11 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
       appBar: AppBar(
         title: Text(l.stockHistoryTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.table_chart_outlined),
+            tooltip: l.stockHistoryExportCsv,
+            onPressed: () => _exportCsv(context, ref),
+          ),
           IconButton(
             icon: const Icon(Icons.date_range_outlined),
             tooltip: l.stockHistoryPickDateRange,

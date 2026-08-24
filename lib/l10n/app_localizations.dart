@@ -1766,6 +1766,48 @@ abstract class AppLocalizations {
   /// **'Pick date range'**
   String get stockHistoryPickDateRange;
 
+  /// No description provided for @stockHistoryExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export stock history'**
+  String get stockHistoryExportCsv;
+
+  /// No description provided for @stockHistoryCsvBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'Export the filtered stock movement history to a spreadsheet'**
+  String get stockHistoryCsvBenefit;
+
+  /// No description provided for @stockHistoryHeaderDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get stockHistoryHeaderDate;
+
+  /// No description provided for @stockHistoryHeaderType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get stockHistoryHeaderType;
+
+  /// No description provided for @stockHistoryHeaderQtyChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty change'**
+  String get stockHistoryHeaderQtyChange;
+
+  /// No description provided for @stockHistoryHeaderUnitCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit cost'**
+  String get stockHistoryHeaderUnitCost;
+
+  /// No description provided for @stockHistoryHeaderNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get stockHistoryHeaderNote;
+
   /// No description provided for @stockHistoryFilterProduct.
   ///
   /// In en, this message translates to:

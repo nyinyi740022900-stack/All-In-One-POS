@@ -914,6 +914,28 @@ class AppLocalizationsMy extends AppLocalizations {
   String get stockHistoryPickDateRange => 'ရက်စွဲအပိုင်းအခြား ရွေးရန်';
 
   @override
+  String get stockHistoryExportCsv => 'မှတ်တမ်း CSV ထုတ်';
+
+  @override
+  String get stockHistoryCsvBenefit =>
+      'ကုန်လက်ကျန် ရွှေ့ပြောင်းမှု မှတ်တမ်းကို spreadsheet အဖြစ် export လုပ်နိုင်';
+
+  @override
+  String get stockHistoryHeaderDate => 'ရက်စွဲ';
+
+  @override
+  String get stockHistoryHeaderType => 'အမျိုးအစား';
+
+  @override
+  String get stockHistoryHeaderQtyChange => 'အရေအတွက် ပြောင်းလဲမှု';
+
+  @override
+  String get stockHistoryHeaderUnitCost => 'တစ်ခုချင်း ကုန်ကျစရိတ်';
+
+  @override
+  String get stockHistoryHeaderNote => 'မှတ်ချက်';
+
+  @override
   String get stockHistoryFilterProduct => 'ပစ္စည်းနာမည်ဖြင့် စစ်ရန်';
 
   @override

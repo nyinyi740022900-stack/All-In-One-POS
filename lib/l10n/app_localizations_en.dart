@@ -920,6 +920,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockHistoryPickDateRange => 'Pick date range';
 
   @override
+  String get stockHistoryExportCsv => 'Export stock history';
+
+  @override
+  String get stockHistoryCsvBenefit =>
+      'Export the filtered stock movement history to a spreadsheet';
+
+  @override
+  String get stockHistoryHeaderDate => 'Date';
+
+  @override
+  String get stockHistoryHeaderType => 'Type';
+
+  @override
+  String get stockHistoryHeaderQtyChange => 'Qty change';
+
+  @override
+  String get stockHistoryHeaderUnitCost => 'Unit cost';
+
+  @override
+  String get stockHistoryHeaderNote => 'Note';
+
+  @override
   String get stockHistoryFilterProduct => 'Filter by product';
 
   @override
