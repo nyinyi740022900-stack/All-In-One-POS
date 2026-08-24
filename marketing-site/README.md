@@ -18,14 +18,15 @@ marketing-site/
   index.html          home: hero, cinematic showcase, feature hub, how-it-works, download
   styles.css          brand tokens + cinematic photo/parallax/reveal styling
   icons.css           animated custom icon set (entrance + continuous micro-loop per feature)
-  feature-page.css    shared layout for the 15 feature tutorial pages
+  feature-page.css    shared layout for the 19 feature tutorial pages
   script.js           scroll-reveal (IntersectionObserver) + parallax (rAF) + phone-shot
                        fallback + language toggle
   features/           one full "how to use" tutorial page per feature area —
                        sell.html, inventory.html, invoices.html, printing.html,
                        analytics.html, credit.html, expenses.html, cash.html,
                        customers.html, orders.html, accounts.html, equity.html,
-                       backup.html, license.html, branches.html — each with
+                       backup.html, license.html, branches.html, storefront.html,
+                       purchase-orders.html, payables.html, staff.html — each with
                        numbered steps, real app screenshots, tips, and related links
   assets/
     app_icon.png, app_mark.png   (copied from assets/branding/)

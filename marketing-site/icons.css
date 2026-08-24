@@ -96,6 +96,10 @@
 .reveal.in-view .ficon-backup .icon-motion    { animation: iconSlideY 2.8s ease-in-out infinite; }
 .reveal.in-view .ficon-license .icon-check    { animation: iconBlink 3.6s ease-in-out infinite; }
 .reveal.in-view .ficon-branches .icon-motion  { animation: iconSpinSlow 6s linear infinite; transform-origin: 50% 50%; }
+.reveal.in-view .ficon-storefront .icon-motion { animation: iconPulse 3.2s ease-in-out infinite; transform-origin: 50% 70%; }
+.reveal.in-view .ficon-payables .icon-motion   { animation: iconSlideX 3s ease-in-out infinite; }
+.reveal.in-view .ficon-purchase-orders .icon-check { animation: iconBlink 3.6s ease-in-out infinite; }
+.reveal.in-view .ficon-staff .icon-motion      { animation: iconBounce 2.8s ease-in-out infinite; transform-origin: 50% 100%; }
 
 @media (prefers-reduced-motion: reduce) {
   .ficon svg, .icon-motion, .bar1, .bar2, .bar3, .icon-shine, .icon-check {
