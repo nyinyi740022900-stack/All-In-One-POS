@@ -26,6 +26,7 @@ import 'inventory_csv.dart';
 import 'inventory_providers.dart';
 import 'product_edit_screen.dart';
 import 'stock_adjust_dialog.dart';
+import 'stock_history_screen.dart';
 import 'stock_movements_screen.dart';
 
 /// Barcode value to print/scan for a product — its own barcode if set,
@@ -223,6 +224,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         body: Column(
           children: [
             const _CategoryFilterBar(),
+            if (trackStock) const _StockFilterBar(),
             Expanded(
               child: async.when(
                 loading: () => const AppLoadingView(),
@@ -519,6 +521,26 @@ class _ProductTile extends ConsumerWidget {
                     title: Text(l.inventoryPrintLabel),
                   ),
                 ),
+                // One tap from the row to this product's full movement
+                // ledger — it used to live only inside the editor, so
+                // "when did this product move?" meant open → find the
+                // history entry → back, every single time.
+                PopupMenuItem<void>(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => StockHistoryScreen(
+                        productId: p.product.id,
+                        productName: p.product.name,
+                      ),
+                    ),
+                  ),
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.history),
+                    title: Text(l.stockHistoryTitle),
+                  ),
+                ),
               ],
             ),
           ],
@@ -628,6 +650,47 @@ class _StockBadge extends StatelessWidget {
   }
 }
 
+/// The persistent low-stock control, beside the category chips: one toggle
+/// chip that narrows the list to products needing a stock glance (out of
+/// stock, or at/below reorder level). Disabled at count 0 — a greying chip
+/// is itself the "nothing needs attention" signal, and tapping through to
+/// an empty list would read as breakage.
+class _StockFilterBar extends ConsumerWidget {
+  const _StockFilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final lowOnly = ref.watch(inventoryLowStockOnlyProvider);
+    final lowCount = ref.watch(lowStockCountProvider);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space4,
+        AppTheme.space1,
+        AppTheme.space4,
+        AppTheme.space1,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FilterChip(
+          selected: lowOnly,
+          disabledColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          label: Text(
+            lowCount > 0
+                ? '${l.inventoryLowStock} ($lowCount)'
+                : l.inventoryLowStock,
+          ),
+          onSelected: lowCount > 0
+              ? (v) => ref.read(inventoryLowStockOnlyProvider.notifier).state =
+                    v
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
 /// "N products are low on stock" strip above the list.
 ///
 /// Was a full-bleed `errorContainer` block with bare text — a third banner
@@ -635,35 +698,43 @@ class _StockBadge extends StatelessWidget {
 /// tier for Sell's two licence banners. Low stock is a *warning* (the shop can
 /// still sell), so it takes the warning fill; the danger fill stays reserved
 /// for the rows that have actually run out.
-class _LowStockBanner extends StatelessWidget {
+///
+/// The attention banner above the list — and a shortcut into the same
+/// low-stock filter, since the banner IS the "these need a glance" signal.
+class _LowStockBanner extends ConsumerWidget {
   const _LowStockBanner({required this.count});
 
   final int count;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final colors = AppColors.of(context);
-    return Container(
-      width: double.infinity,
-      color: colors.warningSurface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.space4,
-        vertical: AppTheme.space3,
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber, size: 20, color: colors.warning),
-          const SizedBox(width: AppTheme.space2),
-          Expanded(
-            child: Text(
-              '${l.inventoryLowStock}: $count',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.warning),
+    return InkWell(
+      onTap: () =>
+          ref.read(inventoryLowStockOnlyProvider.notifier).state = true,
+      child: Container(
+        width: double.infinity,
+        color: colors.warningSurface,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.space4,
+          vertical: AppTheme.space3,
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber, size: 20, color: colors.warning),
+            const SizedBox(width: AppTheme.space2),
+            Expanded(
+              child: Text(
+                '${l.inventoryLowStock}: $count',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: colors.warning),
+              ),
             ),
-          ),
-        ],
+            Icon(Icons.chevron_right, size: 20, color: colors.warning),
+          ],
+        ),
       ),
     );
   }

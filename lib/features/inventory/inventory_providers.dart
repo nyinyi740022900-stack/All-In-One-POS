@@ -5,7 +5,7 @@ import '../../core/search_debounce.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/inventory_repository.dart';
 import '../../domain/product_with_stock.dart';
-
+import '../printing/printing_providers.dart' show trackStockProvider;
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   final db = ref.watch(databaseProvider);
   final shopId = ref.watch(shopIdProvider);
@@ -31,6 +31,17 @@ final productsStreamProvider =
 /// Selected category filter for the inventory list (null = all categories).
 final inventoryCategoryProvider = StateProvider<String?>((ref) => null);
 
+/// When true, the inventory list shows only products that need a stock
+/// glance: at or below their reorder level, or fully out. Toggled by the
+/// low-stock chip / the tappable low-stock banner.
+final inventoryLowStockOnlyProvider = StateProvider<bool>((ref) => false);
+
+/// A product that needs attention: out of stock, OR at/below its reorder
+/// level. `isLowStock` alone misses a product that ran out with no reorder
+/// level ever set — arguably the loudest case of all.
+bool needsStockAttention(ProductWithStock p) =>
+    p.quantity <= 0 || p.isLowStock;
+
 /// Shared by [filteredProductsProvider] and [inventoryCategoryCountsProvider]
 /// so a chip's count can never disagree with the list it describes.
 bool _matchesInventoryQuery(Product prod, String q) {
@@ -40,16 +51,23 @@ bool _matchesInventoryQuery(Product prod, String q) {
       (prod.barcode?.toLowerCase().contains(q) ?? false);
 }
 
-/// Products filtered by the current search query (name / sku / barcode) and
-/// the selected category.
+/// Products filtered by the current search query (name / sku / barcode), the
+/// selected category, and the low-stock-only toggle.
+///
+/// The toggle is ignored when the shop doesn't track stock — the chip is
+/// hidden then, and a filter that can no longer be seen must not keep
+/// silently hiding rows.
 final filteredProductsProvider = Provider<List<ProductWithStock>>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
   final q =
       ref.watch(debouncedInventorySearchProvider).trim().toLowerCase();
   final categoryId = ref.watch(inventoryCategoryProvider);
+  final lowOnly = ref.watch(inventoryLowStockOnlyProvider);
+  final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
 
   return all.where((p) {
     if (categoryId != null && p.product.categoryId != categoryId) return false;
+    if (lowOnly && trackStock && !needsStockAttention(p)) return false;
     return _matchesInventoryQuery(p.product, q);
   }).toList();
 });
@@ -114,6 +132,16 @@ final movementEndDateProvider = StateProvider<DateTime?>((ref) => null);
 final movementTypeFilterProvider =
     StateProvider<Set<String>>((ref) => {'purchase', 'adjustment'});
 
+/// Product-name fragment typed into the stock-history screen's product
+/// filter (case-insensitive contains). Empty = every product.
+final movementProductSearchProvider = StateProvider<String>((ref) => '');
+
+/// Debounced mirror of [movementProductSearchProvider] — the movement list
+/// can span years, so refiltering per keystroke repeats the H1 problem this
+/// debounce helper exists for.
+final debouncedMovementProductSearchProvider =
+    debouncedSearchProvider(movementProductSearchProvider);
+
 final allMovementsProvider = StreamProvider<List<StockMovement>>((ref) {
   final start = ref.watch(movementStartDateProvider);
   final end = ref.watch(movementEndDateProvider);
@@ -134,10 +162,17 @@ class MovementWithProduct {
 final filteredMovementsProvider = Provider<List<MovementWithProduct>>((ref) {
   final movements = ref.watch(allMovementsProvider).valueOrNull ?? const [];
   final types = ref.watch(movementTypeFilterProvider);
+  final productQuery = ref
+      .watch(debouncedMovementProductSearchProvider)
+      .trim()
+      .toLowerCase();
   final products = ref.watch(productsStreamProvider).valueOrNull ?? const [];
   final nameById = {for (final p in products) p.product.id: p.product.name};
   return movements
       .where((m) => types.isEmpty || types.contains(m.type))
+      .where((m) =>
+          productQuery.isEmpty ||
+          (nameById[m.productId] ?? '').toLowerCase().contains(productQuery))
       .map((m) => MovementWithProduct(
             movement: m,
             productName: nameById[m.productId] ?? m.productId,

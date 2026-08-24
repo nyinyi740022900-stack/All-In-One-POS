@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/core/widgets/app_widgets.dart';
 import 'package:mm_pos/features/invoices/invoice_payment_status.dart';
+import 'package:mm_pos/l10n/app_localizations_en.dart';
+import 'package:mm_pos/l10n/app_localizations_my.dart';
 
 void main() {
   test('full tender is paid', () {
@@ -88,6 +91,48 @@ void main() {
         ),
         0,
       );
+    });
+  });
+
+  group('web-order stages (storefront confirmation, 2026-08-24)', () {
+    final en = AppLocalizationsEn();
+    final my = AppLocalizationsMy();
+
+    test('COD pending is a neutral pay-on-delivery note, not red credit', () {
+      final (label, tone) = invoicePaymentStatusDisplay(en, 'cod_pending');
+      expect(label, 'Pay on delivery');
+      expect(tone, StatusTone.neutral);
+      expect(
+        invoicePaymentStatusDisplay(my, 'cod_pending').$1,
+        'ပစ္စည်းရောက်မှ ပေးချေရမည်',
+      );
+    });
+
+    test('transfer pending is an amber awaiting-verification note', () {
+      final (label, tone) = invoicePaymentStatusDisplay(en, 'transfer_pending');
+      expect(label, 'Awaiting confirmation');
+      expect(tone, StatusTone.attention);
+      expect(
+        invoicePaymentStatusDisplay(my, 'transfer_pending').$1,
+        'အတည်ပြုရန် ကျန်',
+      );
+    });
+
+    test('pending-order predicate gates the amount-due row for both stages',
+        () {
+      expect(isPendingOrderPaymentStatus('cod_pending'), isTrue);
+      expect(isPendingOrderPaymentStatus('transfer_pending'), isTrue);
+      // Real sale statuses are never gated — the in-app invoice keeps its
+      // amount-due row.
+      expect(isPendingOrderPaymentStatus('unpaid'), isFalse);
+      expect(isPendingOrderPaymentStatus('partial'), isFalse);
+      expect(isPendingOrderPaymentStatus('paid'), isFalse);
+    });
+
+    test('unknown statuses still fall through to red unpaid', () {
+      final (label, tone) = invoicePaymentStatusDisplay(en, 'whatever');
+      expect(label, 'Unpaid');
+      expect(tone, StatusTone.critical);
     });
   });
 }

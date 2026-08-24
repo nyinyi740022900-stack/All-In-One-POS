@@ -920,6 +920,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockHistoryPickDateRange => 'Pick date range';
 
   @override
+  String get stockHistoryFilterProduct => 'Filter by product';
+
+  @override
   String get stockHistoryClearDateRange => 'Clear date range';
 
   @override
@@ -1138,6 +1141,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceStatusUnpaid => 'Unpaid';
+
+  @override
+  String get invoiceStatusPayOnDelivery => 'Pay on delivery';
+
+  @override
+  String get invoiceStatusAwaitingConfirmation => 'Awaiting confirmation';
 
   @override
   String get invoiceRefundConfirmTitle => 'Refund this invoice?';
@@ -1522,6 +1531,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsDailyRevenue => 'Daily revenue';
+
+  @override
+  String get weekdayShortMon => 'Mon';
+
+  @override
+  String get weekdayShortTue => 'Tue';
+
+  @override
+  String get weekdayShortWed => 'Wed';
+
+  @override
+  String get weekdayShortThu => 'Thu';
+
+  @override
+  String get weekdayShortFri => 'Fri';
+
+  @override
+  String get weekdayShortSat => 'Sat';
+
+  @override
+  String get weekdayShortSun => 'Sun';
 
   @override
   String get analyticsCollected => 'Collected';

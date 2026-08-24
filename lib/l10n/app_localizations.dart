@@ -1766,6 +1766,12 @@ abstract class AppLocalizations {
   /// **'Pick date range'**
   String get stockHistoryPickDateRange;
 
+  /// No description provided for @stockHistoryFilterProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by product'**
+  String get stockHistoryFilterProduct;
+
   /// No description provided for @stockHistoryClearDateRange.
   ///
   /// In en, this message translates to:
@@ -2179,6 +2185,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unpaid'**
   String get invoiceStatusUnpaid;
+
+  /// No description provided for @invoiceStatusPayOnDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay on delivery'**
+  String get invoiceStatusPayOnDelivery;
+
+  /// No description provided for @invoiceStatusAwaitingConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting confirmation'**
+  String get invoiceStatusAwaitingConfirmation;
 
   /// No description provided for @invoiceRefundConfirmTitle.
   ///
@@ -2899,6 +2917,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily revenue'**
   String get analyticsDailyRevenue;
+
+  /// No description provided for @weekdayShortMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get weekdayShortMon;
+
+  /// No description provided for @weekdayShortTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get weekdayShortTue;
+
+  /// No description provided for @weekdayShortWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get weekdayShortWed;
+
+  /// No description provided for @weekdayShortThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get weekdayShortThu;
+
+  /// No description provided for @weekdayShortFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get weekdayShortFri;
+
+  /// No description provided for @weekdayShortSat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get weekdayShortSat;
+
+  /// No description provided for @weekdayShortSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get weekdayShortSun;
 
   /// No description provided for @analyticsCollected.
   ///

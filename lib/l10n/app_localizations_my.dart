@@ -914,6 +914,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get stockHistoryPickDateRange => 'ရက်စွဲအပိုင်းအခြား ရွေးရန်';
 
   @override
+  String get stockHistoryFilterProduct => 'ပစ္စည်းနာမည်ဖြင့် စစ်ရန်';
+
+  @override
   String get stockHistoryClearDateRange => 'ရက်စွဲအပိုင်းအခြား ရှင်းရန်';
 
   @override
@@ -1133,6 +1136,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invoiceStatusUnpaid => 'မပေးရသေး';
+
+  @override
+  String get invoiceStatusPayOnDelivery => 'ပစ္စည်းရောက်မှ ပေးချေရမည်';
+
+  @override
+  String get invoiceStatusAwaitingConfirmation => 'အတည်ပြုရန် ကျန်';
 
   @override
   String get invoiceRefundConfirmTitle => 'ဒီပြေစာကို ပြန်အမ်းမှာလား?';
@@ -1519,6 +1528,27 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsDailyRevenue => 'နေ့စဉ် ရောင်းရငွေ';
+
+  @override
+  String get weekdayShortMon => 'တလာ';
+
+  @override
+  String get weekdayShortTue => 'အင်္ဂါ';
+
+  @override
+  String get weekdayShortWed => 'ဗုဒ္ဓဟူး';
+
+  @override
+  String get weekdayShortThu => 'ကြာသ';
+
+  @override
+  String get weekdayShortFri => 'သောကြာ';
+
+  @override
+  String get weekdayShortSat => 'စနေ';
+
+  @override
+  String get weekdayShortSun => 'တနွေ';
 
   @override
   String get analyticsCollected => 'လက်ခံရရှိငွေ';

@@ -27,10 +27,32 @@ const _allMovementTypes = [
 /// Shop-wide stock movement history (Inventory tab's "Stock history" icon) —
 /// unlike [StockHistoryScreen], which is scoped to one product from its
 /// editor, this spans every product with a type filter (defaulting to
-/// restocks + adjustments — sales/returns are already visible via Invoices)
-/// and a date-range picker.
-class StockMovementsScreen extends ConsumerWidget {
+/// restocks + adjustments — sales/returns are already visible via Invoices),
+/// a date-range picker, and a by-product name filter.
+class StockMovementsScreen extends ConsumerStatefulWidget {
   const StockMovementsScreen({super.key});
+
+  @override
+  ConsumerState<StockMovementsScreen> createState() =>
+      _StockMovementsScreenState();
+}
+
+class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
+  late final TextEditingController _productSearch;
+
+  @override
+  void initState() {
+    super.initState();
+    _productSearch = TextEditingController(
+      text: ref.read(movementProductSearchProvider),
+    );
+  }
+
+  @override
+  void dispose() {
+    _productSearch.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickRange(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
@@ -60,17 +82,31 @@ class StockMovementsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final movements = ref.watch(filteredMovementsProvider);
     final start = ref.watch(movementStartDateProvider);
     final end = ref.watch(movementEndDateProvider);
     final types = ref.watch(movementTypeFilterProvider);
+    final productQuery = ref.watch(movementProductSearchProvider).trim();
+    // The "show all" action and programmatic clears write the provider
+    // directly — mirror the value back into the field (same pattern the
+    // Inventory search field uses).
+    ref.listen<String>(movementProductSearchProvider, (prev, next) {
+      if (next != _productSearch.text) {
+        _productSearch.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+      }
+    });
     final df = DateFormat('yyyy-MM-dd HH:mm');
-    // Any filter that could be hiding rows — a date range, or a type set
-    // that isn't "everything" (which includes the default).
+    // Any filter that could be hiding rows — a date range, a product-name
+    // fragment, or a type set that isn't "everything" (which includes the
+    // default).
     final narrowed = start != null ||
         end != null ||
+        productQuery.isNotEmpty ||
         !_allMovementTypes.every(types.contains);
 
     return Scaffold(
@@ -106,6 +142,26 @@ class StockMovementsScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(height: AppTheme.space2),
                 ],
+                TextField(
+                  controller: _productSearch,
+                  decoration: InputDecoration(
+                    hintText: l.stockHistoryFilterProduct,
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                    suffixIcon: productQuery.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => ref
+                                .read(movementProductSearchProvider.notifier)
+                                .state = '',
+                          ),
+                  ),
+                  onChanged: (v) => ref
+                      .read(movementProductSearchProvider.notifier)
+                      .state = v,
+                ),
+                const SizedBox(height: AppTheme.space2),
                 Wrap(
                   spacing: AppTheme.space2,
                   runSpacing: AppTheme.space2,
@@ -133,10 +189,11 @@ class StockMovementsScreen extends ConsumerWidget {
           Expanded(
             child: movements.isEmpty
                 // The filters *start* narrowed (restocks + adjustments only,
-                // by design), and a date range narrows them further — so a
-                // bare "no stock history" was routinely telling the owner
-                // their ledger was empty when it was only hidden, with no
-                // way out of the dead end. Say which, and offer the way out.
+                // by design), and a date range or product filter narrows them
+                // further — so a bare "no stock history" was routinely telling
+                // the owner their ledger was empty when it was only hidden,
+                // with no way out of the dead end. Say which, and offer the
+                // way out.
                 ? EmptyStateView(
                     icon: narrowed ? Icons.filter_alt_off_outlined : Icons.history,
                     title: l.stockHistoryEmpty,
@@ -150,6 +207,9 @@ class StockMovementsScreen extends ConsumerWidget {
                                 null;
                             ref.read(movementEndDateProvider.notifier).state =
                                 null;
+                            ref
+                                .read(movementProductSearchProvider.notifier)
+                                .state = '';
                           }
                         : null,
                   )

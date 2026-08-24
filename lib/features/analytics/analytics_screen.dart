@@ -497,6 +497,29 @@ class _DashboardSkeleton extends StatelessWidget {
   }
 }
 
+/// Which x-axis labelling a daily-revenue chart gets, driven by how many
+/// bars the range has (see `_RevenueChartCard`).
+enum _ChartLabelMode { none, weekday, sparseDay }
+
+/// Short weekday name for a chart axis, from the ARBs.
+///
+/// intl's `DateFormat.E` was tried first and rejected twice over: bare, it
+/// ignores the app locale entirely (English "Mon" under the Myanmar UI);
+/// locale-explicit, `E('my')` emits the FULL Burmese names — ကြာသပတေး and
+/// သောကြာ collide into one smear at 7-across on a phone. These ARB strings
+/// are the calendar-short forms (ကြာသ for ကြာသပတေး) that fit the slot in
+/// both languages.
+String _weekdayShortLabel(AppLocalizations l, DateTime day) =>
+    switch (day.weekday) {
+      DateTime.monday => l.weekdayShortMon,
+      DateTime.tuesday => l.weekdayShortTue,
+      DateTime.wednesday => l.weekdayShortWed,
+      DateTime.thursday => l.weekdayShortThu,
+      DateTime.friday => l.weekdayShortFri,
+      DateTime.saturday => l.weekdayShortSat,
+      _ => l.weekdayShortSun,
+    };
+
 class _RevenueChartCard extends StatelessWidget {
   const _RevenueChartCard({required this.daily});
 
@@ -509,15 +532,18 @@ class _RevenueChartCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final maxY = daily.fold<int>(0, (m, d) => d.revenue > m ? d.revenue : m);
     final df = DateFormat('MM-dd');
-    // A 30-bar month has no room for a label per bar, but Today's single bar
-    // and a 7-day week both do — and without them the chart gave no way to
-    // tell which day was which without tapping every single bar.
-    final showDateLabels = daily.length > 1 && daily.length <= 7;
-    // Locale-explicit: a bare DateFormat('E') formats in en_US regardless of
-    // the app UI language, so the Myanmar default would have shown English
-    // weekday names. GlobalMaterialLocalizations loads Burmese date symbols,
-    // so passing localeName renders တနင်္လာ/အင်္ဂါ… under `my`.
-    final weekdayFmt = DateFormat.E(l.localeName);
+    final dayFmt = DateFormat('d');
+    // Today renders one bar — nothing to distinguish. A 7-day week labels
+    // every bar with its weekday; a 30-day month has no room for 30 labels,
+    // so it ticks every 5th bar with the day-of-month instead (the tooltip
+    // still carries the full date everywhere).
+    final labelMode = daily.length > 1 && daily.length <= 7
+        ? _ChartLabelMode.weekday
+        : daily.length > 7
+        ? _ChartLabelMode.sparseDay
+        : _ChartLabelMode.none;
+    // Locale-explicit short weekday names from the ARBs (see
+    // _weekdayShortLabel below for why they are not intl's DateFormat.E).
     final gridInterval = maxY == 0 ? 1.0 : math.max(1.0, maxY * 1.15 / 3);
 
     return Card(
@@ -540,7 +566,7 @@ class _RevenueChartCard extends StatelessWidget {
                     ),
             ),
             SizedBox(
-              height: showDateLabels ? 180 : 160,
+              height: labelMode == _ChartLabelMode.none ? 160 : 180,
               child: maxY == 0
                   ? EmptyStateView(
                       icon: Icons.bar_chart_outlined,
@@ -587,42 +613,68 @@ class _RevenueChartCard extends StatelessWidget {
                           ),
                         ),
                         titlesData: FlTitlesData(
-                          leftTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          bottomTitles: AxisTitles(
-                            sideTitles: showDateLabels
-                                ? SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 22,
-                                    getTitlesWidget: (value, meta) {
-                                      final i = value.round();
-                                      if (i < 0 || i >= daily.length) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: AppTheme.space1,
-                                        ),
-                                        child: Text(
-                                          weekdayFmt.format(daily[i].day),
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                color: scheme.onSurfaceVariant,
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : const SideTitles(showTitles: false),
+                        // Y-axis money labels at the same intervals as the
+                        // gridlines — the owner reads "how big is a bar"
+                        // against these, not by tapping every bar.
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 34,
+                            interval: gridInterval,
+                            getTitlesWidget: (value, meta) => Padding(
+                              padding: const EdgeInsets.only(
+                                right: AppTheme.space2,
+                              ),
+                              child: Text(
+                                compactMoneyLabel(value.round()),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontFeatures: AppTheme.tabularFigures,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: labelMode != _ChartLabelMode.none,
+                            reservedSize: 22,
+                            getTitlesWidget: (value, meta) {
+                              final i = value.round();
+                              if (i < 0 || i >= daily.length) {
+                                return const SizedBox.shrink();
+                              }
+                              // Month view: label every 5th bar only
+                              // (indices 0, 5, 10, …), oldest first, so the
+                              // ticks read as a timeline.
+                              if (labelMode == _ChartLabelMode.sparseDay &&
+                                  i % 5 != 0) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTheme.space1,
+                                ),
+                                child: Text(
+                                  labelMode == _ChartLabelMode.weekday
+                                      ? _weekdayShortLabel(l, daily[i].day)
+                                      : dayFmt.format(daily[i].day),
+                                  maxLines: 1,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                         barGroups: [
                           for (var i = 0; i < daily.length; i++)
                             BarChartGroupData(
@@ -630,7 +682,16 @@ class _RevenueChartCard extends StatelessWidget {
                               barRods: [
                                 BarChartRodData(
                                   toY: daily[i].revenue.toDouble(),
-                                  color: scheme.primary,
+                                  // Fill intensity tracks the value against
+                                  // the range's peak (see [barFillAlpha]) —
+                                  // a quiet day and a peak day stop looking
+                                  // like the same kind of day.
+                                  color: scheme.primary.withValues(
+                                    alpha: barFillAlpha(
+                                      daily[i].revenue.toDouble(),
+                                      maxY.toDouble(),
+                                    ),
+                                  ),
                                   width: daily.length > 14 ? 6 : 12,
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(3),

@@ -68,5 +68,26 @@ String invoicePaymentStatusCode({
     switch (status) {
       'paid' => (l.invoiceStatusPaid, StatusTone.positive),
       'partial' => (l.invoiceStatusPartial, StatusTone.attention),
+      // Web-storefront order stages — a pre-sale document, not a credit
+      // debt. The old fall-through stamped both red "unpaid", telling a
+      // customer who had just sent a transfer screenshot that they owed
+      // money, and reading "အကြွေးကျန်" (credit) on a COD order that was
+      // never credit at all.
+      'cod_pending' => (
+        l.invoiceStatusPayOnDelivery,
+        StatusTone.neutral,
+      ),
+      'transfer_pending' => (
+        l.invoiceStatusAwaitingConfirmation,
+        StatusTone.attention,
+      ),
       _ => (l.invoiceStatusUnpaid, StatusTone.critical),
     };
+
+/// True for the two web-order stages that are awaiting something normal
+/// (a COD handover, a transfer verification) rather than money the customer
+/// is withholding. Surfaces use this to hold back the "amount due" row —
+/// the total already says the figure, and "ကျန်ငွေ" beside it reads as a
+/// debt collector's note.
+bool isPendingOrderPaymentStatus(String status) =>
+    status == 'cod_pending' || status == 'transfer_pending';

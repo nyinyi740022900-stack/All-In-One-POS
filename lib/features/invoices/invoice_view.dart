@@ -484,7 +484,11 @@ class InvoiceView extends StatelessWidget {
         ],
         if (data.paid > 0) _totalRow(l.sellAmountPaid, _amt(data.paid)),
         if (data.changeDue > 0) _totalRow(l.sellChange, _amt(data.changeDue)),
-        if (data.amountDue > 0)
+        // A web order awaiting its normal next step (COD handover / transfer
+        // verification) carries the full total as "due" by construction —
+        // restating it here read like a debt notice to the customer.
+        if (data.amountDue > 0 &&
+            !isPendingOrderPaymentStatus(data.paymentStatus))
           _totalRow(l.invoiceAmountDue, _amt(data.amountDue)),
       ],
     );

@@ -799,6 +799,13 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         ),
     ],
     paymentMethodCode: _paymentMethod,
+    // The order confirmation is a pre-sale document: COD is paid at the
+    // door by design, a transfer is awaiting the shop's verification of
+    // the screenshot — neither is the red "unpaid/credit" state the
+    // default stamped on it (see [invoicePaymentStatusDisplay]).
+    paymentStatus: _paymentMethod == 'cod'
+        ? 'cod_pending'
+        : 'transfer_pending',
     footer: l.receiptThankYou,
   );
 
