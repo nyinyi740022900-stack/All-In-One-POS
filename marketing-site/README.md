@@ -127,9 +127,15 @@ cd marketing-site
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
 
-First deploy: when Vercel asks, link it as a **new** project (e.g.
-`allinonepos-site`), not the existing `allinonepos-shop`/`allinonepos-admin`
-projects.
+This deploys to the **`allinonepos-marketing`** project — the host every
+page's `canonical`/`og:url` and `sitemap.xml` name. Deploying this folder
+anywhere else splits the site across two hosts and de-indexes it (that is
+exactly what happened with the retired `allinonepos-site` duplicate), so
+if `.vercel/` is ever missing, relink it explicitly:
+
+```bash
+vercel link --yes --project allinonepos-marketing --scope nyi-nyi-s-projects1
+```
 
 ## Updating the Windows download link
 
