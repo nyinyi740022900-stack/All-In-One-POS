@@ -3,5 +3,5 @@
 
 storePassword=CHANGE_ME
 keyPassword=CHANGE_ME
-keyAlias=goldposmm_upload
-storeFile=/Users/YOU/goldposmm-upload.jks
+keyAlias=allinonepos_upload
+storeFile=/Users/YOU/allinonepos-upload.jks
