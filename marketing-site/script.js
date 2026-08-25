@@ -67,20 +67,64 @@ window.addEventListener(
   { passive: true },
 );
 
-// Reveal-on-scroll
+// Reveal-on-scroll — GSAP's ScrollTrigger.batch gives free staggering (a
+// row of cards settles in one-after-another instead of all at once) when
+// it's loaded (currently just index.html); every other page keeps this
+// plain IntersectionObserver, which does the same job unstaggered. Either
+// way the actual visual (opacity/transform) stays owned by the existing
+// .reveal/.in-view CSS, so nothing downstream needs to know which engine
+// ran — reduced-motion's CSS override in styles.css covers both.
 const revealEls = document.querySelectorAll('.reveal');
-const revealObserver = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('in-view');
-        revealObserver.unobserve(entry.target);
+if (window.gsap && window.ScrollTrigger) {
+  gsap.registerPlugin(ScrollTrigger);
+  // Deferred to the window 'load' event on purpose: this runs from a
+  // <script> right before </body>, which fires as soon as HTML parsing
+  // finishes — long before every below-the-fold photo has loaded and
+  // settled its box height. Computing batch start positions against that
+  // still-growing layout puts them in the wrong place (usually far too
+  // early), so the trigger fires once immediately and self-destroys
+  // (once: true) without ever reaching the real threshold. Waiting for
+  // 'load' means every image has its final size before anything measures
+  // scroll position against it.
+  const setUpBatch = () => {
+    ScrollTrigger.batch('.reveal', {
+      start: 'top 88%',
+      once: true,
+      // Plain setTimeout rather than gsap.delayedCall: this is a one-shot
+      // "add a class N ms later" stagger, not an interpolated tween, so it
+      // has no reason to depend on GSAP's rAF-driven ticker (which a
+      // backgrounded/inactive tab can pause outright, silently stalling
+      // every queued delayedCall along with it).
+      onEnter: (batch) => {
+        batch.forEach((el, i) => {
+          setTimeout(() => el.classList.add('in-view'), i * 80);
+        });
+      },
+    });
+  };
+  // 'load' may have already fired by the time this script (at the end of
+  // the body) runs — cached assets on a repeat visit make that the common
+  // case, not the edge case — and a listener attached after the fact never
+  // gets called. readyState 'complete' is the same signal after the fact.
+  if (document.readyState === 'complete') {
+    setUpBatch();
+  } else {
+    window.addEventListener('load', setUpBatch);
+  }
+} else {
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          revealObserver.unobserve(entry.target);
+        }
       }
-    }
-  },
-  { threshold: 0.15, rootMargin: '0px 0px -60px 0px' },
-);
-revealEls.forEach((el) => revealObserver.observe(el));
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -60px 0px' },
+  );
+  revealEls.forEach((el) => revealObserver.observe(el));
+}
 
 // Parallax: elements with [data-speed] drift vertically relative to scroll
 // position, at a rate proportional to their own distance from the viewport
