@@ -45,6 +45,16 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   bool _submitting = false;
   // Seller-controlled, per-sale: reveal the optional customer name/phone fields.
   bool _addCustomer = false;
+  // Latches the customer section open once the sale *needs* it (credit
+  // method, or a shortfall) — but only while the seller is NOT mid-amount-
+  // entry. Without the latch, typing a partial amount on the pad flipped
+  // `forced` mid-keystroke: the card expanded ABOVE the amount field, the
+  // scroll jumped, and the digits being typed scrolled out of sight (owner
+  // report). While typing, the collapsed row's attention tone still signals
+  // the requirement, and Confirm blocks with the name-required message;
+  // the card expands as soon as they tap the row or finish the amount
+  // before the requirement arose.
+  bool _customerSectionLatched = false;
   // Whether a freshly-*typed* (not picked) name gets saved as a new directory
   // entry, vs just attached to this one invoice. Irrelevant once an existing
   // customer is picked (already in the directory — nothing new to save) and
@@ -144,6 +154,24 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     );
   }
 
+  /// Scrolls the amount-paid field into view. Runs when the pad opens and
+  /// again after every pad keystroke: anything that grows the scroll content
+  /// above the field (expanded cart lines, the customer card, new summary
+  /// rows) otherwise pushes the digits being typed off-screen — the seller
+  /// ends up keying blind (owner report).
+  void _ensurePaidFieldVisible() {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      final ctx = _paidFieldKey.currentContext;
+      if (ctx != null && mounted) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: AppTheme.motionMedium,
+          alignment: 0.1,
+        );
+      }
+    });
+  }
+
   void _padDigit(String d) {
     final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
     final next = digits + d;
@@ -151,6 +179,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     if (next.length > 10) return;
     _setPaidDigits(next);
     setState(() {});
+    _ensurePaidFieldVisible();
   }
 
   void _padBackspace() {
@@ -159,6 +188,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       _setPaidDigits(digits.substring(0, digits.length - 1));
     }
     setState(() {});
+    _ensurePaidFieldVisible();
   }
 
   /// Discounts are an owner capability. Staff mode has to clear a gate first
@@ -363,7 +393,12 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     final owed = total - paid > 0 ? total - paid : 0;
     // Credit / any shortfall forces the customer fields (name is then required).
     final forced = _method == 'credit' || owed > 0;
-    final showCustomer = _addCustomer || forced;
+    // Latch the section open only while the seller is not mid-amount-entry —
+    // see [_customerSectionLatched]. Monotonic (never resets mid-sheet), and
+    // read right after assignment so this build already reflects it.
+    final midAmountEntry = _padVisible || _paid.text.trim().isNotEmpty;
+    if (forced && !midAmountEntry) _customerSectionLatched = true;
+    final showCustomer = _addCustomer || _customerSectionLatched;
 
     // A committed sale replaces the whole sheet: the one figure the cashier
     // still needs — change due, or the balance being booked as credit — stays
@@ -618,16 +653,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                               // The pinned pad grows the sheet; make sure the
                               // field it edits is on-screen, not scrolled off
                               // under an expanded cart.
-                              SchedulerBinding.instance.addPostFrameCallback((_) {
-                                final ctx = _paidFieldKey.currentContext;
-                                if (ctx != null && mounted) {
-                                  Scrollable.ensureVisible(
-                                    ctx,
-                                    duration: AppTheme.motionMedium,
-                                    alignment: 0.1,
-                                  );
-                                }
-                              });
+                              _ensurePaidFieldVisible();
                             }
                           },
                           decoration: InputDecoration(
