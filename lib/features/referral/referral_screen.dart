@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -90,6 +91,14 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Refer & earn is commerce end to end — it quotes the monthly price,
+    // accrues a commission when a referred shop pays, and redeems that
+    // balance for licence days. Settings already hides the only entrance in
+    // a store build (see kCommerceUiEnabled); this second guard means a
+    // future navigation path can't resurrect the screen behind its back.
+    if (!kCommerceUiEnabled) {
+      return Scaffold(appBar: AppBar(), body: const SizedBox.shrink());
+    }
     final summaryAsync = ref.watch(referralSummaryProvider);
     final cfg = ref.watch(vendorConfigProvider);
     final monthly = cfg.valueOrNull?.priceFor('monthly') ?? 10000;

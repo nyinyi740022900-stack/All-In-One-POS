@@ -183,9 +183,10 @@ class StorefrontApi {
   /// Submits a subscription-renewal request from the /renew page — the shop
   /// owner identifies themselves by [deviceId] (their own "App Reference
   /// ID"), not a slug or session. Reviewed by the admin in the Requests tab.
-  /// Returns the new `license_requests` row's id — a reference number the
-  /// page can show the owner, mirroring [submitOrder]'s `order_no`.
-  Future<String> submitLicenseRequest({
+  /// Returns the new row's id plus its human-quotable `invoice_no`, so the
+  /// page can show the receipt straight away and hand the owner a link to
+  /// come back to.
+  Future<SubmittedLicenseRequest> submitLicenseRequest({
     required String shopName,
     required String deviceId,
     String? email,
@@ -215,7 +216,30 @@ class StorefrontApi {
     if (res.status != 200 || (res.data is Map && res.data['ok'] != true)) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
-    return (res.data as Map)['request_id'] as String? ?? '';
+    final data = res.data as Map;
+    return SubmittedLicenseRequest(
+      requestId: data['request_id'] as String? ?? '',
+      invoiceNo: data['invoice_no'] as String?,
+    );
+  }
+
+  /// Fetches the public receipt for a submitted renewal request.
+  ///
+  /// Keyed by the request id alone — it is a server-generated UUID handed
+  /// only to the browser that submitted, so it works as an order-tracking
+  /// link. The Edge Function decides what is safe to return; this method
+  /// deliberately does not ask for anything else.
+  Future<RenewalReceipt> fetchReceipt(String requestId) async {
+    final res = await _c.functions.invoke('storefront', body: {
+      'action': 'receipt',
+      'request_id': requestId,
+    });
+    if (res.status != 200 || res.data is! Map || res.data['receipt'] == null) {
+      throw Exception(res.data is Map ? res.data['error'] : 'error');
+    }
+    return RenewalReceipt.fromMap(
+      (res.data['receipt'] as Map).cast<String, dynamic>(),
+    );
   }
 
   /// Payment-account info (KBZPay/WavePay name+number) to show a shop owner
@@ -239,4 +263,90 @@ class StorefrontApi {
         (r['key'] as String): (r['value'] as String? ?? ''),
     };
   }
+}
+
+
+/// One renewal request as the public receipt page sees it.
+///
+/// [status] is the licence lifecycle (pending / fulfilled / rejected);
+/// [paymentStatus] is the money lifecycle (manual / awaiting / paid / …).
+/// They move independently on purpose — a gateway can confirm payment while
+/// minting the licence is still in flight, and the shop needs to see that
+/// rather than an unexplained "pending".
+class RenewalReceipt {
+  const RenewalReceipt({
+    required this.invoiceNo,
+    required this.shopName,
+    required this.plan,
+    required this.months,
+    required this.amount,
+    required this.status,
+    required this.paymentStatus,
+    required this.createdAt,
+    this.deviceIdTail,
+    this.method,
+    this.refNo,
+    this.issuedKey,
+    this.rejectReason,
+    this.paidAt,
+  });
+
+  final String invoiceNo;
+  final String shopName;
+  final String plan;
+  final int months;
+  final int amount;
+
+  /// 'pending' | 'fulfilled' | 'rejected'
+  final String status;
+
+  /// 'manual' | 'awaiting' | 'paid' | 'failed' | 'expired'
+  final String paymentStatus;
+
+  final DateTime? createdAt;
+  final String? deviceIdTail;
+  final String? method;
+  final String? refNo;
+
+  /// Only ever non-null once [status] is 'fulfilled'.
+  final String? issuedKey;
+  final String? rejectReason;
+  final DateTime? paidAt;
+
+  bool get isPending => status == 'pending';
+  bool get isFulfilled => status == 'fulfilled';
+  bool get isRejected => status == 'rejected';
+
+  /// Money confirmed but the licence not minted yet — the one state that
+  /// looks like a plain "pending" but is not the shop's problem to chase.
+  bool get isPaidNotFulfilled => paymentStatus == 'paid' && isPending;
+
+  static DateTime? _date(Object? v) =>
+      v is String ? DateTime.tryParse(v)?.toLocal() : null;
+
+  factory RenewalReceipt.fromMap(Map<String, dynamic> m) => RenewalReceipt(
+        invoiceNo: (m['invoice_no'] as String?) ?? '',
+        shopName: (m['shop_name'] as String?) ?? '',
+        plan: (m['plan'] as String?) ?? 'monthly',
+        months: (m['months'] as num?)?.toInt() ?? 1,
+        amount: (m['amount'] as num?)?.toInt() ?? 0,
+        status: (m['status'] as String?) ?? 'pending',
+        paymentStatus: (m['payment_status'] as String?) ?? 'manual',
+        createdAt: _date(m['created_at']),
+        deviceIdTail: m['device_id_tail'] as String?,
+        method: m['method'] as String?,
+        refNo: m['ref_no'] as String?,
+        issuedKey: m['issued_key'] as String?,
+        rejectReason: m['reject_reason'] as String?,
+        paidAt: _date(m['paid_at']),
+      );
+}
+
+
+/// What [StorefrontApi.submitLicenseRequest] hands back: the id the receipt
+/// link is keyed by, and the number the shop will actually quote.
+class SubmittedLicenseRequest {
+  const SubmittedLicenseRequest({required this.requestId, this.invoiceNo});
+  final String requestId;
+  final String? invoiceNo;
 }

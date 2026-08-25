@@ -195,6 +195,8 @@ class _RequestsTab extends StatelessWidget {
               Wrap(
                 spacing: AppTheme.space3,
                 children: [
+                  if ('${r['invoice_no'] ?? ''}'.isNotEmpty)
+                    _CopyField('Invoice', '${r['invoice_no']}'),
                   _CopyField('Txn', '${r['ref_no'] ?? ''}'),
                   _CopyField('Phone', '${r['phone'] ?? ''}'),
                   if (fulfilled && '${r['issued_key']}'.isNotEmpty)
@@ -219,6 +221,13 @@ class _RequestsTab extends StatelessWidget {
               ? const StatusPill(label: 'Confirmed', tone: StatusTone.positive)
               : rejected
               ? const StatusPill(label: 'Declined', tone: StatusTone.critical)
+              // Gateway confirmed the money but the licence was never
+              // minted. Renders identically to an ordinary pending row
+              // otherwise, and it is the one that must not sit unnoticed —
+              // the shop has paid and is waiting.
+              : r['payment_status'] == 'paid'
+              ? const StatusPill(
+                  label: 'Paid · needs key', tone: StatusTone.attention)
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -960,6 +969,8 @@ class _ConfirmPaymentDialog extends StatelessWidget {
               Wrap(
                 spacing: AppTheme.space3,
                 children: [
+                  if ('${r['invoice_no'] ?? ''}'.isNotEmpty)
+                    _CopyField('Invoice', '${r['invoice_no']}'),
                   _CopyField('Txn', '${r['ref_no'] ?? ''}'),
                   _CopyField('Phone', '${r['phone'] ?? ''}'),
                 ],

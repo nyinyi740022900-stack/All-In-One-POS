@@ -448,6 +448,41 @@ img { max-width: 100%; display: block; }
 }
 .plan-link:hover { text-decoration: underline; }
 
+/* Price block. Figures are tabular so the Free "0" and Premium "10,000"
+   sit on the same optical baseline across the two cards, and so a Myanmar
+   reader sees the same glyph widths as the app's own MoneyText. */
+.plan-price {
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.plan-price b {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.plan-card-premium .plan-price b { color: var(--brand); }
+.plan-price span { font-size: 15px; font-weight: 600; color: var(--muted); }
+.plan-price-alt {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+}
+.plan-price-alt b { color: var(--brand); font-weight: 800; }
+
+.plan-actions { display: flex; flex-direction: column; gap: 10px; }
+.plan-note { font-size: 14px; color: var(--muted); line-height: 1.7; margin: 0; }
+.plan-note a { color: var(--brand); font-weight: 700; }
+
+
 /* ---------- steps ---------- */
 .steps { position: relative; max-width: 720px; margin: 0 auto; }
 .steps-line {

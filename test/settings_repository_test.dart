@@ -17,6 +17,34 @@ void main() {
 
   tearDown(() async => db.close());
 
+  group('licenseExpiryWarned (per-shop isolation)', () {
+    // A device can switch shops (BranchRepository.switchBranch) without
+    // wipeSyncedData() touching AppSettings, so a device-global watermark
+    // would let shop A's "already warned" silence shop B's genuinely-due
+    // reminder — the exact bleed CLAUDE.md's ripple-effect check calls out.
+    test('one shop\'s warning watermark never silences another\'s', () async {
+      await repo.setLicenseExpiryWarned('shop-main', '2026-09-01|7');
+
+      expect(await repo.licenseExpiryWarned('shop-main'), '2026-09-01|7');
+      expect(await repo.licenseExpiryWarned('shop-branch'), isNull);
+    });
+
+    test('both shops keep their own value', () async {
+      await repo.setLicenseExpiryWarned('shop-main', '2026-09-01|7');
+      await repo.setLicenseExpiryWarned('shop-branch', '2026-12-01|3');
+
+      expect(await repo.licenseExpiryWarned('shop-main'), '2026-09-01|7');
+      expect(await repo.licenseExpiryWarned('shop-branch'), '2026-12-01|3');
+    });
+
+    test('never falls back to a legacy unscoped key', () async {
+      // fallbackToLegacy is off for this key: there is no pre-existing
+      // device-global value to inherit, and inheriting one would reintroduce
+      // the bleed above.
+      expect(await repo.licenseExpiryWarned('shop-new'), isNull);
+    });
+  });
+
   group('shopProfile (per-shop isolation)', () {
     test(
       'saving a profile for one shop never overwrites another shop\'s',

@@ -89,9 +89,27 @@ flutter build windows --release --dart-define-from-file=env.local.json
 Invoices-only on any computer: Phase 1 web companion
 `https://allinonepos-invoices.vercel.app` (no local DB).
 
+## ⚠️ `COMMERCE_UI` — get this right or the store build is a 3.1.1 violation
+`lib/core/build_flags.dart`'s `kCommerceUiEnabled` **defaults to false**: no
+prices, no Pay-online button, no Viber-to-buy card, no Refer & earn. That is
+what makes an App Store / Play build compliant (guideline 3.1.3(b),
+Multiplatform Services — see `docs/app_store/REVIEW_NOTES.md`).
+
+- **Store builds (§5 IPA, §6 AAB): pass NOTHING.** The default is the correct,
+  compliant value.
+- **Direct-install APK / `flutter run` for the owner (§4): add
+  `--dart-define=COMMERCE_UI=true`** to get the purchase UI back.
+- **Never put `COMMERCE_UI` in `env.local.json`.** Every build below reads that
+  file, store builds included — putting it there switches commerce back on in
+  exactly the build that must not have it.
+
+`flutter test` (no defines) runs `test/commerce_ui_gate_test.dart`, which fails
+if the default is flipped or a purchase string reappears ungated.
+
 ## 4. App → iPhone (wireless)
 ```bash
-flutter run --release -d 00008150-001A44C41E08401C --dart-define-from-file=env.local.json
+flutter run --release -d 00008150-001A44C41E08401C --dart-define-from-file=env.local.json \
+  --dart-define=COMMERCE_UI=true
 ```
 Run in the background; wait for "Flutter run key commands", then kill the
 process (app stays installed). If it fails with "Could not run … on iPhone",
@@ -114,6 +132,8 @@ Bump `pubspec.yaml` build (`+N`) before every upload — see
 #    If export fails (“No signing certificate iOS Distribution”), see
 #    docs/app_store/DISTRIBUTION_SIGNING.md — archive is still at
 #    build/ios/archive/Runner.xcarchive for Xcode Organizer upload.
+# No COMMERCE_UI define here — the false default is what keeps this build
+# compliant. See the warning above §4.
 flutter build ipa --release --dart-define-from-file=env.local.json \
   --export-options-plist=ios/ExportOptions.plist
 
@@ -139,6 +159,8 @@ do not change again once a real upload exists).
 #    (see docs/play_store/SIGNING.md — never commit .jks / key.properties)
 
 # 2) Bump pubspec build (+N), then:
+#    No COMMERCE_UI define — Play Billing has the same rule as Apple's 3.1.1,
+#    so the store AAB ships commerce-free too. See the warning above §4.
 flutter build appbundle --release --dart-define-from-file=env.local.json
 # → build/app/outputs/bundle/release/app-release.aab
 
@@ -150,6 +172,13 @@ flutter build appbundle --release --dart-define-from-file=env.local.json
 
 Without `android/key.properties`, release assemble/bundle **fails on purpose**
 (no debug-key fallback).
+
+**Direct-install APK** (our own website / Viber, not a store — the only
+distribution channel with no billing rule, so the only build that keeps the
+purchase UI):
+```bash
+flutter build apk --release --dart-define-from-file=env.local.json --dart-define=COMMERCE_UI=true
+```
 
 ## Notes
 - The auto-mode safety classifier may still block prod writes even with the

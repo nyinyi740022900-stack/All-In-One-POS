@@ -7,6 +7,7 @@ import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../l10n/app_localizations.dart';
+import 'renewal_receipt_view.dart';
 import 'storefront_api.dart';
 import 'storefront_page.dart' show StorefrontLocaleBar;
 
@@ -61,6 +62,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   bool _submitting = false;
   bool _submitted = false;
   String? _requestId;
+  String? _invoiceNo;
   List<int>? _proofBytes;
   String? _proofExt;
   String? _proofName;
@@ -91,6 +93,14 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     // query params — nothing here is sensitive, and this same data is
     // already visible in the form itself once filled in.
     final q = Uri.base.queryParameters;
+    // `/renew?receipt=<id>` reopens an existing request's receipt instead of
+    // the form — the shop saved this link (or we sent it on Viber) and wants
+    // to know where its payment got to.
+    final receipt = (q['receipt'] ?? '').trim();
+    if (receipt.isNotEmpty) {
+      _submitted = true;
+      _requestId = receipt;
+    }
     _shopName.text = q['name'] ?? '';
     _deviceId.text = q['device_id'] ?? '';
     _email.text = q['email'] ?? '';
@@ -200,7 +210,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           folder: '_admin',
         );
       }
-      final requestId = await _api.submitLicenseRequest(
+      final submitted = await _api.submitLicenseRequest(
         shopName: shopName,
         deviceId: deviceId,
         email: _email.text.trim(),
@@ -216,7 +226,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       if (mounted) {
         setState(() {
           _submitted = true;
-          _requestId = requestId.isEmpty ? null : requestId;
+          _requestId = submitted.requestId.isEmpty ? null : submitted.requestId;
+          _invoiceNo = submitted.invoiceNo;
         });
       }
     } catch (e) {
@@ -239,11 +250,24 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     return Scaffold(
       appBar: StorefrontLocaleBar(
           locale: widget.locale, onToggle: widget.onToggleLocale),
-      body: _submitted ? _confirmation(l) : _form(l),
+      body: _submitted ? _afterSubmit(l) : _form(l),
     );
   }
 
-  Widget _confirmation(AppLocalizations l) {
+  Widget _afterSubmit(AppLocalizations l) {
+    final id = _requestId;
+    // The receipt IS the confirmation — it says the same "we got it" and
+    // then keeps saying something useful every time the shop comes back.
+    if (id != null) {
+      return RenewalReceiptView(requestId: id, initialInvoiceNo: _invoiceNo);
+    }
+    // Only reachable if the server accepted the request but returned no id
+    // (it always returns one today). Never leave the shop staring at a form
+    // it already submitted.
+    return _confirmationFallback(l);
+  }
+
+  Widget _confirmationFallback(AppLocalizations l) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.space5),
@@ -256,12 +280,6 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             Text(l.storefrontRenewSubmitted,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium),
-            if (_requestId != null) ...[
-              const SizedBox(height: AppTheme.space2),
-              SelectableText(l.storefrontRenewRequestId(_requestId!),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium),
-            ],
           ],
         ),
       ),

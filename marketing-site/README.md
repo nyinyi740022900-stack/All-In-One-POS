@@ -39,6 +39,21 @@ marketing-site/
   vercel.json         static hosting config
 ```
 
+### Prices on the landing page
+
+The `#plans` cards show real figures, mirrored by hand from production
+`app_config`: `price.monthly` 10,000 · `price.yearly` 100,000 ·
+`device.free_limit` 3 · `device.extra_fee` 10,000. This page is static and
+never reads the backend, so **changing a price in the admin console means
+changing it here in the same change-set** — otherwise a shop reads one
+number here and is charged another on `/renew`.
+
+The Premium card's primary action goes straight to the renewal form
+(`allinonepos-shop.vercel.app/renew`), with the Viber number as the second
+path. Those are the only two ways a shop can pay; the iOS/Play builds of the
+app deliberately carry no purchase UI at all (see `lib/core/build_flags.dart`),
+so for those users this page IS the purchase path.
+
 ### Feature tutorial pages
 
 Each `features/*.html` follows the same structure (`.fhero` → `.tutorial`

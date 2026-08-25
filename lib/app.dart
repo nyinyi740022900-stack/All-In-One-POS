@@ -9,6 +9,7 @@ import 'core/widgets/app_widgets.dart';
 import 'data/sync/sync_providers.dart';
 import 'features/accounts/payment_account_providers.dart';
 import 'features/expenses/recurring_expense_providers.dart';
+import 'features/license/license_expiry_watcher.dart';
 import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
@@ -40,6 +41,10 @@ class MmPosApp extends ConsumerWidget {
     ref.watch(referralWatcherProvider);
     // Alert when storefront orders land via sync.
     ref.watch(storefrontOrderWatcherProvider);
+    // Remind the owner before Premium lapses. Nothing can charge a shop
+    // automatically (MMQR is customer-push), so warning in time is the only
+    // part of renewal that can be automated at all.
+    ref.watch(licenseExpiryWatcherProvider);
     // Auto-generate any due recurring-expense templates once per launch.
     ref.watch(recurringExpenseGeneratorProvider);
     // Seed the default payment accounts once per shop.

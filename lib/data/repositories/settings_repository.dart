@@ -60,6 +60,19 @@ class SettingsRepository {
   static const _kReceiptFooter = 'receipt.footer';
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
+
+  /// Watermark for the licence-expiry reminder, shop-scoped via [_shopKey].
+  ///
+  /// Per-shop and not device-global on purpose: a device can switch shops
+  /// (`BranchRepository.switchBranch`) without `wipeSyncedData()` clearing
+  /// `AppSettings`, so a single global key would let shop A's "already
+  /// warned" silence shop B's genuinely-due reminder.
+  ///
+  /// The value is `<expiresAt ISO>|<threshold days>`, not a bare flag, so it
+  /// self-invalidates: renewing moves the expiry, which makes the stored
+  /// value stop matching and lets the next cycle warn again — no explicit
+  /// reset anywhere.
+  static const _kLicenseExpiryWarned = 'license.expiry_warned';
   static const _kStorefrontSeenOrderMs = 'storefront.seen_order_ms';
   static const _kSeedCleanupDone = 'inventory.seed_cleanup_done';
   static const _kBranchSwitchState = 'branch.switch.state';
@@ -481,6 +494,14 @@ class SettingsRepository {
 
   Future<void> setReferralSeenEarned(int value) =>
       _set(_kReferralSeenEarned, '$value');
+
+  /// Last expiry+threshold this shop was warned about — see
+  /// [_kLicenseExpiryWarned] for why it is a compound value, not a flag.
+  Future<String?> licenseExpiryWarned(String shopId) =>
+      _getShopScoped(_kLicenseExpiryWarned, shopId, fallbackToLegacy: false);
+
+  Future<void> setLicenseExpiryWarned(String shopId, String value) =>
+      _set(_shopKey(_kLicenseExpiryWarned, shopId), value);
 
   /// Watermark of the newest storefront-channel order `createdAt` already
   /// notified for [shopId]. null = never checked (baseline silently).

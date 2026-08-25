@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -18,7 +19,17 @@ class HelpGuideScreen extends StatelessWidget {
       (l.helpGuideOrdersTitle, l.helpGuideOrdersBody, Icons.receipt_long),
       (l.helpGuideInvoicesTitle, l.helpGuideInvoicesBody, Icons.description),
       (l.helpGuideAnalyticsTitle, l.helpGuideAnalyticsBody, Icons.bar_chart),
-      (l.helpGuideSettingsTitle, l.helpGuideSettingsBody, Icons.settings),
+      // The Settings walkthrough is the one section that describes how
+      // to obtain Premium; a store build gets the variant that omits
+      // the "tap Upgrade, contact Support for a key" instructions
+      // (see kCommerceUiEnabled).
+      (
+        l.helpGuideSettingsTitle,
+        kCommerceUiEnabled
+            ? l.helpGuideSettingsBody
+            : l.helpGuideSettingsBodyNoCommerce,
+        Icons.settings,
+      ),
     ];
 
     return Scaffold(

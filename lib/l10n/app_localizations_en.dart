@@ -1249,6 +1249,10 @@ class AppLocalizationsEn extends AppLocalizations {
       '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
+  String get helpGuideSettingsBodyNoCommerce =>
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once a Premium license is active on this device or on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+
+  @override
   String get settingsTrackStock => 'Track stock';
 
   @override
@@ -1941,6 +1945,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumUpgradeCta => 'Upgrade';
 
   @override
+  String get premiumManageLicenseCta => 'Manage license';
+
+  @override
   String get analyticsBenefit1 => 'See your best-selling products at a glance';
 
   @override
@@ -2126,8 +2133,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseAfterPaymentTitle => 'Already paid or asked Support?';
 
   @override
+  String get licenseManagedElsewhereTitle => 'Premium licensing';
+
+  @override
+  String get licenseManagedElsewhereBody =>
+      'Premium is arranged with your All In One POS provider outside this app. Once it is active on this device or on your shop account, Premium features unlock here automatically.';
+
+  @override
+  String get licenseAlreadyLicensedTitle => 'Already have Premium?';
+
+  @override
   String licenseExpiringSoon(int days) {
     return 'License expires in $days days — tap to renew.';
+  }
+
+  @override
+  String licenseExpiringSoonNeutral(int days) {
+    return 'License expires in $days days.';
   }
 
   @override
@@ -4000,4 +4022,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currencySymbol => 'Ks';
+
+  @override
+  String get receiptTitle => 'Renewal receipt';
+
+  @override
+  String get receiptStatusPending => 'Waiting for confirmation';
+
+  @override
+  String get receiptStatusPendingBody =>
+      'We check payments within 24 hours. Save this page — the status updates here.';
+
+  @override
+  String get receiptStatusPaidBody =>
+      'Payment received. Your licence is being issued — this page will show it shortly.';
+
+  @override
+  String get receiptStatusFulfilled => 'Confirmed';
+
+  @override
+  String get receiptStatusFulfilledBody =>
+      'Your Premium is active. Open the app, go to Settings → License and tap Check for renewal.';
+
+  @override
+  String get receiptStatusRejected => 'Not approved';
+
+  @override
+  String get receiptShop => 'Shop';
+
+  @override
+  String get receiptDeviceTail => 'App Reference ID ending';
+
+  @override
+  String get receiptPlan => 'Plan';
+
+  @override
+  String receiptMonths(int count) {
+    return '$count month(s)';
+  }
+
+  @override
+  String get receiptAmount => 'Amount';
+
+  @override
+  String get receiptMethod => 'Paid with';
+
+  @override
+  String get receiptRefNo => 'Transaction ref';
+
+  @override
+  String get receiptSubmittedAt => 'Submitted';
+
+  @override
+  String get receiptYourKey => 'Your licence key';
+
+  @override
+  String get receiptSaveLink => 'Save this link to check the status later.';
+
+  @override
+  String get receiptCopyLink => 'Copy link';
+
+  @override
+  String get receiptLinkCopied => 'Link copied';
+
+  @override
+  String get receiptRefresh => 'Check status';
+
+  @override
+  String get receiptPrint => 'Print';
+
+  @override
+  String get receiptNotFound => 'No receipt found for this link.';
+
+  @override
+  String get receiptLoadFailed =>
+      'Couldn\'t load the receipt. Check your connection and try again.';
+
+  @override
+  String get licenseExpiryNotifTitle => 'Premium expires soon';
+
+  @override
+  String licenseExpiryNotifBody(int count, String shop) {
+    return '$count day(s) left on $shop\'s Premium.';
+  }
+
+  @override
+  String get licenseExpiryNotifTitleToday => 'Premium expires today';
+
+  @override
+  String licenseExpiryNotifBodyToday(String shop) {
+    return 'Today is the last day of Premium for $shop.';
+  }
 }

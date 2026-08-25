@@ -2366,6 +2366,12 @@ abstract class AppLocalizations {
   /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
+  /// No description provided for @helpGuideSettingsBodyNoCommerce.
+  ///
+  /// In en, this message translates to:
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"License\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once a Premium license is active on this device or on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  String get helpGuideSettingsBodyNoCommerce;
+
   /// No description provided for @settingsTrackStock.
   ///
   /// In en, this message translates to:
@@ -3662,6 +3668,12 @@ abstract class AppLocalizations {
   /// **'Upgrade'**
   String get premiumUpgradeCta;
 
+  /// No description provided for @premiumManageLicenseCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage license'**
+  String get premiumManageLicenseCta;
+
   /// No description provided for @analyticsBenefit1.
   ///
   /// In en, this message translates to:
@@ -3992,11 +4004,35 @@ abstract class AppLocalizations {
   /// **'Already paid or asked Support?'**
   String get licenseAfterPaymentTitle;
 
+  /// No description provided for @licenseManagedElsewhereTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium licensing'**
+  String get licenseManagedElsewhereTitle;
+
+  /// No description provided for @licenseManagedElsewhereBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium is arranged with your All In One POS provider outside this app. Once it is active on this device or on your shop account, Premium features unlock here automatically.'**
+  String get licenseManagedElsewhereBody;
+
+  /// No description provided for @licenseAlreadyLicensedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have Premium?'**
+  String get licenseAlreadyLicensedTitle;
+
   /// No description provided for @licenseExpiringSoon.
   ///
   /// In en, this message translates to:
   /// **'License expires in {days} days — tap to renew.'**
   String licenseExpiringSoon(int days);
+
+  /// No description provided for @licenseExpiringSoonNeutral.
+  ///
+  /// In en, this message translates to:
+  /// **'License expires in {days} days.'**
+  String licenseExpiringSoonNeutral(int days);
 
   /// No description provided for @licenseThankYouTitle.
   ///
@@ -7237,6 +7273,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ks'**
   String get currencySymbol;
+
+  /// No description provided for @receiptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renewal receipt'**
+  String get receiptTitle;
+
+  /// No description provided for @receiptStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for confirmation'**
+  String get receiptStatusPending;
+
+  /// No description provided for @receiptStatusPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We check payments within 24 hours. Save this page — the status updates here.'**
+  String get receiptStatusPendingBody;
+
+  /// No description provided for @receiptStatusPaidBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received. Your licence is being issued — this page will show it shortly.'**
+  String get receiptStatusPaidBody;
+
+  /// No description provided for @receiptStatusFulfilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get receiptStatusFulfilled;
+
+  /// No description provided for @receiptStatusFulfilledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Premium is active. Open the app, go to Settings → License and tap Check for renewal.'**
+  String get receiptStatusFulfilledBody;
+
+  /// No description provided for @receiptStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not approved'**
+  String get receiptStatusRejected;
+
+  /// No description provided for @receiptShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get receiptShop;
+
+  /// No description provided for @receiptDeviceTail.
+  ///
+  /// In en, this message translates to:
+  /// **'App Reference ID ending'**
+  String get receiptDeviceTail;
+
+  /// No description provided for @receiptPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get receiptPlan;
+
+  /// No description provided for @receiptMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} month(s)'**
+  String receiptMonths(int count);
+
+  /// No description provided for @receiptAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get receiptAmount;
+
+  /// No description provided for @receiptMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid with'**
+  String get receiptMethod;
+
+  /// No description provided for @receiptRefNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction ref'**
+  String get receiptRefNo;
+
+  /// No description provided for @receiptSubmittedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get receiptSubmittedAt;
+
+  /// No description provided for @receiptYourKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Your licence key'**
+  String get receiptYourKey;
+
+  /// No description provided for @receiptSaveLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this link to check the status later.'**
+  String get receiptSaveLink;
+
+  /// No description provided for @receiptCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get receiptCopyLink;
+
+  /// No description provided for @receiptLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get receiptLinkCopied;
+
+  /// No description provided for @receiptRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get receiptRefresh;
+
+  /// No description provided for @receiptPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get receiptPrint;
+
+  /// No description provided for @receiptNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No receipt found for this link.'**
+  String get receiptNotFound;
+
+  /// No description provided for @receiptLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the receipt. Check your connection and try again.'**
+  String get receiptLoadFailed;
+
+  /// No description provided for @licenseExpiryNotifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium expires soon'**
+  String get licenseExpiryNotifTitle;
+
+  /// No description provided for @licenseExpiryNotifBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} day(s) left on {shop}\'s Premium.'**
+  String licenseExpiryNotifBody(int count, String shop);
+
+  /// No description provided for @licenseExpiryNotifTitleToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium expires today'**
+  String get licenseExpiryNotifTitleToday;
+
+  /// No description provided for @licenseExpiryNotifBodyToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is the last day of Premium for {shop}.'**
+  String licenseExpiryNotifBodyToday(String shop);
 }
 
 class _AppLocalizationsDelegate

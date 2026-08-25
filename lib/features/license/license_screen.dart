@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/env.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -532,7 +533,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               onPressed: _busy ? null : _contactSupportForTrial,
               child: Text(l.licenseContactSupportTitle),
             ),
-            if (Env.hasBackend) ...[
+            // Commerce-only tail. This device has never been activated, so
+            // the block has no "check my renewal" half to keep — it is
+            // purely "here is where to buy". A store build (see
+            // kCommerceUiEnabled) drops it, divider and all, rather than
+            // render a heading with nothing actionable under it.
+            if (Env.hasBackend && kCommerceUiEnabled) ...[
               const SizedBox(height: AppTheme.space5),
               const Divider(),
               const SizedBox(height: AppTheme.space2),

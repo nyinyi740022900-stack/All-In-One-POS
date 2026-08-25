@@ -520,6 +520,7 @@
   "helpGuideAnalyticsBody": "Analytics က Premium feature ဖြစ်ပါတယ် — Free plan ဆိုင်တစ်ခုက ဒီ screen အစား upgrade prompt ကိုသာ တွေ့ရမှာပါ။\n၁။ အပေါ်ဆုံးမှာ ရက်စွဲကာလ ရွေးချယ်ပါ — ယနေ့၊ ဒီအပတ်၊ ဒီလ၊ (သို့) ကိုယ်ပိုင်ရွေးချယ်ခြင်း။\n၂။ အဲ့ကာလအတွက် အရောင်းစုစုပေါင်း၊ အမြတ်၊ ရောင်းချမှု အရေအတွက်ကို ကြည့်နိုင်ပါတယ်။\n၃။ အောက်ကို scroll ဆွဲပြီး အရောင်းရဆုံးပစ္စည်းများကို ဝင်ငွေ (သို့) အရေအတွက်အလိုက် အဆင့်သတ်မှတ်ပြထားတာ ကြည့်နိုင်ပါတယ်။\n၄။ အမြတ်ကိန်းဂဏန်းတွေက အဲ့အရောင်းအတွက် တကယ်မှတ်တမ်းတင်ထားတဲ့ အရင်းဈေးကို သုံးထားတာမို့ (ယနေ့ရဲ့ အရင်းဈေးသက်သက်မဟုတ်ဘဲ) — ပစ္စည်းရဲ့ အရင်းဈေး ပြောင်းလဲသွားပြီးနောက်မှာလည်း ယခင်အရောင်းတွေရဲ့ အမြတ် မှန်ကန်နေဆဲပါ။\n၅။ ကာလနှစ်ခုကို ယှဉ်ကြည့်ပြီး ပြန်မှာရမယ့်ပစ္စည်း (သို့) ဈေးနှုန်းပြင်ရမယ့်အရာကို ဆုံးဖြတ်ဖို့ trend ကို ကြိုတင်သိနိုင်ပါတယ်။",
   "helpGuideSettingsTitle": "Settings",
   "helpGuideSettingsBody": "၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။",
+  "helpGuideSettingsBodyNoCommerce": "၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ကတော့ ဒီ device (သို့) ဆိုင် account ပေါ်မှာ Premium လိုင်စင် active ဖြစ်တာနဲ့ အလိုအလျောက် ပွင့်ပါမယ်။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။",
   "settingsTrackStock": "Stock စီမံ",
   "settingsTrackStockHint": "ပိတ်ထားရင် = invoice သီးသန့် (stock ရေတွက်/သတိပေးမှု မရှိ)။",
   "settingsAskCustomer": "ဝယ်သူ မေးမြန်း",
@@ -785,6 +786,7 @@
   "premiumFeatureTitle": "{featureName} က Premium feature ဖြစ်ပါတယ်",
   "premiumFeatureBody": "အခု Free plan ကို သုံးနေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ ဒီ feature ကိုတော့ Premium subscription ဒါမှမဟုတ် license key active ရှိမှ သုံးလို့ရပါမယ်။",
   "premiumUpgradeCta": "Upgrade လုပ်မည်",
+  "premiumManageLicenseCta": "လိုင်စင် စီမံရန်",
   "analyticsBenefit1": "အရောင်းအရဆုံး ကုန်ပစ္စည်းတွေကို တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်",
   "analyticsBenefit2": "နေ့စဉ် အမြတ် လမ်းကြောင်း (trend) ကို ကြည့်နိုင်",
   "analyticsBenefit3": "ဒီလကို ပြီးခဲ့တဲ့လနဲ့ နှိုင်းယှဉ်ကြည့်နိုင်",
@@ -840,8 +842,19 @@
   "licenseContactViberHintOnline": "Viber ပွင့်ပါမယ်။ sign-in သုံးတဲ့ email နဲ့ Premium ဝယ်ရန် သို့မဟုတ် သက်တမ်းတိုးရန် တောင်းပါ။",
   "supportViberOpenFailed": "Viber မဖွင့်နိုင်ပါ။ နံပါတ်ကို ကူးပြီးပါပြီ — Viber ထဲမှာ paste လုပ်ပါ။",
   "licenseAfterPaymentTitle": "ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?",
+  "licenseManagedElsewhereTitle": "Premium လိုင်စင်",
+  "licenseManagedElsewhereBody": "Premium ကို ဤ app ပြင်ပတွင် သင့် All In One POS ဝန်ဆောင်မှုပေးသူနှင့် စီစဉ်ရပါသည်။ ဤစက် (သို့) ဆိုင် account ပေါ်တွင် active ဖြစ်သည်နှင့် Premium features များ အလိုအလျောက် ပွင့်ပါမည်။",
+  "licenseAlreadyLicensedTitle": "Premium ရှိပြီးသားလား?",
   "licenseExpiringSoon": "License သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",
   "@licenseExpiringSoon": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "licenseExpiringSoonNeutral": "License သက်တမ်း {days} ရက် ကျန်ပါတယ်။",
+  "@licenseExpiringSoonNeutral": {
     "placeholders": {
       "days": {
         "type": "int"
@@ -1747,5 +1760,39 @@
   "licenseAccountLinked": "Cloud account ချိတ်ဆက်ထားပြီး",
   "operatingModeOnline": "Online",
   "operatingModeOffline": "Offline",
-  "currencySymbol": "ကျပ်"
+  "currencySymbol": "ကျပ်",
+  "receiptTitle": "သက်တမ်းတိုး ပြေစာ",
+  "receiptStatusPending": "အတည်ပြုရန် စောင့်ဆိုင်းဆဲ",
+  "receiptStatusPendingBody": "ငွေပေးချေမှုကို ၂၄ နာရီအတွင်း စစ်ဆေးပါမယ်။ ဒီစာမျက်နှာကို သိမ်းထားပါ — အခြေအနေကို ဒီမှာပဲ ပြပါမယ်။",
+  "receiptStatusPaidBody": "ငွေ လက်ခံရရှိပါပြီ။ လိုင်စင် ထုတ်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။",
+  "receiptStatusFulfilled": "အတည်ပြုပြီး",
+  "receiptStatusFulfilledBody": "Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → လိုင်စင် မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။",
+  "receiptStatusRejected": "အတည်မပြုနိုင်ပါ",
+  "receiptShop": "ဆိုင်နာမည်",
+  "receiptDeviceTail": "App Reference ID နောက်ဆုံး",
+  "receiptPlan": "အစီအစဉ်",
+  "receiptMonths": "{count} လ",
+  "@receiptMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiptAmount": "ပမာဏ",
+  "receiptMethod": "ငွေလွှဲနည်း",
+  "receiptRefNo": "လွှဲပြောင်းမှု နံပါတ်",
+  "receiptSubmittedAt": "တင်သွင်းသည့်ရက်",
+  "receiptYourKey": "သင့် License Key",
+  "receiptSaveLink": "အခြေအနေ နောက်မှ ပြန်စစ်ရန် ဒီ link ကို သိမ်းထားပါ။",
+  "receiptCopyLink": "Link ကူးမည်",
+  "receiptLinkCopied": "Link ကူးပြီးပါပြီ",
+  "receiptRefresh": "အခြေအနေ ပြန်စစ်မည်",
+  "receiptPrint": "ပရင့်ထုတ်မည်",
+  "receiptNotFound": "ဒီ link နဲ့ ပြေစာ မတွေ့ပါ။",
+  "receiptLoadFailed": "ပြေစာ မဖတ်နိုင်ပါ။ အင်တာနက် စစ်ပြီး ထပ်ကြိုးစားပါ။",
+  "licenseExpiryNotifTitle": "Premium သက်တမ်း ကုန်ခါနီးပါပြီ",
+  "licenseExpiryNotifBody": "{shop} ရဲ့ Premium သက်တမ်း {count} ရက် ကျန်ပါတယ်။",
+  "licenseExpiryNotifTitleToday": "Premium သက်တမ်း ဒီနေ့ ကုန်ပါမယ်",
+  "licenseExpiryNotifBodyToday": "{shop} ရဲ့ Premium သက်တမ်းက ဒီနေ့ နောက်ဆုံးရက် ဖြစ်ပါတယ်။"
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
@@ -8,9 +9,14 @@ import 'license_providers.dart';
 import 'license_screen.dart';
 
 /// Wraps a whole screen's body: shown as-is on the Premium plan, otherwise
-/// replaced with a locked paywall (feature name + short explanation +
-/// "Upgrade" CTA). Mirrors `OwnerOnlyGate`'s shape — compose the two when a
-/// screen needs both checks (see e.g. `AnalyticsScreen`).
+/// replaced with a locked paywall (feature name + short explanation + a CTA
+/// into the License screen). Mirrors `OwnerOnlyGate`'s shape — compose the
+/// two when a screen needs both checks (see e.g. `AnalyticsScreen`).
+///
+/// The CTA reads "Upgrade" only where selling is allowed; a store build
+/// (see [kCommerceUiEnabled]) says "Manage license" instead. Same
+/// destination either way — but "Upgrade" is a call to action to buy, and
+/// App Store guideline 3.1.1 judges the wording, not the destination.
 class PremiumGate extends ConsumerWidget {
   const PremiumGate({
     super.key,
@@ -110,7 +116,7 @@ class _PremiumPaywall extends StatelessWidget {
                 builder: (_) => const LicenseScreen(),
               )),
               icon: const Icon(Icons.workspace_premium_outlined),
-              label: Text(l.premiumUpgradeCta),
+              label: Text(upgradeCtaLabel(l)),
             ),
           ],
         ),
@@ -161,9 +167,16 @@ Future<void> showPremiumRequiredDialog(
               builder: (_) => const LicenseScreen(),
             ));
           },
-          child: Text(l.premiumUpgradeCta),
+          child: Text(upgradeCtaLabel(l)),
         ),
       ],
     ),
   );
 }
+
+/// Label for every "this is Premium → go to the License screen" button.
+/// Shared by [PremiumGate], [showPremiumRequiredDialog] and Settings'
+/// `_LockedTile`s so a store build can never end up with one stray
+/// "Upgrade" left behind.
+String upgradeCtaLabel(AppLocalizations l) =>
+    kCommerceUiEnabled ? l.premiumUpgradeCta : l.premiumManageLicenseCta;

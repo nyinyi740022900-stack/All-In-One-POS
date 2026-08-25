@@ -288,6 +288,14 @@ class _StatusCard extends StatelessWidget {
 /// paid?" check — the License screen used to put a Viber-copy action in a
 /// button labelled Renew, hide the actual number, and list Pay online as if
 /// it were a different kind of thing.
+///
+/// When [kCommerceUiEnabled] is false (every App Store / Play build — see
+/// `lib/core/build_flags.dart`) both purchase paths are dropped entirely and
+/// only the neutral "already licensed → re-check" half survives. Guideline
+/// 3.1.1 bans calls to action pointing at an outside purchasing mechanism,
+/// and both the Pay-online button and the Viber card are exactly that: their
+/// own copy says "ask to buy or renew Premium". What replaces them states
+/// where licensing happens without naming a price, a channel, or a link.
 class _PurchasePaths extends ConsumerWidget {
   const _PurchasePaths({
     required this.busy,
@@ -308,6 +316,51 @@ class _PurchasePaths extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+
+    if (!kCommerceUiEnabled) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l.licenseManagedElsewhereTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.space1),
+          Text(
+            l.licenseManagedElsewhereBody,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          // Re-checking a licence you already hold is not commerce, so it
+          // stays in every build — it is the whole point of 3.1.3(b)
+          // Multiplatform Services (access what you already purchased). Its
+          // heading changes only because the commerce build's version asks
+          // "Already paid or asked Support?".
+          if (showCheckRenewal) ...[
+            const SizedBox(height: AppTheme.space4),
+            Text(
+              l.licenseAlreadyLicensedTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton.icon(
+              onPressed: busy ? null : onCheckRenewal,
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              label: Text(l.licenseCheckRenewal),
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Below here is commerce-only, including this watch — the neutral branch
+    // above never shows the Viber card, so it must not subscribe to the
+    // vendor config just to throw the value away.
     final viber = ref.watch(vendorConfigProvider).valueOrNull?.supportViber;
     final hasViber = viber != null && viber.isNotEmpty;
 

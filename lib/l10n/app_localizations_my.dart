@@ -1243,6 +1243,10 @@ class AppLocalizationsMy extends AppLocalizations {
       '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
+  String get helpGuideSettingsBodyNoCommerce =>
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"လိုင်စင်\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ကတော့ ဒီ device (သို့) ဆိုင် account ပေါ်မှာ Premium လိုင်စင် active ဖြစ်တာနဲ့ အလိုအလျောက် ပွင့်ပါမယ်။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+
+  @override
   String get settingsTrackStock => 'Stock စီမံ';
 
   @override
@@ -1938,6 +1942,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get premiumUpgradeCta => 'Upgrade လုပ်မည်';
 
   @override
+  String get premiumManageLicenseCta => 'လိုင်စင် စီမံရန်';
+
+  @override
   String get analyticsBenefit1 =>
       'အရောင်းအရဆုံး ကုန်ပစ္စည်းတွေကို တစ်ချက်ကြည့်ရုံနဲ့ သိနိုင်';
 
@@ -2136,8 +2143,23 @@ class AppLocalizationsMy extends AppLocalizations {
       'ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?';
 
   @override
+  String get licenseManagedElsewhereTitle => 'Premium လိုင်စင်';
+
+  @override
+  String get licenseManagedElsewhereBody =>
+      'Premium ကို ဤ app ပြင်ပတွင် သင့် All In One POS ဝန်ဆောင်မှုပေးသူနှင့် စီစဉ်ရပါသည်။ ဤစက် (သို့) ဆိုင် account ပေါ်တွင် active ဖြစ်သည်နှင့် Premium features များ အလိုအလျောက် ပွင့်ပါမည်။';
+
+  @override
+  String get licenseAlreadyLicensedTitle => 'Premium ရှိပြီးသားလား?';
+
+  @override
   String licenseExpiringSoon(int days) {
     return 'License သက်တမ်း $days ရက် ကျန် — တိုးရန် နှိပ်ပါ။';
+  }
+
+  @override
+  String licenseExpiringSoonNeutral(int days) {
+    return 'License သက်တမ်း $days ရက် ကျန်ပါတယ်။';
   }
 
   @override
@@ -4003,4 +4025,96 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get currencySymbol => 'ကျပ်';
+
+  @override
+  String get receiptTitle => 'သက်တမ်းတိုး ပြေစာ';
+
+  @override
+  String get receiptStatusPending => 'အတည်ပြုရန် စောင့်ဆိုင်းဆဲ';
+
+  @override
+  String get receiptStatusPendingBody =>
+      'ငွေပေးချေမှုကို ၂၄ နာရီအတွင်း စစ်ဆေးပါမယ်။ ဒီစာမျက်နှာကို သိမ်းထားပါ — အခြေအနေကို ဒီမှာပဲ ပြပါမယ်။';
+
+  @override
+  String get receiptStatusPaidBody =>
+      'ငွေ လက်ခံရရှိပါပြီ။ လိုင်စင် ထုတ်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။';
+
+  @override
+  String get receiptStatusFulfilled => 'အတည်ပြုပြီး';
+
+  @override
+  String get receiptStatusFulfilledBody =>
+      'Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → လိုင်စင် မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။';
+
+  @override
+  String get receiptStatusRejected => 'အတည်မပြုနိုင်ပါ';
+
+  @override
+  String get receiptShop => 'ဆိုင်နာမည်';
+
+  @override
+  String get receiptDeviceTail => 'App Reference ID နောက်ဆုံး';
+
+  @override
+  String get receiptPlan => 'အစီအစဉ်';
+
+  @override
+  String receiptMonths(int count) {
+    return '$count လ';
+  }
+
+  @override
+  String get receiptAmount => 'ပမာဏ';
+
+  @override
+  String get receiptMethod => 'ငွေလွှဲနည်း';
+
+  @override
+  String get receiptRefNo => 'လွှဲပြောင်းမှု နံပါတ်';
+
+  @override
+  String get receiptSubmittedAt => 'တင်သွင်းသည့်ရက်';
+
+  @override
+  String get receiptYourKey => 'သင့် License Key';
+
+  @override
+  String get receiptSaveLink =>
+      'အခြေအနေ နောက်မှ ပြန်စစ်ရန် ဒီ link ကို သိမ်းထားပါ။';
+
+  @override
+  String get receiptCopyLink => 'Link ကူးမည်';
+
+  @override
+  String get receiptLinkCopied => 'Link ကူးပြီးပါပြီ';
+
+  @override
+  String get receiptRefresh => 'အခြေအနေ ပြန်စစ်မည်';
+
+  @override
+  String get receiptPrint => 'ပရင့်ထုတ်မည်';
+
+  @override
+  String get receiptNotFound => 'ဒီ link နဲ့ ပြေစာ မတွေ့ပါ။';
+
+  @override
+  String get receiptLoadFailed =>
+      'ပြေစာ မဖတ်နိုင်ပါ။ အင်တာနက် စစ်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get licenseExpiryNotifTitle => 'Premium သက်တမ်း ကုန်ခါနီးပါပြီ';
+
+  @override
+  String licenseExpiryNotifBody(int count, String shop) {
+    return '$shop ရဲ့ Premium သက်တမ်း $count ရက် ကျန်ပါတယ်။';
+  }
+
+  @override
+  String get licenseExpiryNotifTitleToday => 'Premium သက်တမ်း ဒီနေ့ ကုန်ပါမယ်';
+
+  @override
+  String licenseExpiryNotifBodyToday(String shop) {
+    return '$shop ရဲ့ Premium သက်တမ်းက ဒီနေ့ နောက်ဆုံးရက် ဖြစ်ပါတယ်။';
+  }
 }

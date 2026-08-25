@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -166,7 +167,13 @@ class SellScreen extends ConsumerWidget {
                 const SizedBox(width: AppTheme.space2),
                 Expanded(
                   child: Text(
-                    l.licenseExpiringSoon(daysLeftShown),
+                    // "…— tap to renew" only where renewing is something
+                    // this build may point at; a store build states the
+                    // fact and lets the tap speak for itself (the License
+                    // screen it opens has no purchase path in that build).
+                    kCommerceUiEnabled
+                        ? l.licenseExpiringSoon(daysLeftShown)
+                        : l.licenseExpiringSoonNeutral(daysLeftShown),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.of(context).warning,
                     ),

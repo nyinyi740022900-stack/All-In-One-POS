@@ -275,9 +275,11 @@
   </section>
 
   <!-- FREE vs PREMIUM — Premium is a strict superset of Free; the card
-       shows it as "everything in Free, plus...". No price shown here since
-       it isn't finalized — the License page/website is the source of truth
-       for that once it exists. -->
+       shows it as "everything in Free, plus...". Prices are live here now
+       (they were left out while they were still being decided): they mirror
+       production `app_config` — price.monthly 10000, price.yearly 100000,
+       device.free_limit 3, device.extra_fee 10000. Change both together, or
+       a shop reads one number here and pays another on /renew. -->
   <section id="plans" class="section">
     <div class="section-head reveal">
       <p class="eyebrow eyebrow-dark" data-i18n-en="Pricing">ဈေးနှုန်း</p>
@@ -289,6 +291,7 @@
       <div class="plan-card reveal">
         <div class="plan-head">
           <h3 data-i18n-en="Free">Free</h3>
+          <p class="plan-price"><b>0</b> <span data-i18n-en="Ks &middot; forever">ကျပ် · အမြဲ</span></p>
           <p class="plan-tag" data-i18n-en="Forever free, no card needed">အမြဲအခမဲ့ — Card မလို</p>
         </div>
         <ul class="plan-list">
@@ -308,6 +311,8 @@
         <div class="plan-ribbon" data-i18n-en="Premium">Premium</div>
         <div class="plan-head">
           <h3 data-i18n-en="Premium">Premium</h3>
+          <p class="plan-price"><b>10,000</b> <span data-i18n-en="Ks / month">ကျပ် / လ</span></p>
+          <p class="plan-price-alt" data-i18n-en="100,000 Ks / year &mdash; <b>2 months free</b> &middot; up to 3 devices">နှစ်စဉ် 100,000 ကျပ် — <b>၂ လ အခမဲ့</b> · စက် ၃ လုံးအထိ</p>
           <p class="plan-tag" data-i18n-en="Everything in Free, plus:">Free ပါ အရာအားလုံး + အောက်ပါများ</p>
         </div>
         <ul class="plan-list">
@@ -320,7 +325,11 @@
           <li data-i18n-en="Purchase Orders &amp; Accounts Payable &mdash; track supplier orders and what you owe">ကုန်ဝယ်အမှာစာနှင့် ရောင်းသူပေးရန်ကျန် — Supplier ထံမှာထားမှု နှင့် ကျန်ငွေ ခြေရာခံခြင်း</li>
           <li data-i18n-en="Staff Accounts &mdash; give each employee their own login instead of one shared PIN">ဝန်ထမ်း Account — PIN တစ်ခုတည်း မမျှဝေတော့ဘဲ ဝန်ထမ်းတစ်ဦးစီ ကိုယ်ပိုင် login ပေးနိုင်</li>
         </ul>
-        <a href="features/license.html" class="plan-link" data-i18n-en="See how to upgrade &rarr;">Upgrade လုပ်နည်း ကြည့်ရန် →</a>
+        <div class="plan-actions">
+          <a href="https://allinonepos-shop.vercel.app/renew" class="btn btn-primary btn-block" data-i18n-en="Buy or renew Premium">Premium ဝယ်ရန် / သက်တမ်းတိုးရန်</a>
+          <p class="plan-note" data-i18n-en="Or send your App Reference ID on Viber &mdash; <a href=&quot;viber://chat?number=%2B959740022900&quot;>09740022900</a>">သို့မဟုတ် Viber ကနေ App Reference ID ပို့ပါ — <a href="viber://chat?number=%2B959740022900">09740022900</a></p>
+          <a href="features/license.html" class="plan-link" data-i18n-en="See how to upgrade &rarr;">Upgrade လုပ်နည်း ကြည့်ရန် →</a>
+        </div>
       </div>
     </div>
   </section>

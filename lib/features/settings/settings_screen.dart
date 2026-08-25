@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:intl/intl.dart';
 
+import '../../core/build_flags.dart';
 import '../../core/env.dart';
 import '../../core/layout.dart';
 import '../../core/locale_controller.dart';
@@ -17,6 +18,7 @@ import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
 import '../license/license_status.dart';
+import '../license/premium_gate.dart';
 import '../printing/label_printer_settings_screen.dart';
 import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
@@ -146,7 +148,7 @@ class SettingsScreen extends ConsumerWidget {
                                     : l.premiumFeatureBody),
                           unlockLabel: !isOwner
                               ? l.staffSwitchTo(l.staffRoleOwner)
-                              : l.premiumUpgradeCta,
+                              : upgradeCtaLabel(l),
                           onUnlock: !isOwner
                               ? () {
                                   switchStaffRole(context, ref, 'owner');
@@ -378,7 +380,7 @@ class SettingsScreen extends ConsumerWidget {
                           explanation: signedIn
                               ? l.premiumFeatureBodyOnline
                               : l.premiumFeatureBody,
-                          unlockLabel: l.premiumUpgradeCta,
+                          unlockLabel: upgradeCtaLabel(l),
                           onUnlock: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const LicenseScreen(),
@@ -720,7 +722,14 @@ class _ReferralTile extends ConsumerWidget {
     // only surface this once there's a backend and a license that has been
     // activated. Still shown when expired/grace so a lapsed shop can redeem its
     // balance toward renewal — only hidden when never activated.
-    if (!Env.hasBackend || status.kind == LicenseStatusKind.none) {
+    //
+    // Also commerce end to end — it quotes the monthly price, pays a
+    // commission when a referred shop *pays*, and redeems that balance for
+    // licence days — so a store build (see kCommerceUiEnabled) hides the
+    // entrance outright rather than trying to launder the wording.
+    if (!Env.hasBackend ||
+        !kCommerceUiEnabled ||
+        status.kind == LicenseStatusKind.none) {
       return const SizedBox.shrink();
     }
     return ListTile(

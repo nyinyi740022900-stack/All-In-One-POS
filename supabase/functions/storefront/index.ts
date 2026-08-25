@@ -222,8 +222,16 @@ async function handleSubmitLicenseRequest(
 
   const now = new Date().toISOString();
   const requestId = crypto.randomUUID();
+  // Human-quotable receipt number, derived from the id so it is unique
+  // without a sequence and stable forever — the same trick submit_order uses
+  // for `order_no`. This is also what we will hand MyanMyanPay as its
+  // `orderId` when the gateway lands, so one number reconciles the shop's
+  // Viber message, this row, and MMPay's dashboard.
+  const invoiceNo = "INV-" +
+    requestId.replace(/-/g, "").slice(0, 8).toUpperCase();
   const { error } = await admin.from("license_requests").insert({
     id: requestId,
+    invoice_no: invoiceNo,
     shop_name: shopName,
     shop_id: shopId,
     device_id: deviceId,
@@ -245,10 +253,82 @@ async function handleSubmitLicenseRequest(
   if (error) {
     return json({ error: "server_error", detail: error.message }, 500);
   }
-  // The id is already known (generated above, before insert) — return it so
-  // the /renew page can show the owner a reference number for their
-  // submission, same as submit_order's order_no.
-  return json({ ok: true, request_id: requestId });
+  // Both are known before the insert — return them so the page can render
+  // the receipt immediately and hand the owner a link to come back to.
+  return json({ ok: true, request_id: requestId, invoice_no: invoiceNo });
+}
+
+/// Public receipt for one renewal request, keyed by the request id the
+/// submitting browser was handed.
+///
+/// Why a bare id is enough of a credential: it is a server-generated UUIDv4
+/// returned only to that browser, so it cannot be guessed — the same model
+/// every order-tracking link uses. And the one sensitive thing it can
+/// return, `issued_key`, is device-bound at activation (one device per key),
+/// so a leaked link does not hand a stranger a usable licence. What it must
+/// never return is the rest of the row: `payment_proof_path` is a photo of
+/// somebody's bank app, and phone/email belong to the shop, not to whoever
+/// holds the link.
+async function handleReceipt(
+  admin: Admin,
+  // deno-lint-ignore no-explicit-any
+  body: any,
+  req: Request,
+): Promise<Response> {
+  // Same IP budget as the other public entry points. Guessing a UUID is
+  // infeasible, but this stops anyone turning the endpoint into a probe.
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
+    .split(",")[0]
+    .trim();
+  const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("license_request_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if ((count ?? 0) >= 30) {
+    return json({ error: "rate_limited" }, 429);
+  }
+
+  const requestId = `${body.request_id ?? ""}`.trim();
+  if (!requestId) return json({ error: "bad_request" }, 400);
+
+  const { data: row } = await admin
+    .from("license_requests")
+    .select(
+      "id, invoice_no, shop_name, device_id, plan, months, amount, method, " +
+        "ref_no, status, payment_status, issued_key, reject_reason, " +
+        "mmpay_expires_at, paid_at, created_at, updated_at",
+    )
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!row) return json({ error: "not_found" }, 404);
+
+  // The key is the payout of this whole flow — hand it over only once the
+  // request is actually fulfilled, never while it is pending or rejected.
+  const issuedKey = row.status === "fulfilled" ? row.issued_key : null;
+
+  return json({
+    receipt: {
+      invoice_no: row.invoice_no,
+      shop_name: row.shop_name,
+      // Enough to recognise your own device without printing the whole id.
+      device_id_tail: `${row.device_id ?? ""}`.slice(-6) || null,
+      plan: row.plan,
+      months: row.months,
+      amount: row.amount,
+      method: row.method,
+      ref_no: row.ref_no,
+      status: row.status,
+      payment_status: row.payment_status,
+      issued_key: issuedKey,
+      reject_reason: row.status === "rejected" ? row.reject_reason : null,
+      mmpay_expires_at: row.mmpay_expires_at,
+      paid_at: row.paid_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    },
+  });
 }
 
 Deno.serve(async (req) => {
@@ -317,6 +397,12 @@ Deno.serve(async (req) => {
   // device_id it types in) — see handleSubmitLicenseRequest.
   if (action === "submit_license_request") {
     return handleSubmitLicenseRequest(admin, body, req);
+  }
+
+  // Also slug-less: a receipt is addressed by its own request id, not by a
+  // shop (the shop may not even exist yet when the request was submitted).
+  if (action === "receipt") {
+    return handleReceipt(admin, body, req);
   }
 
   const slug = (body.slug ?? "").trim();
