@@ -61,6 +61,34 @@
 .fhero-plan-note-premium { border-left-color: #C97A1F; background: #FFF8EF; }
 .fhero-plan-note-premium svg { color: #C97A1F; }
 
+/* Sub-feature card grid — for a step that opens onto its own hub of
+   several screens (e.g. Accounting's Balance Sheet/Cash Flow/Tax
+   Summary/Year-end Close). Distinct from .tip-card: each one names and
+   explains a whole screen, not a one-line usage tip, so it earns icon +
+   title + description instead of a bullet. */
+.subfeature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 28px 0 0;
+}
+.subfeature-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.subfeature-card .ficon { flex-shrink: 0; }
+.subfeature-card h4 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.subfeature-card p { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+@media (max-width: 640px) {
+  .subfeature-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- tutorial steps ---------- */
 .tutorial { max-width: 1180px; margin: 64px auto 0; padding: 0 24px; }
 .tutorial-head { margin-bottom: 40px; }
