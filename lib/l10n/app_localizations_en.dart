@@ -692,6 +692,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expensesHeaderCategory => 'Category';
 
   @override
+  String get chartSwipeHint => 'Swipe to see every day';
+
+  @override
+  String get filterByCategory => 'Filter by category';
+
+  @override
   String get equityTotal => 'Total equity';
 
   @override

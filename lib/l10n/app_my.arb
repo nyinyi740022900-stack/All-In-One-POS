@@ -290,6 +290,8 @@
   "apBilledHeader": "ကြွေးဖြစ်ငွေ",
   "apPaidHeader": "ပေးပြီးငွေ",
   "expensesHeaderCategory": "အမျိုးအစား",
+  "chartSwipeHint": "ရက်တိုင်းကြည့်ရန် ဘေးတိုက်ပွတ်ပါ",
+  "filterByCategory": "အမျိုးအစား ရွေးရန်",
   "equityTotal": "စုစုပေါင်း အရင်းအနှီး",
   "equityContribution": "အရင်းထည့်ဝင်ငွေ",
   "equityDrawing": "ထုတ်ယူငွေ",

@@ -201,15 +201,52 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 AppTheme.space4,
                 AppTheme.space2,
               ),
-              child: TextField(
-                controller: _search,
-                decoration: InputDecoration(
-                  hintText: l.commonSearch,
-                  prefixIcon: const Icon(Icons.search),
-                  isDense: true,
+              child: Builder(
+                builder: (bottomContext) => TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    hintText: l.commonSearch,
+                    prefixIcon: const Icon(Icons.search),
+                    // Direct category pick beside the search field — the
+                    // chip row below scrolls, which gets slow once a shop's
+                    // category list outgrows one screen.
+                    suffixIcon: IconButton(
+                      tooltip: l.filterByCategory,
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: () {
+                        final counts = ref.read(
+                          inventoryCategoryCountsProvider,
+                        );
+                        showCategoryPickerSheet(
+                          bottomContext,
+                          selectedId: ref.read(inventoryCategoryProvider),
+                          title: l.filterByCategory,
+                          onSelected: (id) => ref
+                              .read(inventoryCategoryProvider.notifier)
+                              .state = id,
+                          options: [
+                            CategoryFilterOption(
+                              id: null,
+                              label: l.categoryAll,
+                              count: counts[null] ?? 0,
+                            ),
+                            for (final c in (ref.read(categoriesStreamProvider)
+                                    .valueOrNull ??
+                                const []))
+                              CategoryFilterOption(
+                                id: c.id,
+                                label: c.name,
+                                count: counts[c.id] ?? 0,
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    isDense: true,
+                  ),
+                  onChanged: (v) =>
+                      ref.read(inventorySearchProvider.notifier).state = v,
                 ),
-                onChanged: (v) =>
-                    ref.read(inventorySearchProvider.notifier).state = v,
               ),
             ),
           ),

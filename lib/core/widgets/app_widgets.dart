@@ -612,6 +612,77 @@ class CategoryFilterBar extends StatelessWidget {
   }
 }
 
+/// Sentinel returned by [showCategoryPickerSheet]'s "All" row — `null` can't
+/// ride through `Navigator.pop` without becoming indistinguishable from a
+/// plain dismissal.
+const _kCategoryPickerAll = '__all__';
+
+/// Direct-pick category chooser — the counterpart to the scrollable
+/// [CategoryFilterBar] chip row. A shop whose category list has grown past
+/// a screenful has to hunt through the scroller chip by chip; this sheet
+/// lists them all at once (with counts, check on the current pick) so one
+/// tap from the search bar's filter icon lands on the category. Shared by
+/// Sell and Inventory, like the chip row.
+Future<void> showCategoryPickerSheet(
+  BuildContext context, {
+  required List<CategoryFilterOption> options,
+  required String? selectedId,
+  required String title,
+  required ValueChanged<String?> onSelected,
+}) async {
+  final picked = await showModalBottomSheet<String>(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space3,
+              AppTheme.space4,
+              AppTheme.space1,
+            ),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+          for (final option in options)
+            ListTile(
+              leading: Icon(
+                option.id == null ? Icons.apps : Icons.label_outline,
+              ),
+              title: Text(option.label),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${option.count}',
+                    style: Theme.of(sheetContext).textTheme.labelSmall
+                        ?.copyWith(
+                          fontFeatures: AppTheme.tabularFigures,
+                          color: AppColors.of(sheetContext).muted,
+                        ),
+                  ),
+                  const SizedBox(width: AppTheme.space2),
+                  if (option.id == selectedId) const Icon(Icons.check),
+                ],
+              ),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                option.id ?? _kCategoryPickerAll,
+              ),
+            ),
+          const SizedBox(height: AppTheme.space2),
+        ],
+      ),
+    ),
+  );
+  if (picked == null) return; // dismissed
+  onSelected(picked == _kCategoryPickerAll ? null : picked);
+}
+
 /// A section title with optional trailing action (e.g. "See all"). Keeps
 /// list-of-sections screens (Settings, Analytics, Sell cart summary) from
 /// each hand-rolling their own heading style.

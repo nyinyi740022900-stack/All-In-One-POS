@@ -1328,6 +1328,18 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get expensesHeaderCategory;
 
+  /// No description provided for @chartSwipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to see every day'**
+  String get chartSwipeHint;
+
+  /// No description provided for @filterByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by category'**
+  String get filterByCategory;
+
   /// No description provided for @equityTotal.
   ///
   /// In en, this message translates to:

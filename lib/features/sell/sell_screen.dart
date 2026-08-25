@@ -792,6 +792,37 @@ class _SellSearchFieldState extends ConsumerState<_SellSearchField> {
       decoration: InputDecoration(
         hintText: l.commonSearch,
         prefixIcon: const Icon(Icons.search),
+        // Direct category pick beside the search field — the chip row
+        // below scrolls, which gets slow once a shop's category list
+        // outgrows one screen.
+        suffixIcon: IconButton(
+          tooltip: l.filterByCategory,
+          icon: const Icon(Icons.filter_list),
+          onPressed: () {
+            final counts = ref.read(sellCategoryCountsProvider);
+            showCategoryPickerSheet(
+              context,
+              selectedId: ref.read(sellCategoryProvider),
+              title: l.filterByCategory,
+              onSelected: (id) =>
+                  ref.read(sellCategoryProvider.notifier).state = id,
+              options: [
+                CategoryFilterOption(
+                  id: null,
+                  label: l.categoryAll,
+                  count: counts[null] ?? 0,
+                ),
+                for (final c in (ref.read(categoriesStreamProvider).valueOrNull ??
+                    const []))
+                  CategoryFilterOption(
+                    id: c.id,
+                    label: c.name,
+                    count: counts[c.id] ?? 0,
+                  ),
+              ],
+            );
+          },
+        ),
         isDense: true,
       ),
       onChanged: (v) => ref.read(sellSearchProvider.notifier).state = v,

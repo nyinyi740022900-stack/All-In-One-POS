@@ -313,6 +313,8 @@
   "apBilledHeader": "Billed",
   "apPaidHeader": "Paid",
   "expensesHeaderCategory": "Category",
+  "chartSwipeHint": "Swipe to see every day",
+  "filterByCategory": "Filter by category",
   "equityTotal": "Total equity",
   "equityContribution": "Contribution",
   "equityDrawing": "Drawing",

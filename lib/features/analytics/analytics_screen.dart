@@ -12,6 +12,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
+import '../accounting/accounting_screen.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
@@ -262,6 +263,27 @@ class _Dashboard extends StatelessWidget {
         _RevenueChartCard(daily: summary.daily),
         const SizedBox(height: AppTheme.space3),
         _TopProductsCard(top: summary.topProducts),
+        const SizedBox(height: AppTheme.space4),
+        // Accounting, as a CARD on the dashboard rather than only an
+        // app-bar glyph inside P&L — the owner asked where the statements
+        // went; a visible tile answers that before the question forms.
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: const Icon(Icons.account_balance_outlined),
+            title: Text(l.accountingTitle),
+            subtitle: Text(
+              l.accountingBalanceSheetSubtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AccountingScreen()),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -544,20 +566,17 @@ class _RevenueChartCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final maxY = daily.fold<int>(0, (m, d) => d.revenue > m ? d.revenue : m);
-    final df = DateFormat('MM-dd');
-    final dayFmt = DateFormat('d');
     // Today renders one bar — nothing to distinguish. A 7-day week labels
-    // every bar with its weekday; a 30-day month has no room for 30 labels,
-    // so it ticks every 5th bar with the day-of-month instead (the tooltip
-    // still carries the full date everywhere).
+    // every bar with its weekday and fits the card width. A 30-day month
+    // can't: its canvas is widened to ~24pt per day inside a horizontal
+    // scroller, so EVERY day gets its label and the owner swipes through
+    // the month instead of squinting at sparse ticks that reset at the
+    // month boundary (26 → 31 → 1 read as nonsense).
     final labelMode = daily.length > 1 && daily.length <= 7
         ? _ChartLabelMode.weekday
         : daily.length > 7
         ? _ChartLabelMode.sparseDay
         : _ChartLabelMode.none;
-    // Locale-explicit short weekday names from the ARBs (see
-    // _weekdayShortLabel below for why they are not intl's DateFormat.E).
-    final gridInterval = maxY == 0 ? 1.0 : math.max(1.0, maxY * 1.15 / 3);
 
     return Card(
       child: Padding(
@@ -585,124 +604,151 @@ class _RevenueChartCard extends StatelessWidget {
                       icon: Icons.bar_chart_outlined,
                       title: l.analyticsNoData,
                     )
-                  : BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: maxY.toDouble() * 1.15,
-                        borderData: FlBorderData(show: false),
-                        // Light horizontal rules so the bars have a scale to
-                        // read against at a glance, not just the one peak
-                        // figure above — kept faint enough not to compete
-                        // with the bars themselves.
-                        gridData: FlGridData(
-                          drawVerticalLine: false,
-                          horizontalInterval: gridInterval,
-                          getDrawingHorizontalLine: (_) => FlLine(
-                            color: scheme.outlineVariant.withValues(
-                              alpha: 0.4,
-                            ),
-                            strokeWidth: 1,
-                          ),
-                        ),
-                        // fl_chart's default tooltip is a hardcoded blue-grey
-                        // plate printing the raw double ("12000.0"). Themed
-                        // here so tapping a bar answers "which day, how
-                        // much?" in the app's own surface + money format.
-                        barTouchData: BarTouchData(
-                          touchTooltipData: BarTouchTooltipData(
-                            getTooltipColor: (_) => scheme.inverseSurface,
-                            tooltipRoundedRadius: AppTheme.radiusSm,
-                            getTooltipItem: (group, _, rod, _) {
-                              final day = daily[group.x].day;
-                              return BarTooltipItem(
-                                '${df.format(day)}\n'
-                                '${Money(rod.toY.round()).withSymbol(l.currencySymbol)}',
-                                theme.textTheme.labelMedium!.copyWith(
-                                  color: scheme.onInverseSurface,
-                                  fontFeatures: AppTheme.tabularFigures,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        titlesData: FlTitlesData(
-                        // No y-axis money labels: the wrapped "221.8K"
-                        // strings crowded the gutter (owner call — the
-                        // header's peak figure plus the gridlines carry the
-                        // scale), and the tooltip has exact numbers.
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: labelMode != _ChartLabelMode.none,
-                            reservedSize: 22,
-                            getTitlesWidget: (value, meta) {
-                              final i = value.round();
-                              if (i < 0 || i >= daily.length) {
-                                return const SizedBox.shrink();
-                              }
-                              // Month view: label every 5th bar only
-                              // (indices 0, 5, 10, …), oldest first, so the
-                              // ticks read as a timeline.
-                              if (labelMode == _ChartLabelMode.sparseDay &&
-                                  i % 5 != 0) {
-                                return const SizedBox.shrink();
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                  top: AppTheme.space1,
-                                ),
-                                child: Text(
-                                  labelMode == _ChartLabelMode.weekday
-                                      ? _weekdayShortLabel(l, daily[i].day)
-                                      : dayFmt.format(daily[i].day),
-                                  maxLines: 1,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                  : labelMode == _ChartLabelMode.sparseDay
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: math.max(daily.length * 24.0, 600.0),
+                        child: _chart(context, theme, scheme),
                       ),
-                        barGroups: [
-                          for (var i = 0; i < daily.length; i++)
-                            BarChartGroupData(
-                              x: i,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: daily[i].revenue.toDouble(),
-                                  // Fill intensity tracks the value against
-                                  // the range's peak (see [barFillAlpha]) —
-                                  // a quiet day and a peak day stop looking
-                                  // like the same kind of day.
-                                  color: scheme.primary.withValues(
-                                    alpha: barFillAlpha(
-                                      daily[i].revenue.toDouble(),
-                                      maxY.toDouble(),
-                                    ),
-                                  ),
-                                  width: daily.length > 14 ? 6 : 12,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(3),
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
+                    )
+                  : _chart(context, theme, scheme),
             ),
+            if (labelMode == _ChartLabelMode.sparseDay) ...[
+              const SizedBox(height: AppTheme.space1),
+              Text(
+                l.chartSwipeHint,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// The bar chart itself, shared by the fitted (Today/week) and the
+  /// horizontally-scrolling (month) layouts.
+  Widget _chart(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme scheme,
+  ) {
+    final l = AppLocalizations.of(context);
+    final daily = this.daily;
+    final maxY = daily.fold<int>(0, (m, d) => d.revenue > m ? d.revenue : m);
+    final df = DateFormat('MM-dd');
+    final dayFmt = DateFormat('d');
+    final labelMode = daily.length > 1 && daily.length <= 7
+        ? _ChartLabelMode.weekday
+        : daily.length > 7
+        ? _ChartLabelMode.sparseDay
+        : _ChartLabelMode.none;
+    final gridInterval = maxY == 0 ? 1.0 : math.max(1.0, maxY * 1.15 / 3);
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: maxY.toDouble() * 1.15,
+        borderData: FlBorderData(show: false),
+        // Light horizontal rules so the bars have a scale to read against
+        // at a glance, not just the one peak figure above — kept faint
+        // enough not to compete with the bars themselves.
+        gridData: FlGridData(
+          drawVerticalLine: false,
+          horizontalInterval: gridInterval,
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: scheme.outlineVariant.withValues(alpha: 0.4),
+            strokeWidth: 1,
+          ),
+        ),
+        // fl_chart's default tooltip is a hardcoded blue-grey plate
+        // printing the raw double ("12000.0"). Themed here so tapping a bar
+        // answers "which day, how much?" in the app's own surface + money
+        // format.
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => scheme.inverseSurface,
+            tooltipRoundedRadius: AppTheme.radiusSm,
+            getTooltipItem: (group, _, rod, _) {
+              final day = daily[group.x].day;
+              return BarTooltipItem(
+                '${df.format(day)}\n'
+                '${Money(rod.toY.round()).withSymbol(l.currencySymbol)}',
+                theme.textTheme.labelMedium!.copyWith(
+                  color: scheme.onInverseSurface,
+                  fontFeatures: AppTheme.tabularFigures,
+                ),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          // No y-axis money labels: the wrapped "221.8K" strings crowded
+          // the gutter (owner call — the header's peak figure plus the
+          // gridlines carry the scale), and the tooltip has exact numbers.
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: labelMode != _ChartLabelMode.none,
+              reservedSize: 22,
+              getTitlesWidget: (value, meta) {
+                final i = value.round();
+                if (i < 0 || i >= daily.length) {
+                  return const SizedBox.shrink();
+                }
+                // Every labelled bar: weekday short forms on the fitted
+                // week view, day-of-month on the scrolling month canvas —
+                // no sparse ticks, so no month-boundary "31 → 1" confusion.
+                return Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.space1),
+                  child: Text(
+                    labelMode == _ChartLabelMode.weekday
+                        ? _weekdayShortLabel(l, daily[i].day)
+                        : dayFmt.format(daily[i].day),
+                    maxLines: 1,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: [
+          for (var i = 0; i < daily.length; i++)
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: daily[i].revenue.toDouble(),
+                  // Fill intensity tracks the value against the range's
+                  // peak (see [barFillAlpha]) — a quiet day and a peak day
+                  // stop looking like the same kind of day.
+                  color: scheme.primary.withValues(
+                    alpha: barFillAlpha(
+                      daily[i].revenue.toDouble(),
+                      maxY.toDouble(),
+                    ),
+                  ),
+                  width: daily.length > 14 ? 10 : 12,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(3),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }

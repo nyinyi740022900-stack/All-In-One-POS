@@ -680,6 +680,12 @@ class AppLocalizationsMy extends AppLocalizations {
   String get expensesHeaderCategory => 'အမျိုးအစား';
 
   @override
+  String get chartSwipeHint => 'ရက်တိုင်းကြည့်ရန် ဘေးတိုက်ပွတ်ပါ';
+
+  @override
+  String get filterByCategory => 'အမျိုးအစား ရွေးရန်';
+
+  @override
   String get equityTotal => 'စုစုပေါင်း အရင်းအနှီး';
 
   @override
