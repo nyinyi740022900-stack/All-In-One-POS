@@ -361,6 +361,7 @@ img { max-width: 100%; display: block; }
   gap: 18px;
 }
 .hub-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -374,6 +375,20 @@ img { max-width: 100%; display: block; }
 .hub-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: transparent; }
 .hub-card h3 { font-size: 16.5px; font-weight: 700; color: var(--ink); }
 .hub-card p { font-size: 13px; color: var(--muted); }
+/* Unmarked = Free (the majority); only the exception gets a tag, so the
+   grid isn't 19 repeated "Free" labels. */
+.hub-card-premium-tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FDECD9, #FBDCB0);
+  color: #8A4300;
+}
 
 /* ---------- free vs premium plans ---------- */
 .plans-grid {

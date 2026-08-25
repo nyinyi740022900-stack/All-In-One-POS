@@ -347,8 +347,14 @@ class _GlanceStrip extends ConsumerWidget {
                   // Movements this way), and initialLocation guarantees
                   // the product list.
                   onTap: () {
-                    ref.read(inventoryLowStockOnlyProvider.notifier).state =
-                        true;
+                    // Arm the filter only when there IS something to show —
+                    // tapping "0" should just open Inventory, not an empty
+                    // filtered list.
+                    if (lowStockCount > 0) {
+                      ref
+                          .read(inventoryLowStockOnlyProvider.notifier)
+                          .state = true;
+                    }
                     StatefulNavigationShell.of(
                       context,
                     ).goBranch(1, initialLocation: true);

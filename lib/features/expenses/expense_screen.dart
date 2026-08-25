@@ -445,6 +445,15 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     final l = AppLocalizations.of(context);
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
     if (amount <= 0) return;
+    final closedThrough = await ref.read(booksClosedThroughProvider.future);
+    if (isDateInClosedBooks(closedThrough, _date)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.yearEndClosedWarn(closedThrough!))),
+      );
+      return;
+    }
+    if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _saving = true);

@@ -718,7 +718,10 @@ class _StockFilterBar extends ConsumerWidget {
                 ? '${l.inventoryLowStock} ($lowCount)'
                 : l.inventoryLowStock,
           ),
-          onSelected: lowCount > 0
+          // Toggleable while SELECTED even at count 0 — a filter whose
+          // items all sold out must stay switchable off, or the list
+          // wedges on empty with a greyed-out (looks dead) chip.
+          onSelected: (lowCount > 0 || lowOnly)
               ? (v) => ref.read(inventoryLowStockOnlyProvider.notifier).state =
                     v
               : null,
