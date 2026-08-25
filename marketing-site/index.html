@@ -297,6 +297,26 @@
     </div>
   </section>
 
+  <!-- PHOTO BAND — a deliberate full-bleed break between the Feature Hub
+       and Plans, both of which sit on near-white surfaces (--surface-tint
+       is only a few RGB points off --bg); back-to-back they read as one
+       long white stretch. Text sits over the photo's own negative-space
+       side (see object-position) rather than a separately-authored panel. -->
+  <section class="photo-band">
+    <div class="photo-band-bg" data-speed="0.1" aria-hidden="true">
+      <picture>
+        <source srcset="assets/photos/feature-shopfront.webp" type="image/webp" />
+        <img src="assets/photos/feature-shopfront.jpg" alt="" class="ken-burns ken-burns-soft" loading="lazy" />
+      </picture>
+      <div class="photo-band-scrim"></div>
+    </div>
+    <div class="photo-band-content reveal">
+      <p class="eyebrow eyebrow-on-photo" data-i18n-en="Ready to Grow">တိုးချဲ့ရန် အသင့်ဖြစ်ပါပြီ</p>
+      <h2 class="on-photo" data-i18n-en="From One Shop<br/>to a Shop Network">ဆိုင်ငယ်ကနေ<br/>ဆိုင်ကွန်ရက်အထိ</h2>
+      <p class="section-sub on-photo-sub" data-i18n-en="Start free and stay free for as long as you like. Upgrade only when you actually need deeper reports or more than one branch.">အခမဲ့ စတင်နိုင်ပြီး ကြိုက်သလောက်ကာလ အခမဲ့ ဆက်သုံးနိုင်ပါတယ်။ အစီရင်ခံစာ နက်ရှိုင်းစွာ လိုအပ်မှ (သို့) ဆိုင်ခွဲတိုးချင်မှသာ Upgrade လုပ်ပါ။</p>
+    </div>
+  </section>
+
   <!-- FREE vs PREMIUM — Premium is a strict superset of Free; the card
        shows it as "everything in Free, plus...". Prices are live here now
        (they were left out while they were still being decided): they mirror
