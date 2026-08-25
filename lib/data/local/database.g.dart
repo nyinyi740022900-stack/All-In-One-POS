@@ -19501,6 +19501,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $ShopProfilesTable shopProfiles = $ShopProfilesTable(this);
+  late final Index idxStockLevelsShopProduct = Index(
+    'idx_stock_levels_shop_product',
+    'CREATE UNIQUE INDEX idx_stock_levels_shop_product ON stock_levels (shop_id, product_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -19533,6 +19537,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appSettings,
     outbox,
     shopProfiles,
+    idxStockLevelsShopProduct,
   ];
 }
 

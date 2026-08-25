@@ -26,6 +26,12 @@ class BtDevice {
   const BtDevice(this.name, this.mac);
 }
 
+/// ESC/POS only knows two paper widths — [PaperSize.mm80Narrow] is still an
+/// 80 mm printer to it (the narrow head constrains the *raster image* width,
+/// which comes from the rendered bitmap, not this enum).
+esc.PaperSize _escPaper(PaperSize paper) =>
+    paper == PaperSize.mm58 ? esc.PaperSize.mm58 : esc.PaperSize.mm80;
+
 /// ESC/POS monochrome raster packing is a per-pixel Dart loop across the
 /// whole receipt/report bitmap — pure CPU work that used to run inline on
 /// the UI isolate and janked the till for the duration of a print (audit
@@ -51,6 +57,20 @@ List<int> _packTsplLabel(
     size: size,
     copies: copies,
   );
+}
+
+/// Caps the rasterized product name so a label's whole layout (name + price
+/// + barcode) always fits the physical [size] — an uncapped name pushed
+/// price/barcode past the bottom edge and silently dropped the barcode on
+/// small rolls like 30x20mm. Oversized names shrink proportionally (a
+/// narrower name just leaves side margin; TSPL draws from x=0).
+img.Image _fitLabelNameToSize(img.Image image, LabelSize size) {
+  // Reserved: top 4 + gap + ~24-dot price line + barcode (>=26) + bottom 4;
+  // small rolls use the tighter gaps tspl.dart also uses.
+  final reserved = size.heightDots <= 200 ? 62 : 78;
+  final budget = size.heightDots - reserved;
+  if (budget <= 0 || image.height <= budget) return image;
+  return img.copyResize(image, height: budget);
 }
 
 /// Builds ESC/POS (or TSPL) bytes, then hands them to whichever transport
@@ -80,6 +100,12 @@ class PrinterService {
   // to the *right* device before writing bytes to it.
   String? _connectedMac;
 
+  /// One print job at a time. A Wi-Fi printer is a single-byte-stream
+  /// device: two jobs written concurrently (e.g. checkout auto-print racing
+  /// a settings Test print) can interleave in its buffer and produce
+  /// garbled or repeated output. Later callers wait for earlier ones.
+  Future<void> _jobQueue = Future.value();
+
   /// Ensures a connection to [mac], (re)connecting if needed.
   Future<bool> _ensureConnected(String mac) async {
     if (_connectedMac == mac && await isConnected) return true;
@@ -90,11 +116,30 @@ class PrinterService {
 
   /// Writes already-built bytes over the configured transport. Byte
   /// generation stays transport-agnostic so a Wi-Fi printer gets the same
-  /// Myanmar-safe raster a Bluetooth printer always did.
+  /// Myanmar-safe raster a Bluetooth printer always did. [escInit] must stay
+  /// false for TSPL label bytes — the Wi-Fi transport's leading ESC @ is an
+  /// ESC/POS command a label printer would receive as garbage.
   Future<PrintResult> _send(
     List<int> bytes, {
     required String address,
     required PrinterConnection connection,
+    bool escInit = true,
+  }) {
+    final job = _jobQueue.then(
+      (_) => _sendNow(bytes, address: address, connection: connection,
+          escInit: escInit),
+    );
+    // Keep the chain alive even when a job fails — one bad print must not
+    // wedge every later one.
+    _jobQueue = job.then((_) {}, onError: (_) {});
+    return job;
+  }
+
+  Future<PrintResult> _sendNow(
+    List<int> bytes, {
+    required String address,
+    required PrinterConnection connection,
+    bool escInit = true,
   }) async {
     switch (connection) {
       case PrinterConnection.bluetooth:
@@ -104,7 +149,7 @@ class PrinterService {
         final ok = await PrintBluetoothThermal.writeBytes(bytes);
         return PrintResult(ok, ok ? null : 'write_failed');
       case PrinterConnection.network:
-        return sendNetworkBytes(bytes, address);
+        return sendNetworkBytes(bytes, address, prependInit: escInit);
       case PrinterConnection.usb:
         return sendUsbBytes(bytes, address);
     }
@@ -145,7 +190,7 @@ class PrinterService {
 
     final profile = await esc.CapabilityProfile.load();
     final generator = esc.Generator(
-      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      _escPaper(paper),
       profile,
     );
 
@@ -155,7 +200,7 @@ class PrinterService {
         (
           image,
           profile,
-          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+          _escPaper(paper),
         )));
     bytes.addAll(generator.feed(1));
     // Code128 handles the hyphenated alphanumeric invoice/refund numbers
@@ -206,7 +251,7 @@ class PrinterService {
 
     final profile = await esc.CapabilityProfile.load();
     final generator = esc.Generator(
-      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      _escPaper(paper),
       profile,
     );
 
@@ -216,7 +261,7 @@ class PrinterService {
         (
           image,
           profile,
-          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+          _escPaper(paper),
         )));
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
@@ -266,7 +311,7 @@ class PrinterService {
 
     final profile = await esc.CapabilityProfile.load();
     final generator = esc.Generator(
-      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      _escPaper(paper),
       profile,
     );
 
@@ -276,7 +321,7 @@ class PrinterService {
         (
           image,
           profile,
-          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+          _escPaper(paper),
         )));
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
@@ -320,7 +365,7 @@ class PrinterService {
 
     final profile = await esc.CapabilityProfile.load();
     final generator = esc.Generator(
-      paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+      _escPaper(paper),
       profile,
     );
 
@@ -331,7 +376,7 @@ class PrinterService {
         (
           nameImage,
           profile,
-          paper == PaperSize.mm80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58,
+          _escPaper(paper),
         ));
 
     final chars = data.barcode.split('');
@@ -380,11 +425,12 @@ class PrinterService {
     required LabelSize size,
     int copies = 1,
   }) async {
-    final nameImage = await renderLabelNameImage(
+    final rendered = await renderLabelNameImage(
       data.name,
       size.widthDots,
       fontSize: 20,
     );
+    final nameImage = _fitLabelNameToSize(rendered, size);
     return compute(_packTsplLabel,
         (nameImage, data.priceText, data.barcode, size, copies));
   }
@@ -398,7 +444,8 @@ class PrinterService {
   }) async {
     try {
       final bytes = await buildTsplBytes(data, size: size, copies: copies);
-      return _send(bytes, address: mac, connection: connection);
+      // TSPL, not ESC/POS — no ESC @ init (see [_send]).
+      return _send(bytes, address: mac, connection: connection, escInit: false);
     } catch (e) {
       return PrintResult(false, e.toString());
     }

@@ -132,10 +132,41 @@ class SettingsRepository {
   /// by hand every time it reconnects the other one.
   String _paperSizeKeyForMac(String mac) => '$_kPaperSize.$mac';
 
+  /// Per-printer chosen model preset id (`printer.model.<mac>`), same
+  /// scoping rationale as the paper size above — the preset belongs to the
+  /// hardware, and a device may know more than one printer over time.
+  String _modelKeyForMac(String mac) => '$_kPrinterModel.$mac';
+
+  static const _kPrinterModel = 'printer.model';
+
+  /// Tolerant parse: stored values are the enum names ('mm58', 'mm80',
+  /// 'mm80Narrow'); anything unrecognized (a pre-expansion install can only
+  /// hold the first two, but never say never) falls back to the most common
+  /// width rather than throwing.
+  PaperSize _paperSizeFromRaw(String? raw) {
+    for (final size in PaperSize.values) {
+      if (size.name == raw) return size;
+    }
+    return PaperSize.mm58;
+  }
+
   PaperSize _resolvePaperSize(Map<String, String> map, String? mac) {
     final scoped = mac == null ? null : map[_paperSizeKeyForMac(mac)];
-    final raw = scoped ?? map[_kPaperSize];
-    return raw == 'mm80' ? PaperSize.mm80 : PaperSize.mm58;
+    return _paperSizeFromRaw(scoped ?? map[_kPaperSize]);
+  }
+
+  String? _resolveModel(Map<String, String> map, String? mac) {
+    final scoped = mac == null ? null : map[_modelKeyForMac(mac)];
+    final raw = scoped ?? map[_kPrinterModel];
+    return (raw == null || raw.isEmpty) ? null : raw;
+  }
+
+  Future<String?> _modelForMac(String? mac) async {
+    if (mac == null) return null;
+    final scoped = await _get(_modelKeyForMac(mac));
+    if (scoped != null && scoped.isNotEmpty) return scoped;
+    final raw = await _get(_kPrinterModel);
+    return (raw == null || raw.isEmpty) ? null : raw;
   }
 
   Stream<PrinterConfig> watchPrinterConfig() {
@@ -150,6 +181,7 @@ class SettingsRepository {
         pdfPaperSize: map[_kPdfPaperSize] == 'a5'
             ? PdfPaperSize.a5
             : PdfPaperSize.a4,
+        modelId: _resolveModel(map, mac),
       );
     });
   }
@@ -157,27 +189,27 @@ class SettingsRepository {
   Future<PrinterConfig> printerConfig() async {
     final mac = await _get(_kPrinterMac);
     final scoped = mac == null ? null : await _get(_paperSizeKeyForMac(mac));
-    final raw = scoped ?? await _get(_kPaperSize);
     return PrinterConfig(
-      paper: raw == 'mm80' ? PaperSize.mm80 : PaperSize.mm58,
+      paper: _paperSizeFromRaw(scoped ?? await _get(_kPaperSize)),
       mac: mac,
       name: await _get(_kPrinterName),
       connection: printerConnectionFromStorage(await _get(_kPrinterConnection)),
       pdfPaperSize: (await _get(_kPdfPaperSize)) == 'a5'
           ? PdfPaperSize.a5
           : PdfPaperSize.a4,
+      modelId: await _modelForMac(mac),
     );
   }
 
   /// Sets the device-wide default paper size — used until a specific
   /// printer has its own remembered size (see [setPaperSizeForPrinter]).
   Future<void> setPaperSize(PaperSize size) =>
-      _set(_kPaperSize, size == PaperSize.mm80 ? 'mm80' : 'mm58');
+      _set(_kPaperSize, size.name);
 
   /// Remembers [size] for this specific printer ([mac]), independent of the
   /// device-wide default — see [_resolvePaperSize].
   Future<void> setPaperSizeForPrinter(String mac, PaperSize size) =>
-      _set(_paperSizeKeyForMac(mac), size == PaperSize.mm80 ? 'mm80' : 'mm58');
+      _set(_paperSizeKeyForMac(mac), size.name);
 
   /// Whether [mac] already has its own remembered paper size, vs. still
   /// falling back to the device-wide default — the printer settings screen
@@ -185,6 +217,18 @@ class SettingsRepository {
   /// one-time "which paper size?" prompt.
   Future<bool> hasPaperSizeForPrinter(String mac) async =>
       (await _get(_paperSizeKeyForMac(mac))) != null;
+
+  /// Remembers the chosen [modelId] ([PrinterModelPreset.id], or any string
+  /// for an unlisted printer) for this specific printer — picking a preset
+  /// is also what applies its recommended paper size (the caller does both,
+  /// so this only stores the id).
+  Future<void> setPrinterModel(String mac, String? modelId) async {
+    if (modelId == null || modelId.isEmpty) {
+      await _delete(_modelKeyForMac(mac));
+      return;
+    }
+    await _set(_modelKeyForMac(mac), modelId);
+  }
 
   Future<void> setPdfPaperSize(PdfPaperSize size) =>
       _set(_kPdfPaperSize, size == PdfPaperSize.a5 ? 'a5' : 'a4');
@@ -683,12 +727,17 @@ class PrinterConfig {
   final String? name;
   final PrinterConnection connection;
   final PdfPaperSize pdfPaperSize;
+
+  /// Chosen [PrinterModelPreset.id] for the paired printer, or null when
+  /// none/unlisted. Purely informational + used to pre-set [paper].
+  final String? modelId;
   const PrinterConfig({
     required this.paper,
     this.mac,
     this.name,
     this.connection = PrinterConnection.bluetooth,
     this.pdfPaperSize = PdfPaperSize.a4,
+    this.modelId,
   });
 
   bool get hasPrinter => mac != null && mac!.isNotEmpty;

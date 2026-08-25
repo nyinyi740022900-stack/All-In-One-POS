@@ -1,10 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'printer_connection.dart';
 
-/// Sends already-built ESC/POS bytes to a Wi-Fi/LAN thermal printer.
-Future<PrintResult> sendNetworkBytes(List<int> bytes, String address) async {
+/// Sends already-built ESC/POS (or, with [prependInit] off, TSPL) bytes to
+/// a Wi-Fi/LAN thermal printer.
+Future<PrintResult> sendNetworkBytes(
+  List<int> bytes,
+  String address, {
+  bool prependInit = true,
+}) async {
   final parsed = NetworkPrinterAddress.tryParse(address);
   if (parsed == null) return const PrintResult(false, 'invalid_address');
 
@@ -15,11 +21,48 @@ Future<PrintResult> sendNetworkBytes(List<int> bytes, String address) async {
       parsed.port,
       timeout: const Duration(seconds: 5),
     );
-    socket.add(Uint8List.fromList(bytes));
-    await socket.flush();
-    // Cheap printers sometimes drop the last packet if we tear down the
-    // socket the instant flush() returns — a short pause is enough.
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    final Uint8List payload;
+    if (prependInit) {
+      // ESC @ (initialize) first: wipes any half-received job an earlier
+      // aborted print left in the printer's buffer. Epson-class printers
+      // auto-REPRINT the buffered job after a comm error recovers, which is
+      // exactly the "test print keeps printing forever" report. Only ESC/POS
+      // understands it though — a TSPL label stream must start with its own
+      // SIZE command, so label prints pass [prependInit] = false.
+      payload = Uint8List(bytes.length + 2);
+      payload[0] = 0x1b; // ESC
+      payload[1] = 0x40; // @
+      payload.setAll(2, bytes);
+    } else {
+      payload = Uint8List.fromList(bytes);
+    }
+    socket.add(payload);
+    // Close gracefully (FIN) — NEVER destroy() on purpose: destroy() sends
+    // RST mid-job, and printers that treat that as a comm error then
+    // reprint the whole job (the "test print keeps printing forever"
+    // report). Awaiting close() lets TCP confirm delivery of every byte
+    // before we hang up.
+    //
+    // Both the write AND the close are bounded: flush() only completes once
+    // the OS send buffer drains toward the printer, and a printer that
+    // accepts the connection then stalls would otherwise pend here for
+    // minutes (TCP retransmit timeout), wedging the serialized job queue
+    // every transport shares. On timeout we tear down and report failure.
+    try {
+      await socket.flush().timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              socket?.destroy();
+              throw TimeoutException('printer write stalled');
+            },
+          );
+      await socket.close().timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => socket?.destroy(),
+          );
+    } on TimeoutException {
+      return const PrintResult(false, 'network_timeout');
+    }
     return const PrintResult(true);
   } on SocketException {
     return const PrintResult(false, 'network_unreachable');

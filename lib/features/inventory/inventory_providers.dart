@@ -95,7 +95,12 @@ final inventoryCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
 
 final lowStockCountProvider = Provider<int>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
-  return all.where((p) => p.isLowStock).length;
+  // Same predicate the low-stock filter itself applies — counting only
+  // isLowStock (which requires a reorder level) used to report 0 for a
+  // product that sold out with no reorder level ever set, silencing every
+  // signal (chip, banner, Analytics glance) while the filter, tile badge,
+  // and this doc comment all agreed it needs attention.
+  return all.where(needsStockAttention).length;
 });
 
 /// Live quantity per product id, rebuilt ONLY when the products×stock stream

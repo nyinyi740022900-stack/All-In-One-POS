@@ -242,19 +242,27 @@ void main() {
     });
   });
 
-  test('watchProducts lists a product once even with two stock_levels rows',
-      () async {
+  test('a second stock_levels row for one product is now rejected by the '
+      'database (schema v33 unique index) — the watchProducts display-side '
+      'dedupe stays as a backstop', () async {
     final id = await repo.upsertProduct(
       name: 'Soap',
       salePrice: 800,
       quantity: 30,
     );
-    await db.into(db.stockLevels).insert(StockLevelsCompanion.insert(
-          id: 'second-level',
-          shopId: 'shop-1',
-          productId: id,
-          quantity: const Value(29),
-        ));
+    // The sync race that used to mint a phantom row (random local id)
+    // alongside the canonical one made every getSingleOrNull keyed on
+    // product throw — crashing checkout/restock. Schema v33 makes the
+    // duplicate impossible at the storage layer.
+    await expectLater(
+      db.into(db.stockLevels).insert(StockLevelsCompanion.insert(
+            id: 'second-level',
+            shopId: 'shop-1',
+            productId: id,
+            quantity: const Value(29),
+          )),
+      throwsA(anything),
+    );
     final products = await repo.watchProducts().first;
     expect(products, hasLength(1));
     expect(products.single.product.id, id);

@@ -227,9 +227,11 @@ class InventoryRepository {
             qtyDelta: delta,
             unitCost: Value(delta > 0 ? (unitCost ?? product.costPrice) : 0),
             note: Value(note),
-            // Explicit microsecond-precision timestamp — the column default
-            // (SQL CURRENT_TIMESTAMP) only has second accuracy, which makes
-            // same-second movements sort inconsistently in the history view.
+            // Explicit timestamp (not the SQL CURRENT_TIMESTAMP default) so
+            // insertion order, not statement time, decides. Note Drift still
+            // stores DateTime truncated to whole seconds — sub-second
+            // precision does NOT survive; same-second rows are ordered
+            // deterministically by rowid in the history views instead.
             createdAt: Value(now),
             updatedAt: Value(now),
           ));
@@ -328,8 +330,9 @@ class InventoryRepository {
             qtyDelta: delta,
             unitCost: Value(delta > 0 ? costPrice : 0),
             note: const Value('manual stock set'),
-            // See the same note in adjustStock: an explicit timestamp avoids
-            // SQL CURRENT_TIMESTAMP's second-level tie-breaking in history.
+            // See the note in adjustStock: explicit timestamp, but Drift
+            // truncates to whole seconds — history ordering relies on the
+            // views' rowid tie-breaker, not sub-second precision.
             createdAt: Value(now),
             updatedAt: Value(now),
           ));

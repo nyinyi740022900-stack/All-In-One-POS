@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'network_transport.dart';
+import 'picker_field.dart';
 import 'printer_connection.dart';
 import 'printer_service.dart';
 import 'printing_providers.dart';
@@ -30,7 +31,8 @@ String printerConnectionLabel(
 String printerTransportErrorMessage(AppLocalizations l, PrintResult result) {
   if (result.ok) return l.printSuccess;
   if (result.error == 'network_unreachable' ||
-      result.error == 'invalid_address') {
+      result.error == 'invalid_address' ||
+      result.error == 'network_timeout') {
     return l.printerNetworkUnreachable;
   }
   return l.printFailed;
@@ -77,6 +79,9 @@ class _PrinterTransportSectionState
   bool _loadingBt = false;
   bool _loadingUsb = false;
   bool _scanning = false;
+  // Set once the user types their own IP/port — [_fillWifiFromSaved] then
+  // stops overwriting it when the connection picker revisits Wi-Fi.
+  bool _wifiFieldsDirty = false;
   late final TextEditingController _ip;
   late final TextEditingController _port;
 
@@ -85,6 +90,8 @@ class _PrinterTransportSectionState
     super.initState();
     _ip = TextEditingController();
     _port = TextEditingController(text: '${NetworkPrinterAddress.defaultPort}');
+    _ip.addListener(_onWifiFieldEdited);
+    _port.addListener(_onWifiFieldEdited);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final connection = _connectionFor();
@@ -95,6 +102,8 @@ class _PrinterTransportSectionState
       if (connection == PrinterConnection.usb) _loadUsbPrinters();
     });
   }
+
+  void _onWifiFieldEdited() => _wifiFieldsDirty = true;
 
   @override
   void dispose() {
@@ -113,6 +122,10 @@ class _PrinterTransportSectionState
   }
 
   void _fillWifiFromSaved() {
+    // Never clobber an address the user typed themselves — toggling the
+    // connection picker away and back used to silently replace their
+    // unsaved entry with the previously saved printer's IP.
+    if (_wifiFieldsDirty) return;
     if (!widget.hasPrinter ||
         widget.savedConnection != PrinterConnection.network ||
         widget.savedAddress == null) {
@@ -195,19 +208,10 @@ class _PrinterTransportSectionState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (available.length > 1) ...[
-          SectionHeader(title: l.printerConnectionType),
-          SegmentedButton<PrinterConnection>(
-            segments: [
-              for (final c in available)
-                ButtonSegment(
-                  value: c,
-                  icon: Icon(printerConnectionIcon(c), size: 18),
-                  label: Text(printerConnectionLabel(l, c)),
-                ),
-            ],
-            selected: {connection},
-            onSelectionChanged: (s) {
-              final next = s.first;
+          AppPickerField<PrinterConnection>(
+            label: l.printerConnectionType,
+            value: connection,
+            onChanged: (next) {
               setState(() => _pickedConnection = next);
               if (next == PrinterConnection.network) {
                 _fillWifiFromSaved();
@@ -217,6 +221,14 @@ class _PrinterTransportSectionState
                 _loadUsbPrinters();
               }
             },
+            options: [
+              for (final c in available)
+                PickerOption(
+                  value: c,
+                  label: printerConnectionLabel(l, c),
+                  icon: printerConnectionIcon(c),
+                ),
+            ],
           ),
           const SizedBox(height: AppTheme.space5),
         ],

@@ -172,16 +172,20 @@ class PurchaseOrderRepository {
   }
 
   /// A cancelled PO never touches stock — this is the only other terminal
-  /// status besides `received`.
-  Future<void> cancelPO(String poId) async {
-    final now = DateTime.now();
-    await (_db.update(_db.purchaseOrders)..where((t) => t.id.equals(poId)))
-        .write(PurchaseOrdersCompanion(
-      status: const Value('cancelled'),
-      updatedAt: Value(now),
-      dirty: const Value(true),
-    ));
-    await _enqueuePO(poId);
+  /// status besides `received`. Write + outbox enqueue are one transaction,
+  /// same as every other mutation here: a crash between them would leave a
+  /// cancelled PO that never reaches the cloud or the shop's other devices.
+  Future<void> cancelPO(String poId) {
+    return _db.transaction(() async {
+      final now = DateTime.now();
+      await (_db.update(_db.purchaseOrders)..where((t) => t.id.equals(poId)))
+          .write(PurchaseOrdersCompanion(
+        status: const Value('cancelled'),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueuePO(poId);
+    });
   }
 
   /// Only meaningful while still `open` — the UI doesn't offer this once a

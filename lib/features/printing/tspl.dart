@@ -25,6 +25,16 @@ List<int> buildTsplLabelBytes({
   final bytes = <int>[];
   void line(String s) => bytes.addAll(ascii.encode('$s\r\n'));
 
+  // Small rolls (30x20mm is only 240x160 dots at 8 dots/mm) can't afford
+  // the gaps a 50x40 label has, and a Code128 bar module of 2 dots makes an
+  // average barcode WIDER than a 240-dot printable area (122+ modules x 2).
+  final small = size.heightDots <= 200;
+  final gapAfterName = small ? 4 : 12;
+  // TSPL font "3" renders ~24 dots tall.
+  const priceHeight = 24;
+  final gapBeforeBarcode = small ? 4 : 16;
+  final narrowBarDots = size.widthDots >= 360 ? 2 : 1;
+
   line('SIZE ${size.widthMm} mm,${size.heightMm} mm');
   line('GAP 2 mm,0 mm');
   line('DIRECTION 1');
@@ -36,13 +46,16 @@ List<int> buildTsplLabelBytes({
   bytes.addAll(_packMonochrome(nameImage, widthBytes));
   bytes.addAll(ascii.encode('\r\n'));
 
-  final priceY = nameImage.height + 12;
+  final priceY = nameImage.height + 4 + gapAfterName;
   line('TEXT 10,$priceY,"3",0,1,1,"$priceText"');
 
-  final barcodeY = priceY + 40;
+  final barcodeY = priceY + priceHeight + gapBeforeBarcode;
   final barHeight = size.heightDots - barcodeY - 4;
   if (barcodeValue.length >= 2 && barHeight > 20) {
-    line('BARCODE 10,$barcodeY,"128",$barHeight,1,0,2,2,"$barcodeValue"');
+    line(
+      'BARCODE 10,$barcodeY,"128",$barHeight,1,0,$narrowBarDots,'
+      '$narrowBarDots,"$barcodeValue"',
+    );
   }
 
   line('PRINT 1,$copies');

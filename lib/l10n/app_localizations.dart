@@ -2930,6 +2930,36 @@ abstract class AppLocalizations {
   /// **'80 mm'**
   String get paper80;
 
+  /// No description provided for @paper80Narrow.
+  ///
+  /// In en, this message translates to:
+  /// **'80 mm (narrow print)'**
+  String get paper80Narrow;
+
+  /// No description provided for @printerPaperHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print coming out wrapped or cut off? Try another width — Epson TM-T88-style printers need the narrow one.'**
+  String get printerPaperHint;
+
+  /// No description provided for @printerModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model'**
+  String get printerModel;
+
+  /// No description provided for @printerModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your printer\'s make and model — the right paper width is set for you.'**
+  String get printerModelHint;
+
+  /// No description provided for @printerModelCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Other / not listed'**
+  String get printerModelCustom;
+
   /// No description provided for @printerPdfPaperSize.
   ///
   /// In en, this message translates to:
@@ -3121,6 +3151,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'50 x 40 mm'**
   String get labelSize50x40;
+
+  /// No description provided for @labelSize30x20.
+  ///
+  /// In en, this message translates to:
+  /// **'30 x 20 mm'**
+  String get labelSize30x20;
+
+  /// No description provided for @labelSize60x40.
+  ///
+  /// In en, this message translates to:
+  /// **'60 x 40 mm'**
+  String get labelSize60x40;
+
+  /// No description provided for @labelSize100x50.
+  ///
+  /// In en, this message translates to:
+  /// **'100 x 50 mm'**
+  String get labelSize100x50;
 
   /// No description provided for @inventoryPrintLabel.
   ///

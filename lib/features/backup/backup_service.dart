@@ -157,7 +157,13 @@ class BackupService {
         await _enqueue('products', row.id);
         written++;
       }
+      final seenStockKeys = <String>{};
       for (final m in rows('stock_levels')) {
+        // Snapshots taken before schema v33 can contain two rows for one
+        // (shop_id, product_id); the unique index now rejects those, which
+        // must not fail the whole restore — keep the first, skip extras.
+        final key = '${m['shop_id']}|${m['product_id']}';
+        if (!seenStockKeys.add(key)) continue;
         final row =
             StockLevel.fromJson(m).copyWith(updatedAt: now, dirty: true);
         await _db.into(_db.stockLevels).insert(row);
@@ -209,10 +215,16 @@ class BackupService {
         await _enqueue('expenses', row.id);
         written++;
       }
+      // Cursor resets belong INSIDE the transaction: they are the whole
+      // point of a restore (the next pull must re-fetch everything the
+      // snapshot may predate). Clearing them only after the commit left a
+      // crash window that reproduced the exact permanent-loss scenario this
+      // method exists to prevent. The settings repository shares this
+      // database, so the deletes join the same Drift transaction.
+      for (final table in _restoredTables) {
+        await _settings.clearSyncCursor(table);
+      }
     });
-    for (final table in _restoredTables) {
-      await _settings.clearSyncCursor(table);
-    }
     return written;
   }
 

@@ -145,9 +145,13 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
         qty: line.qtyVal < 1 ? 1 : line.qtyVal,
       );
       setState(() {
-        line.dispose();
         _lines[idx] = replacement;
       });
+      // Dispose only AFTER the frame where the row's TextFields rebind to
+      // the replacement's controllers — disposing inside the same setState
+      // left them bound to a dead controller for one frame, and a cursor
+      // blink or IME update landing in that window crashed.
+      WidgetsBinding.instance.addPostFrameCallback((_) => line.dispose());
     }
   }
 
@@ -213,8 +217,10 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
       // — orderItemsProvider has no watch signal of its own (a plain family
       // provider over a one-shot repository read), so without this the
       // detail sheet keeps showing the pre-edit item list until app restart.
+      // Guarded on mounted: a sheet dismissed mid-save used to throw
+      // StateError out of ref here (after the save had already succeeded).
       final editedId = widget.order?.id;
-      if (editedId != null) {
+      if (editedId != null && mounted) {
         ref.invalidate(orderItemsProvider(editedId));
       }
       if (!mounted) return;

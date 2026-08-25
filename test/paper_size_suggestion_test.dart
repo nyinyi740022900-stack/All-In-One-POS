@@ -18,6 +18,11 @@ void main() {
       expect(suggestPaperSizeFromDeviceName('THERMAL80'), PaperSize.mm80);
     });
 
+    test('Epson TM-T88-class names land on the narrow (180dpi) width', () {
+      expect(suggestPaperSizeFromDeviceName('TM-T88VI'), PaperSize.mm80Narrow);
+      expect(suggestPaperSizeFromDeviceName('EPSON TM-T88IV'), PaperSize.mm80Narrow);
+    });
+
     test('returns null for a generic name with no width signal — no false '
         'confidence', () {
       expect(suggestPaperSizeFromDeviceName('BlueTooth Printer'), isNull);

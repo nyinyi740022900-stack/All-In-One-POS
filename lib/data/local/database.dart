@@ -61,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 33;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -295,6 +295,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 32) {
         await _ensureRefundUniqueIndex(m);
       }
+      // v33: one stock_levels row per (shop, product) — UNIQUE index plus
+      // dedupe of any rows the sync race already created, and a pull-cursor
+      // reset for both stock tables so movements that were silently skipped
+      // during a broken window are re-fetched and re-applied onto the
+      // surviving row.
+      if (from < 33) {
+        await _ensureStockLevelUniqueIndex(m);
+      }
     },
   );
 
@@ -321,6 +329,74 @@ class AppDatabase extends _$AppDatabase {
       'CREATE UNIQUE INDEX IF NOT EXISTS sales_refund_once '
       'ON sales (shop_id, refund_of_sale_id) '
       'WHERE refund_of_sale_id IS NOT NULL',
+    );
+  }
+
+  /// One stock_levels row per (shop_id, product_id). The sync layer can mint
+  /// this row from a foreign movement delta before the canonical row arrives
+  /// (random local UUID), and the later canonical insert — keyed by its own
+  /// remote id — then created a SECOND row for the same product. From that
+  /// moment every `getSingleOrNull` keyed on product threw
+  /// (`StateError: Too many elements`): checkout, restock, refunds, order
+  /// conversion all crashed on that device, and movement deltas were
+  /// silently skipped.
+  ///
+  /// Repair keeps the earliest row of each duplicate group (deterministic),
+  /// HARD-deletes the extras — never soft-delete here: a tombstone would
+  /// push to the cloud and delete the canonical row everywhere — and heals
+  /// the survivor's cached quantity from the local movement ledger (Σ deltas),
+  /// which is exactly what was frozen while duplicates blocked every write.
+  /// Both stock tables' pull cursors are reset afterwards so movements that
+  /// were skipped during the broken window come back down and apply onto
+  /// the survivor (same precedent as backup-restore's cursor reset).
+  Future<void> _ensureStockLevelUniqueIndex(Migrator m) async {
+    final db = m.database;
+    // Survivors = earliest created_at (then id) per group. Their quantity is
+    // stale precisely because delta application threw once the dupe existed;
+    // rebuild it from the authoritative local movement sum.
+    await db.customStatement('''
+      UPDATE stock_levels SET quantity = COALESCE((
+        SELECT SUM(sm.qty_delta)
+        FROM stock_movements sm
+        WHERE sm.shop_id = stock_levels.shop_id
+          AND sm.product_id = stock_levels.product_id
+          AND sm.is_deleted = 0
+      ), 0)
+      WHERE id IN (
+        SELECT MIN(id) FROM (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (
+              PARTITION BY shop_id, product_id
+              ORDER BY created_at ASC, id ASC
+            ) AS rn,
+            COUNT(*) OVER (PARTITION BY shop_id, product_id) AS grp
+            FROM stock_levels
+          ) WHERE grp > 1 AND rn = 1
+        )
+      )
+    ''');
+    await db.customStatement('''
+      DELETE FROM stock_levels
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY shop_id, product_id
+            ORDER BY created_at ASC, id ASC
+          ) AS rn
+          FROM stock_levels
+        ) WHERE rn > 1
+      )
+    ''');
+    await db.customStatement(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_levels_shop_product '
+      'ON stock_levels (shop_id, product_id)',
+    );
+    // Re-pull both tables from scratch so movements skipped during the
+    // broken window re-apply onto the surviving rows (exactly-once guard
+    // keys on movement id — already-present ones are not double-applied).
+    await db.customStatement(
+      "DELETE FROM app_settings WHERE key LIKE 'sync.cursor.stock_levels%' "
+      "OR key LIKE 'sync.cursor.stock_movements%'",
     );
   }
 

@@ -83,7 +83,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       await ref
           .read(settingsRepositoryProvider)
           .setShopLogoUrl(ref.read(shopIdProvider), url);
-      ref.invalidate(shopProfileProvider);
+      if (mounted) ref.invalidate(shopProfileProvider);
       if (mounted) setState(() => _logoUrl = url);
     } catch (e) {
       if (mounted) {

@@ -301,35 +301,12 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     );
     if (confirmed != true || !mounted) return;
 
-    final password = TextEditingController();
-    final ok = await showDialog<bool>(
+    final pwd = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.accountDeleteAccount),
-        content: AuthPasswordField(
-          controller: password,
-          labelText: l.accountDeletePasswordLabel,
-          autofillHints: const [AutofillHints.password],
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.accountDeleteAccount),
-          ),
-        ],
-      ),
+      builder: (_) =>
+          _DeleteAccountPasswordDialog(label: l.accountDeletePasswordLabel),
     );
-    final pwd = password.text;
-    password.dispose();
-    if (ok != true || pwd.isEmpty || !mounted) return;
+    if (pwd == null || pwd.isEmpty || !mounted) return;
 
     setState(() => _busy = true);
     final result = await ref.read(accountRepositoryProvider).deleteAccount(pwd);
@@ -694,6 +671,65 @@ class _CreatedBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Password prompt for account deletion. Owns its controller (StatefulWidget)
+/// instead of letting the caller create-then-dispose across the showDialog
+/// await — the field stays bound to the controller during the route's exit
+/// transition, and a disposed controller touched in that window crashes.
+/// Pops with the entered password, or null when cancelled.
+class _DeleteAccountPasswordDialog extends StatefulWidget {
+  const _DeleteAccountPasswordDialog({required this.label});
+
+  final String label;
+
+  @override
+  State<_DeleteAccountPasswordDialog> createState() =>
+      _DeleteAccountPasswordDialogState();
+}
+
+class _DeleteAccountPasswordDialogState
+    extends State<_DeleteAccountPasswordDialog> {
+  late final TextEditingController _password;
+
+  @override
+  void initState() {
+    super.initState();
+    _password = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.accountDeleteAccount),
+      content: AuthPasswordField(
+        controller: _password,
+        labelText: widget.label,
+        autofillHints: const [AutofillHints.password],
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(context, _password.text),
+          child: Text(l.accountDeleteAccount),
+        ),
+      ],
     );
   }
 }

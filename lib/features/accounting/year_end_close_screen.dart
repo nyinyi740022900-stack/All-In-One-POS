@@ -55,14 +55,17 @@ class _YearEndCloseScreenState extends ConsumerState<YearEndCloseScreen> {
       await ref
           .read(settingsRepositoryProvider)
           .setBooksClosedThrough(shopId, '$year-12-31');
+      if (!mounted) return;
       ref.invalidate(booksClosedThroughProvider);
       messenger.showSnackBar(
         SnackBar(content: Text(l.yearEndClosedChip('$year-12-31'))),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.commonUnexpectedError)),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -76,12 +79,15 @@ class _YearEndCloseScreenState extends ConsumerState<YearEndCloseScreen> {
       await ref
           .read(settingsRepositoryProvider)
           .clearBooksClosedThrough(ref.read(shopIdProvider));
+      if (!mounted) return;
       ref.invalidate(booksClosedThroughProvider);
       messenger.showSnackBar(SnackBar(content: Text(l.yearEndReopened)));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.commonUnexpectedError)),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _working = false);
     }

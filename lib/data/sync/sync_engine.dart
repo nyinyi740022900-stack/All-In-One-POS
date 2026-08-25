@@ -113,7 +113,17 @@ class SupabaseSyncRemote implements SyncRemote {
         .toIso8601String(); // inclusive on first page
     String? cursorId; // set after each page → strict keyset continuation
     while (true) {
-      var q = _client.from(table).select().eq('shop_id', shopId);
+      // A NULL received_at would poison the keyset cursor: ASC ordering puts
+      // NULLs last, so a boundary row with a null stamp sets cursorStamp
+      // null and the next iteration drops every filter except shop_id,
+      // re-fetching the same page forever. The column is NOT NULL server-
+      // side (migration 0064); this filter is belt-and-braces against a
+      // future regression.
+      var q = _client
+          .from(table)
+          .select()
+          .eq('shop_id', shopId)
+          .not('received_at', 'is', null);
       if (cursorStamp != null) {
         q = cursorId == null
             ? q.gte('received_at', cursorStamp)
@@ -131,7 +141,9 @@ class SupabaseSyncRemote implements SyncRemote {
           .toList();
       all.addAll(rows);
       if (rows.length < _pageSize) break;
-      cursorStamp = rows.last['received_at'] as String?;
+      final lastStamp = rows.last['received_at'];
+      if (lastStamp is! String || lastStamp.isEmpty) break; // never loop
+      cursorStamp = lastStamp;
       cursorId = rows.last['id'] as String;
     }
     return all;

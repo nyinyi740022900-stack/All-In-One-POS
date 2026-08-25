@@ -1547,6 +1547,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paper80 => '80 mm';
 
   @override
+  String get paper80Narrow => '80 mm (narrow print)';
+
+  @override
+  String get printerPaperHint =>
+      'Print coming out wrapped or cut off? Try another width — Epson TM-T88-style printers need the narrow one.';
+
+  @override
+  String get printerModel => 'Printer model';
+
+  @override
+  String get printerModelHint =>
+      'Pick your printer\'s make and model — the right paper width is set for you.';
+
+  @override
+  String get printerModelCustom => 'Other / not listed';
+
+  @override
   String get printerPdfPaperSize => 'Document paper size';
 
   @override
@@ -1650,6 +1667,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelSize50x40 => '50 x 40 mm';
+
+  @override
+  String get labelSize30x20 => '30 x 20 mm';
+
+  @override
+  String get labelSize60x40 => '60 x 40 mm';
+
+  @override
+  String get labelSize100x50 => '100 x 50 mm';
 
   @override
   String get inventoryPrintLabel => 'Print label';

@@ -490,7 +490,10 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
             } finally {
               // Re-fetch either way so the switch reflects the true server
               // state instead of staying visually toggled on a failed write.
-              ref.invalidate(myStorefrontProvider);
+              // Guarded: backing out while the write is in flight (offline,
+              // it can hang until timeout) used to throw StateError out of
+              // ref here as an unhandled exception.
+              if (mounted) ref.invalidate(myStorefrontProvider);
             }
           },
         ),

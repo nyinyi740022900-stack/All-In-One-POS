@@ -352,5 +352,64 @@ void main() {
       expect(label.connection, PrinterConnection.network);
       expect(label.mac, '192.168.1.80');
     });
+
+    test('the 80mm narrow (180dpi) width round-trips through both read '
+        'paths', () async {
+      await repo.setPrinter('FF:66', 'Epson TM-T88');
+      await repo.setPaperSizeForPrinter('FF:66', PaperSize.mm80Narrow);
+
+      final oneShot = await repo.printerConfig();
+      expect(oneShot.paper, PaperSize.mm80Narrow);
+      final streamed = await repo.watchPrinterConfig().first;
+      expect(streamed.paper, PaperSize.mm80Narrow);
+
+      // The device-wide default path accepts it too.
+      await repo.setPaperSize(PaperSize.mm80Narrow);
+      expect((await repo.printerConfig()).paper, PaperSize.mm80Narrow);
+    });
+
+    test('a legacy pre-expansion paper-size value still resolves (never '
+        'falls back to 58 by accident)', () async {
+      // Values written before mm80Narrow existed are exactly the enum
+      // names 'mm58'/'mm80' — the tolerant parse must keep reading them.
+      await repo.setPaperSize(PaperSize.mm80);
+      expect((await repo.printerConfig()).paper, PaperSize.mm80);
+    });
+
+    test('printer model is remembered per printer — two printers never '
+        'share a preset', () async {
+      await repo.setPrinter('AA:11', 'Front');
+      await repo.setPrinter('BB:22', 'Back');
+
+      await repo.setPrinterModel('AA:11', 'epson_tmt88');
+      await repo.setPrinterModel('BB:22', 'xprinter_xp58');
+
+      await repo.setPrinter('AA:11', 'Front');
+      var config = await repo.printerConfig();
+      expect(config.modelId, 'epson_tmt88');
+
+      await repo.setPrinter('BB:22', 'Back');
+      config = await repo.printerConfig();
+      expect(config.modelId, 'xprinter_xp58');
+    });
+
+    test('printer model: unset reads null; custom id passes through; '
+        'clearing works', () async {
+      await repo.setPrinter('CC:33', 'No-name');
+      expect((await repo.printerConfig()).modelId, isNull);
+
+      await repo.setPrinterModel('CC:33', 'some_unlisted_model');
+      expect((await repo.printerConfig()).modelId, 'some_unlisted_model');
+
+      await repo.setPrinterModel('CC:33', null);
+      expect((await repo.printerConfig()).modelId, isNull);
+    });
+
+    test('watchPrinterConfig exposes the model id too', () async {
+      await repo.setPrinter('DD:44', 'Wi-Fi Epson');
+      await repo.setPrinterModel('DD:44', 'epson_tmt82');
+      final streamed = await repo.watchPrinterConfig().first;
+      expect(streamed.modelId, 'epson_tmt82');
+    });
   });
 }

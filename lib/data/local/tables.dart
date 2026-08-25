@@ -67,6 +67,19 @@ class Products extends Table with SyncColumns {
 
 /// Denormalized current stock quantity per product. The authoritative ledger
 /// is [StockMovements]; this row is the fast-read cached total.
+///
+/// The UNIQUE (shop_id, product_id) index is load-bearing: the sync layer
+/// can legitimately mint this row from a foreign `stock_movements` delta
+/// before the canonical row ever arrives (see sync_mappers' movement
+/// handler), and without the constraint that phantom row plus the later
+/// canonical insert produced TWO rows for one product — every
+/// `getSingleOrNull` keyed on product then throws, crashing checkout,
+/// restock, and order conversion on that device.
+@TableIndex(
+  name: 'idx_stock_levels_shop_product',
+  columns: {#shopId, #productId},
+  unique: true,
+)
 class StockLevels extends Table with SyncColumns {
   TextColumn get productId => text()();
   IntColumn get quantity => integer().withDefault(const Constant(0))();

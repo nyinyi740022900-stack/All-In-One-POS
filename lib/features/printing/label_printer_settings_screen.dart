@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'label_data.dart';
+import 'picker_field.dart';
 import 'printer_connection.dart';
 import 'printer_transport_section.dart';
 import 'printing_providers.dart';
 
 String labelSizeLabel(AppLocalizations l, LabelSize size) => switch (size) {
+  LabelSize.mm30x20 => l.labelSize30x20,
   LabelSize.mm40x30 => l.labelSize40x30,
   LabelSize.mm50x30 => l.labelSize50x30,
   LabelSize.mm50x40 => l.labelSize50x40,
+  LabelSize.mm60x40 => l.labelSize60x40,
+  LabelSize.mm100x50 => l.labelSize100x50,
 };
 
 class LabelPrinterSettingsScreen extends ConsumerStatefulWidget {
@@ -60,6 +63,8 @@ class _LabelPrinterSettingsScreenState
       messenger.showSnackBar(
         SnackBar(content: Text(printerTransportErrorMessage(l, result))),
       );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -76,17 +81,14 @@ class _LabelPrinterSettingsScreenState
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.space4),
         children: [
-          SectionHeader(title: l.labelPrinterSize),
-          SegmentedButton<LabelSize>(
-            segments: [
+          AppPickerField<LabelSize>(
+            label: l.labelPrinterSize,
+            value: config?.size ?? LabelSize.mm40x30,
+            onChanged: settings.setLabelSize,
+            options: [
               for (final size in LabelSize.values)
-                ButtonSegment(
-                  value: size,
-                  label: Text(labelSizeLabel(l, size)),
-                ),
+                PickerOption(value: size, label: labelSizeLabel(l, size)),
             ],
-            selected: {config?.size ?? LabelSize.mm40x30},
-            onSelectionChanged: (s) => settings.setLabelSize(s.first),
           ),
           const SizedBox(height: AppTheme.space5),
           PrinterTransportSection(

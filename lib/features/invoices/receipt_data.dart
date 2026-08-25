@@ -1,7 +1,15 @@
 /// Paper width for thermal printers.
+///
+/// [mm80Narrow] is still 80 mm *paper* — the difference is the print head:
+/// most cheap printers are 203 dpi (576 printable dots across 80 mm), but
+/// Epson TM-T88-class and older Bixolon/Citizen heads are 180 dpi and can
+/// only burn **512** dots. Sending a 576-dot raster to one of those makes
+/// every line wrap or clip — picking Narrow here fixes it without touching
+/// the paper roll.
 enum PaperSize {
   mm58(chars: 32, dots: 384),
-  mm80(chars: 48, dots: 576);
+  mm80(chars: 48, dots: 576),
+  mm80Narrow(chars: 42, dots: 512);
 
   const PaperSize({required this.chars, required this.dots});
 
@@ -28,6 +36,10 @@ enum PdfPaperSize { a4, a5 }
 /// false confidence.
 PaperSize? suggestPaperSizeFromDeviceName(String name) {
   final n = name.toLowerCase();
+  // Epson TM-T88-class heads are 180 dpi — 512 dots across 80 mm, not the
+  // usual 576. Check before the generic '80' rule so these names land on
+  // [PaperSize.mm80Narrow] instead.
+  if (n.contains('t88')) return PaperSize.mm80Narrow;
   if (n.contains('80')) return PaperSize.mm80;
   if (n.contains('58') || n.contains('57') || n.contains('56')) {
     return PaperSize.mm58;

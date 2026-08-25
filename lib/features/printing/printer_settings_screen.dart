@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../invoices/receipt_data.dart';
+import 'picker_field.dart';
 import 'printer_connection.dart';
+import 'printer_models.dart';
 import 'printer_service.dart';
 import 'printer_transport_section.dart';
 import 'printing_providers.dart';
@@ -23,6 +24,9 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
 
   /// Pairs [address] as the active printer. Same one-time paper-size prompt
   /// as Bluetooth pairing — a newly-typed IP has no remembered size yet.
+  /// A device name that matches a known [PrinterModelPreset] (Xprinter,
+  /// Epson TM-…, Rongta, …) pre-selects that model and its paper width so
+  /// the prompt starts from the right answer.
   Future<void> _savePrinter({
     required String address,
     required String name,
@@ -30,57 +34,45 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
   }) async {
     final settings = ref.read(settingsRepositoryProvider);
     await settings.setPrinter(address, name, connection: connection);
+    final suggestedModel = suggestPrinterModelFromName(name);
+    if (suggestedModel != null) {
+      await settings.setPrinterModel(address, suggestedModel.id);
+    }
     if (await settings.hasPaperSizeForPrinter(address)) return;
+    final suggested = suggestedModel?.recommendedPaper ??
+        suggestPaperSizeFromDeviceName(name) ??
+        PaperSize.mm58;
     if (!mounted) return;
-    final suggested = suggestPaperSizeFromDeviceName(name) ?? PaperSize.mm58;
     final chosen = await _choosePaperSizeDialog(initial: suggested);
     if (chosen != null) {
       await settings.setPaperSizeForPrinter(address, chosen);
+    } else if (suggestedModel != null) {
+      // Dismissed without choosing: still apply the preset's own width so
+      // the stored model and paper never contradict each other.
+      await settings.setPaperSizeForPrinter(address, suggestedModel.recommendedPaper);
     }
   }
 
   Future<PaperSize?> _choosePaperSizeDialog({required PaperSize initial}) {
     final l = AppLocalizations.of(context);
-    var selected = initial;
-    return showDialog<PaperSize>(
+    return showAppPickerSheet<PaperSize>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l.printerChoosePaperSizeTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l.printerChoosePaperSizeHint,
-                style: Theme.of(ctx).textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppTheme.space3),
-              SegmentedButton<PaperSize>(
-                segments: [
-                  ButtonSegment(value: PaperSize.mm58, label: Text(l.paper58)),
-                  ButtonSegment(value: PaperSize.mm80, label: Text(l.paper80)),
-                ],
-                selected: {selected},
-                onSelectionChanged: (s) =>
-                    setDialogState(() => selected = s.first),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l.commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, selected),
-              child: Text(l.commonSave),
-            ),
-          ],
-        ),
-      ),
+      title: l.printerChoosePaperSizeTitle,
+      subtitle: l.printerChoosePaperSizeHint,
+      selected: initial,
+      options: [
+        PickerOption(value: PaperSize.mm58, label: l.paper58),
+        PickerOption(value: PaperSize.mm80, label: l.paper80),
+        PickerOption(value: PaperSize.mm80Narrow, label: l.paper80Narrow),
+      ],
     );
   }
+
+  /// Stored model id → picker value: a known preset maps to itself; null
+  /// or an unlisted id shows as "Other / not listed" so the choice sticks
+  /// instead of snapping back to some unrelated preset.
+  String _modelValue(String? modelId) =>
+      printerModelById(modelId)?.id ?? kPrinterModelCustomId;
 
   Future<void> _testPrint() async {
     final config = ref.read(printerConfigProvider).valueOrNull;
@@ -121,8 +113,28 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
       messenger.showSnackBar(
         SnackBar(content: Text(printerTransportErrorMessage(l, result))),
       );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _testing = false);
+    }
+  }
+
+  /// Applies a chosen printer model: remembers the preset id for this
+  /// printer, then (for a real preset, not "Other") also applies its
+  /// recommended paper size — the whole point of the picker is not having
+  /// to know whether your Epson head is 180 dpi or 203 dpi.
+  Future<void> _pickModel(String modelId) async {
+    final config = ref.read(printerConfigProvider).valueOrNull;
+    if (config == null || !config.hasPrinter) return;
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.setPrinterModel(config.mac!, modelId);
+    final preset = printerModelById(modelId);
+    if (preset != null) {
+      await settings.setPaperSizeForPrinter(
+        config.mac!,
+        preset.recommendedPaper,
+      );
     }
   }
 
@@ -137,32 +149,59 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.space4),
         children: [
-          SectionHeader(title: l.printerPaperSize),
-          SegmentedButton<PaperSize>(
-            segments: [
-              ButtonSegment(value: PaperSize.mm58, label: Text(l.paper58)),
-              ButtonSegment(value: PaperSize.mm80, label: Text(l.paper80)),
+          AppPickerField<PaperSize>(
+            label: l.printerPaperSize,
+            value: config?.paper ?? PaperSize.mm58,
+            onChanged: (size) => (config != null && config.hasPrinter)
+                ? settings.setPaperSizeForPrinter(config.mac!, size)
+                : settings.setPaperSize(size),
+            options: [
+              PickerOption(value: PaperSize.mm58, label: l.paper58),
+              PickerOption(value: PaperSize.mm80, label: l.paper80),
+              PickerOption(value: PaperSize.mm80Narrow, label: l.paper80Narrow),
             ],
-            selected: {config?.paper ?? PaperSize.mm58},
-            onSelectionChanged: (s) => (config != null && config.hasPrinter)
-                ? settings.setPaperSizeForPrinter(config.mac!, s.first)
-                : settings.setPaperSize(s.first),
+          ),
+          const SizedBox(height: AppTheme.space2),
+          Text(
+            l.printerPaperHint,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: AppTheme.space5),
-          SectionHeader(title: l.printerPdfPaperSize),
+          AppPickerField<PdfPaperSize>(
+            label: l.printerPdfPaperSize,
+            value: config?.pdfPaperSize ?? PdfPaperSize.a4,
+            onChanged: settings.setPdfPaperSize,
+            options: [
+              PickerOption(value: PdfPaperSize.a4, label: l.paperA4),
+              PickerOption(value: PdfPaperSize.a5, label: l.paperA5),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space2),
           Text(
             l.printerPdfPaperSizeHint,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: AppTheme.space2),
-          SegmentedButton<PdfPaperSize>(
-            segments: [
-              ButtonSegment(value: PdfPaperSize.a4, label: Text(l.paperA4)),
-              ButtonSegment(value: PdfPaperSize.a5, label: Text(l.paperA5)),
-            ],
-            selected: {config?.pdfPaperSize ?? PdfPaperSize.a4},
-            onSelectionChanged: (s) => settings.setPdfPaperSize(s.first),
-          ),
+          if (config != null && config.hasPrinter) ...[
+            const SizedBox(height: AppTheme.space5),
+            AppPickerField<String>(
+              label: l.printerModel,
+              value: _modelValue(config.modelId),
+              onChanged: _pickModel,
+              options: [
+                for (final preset in kPrinterModels)
+                  PickerOption(value: preset.id, label: preset.label),
+                PickerOption(
+                  value: kPrinterModelCustomId,
+                  label: l.printerModelCustom,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.printerModelHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: AppTheme.space5),
           PrinterTransportSection(
             savedAddress: config?.mac,

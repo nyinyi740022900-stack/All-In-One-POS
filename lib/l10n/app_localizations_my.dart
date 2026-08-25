@@ -1543,6 +1543,23 @@ class AppLocalizationsMy extends AppLocalizations {
   String get paper80 => '၈၀ မီလီမီတာ';
 
   @override
+  String get paper80Narrow => '၈၀ မီလီမီတာ (ကျဉ်းသော ပုံနှိပ်)';
+
+  @override
+  String get printerPaperHint =>
+      'စာလုံးတွေ ကျော်ထွက်နေ (သို့) ဖြတ်သွားနေရင် အခြားအရွယ်အစား စမ်းကြည့်ပါ — Epson TM-T88 မျိုး ပရင်တာတွေမှာ ကျဉ်းသော အရွယ်ကို သုံးပါ။';
+
+  @override
+  String get printerModel => 'ပရင်တာ အမျိုးအစား';
+
+  @override
+  String get printerModelHint =>
+      'သင့်ပရင်တာရဲ့ အမှတ်တံဆိပ်နဲ့ အမျိုးအစားကို ရွေးလိုက်ရင် သင့်တော်တဲ့ စက္ကူအရွယ်အစားကို အလိုအလျောက် ချိန်ပေးပါမယ်။';
+
+  @override
+  String get printerModelCustom => 'အခြား / စာရင်းမှာ မပါပါ';
+
+  @override
   String get printerPdfPaperSize => 'စာရွက် paper size';
 
   @override
@@ -1647,6 +1664,15 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get labelSize50x40 => '၅၀ x ၄၀ မီလီမီတာ';
+
+  @override
+  String get labelSize30x20 => '၃၀ x ၂၀ မီလီမီတာ';
+
+  @override
+  String get labelSize60x40 => '၆၀ x ၄၀ မီလီမီတာ';
+
+  @override
+  String get labelSize100x50 => '၁၀၀ x ၅၀ မီလီမီတာ';
 
   @override
   String get inventoryPrintLabel => 'Label ပရင့်ထုတ်ရန်';

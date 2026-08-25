@@ -252,6 +252,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
     setState(() => _submitting = true);
     final messenger = ScaffoldMessenger.of(context);
+    // Captured before any await: the cart notifier belongs to the provider
+    // container, not this widget, so it stays valid (and the cart still gets
+    // cleared) even if the sheet is somehow dismissed mid-commit — belt and
+    // braces for the PopScope guard above.
+    final cartNotifier = ref.read(cartProvider.notifier);
     try {
       final salesRepo = ref.read(salesRepositoryProvider);
       final phone = _phone.text.trim();
@@ -310,7 +315,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       } catch (_) {}
 
       _confirmed = true;
-      ref.read(cartProvider.notifier).clear();
+      cartNotifier.clear();
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       setState(() {
@@ -379,7 +384,15 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // above the bottom nav bar, not the display. And the top inset comes from
     // the view rather than `MediaQuery.paddingOf`, which the modal route
     // zeroes out.
-    return LayoutBuilder(
+    //
+    // While the sale is committing the sheet must not be dismissible —
+    // backing out mid-submit (barrier tap or drag) used to dispose the State
+    // between awaits, leaving the sale committed but the cart un-cleared and
+    // no success panel: it reads to the cashier as "it didn't go through"
+    // and invites a double ring. PopScope blocks barrier taps AND drags.
+    return PopScope(
+      canPop: !_submitting,
+      child: LayoutBuilder(
       builder: (context, constraints) {
         final topInset = MediaQueryData.fromView(View.of(context)).padding.top;
         return ConstrainedBox(
@@ -741,6 +754,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
           ),
         );
       },
+      ),
     );
   }
 

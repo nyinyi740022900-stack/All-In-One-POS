@@ -104,28 +104,39 @@ class _LabelPrintDialogState extends ConsumerState<_LabelPrintDialog> {
                   final svc = ref.read(printerServiceProvider);
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
-                  final result = useDedicated
-                      ? await svc.printTsplLabel(
-                          widget.data,
-                          size: labelConfig!.size,
-                          mac: labelConfig.mac!,
-                          copies: _copies,
-                          connection: labelConfig.connection,
-                        )
-                      : await svc.printLabel(
-                          widget.data,
-                          paper: printerConfig!.paper,
-                          mac: printerConfig.mac!,
-                          copies: _copies,
-                          connection: printerConfig.connection,
-                        );
-                  if (!mounted) return;
-                  navigator.pop();
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(printerTransportErrorMessage(l, result)),
-                    ),
-                  );
+                  try {
+                    final result = useDedicated
+                        ? await svc.printTsplLabel(
+                            widget.data,
+                            size: labelConfig!.size,
+                            mac: labelConfig.mac!,
+                            copies: _copies,
+                            connection: labelConfig.connection,
+                          )
+                        : await svc.printLabel(
+                            widget.data,
+                            paper: printerConfig!.paper,
+                            mac: printerConfig.mac!,
+                            copies: _copies,
+                            connection: printerConfig.connection,
+                          );
+                    if (!mounted) return;
+                    navigator.pop();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content:
+                            Text(printerTransportErrorMessage(l, result)),
+                      ),
+                    );
+                  } catch (_) {
+                    // print* never rethrows today, but a plugin regression
+                    // must not leave the dialog's spinner stuck forever.
+                    if (!mounted) return;
+                    navigator.pop();
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(l.commonUnexpectedError)),
+                    );
+                  }
                 },
           child: _printing
               ? const SizedBox(
