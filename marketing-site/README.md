@@ -7,7 +7,7 @@ page.
 
 This is a **separate** site from `lib/storefront/` (the customer-facing
 per-shop storefront + `/renew` license page, deployed at
-`allinonepos-shop.vercel.app`) and from `lib/admin/` (the owner admin
+`shop.allinonepos.app`) and from `lib/admin/` (the owner admin
 console). Do not merge them — they serve different audiences and have
 different deploy lifecycles.
 
@@ -49,7 +49,7 @@ changing it here in the same change-set** — otherwise a shop reads one
 number here and is charged another on `/renew`.
 
 The Premium card's primary action goes straight to the renewal form
-(`allinonepos-shop.vercel.app/renew`), with the Viber number as the second
+(`shop.allinonepos.app/renew`), with the Viber number as the second
 path. Those are the only two ways a shop can pay; the iOS/Play builds of the
 app deliberately carry no purchase UI at all (see `lib/core/build_flags.dart`),
 so for those users this page IS the purchase path.

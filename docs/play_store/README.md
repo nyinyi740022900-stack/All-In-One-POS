@@ -10,6 +10,6 @@
 | [INTERNAL_TEST.md](INTERNAL_TEST.md) | Internal testing track smoke |
 | [SUBMIT.md](SUBMIT.md) | Production rollout |
 
-Privacy policy (shared with iOS): https://allinonepos-legal.vercel.app  
+Privacy policy (shared with iOS): https://legal.allinonepos.app  
 
 Build: see deploy skill §6 and `flutter build appbundle --release --dart-define-from-file=env.local.json`.

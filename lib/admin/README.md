@@ -1,6 +1,6 @@
 # All In One POS — Admin dashboard (Flutter Web)
 
-**Live:** https://allinonepos-admin.vercel.app
+**Live:** https://admin.allinonepos.app
 
 Vendor console for licenses, payments, and shop support. Separate from the
 POS app: its own entry point (`admin_main.dart`), tree-shaken out of the
@@ -59,7 +59,7 @@ flutter run -d chrome -t lib/admin/admin_main.dart \
 ```
 
 ## Deploy the dashboard (Vercel)
-Hosted at **https://allinonepos-admin.vercel.app** (Vercel project `allinonepos-admin`,
+Hosted at **https://admin.allinonepos.app** (Vercel project `allinonepos-admin`,
 scope `nyi-nyi-s-projects1`). To ship a new build:
 ```bash
 flutter build web -t lib/admin/admin_main.dart \

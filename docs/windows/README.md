@@ -6,7 +6,7 @@ scaffolded but deferred (blank-window issue; not a product priority).
 Phone/tablet remain the primary POS. Windows is the shop-PC path for full
 Sell/Inventory/Orders (native Drift SQLite — same offline model as mobile).
 Invoices-only on any computer can still use
-https://allinonepos-invoices.vercel.app (Phase 1).
+https://invoices.allinonepos.app (Phase 1).
 
 ## Build gate: GitHub Actions
 

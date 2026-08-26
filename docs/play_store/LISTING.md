@@ -1,7 +1,7 @@
 # Play Store listing copy
 
-**Privacy Policy URL:** https://allinonepos-legal.vercel.app  
-**Support URL:** https://allinonepos-admin.vercel.app (or Support/Viber landing)  
+**Privacy Policy URL:** https://legal.allinonepos.app  
+**Support URL:** https://admin.allinonepos.app (or Support/Viber landing)  
 **Application ID:** `com.allinonepos.app`
 
 Align with [`docs/app_store/LISTING.md`](../app_store/LISTING.md) where possible.

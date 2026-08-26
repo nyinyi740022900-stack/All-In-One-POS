@@ -4,7 +4,7 @@ Complete only after TestFlight smoke ([TESTFLIGHT_SMOKE.md](TESTFLIGHT_SMOKE.md)
 
 ## Pre-submit
 - [ ] Listing fields filled ([LISTING.md](LISTING.md))
-- [ ] Privacy Policy URL live: https://allinonepos-legal.vercel.app
+- [ ] Privacy Policy URL live: https://legal.allinonepos.app
 - [ ] App Privacy nutrition labels ([PRIVACY_NUTRITION.md](PRIVACY_NUTRITION.md))
 - [ ] Screenshots uploaded (iPhone 6.7" + 6.1"; iPad if still universal)
 - [ ] Review notes pasted ([REVIEW_NOTES.md](REVIEW_NOTES.md)) with demo credentials filled

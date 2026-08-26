@@ -8,7 +8,7 @@ import '../../data/sync/outbox_error.dart';
 
 /// Public base URL where the storefront web app is hosted. A shop's page is
 /// `$storefrontBaseUrl/<slug>`.
-const storefrontBaseUrl = 'https://allinonepos-shop.vercel.app';
+const storefrontBaseUrl = 'https://shop.allinonepos.app';
 
 /// OG preview URL for Facebook/Viber crawlers (Edge Function HTML card).
 String storefrontOgUrl(String slug) {

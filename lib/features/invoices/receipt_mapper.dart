@@ -67,7 +67,7 @@ ReceiptData receiptFromSale(
 }
 
 /// Same fields as the thermal receipt, shaped for the shareable / web
-/// [InvoiceView] (PNG, A4 PDF, invoices.vercel.app, phone invoice detail).
+/// [InvoiceView] (PNG, A4 PDF, invoices.allinonepos.app, phone invoice detail).
 InvoiceData invoiceDataFromSale(
   Sale sale,
   List<SaleItem> items,

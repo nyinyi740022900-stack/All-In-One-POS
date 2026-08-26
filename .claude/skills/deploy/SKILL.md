@@ -45,7 +45,7 @@ flutter build web -t lib/admin/admin_main.dart --dart-define-from-file=env.local
 #   { "routes": [ { "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" } ] }
 cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://allinonepos-admin.vercel.app (use this; the per-deployment URL
+Stable URL: https://admin.allinonepos.app (use this; the per-deployment URL
 is SSO-gated).
 
 ## 3b. Storefront web → Vercel
@@ -55,7 +55,7 @@ flutter build web -t lib/storefront/storefront_main.dart --dart-define-from-file
 cd build/web && vercel link --yes --project allinonepos-shop --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://allinonepos-shop.vercel.app.
+Stable URL: https://shop.allinonepos.app.
 
 ## 3c. Invoices Web companion → Vercel
 Read-only "view & print own invoices" companion for a shop's computer (Phase 1
@@ -65,7 +65,7 @@ flutter build web -t lib/invoices_web/invoices_web_main.dart --dart-define-from-
 cd build/web && vercel link --yes --project allinonepos-invoices --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
-Stable URL: https://allinonepos-invoices.vercel.app. No backend changes ship with
+Stable URL: https://invoices.allinonepos.app. No backend changes ship with
 this one — it activates via the existing `activate` function and reads
 `sales`/`sale_items`/`storefronts` directly, so redeploying it is web-build-only.
 
@@ -87,7 +87,7 @@ flutter build windows --release --dart-define-from-file=env.local.json
 ```
 
 Invoices-only on any computer: Phase 1 web companion
-`https://allinonepos-invoices.vercel.app` (no local DB).
+`https://invoices.allinonepos.app` (no local DB).
 
 ## ⚠️ `COMMERCE_UI` — get this right or the store build is a 3.1.1 violation
 `lib/core/build_flags.dart`'s `kCommerceUiEnabled` **defaults to false**: no
@@ -118,7 +118,7 @@ for `Swift Compiler Error` before assuming it's the device.
 
 ## 5. App Store / TestFlight (IPA)
 Kit: `docs/app_store/` (listing copy, privacy nutrition, review notes, smoke
-checklist). Privacy Policy (live): https://allinonepos-legal.vercel.app  
+checklist). Privacy Policy (live): https://legal.allinonepos.app  
 Redeploy policy HTML:
 ```bash
 cd docs/app_store/privacy && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
@@ -149,7 +149,7 @@ export APP_STORE_CONNECT_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_�
 
 ## 6. Play Store (AAB)
 Kit: `docs/play_store/` (signing, listing, Data safety, internal test, submit).
-Privacy Policy: https://allinonepos-legal.vercel.app  
+Privacy Policy: https://legal.allinonepos.app  
 Package: `com.allinonepos.app` (was `com.mmpos.mm_pos` before the 2026-08-16
 rebrand — no Play upload has happened yet, so this is safe to have changed;
 do not change again once a real upload exists).

@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, serviceKey);
-  const shopWebBase = "https://allinonepos-shop.vercel.app";
+  const shopWebBase = "https://shop.allinonepos.app";
 
   // Open Graph HTML for link previews (crawlers use GET).
   if (req.method === "GET") {

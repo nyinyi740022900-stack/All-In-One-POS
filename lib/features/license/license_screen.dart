@@ -297,7 +297,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     if (deviceId.isEmpty) {
       deviceId = ref.read(deviceIdProvider).valueOrNull ?? '';
     }
-    final uri = Uri.https('allinonepos-shop.vercel.app', '/renew', {
+    final uri = Uri.https('shop.allinonepos.app', '/renew', {
       if (shopName != null && shopName.isNotEmpty) 'name': shopName,
       if (deviceId.isNotEmpty) 'device_id': deviceId,
       if (email != null && email.isNotEmpty) 'email': email,

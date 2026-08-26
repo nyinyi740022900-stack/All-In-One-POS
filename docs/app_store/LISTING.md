@@ -1,8 +1,8 @@
 # App Store listing copy (paste into App Store Connect)
 
-**Privacy Policy URL:** https://allinonepos-legal.vercel.app  
-**Support URL:** https://allinonepos-admin.vercel.app (or your Support/Viber landing)  
-**Marketing URL (optional):** https://allinonepos-shop.vercel.app  
+**Privacy Policy URL:** https://legal.allinonepos.app  
+**Support URL:** https://admin.allinonepos.app (or your Support/Viber landing)  
+**Marketing URL (optional):** https://shop.allinonepos.app  
 
 Bundle ID: `com.allinonepos.app` · Version: follow `pubspec.yaml` (`1.0.0+N`)
 

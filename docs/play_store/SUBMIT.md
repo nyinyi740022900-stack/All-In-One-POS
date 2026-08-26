@@ -4,7 +4,7 @@ Complete after Internal testing smoke ([INTERNAL_TEST.md](INTERNAL_TEST.md)).
 
 ## Pre-submit
 - [ ] Listing ([LISTING.md](LISTING.md)) + graphics
-- [ ] Privacy policy URL: https://allinonepos-legal.vercel.app
+- [ ] Privacy policy URL: https://legal.allinonepos.app
 - [ ] Data safety ([DATA_SAFETY.md](DATA_SAFETY.md))
 - [ ] Content rating questionnaire
 - [ ] Target audience / news apps declarations as applicable

@@ -19,7 +19,7 @@ Use after a build appears under **App Store Connect → TestFlight** (Internal f
 
 ## Storefront
 - [ ] Owner publishes / opens storefront settings
-- [ ] Place a guest order on https://allinonepos-shop.vercel.app/{slug}
+- [ ] Place a guest order on https://shop.allinonepos.app/{slug}
 - [ ] Order appears in Orders after sync; local notification may fire
 
 ## Multi-shop A→B→A (#74)
