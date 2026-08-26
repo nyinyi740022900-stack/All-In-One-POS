@@ -34,8 +34,8 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     // Confirm first, showing exactly how much converts to how many months.
     final summary = ref.read(referralSummaryProvider).valueOrNull;
     final rawPrice =
-        ref.read(vendorConfigProvider).valueOrNull?.priceFor('monthly') ?? 10000;
-    final price = rawPrice <= 0 ? 10000 : rawPrice;
+        ref.read(vendorConfigProvider).valueOrNull?.priceFor('monthly') ?? 20000;
+    final price = rawPrice <= 0 ? 20000 : rawPrice;
     final months = summary == null ? 0 : summary.balance ~/ price;
     if (months < 1) {
       messenger.showSnackBar(SnackBar(content: Text(l.referralRedeemNotEnough)));
@@ -101,7 +101,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     }
     final summaryAsync = ref.watch(referralSummaryProvider);
     final cfg = ref.watch(vendorConfigProvider);
-    final monthly = cfg.valueOrNull?.priceFor('monthly') ?? 10000;
+    final monthly = cfg.valueOrNull?.priceFor('monthly') ?? 20000;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.referralTitle)),
@@ -168,7 +168,7 @@ class _WalletCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final cur = l.currencySymbol;
     final theme = Theme.of(context);
-    final price = monthlyPrice <= 0 ? 10000 : monthlyPrice;
+    final price = monthlyPrice <= 0 ? 20000 : monthlyPrice;
     final canRedeem = summary.balance >= price;
     // Progress toward the next whole free month.
     final within = summary.balance % price;
