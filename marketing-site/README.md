@@ -42,7 +42,7 @@ marketing-site/
 ### Prices on the landing page
 
 The `#plans` cards show real figures, mirrored by hand from production
-`app_config`: `price.monthly` 10,000 · `price.yearly` 100,000 ·
+`app_config`: `price.monthly` 20,000 · `price.yearly` 200,000 ·
 `device.free_limit` 3 · `device.extra_fee` 10,000. This page is static and
 never reads the backend, so **changing a price in the admin console means
 changing it here in the same change-set** — otherwise a shop reads one
