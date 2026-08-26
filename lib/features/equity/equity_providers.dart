@@ -40,6 +40,11 @@ final cumulativeNetProfitProvider = FutureProvider<int>((ref) async {
   ref.watch(salesStreamProvider);
   ref.watch(expenseChangesProvider);
   ref.watch(productCostMapProvider);
+  // The SQL query JOINs sale_items for COGS (cost_snapshot / qty × cost_price),
+  // so a sale_item write — especially a sync pull where items arrive after
+  // their parent sale — must recompute. Without this, net profit stayed
+  // inflated (COGS = 0) until any other watched table fired (audit M4).
+  ref.watch(saleItemChangesProvider);
   final end = DateTime.now().add(const Duration(days: 1));
   return ref.watch(analyticsRepositoryProvider).cumulativeNetProfit(
         start: DateTime(2020, 1, 1),

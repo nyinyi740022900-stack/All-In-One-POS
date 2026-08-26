@@ -12,14 +12,16 @@ final pnlStartDateProvider = StateProvider<DateTime?>((ref) => null);
 final pnlEndDateProvider = StateProvider<DateTime?>((ref) => null);
 
 final pnlStatementProvider = FutureProvider<PnlStatement>((ref) async {
-  // Consolidated invalidation signals (audit M4): expense writes, the
-  // memoized product-cost map, and the memoized stock value — the same
-  // narrowed triggers Analytics uses. Renames/photo edits no longer re-run
-  // the statement.
+  // Consolidated invalidation signals (audit M4): sales, the shared expense
+  // signal, the memoized product-cost map, the memoized stock value, and
+  // sale items — `summary()` JOINs sale_items for per-line COGS, so a sync
+  // pull where items arrive after their parent sale must trigger a recompute
+  // or the COGS stays 0 until the next unrelated write.
   ref.watch(salesStreamProvider);
   ref.watch(expenseChangesProvider);
   ref.watch(productCostMapProvider);
   ref.watch(stockValueProvider);
+  ref.watch(saleItemChangesProvider);
   final now = DateTime.now();
   final defaultStart = DateTime(now.year, now.month, 1);
   final defaultEnd =

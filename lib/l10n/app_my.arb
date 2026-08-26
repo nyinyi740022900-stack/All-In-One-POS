@@ -134,6 +134,7 @@
   "cashReportSharePdf": "PDF မျှဝေမည်",
   "cashReportCashSales": "ငွေသား ရောင်းအား",
   "cashReportCashRepayments": "ငွေသား ကြွေးဆပ်ငွေ",
+  "cashReportSupplierPayments": "ငွေသား ကုန်သွင်းငွေ",
   "creditTitle": "အကြွေးစာရင်း",
   "creditCustomerName": "ဝယ်သူအမည်",
   "customerPhone": "ဖုန်း (မဖြည့်လည်းရ)",

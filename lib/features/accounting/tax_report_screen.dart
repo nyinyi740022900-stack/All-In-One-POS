@@ -27,6 +27,9 @@ final taxStatementProvider = FutureProvider.family<PnlStatement,
     ({DateTime start, DateTime endExclusive})>((ref, period) async {
   ref.watch(salesStreamProvider);
   ref.watch(expenseChangesProvider);
+  // `summary()` JOINs sale_items for COGS — same missing-watch as
+  // pnlStatementProvider/cumulativeNetProfitProvider before #46.
+  ref.watch(saleItemChangesProvider);
   final repo = ref.watch(analyticsRepositoryProvider);
   final summary = await repo.summary(period.start, period.endExclusive,
       creditOwedBySaleId: ref.watch(creditOwedBySaleProvider));

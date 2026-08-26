@@ -41,6 +41,19 @@ Expense _expense(int amount, {String? accountId}) => Expense(
       dirty: false,
     );
 
+SupplierPayment _supplierPayment(String method, int amount) =>
+    SupplierPayment(
+      id: 'sp-$method-$amount',
+      shopId: 'shop-1',
+      supplierName: 'Acme',
+      method: method,
+      amount: amount,
+      createdAt: DateTime(2026, 8, 1),
+      updatedAt: DateTime(2026, 8, 1),
+      isDeleted: false,
+      dirty: false,
+    );
+
 void main() {
   group('computeExpectedCash (pure)', () {
     test('opening + cash payments − expenses, non-cash tenders ignored', () {
@@ -49,6 +62,7 @@ void main() {
         payments: [_payment('cash', 10000), _payment('kbzpay', 20000)],
         repayments: const [],
         expenses: [_expense(3000)],
+        supplierPayments: const [],
       );
       expect(result, 57000); // 50000 + 10000 - 3000
     });
@@ -59,6 +73,7 @@ void main() {
         payments: const [],
         repayments: [_repayment('cash', 5000), _repayment('wavepay', 9000)],
         expenses: const [],
+        supplierPayments: const [],
       );
       expect(result, 5000);
     });
@@ -69,6 +84,7 @@ void main() {
         payments: [_payment('cash', 7000), _payment('cash', -7000)],
         repayments: const [],
         expenses: const [],
+        supplierPayments: const [],
       );
       expect(result, 10000);
     });
@@ -80,8 +96,21 @@ void main() {
         payments: [_payment('cash', 10000)],
         repayments: const [],
         expenses: [_expense(3000, accountId: 'kbzpay')],
+        supplierPayments: const [],
       );
       expect(result, 60000); // 50000 + 10000, the 3000 expense is ignored
+    });
+
+    test('only cash supplier payments reduce expected cash', () {
+      final result = computeExpectedCash(
+        openingAmount: 50000,
+        payments: [_payment('cash', 10000)],
+        repayments: const [],
+        expenses: const [],
+        supplierPayments: [_supplierPayment('cash', 3000),
+                           _supplierPayment('kbzpay', 7000)],
+      );
+      expect(result, 57000); // 50000 + 10000 - 3000 (cash sp only)
     });
 
     test('no activity: expected cash is just the opening float', () {
@@ -90,6 +119,7 @@ void main() {
         payments: const [],
         repayments: const [],
         expenses: const [],
+        supplierPayments: const [],
       );
       expect(result, 20000);
     });

@@ -30,6 +30,7 @@ class CashSessionReportFormatter {
     required String cashSalesLabel,
     required String cashRepaymentsLabel,
     required String expensesLabel,
+    required String supplierPaymentsLabel,
     required String expectedCashLabel,
     required String countedCashLabel,
     required DateTime openedAt,
@@ -49,6 +50,8 @@ class CashSessionReportFormatter {
     out.add(_two(cashSalesLabel, _amt(report.cashSalesTotal)));
     out.add(_two(cashRepaymentsLabel, _amt(report.cashRepaymentsTotal)));
     out.add(_two(expensesLabel, '-${_amt(report.expensesTotal)}'));
+    out.add(_two(supplierPaymentsLabel,
+        '-${_amt(report.supplierPaymentsTotal)}'));
     out.add(_divider());
     out.add(_two(expectedCashLabel, _amt(report.expectedCash)));
 

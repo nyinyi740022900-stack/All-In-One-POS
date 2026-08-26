@@ -42,13 +42,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Password-reset deep link (mmpos://login-callback) — opens the
-                 app directly to the "set new password" screen instead of a
-                 web landing page. -->
+            <!-- Password-reset deep link — opens the app directly to the "set
+                 new password" screen instead of a web landing page.
+                 allinonepos:// is the post-rebrand scheme new reset emails
+                 use; mmpos:// stays registered so a reset email sent before
+                 an install updates to this build still opens correctly. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="allinonepos"/>
                 <data android:scheme="mmpos"/>
             </intent-filter>
         </activity>

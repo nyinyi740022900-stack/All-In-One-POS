@@ -71,7 +71,7 @@ Future<void> _bootstrap() async {
                   publishableKey: Env.supabaseAnonKey,
                   // PKCE is the recommended flow for a mobile deep-link password
                   // reset (see PasswordRecoveryWatcher) — the implicit flow's
-                  // tokens-in-fragment shape doesn't suit the mmpos:// custom scheme.
+                  // tokens-in-fragment shape doesn't suit the allinonepos:// (and legacy mmpos://) custom scheme.
                   authOptions: const FlutterAuthClientOptions(
                     authFlowType: AuthFlowType.pkce,
                   ),

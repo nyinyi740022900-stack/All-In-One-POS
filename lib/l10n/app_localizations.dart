@@ -734,6 +734,12 @@ abstract class AppLocalizations {
   /// **'Cash repayments'**
   String get cashReportCashRepayments;
 
+  /// No description provided for @cashReportSupplierPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash supplier payments'**
+  String get cashReportSupplierPayments;
+
   /// No description provided for @creditTitle.
   ///
   /// In en, this message translates to:

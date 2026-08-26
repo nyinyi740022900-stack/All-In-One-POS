@@ -5,7 +5,9 @@ import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Shared "forgot password" flow — a Supabase password-reset email, deep
-/// linking back into the app via `mmpos://login-callback`. Shown from both
+/// linking back into the app via `allinonepos://login-callback` (the app
+/// still registers the pre-rebrand `mmpos://` scheme too, for any reset
+/// email sent before an install updates to this build). Shown from both
 /// the onboarding Sign-in tab and Settings → Shop login, which otherwise
 /// duplicated this dialog verbatim.
 ///
@@ -62,7 +64,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         _email.text.trim(),
-        redirectTo: 'mmpos://login-callback',
+        redirectTo: 'allinonepos://login-callback',
       );
     } catch (_) {
       // Supabase deliberately doesn't reveal whether the email exists —

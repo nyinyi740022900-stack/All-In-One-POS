@@ -26,6 +26,7 @@ Future<Uint8List> buildCashSessionReportPdf({
   required String cashSalesLabel,
   required String cashRepaymentsLabel,
   required String expensesLabel,
+  required String supplierPaymentsLabel,
   required String expectedCashLabel,
   required String countedCashLabel,
   required DateTime openedAt,
@@ -135,6 +136,7 @@ Future<Uint8List> buildCashSessionReportPdf({
           (cashSalesLabel, amt(report.cashSalesTotal), false),
           (cashRepaymentsLabel, amt(report.cashRepaymentsTotal), false),
           (expensesLabel, '-${amt(report.expensesTotal)}', false),
+          (supplierPaymentsLabel, '-${amt(report.supplierPaymentsTotal)}', false),
           (expectedCashLabel, amt(report.expectedCash), true),
           if (report.closingAmount != null)
             (countedCashLabel, amt(report.closingAmount!), false),

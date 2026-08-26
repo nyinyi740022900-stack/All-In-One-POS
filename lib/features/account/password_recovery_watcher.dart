@@ -5,8 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 
-/// Flips to `true` when a password-recovery deep link (`mmpos://login-callback`)
-/// just opened the app — `app.dart`'s `builder:` override shows
+/// Flips to `true` when a password-recovery deep link
+/// (`allinonepos://login-callback`, or the pre-rebrand `mmpos://` scheme for
+/// links from before an install updates) just opened the app — `app.dart`'s `builder:` override shows
 /// `ResetPasswordScreen` full-screen while this is true, same mechanism
 /// already used for `OnboardingFlow`. Set back to `false` by
 /// `ResetPasswordScreen` once the new password is saved.

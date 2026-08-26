@@ -351,6 +351,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashReportCashRepayments => 'ငွေသား ကြွေးဆပ်ငွေ';
 
   @override
+  String get cashReportSupplierPayments => 'ငွေသား ကုန်သွင်းငွေ';
+
+  @override
   String get creditTitle => 'အကြွေးစာရင်း';
 
   @override

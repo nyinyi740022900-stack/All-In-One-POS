@@ -350,6 +350,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashReportCashRepayments => 'Cash repayments';
 
   @override
+  String get cashReportSupplierPayments => 'Cash supplier payments';
+
+  @override
   String get creditTitle => 'Credit book';
 
   @override

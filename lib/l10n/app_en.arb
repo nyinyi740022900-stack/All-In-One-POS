@@ -151,6 +151,7 @@
   "cashReportSharePdf": "Share PDF",
   "cashReportCashSales": "Cash sales",
   "cashReportCashRepayments": "Cash repayments",
+  "cashReportSupplierPayments": "Cash supplier payments",
   "creditTitle": "Credit book",
   "creditCustomerName": "Customer name",
   "customerPhone": "Phone (optional)",

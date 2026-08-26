@@ -111,15 +111,20 @@ final stockValueProvider = Provider<int>((ref) {
 });
 
 /// Same watch-only shape as the invalidation-only providers above —
-/// `summary()` reads `saleItems.costSnapshot` for exact per-line COGS, and
+/// `summary()` reads `sale_items.costSnapshot` for exact per-line COGS, and
 /// sale_items rows can arrive AFTER their parent sale during a sync pull
 /// (the engine inserts into `sales` first, then `sale_items`), so watching
 /// only the sales table misses the moment profit actually becomes correct.
-final _saleItemChangesProvider = StreamProvider<List<SaleItem>>((ref) {
+/// Public so equity/accounting providers that fold the same SQL/Dart
+/// COGS (see [cumulativeNetProfitProvider], [pnlStatementProvider]) can
+/// share ONE signal instead of each keeping a private duplicate (audit
+/// M4 — the same stale-watch bug that left net-profit inflated until any
+/// other write fired during a sync pull).
+final saleItemChangesProvider = StreamProvider<List<SaleItem>>((ref) {
   final db = ref.watch(databaseProvider);
   final shopId = ref.watch(shopIdProvider);
   return (db.select(db.saleItems)
-        ..where((i) => i.shopId.equals(shopId)))
+          ..where((i) => i.shopId.equals(shopId)))
       .watch();
 });
 
@@ -133,7 +138,7 @@ final analyticsSummaryProvider = FutureProvider<AnalyticsSummary>((ref) async {
   // recorded (this exact mismatch shipped before: Credit book showed 0
   // while Analytics kept counting a fully-repaid sale as outstanding).
   ref.watch(creditOwedBySaleProvider);
-  ref.watch(_saleItemChangesProvider);
+  ref.watch(saleItemChangesProvider);
   ref.watch(expenseChangesProvider);
   // Narrowed signals (audit M4): the memoized cost map + stock value
   // instead of raw products/stock_levels streams, so renames and photo

@@ -8,7 +8,7 @@ Declare collection for app functionality. No ads / no cross-app tracking.
 | Device or other IDs | Yes (license binding) | No | App functionality |
 | Photos | Yes (if user attaches proofs/images) | No | App functionality |
 | Other user-generated content | Yes (shop catalog, sales) | Sync to our backend for the shop | App functionality |
-| Crash logs | Yes if Sentry DSN in build | Crash vendor | Analytics / stability |
+| Crash logs | Yes — Sentry DSN configured in `env.local.json` (`SENTRY_DSN`) | Crash vendor (Sentry) | Analytics / stability |
 
 **Security practices:** Data encrypted in transit (HTTPS). Online account owners can delete their account in-app (Settings → Shop Login → Delete account). Users may also contact Support.
 

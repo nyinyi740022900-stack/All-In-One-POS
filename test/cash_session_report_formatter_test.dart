@@ -9,8 +9,9 @@ void main() {
     cashSalesTotal: 85000,
     cashRepaymentsTotal: 5000,
     expensesTotal: 12000,
-    expectedCash: 128000,
-    closingAmount: 127500,
+    supplierPaymentsTotal: 3000,
+    expectedCash: 125000,
+    closingAmount: 124500,
     variance: -500,
   );
 
@@ -21,6 +22,7 @@ void main() {
         cashSalesTotal: report.cashSalesTotal,
         cashRepaymentsTotal: report.cashRepaymentsTotal,
         expensesTotal: report.expensesTotal,
+        supplierPaymentsTotal: report.supplierPaymentsTotal,
         expectedCash: report.expectedCash,
         closingAmount: closingAmount,
         variance: variance,
@@ -32,6 +34,7 @@ void main() {
       cashSalesLabel: 'Cash sales',
       cashRepaymentsLabel: 'Cash repayments',
       expensesLabel: 'Expenses',
+      supplierPaymentsLabel: 'Supplier payments',
       expectedCashLabel: 'Expected cash',
       countedCashLabel: 'Counted cash',
       openedAt: DateTime(2026, 8, 1, 9),
@@ -42,7 +45,7 @@ void main() {
   }
 
   test('every line fits within the 58mm width (32 chars)', () {
-    final lines = format(closingAmount: 127500, variance: -500);
+    final lines = format(closingAmount: 124500, variance: -500);
     for (final l in lines) {
       for (final sub in l.split('\n')) {
         expect(sub.length, lessThanOrEqualTo(32));
@@ -50,8 +53,9 @@ void main() {
     }
   });
 
-  test('includes opening/cash sales/repayments/expenses/expected', () {
-    final lines = format(closingAmount: 127500, variance: -500).join('\n');
+  test('includes opening/cash sales/repayments/expenses/supplier payments/expected',
+      () {
+    final lines = format(closingAmount: 124500, variance: -500).join('\n');
     expect(lines, contains('Opening float'));
     expect(lines, contains('50,000 Ks'));
     expect(lines, contains('Cash sales'));
@@ -60,8 +64,10 @@ void main() {
     expect(lines, contains('5,000 Ks'));
     expect(lines, contains('Expenses'));
     expect(lines, contains('-12,000 Ks'));
+    expect(lines, contains('Supplier payments'));
+    expect(lines, contains('-3,000 Ks'));
     expect(lines, contains('Expected cash'));
-    expect(lines, contains('128,000 Ks'));
+    expect(lines, contains('125,000 Ks'));
   });
 
   test('counted cash and variance only appear once the session is closed',
@@ -70,9 +76,9 @@ void main() {
     expect(openLines, isNot(contains('Counted cash')));
     expect(openLines, isNot(contains('Variance')));
 
-    final closedLines = format(closingAmount: 127500, variance: -500).join('\n');
+    final closedLines = format(closingAmount: 124500, variance: -500).join('\n');
     expect(closedLines, contains('Counted cash'));
-    expect(closedLines, contains('127,500 Ks'));
+    expect(closedLines, contains('124,500 Ks'));
     expect(closedLines, contains('Variance'));
     expect(closedLines, contains('Short by 500 Ks'));
   });

@@ -5,19 +5,27 @@ import 'package:uuid/uuid.dart';
 import '../../data/local/database.dart';
 
 /// What the drawer should hold: [openingAmount] + every cash-tendered
-/// [payments]/[repayments] − every [expenses] amount. Pure (no DB, no I/O)
-/// so it's directly unit-testable — callers are expected to have already
-/// filtered each list to the session's own `[openedAt, closedAt)` window.
+/// [payments]/[repayments] − every [expenses] amount − cash [supplierPayments].
+/// Pure (no DB, no I/O) so it's directly unit-testable — callers are expected
+/// to have already filtered each list to the session's own
+/// `[openedAt, closedAt)` window.
 ///
 /// An expense's `accountId` (added by the Payment Accounts feature) marks it
 /// as paid from a non-cash account; a null `accountId` means it came out of
 /// the till, same convention `payment_account_repository.dart` uses in
-/// reverse. Only till-paid expenses should reduce the drawer.
+/// reverse. Only till-paid expenses should reduce the drawer. A supplier
+/// payment with `method == 'cash'` likewise empties the till (the Accounts
+/// Payable mirror of a cash expense) and is subtracted here — omitting it
+/// left the drawer's expected figure permanently too high whenever a supplier
+/// was paid in cash (regression: supplier payments were added by the
+/// Accounts Payable feature but `computeExpectedCash` was never updated to
+/// fold them).
 int computeExpectedCash({
   required int openingAmount,
   required List<Payment> payments,
   required List<CreditPayment> repayments,
   required List<Expense> expenses,
+  required List<SupplierPayment> supplierPayments,
 }) {
   final cashIn = payments
           .where((p) => p.method == 'cash')
@@ -27,7 +35,10 @@ int computeExpectedCash({
           .fold<int>(0, (sum, r) => sum + r.amount);
   final cashOut = expenses
       .where((e) => e.accountId == null)
-      .fold<int>(0, (sum, e) => sum + e.amount);
+      .fold<int>(0, (sum, e) => sum + e.amount) +
+      supplierPayments
+          .where((p) => p.method == 'cash')
+          .fold<int>(0, (sum, p) => sum + p.amount);
   return openingAmount + cashIn - cashOut;
 }
 
@@ -40,6 +51,7 @@ class CashSessionReport {
   final int cashSalesTotal;
   final int cashRepaymentsTotal;
   final int expensesTotal;
+  final int supplierPaymentsTotal;
   final int expectedCash;
   final int? closingAmount;
   final int? variance;
@@ -49,6 +61,7 @@ class CashSessionReport {
     required this.cashSalesTotal,
     required this.cashRepaymentsTotal,
     required this.expensesTotal,
+    required this.supplierPaymentsTotal,
     required this.expectedCash,
     required this.closingAmount,
     required this.variance,
@@ -82,7 +95,17 @@ class CashSessionRepository {
   /// `cash_providers.dart`), not for display.
   Stream<List<Expense>> watchAllExpenses() {
     return (_db.select(_db.expenses)
-          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .watch();
+  }
+
+  /// Every non-deleted supplier payment for this shop, unfiltered by date —
+  /// mirrors [watchAllExpenses], used only to trigger [expectedCash]
+  /// recomputation when one is recorded (a cash-paid supplier payment empties
+  /// the till). The caller filters by session window itself.
+  Stream<List<SupplierPayment>> watchAllSupplierPayments() {
+    return (_db.select(_db.supplierPayments)
+            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
   }
 
@@ -152,45 +175,55 @@ class CashSessionRepository {
   }
 
   /// What the drawer should hold right now (or at close, if [session] is
-  /// already closed) — fetches this shop's payments/repayments/expenses
-  /// within the session's window and hands them to [computeExpectedCash].
+  /// already closed) — fetches this shop's payments/repayments/expenses/
+  /// supplier payments within the session's window and hands them to
+  /// [computeExpectedCash].
   Future<int> expectedCash(CashSession session) async {
     final end = session.closedAt;
 
     final payments = await (_db.select(_db.payments)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
         .get();
     final repayments = await (_db.select(_db.creditPayments)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
         .get();
     final expenses = await (_db.select(_db.expenses)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                // Fold by createdAt, NOT the business `date` (audit QA-M6):
-                // the cash physically left the till when the expense was
-                // RECORDED, so a back-dated entry made during this session
-                // must still reduce the drawer — while an entry recorded
-                // yesterday but dated today correctly belongs to the
-                // previous session. Reports/P&L keep using `date`.
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) {
-              pred = pred & t.createdAt.isSmallerThanValue(end);
-            }
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  // Fold by createdAt, NOT the business `date` (audit QA-M6):
+                  // the cash physically left the till when the expense was
+                  // RECORDED, so a back-dated entry made during this session
+                  // must still reduce the drawer — while an entry recorded
+                  // yesterday but dated today correctly belongs to the
+                  // previous session. Reports/P&L keep using `date`.
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
+              return pred;
+            }))
+        .get();
+    final supplierPayments = await (_db.select(_db.supplierPayments)
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
         .get();
 
     return computeExpectedCash(
@@ -198,47 +231,60 @@ class CashSessionRepository {
       payments: payments,
       repayments: repayments,
       expenses: expenses,
+      supplierPayments: supplierPayments,
     );
   }
 
   /// Same window/queries as [expectedCash], kept as per-category subtotals
   /// for a printable/shareable end-of-day summary — added alongside
-  /// [expectedCash] rather than refactored out of it, so the already-shipped
-  /// live "Expected cash now" and history-variance call sites are untouched.
+  /// [expectedCash] rather than refactored out of it (the same function
+  /// already calls all four), so the same `computeExpectedCash` logic is
+  /// the single source of truth.
   Future<CashSessionReport> reportFor(CashSession session) async {
     final end = session.closedAt;
 
     final payments = await (_db.select(_db.payments)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
         .get();
     final repayments = await (_db.select(_db.creditPayments)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
         .get();
     final expenses = await (_db.select(_db.expenses)
-          ..where((t) {
-            var pred = t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                // Same createdAt window as [expectedCash] — the itemized
-                // report must reconcile against the same physical drawer
-                // math (audit QA-M6).
-                t.createdAt.isBiggerOrEqualValue(session.openedAt);
-            if (end != null) {
-              pred = pred & t.createdAt.isSmallerThanValue(end);
-            }
-            return pred;
-          }))
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  // Same createdAt window as [expectedCash] — the itemized
+                  // report must reconcile against the same physical drawer
+                  // math (audit QA-M6).
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
+              return pred;
+            }))
+        .get();
+    final supplierPayments = await (_db.select(_db.supplierPayments)
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
+              return pred;
+            }))
         .get();
 
     final cashSalesTotal = payments
@@ -250,16 +296,21 @@ class CashSessionRepository {
     final expensesTotal = expenses
         .where((e) => e.accountId == null)
         .fold<int>(0, (sum, e) => sum + e.amount);
+    final supplierPaymentsTotal = supplierPayments
+        .where((p) => p.method == 'cash')
+        .fold<int>(0, (sum, p) => sum + p.amount);
     final expectedCash = session.openingAmount +
         cashSalesTotal +
         cashRepaymentsTotal -
-        expensesTotal;
+        expensesTotal -
+        supplierPaymentsTotal;
 
     return CashSessionReport(
       openingAmount: session.openingAmount,
       cashSalesTotal: cashSalesTotal,
       cashRepaymentsTotal: cashRepaymentsTotal,
       expensesTotal: expensesTotal,
+      supplierPaymentsTotal: supplierPaymentsTotal,
       expectedCash: expectedCash,
       closingAmount: session.closingAmount,
       variance: session.closingAmount == null

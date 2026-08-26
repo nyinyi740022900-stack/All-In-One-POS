@@ -33,6 +33,7 @@ class _CashInputSignal extends StateNotifier<int> {
     ref.listen(salesStreamProvider, (_, _) => _bump());
     ref.listen(repaymentsProvider, (_, _) => _bump());
     ref.listen(_cashExpensesWatchProvider, (_, _) => _bump());
+    ref.listen(_cashSupplierPaymentsWatchProvider, (_, _) => _bump());
   }
 
   Timer? _timer;
@@ -70,4 +71,13 @@ final expectedCashProvider = FutureProvider<int?>((ref) async {
 /// Invalidation-only signal — see [expectedCashProvider].
 final _cashExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
   return ref.watch(cashSessionRepositoryProvider).watchAllExpenses();
+});
+
+/// Invalidation-only signal — see [expectedCashProvider]. A cash-paid
+/// supplier payment empties the till, so the drawer must recompute when one
+/// is recorded. Mirrors [accountSupplierPaymentsWatchProvider] used by the
+/// Payment Accounts balance; here it backs the Cash Register's [expectedCashProvider].
+final _cashSupplierPaymentsWatchProvider =
+    StreamProvider<List<SupplierPayment>>((ref) {
+  return ref.watch(cashSessionRepositoryProvider).watchAllSupplierPayments();
 });
