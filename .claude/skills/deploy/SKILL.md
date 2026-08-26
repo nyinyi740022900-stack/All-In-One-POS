@@ -39,8 +39,17 @@ upsert after JWT `shop_id` check). Required for self-healing sync (#93);
 without it, quarantined rows stay held until the next deploy.
 
 ## 3. Admin web → Vercel
+
+Build the web targets with `tool/build_web.sh <target>`, never a bare
+`flutter build web`. Flutter compiles all three entry points through the one
+shared `web/index.html`, so a raw build ships the storefront's title,
+description and og: tags on the admin console and the invoices viewer —
+`MaterialApp.title` corrects the browser tab after boot, but a crawler or a
+Viber/Messenger link preview only ever reads the static head. The script
+builds and stamps the correct head in one step.
+
 ```bash
-flutter build web -t lib/admin/admin_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
+./tool/build_web.sh admin
 # stage build/web/ + a vercel.json SPA-fallback, then:
 #   { "routes": [ { "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" } ] }
 cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
@@ -51,7 +60,7 @@ is SSO-gated).
 ## 3b. Storefront web → Vercel
 Same build/deploy shape as above, different target + project:
 ```bash
-flutter build web -t lib/storefront/storefront_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
+./tool/build_web.sh shop
 cd build/web && vercel link --yes --project allinonepos-shop --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
@@ -61,7 +70,7 @@ Stable URL: https://shop.allinonepos.app.
 Read-only "view & print own invoices" companion for a shop's computer (Phase 1
 of computer/tablet support — see PROJECT_SPEC §12). Same shape again:
 ```bash
-flutter build web -t lib/invoices_web/invoices_web_main.dart --dart-define-from-file=env.local.json --no-web-resources-cdn
+./tool/build_web.sh invoices
 cd build/web && vercel link --yes --project allinonepos-invoices --scope nyi-nyi-s-projects1
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
