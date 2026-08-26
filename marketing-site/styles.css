@@ -697,8 +697,10 @@ img { max-width: 100%; display: block; }
   .hub-grid { grid-template-columns: 1fr; }
   .feature-grid-compact { margin-top: 64px; }
   .section { padding: 80px 20px; }
-  .hero { padding-top: 120px; }
-  .hero-trust { gap: 24px; }
-  .hero-portrait-card { width: 160px; }
+  .hero { min-height: auto; padding: 96px 20px 48px; }
+  .hero-sub { margin-top: 20px; }
+  .hero-cta { margin-top: 28px; }
+  .hero-trust { gap: 24px; margin-top: 36px; }
+  .hero-portrait-card { width: 160px; margin-top: 32px; }
   .download-section { padding-top: 120px; }
 }
