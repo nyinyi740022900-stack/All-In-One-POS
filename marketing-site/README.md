@@ -145,7 +145,7 @@ The Windows download button points at the rolling GitHub Release
 app code:
 
 ```
-https://github.com/nyinyi740022900-stack/goldposmm/releases/download/windows-latest/AllInOnePOS-windows.zip
+https://github.com/nyinyi740022900-stack/All-In-One-POS/releases/download/windows-latest/AllInOnePOS-windows.zip
 ```
 
 This URL never changes — no edits needed here when a new build ships.
