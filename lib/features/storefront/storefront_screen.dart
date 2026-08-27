@@ -268,7 +268,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (!ref.watch(isEffectiveOwnerProvider)) {
+    if (!ref.watch(hasOwnerCapabilityProvider(OwnerCapability.storefront))) {
       return Scaffold(
         appBar: AppBar(title: Text(l.storefrontTitle)),
         body: const OwnerOnlyGate(

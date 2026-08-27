@@ -17,6 +17,7 @@
   "commonEdit": "Edit",
   "commonAdd": "Add",
   "commonSearch": "Search",
+  "commonFilters": "Filters",
   "commonYes": "Yes",
   "commonNo": "No",
   "commonTotal": "Total",
@@ -109,6 +110,20 @@
   "paymentCbPay": "CBPay",
   "paymentCredit": "Credit",
   "paymentCod": "COD (Cash on Delivery)",
+  "paymentSplit": "Split payment",
+  "splitPaymentTitle": "Split payment",
+  "splitPaymentAddMethod": "Add another method",
+  "splitPaymentRemaining": "Remaining: {amount}",
+  "@splitPaymentRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "splitPaymentRemoveMethod": "Remove this method",
+  "splitPaymentEdit": "Edit split",
+  "splitPaymentSetUp": "Tap to set up split payment",
   "cashRegisterTitle": "Cash register",
   "cashRegisterOpen": "Open",
   "cashRegisterClosed": "Closed",
@@ -149,6 +164,7 @@
   "cashClosedAt": "Closed",
   "cashReportPrintBluetooth": "Print on receipt printer",
   "cashReportSharePdf": "Share PDF",
+  "cashReportShareCsv": "Share CSV",
   "cashReportCashSales": "Cash sales",
   "cashReportCashRepayments": "Cash repayments",
   "cashReportSupplierPayments": "Cash supplier payments",
@@ -543,6 +559,13 @@
   "settingsLicense": "License",
   "settingsSupport": "Support",
   "settingsAppGuide": "App Guide",
+  "settingsAbout": "About",
+  "aboutTitle": "About",
+  "aboutVersion": "Version",
+  "aboutWebsite": "Website",
+  "aboutCommunity": "Community",
+  "aboutCheckForUpdates": "Check for updates",
+  "aboutOpenFailed": "Couldn't open that link.",
   "helpGuideTitle": "App Guide",
   "helpGuideIntro": "A quick tour of what each screen does. Tap a section to expand it.",
   "helpGuideSellTitle": "Sell",
@@ -574,6 +597,7 @@
   "invoicesEmpty": "No sales yet.",
   "invoiceFilterAll": "All",
   "invoiceFilterCredit": "Credit",
+  "invoiceFilterRefund": "Refund",
   "invoiceOwed": "Owed {amount}",
   "@invoiceOwed": {
     "placeholders": {
@@ -632,6 +656,7 @@
   "salesReportColumnDate": "Date",
   "salesReportColumnCustomer": "Customer",
   "salesReportColumnAddress": "Address",
+  "salesReportColumnCashier": "Sold by",
   "salesReportColumnAmount": "Amount",
   "salesReportPrintBluetooth": "Print on receipt printer",
   "salesReportExportPdf": "Export PDF",
@@ -731,6 +756,7 @@
   "categoryNone": "Uncategorized",
   "categoryAll": "All",
   "categoriesEmpty": "No categories yet.",
+  "categoryPickerNoResults": "No categories match your search.",
   "productCategory": "Category",
   "analyticsRevenue": "Revenue",
   "analyticsProfit": "Gross profit",
@@ -740,6 +766,7 @@
   "analyticsStockValue": "Stock value",
   "analyticsDiscountGiven": "Discounts",
   "analyticsTopProducts": "Top products",
+  "analyticsSalesByEmployee": "Sales by employee",
   "analyticsRangeToday": "Today",
   "analyticsRangeWeek": "7 days",
   "analyticsRangeMonth": "30 days",
@@ -1160,6 +1187,7 @@
     }
   },
   "syncIssuesQuarantinedHeld": "Kept on this device until cloud sync completes automatically.",
+  "syncIssuesInvoiceCollision": "Invoice number already used by another device's sale. The sale itself is safe — contact support to get this invoice renumbered.",
   "navOrders": "Orders",
   "ordersTitle": "Social Orders",
   "ordersEmpty": "No orders yet. Tap + to add one.",
@@ -1325,7 +1353,28 @@
   "staffMemberName": "Name",
   "staffMemberPin": "PIN (4–6 digits)",
   "staffMemberPinKeepHint": "Leave blank to keep the current PIN",
+  "staffMemberEmail": "Email (optional)",
+  "staffMemberEmailHint": "If this person also has a staff account (email login), their granted permissions will apply there too",
   "staffMemberSaved": "Staff member saved",
+  "staffPermissionsTooltip": "Permissions",
+  "staffPermissionsTitle": "{name}'s permissions",
+  "@staffPermissionsTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffPermissionsIntro": "Turn on the features {name} can use beyond Sell and Orders. Off by default.",
+  "@staffPermissionsIntro": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffCapabilityInventoryEdit": "Edit inventory",
+  "staffCapabilitySettingsSensitive": "Sensitive settings (stock tracking, backup)",
   "staffRemoveMember": "Remove",
   "staffRemoveConfirmTitle": "Remove this staff member?",
   "staffRemoveConfirmBody": "{name} will no longer appear when switching to Staff mode. Past sales still show their name.",

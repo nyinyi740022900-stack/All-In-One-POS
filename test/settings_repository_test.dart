@@ -124,6 +124,89 @@ void main() {
     });
   });
 
+  group('hydrateShopProfileFromSyncIfNeeded (new-device profile pull-down)', () {
+    Future<void> insertSyncedRow(
+      AppDatabase db,
+      String shopId, {
+      required String name,
+      String? phone,
+      String? address,
+    }) async {
+      await db.into(db.shopProfiles).insertOnConflictUpdate(
+            ShopProfilesCompanion.insert(
+              id: shopId,
+              shopId: shopId,
+              name: name,
+              phone: Value(phone),
+              address: Value(address),
+            ),
+          );
+    }
+
+    test(
+      'copies a pulled shop_profiles row into the AppSettings KV a new '
+      'device\'s Shop Profile screen actually reads',
+      () async {
+        await insertSyncedRow(
+          db,
+          'shop-main',
+          name: 'Golden Store',
+          phone: '09123456',
+          address: 'Yangon',
+        );
+
+        await repo.hydrateShopProfileFromSyncIfNeeded('shop-main');
+
+        final profile = await repo.shopProfile('shop-main');
+        expect(profile.name, 'Golden Store');
+        expect(profile.phone, '09123456');
+        expect(profile.address, 'Yangon');
+      },
+    );
+
+    test('is per-shop: hydrating one shop never leaks into another', () async {
+      await insertSyncedRow(db, 'shop-main', name: 'Main Shop');
+      await insertSyncedRow(db, 'shop-branch', name: 'Branch Shop');
+
+      await repo.hydrateShopProfileFromSyncIfNeeded('shop-main');
+      await repo.hydrateShopProfileFromSyncIfNeeded('shop-branch');
+
+      expect((await repo.shopProfile('shop-main')).name, 'Main Shop');
+      expect((await repo.shopProfile('shop-branch')).name, 'Branch Shop');
+    });
+
+    test(
+      'runs only once per shop — a later local edit is not clobbered by '
+      'hydrating again',
+      () async {
+        await insertSyncedRow(db, 'shop-main', name: 'Golden Store');
+        await repo.hydrateShopProfileFromSyncIfNeeded('shop-main');
+
+        // Owner edits the profile locally after hydration.
+        await repo.saveShopProfile(
+          'shop-main',
+          const ShopProfile(name: 'Renamed Store'),
+        );
+
+        // A later sync cycle re-runs hydration (e.g. next pull) — must not
+        // stomp the local edit back to the stale synced name.
+        await repo.hydrateShopProfileFromSyncIfNeeded('shop-main');
+
+        expect((await repo.shopProfile('shop-main')).name, 'Renamed Store');
+      },
+    );
+
+    test('no synced row yet is a harmless no-op', () async {
+      await repo.hydrateShopProfileFromSyncIfNeeded('shop-fresh');
+      expect((await repo.shopProfile('shop-fresh')).name, 'My Shop');
+    });
+
+    test('empty shopId is a no-op', () async {
+      await repo.hydrateShopProfileFromSyncIfNeeded('');
+      expect((await repo.shopProfile('')).name, 'My Shop');
+    });
+  });
+
   group('trackStock (per-shop isolation)', () {
     test('a saved value is isolated per shop', () async {
       await repo.setTrackStock('shop-main', false);

@@ -35,6 +35,7 @@ bool isDuplicateColumnMigrationError(Object error) {
     Orders,
     OrderItems,
     StaffMembers,
+    StaffPermissions,
     Customers,
     Expenses,
     CashSessions,
@@ -61,7 +62,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 35;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -302,6 +303,18 @@ class AppDatabase extends _$AppDatabase {
       // surviving row.
       if (from < 33) {
         await _ensureStockLevelUniqueIndex(m);
+      }
+      // v34: owner-granted, per-staff-member OwnerCapability permissions —
+      // see StaffPermissions' doc comment in tables.dart.
+      if (from < 34) {
+        await m.createTable(staffPermissions);
+      }
+      // v35: optional email on a local roster member, so an invited-email
+      // StaffAccount signing in under the same address inherits that
+      // member's granted OwnerCapabilitys — see StaffMembers.email's doc
+      // comment in tables.dart.
+      if (from < 35) {
+        await _safeAddColumn(m, staffMembers, staffMembers.email);
       }
     },
   );

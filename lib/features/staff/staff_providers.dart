@@ -149,13 +149,96 @@ final isOwnerProvider = Provider<bool>((ref) {
   return ref.watch(isEffectiveOwnerProvider);
 });
 
-/// Alias kept for call-site clarity in the Inventory screen — Inventory
-/// add/edit is owner-only, same gate as everything else non-Sell/Orders.
-final canEditInventoryProvider = Provider<bool>(
-  (ref) => ownerPermissionPolicy.allows(
-    OwnerCapability.inventoryEdit,
+/// Fail-closed, CAPABILITY-AWARE owner check for SECURITY gates (router
+/// redirects, bottom-nav visibility) that must not flash owner-only content
+/// during the loading window (audit QA-M5) but also must not hard-floor a
+/// staff member who has been explicitly granted this capability — whether
+/// that's a local PIN-roster member or an invited-email `StaffAccount`
+/// linked to one via [emailLinkedStaffMemberProvider]. Same fail-closed
+/// shape as [isResolvedOwnerProvider] — false while the role stream is still
+/// resolving, or for a backend role that's neither `'owner'` nor `'staff'`
+/// (unexpected value) — but true once resolved for the owner, or for either
+/// kind of staff session holding [capability].
+final hasResolvedOwnerCapabilityProvider = Provider.family<bool, OwnerCapability>(
+  (ref, capability) {
+    final backendRole = ref.watch(backendAccountRoleProvider);
+    if (backendRole == 'staff') {
+      return ref.watch(activeStaffGrantedCapabilitiesProvider).contains(capability);
+    }
+    if (backendRole != null && backendRole != 'owner') return false;
+    final role = ref.watch(staffRoleProvider);
+    if (!role.hasValue) return false;
+    if (role.value == 'owner') return true;
+    return ref.watch(activeStaffGrantedCapabilitiesProvider).contains(capability);
+  },
+);
+
+/// Which [OwnerCapability]s a given roster member has been explicitly
+/// granted by the owner — live, per staff member.
+final staffGrantedCapabilitiesProvider =
+    StreamProvider.family<Set<OwnerCapability>, String>((ref, staffMemberId) {
+  return ref
+      .watch(staffRepositoryProvider)
+      .watchGrantedCapabilities(staffMemberId);
+});
+
+/// The local roster member whose `email` (case-insensitive) matches the
+/// currently signed-in invited-email `StaffAccount`, if any — the bridge
+/// that lets an email-login staff session inherit the same owner-granted
+/// [OwnerCapability]s a local PIN-roster member can hold. Null unless the
+/// backend session is `'staff'` AND a roster row's email matches.
+final emailLinkedStaffMemberProvider = Provider<StaffMember?>((ref) {
+  if (ref.watch(sessionScopeProvider).backendRole != 'staff') return null;
+  final email = ref.watch(currentAccountEmailProvider)?.trim().toLowerCase();
+  if (email == null || email.isEmpty) return null;
+  final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
+  for (final m in members) {
+    if ((m.email ?? '').trim().toLowerCase() == email) return m;
+  }
+  return null;
+});
+
+/// Grants for the CURRENTLY active session, if any. Empty when: the session
+/// is Owner (grants don't apply), no named staff member is selected (plain
+/// Staff mode, `kSkipNamedStaffId` path), or the effective-staff status came
+/// from a backend `'staff'` login (invited email account) whose email
+/// doesn't match any roster row's `email` (no grants to inherit).
+final activeStaffGrantedCapabilitiesProvider = Provider<Set<OwnerCapability>>((
+  ref,
+) {
+  final linked = ref.watch(emailLinkedStaffMemberProvider);
+  if (linked != null) {
+    return ref.watch(staffGrantedCapabilitiesProvider(linked.id)).valueOrNull ??
+        const {};
+  }
+  if (ref.watch(sessionScopeProvider).backendRole == 'staff') {
+    return const {};
+  }
+  final staffId = ref.watch(activeStaffIdProvider).valueOrNull;
+  if (staffId == null || staffId.isEmpty) return const {};
+  return ref.watch(staffGrantedCapabilitiesProvider(staffId)).valueOrNull ??
+      const {};
+});
+
+/// Single call-site check every owner-gated screen/action should use instead
+/// of assembling [isEffectiveOwnerProvider] + [activeStaffGrantedCapabilitiesProvider]
+/// itself — resolves both effective-owner and per-staff grants in one place.
+final hasOwnerCapabilityProvider = Provider.family<bool, OwnerCapability>((
+  ref,
+  capability,
+) {
+  return ownerPermissionPolicy.allows(
+    capability,
     isEffectiveOwner: ref.watch(isEffectiveOwnerProvider),
-  ),
+    grantedCapabilities: ref.watch(activeStaffGrantedCapabilitiesProvider),
+  );
+});
+
+/// Alias kept for call-site clarity in the Inventory screen — Inventory
+/// add/edit is owner-only unless the owner has granted a staff member the
+/// `inventoryEdit` capability.
+final canEditInventoryProvider = Provider<bool>(
+  (ref) => ref.watch(hasOwnerCapabilityProvider(OwnerCapability.inventoryEdit)),
 );
 
 /// Staff/Owner device-PIN mode is the same-phone handoff (lock this device

@@ -16,7 +16,7 @@ import '../sell/sales_providers.dart';
 import 'invoice_detail_screen.dart';
 import 'sales_report_screen.dart';
 
-enum InvoiceFilter { all, credit }
+enum InvoiceFilter { all, credit, refund }
 
 final invoiceFilterProvider = StateProvider<InvoiceFilter>(
   (ref) => InvoiceFilter.all,
@@ -75,9 +75,12 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
         onRetry: () => ref.invalidate(salesStreamProvider),
       ),
       data: (all) {
-        var list = filter == InvoiceFilter.credit
-            ? all.where((s) => owedOf(s) > 0).toList()
-            : all;
+        var list = switch (filter) {
+          InvoiceFilter.credit => all.where((s) => owedOf(s) > 0).toList(),
+          InvoiceFilter.refund =>
+            all.where((s) => s.refundOfSaleId != null).toList(),
+          InvoiceFilter.all => all,
+        };
         if (query.isNotEmpty) {
           list = list
               .where(
@@ -135,31 +138,9 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                 AppTheme.space3,
                 AppTheme.space3,
                 AppTheme.space3,
-                0,
+                AppTheme.space2,
               ),
               child: _InvoiceSearchField(onScan: _scan),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppTheme.space3),
-              child: Row(
-                children: [
-                  ChoiceChip(
-                    label: Text(l.invoiceFilterAll),
-                    selected: filter == InvoiceFilter.all,
-                    onSelected: (_) =>
-                        ref.read(invoiceFilterProvider.notifier).state =
-                            InvoiceFilter.all,
-                  ),
-                  const SizedBox(width: AppTheme.space2),
-                  ChoiceChip(
-                    label: Text(l.invoiceFilterCredit),
-                    selected: filter == InvoiceFilter.credit,
-                    onSelected: (_) =>
-                        ref.read(invoiceFilterProvider.notifier).state =
-                            InvoiceFilter.credit,
-                  ),
-                ],
-              ),
             ),
             Expanded(
               child: rows.isEmpty
@@ -398,9 +379,47 @@ class _InvoiceSearchFieldState extends ConsumerState<_InvoiceSearchField> {
     super.dispose();
   }
 
+  void _openFilterSheet(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    showChipFilterSheet(
+      context,
+      title: l.commonFilters,
+      sectionsBuilder: (refresh) {
+        final filter = ref.read(invoiceFilterProvider);
+        void select(InvoiceFilter f) {
+          ref.read(invoiceFilterProvider.notifier).state = f;
+          refresh();
+        }
+
+        return [
+          FilterChipSection(
+            chips: [
+              FilterChipSpec(
+                label: l.invoiceFilterAll,
+                selected: filter == InvoiceFilter.all,
+                onTap: () => select(InvoiceFilter.all),
+              ),
+              FilterChipSpec(
+                label: l.invoiceFilterCredit,
+                selected: filter == InvoiceFilter.credit,
+                onTap: () => select(InvoiceFilter.credit),
+              ),
+              FilterChipSpec(
+                label: l.invoiceFilterRefund,
+                selected: filter == InvoiceFilter.refund,
+                onTap: () => select(InvoiceFilter.refund),
+              ),
+            ],
+          ),
+        ];
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final filterActive = ref.watch(invoiceFilterProvider) != InvoiceFilter.all;
     ref.listen<String>(invoiceSearchProvider, (prev, next) {
       if (next != _controller.text) {
         _controller.value = TextEditingValue(
@@ -414,10 +433,24 @@ class _InvoiceSearchFieldState extends ConsumerState<_InvoiceSearchField> {
       decoration: InputDecoration(
         hintText: l.invoiceSearchHint,
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.qr_code_scanner),
-          tooltip: l.invoiceScanToSearch,
-          onPressed: widget.onScan,
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner),
+              tooltip: l.invoiceScanToSearch,
+              onPressed: widget.onScan,
+            ),
+            IconButton(
+              icon: Badge(
+                isLabelVisible: filterActive,
+                smallSize: 8,
+                child: const Icon(Icons.filter_list),
+              ),
+              tooltip: l.commonFilters,
+              onPressed: () => _openFilterSheet(context),
+            ),
+          ],
         ),
         isDense: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

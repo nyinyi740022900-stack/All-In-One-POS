@@ -12,7 +12,9 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'accounting_csv.dart';
+import 'accounting_pdf.dart';
 import 'cash_flow_calculator.dart';
 import 'accounting_providers.dart';
 
@@ -30,6 +32,7 @@ class CashFlowScreen extends ConsumerStatefulWidget {
 
 class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
   bool _exporting = false;
+  bool _exportingPdf = false;
 
   /// Inclusive start / exclusive end — defaults to this month, same shape
   /// as the P&L's own range.
@@ -90,6 +93,73 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _exportPdf(List<AccountCashFlow> flows, String rangeLabel) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _exportingPdf = true);
+    try {
+      final sym = l.currencySymbol;
+      var totalIn = 0;
+      var totalOut = 0;
+      for (final f in flows) {
+        totalIn += f.inflow;
+        totalOut += f.outflow;
+      }
+      final profile = await ref.read(shopProfileProvider.future);
+      final printerConfig = await ref.read(printerConfigProvider.future);
+      final bytes = await buildLabeledTablePdf(
+        shopName: profile.name,
+        shopLogoUrl: profile.logoUrl,
+        shopPhone: profile.phone,
+        shopAddress: profile.address,
+        title: l.accountingCashFlow,
+        subtitle: rangeLabel,
+        columnLabels: [
+          l.paymentAccountNameLabel,
+          l.cashFlowOpening,
+          l.cashFlowInflow,
+          l.cashFlowOutflow,
+          l.cashFlowClosing,
+        ],
+        columnFlex: const [3, 2, 2, 2, 2],
+        rightAlignColumns: const {1, 2, 3, 4},
+        boldRowIndices: {flows.length},
+        rows: [
+          for (final f in flows)
+            [
+              f.name,
+              Money(f.opening).withSymbol(sym),
+              Money(f.inflow).withSymbol(sym),
+              Money(-f.outflow).withSymbol(sym),
+              Money(f.closing).withSymbol(sym),
+            ],
+          [
+            l.cashFlowInflow,
+            '',
+            Money(totalIn).withSymbol(sym),
+            Money(-totalOut).withSymbol(sym),
+            '',
+          ],
+        ],
+        emptyLabel: l.cashFlowEmpty,
+        pageFormat: printerConfig.pdfPaperSize,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/cash-flow.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.accountingCashFlow,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
     }
   }
 
@@ -225,17 +295,35 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
                 top: false,
                 child: Padding(
                   padding: const EdgeInsets.all(AppTheme.space4),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _exporting || flows.isEmpty
-                          ? null
-                          : () => _exportCsv(flows),
-                      icon: _exporting
-                          ? const ButtonSpinner()
-                          : const Icon(Icons.table_chart_outlined),
-                      label: Text(l.pnlExportCsv),
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _exportingPdf || flows.isEmpty
+                              ? null
+                              : () => _exportPdf(
+                                  flows,
+                                  '${df.format(start)} → '
+                                  '${df.format(end.subtract(const Duration(days: 1)))}'),
+                          icon: _exportingPdf
+                              ? const ButtonSpinner()
+                              : const Icon(Icons.picture_as_pdf_outlined),
+                          label: Text(l.salesReportExportPdf),
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.space2),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _exporting || flows.isEmpty
+                              ? null
+                              : () => _exportCsv(flows),
+                          icon: _exporting
+                              ? const ButtonSpinner()
+                              : const Icon(Icons.table_chart_outlined),
+                          label: Text(l.pnlExportCsv),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

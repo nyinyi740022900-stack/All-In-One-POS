@@ -12,45 +12,57 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
-import '../accounting/accounting_screen.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
+import '../invoices/cashier_label.dart';
 import 'analytics_calculator.dart';
 import 'analytics_providers.dart';
 import 'pnl_screen.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
-  const AnalyticsScreen({super.key});
+  const AnalyticsScreen({super.key, this.embedded = false});
+
+  /// When true, builds only the body — no [Scaffold]/[AppBar] — so
+  /// `AnalyticsAccountingHubScreen` can host it under its own chrome as a
+  /// sub-tab (same convention as `OrdersScreen`/`InvoicesScreen`'s
+  /// `embedded`). The hub owns the "open P&L" app-bar action in that case.
+  /// Default (false) keeps the original standalone full-screen behaviour.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
 
-    // Business analytics are owner-only — and FAIL CLOSED while the role
-    // stream is still resolving, so a cold-start deep link can't render
-    // them in Staff mode (audit QA-M5; the router also bounces /analytics).
-    if (!ref.watch(isResolvedOwnerProvider)) {
+    // Business analytics are owner-only (or granted-staff) — and FAIL
+    // CLOSED while the role stream is still resolving, so a cold-start deep
+    // link can't render them in Staff mode (audit QA-M5; the router also
+    // bounces /analytics on the same check).
+    if (!ref.watch(hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics))) {
+      const gate = OwnerOnlyGate(
+        capability: OwnerCapability.analytics,
+        child: SizedBox.shrink(),
+      );
+      if (embedded) return gate;
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
-        body: const OwnerOnlyGate(
-          capability: OwnerCapability.analytics,
-          child: SizedBox.shrink(),
-        ),
+        body: gate,
       );
     }
     if (ref.watch(licenseControllerProvider).loading ||
         !ref.watch(isPremiumProvider)) {
+      final gate = PremiumGate(
+        featureName: l.navAnalytics,
+        benefits: [l.analyticsBenefit1, l.analyticsBenefit2, l.analyticsBenefit3],
+        child: const SizedBox.shrink(),
+      );
+      if (embedded) return gate;
       return Scaffold(
         appBar: AppBar(title: Text(l.navAnalytics)),
-        body: PremiumGate(
-          featureName: l.navAnalytics,
-          benefits: [l.analyticsBenefit1, l.analyticsBenefit2, l.analyticsBenefit3],
-          child: const SizedBox.shrink(),
-        ),
+        body: gate,
       );
     }
 
@@ -58,6 +70,55 @@ class AnalyticsScreen extends ConsumerWidget {
     final summary = ref.watch(analyticsSummaryProvider);
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final lowStockCount = ref.watch(lowStockCountProvider);
+
+    final body = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.space3),
+          child: SegmentedButton<AnalyticsRange>(
+            segments: [
+              ButtonSegment(
+                value: AnalyticsRange.today,
+                label: Text(l.analyticsRangeToday),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.week,
+                label: Text(l.analyticsRangeWeek),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.month,
+                label: Text(l.analyticsRangeMonth),
+              ),
+            ],
+            selected: {range},
+            onSelectionChanged: (s) =>
+                ref.read(analyticsRangeProvider.notifier).state = s.first,
+          ),
+        ),
+        Expanded(
+          child: summary.when(
+            // A centred spinner here used to collapse the whole dashboard to
+            // a dot and then snap the grid back in — the range segmented
+            // button above it is tapped constantly, so that reflow happened
+            // on every switch. The skeleton keeps the page's shape.
+            loading: () => _DashboardSkeleton(trackStock: trackStock),
+            error: (e, _) => EmptyStateView(
+              icon: Icons.error_outline,
+              title: l.commonUnexpectedError,
+              actionLabel: l.commonRetry,
+              onAction: () => ref.invalidate(analyticsSummaryProvider),
+            ),
+            data: (s) => _Dashboard(
+              summary: s,
+              trackStock: trackStock,
+              lowStockCount: lowStockCount,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (embedded) return body;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,52 +133,7 @@ class AnalyticsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.space3),
-            child: SegmentedButton<AnalyticsRange>(
-              segments: [
-                ButtonSegment(
-                  value: AnalyticsRange.today,
-                  label: Text(l.analyticsRangeToday),
-                ),
-                ButtonSegment(
-                  value: AnalyticsRange.week,
-                  label: Text(l.analyticsRangeWeek),
-                ),
-                ButtonSegment(
-                  value: AnalyticsRange.month,
-                  label: Text(l.analyticsRangeMonth),
-                ),
-              ],
-              selected: {range},
-              onSelectionChanged: (s) =>
-                  ref.read(analyticsRangeProvider.notifier).state = s.first,
-            ),
-          ),
-          Expanded(
-            child: summary.when(
-              // A centred spinner here used to collapse the whole dashboard to
-              // a dot and then snap the grid back in — the range segmented
-              // button above it is tapped constantly, so that reflow happened
-              // on every switch. The skeleton keeps the page's shape.
-              loading: () => _DashboardSkeleton(trackStock: trackStock),
-              error: (e, _) => EmptyStateView(
-                icon: Icons.error_outline,
-                title: l.commonUnexpectedError,
-                actionLabel: l.commonRetry,
-                onAction: () => ref.invalidate(analyticsSummaryProvider),
-              ),
-              data: (s) => _Dashboard(
-                summary: s,
-                trackStock: trackStock,
-                lowStockCount: lowStockCount,
-              ),
-            ),
-          ),
-        ],
-      ),
+      body: body,
     );
   }
 }
@@ -263,27 +279,8 @@ class _Dashboard extends StatelessWidget {
         _RevenueChartCard(daily: summary.daily),
         const SizedBox(height: AppTheme.space3),
         _TopProductsCard(top: summary.topProducts),
-        const SizedBox(height: AppTheme.space4),
-        // Accounting, as a CARD on the dashboard rather than only an
-        // app-bar glyph inside P&L — the owner asked where the statements
-        // went; a visible tile answers that before the question forms.
-        Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          child: ListTile(
-            leading: const Icon(Icons.account_balance_outlined),
-            title: Text(l.accountingTitle),
-            subtitle: Text(
-              l.accountingBalanceSheetSubtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AccountingScreen()),
-            ),
-          ),
-        ),
+        const SizedBox(height: AppTheme.space3),
+        _SalesByEmployeeCard(rows: summary.salesByStaff),
       ],
     );
   }
@@ -755,6 +752,84 @@ class _RevenueChartCard extends StatelessWidget {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Revenue attributed per cashier for the selected range — the data
+/// (`Sales.staffId`) has existed since staff accountability shipped, but
+/// nothing surfaced it as a report until now. Rows are resolved from raw
+/// `staffId`s (see [StaffRevenue]'s doc comment) via the same
+/// [cashierNameForSale] rule invoices/receipts use, then re-merged by the
+/// resolved label — a deleted roster member's old sales and a genuine
+/// owner-mode sale both resolve to the "Owner" label and must combine into
+/// one row, not show as two.
+class _SalesByEmployeeCard extends ConsumerWidget {
+  const _SalesByEmployeeCard({required this.rows});
+
+  final List<StaffRevenue> rows;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final cur = l.currencySymbol;
+    final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
+    final memberPairs = [for (final m in members) (id: m.id, name: m.name)];
+
+    final revenueByLabel = <String, int>{};
+    final countByLabel = <String, int>{};
+    for (final r in rows) {
+      final label = cashierNameForSale(
+        staffId: r.staffId,
+        members: memberPairs,
+        ownerLabel: l.staffRoleOwner,
+      );
+      revenueByLabel[label] = (revenueByLabel[label] ?? 0) + r.revenue;
+      countByLabel[label] = (countByLabel[label] ?? 0) + r.salesCount;
+    }
+    final merged =
+        revenueByLabel.entries
+            .map(
+              (e) => (
+                label: e.key,
+                revenue: e.value,
+                count: countByLabel[e.key] ?? 0,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.revenue.compareTo(a.revenue));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionHeader(title: l.analyticsSalesByEmployee),
+            if (merged.isEmpty)
+              EmptyStateView(
+                icon: Icons.people_outline,
+                title: l.analyticsNoData,
+              )
+            else
+              ...merged.map(
+                (e) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: const IconAvatar(icon: Icons.badge_outlined),
+                  title: Text(e.label),
+                  subtitle: Text(
+                    l.salesReportCount(e.count),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: MoneyText(Money(e.revenue).withSymbol(cur)),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

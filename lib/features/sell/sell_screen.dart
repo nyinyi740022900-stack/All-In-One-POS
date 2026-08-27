@@ -502,6 +502,14 @@ class _SellCategoryFilterBar extends ConsumerWidget {
         ref.watch(categoriesStreamProvider).valueOrNull ?? const [];
     if (categories.isEmpty) return const SizedBox.shrink();
     final counts = ref.watch(sellCategoryCountsProvider);
+    // Best-selling categories first, so a shop with many categories doesn't
+    // make the cashier scroll past its slow movers to reach the ones it
+    // actually sells. Categories with no sales yet keep the catalogue's
+    // original order at the tail (`sort` is stable, so ties among 0-revenue
+    // categories don't shuffle on every rebuild).
+    final revenue = ref.watch(sellCategorySalesRevenueProvider);
+    final sorted = [...categories]
+      ..sort((a, b) => (revenue[b.id] ?? 0).compareTo(revenue[a.id] ?? 0));
 
     return CategoryFilterBar(
       selectedId: ref.watch(sellCategoryProvider),
@@ -512,7 +520,7 @@ class _SellCategoryFilterBar extends ConsumerWidget {
           label: l.categoryAll,
           count: counts[null] ?? 0,
         ),
-        for (final c in categories)
+        for (final c in sorted)
           CategoryFilterOption(
             id: c.id,
             label: c.name,

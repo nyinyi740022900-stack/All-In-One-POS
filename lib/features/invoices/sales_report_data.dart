@@ -12,6 +12,13 @@ class SalesReportRow {
   final int amount;
   final bool isRefund;
 
+  /// Raw `Sales.staffId` — null for an owner-mode sale or one predating
+  /// staff accountability. Deliberately not resolved to a display name
+  /// here (this file stays free of the staff roster/l10n); callers resolve
+  /// it via `cashierNameForSale` (`invoices/cashier_label.dart`) at render
+  /// or export time, same rule invoices/receipts already use.
+  final String? staffId;
+
   const SalesReportRow({
     required this.invoiceNo,
     required this.date,
@@ -19,6 +26,7 @@ class SalesReportRow {
     required this.address,
     required this.amount,
     required this.isRefund,
+    required this.staffId,
   });
 }
 
@@ -45,6 +53,7 @@ SalesReport buildSalesReport(List<Sale> sales) {
         address: (s.deliveryAddress ?? '').trim(),
         amount: s.total,
         isRefund: s.refundOfSaleId != null,
+        staffId: s.staffId,
       ),
   ];
   final total = rows.fold<int>(0, (sum, r) => sum + r.amount);
@@ -61,15 +70,31 @@ String buildSalesReportCsv(
   required String dateHeader,
   required String customerHeader,
   required String addressHeader,
+  required String cashierHeader,
   required String amountHeader,
   required String totalLabel,
+  required String Function(String? staffId) cashierLabelFor,
 }) {
   return csvDocument(
-    [invoiceHeader, dateHeader, customerHeader, addressHeader, amountHeader],
+    [
+      invoiceHeader,
+      dateHeader,
+      customerHeader,
+      addressHeader,
+      cashierHeader,
+      amountHeader,
+    ],
     [
       for (final r in report.rows)
-        [r.invoiceNo, _isoDate(r.date), r.customerName, r.address, r.amount],
-      [totalLabel, '', '', '', report.total],
+        [
+          r.invoiceNo,
+          _isoDate(r.date),
+          r.customerName,
+          r.address,
+          cashierLabelFor(r.staffId),
+          r.amount,
+        ],
+      [totalLabel, '', '', '', '', report.total],
     ],
   );
 }

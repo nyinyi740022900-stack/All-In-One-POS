@@ -719,6 +719,32 @@ class SettingsRepository {
       await _set(_shopKey(_kReceiptFooter, shopId), p.footer!);
     }
   }
+
+  /// One-time copy-down from the synced `shop_profiles` mirror into the
+  /// `AppSettings` KV entries [shopProfile]/onboarding actually read. A new
+  /// device signing into an already-provisioned shop pulls that shop's
+  /// `shop_profiles` row down fine, but nothing previously copied it into
+  /// these KV keys — so the owner was forced to retype the shop's name,
+  /// address, and phone on every new device even though the shop already
+  /// had them. Runs once per shop (tracked by its own flag key) so a later
+  /// local edit made through `ShopProfileScreen` stays authoritative and
+  /// isn't clobbered by a subsequent pull re-running this hydration.
+  Future<void> hydrateShopProfileFromSyncIfNeeded(String shopId) async {
+    if (shopId.isEmpty) return;
+    final flagKey = _shopKey('shopProfile.hydrated', shopId);
+    if (await _get(flagKey) == 'true') return;
+    final row = await (_db.select(_db.shopProfiles)..where(
+          (t) => t.shopId.equals(shopId) & t.isDeleted.equals(false),
+        ))
+        .getSingleOrNull();
+    if (row != null && row.name.trim().isNotEmpty) {
+      await saveShopProfile(
+        shopId,
+        ShopProfile(name: row.name, address: row.address, phone: row.phone),
+      );
+    }
+    await _set(flagKey, 'true');
+  }
 }
 
 class PrinterConfig {

@@ -14,6 +14,7 @@ import '../../data/repositories/demo_seed.dart';
 import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounting/accounting_pdf.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
 import '../printing/label_data.dart';
@@ -119,6 +120,68 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     }
   }
 
+  Future<void> _exportPdf() async {
+    final l = AppLocalizations.of(context);
+    if (!ref.read(isPremiumProvider)) {
+      await showPremiumRequiredDialog(
+        context,
+        l.salesReportExportPdf,
+        benefit: l.inventoryCsvBenefit,
+      );
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final products = ref.read(filteredProductsProvider);
+    final categories =
+        ref.read(categoriesStreamProvider).valueOrNull ?? const [];
+    final categoryNameById = {for (final c in categories) c.id: c.name};
+    final cur = l.currencySymbol;
+    try {
+      final profile = await ref.read(shopProfileProvider.future);
+      final printerConfig = await ref.read(printerConfigProvider.future);
+      final bytes = await buildLabeledTablePdf(
+        shopName: profile.name,
+        shopLogoUrl: profile.logoUrl,
+        shopPhone: profile.phone,
+        shopAddress: profile.address,
+        title: l.inventoryTitle,
+        columnLabels: [
+          l.productName,
+          l.productSku,
+          l.productCategory,
+          l.productCost,
+          l.productPrice,
+          l.productQuantity,
+        ],
+        columnFlex: const [3, 2, 2, 2, 2, 1],
+        rightAlignColumns: const {3, 4, 5},
+        rows: [
+          for (final p in products)
+            [
+              p.product.name,
+              p.product.sku ?? '',
+              categoryNameById[p.product.categoryId] ?? '',
+              Money(p.product.costPrice).withSymbol(cur),
+              Money(p.product.salePrice).withSymbol(cur),
+              '${p.quantity}',
+            ],
+        ],
+        pageFormat: printerConfig.pdfPaperSize,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/inventory.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.inventoryTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -172,6 +235,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: l.salesReportExportPdf,
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: _exportPdf,
+            ),
             IconButton(
               tooltip: l.inventoryExportCsv,
               icon: const Icon(Icons.table_chart_outlined),
@@ -689,9 +757,9 @@ class _StockBadge extends StatelessWidget {
 
 /// The persistent low-stock control, beside the category chips: one toggle
 /// chip that narrows the list to products needing a stock glance (out of
-/// stock, or at/below reorder level). Disabled at count 0 — a greying chip
-/// is itself the "nothing needs attention" signal, and tapping through to
-/// an empty list would read as breakage.
+/// stock, or at/below reorder level). Hidden entirely at count 0 — nothing
+/// needs attention, so the chip would just be noise — unless it's already
+/// the active filter, in which case it stays so the user can clear it.
 class _StockFilterBar extends ConsumerWidget {
   const _StockFilterBar();
 
@@ -700,6 +768,7 @@ class _StockFilterBar extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final lowOnly = ref.watch(inventoryLowStockOnlyProvider);
     final lowCount = ref.watch(lowStockCountProvider);
+    if (lowCount <= 0 && !lowOnly) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

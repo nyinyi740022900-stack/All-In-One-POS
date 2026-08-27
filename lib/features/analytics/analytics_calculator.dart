@@ -9,6 +9,7 @@ typedef SaleRow = ({
   int discount,
   DateTime finalizedAt,
   bool isRefund,
+  String? staffId,
 });
 typedef ItemRow = ({
   String productId,
@@ -36,6 +37,21 @@ class TopProduct {
       required this.revenue});
 }
 
+/// One staff member's (or the owner's, or "unattributed" — see [staffId])
+/// share of revenue in range. Deliberately keyed by the raw `staffId`
+/// rather than a resolved display name — this file stays free of the
+/// staff roster / l10n, so the caller resolves `staffId` to a name via
+/// `cashierNameForSale` (`invoices/cashier_label.dart`), which already
+/// encodes the "named roster member, else device label, else Owner" rule
+/// shared with invoices/receipts.
+class StaffRevenue {
+  final String? staffId;
+  final int revenue;
+  final int salesCount;
+  const StaffRevenue(
+      {required this.staffId, required this.revenue, required this.salesCount});
+}
+
 class AnalyticsSummary {
   final int revenue;
   final int salesCount;
@@ -52,6 +68,7 @@ class AnalyticsSummary {
 
   final List<DailyRevenue> daily;
   final List<TopProduct> topProducts;
+  final List<StaffRevenue> salesByStaff;
 
   const AnalyticsSummary({
     required this.revenue,
@@ -64,6 +81,7 @@ class AnalyticsSummary {
     required this.creditOutstanding,
     required this.daily,
     required this.topProducts,
+    required this.salesByStaff,
   });
 
   /// Cash actually collected = billed revenue − outstanding credit.
@@ -92,6 +110,7 @@ class AnalyticsSummary {
     creditOutstanding: 0,
     daily: [],
     topProducts: [],
+    salesByStaff: [],
   );
 }
 
@@ -119,10 +138,22 @@ AnalyticsSummary computeAnalytics({
   var creditOutstanding = 0;
   var salesCount = 0;
   final byDay = <DateTime, int>{};
+  // Keyed by the raw staffId (null = no roster member attributed to this
+  // sale — an owner-mode sale, or one predating staff accountability).
+  // Revenue folds refund rows too (they're already negated), same as the
+  // top-level `revenue` total; salesCount only counts real sales, not their
+  // reversals, matching `salesCount` above.
+  final revByStaff = <String?, int>{};
+  final countByStaff = <String?, int>{};
   for (final s in sales) {
     revenue += s.total;
     discount += s.discount;
     if (!s.isRefund) salesCount += 1;
+    final staffKey = (s.staffId ?? '').trim().isEmpty ? null : s.staffId;
+    revByStaff[staffKey] = (revByStaff[staffKey] ?? 0) + s.total;
+    if (!s.isRefund) {
+      countByStaff[staffKey] = (countByStaff[staffKey] ?? 0) + 1;
+    }
     // Repayment-aware (fix for the Analytics-vs-Credit-book mismatch): use
     // the FIFO allocation when the map knows this sale, else raw difference.
     final override = creditOwedBySaleId[s.id];
@@ -165,6 +196,15 @@ AnalyticsSummary computeAnalytics({
     daily.add(DailyRevenue(d, byDay[d] ?? 0));
   }
 
+  final salesByStaff = revByStaff.entries
+      .map((e) => StaffRevenue(
+            staffId: e.key,
+            revenue: e.value,
+            salesCount: countByStaff[e.key] ?? 0,
+          ))
+      .toList()
+    ..sort((a, b) => b.revenue.compareTo(a.revenue));
+
   return AnalyticsSummary(
     revenue: revenue,
     salesCount: salesCount,
@@ -176,6 +216,7 @@ AnalyticsSummary computeAnalytics({
     creditOutstanding: creditOutstanding,
     daily: daily,
     topProducts: top.take(topN).toList(),
+    salesByStaff: salesByStaff,
   );
 }
 

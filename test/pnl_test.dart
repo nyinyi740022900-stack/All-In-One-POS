@@ -15,6 +15,7 @@ const _summary = AnalyticsSummary(
   creditOutstanding: 0,
   daily: [],
   topProducts: [],
+  salesByStaff: [],
 );
 
 void main() {

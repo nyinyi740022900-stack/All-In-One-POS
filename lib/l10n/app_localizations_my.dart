@@ -52,6 +52,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get commonSearch => 'ရှာဖွေ';
 
   @override
+  String get commonFilters => 'စစ်ထုတ်ရန်';
+
+  @override
   String get commonYes => 'ဟုတ်ကဲ့';
 
   @override
@@ -261,6 +264,29 @@ class AppLocalizationsMy extends AppLocalizations {
   String get paymentCod => 'COD (အရောက်ငွေချေ)';
 
   @override
+  String get paymentSplit => 'ခွဲပြီးပေးချေမှု';
+
+  @override
+  String get splitPaymentTitle => 'ခွဲပြီးပေးချေမှု';
+
+  @override
+  String get splitPaymentAddMethod => 'နောက်ထပ် payment method ထည့်ရန်';
+
+  @override
+  String splitPaymentRemaining(String amount) {
+    return 'ကျန်ငွေ: $amount';
+  }
+
+  @override
+  String get splitPaymentRemoveMethod => 'ဒီ method ကို ဖျက်ရန်';
+
+  @override
+  String get splitPaymentEdit => 'ခွဲပေးချေမှု ပြင်ရန်';
+
+  @override
+  String get splitPaymentSetUp => 'ခွဲပေးချေမှု စတင်ရန် နှိပ်ပါ';
+
+  @override
   String get cashRegisterTitle => 'ငွေတိုက်';
 
   @override
@@ -343,6 +369,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get cashReportSharePdf => 'PDF မျှဝေမည်';
+
+  @override
+  String get cashReportShareCsv => 'CSV မျှဝေမည်';
 
   @override
   String get cashReportCashSales => 'ငွေသား ရောင်းအား';
@@ -1203,6 +1232,27 @@ class AppLocalizationsMy extends AppLocalizations {
   String get settingsAppGuide => 'App အသုံးပြုပုံ လမ်းညွှန်';
 
   @override
+  String get settingsAbout => 'အက်ပ်အကြောင်း';
+
+  @override
+  String get aboutTitle => 'အက်ပ်အကြောင်း';
+
+  @override
+  String get aboutVersion => 'ဗားရှင်း';
+
+  @override
+  String get aboutWebsite => 'ဝဘ်ဆိုက်';
+
+  @override
+  String get aboutCommunity => 'Community';
+
+  @override
+  String get aboutCheckForUpdates => 'အပ်ဒိတ် စစ်ဆေးရန်';
+
+  @override
+  String get aboutOpenFailed => 'ဒီ link ကို ဖွင့်လို့မရပါ။';
+
+  @override
   String get helpGuideTitle => 'App အသုံးပြုပုံ လမ်းညွှန်';
 
   @override
@@ -1304,6 +1354,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invoiceFilterCredit => 'အကြွေး';
+
+  @override
+  String get invoiceFilterRefund => 'ပြန်အမ်းငွေ';
 
   @override
   String invoiceOwed(String amount) {
@@ -1423,6 +1476,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get salesReportColumnAddress => 'လိပ်စာ';
+
+  @override
+  String get salesReportColumnCashier => 'ရောင်းသူ';
 
   @override
   String get salesReportColumnAmount => 'ပမာဏ';
@@ -1722,6 +1778,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get categoriesEmpty => 'အမျိုးအစား မရှိသေးပါ။';
 
   @override
+  String get categoryPickerNoResults => 'ရှာနေတဲ့ အမျိုးအစား မတွေ့ပါ။';
+
+  @override
   String get productCategory => 'အမျိုးအစား';
 
   @override
@@ -1747,6 +1806,9 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsTopProducts => 'အရောင်းရဆုံး ပစ္စည်းများ';
+
+  @override
+  String get analyticsSalesByEmployee => 'ဝန်ထမ်းအလိုက် ရောင်းအား';
 
   @override
   String get analyticsRangeToday => 'ယနေ့';
@@ -2640,6 +2702,10 @@ class AppLocalizationsMy extends AppLocalizations {
       'Cloud sync အလိုအလျောက် ပြီးသည်အထိ ဒီစက်မှာ ထားထားသည်။';
 
   @override
+  String get syncIssuesInvoiceCollision =>
+      'ဒီ invoice နံပါတ်ကို တခြား device ကနေ အရောင်းတစ်ခုက အသုံးပြုပြီးသားဖြစ်နေသည်။ အရောင်းကိုယ်တိုင်တော့ ဘေးကင်းပါသည် — invoice နံပါတ်အသစ် ပြန်ပေးရန် support ကို ဆက်သွယ်ပါ။';
+
+  @override
   String get navOrders => 'အော်ဒါ';
 
   @override
@@ -2995,7 +3061,34 @@ class AppLocalizationsMy extends AppLocalizations {
       'လက်ရှိ PIN ကို ဆက်ထားချင်ရင် ကွက်လပ်ထားပါ';
 
   @override
+  String get staffMemberEmail => 'Email (ရွေးချယ်ခွင့်)';
+
+  @override
+  String get staffMemberEmailHint =>
+      'ဒီလူမှာ Staff account (Email login) ပါရှိရင်၊ ခွင့်ပြုထားတဲ့ permission တွေက အဲဒီ account မှာလည်း အလုပ်လုပ်ပါမယ်';
+
+  @override
   String get staffMemberSaved => 'ဝန်ထမ်းအချက်အလက် သိမ်းပြီး';
+
+  @override
+  String get staffPermissionsTooltip => 'ခွင့်ပြုချက်များ';
+
+  @override
+  String staffPermissionsTitle(String name) {
+    return '$name ရဲ့ ခွင့်ပြုချက်များ';
+  }
+
+  @override
+  String staffPermissionsIntro(String name) {
+    return 'Sell နဲ့ Orders အပြင် $name အသုံးပြုနိုင်မယ့် feature တွေကို ဖွင့်ပေးပါ။ ပုံမှန်အားဖြင့် ပိတ်ထားသည်။';
+  }
+
+  @override
+  String get staffCapabilityInventoryEdit => 'စာရင်းကုန် ပြင်ဆင်ခွင့်';
+
+  @override
+  String get staffCapabilitySettingsSensitive =>
+      'အထူးဆက်တင်များ (stock tracking, backup)';
 
   @override
   String get staffRemoveMember => 'ဖယ်ရှားရန်';

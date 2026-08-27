@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import 'staff_member_permissions_screen.dart';
 import 'staff_providers.dart';
 
 /// Owner-only CRUD for the shop's named staff roster (see StaffMembers).
@@ -50,17 +51,18 @@ class StaffMembersScreen extends ConsumerWidget {
   Future<void> _openEditor(BuildContext context, WidgetRef ref,
       [StaffMember? existing]) async {
     final l = AppLocalizations.of(context);
-    final draft = await showDialog<(String, String)>(
+    final draft = await showDialog<(String, String, String)>(
       context: context,
       builder: (_) => _StaffMemberDialog(existing: existing),
     );
     if (draft == null) return;
-    final (name, pin) = draft;
+    final (name, pin, email) = draft;
     try {
       await ref.read(staffRepositoryProvider).upsertMember(
             id: existing?.id,
             name: name,
             pin: pin.isEmpty ? null : pin,
+            email: email,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context)
@@ -117,10 +119,25 @@ class StaffMembersScreen extends ConsumerWidget {
                 leading: const IconAvatar(icon: Icons.badge_outlined),
                 title: Text(m.name),
                 onTap: () => _openEditor(context, ref, m),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: l.staffRemoveMember,
-                  onPressed: () => _confirmRemove(context, ref, m),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.verified_user_outlined),
+                      tooltip: l.staffPermissionsTooltip,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              StaffMemberPermissionsScreen(member: m),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: l.staffRemoveMember,
+                      onPressed: () => _confirmRemove(context, ref, m),
+                    ),
+                  ],
                 ),
               );
             },
@@ -153,11 +170,14 @@ class _StaffMemberDialogState extends State<_StaffMemberDialog> {
   // form that could be redisplayed. Blank means "keep the current PIN" when
   // editing (see the hint text below); required when adding.
   final _pin = TextEditingController();
+  late final _email =
+      TextEditingController(text: widget.existing?.email ?? '');
 
   @override
   void dispose() {
     _name.dispose();
     _pin.dispose();
+    _email.dispose();
     super.dispose();
   }
 
@@ -189,6 +209,16 @@ class _StaffMemberDialogState extends State<_StaffMemberDialog> {
               hintText: existing == null ? null : l.staffMemberPinKeepHint,
             ),
           ),
+          const SizedBox(height: AppTheme.space2),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: l.staffMemberEmail,
+              helperText: l.staffMemberEmailHint,
+              helperMaxLines: 2,
+            ),
+          ),
         ],
       ),
       actions: [
@@ -200,10 +230,11 @@ class _StaffMemberDialogState extends State<_StaffMemberDialog> {
           onPressed: () {
             final name = _name.text.trim();
             final pin = _pin.text.trim();
+            final email = _email.text.trim();
             // Adding a member always needs a PIN; editing may leave it blank
             // to keep the current one.
             if (name.isEmpty || (existing == null && pin.isEmpty)) return;
-            Navigator.pop(context, (name, pin));
+            Navigator.pop(context, (name, pin, email));
           },
           child: Text(l.commonSave),
         ),

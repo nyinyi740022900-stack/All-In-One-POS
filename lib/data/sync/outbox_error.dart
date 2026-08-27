@@ -27,3 +27,18 @@ OutboxErrorClass classifyOutboxError(String? lastError) {
 
 bool isRlsOutboxError(String? lastError) =>
     classifyOutboxError(lastError) == OutboxErrorClass.rls42501;
+
+/// True when [lastError] is specifically a collision on
+/// `sales_shop_invoice_no_key` (migration 0074) — two offline devices minted
+/// the same `INV-yyyyMMdd-NNN` for two different sales. Narrower than
+/// [OutboxErrorClass.uniqueViolation] (which also fires for any other
+/// table's unique index) so `sync_issues_screen.dart` can show an owner a
+/// specific, actionable reason instead of a generic "held" pill.
+bool isInvoiceNoCollisionError(String? lastError) {
+  if (classifyOutboxError(lastError) != OutboxErrorClass.uniqueViolation) {
+    return false;
+  }
+  final lower = lastError!.toLowerCase();
+  return lower.contains('sales_shop_invoice_no_key') ||
+      lower.contains('invoice_no');
+}

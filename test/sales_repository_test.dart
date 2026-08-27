@@ -248,6 +248,39 @@ void main() {
     );
   });
 
+  test('a split sale where entries do not sum to the total is rejected',
+      () async {
+    // The checkout UI's own split-payment dialog already refuses to enable
+    // Save until the rows sum to exactly the total — this proves the
+    // repository doesn't just trust that boundary silently (2026-08-27
+    // accounting review, Medium finding).
+    final coke = await seedProduct(name: 'Coke', price: 700, qty: 10);
+    expect(
+      () => sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: coke, qty: 1)]),
+        payments: const [PaymentEntry('cash', 300), PaymentEntry('kbzpay', 300)],
+      ),
+      throwsArgumentError,
+    );
+    // Nothing was written for the rejected attempt.
+    expect(await db.select(db.sales).get(), isEmpty);
+  });
+
+  test('a split sale whose entries sum to the total finalizes normally',
+      () async {
+    final coke = await seedProduct(name: 'Coke', price: 700, qty: 10);
+    final result = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: coke, qty: 1)]),
+      payments: const [PaymentEntry('cash', 300), PaymentEntry('kbzpay', 400)],
+    );
+    final sale = await (db.select(db.sales)
+          ..where((s) => s.id.equals(result.saleId)))
+        .getSingle();
+    expect(sale.paid, 700);
+    expect(sale.paymentMethod, 'split');
+    expect(await db.select(db.payments).get(), hasLength(2));
+  });
+
   test('outbox queues sale, items, payment and stock rows for sync', () async {
     final p = await seedProduct(name: 'Match', price: 100, qty: 50);
     await sales.finalizeSale(
@@ -485,6 +518,104 @@ void main() {
       // reconciled from the stock_movements ledger on every device — it
       // must never be pushed as an absolute LWW value (audit finding H1).
       expect(tables, isNot(contains('stock_levels')));
+    });
+  });
+
+  group('split payment', () {
+    test('finalizeSale writes one Payments row per entry and stamps the '
+        "sale's paymentMethod as 'split'", () async {
+      final p = await seedProduct(name: 'Rice bag', price: 5000, qty: 5);
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        payments: const [
+          PaymentEntry('cash', 3000),
+          PaymentEntry('kbzpay', 2000),
+        ],
+      );
+
+      final row = await sales.getSale(sold.saleId);
+      expect(row.paymentMethod, 'split');
+      expect(row.paid, 5000);
+      expect(row.total, 5000);
+      expect(row.changeDue, 0);
+
+      final pays = await (db.select(db.payments)
+            ..where((pay) => pay.saleId.equals(sold.saleId)))
+          .get();
+      expect(pays, hasLength(2));
+      expect(
+        pays.map((p) => (p.method, p.amount)).toSet(),
+        {('cash', 3000), ('kbzpay', 2000)},
+      );
+    });
+
+    test('refunding a split sale mirrors EACH original method by its own '
+        'amount — not one lump row, not all-cash (owner-picked proportional '
+        'refund policy)', () async {
+      final p = await seedProduct(name: 'Rice bag', price: 5000, qty: 5);
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        payments: const [
+          PaymentEntry('cash', 3000),
+          PaymentEntry('kbzpay', 2000),
+        ],
+      );
+
+      final refund = await sales.refundSale(sold.saleId);
+
+      final refundRow = await sales.getSale(refund.saleId);
+      expect(refundRow.paymentMethod, 'split');
+      expect(refundRow.paid, -5000);
+
+      final refundPays = await (db.select(db.payments)
+            ..where((pay) => pay.saleId.equals(refund.saleId)))
+          .get();
+      expect(refundPays, hasLength(2));
+      expect(
+        refundPays.map((p) => (p.method, p.amount)).toSet(),
+        {('cash', -3000), ('kbzpay', -2000)},
+      );
+    });
+
+    test('refunding a plain cash sale with change given reverses only the '
+        'settled amount, not the raw tendered amount (pre-existing '
+        'over-refund fixed as part of the proportional-mirror rewrite)',
+        () async {
+      final p = await seedProduct(name: 'Soap', price: 800, qty: 20);
+      // Tender 1,000 for an 800 total — 200 change handed back at sale time,
+      // so only 800 was ever actually kept (the single Payments row is
+      // written as `settled`, not the raw `paid`).
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        paymentMethod: 'cash',
+        paid: 1000,
+      );
+      final original = await sales.getSale(sold.saleId);
+      expect(original.paid, 1000); // raw tendered, includes the change
+      final originalPays = await (db.select(db.payments)
+            ..where((pay) => pay.saleId.equals(sold.saleId)))
+          .get();
+      expect(originalPays.single.amount, 800); // settled, excludes change
+
+      final refund = await sales.refundSale(sold.saleId);
+      final refundPays = await (db.select(db.payments)
+            ..where((pay) => pay.saleId.equals(refund.saleId)))
+          .get();
+      // Must reverse the 800 actually kept, not the 1000 raw tendered —
+      // the customer only ever net-paid 800, and the 200 change is already
+      // out of the till from the moment it was handed back at sale time.
+      expect(refundPays.single.amount, -800);
+    });
+
+    test('finalizeSale requires paymentMethod+paid unless payments is given',
+        () async {
+      final p = await seedProduct(name: 'Soap', price: 800, qty: 20);
+      expect(
+        () => sales.finalizeSale(
+          cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+        ),
+        throwsArgumentError,
+      );
     });
   });
 

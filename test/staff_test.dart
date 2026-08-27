@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
+import 'package:mm_pos/features/account/account_providers.dart';
 import 'package:mm_pos/features/printing/printing_providers.dart';
+import 'package:mm_pos/features/staff/owner_permission.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
 
 void main() {
@@ -305,6 +307,267 @@ void main() {
       },
     );
   });
+
+  group('StaffPermissions (owner-granted per-staff-member capabilities)', () {
+    test('a new staff member starts with zero grants (default-deny)', () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+      expect(await staffRepo.watchGrantedCapabilities(id).first, isEmpty);
+    });
+
+    test('granting a capability makes it show up, revoking removes it',
+        () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.inventoryEdit,
+        true,
+      );
+      expect(
+        await staffRepo.watchGrantedCapabilities(id).first,
+        {OwnerCapability.inventoryEdit},
+      );
+
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.inventoryEdit,
+        false,
+      );
+      expect(await staffRepo.watchGrantedCapabilities(id).first, isEmpty);
+    });
+
+    test('re-granting a previously revoked capability flips the same row '
+        'back on (no duplicate rows)', () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.branches,
+        true,
+      );
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.branches,
+        false,
+      );
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.branches,
+        true,
+      );
+
+      final rows = await (db.select(db.staffPermissions)
+            ..where((t) => t.staffMemberId.equals(id)))
+          .get();
+      expect(rows, hasLength(1));
+      expect(
+        await staffRepo.watchGrantedCapabilities(id).first,
+        {OwnerCapability.branches},
+      );
+    });
+
+    test('grants are isolated per staff member — granting one never leaks '
+        'into another', () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final a = await staffRepo.upsertMember(name: 'Staff A', pin: '1111');
+      final b = await staffRepo.upsertMember(name: 'Staff B', pin: '2222');
+
+      await staffRepo.setCapabilityGranted(
+        a,
+        OwnerCapability.staffAccounts,
+        true,
+      );
+
+      expect(
+        await staffRepo.watchGrantedCapabilities(a).first,
+        {OwnerCapability.staffAccounts},
+      );
+      expect(await staffRepo.watchGrantedCapabilities(b).first, isEmpty);
+    });
+
+    test('revoking a capability nobody ever granted is a harmless no-op',
+        () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.license,
+        false,
+      );
+      expect(await staffRepo.watchGrantedCapabilities(id).first, isEmpty);
+      final rows = await (db.select(db.staffPermissions)
+            ..where((t) => t.staffMemberId.equals(id)))
+          .get();
+      expect(rows, isEmpty);
+    });
+
+    test('activeStaffGrantedCapabilitiesProvider resolves the switched-in '
+        "member's grants, empty for owner or plain (unnamed) staff mode",
+        () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.inventoryEdit,
+        true,
+      );
+
+      // Owner mode: grants never apply, even though some exist.
+      expect(
+        container.read(activeStaffGrantedCapabilitiesProvider),
+        isEmpty,
+      );
+
+      // Plain (unnamed) staff mode: no active staff id selected.
+      await ctrl().switchRole('staff');
+      await container.read(activeStaffIdProvider.future);
+      expect(
+        container.read(activeStaffGrantedCapabilitiesProvider),
+        isEmpty,
+      );
+
+      // Switched in as the named member: their grant resolves live.
+      await ctrl().switchRole('owner', pin: '');
+      await ctrl().switchToStaffMember(id, '1111');
+      await container.read(staffRoleProvider.future);
+      await container.read(activeStaffIdProvider.future);
+      await container.read(staffGrantedCapabilitiesProvider(id).future);
+      expect(
+        container.read(activeStaffGrantedCapabilitiesProvider),
+        {OwnerCapability.inventoryEdit},
+      );
+    });
+
+    test('hasOwnerCapabilityProvider combines owner-or-granted, matching '
+        "OwnerPermissionPolicy.allows' contract", () async {
+      final staffRepo = container.read(staffRepositoryProvider);
+      final id = await staffRepo.upsertMember(name: 'Thanda', pin: '1111');
+      await staffRepo.setCapabilityGranted(
+        id,
+        OwnerCapability.storefront,
+        true,
+      );
+
+      await ctrl().switchToStaffMember(id, '1111');
+      await container.read(staffRoleProvider.future);
+      await container.read(activeStaffIdProvider.future);
+      await container.read(staffGrantedCapabilitiesProvider(id).future);
+
+      expect(
+        container.read(
+          hasOwnerCapabilityProvider(OwnerCapability.storefront),
+        ),
+        isTrue,
+      );
+      // Not granted for this member — still denied.
+      expect(
+        container.read(hasOwnerCapabilityProvider(OwnerCapability.branches)),
+        isFalse,
+      );
+    });
+  });
+
+  group(
+    'email-linked staff account (invited StaffAccount ↔ StaffMember)',
+    () {
+      ProviderContainer emailSessionContainer({
+        required String? backendRole,
+        required String? email,
+      }) {
+        final c = ProviderContainer(
+          overrides: [
+            settingsRepositoryProvider.overrideWithValue(settings),
+            databaseProvider.overrideWithValue(db),
+            shopIdProvider.overrideWith((ref) => 'shop-1'),
+            backendAccountRoleProvider.overrideWithValue(backendRole),
+            currentAccountEmailProvider.overrideWithValue(email),
+          ],
+        );
+        addTearDown(c.dispose);
+        return c;
+      }
+
+      test(
+        'a roster member with a matching email (case-insensitive) inherits '
+        'their grants under a backend staff session',
+        () async {
+          final staffRepo = container.read(staffRepositoryProvider);
+          final id = await staffRepo.upsertMember(
+            name: 'Thanda',
+            pin: '1111',
+            email: 'thanda@shop.com',
+          );
+          await staffRepo.setCapabilityGranted(
+            id,
+            OwnerCapability.analytics,
+            true,
+          );
+
+          final scoped = emailSessionContainer(
+            backendRole: 'staff',
+            email: 'THANDA@Shop.com',
+          );
+          await scoped.read(staffMembersProvider.future);
+          expect(scoped.read(emailLinkedStaffMemberProvider)?.id, id);
+          await scoped.read(staffGrantedCapabilitiesProvider(id).future);
+          expect(
+            scoped.read(activeStaffGrantedCapabilitiesProvider),
+            {OwnerCapability.analytics},
+          );
+          expect(
+            scoped.read(
+              hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics),
+            ),
+            isTrue,
+          );
+          // Not granted for this member — still denied.
+          expect(
+            scoped.read(
+              hasResolvedOwnerCapabilityProvider(OwnerCapability.branches),
+            ),
+            isFalse,
+          );
+        },
+      );
+
+      test(
+        'no roster member matches the signed-in email — no grants inherited '
+        '(safe default-deny)',
+        () async {
+          final scoped = emailSessionContainer(
+            backendRole: 'staff',
+            email: 'nobody@shop.com',
+          );
+          await scoped.read(staffMembersProvider.future);
+          expect(scoped.read(emailLinkedStaffMemberProvider), isNull);
+          expect(scoped.read(activeStaffGrantedCapabilitiesProvider), isEmpty);
+        },
+      );
+
+      test(
+        'a backend owner session is unaffected by email linking — still '
+        'full access regardless of roster email matches',
+        () async {
+          final scoped = emailSessionContainer(
+            backendRole: 'owner',
+            email: 'owner@shop.com',
+          );
+          await scoped.read(staffRoleProvider.future);
+          expect(scoped.read(emailLinkedStaffMemberProvider), isNull);
+          expect(
+            scoped.read(
+              hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics),
+            ),
+            isTrue,
+          );
+        },
+      );
+    },
+  );
 
   test('ownerPinIsSetProvider follows the active shop', () async {
     final scoped = ProviderContainer(

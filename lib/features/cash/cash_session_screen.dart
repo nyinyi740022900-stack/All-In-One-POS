@@ -18,6 +18,7 @@ import '../printing/document_print.dart';
 import '../printing/printer_connection.dart';
 import '../printing/printing_providers.dart';
 import 'cash_providers.dart';
+import 'cash_session_report_csv.dart';
 import 'cash_session_report_formatter.dart';
 import 'cash_session_report_pdf.dart';
 
@@ -415,6 +416,14 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
                 _sharePdf(context, ref);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.table_chart_outlined),
+              title: Text(l.cashReportShareCsv),
+              onTap: () {
+                Navigator.pop(ctx);
+                _shareCsv(context, ref);
+              },
+            ),
           ],
         ),
       ),
@@ -542,6 +551,47 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.cashReportTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
+  Future<void> _shareCsv(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final report = await ref
+          .read(cashSessionRepositoryProvider)
+          .reportFor(widget.session);
+      final varianceText = report.variance == null
+          ? null
+          : _varianceTextFor(l, report.variance!);
+      final csv = buildCashSessionReportCsv(
+        report,
+        openingFloatLabel: l.cashOpeningAmount,
+        cashSalesLabel: l.cashReportCashSales,
+        cashRepaymentsLabel: l.cashReportCashRepayments,
+        expensesLabel: l.expensesTitle,
+        supplierPaymentsLabel: l.cashReportSupplierPayments,
+        expectedCashLabel: l.cashExpectedNow,
+        countedCashLabel: l.cashClosingAmount,
+        varianceLabel: l.cashVariance,
+        varianceText: varianceText,
+        lineHeader: l.pnlLine,
+        amountHeader: '${l.pnlAmount} (${l.currencySymbol})',
+      );
+      final dir = await getTemporaryDirectory();
+      final stamp = DateFormat(
+        'yyyyMMdd-HHmm',
+      ).format(widget.session.closedAt ?? widget.session.openedAt);
+      final file = File('${dir.path}/cash-report-$stamp.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
           subject: l.cashReportTitle,
         ),
       );

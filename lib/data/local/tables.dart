@@ -497,9 +497,47 @@ class StaffMembers extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get pin => text()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
+  /// Optional — links this local PIN-roster row to an invited-email
+  /// `StaffAccount` (Supabase Auth `'staff'` login) sharing the same
+  /// address, so a granted `OwnerCapability` follows whichever way that
+  /// person actually signs in. Not unique-enforced (client-side lookup
+  /// only, same trust model as the rest of this table).
+  TextColumn get email => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// One row = a [StaffMembers] roster member has been explicitly granted one
+/// `OwnerCapability` (see `owner_permission.dart`) by the owner — e.g. a
+/// trusted cashier allowed into Analytics without full Owner access.
+/// Absence of a (non-deleted) row for a given (staffMemberId, capability)
+/// pair means NOT granted — default-deny, so an existing staff member with
+/// zero rows keeps today's exact behavior (blocked from every
+/// `OwnerCapability` gate) until the owner opens the new permissions screen
+/// and turns something on. Toggling a capability off tombstones its row
+/// (`isDeleted = true`) rather than deleting it outright, so there is always
+/// exactly one row per pair that flips state in place.
+///
+/// Same client-enforced-only trust model as [StaffMembers] itself (see that
+/// class's doc comment, and migration `0026_staff_members.sql`): any device
+/// signed into this shop can write here via the shared shop session, so this
+/// is a workflow gate, not a server-side authorization boundary between
+/// devices of one shop.
+class StaffPermissions extends Table with SyncColumns {
+  TextColumn get staffMemberId => text()();
+  /// `OwnerCapability.name` (e.g. `'analytics'`, `'inventoryEdit'`) — stored
+  /// as text, like every other enum-ish column in this codebase, so
+  /// reordering the Dart enum can never corrupt already-synced data.
+  TextColumn get capability => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {staffMemberId, capability},
+  ];
 }
 
 /// A shop's non-inventory operating expense (rent, utilities, staff wages,

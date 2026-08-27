@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -11,15 +15,26 @@ import '../../l10n/app_localizations.dart';
 import '../accounting/accounting_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'equity_calculator.dart';
+import 'equity_csv.dart';
+import 'equity_pdf.dart';
 import 'equity_providers.dart';
 
 /// Owner's Equity: capital contributions + drawings, plus Retained
 /// Earnings (cumulative Net Profit since inception) — deliberately
 /// separate from Expenses so a drawing never reduces the P&L's Net
 /// Profit. Toward an eventual Balance Sheet.
-class OwnerEquityScreen extends ConsumerWidget {
+class OwnerEquityScreen extends ConsumerStatefulWidget {
   const OwnerEquityScreen({super.key});
+
+  @override
+  ConsumerState<OwnerEquityScreen> createState() => _OwnerEquityScreenState();
+}
+
+class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
+  bool _exportingPdf = false;
+  bool _exportingCsv = false;
 
   Widget _row(BuildContext context, String label, int amount, String currency,
       {bool bold = false}) {
@@ -33,8 +48,90 @@ class OwnerEquityScreen extends ConsumerWidget {
     );
   }
 
+  Future<Uint8List> _pdfBytes(EquitySummary summary,
+      List<EquityEntry> entries, AppLocalizations l) async {
+    final profile = await ref.read(shopProfileProvider.future);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    return buildEquityPdf(
+      shopName: profile.name,
+      shopLogoUrl: profile.logoUrl,
+      shopPhone: profile.phone,
+      shopAddress: profile.address,
+      title: l.equityTitle,
+      summary: summary,
+      entries: entries,
+      currencySymbol: l.currencySymbol,
+      paidInCapitalLabel: l.equityPaidInCapital,
+      retainedEarningsLabel: l.equityRetainedEarnings,
+      totalEquityLabel: l.equityTotal,
+      dateColumnLabel: l.stockHistoryHeaderDate,
+      typeColumnLabel: l.stockHistoryHeaderType,
+      noteColumnLabel: l.stockHistoryHeaderNote,
+      amountColumnLabel: l.equityAmount,
+      contributionLabel: l.equityContribution,
+      drawingLabel: l.equityDrawing,
+      pageFormat: printerConfig.pdfPaperSize,
+    );
+  }
+
+  Future<void> _exportPdf(EquitySummary summary, List<EquityEntry> entries) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _exportingPdf = true);
+    try {
+      final bytes = await _pdfBytes(summary, entries, l);
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/owners-equity.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.equityTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
+    }
+  }
+
+  Future<void> _exportCsv(EquitySummary summary, List<EquityEntry> entries) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _exportingCsv = true);
+    try {
+      final csv = buildEquityCsv(
+        summary,
+        entries,
+        dateHeader: l.stockHistoryHeaderDate,
+        typeHeader: l.stockHistoryHeaderType,
+        noteHeader: l.stockHistoryHeaderNote,
+        amountHeader: l.equityAmount,
+        contributionLabel: l.equityContribution,
+        drawingLabel: l.equityDrawing,
+        paidInCapitalLabel: l.equityPaidInCapital,
+        retainedEarningsLabel: l.equityRetainedEarnings,
+        totalEquityLabel: l.equityTotal,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/owners-equity.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l.equityTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _exportingCsv = false);
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (ref.watch(licenseControllerProvider).loading ||
         !ref.watch(isPremiumProvider)) {
@@ -52,9 +149,40 @@ class OwnerEquityScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(equitySummaryProvider);
     final df = DateFormat('yyyy-MM-dd');
     final colors = AppColors.of(context);
+    final summary = summaryAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.equityTitle)),
+      appBar: AppBar(
+        title: Text(l.equityTitle),
+        actions: [
+          IconButton(
+            tooltip: l.salesReportExportPdf,
+            icon: _exportingPdf
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: summary == null || _exportingPdf
+                ? null
+                : () => _exportPdf(summary, entries),
+          ),
+          IconButton(
+            tooltip: l.salesReportExportCsv,
+            icon: _exportingCsv
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.table_chart_outlined),
+            onPressed: summary == null || _exportingCsv
+                ? null
+                : () => _exportCsv(summary, entries),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openDialog(context),
         child: const Icon(Icons.add),

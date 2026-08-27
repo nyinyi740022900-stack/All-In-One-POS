@@ -13,9 +13,11 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../accounting/accounting_pdf.dart';
 import '../accounting/accounting_providers.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import '../sell/payment_labels.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
@@ -88,6 +90,84 @@ Future<void> shareAgedReceivablesCsv(
   }
 }
 
+/// Shares the aged receivables ledger as a PDF — same rows/bucket-totals
+/// shape as [shareAgedReceivablesCsv]. Premium-gated by the caller.
+Future<void> shareAgedReceivablesPdf(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final rows = ref.read(agedReceivablesProvider);
+  final totals = ref.read(agingTotalsProvider);
+  final bucketLabels = [
+    l.agingBucket0,
+    l.agingBucket1,
+    l.agingBucket2,
+    l.agingBucket3,
+  ];
+  try {
+    final profile = await ref.read(shopProfileProvider.future);
+    final printerConfig = await ref.read(printerConfigProvider.future);
+    final bytes = await buildLabeledTablePdf(
+      shopName: profile.name,
+      shopLogoUrl: profile.logoUrl,
+      shopPhone: profile.phone,
+      shopAddress: profile.address,
+      title: l.creditTitle,
+      columnLabels: [
+        l.arHeaderCustomer,
+        l.arHeaderPhone,
+        l.arHeaderInvoice,
+        l.stockHistoryHeaderDate,
+        l.arHeaderDays,
+        l.arHeaderBucket,
+        l.arHeaderOutstanding,
+      ],
+      columnFlex: const [3, 2, 2, 2, 1, 2, 2],
+      rightAlignColumns: const {6},
+      rows: [
+        for (final r in rows)
+          [
+            r.customerName,
+            r.phone ?? '',
+            r.invoiceNo,
+            _agingDay.format(r.finalizedAt),
+            '${DateTime.now().difference(r.finalizedAt).inDays}',
+            _agingBucketLabel(l, r.bucket),
+            Money(r.outstanding).withSymbol(l.currencySymbol),
+          ],
+        for (var i = 0; i < totals.length; i++)
+          [
+            bucketLabels[i],
+            '',
+            '',
+            '',
+            '',
+            '',
+            Money(totals[i]).withSymbol(l.currencySymbol),
+          ],
+      ],
+      boldRowIndices: {
+        for (var i = 0; i < totals.length; i++) rows.length + i,
+      },
+      emptyLabel: l.creditEmpty,
+      pageFormat: printerConfig.pdfPaperSize,
+    );
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/receivables-aging.pdf');
+    await file.writeAsBytes(bytes);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/pdf')],
+        subject: l.creditTitle,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+  }
+}
+
 /// The credit book (အကြွေးစာရင်း): customers who owe, and their balances.
 class CreditScreen extends ConsumerWidget {
   const CreditScreen({super.key});
@@ -106,6 +186,21 @@ class CreditScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l.creditTitle),
         actions: [
+          IconButton(
+            tooltip: l.salesReportExportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: () {
+              if (!ref.read(isPremiumProvider)) {
+                showPremiumRequiredDialog(
+                  context,
+                  l.arExportCsv,
+                  benefit: l.arExportBenefit,
+                );
+                return;
+              }
+              shareAgedReceivablesPdf(context, ref);
+            },
+          ),
           IconButton(
             tooltip: l.arExportCsv,
             icon: const Icon(Icons.table_chart_outlined),

@@ -51,6 +51,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonSearch => 'Search';
 
   @override
+  String get commonFilters => 'Filters';
+
+  @override
   String get commonYes => 'Yes';
 
   @override
@@ -260,6 +263,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentCod => 'COD (Cash on Delivery)';
 
   @override
+  String get paymentSplit => 'Split payment';
+
+  @override
+  String get splitPaymentTitle => 'Split payment';
+
+  @override
+  String get splitPaymentAddMethod => 'Add another method';
+
+  @override
+  String splitPaymentRemaining(String amount) {
+    return 'Remaining: $amount';
+  }
+
+  @override
+  String get splitPaymentRemoveMethod => 'Remove this method';
+
+  @override
+  String get splitPaymentEdit => 'Edit split';
+
+  @override
+  String get splitPaymentSetUp => 'Tap to set up split payment';
+
+  @override
   String get cashRegisterTitle => 'Cash register';
 
   @override
@@ -342,6 +368,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cashReportSharePdf => 'Share PDF';
+
+  @override
+  String get cashReportShareCsv => 'Share CSV';
 
   @override
   String get cashReportCashSales => 'Cash sales';
@@ -1209,6 +1238,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppGuide => 'App Guide';
 
   @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String get aboutVersion => 'Version';
+
+  @override
+  String get aboutWebsite => 'Website';
+
+  @override
+  String get aboutCommunity => 'Community';
+
+  @override
+  String get aboutCheckForUpdates => 'Check for updates';
+
+  @override
+  String get aboutOpenFailed => 'Couldn\'t open that link.';
+
+  @override
   String get helpGuideTitle => 'App Guide';
 
   @override
@@ -1310,6 +1360,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceFilterCredit => 'Credit';
+
+  @override
+  String get invoiceFilterRefund => 'Refund';
 
   @override
   String invoiceOwed(String amount) {
@@ -1428,6 +1481,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get salesReportColumnAddress => 'Address';
+
+  @override
+  String get salesReportColumnCashier => 'Sold by';
 
   @override
   String get salesReportColumnAmount => 'Amount';
@@ -1725,6 +1781,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoriesEmpty => 'No categories yet.';
 
   @override
+  String get categoryPickerNoResults => 'No categories match your search.';
+
+  @override
   String get productCategory => 'Category';
 
   @override
@@ -1750,6 +1809,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsTopProducts => 'Top products';
+
+  @override
+  String get analyticsSalesByEmployee => 'Sales by employee';
 
   @override
   String get analyticsRangeToday => 'Today';
@@ -2633,6 +2695,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Kept on this device until cloud sync completes automatically.';
 
   @override
+  String get syncIssuesInvoiceCollision =>
+      'Invoice number already used by another device\'s sale. The sale itself is safe — contact support to get this invoice renumbered.';
+
+  @override
   String get navOrders => 'Orders';
 
   @override
@@ -2988,7 +3054,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffMemberPinKeepHint => 'Leave blank to keep the current PIN';
 
   @override
+  String get staffMemberEmail => 'Email (optional)';
+
+  @override
+  String get staffMemberEmailHint =>
+      'If this person also has a staff account (email login), their granted permissions will apply there too';
+
+  @override
   String get staffMemberSaved => 'Staff member saved';
+
+  @override
+  String get staffPermissionsTooltip => 'Permissions';
+
+  @override
+  String staffPermissionsTitle(String name) {
+    return '$name\'s permissions';
+  }
+
+  @override
+  String staffPermissionsIntro(String name) {
+    return 'Turn on the features $name can use beyond Sell and Orders. Off by default.';
+  }
+
+  @override
+  String get staffCapabilityInventoryEdit => 'Edit inventory';
+
+  @override
+  String get staffCapabilitySettingsSensitive =>
+      'Sensitive settings (stock tracking, backup)';
 
   @override
   String get staffRemoveMember => 'Remove';

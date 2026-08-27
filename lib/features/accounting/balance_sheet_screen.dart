@@ -11,8 +11,11 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'accounting_csv.dart';
+import 'accounting_pdf.dart';
 import 'accounting_providers.dart';
+import 'balance_sheet.dart';
 
 /// Balance Sheet — what the shop owns (cash & accounts, stock at cost,
 /// receivables), what it owes (supplier payables), and the owner's stake
@@ -29,6 +32,23 @@ class BalanceSheetScreen extends ConsumerStatefulWidget {
 
 class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
   bool _exporting = false;
+  bool _exportingPdf = false;
+
+  List<(String, int)> _rows(BalanceSheet sheet) {
+    final l = AppLocalizations.of(context);
+    return [
+      (l.balanceSheetAssets, sheet.assets),
+      (l.balanceSheetCashAccounts, sheet.cashAndAccounts),
+      (l.balanceSheetInventory, sheet.inventoryValue),
+      (l.balanceSheetReceivables, sheet.receivables),
+      (l.balanceSheetLiabilities, sheet.liabilities),
+      (l.balanceSheetPayables, sheet.payables),
+      (l.balanceSheetEquity, sheet.equityTotal),
+      (l.equityPaidInCapital, sheet.paidInCapital),
+      (l.equityRetainedEarnings, sheet.retainedEarnings),
+      (l.balanceSheetUntracked, sheet.untracked),
+    ];
+  }
 
   Future<void> _exportCsv() async {
     final l = AppLocalizations.of(context);
@@ -39,18 +59,7 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
     try {
       final sym = l.currencySymbol;
       final csv = buildBalanceSheetCsv(
-        [
-          (l.balanceSheetAssets, sheet.assets),
-          (l.balanceSheetCashAccounts, sheet.cashAndAccounts),
-          (l.balanceSheetInventory, sheet.inventoryValue),
-          (l.balanceSheetReceivables, sheet.receivables),
-          (l.balanceSheetLiabilities, sheet.liabilities),
-          (l.balanceSheetPayables, sheet.payables),
-          (l.balanceSheetEquity, sheet.equityTotal),
-          (l.equityPaidInCapital, sheet.paidInCapital),
-          (l.equityRetainedEarnings, sheet.retainedEarnings),
-          (l.balanceSheetUntracked, sheet.untracked),
-        ],
+        _rows(sheet),
         labelHeader: l.pnlLine,
         amountHeader: '${l.pnlAmount} ($sym)',
       );
@@ -67,6 +76,50 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final sheet = ref.read(balanceSheetProvider).valueOrNull;
+    if (sheet == null) return;
+    setState(() => _exportingPdf = true);
+    try {
+      final sym = l.currencySymbol;
+      final profile = await ref.read(shopProfileProvider.future);
+      final printerConfig = await ref.read(printerConfigProvider.future);
+      final bytes = await buildLabeledTablePdf(
+        shopName: profile.name,
+        shopLogoUrl: profile.logoUrl,
+        shopPhone: profile.phone,
+        shopAddress: profile.address,
+        title: l.accountingBalanceSheet,
+        columnLabels: [l.pnlLine, '${l.pnlAmount} ($sym)'],
+        columnFlex: const [3, 2],
+        rightAlignColumns: const {1},
+        // Same rows the on-screen view bolds: the Assets/Liabilities/Equity
+        // totals and the Untracked line — see [_rows]' order.
+        boldRowIndices: const {0, 4, 6, 9},
+        rows: [
+          for (final r in _rows(sheet))
+            [r.$1, Money(r.$2).withSymbol(sym)],
+        ],
+        pageFormat: printerConfig.pdfPaperSize,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/balance-sheet.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.accountingBalanceSheet,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
     }
   }
 
@@ -92,6 +145,13 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
       appBar: AppBar(
         title: Text(l.accountingBalanceSheet),
         actions: [
+          IconButton(
+            tooltip: l.salesReportExportPdf,
+            icon: _exportingPdf
+                ? const ButtonSpinner()
+                : const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: _exportingPdf ? null : _exportPdf,
+          ),
           IconButton(
             tooltip: l.pnlExportCsv,
             icon: _exporting

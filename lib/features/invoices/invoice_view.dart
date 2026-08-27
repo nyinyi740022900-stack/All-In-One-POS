@@ -124,6 +124,8 @@ String? invoicePaymentMethodLabel(
       return l.paymentCredit;
     case 'cod':
       return l.paymentCod;
+    case 'split':
+      return l.paymentSplit;
   }
   final name = (customName ?? '').trim();
   return name.isEmpty ? code : name;

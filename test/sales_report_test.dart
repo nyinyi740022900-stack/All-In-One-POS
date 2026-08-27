@@ -187,14 +187,16 @@ void main() {
         dateHeader: 'Date',
         customerHeader: 'Customer',
         addressHeader: 'Address',
+        cashierHeader: 'Sold by',
         amountHeader: 'Amount',
         totalLabel: 'Total',
+        cashierLabelFor: (_) => 'Owner',
       );
       final lines = csv.split('\r\n');
-      expect(lines[0], 'Invoice,Date,Customer,Address,Amount');
-      expect(lines, contains('INV-002,2026-08-02,,,500'));
-      expect(lines, contains('INV-001,2026-08-01,Aye,,1000'));
-      expect(lines.last, 'Total,,,,1500');
+      expect(lines[0], 'Invoice,Date,Customer,Address,Sold by,Amount');
+      expect(lines, contains('INV-002,2026-08-02,,,Owner,500'));
+      expect(lines, contains('INV-001,2026-08-01,Aye,,Owner,1000'));
+      expect(lines.last, 'Total,,,,,1500');
     });
 
     test('quotes a customer name containing a comma', () {
@@ -212,10 +214,55 @@ void main() {
         dateHeader: 'Date',
         customerHeader: 'Customer',
         addressHeader: 'Address',
+        cashierHeader: 'Sold by',
         amountHeader: 'Amount',
         totalLabel: 'Total',
+        cashierLabelFor: (_) => 'Owner',
       );
       expect(csv, contains('"Aye, Mya"'));
+    });
+
+    test('resolves each row through the supplied cashierLabelFor by its '
+        'own staffId', () {
+      final sales = [
+        Sale(
+          id: 's1',
+          shopId: 'shop-1',
+          createdAt: DateTime(2026, 8, 1),
+          updatedAt: DateTime(2026, 8, 1),
+          isDeleted: false,
+          dirty: false,
+          invoiceNo: 'INV-001',
+          subtotal: 1000,
+          discount: 0,
+          total: 1000,
+          paid: 1000,
+          changeDue: 0,
+          paymentMethod: 'cash',
+          finalizedAt: DateTime(2026, 8, 1),
+          staffId: 'staff-a',
+        ),
+        _sale(
+          id: 's2',
+          invoiceNo: 'INV-002',
+          finalizedAt: DateTime(2026, 8, 2),
+          total: 500,
+        ), // no staffId — owner-mode sale
+      ];
+      final report = buildSalesReport(sales);
+      final csv = buildSalesReportCsv(
+        report,
+        invoiceHeader: 'Invoice',
+        dateHeader: 'Date',
+        customerHeader: 'Customer',
+        addressHeader: 'Address',
+        cashierHeader: 'Sold by',
+        amountHeader: 'Amount',
+        totalLabel: 'Total',
+        cashierLabelFor: (staffId) => staffId == 'staff-a' ? 'Thanda' : 'Owner',
+      );
+      expect(csv, contains('INV-001,2026-08-01,,,Thanda,1000'));
+      expect(csv, contains('INV-002,2026-08-02,,,Owner,500'));
     });
   });
 }

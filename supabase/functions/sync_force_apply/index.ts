@@ -188,9 +188,17 @@ function isConstraint(error: { code?: string; message?: string }): boolean {
     code === "23503" ||
     code === "23502" ||
     code === "23514" ||
+    // 23505: unique violation — e.g. sales_shop_invoice_no_key, when two
+    // offline devices minted the same invoice number. Without this branch
+    // it fell into the generic `transient` case below, which the client
+    // retries forever instead of quarantining — a real, silent collision
+    // would have looked identical to a passing network blip.
+    code === "23505" ||
     msg.includes("foreign key") ||
     msg.includes("violates check") ||
-    msg.includes("not-null")
+    msg.includes("not-null") ||
+    msg.includes("duplicate key") ||
+    msg.includes("unique constraint")
   );
 }
 

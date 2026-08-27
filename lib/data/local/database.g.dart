@@ -9941,6 +9941,15 @@ class $StaffMembersTable extends StaffMembers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9953,6 +9962,7 @@ class $StaffMembersTable extends StaffMembers
     name,
     pin,
     active,
+    email,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10031,6 +10041,12 @@ class $StaffMembersTable extends StaffMembers
         active.isAcceptableOrUnknown(data['active']!, _activeMeta),
       );
     }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
     return context;
   }
 
@@ -10080,6 +10096,10 @@ class $StaffMembersTable extends StaffMembers
         DriftSqlType.bool,
         data['${effectivePrefix}active'],
       )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      ),
     );
   }
 
@@ -10107,6 +10127,13 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
   final String name;
   final String pin;
   final bool active;
+
+  /// Optional — links this local PIN-roster row to an invited-email
+  /// `StaffAccount` (Supabase Auth `'staff'` login) sharing the same
+  /// address, so a granted `OwnerCapability` follows whichever way that
+  /// person actually signs in. Not unique-enforced (client-side lookup
+  /// only, same trust model as the rest of this table).
+  final String? email;
   const StaffMember({
     required this.id,
     required this.shopId,
@@ -10118,6 +10145,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     required this.name,
     required this.pin,
     required this.active,
+    this.email,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10134,6 +10162,9 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     map['name'] = Variable<String>(name);
     map['pin'] = Variable<String>(pin);
     map['active'] = Variable<bool>(active);
+    if (!nullToAbsent || email != null) {
+      map['email'] = Variable<String>(email);
+    }
     return map;
   }
 
@@ -10149,6 +10180,9 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       name: Value(name),
       pin: Value(pin),
       active: Value(active),
+      email: email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(email),
     );
   }
 
@@ -10168,6 +10202,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       name: serializer.fromJson<String>(json['name']),
       pin: serializer.fromJson<String>(json['pin']),
       active: serializer.fromJson<bool>(json['active']),
+      email: serializer.fromJson<String?>(json['email']),
     );
   }
   @override
@@ -10184,6 +10219,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       'name': serializer.toJson<String>(name),
       'pin': serializer.toJson<String>(pin),
       'active': serializer.toJson<bool>(active),
+      'email': serializer.toJson<String?>(email),
     };
   }
 
@@ -10198,6 +10234,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     String? name,
     String? pin,
     bool? active,
+    Value<String?> email = const Value.absent(),
   }) => StaffMember(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -10209,6 +10246,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     name: name ?? this.name,
     pin: pin ?? this.pin,
     active: active ?? this.active,
+    email: email.present ? email.value : this.email,
   );
   StaffMember copyWithCompanion(StaffMembersCompanion data) {
     return StaffMember(
@@ -10222,6 +10260,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
       name: data.name.present ? data.name.value : this.name,
       pin: data.pin.present ? data.pin.value : this.pin,
       active: data.active.present ? data.active.value : this.active,
+      email: data.email.present ? data.email.value : this.email,
     );
   }
 
@@ -10237,7 +10276,8 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
           ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('pin: $pin, ')
-          ..write('active: $active')
+          ..write('active: $active, ')
+          ..write('email: $email')
           ..write(')'))
         .toString();
   }
@@ -10254,6 +10294,7 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
     name,
     pin,
     active,
+    email,
   );
   @override
   bool operator ==(Object other) =>
@@ -10268,7 +10309,8 @@ class StaffMember extends DataClass implements Insertable<StaffMember> {
           other.hlc == this.hlc &&
           other.name == this.name &&
           other.pin == this.pin &&
-          other.active == this.active);
+          other.active == this.active &&
+          other.email == this.email);
 }
 
 class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
@@ -10282,6 +10324,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
   final Value<String> name;
   final Value<String> pin;
   final Value<bool> active;
+  final Value<String?> email;
   final Value<int> rowid;
   const StaffMembersCompanion({
     this.id = const Value.absent(),
@@ -10294,6 +10337,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     this.name = const Value.absent(),
     this.pin = const Value.absent(),
     this.active = const Value.absent(),
+    this.email = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StaffMembersCompanion.insert({
@@ -10307,6 +10351,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     required String name,
     required String pin,
     this.active = const Value.absent(),
+    this.email = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -10323,6 +10368,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     Expression<String>? name,
     Expression<String>? pin,
     Expression<bool>? active,
+    Expression<String>? email,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -10336,6 +10382,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
       if (name != null) 'name': name,
       if (pin != null) 'pin': pin,
       if (active != null) 'active': active,
+      if (email != null) 'email': email,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10351,6 +10398,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     Value<String>? name,
     Value<String>? pin,
     Value<bool>? active,
+    Value<String?>? email,
     Value<int>? rowid,
   }) {
     return StaffMembersCompanion(
@@ -10364,6 +10412,7 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
       name: name ?? this.name,
       pin: pin ?? this.pin,
       active: active ?? this.active,
+      email: email ?? this.email,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10401,6 +10450,9 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
     if (active.present) {
       map['active'] = Variable<bool>(active.value);
     }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10420,6 +10472,580 @@ class StaffMembersCompanion extends UpdateCompanion<StaffMember> {
           ..write('name: $name, ')
           ..write('pin: $pin, ')
           ..write('active: $active, ')
+          ..write('email: $email, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StaffPermissionsTable extends StaffPermissions
+    with TableInfo<$StaffPermissionsTable, StaffPermission> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StaffPermissionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shopIdMeta = const VerificationMeta('shopId');
+  @override
+  late final GeneratedColumn<String> shopId = GeneratedColumn<String>(
+    'shop_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _staffMemberIdMeta = const VerificationMeta(
+    'staffMemberId',
+  );
+  @override
+  late final GeneratedColumn<String> staffMemberId = GeneratedColumn<String>(
+    'staff_member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _capabilityMeta = const VerificationMeta(
+    'capability',
+  );
+  @override
+  late final GeneratedColumn<String> capability = GeneratedColumn<String>(
+    'capability',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    hlc,
+    staffMemberId,
+    capability,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'staff_permissions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StaffPermission> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('shop_id')) {
+      context.handle(
+        _shopIdMeta,
+        shopId.isAcceptableOrUnknown(data['shop_id']!, _shopIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_shopIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    }
+    if (data.containsKey('staff_member_id')) {
+      context.handle(
+        _staffMemberIdMeta,
+        staffMemberId.isAcceptableOrUnknown(
+          data['staff_member_id']!,
+          _staffMemberIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_staffMemberIdMeta);
+    }
+    if (data.containsKey('capability')) {
+      context.handle(
+        _capabilityMeta,
+        capability.isAcceptableOrUnknown(data['capability']!, _capabilityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_capabilityMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {staffMemberId, capability},
+  ];
+  @override
+  StaffPermission map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StaffPermission(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      shopId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shop_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
+      staffMemberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}staff_member_id'],
+      )!,
+      capability: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capability'],
+      )!,
+    );
+  }
+
+  @override
+  $StaffPermissionsTable createAlias(String alias) {
+    return $StaffPermissionsTable(attachedDatabase, alias);
+  }
+}
+
+class StaffPermission extends DataClass implements Insertable<StaffPermission> {
+  final String id;
+  final String shopId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool dirty;
+
+  /// Hybrid Logical Clock stamp (audit H2 residual) — minted by the sync
+  /// engine at push time, compared as a tuple so concurrent offline edits
+  /// converge deterministically instead of trusting device wall clocks.
+  /// Nullable: rows written before this shipped (and by the storefront /
+  /// service role) carry null and get a deterministic received_at-derived
+  /// stand-in at merge time (see lib/data/sync/hlc.dart).
+  final String? hlc;
+  final String staffMemberId;
+
+  /// `OwnerCapability.name` (e.g. `'analytics'`, `'inventoryEdit'`) — stored
+  /// as text, like every other enum-ish column in this codebase, so
+  /// reordering the Dart enum can never corrupt already-synced data.
+  final String capability;
+  const StaffPermission({
+    required this.id,
+    required this.shopId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.dirty,
+    this.hlc,
+    required this.staffMemberId,
+    required this.capability,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['shop_id'] = Variable<String>(shopId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['dirty'] = Variable<bool>(dirty);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
+    map['staff_member_id'] = Variable<String>(staffMemberId);
+    map['capability'] = Variable<String>(capability);
+    return map;
+  }
+
+  StaffPermissionsCompanion toCompanion(bool nullToAbsent) {
+    return StaffPermissionsCompanion(
+      id: Value(id),
+      shopId: Value(shopId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      dirty: Value(dirty),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
+      staffMemberId: Value(staffMemberId),
+      capability: Value(capability),
+    );
+  }
+
+  factory StaffPermission.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StaffPermission(
+      id: serializer.fromJson<String>(json['id']),
+      shopId: serializer.fromJson<String>(json['shopId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
+      staffMemberId: serializer.fromJson<String>(json['staffMemberId']),
+      capability: serializer.fromJson<String>(json['capability']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'shopId': serializer.toJson<String>(shopId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'dirty': serializer.toJson<bool>(dirty),
+      'hlc': serializer.toJson<String?>(hlc),
+      'staffMemberId': serializer.toJson<String>(staffMemberId),
+      'capability': serializer.toJson<String>(capability),
+    };
+  }
+
+  StaffPermission copyWith({
+    String? id,
+    String? shopId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? dirty,
+    Value<String?> hlc = const Value.absent(),
+    String? staffMemberId,
+    String? capability,
+  }) => StaffPermission(
+    id: id ?? this.id,
+    shopId: shopId ?? this.shopId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    dirty: dirty ?? this.dirty,
+    hlc: hlc.present ? hlc.value : this.hlc,
+    staffMemberId: staffMemberId ?? this.staffMemberId,
+    capability: capability ?? this.capability,
+  );
+  StaffPermission copyWithCompanion(StaffPermissionsCompanion data) {
+    return StaffPermission(
+      id: data.id.present ? data.id.value : this.id,
+      shopId: data.shopId.present ? data.shopId.value : this.shopId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
+      staffMemberId: data.staffMemberId.present
+          ? data.staffMemberId.value
+          : this.staffMemberId,
+      capability: data.capability.present
+          ? data.capability.value
+          : this.capability,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StaffPermission(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
+          ..write('staffMemberId: $staffMemberId, ')
+          ..write('capability: $capability')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    shopId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    dirty,
+    hlc,
+    staffMemberId,
+    capability,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StaffPermission &&
+          other.id == this.id &&
+          other.shopId == this.shopId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.dirty == this.dirty &&
+          other.hlc == this.hlc &&
+          other.staffMemberId == this.staffMemberId &&
+          other.capability == this.capability);
+}
+
+class StaffPermissionsCompanion extends UpdateCompanion<StaffPermission> {
+  final Value<String> id;
+  final Value<String> shopId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> dirty;
+  final Value<String?> hlc;
+  final Value<String> staffMemberId;
+  final Value<String> capability;
+  final Value<int> rowid;
+  const StaffPermissionsCompanion({
+    this.id = const Value.absent(),
+    this.shopId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
+    this.staffMemberId = const Value.absent(),
+    this.capability = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StaffPermissionsCompanion.insert({
+    required String id,
+    required String shopId,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.hlc = const Value.absent(),
+    required String staffMemberId,
+    required String capability,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       shopId = Value(shopId),
+       staffMemberId = Value(staffMemberId),
+       capability = Value(capability);
+  static Insertable<StaffPermission> custom({
+    Expression<String>? id,
+    Expression<String>? shopId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? dirty,
+    Expression<String>? hlc,
+    Expression<String>? staffMemberId,
+    Expression<String>? capability,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (shopId != null) 'shop_id': shopId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (dirty != null) 'dirty': dirty,
+      if (hlc != null) 'hlc': hlc,
+      if (staffMemberId != null) 'staff_member_id': staffMemberId,
+      if (capability != null) 'capability': capability,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StaffPermissionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? shopId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? dirty,
+    Value<String?>? hlc,
+    Value<String>? staffMemberId,
+    Value<String>? capability,
+    Value<int>? rowid,
+  }) {
+    return StaffPermissionsCompanion(
+      id: id ?? this.id,
+      shopId: shopId ?? this.shopId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      dirty: dirty ?? this.dirty,
+      hlc: hlc ?? this.hlc,
+      staffMemberId: staffMemberId ?? this.staffMemberId,
+      capability: capability ?? this.capability,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (shopId.present) {
+      map['shop_id'] = Variable<String>(shopId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
+    if (staffMemberId.present) {
+      map['staff_member_id'] = Variable<String>(staffMemberId.value);
+    }
+    if (capability.present) {
+      map['capability'] = Variable<String>(capability.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StaffPermissionsCompanion(')
+          ..write('id: $id, ')
+          ..write('shopId: $shopId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('dirty: $dirty, ')
+          ..write('hlc: $hlc, ')
+          ..write('staffMemberId: $staffMemberId, ')
+          ..write('capability: $capability, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -19481,6 +20107,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OrdersTable orders = $OrdersTable(this);
   late final $OrderItemsTable orderItems = $OrderItemsTable(this);
   late final $StaffMembersTable staffMembers = $StaffMembersTable(this);
+  late final $StaffPermissionsTable staffPermissions = $StaffPermissionsTable(
+    this,
+  );
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
   late final $CashSessionsTable cashSessions = $CashSessionsTable(this);
@@ -19523,6 +20152,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     orders,
     orderItems,
     staffMembers,
+    staffPermissions,
     customers,
     expenses,
     cashSessions,
@@ -24050,6 +24680,7 @@ typedef $$StaffMembersTableCreateCompanionBuilder =
       required String name,
       required String pin,
       Value<bool> active,
+      Value<String?> email,
       Value<int> rowid,
     });
 typedef $$StaffMembersTableUpdateCompanionBuilder =
@@ -24064,6 +24695,7 @@ typedef $$StaffMembersTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> pin,
       Value<bool> active,
+      Value<String?> email,
       Value<int> rowid,
     });
 
@@ -24123,6 +24755,11 @@ class $$StaffMembersTableFilterComposer
 
   ColumnFilters<bool> get active => $composableBuilder(
     column: $table.active,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -24185,6 +24822,11 @@ class $$StaffMembersTableOrderingComposer
     column: $table.active,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StaffMembersTableAnnotationComposer
@@ -24225,6 +24867,9 @@ class $$StaffMembersTableAnnotationComposer
 
   GeneratedColumn<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
 }
 
 class $$StaffMembersTableTableManager
@@ -24268,6 +24913,7 @@ class $$StaffMembersTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> pin = const Value.absent(),
                 Value<bool> active = const Value.absent(),
+                Value<String?> email = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StaffMembersCompanion(
                 id: id,
@@ -24280,6 +24926,7 @@ class $$StaffMembersTableTableManager
                 name: name,
                 pin: pin,
                 active: active,
+                email: email,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -24294,6 +24941,7 @@ class $$StaffMembersTableTableManager
                 required String name,
                 required String pin,
                 Value<bool> active = const Value.absent(),
+                Value<String?> email = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StaffMembersCompanion.insert(
                 id: id,
@@ -24306,6 +24954,7 @@ class $$StaffMembersTableTableManager
                 name: name,
                 pin: pin,
                 active: active,
+                email: email,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -24331,6 +24980,292 @@ typedef $$StaffMembersTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $StaffMembersTable, StaffMember>,
       ),
       StaffMember,
+      PrefetchHooks Function()
+    >;
+typedef $$StaffPermissionsTableCreateCompanionBuilder =
+    StaffPermissionsCompanion Function({
+      required String id,
+      required String shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      Value<String?> hlc,
+      required String staffMemberId,
+      required String capability,
+      Value<int> rowid,
+    });
+typedef $$StaffPermissionsTableUpdateCompanionBuilder =
+    StaffPermissionsCompanion Function({
+      Value<String> id,
+      Value<String> shopId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> dirty,
+      Value<String?> hlc,
+      Value<String> staffMemberId,
+      Value<String> capability,
+      Value<int> rowid,
+    });
+
+class $$StaffPermissionsTableFilterComposer
+    extends Composer<_$AppDatabase, $StaffPermissionsTable> {
+  $$StaffPermissionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get staffMemberId => $composableBuilder(
+    column: $table.staffMemberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get capability => $composableBuilder(
+    column: $table.capability,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StaffPermissionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StaffPermissionsTable> {
+  $$StaffPermissionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shopId => $composableBuilder(
+    column: $table.shopId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get staffMemberId => $composableBuilder(
+    column: $table.staffMemberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get capability => $composableBuilder(
+    column: $table.capability,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StaffPermissionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StaffPermissionsTable> {
+  $$StaffPermissionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get shopId =>
+      $composableBuilder(column: $table.shopId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
+  GeneratedColumn<String> get staffMemberId => $composableBuilder(
+    column: $table.staffMemberId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get capability => $composableBuilder(
+    column: $table.capability,
+    builder: (column) => column,
+  );
+}
+
+class $$StaffPermissionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StaffPermissionsTable,
+          StaffPermission,
+          $$StaffPermissionsTableFilterComposer,
+          $$StaffPermissionsTableOrderingComposer,
+          $$StaffPermissionsTableAnnotationComposer,
+          $$StaffPermissionsTableCreateCompanionBuilder,
+          $$StaffPermissionsTableUpdateCompanionBuilder,
+          (
+            StaffPermission,
+            BaseReferences<
+              _$AppDatabase,
+              $StaffPermissionsTable,
+              StaffPermission
+            >,
+          ),
+          StaffPermission,
+          PrefetchHooks Function()
+        > {
+  $$StaffPermissionsTableTableManager(
+    _$AppDatabase db,
+    $StaffPermissionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StaffPermissionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StaffPermissionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StaffPermissionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> shopId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
+                Value<String> staffMemberId = const Value.absent(),
+                Value<String> capability = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StaffPermissionsCompanion(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                hlc: hlc,
+                staffMemberId: staffMemberId,
+                capability: capability,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String shopId,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
+                required String staffMemberId,
+                required String capability,
+                Value<int> rowid = const Value.absent(),
+              }) => StaffPermissionsCompanion.insert(
+                id: id,
+                shopId: shopId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                dirty: dirty,
+                hlc: hlc,
+                staffMemberId: staffMemberId,
+                capability: capability,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StaffPermissionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StaffPermissionsTable,
+      StaffPermission,
+      $$StaffPermissionsTableFilterComposer,
+      $$StaffPermissionsTableOrderingComposer,
+      $$StaffPermissionsTableAnnotationComposer,
+      $$StaffPermissionsTableCreateCompanionBuilder,
+      $$StaffPermissionsTableUpdateCompanionBuilder,
+      (
+        StaffPermission,
+        BaseReferences<_$AppDatabase, $StaffPermissionsTable, StaffPermission>,
+      ),
+      StaffPermission,
       PrefetchHooks Function()
     >;
 typedef $$CustomersTableCreateCompanionBuilder =
@@ -28742,6 +29677,8 @@ class $AppDatabaseManager {
       $$OrderItemsTableTableManager(_db, _db.orderItems);
   $$StaffMembersTableTableManager get staffMembers =>
       $$StaffMembersTableTableManager(_db, _db.staffMembers);
+  $$StaffPermissionsTableTableManager get staffPermissions =>
+      $$StaffPermissionsTableTableManager(_db, _db.staffPermissions);
   $$CustomersTableTableManager get customers =>
       $$CustomersTableTableManager(_db, _db.customers);
   $$ExpensesTableTableManager get expenses =>

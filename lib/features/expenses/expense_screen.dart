@@ -16,8 +16,10 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../accounting/accounting_csv.dart';
+import '../accounting/accounting_pdf.dart';
 import '../accounting/accounting_providers.dart';
 import '../analytics/analytics_providers.dart';
+import '../printing/printing_providers.dart';
 import 'expense_providers.dart';
 import 'expense_repository.dart';
 import 'recurring_expense_providers.dart';
@@ -184,10 +186,66 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
       }
     }
 
+    Future<void> exportPdf() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final accounts = ref.read(paymentAccountsProvider).valueOrNull ?? const [];
+      final accountNameById = {for (final a in accounts) a.id: a.name};
+      try {
+        final profile = await ref.read(shopProfileProvider.future);
+        final printerConfig = await ref.read(printerConfigProvider.future);
+        final bytes = await buildLabeledTablePdf(
+          shopName: profile.name,
+          shopLogoUrl: profile.logoUrl,
+          shopPhone: profile.phone,
+          shopAddress: profile.address,
+          title: l.expensesTitle,
+          columnLabels: [
+            l.stockHistoryHeaderDate,
+            l.expensesHeaderCategory,
+            l.expenseAmount,
+            l.paymentAccountNameLabel,
+            l.stockHistoryHeaderNote,
+          ],
+          columnFlex: const [2, 2, 2, 2, 3],
+          rightAlignColumns: const {2},
+          rows: [
+            for (final e in expenses)
+              [
+                df.format(e.date),
+                categoryLabel(l, e.category),
+                Money(e.amount).withSymbol(cur),
+                e.accountId == null ? '' : (accountNameById[e.accountId!] ?? ''),
+                e.note ?? '',
+              ],
+          ],
+          emptyLabel: l.expensesEmpty,
+          pageFormat: printerConfig.pdfPaperSize,
+        );
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/expenses.pdf');
+        await file.writeAsBytes(bytes);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'application/pdf')],
+            subject: l.expensesTitle,
+          ),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l.expensesTitle),
         actions: [
+          IconButton(
+            tooltip: l.salesReportExportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: expenses.isEmpty ? null : () => exportPdf(),
+          ),
           IconButton(
             tooltip: l.inventoryExportCsv,
             icon: const Icon(Icons.table_chart_outlined),

@@ -9,8 +9,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounting/accounting_pdf.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'inventory_providers.dart';
 import 'stock_history_screen.dart';
 import 'stock_movements_csv.dart';
@@ -128,6 +130,66 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
     }
   }
 
+  /// Shares the CURRENTLY FILTERED ledger as PDF — same rule as the CSV
+  /// export above.
+  Future<void> _exportPdf(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    if (!ref.read(isPremiumProvider)) {
+      await showPremiumRequiredDialog(
+        context,
+        l.salesReportExportPdf,
+        benefit: l.stockHistoryCsvBenefit,
+      );
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final movements = ref.read(filteredMovementsProvider);
+    final df = DateFormat('yyyy-MM-dd HH:mm');
+    try {
+      final profile = await ref.read(shopProfileProvider.future);
+      final printerConfig = await ref.read(printerConfigProvider.future);
+      final bytes = await buildLabeledTablePdf(
+        shopName: profile.name,
+        shopLogoUrl: profile.logoUrl,
+        shopPhone: profile.phone,
+        shopAddress: profile.address,
+        title: l.stockHistoryTitle,
+        columnLabels: [
+          l.stockHistoryHeaderDate,
+          l.productName,
+          l.stockHistoryHeaderType,
+          l.stockHistoryHeaderQtyChange,
+          l.stockHistoryHeaderNote,
+        ],
+        columnFlex: const [2, 3, 2, 1, 3],
+        rightAlignColumns: const {3},
+        rows: [
+          for (final mp in movements)
+            [
+              df.format(mp.movement.createdAt),
+              mp.productName,
+              stockMovementTypeLabel(l, mp.movement.type),
+              '${mp.movement.qtyDelta}',
+              mp.movement.note ?? '',
+            ],
+        ],
+        emptyLabel: l.stockHistoryEmpty,
+        pageFormat: printerConfig.pdfPaperSize,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/stock-history.pdf');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l.stockHistoryTitle,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -160,6 +222,11 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
       appBar: AppBar(
         title: Text(l.stockHistoryTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: l.salesReportExportPdf,
+            onPressed: () => _exportPdf(context, ref),
+          ),
           IconButton(
             icon: const Icon(Icons.table_chart_outlined),
             tooltip: l.stockHistoryExportCsv,

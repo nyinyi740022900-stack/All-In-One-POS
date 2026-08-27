@@ -304,6 +304,19 @@ class SyncController extends StateNotifier<SyncState> {
         await _ensureSession();
       }
       await engine.syncNow();
+      // A new device signing into an already-provisioned shop pulls that
+      // shop's `shop_profiles` row down inside `syncNow()`, but nothing
+      // previously copied it into the `AppSettings` KV entries the
+      // onboarding/Shop Profile screens actually read — forcing the owner
+      // to retype the shop's name/address/phone on every new device even
+      // though the shop already had them. One-shot per shop; a no-op once
+      // hydrated or if this shop already had a profile.
+      final shopId = _ref.read(shopIdProvider);
+      if (shopId.isNotEmpty) {
+        await _ref
+            .read(settingsRepositoryProvider)
+            .hydrateShopProfileFromSyncIfNeeded(shopId);
+      }
       final truth = await _outboxCounts();
       state = state.copyWith(
         phase: SyncPhase.idle,

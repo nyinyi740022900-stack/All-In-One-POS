@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
+import 'owner_permission.dart';
 
 /// SHA-256 of `memberId:pin`, prefixed so [StaffRepository.verifyPin] can
 /// tell a hashed row from a legacy plaintext one at a glance. Salting with
@@ -68,7 +69,16 @@ class StaffRepository {
   /// existing member, pass null/empty to leave their PIN unchanged — the
   /// editor UI never re-displays a stored PIN (it's a hash now), so "leave
   /// blank to keep the current PIN" is the only way to edit just the name.
-  Future<String> upsertMember({String? id, required String name, String? pin}) async {
+  /// [email] is optional — when set, it links this roster row to an
+  /// invited-email `StaffAccount` sharing the same address (see
+  /// `StaffMembers.email`'s doc comment in tables.dart); pass an empty
+  /// string to clear a previously-set email.
+  Future<String> upsertMember({
+    String? id,
+    required String name,
+    String? pin,
+    String? email,
+  }) async {
     final memberId = id ?? _uuid.v4();
     final now = DateTime.now();
     String pinHash;
@@ -85,6 +95,7 @@ class StaffRepository {
     } else {
       throw ArgumentError('pin is required for a new staff member');
     }
+    final normalizedEmail = (email ?? '').trim().toLowerCase();
     await _db.transaction(() async {
       await _db.into(_db.staffMembers).insertOnConflictUpdate(
           StaffMembersCompanion(
@@ -93,6 +104,7 @@ class StaffRepository {
             name: Value(name),
             pin: Value(pinHash),
             active: const Value(true),
+            email: Value(normalizedEmail.isEmpty ? null : normalizedEmail),
             updatedAt: Value(now),
             dirty: const Value(true),
           ));
@@ -120,6 +132,83 @@ class StaffRepository {
     await _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: 'staff_members',
           rowId: memberId,
+          op: 'upsert',
+        ));
+  }
+
+  /// Which [OwnerCapability]s [staffMemberId] has been explicitly granted —
+  /// empty means none (default-deny; see [StaffPermissions]' doc comment).
+  /// Unknown capability strings (e.g. from a future app version's enum
+  /// member reaching an older device) are skipped rather than crashing.
+  Stream<Set<OwnerCapability>> watchGrantedCapabilities(String staffMemberId) {
+    return (_db.select(_db.staffPermissions)
+          ..where((t) =>
+              t.staffMemberId.equals(staffMemberId) & t.isDeleted.equals(false)))
+        .watch()
+        .map((rows) {
+      final out = <OwnerCapability>{};
+      for (final r in rows) {
+        for (final c in OwnerCapability.values) {
+          if (c.name == r.capability) {
+            out.add(c);
+            break;
+          }
+        }
+      }
+      return out;
+    });
+  }
+
+  /// Grants or revokes one [capability] for [staffMemberId]. Revoking
+  /// tombstones the existing row (`isDeleted = true`) rather than deleting
+  /// it, so there is always exactly one row per (staffMemberId, capability)
+  /// pair that flips state in place — matching [upsertMember]'s tombstone
+  /// convention for the roster itself.
+  Future<void> setCapabilityGranted(
+    String staffMemberId,
+    OwnerCapability capability,
+    bool granted,
+  ) async {
+    final now = DateTime.now();
+    final existing = await (_db.select(_db.staffPermissions)
+          ..where((t) =>
+              t.staffMemberId.equals(staffMemberId) &
+              t.capability.equals(capability.name)))
+        .getSingleOrNull();
+    if (existing == null) {
+      if (!granted) return; // nothing to revoke
+      final id = _uuid.v4();
+      await _db.transaction(() async {
+        await _db.into(_db.staffPermissions).insert(
+              StaffPermissionsCompanion.insert(
+                id: id,
+                shopId: _shopId,
+                staffMemberId: staffMemberId,
+                capability: capability.name,
+                updatedAt: Value(now),
+                dirty: const Value(true),
+              ),
+            );
+        await _enqueuePermission(id);
+      });
+      return;
+    }
+    await _db.transaction(() async {
+      await (_db.update(_db.staffPermissions)
+            ..where((t) => t.id.equals(existing.id)))
+          .write(StaffPermissionsCompanion(
+        isDeleted: Value(!granted),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueuePermission(existing.id);
+    });
+  }
+
+  Future<void> _enqueuePermission(String id) async {
+    await _db.into(_db.outbox).insert(OutboxCompanion.insert(
+          entityTable: 'staff_permissions',
+          rowId: id,
           op: 'upsert',
         ));
   }

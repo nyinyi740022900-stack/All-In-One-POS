@@ -71,6 +71,8 @@ dependencies:
   # Windows USB/Wi-Fi office printers) — not the thermal ESC/POS path.
   printing: ^5.14.2
   url_launcher: ^6.3.2
+  # App version/build number for the Settings → About screen.
+  package_info_plus: ^8.1.2
   cached_network_image: ^3.4.1
   sqflite_common_ffi: ^2.3.7+1
 

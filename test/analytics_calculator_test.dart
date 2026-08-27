@@ -14,7 +14,8 @@ void main() {
           String method = 'cash',
           int discount = 0,
           DateTime? at,
-          bool isRefund = false}) =>
+          bool isRefund = false,
+          String? staffId}) =>
       (
         id: id,
         total: total,
@@ -23,6 +24,7 @@ void main() {
         discount: discount,
         finalizedAt: at ?? d1,
         isRefund: isRefund,
+        staffId: staffId,
       );
 
   test('aggregates revenue, sales count and discount', () {
@@ -198,6 +200,67 @@ void main() {
     );
     expect(s.revenue, 0); // fully netted out
     expect(s.salesCount, 1); // the refund row itself isn't counted as a sale
+  });
+
+  group('salesByStaff', () {
+    test('groups revenue and count per staffId, sorted by revenue desc', () {
+      final s = computeAnalytics(
+        sales: [
+          sale(1000, at: d1, staffId: 'staff-a'),
+          sale(500, at: d1, staffId: 'staff-a'),
+          sale(3000, at: d1, staffId: 'staff-b'),
+        ],
+        items: const [],
+        productCost: const {},
+        stockValue: 0,
+        start: start,
+        end: end,
+      );
+      expect(s.salesByStaff, hasLength(2));
+      expect(s.salesByStaff[0].staffId, 'staff-b');
+      expect(s.salesByStaff[0].revenue, 3000);
+      expect(s.salesByStaff[0].salesCount, 1);
+      expect(s.salesByStaff[1].staffId, 'staff-a');
+      expect(s.salesByStaff[1].revenue, 1500);
+      expect(s.salesByStaff[1].salesCount, 2);
+    });
+
+    test('a null/blank staffId groups as one "unattributed" (owner) bucket',
+        () {
+      final s = computeAnalytics(
+        sales: [
+          sale(1000, at: d1, staffId: null),
+          sale(500, at: d1, staffId: ''),
+        ],
+        items: const [],
+        productCost: const {},
+        stockValue: 0,
+        start: start,
+        end: end,
+      );
+      expect(s.salesByStaff, hasLength(1));
+      expect(s.salesByStaff.single.staffId, isNull);
+      expect(s.salesByStaff.single.revenue, 1500);
+      expect(s.salesByStaff.single.salesCount, 2);
+    });
+
+    test('a refund nets revenue for its staffId but is excluded from that '
+        "staff's salesCount", () {
+      final s = computeAnalytics(
+        sales: [
+          sale(2100, at: d1, staffId: 'staff-a'),
+          sale(-2100, paid: -2100, at: d1, isRefund: true, staffId: 'staff-a'),
+        ],
+        items: const [],
+        productCost: const {},
+        stockValue: 0,
+        start: start,
+        end: end,
+      );
+      expect(s.salesByStaff.single.staffId, 'staff-a');
+      expect(s.salesByStaff.single.revenue, 0);
+      expect(s.salesByStaff.single.salesCount, 1);
+    });
   });
 
   test('creditOutstanding/collected respect FIFO repayment allocation '

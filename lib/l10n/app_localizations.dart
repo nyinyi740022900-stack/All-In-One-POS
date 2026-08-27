@@ -182,6 +182,12 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get commonSearch;
 
+  /// No description provided for @commonFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get commonFilters;
+
   /// No description provided for @commonYes.
   ///
   /// In en, this message translates to:
@@ -566,6 +572,48 @@ abstract class AppLocalizations {
   /// **'COD (Cash on Delivery)'**
   String get paymentCod;
 
+  /// No description provided for @paymentSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split payment'**
+  String get paymentSplit;
+
+  /// No description provided for @splitPaymentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Split payment'**
+  String get splitPaymentTitle;
+
+  /// No description provided for @splitPaymentAddMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another method'**
+  String get splitPaymentAddMethod;
+
+  /// No description provided for @splitPaymentRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining: {amount}'**
+  String splitPaymentRemaining(String amount);
+
+  /// No description provided for @splitPaymentRemoveMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this method'**
+  String get splitPaymentRemoveMethod;
+
+  /// No description provided for @splitPaymentEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit split'**
+  String get splitPaymentEdit;
+
+  /// No description provided for @splitPaymentSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to set up split payment'**
+  String get splitPaymentSetUp;
+
   /// No description provided for @cashRegisterTitle.
   ///
   /// In en, this message translates to:
@@ -721,6 +769,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share PDF'**
   String get cashReportSharePdf;
+
+  /// No description provided for @cashReportShareCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Share CSV'**
+  String get cashReportShareCsv;
 
   /// No description provided for @cashReportCashSales.
   ///
@@ -2300,6 +2354,48 @@ abstract class AppLocalizations {
   /// **'App Guide'**
   String get settingsAppGuide;
 
+  /// No description provided for @settingsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get aboutVersion;
+
+  /// No description provided for @aboutWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get aboutWebsite;
+
+  /// No description provided for @aboutCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get aboutCommunity;
+
+  /// No description provided for @aboutCheckForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get aboutCheckForUpdates;
+
+  /// No description provided for @aboutOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that link.'**
+  String get aboutOpenFailed;
+
   /// No description provided for @helpGuideTitle.
   ///
   /// In en, this message translates to:
@@ -2485,6 +2581,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credit'**
   String get invoiceFilterCredit;
+
+  /// No description provided for @invoiceFilterRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get invoiceFilterRefund;
 
   /// No description provided for @invoiceOwed.
   ///
@@ -2707,6 +2809,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Address'**
   String get salesReportColumnAddress;
+
+  /// No description provided for @salesReportColumnCashier.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold by'**
+  String get salesReportColumnCashier;
 
   /// No description provided for @salesReportColumnAmount.
   ///
@@ -3260,6 +3368,12 @@ abstract class AppLocalizations {
   /// **'No categories yet.'**
   String get categoriesEmpty;
 
+  /// No description provided for @categoryPickerNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories match your search.'**
+  String get categoryPickerNoResults;
+
   /// No description provided for @productCategory.
   ///
   /// In en, this message translates to:
@@ -3313,6 +3427,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top products'**
   String get analyticsTopProducts;
+
+  /// No description provided for @analyticsSalesByEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales by employee'**
+  String get analyticsSalesByEmployee;
 
   /// No description provided for @analyticsRangeToday.
   ///
@@ -4838,6 +4958,12 @@ abstract class AppLocalizations {
   /// **'Kept on this device until cloud sync completes automatically.'**
   String get syncIssuesQuarantinedHeld;
 
+  /// No description provided for @syncIssuesInvoiceCollision.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice number already used by another device\'s sale. The sale itself is safe — contact support to get this invoice renumbered.'**
+  String get syncIssuesInvoiceCollision;
+
   /// No description provided for @navOrders.
   ///
   /// In en, this message translates to:
@@ -5492,11 +5618,53 @@ abstract class AppLocalizations {
   /// **'Leave blank to keep the current PIN'**
   String get staffMemberPinKeepHint;
 
+  /// No description provided for @staffMemberEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email (optional)'**
+  String get staffMemberEmail;
+
+  /// No description provided for @staffMemberEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If this person also has a staff account (email login), their granted permissions will apply there too'**
+  String get staffMemberEmailHint;
+
   /// No description provided for @staffMemberSaved.
   ///
   /// In en, this message translates to:
   /// **'Staff member saved'**
   String get staffMemberSaved;
+
+  /// No description provided for @staffPermissionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get staffPermissionsTooltip;
+
+  /// No description provided for @staffPermissionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s permissions'**
+  String staffPermissionsTitle(String name);
+
+  /// No description provided for @staffPermissionsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on the features {name} can use beyond Sell and Orders. Off by default.'**
+  String staffPermissionsIntro(String name);
+
+  /// No description provided for @staffCapabilityInventoryEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit inventory'**
+  String get staffCapabilityInventoryEdit;
+
+  /// No description provided for @staffCapabilitySettingsSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Sensitive settings (stock tracking, backup)'**
+  String get staffCapabilitySettingsSensitive;
 
   /// No description provided for @staffRemoveMember.
   ///

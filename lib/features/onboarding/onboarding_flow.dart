@@ -339,7 +339,15 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _footer = TextEditingController();
-  bool _hydrated = false;
+  // Keyed by shopId (not a one-shot bool): a `PageView(children: ...)` keeps
+  // every page's State alive off-screen, so this page's first build often
+  // runs before the Account page (later in the flow) signs the device into
+  // its real cloud shop. Re-hydrating whenever shopId changes means that if
+  // the owner signs into an already-provisioned shop during this same
+  // onboarding session, the fields pick up that shop's real profile (once
+  // the sync-triggered hydration in `SyncController` lands it) instead of
+  // staying stuck on the pre-sign-in placeholder.
+  String? _hydratedForShopId;
 
   @override
   void dispose() {
@@ -369,13 +377,14 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final shopId = ref.watch(shopIdProvider);
     final async = ref.watch(shopProfileProvider);
-    if (!_hydrated && async.hasValue) {
+    if (_hydratedForShopId != shopId && async.hasValue) {
       _name.text = async.value!.name;
       _phone.text = async.value!.phone ?? '';
       _address.text = async.value!.address ?? '';
       _footer.text = async.value!.footer ?? '';
-      _hydrated = true;
+      _hydratedForShopId = shopId;
     }
     return _OnboardPage(
       icon: Icons.store_outlined,
@@ -637,7 +646,13 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     if (!mounted) return;
     await ref.read(licenseControllerProvider.notifier).applyExternal(license);
     ref.invalidate(hasRealAccountSessionProvider);
-    ref.read(syncControllerProvider.notifier).sync();
+    // Awaited (not fire-and-forget): this shop's real `shop_profiles` row
+    // pulls down as part of this sync, and `SyncController` hydrates it into
+    // the AppSettings KV the Shop Profile page/screen read right after —
+    // waiting here means that hydration has already landed by the time the
+    // rest of onboarding (and Settings → Shop, immediately afterward) reads
+    // it, instead of racing a background sync that might still be running.
+    await ref.read(syncControllerProvider.notifier).sync();
     if (!mounted) return;
     setState(() {
       _busy = false;

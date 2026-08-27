@@ -177,108 +177,117 @@ class _FilterHeaderState extends ConsumerState<_FilterHeader> {
     final active =
         ref.watch(ordersFilterActiveProvider) ||
         ref.watch(orderStatusFilterProvider) != null;
-    final channel = ref.watch(orderChannelFilterProvider);
-    final payment = ref.watch(orderPaymentFilterProvider);
-    final status = ref.watch(orderStatusFilterProvider);
-    final grouped = ref.watch(ordersByStatusProvider);
-    final cancelledCount = (grouped['cancelled'] ?? const []).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.space3,
         AppTheme.space2,
         AppTheme.space3,
-        0,
+        AppTheme.space2,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _search,
-            decoration: InputDecoration(
-              isDense: true,
-              prefixIcon: const Icon(Icons.search),
-              hintText: l.ordersSearchHint,
-              suffixIcon: active
-                  ? IconButton(
-                      tooltip: l.ordersClearFilters,
-                      icon: const Icon(Icons.clear),
-                      onPressed: _clearAll,
-                    )
-                  : null,
-              border: const OutlineInputBorder(),
-            ),
-            onChanged: (v) => ref.read(orderSearchProvider.notifier).state = v,
+      child: TextField(
+        controller: _search,
+        decoration: InputDecoration(
+          isDense: true,
+          prefixIcon: const Icon(Icons.search),
+          hintText: l.ordersSearchHint,
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (active)
+                IconButton(
+                  tooltip: l.ordersClearFilters,
+                  icon: const Icon(Icons.clear),
+                  onPressed: _clearAll,
+                ),
+              IconButton(
+                tooltip: l.commonFilters,
+                icon: Badge(
+                  isLabelVisible: active,
+                  smallSize: 8,
+                  child: const Icon(Icons.filter_list),
+                ),
+                onPressed: () => _openFilterSheet(context),
+              ),
+            ],
           ),
-          const SizedBox(height: AppTheme.space2),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final s in orderStatuses)
-                  _FilterChip(
-                    label:
-                        '${orderStatusLabel(l, s)} (${(grouped[s] ?? const []).length})',
-                    selected: status == s,
-                    onSelected: () =>
-                        ref.read(orderStatusFilterProvider.notifier).state =
-                            (status == s ? null : s),
-                  ),
-                if (cancelledCount > 0)
-                  _FilterChip(
-                    label:
-                        '${orderStatusLabel(l, 'cancelled')} ($cancelledCount)',
-                    selected: status == 'cancelled',
-                    onSelected: () =>
-                        ref.read(orderStatusFilterProvider.notifier).state =
-                            (status == 'cancelled' ? null : 'cancelled'),
-                  ),
-                const SizedBox(width: AppTheme.space3),
-                for (final c in orderChannels)
-                  _FilterChip(
-                    label: orderChannelLabel(l, c),
-                    selected: channel == c,
-                    onSelected: () =>
-                        ref.read(orderChannelFilterProvider.notifier).state =
-                            (channel == c ? null : c),
-                  ),
-                const SizedBox(width: AppTheme.space3),
-                for (final p in const ['unpaid', 'paid'])
-                  _FilterChip(
-                    label: orderPaymentLabel(l, p),
-                    selected: payment == p,
-                    onSelected: () =>
-                        ref.read(orderPaymentFilterProvider.notifier).state =
-                            (payment == p ? null : p),
-                  ),
-              ],
-            ),
-          ),
-        ],
+          border: const OutlineInputBorder(),
+        ),
+        onChanged: (v) => ref.read(orderSearchProvider.notifier).state = v,
       ),
     );
   }
-}
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-  });
-  final String label;
-  final bool selected;
-  final VoidCallback onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: AppTheme.space2),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onSelected(),
-      ),
+  void _openFilterSheet(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    showChipFilterSheet(
+      context,
+      title: l.commonFilters,
+      clearLabel: l.ordersClearFilters,
+      onClearAll: _clearAll,
+      sectionsBuilder: (refresh) {
+        final status = ref.read(orderStatusFilterProvider);
+        final channel = ref.read(orderChannelFilterProvider);
+        final payment = ref.read(orderPaymentFilterProvider);
+        final grouped = ref.read(ordersByStatusProvider);
+        final cancelledCount = (grouped['cancelled'] ?? const []).length;
+        return [
+          FilterChipSection(
+            chips: [
+              for (final s in orderStatuses)
+                FilterChipSpec(
+                  label:
+                      '${orderStatusLabel(l, s)} (${(grouped[s] ?? const []).length})',
+                  selected: status == s,
+                  onTap: () {
+                    ref.read(orderStatusFilterProvider.notifier).state =
+                        status == s ? null : s;
+                    refresh();
+                  },
+                ),
+              if (cancelledCount > 0)
+                FilterChipSpec(
+                  label:
+                      '${orderStatusLabel(l, 'cancelled')} ($cancelledCount)',
+                  selected: status == 'cancelled',
+                  onTap: () {
+                    ref.read(orderStatusFilterProvider.notifier).state =
+                        status == 'cancelled' ? null : 'cancelled';
+                    refresh();
+                  },
+                ),
+            ],
+          ),
+          FilterChipSection(
+            chips: [
+              for (final c in orderChannels)
+                FilterChipSpec(
+                  label: orderChannelLabel(l, c),
+                  selected: channel == c,
+                  onTap: () {
+                    ref.read(orderChannelFilterProvider.notifier).state =
+                        channel == c ? null : c;
+                    refresh();
+                  },
+                ),
+            ],
+          ),
+          FilterChipSection(
+            chips: [
+              for (final p in const ['unpaid', 'paid'])
+                FilterChipSpec(
+                  label: orderPaymentLabel(l, p),
+                  selected: payment == p,
+                  onTap: () {
+                    ref.read(orderPaymentFilterProvider.notifier).state =
+                        payment == p ? null : p;
+                    refresh();
+                  },
+                ),
+            ],
+          ),
+        ];
+      },
     );
   }
 }

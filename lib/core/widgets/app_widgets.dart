@@ -533,11 +533,14 @@ class CategoryFilterOption {
 /// original bare `ChoiceChip` row in a fixed `SizedBox(height: 48)` — this is
 /// that fix, applied once instead of copied.)
 ///
-/// Two decisions worth keeping:
-/// * **Each chip carries its count**, so an empty category is visible before
-///   it is tapped rather than after.
-/// * **The bar sizes to its content.** A fixed single-line height is what
-///   clips a two-line Myanmar category name at 1.3x text scale.
+/// One decision worth keeping: **the bar sizes to its content.** A fixed
+/// single-line height is what clips a two-line Myanmar category name at
+/// 1.3x text scale.
+///
+/// Chips deliberately don't show a per-category product count any more — a
+/// shop with many categories found the number-per-chip noisy once the list
+/// grew, and the count is still available in [showCategoryPickerSheet] via
+/// each option's underlying data if ever needed again.
 class CategoryFilterBar extends StatelessWidget {
   const CategoryFilterBar({
     super.key,
@@ -553,8 +556,6 @@ class CategoryFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (options.isEmpty) return const SizedBox.shrink();
-    final scheme = Theme.of(context).colorScheme;
-    final muted = AppColors.of(context).muted;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -582,23 +583,7 @@ class CategoryFilterBar extends StatelessWidget {
                       horizontal: AppTheme.space3,
                       vertical: AppTheme.space2,
                     ),
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(option.label),
-                        const SizedBox(width: AppTheme.space2),
-                        Text(
-                          '${option.count}',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontFeatures: AppTheme.tabularFigures,
-                                color: option.id == selectedId
-                                    ? scheme.onPrimaryContainer
-                                    : muted,
-                              ),
-                        ),
-                      ],
-                    ),
+                    label: Text(option.label),
                     selected: option.id == selectedId,
                     onSelected: (_) => onSelected(option.id),
                   ),
@@ -620,9 +605,10 @@ const _kCategoryPickerAll = '__all__';
 /// Direct-pick category chooser — the counterpart to the scrollable
 /// [CategoryFilterBar] chip row. A shop whose category list has grown past
 /// a screenful has to hunt through the scroller chip by chip; this sheet
-/// lists them all at once (with counts, check on the current pick) so one
-/// tap from the search bar's filter icon lands on the category. Shared by
-/// Sell and Inventory, like the chip row.
+/// lists them all at once (check on the current pick), with a search field
+/// once the list is long enough to be worth narrowing, so one tap from the
+/// search bar's filter icon lands on the category. Shared by Sell and
+/// Inventory, like the chip row.
 Future<void> showCategoryPickerSheet(
   BuildContext context, {
   required List<CategoryFilterOption> options,
@@ -630,57 +616,247 @@ Future<void> showCategoryPickerSheet(
   required String title,
   required ValueChanged<String?> onSelected,
 }) async {
+  final l = AppLocalizations.of(context);
   final picked = await showModalBottomSheet<String>(
     context: context,
-    builder: (sheetContext) => SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.space4,
-              AppTheme.space3,
-              AppTheme.space4,
-              AppTheme.space1,
-            ),
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
-          for (final option in options)
-            ListTile(
-              leading: Icon(
-                option.id == null ? Icons.apps : Icons.label_outline,
-              ),
-              title: Text(option.label),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${option.count}',
-                    style: Theme.of(sheetContext).textTheme.labelSmall
-                        ?.copyWith(
-                          fontFeatures: AppTheme.tabularFigures,
-                          color: AppColors.of(sheetContext).muted,
-                        ),
-                  ),
-                  const SizedBox(width: AppTheme.space2),
-                  if (option.id == selectedId) const Icon(Icons.check),
-                ],
-              ),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                option.id ?? _kCategoryPickerAll,
-              ),
-            ),
-          const SizedBox(height: AppTheme.space2),
-        ],
-      ),
-    ),
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      // Lives outside StatefulBuilder's own builder callback so it survives
+      // the setState-triggered rebuilds below instead of resetting to '' on
+      // every keystroke.
+      var query = '';
+      return SafeArea(
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return _CategoryPickerSheetBody(
+              title: title,
+              options: options,
+              selectedId: selectedId,
+              searchHint: l.commonSearch,
+              noResultsText: l.categoryPickerNoResults,
+              onQueryChanged: (v) => setState(() => query = v),
+              query: query,
+            );
+          },
+        ),
+      );
+    },
   );
   if (picked == null) return; // dismissed
   onSelected(picked == _kCategoryPickerAll ? null : picked);
+}
+
+class _CategoryPickerSheetBody extends StatelessWidget {
+  const _CategoryPickerSheetBody({
+    required this.title,
+    required this.options,
+    required this.selectedId,
+    required this.searchHint,
+    required this.noResultsText,
+    required this.query,
+    required this.onQueryChanged,
+  });
+
+  final String title;
+  final List<CategoryFilterOption> options;
+  final String? selectedId;
+  final String searchHint;
+  final String noResultsText;
+  final String query;
+  final ValueChanged<String> onQueryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final q = query.trim().toLowerCase();
+    // "All" always stays visible — it's not a searchable category, it's the
+    // reset action.
+    final filtered = q.isEmpty
+        ? options
+        : options
+              .where(
+                (o) => o.id == null || o.label.toLowerCase().contains(q),
+              )
+              .toList();
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space4,
+            AppTheme.space3,
+            AppTheme.space4,
+            AppTheme.space1,
+          ),
+          child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+        ),
+        // Only worth the extra row once there are enough categories that
+        // scanning them all is slower than typing a few letters.
+        if (options.length > 6)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              0,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
+            child: TextField(
+              autofocus: false,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: searchHint,
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: onQueryChanged,
+            ),
+          ),
+        for (final option in filtered)
+          ListTile(
+            leading: Icon(
+              option.id == null ? Icons.apps : Icons.label_outline,
+            ),
+            title: Text(option.label),
+            trailing: option.id == selectedId
+                ? const Icon(Icons.check)
+                : null,
+            onTap: () => Navigator.pop(
+              context,
+              option.id ?? _kCategoryPickerAll,
+            ),
+          ),
+        if (filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(AppTheme.space4),
+            child: Text(
+              noResultsText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        const SizedBox(height: AppTheme.space2),
+      ],
+    );
+  }
+}
+
+/// One selectable chip inside a [showChipFilterSheet] section. [onTap]
+/// is expected to both flip the backing provider's state AND call the
+/// `refresh` callback the sheet hands to its `sectionsBuilder`, so the chip
+/// visibly toggles without the caller needing its own Riverpod plumbing
+/// inside the modal.
+class FilterChipSpec {
+  const FilterChipSpec({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+}
+
+/// A labelled (or unlabelled) group of [FilterChipSpec] chips in a
+/// [showChipFilterSheet].
+class FilterChipSection {
+  const FilterChipSection({this.title, required this.chips});
+  final String? title;
+  final List<FilterChipSpec> chips;
+}
+
+/// Generic "more filters" bottom sheet — the counterpart to
+/// [showCategoryPickerSheet] for screens whose filters aren't category-based
+/// (Orders' status/channel/payment, Invoices' all/credit/refund). Puts a
+/// filter icon beside the search field instead of an always-visible chip row
+/// below it, which used to scroll and eat vertical space even when a shop
+/// never touched the filters.
+///
+/// [sectionsBuilder] is re-invoked on every local `refresh()` (via the
+/// sheet's own `StatefulBuilder`) rather than wired through Riverpod's
+/// `Consumer`, so callers just read current provider values with `ref.read`
+/// inside it and call the passed-in `refresh` after mutating state — no
+/// separate reactive plumbing needed for the modal to reflect the tap.
+Future<void> showChipFilterSheet(
+  BuildContext context, {
+  required String title,
+  required List<FilterChipSection> Function(VoidCallback refresh)
+  sectionsBuilder,
+  String? clearLabel,
+  VoidCallback? onClearAll,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: StatefulBuilder(
+        builder: (context, setState) {
+          void refresh() => setState(() {});
+          final sections = sectionsBuilder(refresh);
+          return ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space4,
+                  AppTheme.space3,
+                  AppTheme.space2,
+                  AppTheme.space1,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    if (onClearAll != null && clearLabel != null)
+                      TextButton(
+                        onPressed: () {
+                          onClearAll();
+                          refresh();
+                        },
+                        child: Text(clearLabel),
+                      ),
+                  ],
+                ),
+              ),
+              for (final section in sections) ...[
+                if (section.title != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.space4,
+                      AppTheme.space2,
+                      AppTheme.space4,
+                      AppTheme.space1,
+                    ),
+                    child: Text(
+                      section.title!,
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.space4,
+                  ),
+                  child: Wrap(
+                    spacing: AppTheme.space2,
+                    runSpacing: AppTheme.space2,
+                    children: [
+                      for (final chip in section.chips)
+                        ChoiceChip(
+                          label: Text(chip.label),
+                          selected: chip.selected,
+                          onSelected: (_) => chip.onTap(),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppTheme.space3),
+            ],
+          );
+        },
+      ),
+    ),
+  );
 }
 
 /// A section title with optional trailing action (e.g. "See all"). Keeps

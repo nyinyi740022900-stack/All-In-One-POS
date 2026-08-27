@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/analytics/analytics_screen.dart';
+import '../features/analytics/analytics_accounting_hub_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/onboarding/onboarding_flow.dart';
 import '../features/onboarding/onboarding_state.dart';
 import '../features/orders/orders_invoices_hub_screen.dart';
 import '../features/sell/sell_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/staff/owner_permission.dart';
 import '../features/staff/staff_providers.dart';
 import '../l10n/app_localizations.dart';
 import 'layout.dart';
@@ -62,11 +63,23 @@ List<RouteBase> buildAppRoutes() => [
             ),
           ],
         ),
+        // Analytics + Accounting share ONE bottom-nav destination (sub-tabs
+        // inside the hub), so they share ONE branch — but keep both URLs,
+        // mirroring the Orders/Invoices hub above. The first route is the
+        // branch's initial location.
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/analytics',
-              builder: (_, _) => const AnalyticsScreen(),
+              builder: (_, _) => const AnalyticsAccountingHubScreen(
+                initialTab: AnalyticsAccountingHubScreen.analyticsTab,
+              ),
+            ),
+            GoRoute(
+              path: '/accounting',
+              builder: (_, _) => const AnalyticsAccountingHubScreen(
+                initialTab: AnalyticsAccountingHubScreen.accountingTab,
+              ),
             ),
           ],
         ),
@@ -95,12 +108,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (needed && state.matchedLocation != '/onboarding') {
         return '/onboarding';
       }
-      // Analytics is owner-only AT THE ROUTER, not just in the tab bar — a
-      // deep link straight to /analytics must not render it (audit QA-M5).
-      // Fail-closed: while the role stream is still resolving, bounce to
-      // Sell; an owner tapping again a moment later gets through.
-      if (state.matchedLocation.startsWith('/analytics') &&
-          !ref.read(isResolvedOwnerProvider)) {
+      // Analytics (and Accounting, its peer tab in the same hub — Accounting
+      // was previously only reachable by pushing off the already-gated
+      // Analytics screen and must stay exactly as protected now that it's a
+      // sibling route, not a nested push) is owner-only (or granted-staff)
+      // AT THE ROUTER, not just in the tab bar — a deep link straight to
+      // either URL must not render it (audit QA-M5). Fail-closed: while the
+      // role stream is still resolving, bounce to Sell; an owner (or a
+      // staff member granted the `analytics` capability) gets through once
+      // resolved.
+      if ((state.matchedLocation.startsWith('/analytics') ||
+              state.matchedLocation.startsWith('/accounting')) &&
+          !ref.read(hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics))) {
         return '/sell';
       }
       return null;
@@ -121,7 +140,12 @@ class _ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final isOwner = ref.watch(sessionScopeProvider).isEffectiveOwner;
+    // Optimistic (not fail-closed) check for tab CHROME visibility only —
+    // the actual route is separately fail-closed-gated by
+    // `hasResolvedOwnerCapabilityProvider` above. Owner OR a staff member
+    // granted the `analytics` capability sees the tab.
+    final canSeeAnalytics =
+        ref.watch(hasOwnerCapabilityProvider(OwnerCapability.analytics));
     // Tablet (medium+) → rail; phone → bottom bar.
     final wide = isMediumPlus(context);
 
@@ -140,7 +164,7 @@ class _ShellScaffold extends ConsumerWidget {
       _Dest(4, Icons.settings, l.navSettings),
     ];
     final destinations = allDestinations
-        .where((d) => !d.ownerOnly || isOwner)
+        .where((d) => !d.ownerOnly || canSeeAnalytics)
         .toList();
 
     var selectedIndex = destinations.indexWhere(

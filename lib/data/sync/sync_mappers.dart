@@ -63,6 +63,7 @@ final syncTables = <SyncTableDef>[
   _orders,
   _orderItems,
   _staffMembers,
+  _staffPermissions,
   _customers,
   _expenses,
   _cashSessions,
@@ -139,6 +140,7 @@ final _staffMembers = SyncTableDef(
       'name': r.name,
       'pin': r.pin,
       'active': r.active,
+      'email': r.email,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'hlc': r.hlc,
@@ -168,6 +170,58 @@ final _staffMembers = SyncTableDef(
           name: Value(m['name'] as String),
           pin: Value(m['pin'] as String),
           active: Value(_bool(m['active'])),
+          email: Value(m['email'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          hlc: Value(hlc),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+    return true;
+  },
+);
+
+// --- staff_permissions ---------------------------------------------------
+final _staffPermissions = SyncTableDef(
+  name: 'staff_permissions',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.staffPermissions)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'staff_member_id': r.staffMemberId,
+      'capability': r.capability,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.staffPermissions)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
+    await db.into(db.staffPermissions).insertOnConflictUpdate(
+        StaffPermissionsCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          staffMemberId: Value(m['staff_member_id'] as String),
+          capability: Value(m['capability'] as String),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           hlc: Value(hlc),

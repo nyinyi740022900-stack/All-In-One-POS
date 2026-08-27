@@ -4,35 +4,32 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'pdf_font.dart';
-import 'receipt_data.dart';
-import 'sales_report_data.dart';
+import '../invoices/pdf_font.dart';
+import '../invoices/receipt_data.dart';
 
-/// Renders a date-range [SalesReport] onto a real A4/A5 page — for a
-/// WiFi/AirPrint printer or a computer's own print dialog, the two cases a
-/// Bluetooth thermal printer can't reach. Visually matches [buildInvoicePdf]
-/// (same accent/header layout) so an invoice and this report read as the
-/// same shop's documents.
-Future<Uint8List> buildSalesReportPdf({
+/// A generic "table of strings" PDF shell — same header/footer/font scaffold
+/// as `buildSalesReportPdf`/`buildPnlPdf`/`buildEquityPdf`, parameterized on
+/// columns instead of re-implementing the shell per screen. Shared by every
+/// Accounting-family export whose data is really just rows of pre-formatted
+/// cells (Balance Sheet, Cash Flow, Accounts Payable/Receivable, Expenses,
+/// Inventory, Stock Movements) — the caller formats money/dates into
+/// strings itself, this only lays them out.
+Future<Uint8List> buildLabeledTablePdf({
   required String shopName,
   String? shopLogoUrl,
   String? shopPhone,
   String? shopAddress,
   required String title,
-  required String dateRangeLabel,
-  required SalesReport report,
-  required String currencySymbol,
-  required String invoiceColumnLabel,
-  required String dateColumnLabel,
-  required String customerColumnLabel,
-  required String addressColumnLabel,
-  required String cashierColumnLabel,
-  required String amountColumnLabel,
-  required String totalLabel,
-  required String noSalesLabel,
-  required String Function(String? staffId) cashierLabelFor,
+  String? subtitle,
+  required List<String> columnLabels,
+  required List<int> columnFlex,
+  required List<List<String>> rows,
+  Set<int> rightAlignColumns = const {},
+  Set<int> boldRowIndices = const {},
+  String? emptyLabel,
   PdfPaperSize pageFormat = PdfPaperSize.a4,
 }) async {
+  assert(columnLabels.length == columnFlex.length);
   final accent = PdfColor.fromInt(0xFF6C4AB6);
   final muted = PdfColor.fromInt(0xFF8A8398);
   final line = PdfColor.fromInt(0xFFDDD7E8);
@@ -47,25 +44,14 @@ Future<Uint8List> buildSalesReportPdf({
     }
   }
 
-  String amt(int v) {
-    final sign = v < 0 ? '-' : '';
-    return '$sign${v.abs().toString().replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (m) => ',',
-        )} $currencySymbol';
-  }
-
-  String dateStr(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   final font = await loadMyanmarPdfFont();
   final doc = pw.Document(
     theme: pw.ThemeData.withFont(
       base: font.regular,
       bold: font.bold,
-      // Noto Sans Myanmar doesn't cover every symbol (e.g. the date-range
-      // arrow "→") — fall back to the bundled Helvetica for anything it's
-      // missing rather than a tofu box.
+      // Noto Sans Myanmar doesn't cover every symbol (e.g. an arrow) — fall
+      // back to the bundled Helvetica for anything it's missing rather than
+      // a tofu box.
       fontFallback: [pw.Font.helvetica(), pw.Font.helveticaBold()],
     ),
   );
@@ -114,12 +100,9 @@ Future<Uint8List> buildSalesReportPdf({
                     fontSize: 13,
                     fontWeight: pw.FontWeight.bold,
                     color: accent)),
-            // "→" (as shown on-screen, where Flutter's own text engine
-            // renders it fine) has no glyph in either the bundled Myanmar
-            // font or the Unicode-less Helvetica fallback — swap it for a
-            // plain hyphen here rather than a tofu box.
-            pw.Text(dateRangeLabel.replaceAll('→', '-'),
-                style: pw.TextStyle(fontSize: 10, color: muted)),
+            if ((subtitle ?? '').isNotEmpty)
+              pw.Text(subtitle!.replaceAll('→', '-'),
+                  style: pw.TextStyle(fontSize: 10, color: muted)),
             pw.SizedBox(height: 12),
           ],
         );
@@ -131,12 +114,12 @@ Future<Uint8List> buildSalesReportPdf({
             style: pw.TextStyle(fontSize: 8, color: muted)),
       ),
       build: (context) {
-        if (report.rows.isEmpty) {
+        if (rows.isEmpty && (emptyLabel ?? '').isNotEmpty) {
           return [
             pw.Padding(
               padding: const pw.EdgeInsets.symmetric(vertical: 24),
               child: pw.Center(
-                child: pw.Text(noSalesLabel,
+                child: pw.Text(emptyLabel!,
                     style: pw.TextStyle(fontSize: 11, color: muted)),
               ),
             ),
@@ -145,59 +128,34 @@ Future<Uint8List> buildSalesReportPdf({
         return [
           pw.Table(
             border: pw.TableBorder.all(color: line),
-            columnWidths: const {
-              0: pw.FlexColumnWidth(3),
-              1: pw.FlexColumnWidth(2),
-              2: pw.FlexColumnWidth(3),
-              3: pw.FlexColumnWidth(4),
-              4: pw.FlexColumnWidth(2),
-              5: pw.FlexColumnWidth(3),
+            columnWidths: {
+              for (var i = 0; i < columnFlex.length; i++)
+                i: pw.FlexColumnWidth(columnFlex[i].toDouble()),
             },
             children: [
               pw.TableRow(
-                decoration:
-                    const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF7F5FB)),
+                decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFFF7F5FB)),
                 children: [
-                  _cell(invoiceColumnLabel, bold: true, color: muted),
-                  _cell(dateColumnLabel, bold: true, color: muted),
-                  _cell(customerColumnLabel, bold: true, color: muted),
-                  _cell(addressColumnLabel, bold: true, color: muted),
-                  _cell(cashierColumnLabel, bold: true, color: muted),
-                  _cell(amountColumnLabel,
-                      bold: true, color: muted, align: pw.TextAlign.right),
+                  for (var c = 0; c < columnLabels.length; c++)
+                    _cell(columnLabels[c],
+                        bold: true,
+                        color: muted,
+                        align: rightAlignColumns.contains(c)
+                            ? pw.TextAlign.right
+                            : pw.TextAlign.left),
                 ],
               ),
-              for (final r in report.rows)
+              for (var r = 0; r < rows.length; r++)
                 pw.TableRow(children: [
-                  _cell(r.invoiceNo),
-                  _cell(dateStr(r.date)),
-                  _cell(r.customerName),
-                  _cell(r.address),
-                  _cell(cashierLabelFor(r.staffId)),
-                  _cell(amt(r.amount), align: pw.TextAlign.right),
+                  for (var c = 0; c < rows[r].length; c++)
+                    _cell(rows[r][c],
+                        bold: boldRowIndices.contains(r),
+                        align: rightAlignColumns.contains(c)
+                            ? pw.TextAlign.right
+                            : pw.TextAlign.left),
                 ]),
             ],
-          ),
-          pw.SizedBox(height: 12),
-          pw.Container(
-            padding:
-                const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: pw.BoxDecoration(
-              color: PdfColor.fromInt(0xFFF3EEFA),
-              borderRadius: pw.BorderRadius.circular(6),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(totalLabel.toUpperCase(),
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.Text(amt(report.total),
-                    style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 14,
-                        color: accent)),
-              ],
-            ),
           ),
         ];
       },

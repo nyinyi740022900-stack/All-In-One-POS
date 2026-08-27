@@ -4,20 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/analytics_repository.dart';
 import 'package:mm_pos/features/equity/equity_calculator.dart';
+import 'package:mm_pos/features/equity/equity_csv.dart';
+
+EquityEntry _entry(String type, int amount, {DateTime? date, String? note}) =>
+    EquityEntry(
+      id: 'eq-$type-$amount',
+      shopId: 'shop-1',
+      type: type,
+      amount: amount,
+      date: date ?? DateTime(2026, 7, 1),
+      note: note,
+      createdAt: DateTime(2026, 7, 1),
+      updatedAt: DateTime(2026, 7, 1),
+      isDeleted: false,
+      dirty: false,
+    );
 
 void main() {
   group('computeEquitySummary (pure)', () {
-    EquityEntry entry(String type, int amount) => EquityEntry(
-          id: 'eq-$type-$amount',
-          shopId: 'shop-1',
-          type: type,
-          amount: amount,
-          date: DateTime(2026, 7, 1),
-          createdAt: DateTime(2026, 7, 1),
-          updatedAt: DateTime(2026, 7, 1),
-          isDeleted: false,
-          dirty: false,
-        );
+    EquityEntry entry(String type, int amount) => _entry(type, amount);
 
     test('paid-in capital = contributions - drawings', () {
       final result = computeEquitySummary(
@@ -52,6 +57,46 @@ void main() {
         cumulativeNetProfit: -50000,
       );
       expect(result.totalEquity, 250000);
+    });
+  });
+
+  group('buildEquityCsv', () {
+    const summary =
+        EquitySummary(paidInCapital: 400000, retainedEarnings: 100000);
+
+    String csv(List<EquityEntry> entries) => buildEquityCsv(
+          summary,
+          entries,
+          dateHeader: 'Date',
+          typeHeader: 'Type',
+          noteHeader: 'Note',
+          amountHeader: 'Amount',
+          contributionLabel: 'Contribution',
+          drawingLabel: 'Drawing',
+          paidInCapitalLabel: 'Paid-in capital',
+          retainedEarningsLabel: 'Retained earnings',
+          totalEquityLabel: 'Total equity',
+        );
+
+    test('renders a positive amount for a contribution, negative for a '
+        'drawing, then a summary block', () {
+      final lines = csv([
+        _entry(equityTypeContribution, 500000, date: DateTime(2026, 7, 1)),
+        _entry(equityTypeDrawing, 100000,
+            date: DateTime(2026, 7, 2), note: 'Rent'),
+      ]).split('\r\n');
+      expect(lines[0], 'Date,Type,Note,Amount');
+      expect(lines, contains('2026-07-01,Contribution,,500000'));
+      expect(lines, contains('2026-07-02,Drawing,Rent,-100000'));
+      expect(lines, contains(',,Paid-in capital,400000'));
+      expect(lines, contains(',,Retained earnings,100000'));
+      expect(lines.last, ',,Total equity,500000');
+    });
+
+    test('still includes the summary block when there are no entries', () {
+      final lines = csv(const []).split('\r\n');
+      expect(lines.length, 4);
+      expect(lines.last, ',,Total equity,500000');
     });
   });
 

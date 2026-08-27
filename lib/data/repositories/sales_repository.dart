@@ -15,6 +15,14 @@ class SaleResult {
   const SaleResult(this.saleId, this.invoiceNo);
 }
 
+/// One method's share of a split-payment sale — see `finalizeSale`'s
+/// `payments` parameter.
+class PaymentEntry {
+  final String method;
+  final int amount;
+  const PaymentEntry(this.method, this.amount);
+}
+
 /// Handles checkout. A sale is written **append-only** together with its
 /// items, payment, and stock movements — all inside one transaction so the
 /// books can never end up half-written. Every row is queued to the Outbox.
@@ -42,6 +50,16 @@ class SalesRepository {
           ..where((i) => i.saleId.equals(saleId))
           ..orderBy([(i) => OrderingTerm(expression: i.createdAt)]))
         .get();
+  }
+
+  /// Every line item across every sale, shop-wide — the Sales Report's
+  /// by-product filter needs to know which `saleId`s touched a matching
+  /// product, and the report already loads all-time sales the same way
+  /// (`watchSales`), so this stays consistent with that existing scale.
+  Stream<List<SaleItem>> watchAllSaleItems() {
+    return (_db.select(_db.saleItems)
+          ..where((i) => i.shopId.equals(_shopId) & i.isDeleted.equals(false)))
+        .watch();
   }
 
   /// The refund row that reverses [saleId], if any (a sale can only be
@@ -156,16 +174,31 @@ class SalesRepository {
         }
       }
 
-      // Reverses exactly what was collected on the original — a credit sale
-      // that was never paid refunds no cash (there's nothing to give back).
-      if (original.paid != 0) {
+      // Reverses exactly what was collected on the original, method for
+      // method — a credit sale that was never paid refunds no cash (there's
+      // nothing to give back), and a split sale reverses each method by its
+      // own original share (not lumped into one row under
+      // `original.paymentMethod`, which would be `'split'` for these and a
+      // meaningless method to reverse cash/wallet balances against).
+      //
+      // Mirrors the actual `Payments` rows rather than `original.paid`:
+      // `original.paid` is the raw amount tendered, which can exceed what
+      // was actually kept when change was given (`finalizeSale`'s
+      // `settled = paid > total ? total : paid`) — reversing the raw
+      // tendered figure would over-refund by the change already handed
+      // back at sale time.
+      final originalPayments = await (_db.select(_db.payments)
+            ..where((p) => p.saleId.equals(saleId)))
+          .get();
+      for (final p in originalPayments) {
+        if (p.amount == 0) continue;
         final payId = _uuid.v4();
         await _db.into(_db.payments).insert(PaymentsCompanion.insert(
               id: payId,
               shopId: _shopId,
               saleId: refundId,
-              method: original.paymentMethod,
-              amount: -original.paid,
+              method: p.method,
+              amount: -p.amount,
               updatedAt: Value(now),
             ));
         await _enqueue('payments', payId);
@@ -227,10 +260,21 @@ class SalesRepository {
   }
 
   /// Finalizes [cart] and returns the new invoice reference.
+  ///
+  /// Pass either a single [paymentMethod]/[paid] pair (the common case), or
+  /// a non-empty [payments] list to charge the sale across multiple methods
+  /// in one go (e.g. cash + KBZPay) — when [payments] is given, it takes
+  /// over entirely: `Sales.paymentMethod` becomes `'split'` and one
+  /// `Payments` row is written per entry instead of the usual single row.
+  /// The caller (the checkout UI) is responsible for ensuring the entries
+  /// sum to exactly the cart's total — this does not defensively rebalance
+  /// a mismatched split, the same trust-the-caller boundary already used
+  /// for the scalar [paid] amount.
   Future<SaleResult> finalizeSale({
     required CartState cart,
-    required String paymentMethod,
-    required int paid,
+    String? paymentMethod,
+    int? paid,
+    List<PaymentEntry>? payments,
     String? customerName,
     String? customerPhone,
     String? customerId,
@@ -241,12 +285,34 @@ class SalesRepository {
     if (cart.isEmpty) {
       throw StateError('Cannot finalize an empty cart');
     }
+    final isSplit = payments != null && payments.isNotEmpty;
+    if (!isSplit && (paymentMethod == null || paid == null)) {
+      throw ArgumentError(
+        'paymentMethod and paid are required unless payments is given',
+      );
+    }
 
     final saleId = _uuid.v4();
     final now = DateTime.now();
     final subtotal = cart.subtotal.kyat;
     final total = cart.total.kyat;
-    final change = paid > total ? paid - total : 0;
+    final effectivePaid = isSplit
+        ? payments.fold<int>(0, (a, e) => a + e.amount)
+        : paid!;
+    // A split sale always fully settles the total — the checkout UI's own
+    // credit/owed section deliberately excludes `_method == 'split'`, so
+    // there is no "partial split, rest on credit" case this would wrongly
+    // reject. A real (not `assert`, which release builds strip) check here
+    // closes the gap the checkout UI leaves: nothing stops some other
+    // caller from reaching this method with a mismatched split and writing
+    // a sale for less than its goods are worth with no error anywhere.
+    if (isSplit && effectivePaid != total) {
+      throw ArgumentError(
+        'Split payments ($effectivePaid) must sum to the sale total ($total)',
+      );
+    }
+    final effectiveMethod = isSplit ? 'split' : paymentMethod!;
+    final change = effectivePaid > total ? effectivePaid - total : 0;
 
     await _db.transaction(() async {
       final invoiceNo = await _nextInvoiceNo(now);
@@ -259,9 +325,9 @@ class SalesRepository {
         subtotal: Value(subtotal),
         discount: Value(cart.discount),
         total: Value(total),
-        paid: Value(paid),
+        paid: Value(effectivePaid),
         changeDue: Value(change),
-        paymentMethod: Value(paymentMethod),
+        paymentMethod: Value(effectiveMethod),
         customerName: Value(customerName),
         customerPhone: Value(customerPhone),
         customerId: Value(customerId),
@@ -297,20 +363,39 @@ class SalesRepository {
         await _enqueue('sale_items', itemId);
       }
 
-      // Tender actually collected. For cash/digital this equals the total
-      // (change is handled separately); for a credit sale it may be a partial
-      // down-payment (or 0), leaving total − paid owed by the customer.
-      final settled = paid > total ? total : paid;
-      final payId = _uuid.v4();
-      await _db.into(_db.payments).insert(PaymentsCompanion.insert(
-            id: payId,
-            shopId: _shopId,
-            saleId: saleId,
-            method: paymentMethod,
-            amount: settled,
-            updatedAt: Value(now),
-          ));
-      await _enqueue('payments', payId);
+      if (isSplit) {
+        // One row per method — the checkout UI already guaranteed these sum
+        // to the total, so unlike the single-method path below there's no
+        // "settled vs. change" distinction to make per entry.
+        for (final entry in payments) {
+          final payId = _uuid.v4();
+          await _db.into(_db.payments).insert(PaymentsCompanion.insert(
+                id: payId,
+                shopId: _shopId,
+                saleId: saleId,
+                method: entry.method,
+                amount: entry.amount,
+                updatedAt: Value(now),
+              ));
+          await _enqueue('payments', payId);
+        }
+      } else {
+        // Tender actually collected. For cash/digital this equals the total
+        // (change is handled separately); for a credit sale it may be a
+        // partial down-payment (or 0), leaving total − paid owed by the
+        // customer.
+        final settled = effectivePaid > total ? total : effectivePaid;
+        final payId = _uuid.v4();
+        await _db.into(_db.payments).insert(PaymentsCompanion.insert(
+              id: payId,
+              shopId: _shopId,
+              saleId: saleId,
+              method: paymentMethod!,
+              amount: settled,
+              updatedAt: Value(now),
+            ));
+        await _enqueue('payments', payId);
+      }
     });
 
     // Re-read invoice number for the return value.

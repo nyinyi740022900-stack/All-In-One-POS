@@ -18,6 +18,7 @@ import '../customers/customer_picker.dart';
 import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
+import '../../data/repositories/sales_repository.dart' show PaymentEntry;
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
@@ -26,6 +27,7 @@ import 'cash_tender.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
 import 'sell_feedback.dart';
+import 'split_payment_dialog.dart';
 
 class CheckoutSheet extends ConsumerStatefulWidget {
   const CheckoutSheet({super.key});
@@ -36,6 +38,11 @@ class CheckoutSheet extends ConsumerStatefulWidget {
 
 class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   String _method = 'cash';
+  // Set once the split-payment dialog is confirmed; null means either
+  // "not split" or "split chip picked but the dialog was dismissed without
+  // completing" — the latter is treated as invalid (Confirm blocked) rather
+  // than silently falling back to a single method.
+  List<PaymentEntry>? _splitPayments;
   final _paid = TextEditingController();
   final _paidFieldKey = GlobalKey();
   final _customer = TextEditingController();
@@ -117,8 +124,15 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   }
 
   /// Amount tendered. Empty field means "paid in full" for a normal method, or
-  /// "nothing down" for the credit method.
+  /// "nothing down" for the credit method. A split sale's entries are
+  /// dialog-validated to already sum to the total, so this just re-sums them
+  /// (0 while the split hasn't been configured yet, which correctly keeps
+  /// Confirm blocked via the same `owed > 0` shortfall path every other
+  /// under-paid method already uses).
   int _resolvePaid(int total) {
+    if (_method == 'split') {
+      return _splitPayments?.fold<int>(0, (a, e) => a + e.amount) ?? 0;
+    }
     if (_paid.text.trim().isEmpty) return _method == 'credit' ? 0 : total;
     return _paidAmount;
   }
@@ -133,6 +147,32 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       _setPaidDigits('');
     }
     setState(() {});
+  }
+
+  /// Handles a payment-method chip tap. `'split'` opens the split-payment
+  /// dialog instead of just flipping `_method` like every other chip —
+  /// confirming it is what actually switches `_method` to `'split'`, so
+  /// cancelling leaves the previously-selected method in place. Tapping the
+  /// already-selected split chip again reopens the dialog pre-filled, for
+  /// editing the split.
+  Future<void> _selectMethod(String m, int total) async {
+    if (m != 'split') {
+      setState(() => _method = m);
+      return;
+    }
+    final accounts = ref.read(paymentAccountsProvider).valueOrNull ?? const [];
+    final result = await showSplitPaymentDialog(
+      context,
+      total: total,
+      methodIds: paymentMethodIds(accounts),
+      accounts: accounts,
+      initial: _splitPayments,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _method = 'split';
+      _splitPayments = result;
+    });
   }
 
   void _applyTenderAmount(int kyat) {
@@ -267,11 +307,23 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       return;
     }
 
+    // Split payment picked but the dialog was never completed — nothing to
+    // charge. Distinct from the credit-shortfall message below since this
+    // has nothing to do with billing a customer.
+    if (_method == 'split' && _splitPayments == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.splitPaymentSetUp)));
+      return;
+    }
+
     final paid = _resolvePaid(total);
     final owed = total - paid;
     final name = _customer.text.trim();
     // A shortfall is booked as credit, and the credit method is always credit —
-    // both need a customer name to bill. Phone stays optional.
+    // both need a customer name to bill. Phone stays optional. A split sale
+    // never has a shortfall (the dialog enforces exact-sum-to-total), so it
+    // never reaches this branch once configured.
     final forced = owed > 0 || _method == 'credit';
     if (forced && name.isEmpty) {
       ScaffoldMessenger.of(
@@ -311,8 +363,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                     : null);
       final result = await salesRepo.finalizeSale(
         cart: cart,
-        paymentMethod: _method,
-        paid: paid,
+        paymentMethod: _method == 'split' ? null : _method,
+        paid: _method == 'split' ? null : paid,
+        payments: _method == 'split' ? _splitPayments : null,
         customerName: name.isEmpty ? null : name,
         customerPhone: phone.isEmpty ? null : phone,
         customerId: customerId,
@@ -391,8 +444,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     final paid = _resolvePaid(total);
     final change = paid > total ? paid - total : 0;
     final owed = total - paid > 0 ? total - paid : 0;
-    // Credit / any shortfall forces the customer fields (name is then required).
-    final forced = _method == 'credit' || owed > 0;
+    // Credit / any shortfall forces the customer fields (name is then
+    // required) — except an unfinished split, whose transient "owed" is
+    // just "the dialog hasn't been completed yet", not a credit shortfall.
+    final forced =
+        _method == 'credit' || (owed > 0 && _method != 'split');
     // Latch the section open only while the seller is not mid-amount-entry —
     // see [_customerSectionLatched]. Monotonic (never resets mid-sheet), and
     // read right after assignment so this build already reflects it.
@@ -601,6 +657,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           children: [
                             for (final m in [
                               ...paymentMethodIds(accounts),
+                              'split',
                               'credit',
                             ])
                               ChoiceChip(
@@ -632,96 +689,105 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                                   paymentLabel(l, m, accounts: accounts),
                                 ),
                                 selected: _method == m,
-                                onSelected: (_) => setState(() => _method = m),
+                                onSelected: (_) => _selectMethod(m, total),
                               ),
                           ],
                         ),
 
                         const SizedBox(height: AppTheme.space3),
-                        // Amount paid — shown for every method. Leave blank to pay in full.
-                        // Read-only: taps toggle the big-button pad below instead of
-                        // summoning the OS keyboard (whose viewport jump used to push
-                        // this sheet's footer around mid-sale).
-                        TextField(
-                          key: _paidFieldKey,
-                          controller: _paid,
-                          readOnly: true,
-                          showCursor: true,
-                          onTap: () {
-                            setState(() => _padVisible = !_padVisible);
-                            if (_padVisible) {
-                              // The pinned pad grows the sheet; make sure the
-                              // field it edits is on-screen, not scrolled off
-                              // under an expanded cart.
-                              _ensurePaidFieldVisible();
-                            }
-                          },
-                          decoration: InputDecoration(
-                            labelText: _method == 'credit'
-                                ? l.creditPaidNow
-                                : l.sellAmountPaid,
-                            hintText: Money(total).withSymbol(currency),
-                            suffixIcon: Icon(
-                              _padVisible
-                                  ? Icons.keyboard_hide_outlined
-                                  : Icons.dialpad_outlined,
-                            ),
-                          ),
-                        ),
-                        if (total > 0) ...[
-                          const SizedBox(height: AppTheme.space2),
-                          _TenderChips(
-                            suggestions: cashTenderSuggestions(total),
-                            total: total,
-                            paidAmount: _paidAmount,
-                            fieldEmpty: _paid.text.trim().isEmpty,
-                            isCredit: _method == 'credit',
+                        if (_method == 'split')
+                          _SplitPaymentSummary(
+                            entries: _splitPayments,
                             currency: currency,
-                            exactLabel: l.sellTenderExact,
-                            onExact: () => _applyTenderExact(total),
-                            onAmount: _applyTenderAmount,
-                          ),
-                        ],
-                        // Credit sales get an explicit deposit/balance-due breakdown
-                        // rather than the generic Owed-or-Change row every other method
-                        // shares, so a down payment always reads clearly as "this much
-                        // now, this much still owed" instead of being conflated with an
-                        // accidental cash-sale shortfall.
-                        if (_method == 'credit') ...[
-                          SummaryRow(
-                            l.creditDeposit,
-                            Money(paid).withSymbol(currency),
-                          ),
-                          SummaryRow(
-                            l.creditBalanceDue,
-                            Money(owed).withSymbol(currency),
-                            emphasis: true,
-                          ),
-                        ] else if (owed > 0) ...[
-                          SummaryRow(
-                            l.creditOwed,
-                            Money(owed).withSymbol(currency),
-                            emphasis: true,
-                          ),
-                          // A typed shortfall silently becomes credit at confirm
-                          // time — say so *here*, while the cashier can still fix
-                          // the number, instead of letting the "customer name
-                          // required" error be the first hint at the very end.
-                          if (_paid.text.trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppTheme.space1,
-                              ),
-                              child: _HintBanner(
-                                icon: Icons.info_outline,
-                                text: l.checkoutShortfallCreditHint,
+                            accounts: accounts,
+                            onEdit: () => _selectMethod('split', total),
+                          )
+                        else ...[
+                          // Amount paid — shown for every method. Leave blank to pay
+                          // in full. Read-only: taps toggle the big-button pad below
+                          // instead of summoning the OS keyboard (whose viewport jump
+                          // used to push this sheet's footer around mid-sale).
+                          TextField(
+                            key: _paidFieldKey,
+                            controller: _paid,
+                            readOnly: true,
+                            showCursor: true,
+                            onTap: () {
+                              setState(() => _padVisible = !_padVisible);
+                              if (_padVisible) {
+                                // The pinned pad grows the sheet; make sure the
+                                // field it edits is on-screen, not scrolled off
+                                // under an expanded cart.
+                                _ensurePaidFieldVisible();
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: _method == 'credit'
+                                  ? l.creditPaidNow
+                                  : l.sellAmountPaid,
+                              hintText: Money(total).withSymbol(currency),
+                              suffixIcon: Icon(
+                                _padVisible
+                                    ? Icons.keyboard_hide_outlined
+                                    : Icons.dialpad_outlined,
                               ),
                             ),
-                        ] else
-                          SummaryRow(
-                            l.sellChange,
-                            Money(change).withSymbol(currency),
                           ),
+                          if (total > 0) ...[
+                            const SizedBox(height: AppTheme.space2),
+                            _TenderChips(
+                              suggestions: cashTenderSuggestions(total),
+                              total: total,
+                              paidAmount: _paidAmount,
+                              fieldEmpty: _paid.text.trim().isEmpty,
+                              isCredit: _method == 'credit',
+                              currency: currency,
+                              exactLabel: l.sellTenderExact,
+                              onExact: () => _applyTenderExact(total),
+                              onAmount: _applyTenderAmount,
+                            ),
+                          ],
+                          // Credit sales get an explicit deposit/balance-due breakdown
+                          // rather than the generic Owed-or-Change row every other method
+                          // shares, so a down payment always reads clearly as "this much
+                          // now, this much still owed" instead of being conflated with an
+                          // accidental cash-sale shortfall.
+                          if (_method == 'credit') ...[
+                            SummaryRow(
+                              l.creditDeposit,
+                              Money(paid).withSymbol(currency),
+                            ),
+                            SummaryRow(
+                              l.creditBalanceDue,
+                              Money(owed).withSymbol(currency),
+                              emphasis: true,
+                            ),
+                          ] else if (owed > 0) ...[
+                            SummaryRow(
+                              l.creditOwed,
+                              Money(owed).withSymbol(currency),
+                              emphasis: true,
+                            ),
+                            // A typed shortfall silently becomes credit at confirm
+                            // time — say so *here*, while the cashier can still fix
+                            // the number, instead of letting the "customer name
+                            // required" error be the first hint at the very end.
+                            if (_paid.text.trim().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTheme.space1,
+                                ),
+                                child: _HintBanner(
+                                  icon: Icons.info_outline,
+                                  text: l.checkoutShortfallCreditHint,
+                                ),
+                              ),
+                          ] else
+                            SummaryRow(
+                              l.sellChange,
+                              Money(change).withSymbol(currency),
+                            ),
+                        ],
 
                         const SizedBox(height: AppTheme.space3),
                       ],
@@ -744,7 +810,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                 Padding(
                   padding: const EdgeInsets.only(top: AppTheme.space3),
                   child: FilledButton(
-                    onPressed: _submitting || cart.isEmpty
+                    onPressed:
+                        _submitting ||
+                            cart.isEmpty ||
+                            (_method == 'split' && _splitPayments == null)
                         ? null
                         : () => _confirm(cart, total),
                     // Label + amount on one bar, the same shape as the Sell
@@ -1562,6 +1631,82 @@ class _HintBanner extends StatelessWidget {
                 context,
               ).textTheme.bodySmall?.copyWith(color: colors.warning),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Replaces the amount-paid field + tender chips + change/owed rows when
+/// `_method == 'split'` — a compact read-out of what `showSplitPaymentDialog`
+/// returned, plus an edit affordance, rather than trying to fold a
+/// multi-method breakdown into controls built for a single amount.
+class _SplitPaymentSummary extends StatelessWidget {
+  const _SplitPaymentSummary({
+    required this.entries,
+    required this.currency,
+    required this.accounts,
+    required this.onEdit,
+  });
+
+  final List<PaymentEntry>? entries;
+  final String currency;
+  final List<PaymentAccount> accounts;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final list = entries;
+    if (list == null || list.isEmpty) {
+      return OutlinedButton.icon(
+        onPressed: onEdit,
+        icon: const Icon(Icons.call_split),
+        label: Text(l.splitPaymentSetUp),
+      );
+    }
+    final total = list.fold<int>(0, (a, e) => a + e.amount);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space3),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final e in list)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space1),
+              child: Row(
+                children: [
+                  Icon(paymentIcon(e.method), size: 16),
+                  const SizedBox(width: AppTheme.space2),
+                  Expanded(
+                    child: Text(paymentLabel(l, e.method, accounts: accounts)),
+                  ),
+                  Text(Money(e.amount).withSymbol(currency)),
+                ],
+              ),
+            ),
+          const Divider(height: AppTheme.space3),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.commonTotal,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              MoneyText(
+                Money(total).withSymbol(currency),
+                emphasis: true,
+              ),
+              const SizedBox(width: AppTheme.space2),
+              TextButton(onPressed: onEdit, child: Text(l.splitPaymentEdit)),
+            ],
           ),
         ],
       ),

@@ -36,6 +36,7 @@ class AnalyticsRepository {
               discount: s.discount,
               finalizedAt: s.finalizedAt,
               isRefund: s.refundOfSaleId != null,
+              staffId: s.staffId,
             ))
         .toList();
 

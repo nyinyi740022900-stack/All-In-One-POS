@@ -14,6 +14,7 @@
   "commonEdit": "ပြင်မည်",
   "commonAdd": "ထည့်မည်",
   "commonSearch": "ရှာဖွေ",
+  "commonFilters": "စစ်ထုတ်ရန်",
   "commonYes": "ဟုတ်ကဲ့",
   "commonNo": "မဟုတ်ပါ",
   "commonTotal": "စုစုပေါင်း",
@@ -106,6 +107,20 @@
   "paymentCbPay": "CBPay",
   "paymentCredit": "အကြွေး",
   "paymentCod": "COD (အရောက်ငွေချေ)",
+  "paymentSplit": "ခွဲပြီးပေးချေမှု",
+  "splitPaymentTitle": "ခွဲပြီးပေးချေမှု",
+  "splitPaymentAddMethod": "နောက်ထပ် payment method ထည့်ရန်",
+  "splitPaymentRemaining": "ကျန်ငွေ: {amount}",
+  "@splitPaymentRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "splitPaymentRemoveMethod": "ဒီ method ကို ဖျက်ရန်",
+  "splitPaymentEdit": "ခွဲပေးချေမှု ပြင်ရန်",
+  "splitPaymentSetUp": "ခွဲပေးချေမှု စတင်ရန် နှိပ်ပါ",
   "cashRegisterTitle": "ငွေတိုက်",
   "cashRegisterOpen": "ဖွင့်ထား",
   "cashRegisterClosed": "ပိတ်ပြီး",
@@ -132,6 +147,7 @@
   "cashClosedAt": "ပိတ်ချိန်",
   "cashReportPrintBluetooth": "ပြေစာပရင်တာနဲ့ ထုတ်",
   "cashReportSharePdf": "PDF မျှဝေမည်",
+  "cashReportShareCsv": "CSV မျှဝေမည်",
   "cashReportCashSales": "ငွေသား ရောင်းအား",
   "cashReportCashRepayments": "ငွေသား ကြွေးဆပ်ငွေ",
   "cashReportSupplierPayments": "ငွေသား ကုန်သွင်းငွေ",
@@ -509,6 +525,13 @@
   "settingsLicense": "လိုင်စင်",
   "settingsSupport": "အကူအညီ (Support)",
   "settingsAppGuide": "App အသုံးပြုပုံ လမ်းညွှန်",
+  "settingsAbout": "အက်ပ်အကြောင်း",
+  "aboutTitle": "အက်ပ်အကြောင်း",
+  "aboutVersion": "ဗားရှင်း",
+  "aboutWebsite": "ဝဘ်ဆိုက်",
+  "aboutCommunity": "Community",
+  "aboutCheckForUpdates": "အပ်ဒိတ် စစ်ဆေးရန်",
+  "aboutOpenFailed": "ဒီ link ကို ဖွင့်လို့မရပါ။",
   "helpGuideTitle": "App အသုံးပြုပုံ လမ်းညွှန်",
   "helpGuideIntro": "Screen တစ်ခုချင်းစီ ဘာလုပ်တာလဲ အကျဉ်းချုပ်။ အပိုင်းတစ်ခုကို နှိပ်ပြီး ကြည့်ပါ။",
   "helpGuideSellTitle": "ရောင်းရန်",
@@ -540,6 +563,7 @@
   "invoicesEmpty": "ရောင်းချမှု မရှိသေးပါ။",
   "invoiceFilterAll": "အားလုံး",
   "invoiceFilterCredit": "အကြွေး",
+  "invoiceFilterRefund": "ပြန်အမ်းငွေ",
   "invoiceOwed": "ကျန်ငွေ {amount}",
   "@invoiceOwed": {
     "placeholders": {
@@ -598,6 +622,7 @@
   "salesReportColumnDate": "ရက်စွဲ",
   "salesReportColumnCustomer": "ဖောက်သည်",
   "salesReportColumnAddress": "လိပ်စာ",
+  "salesReportColumnCashier": "ရောင်းသူ",
   "salesReportColumnAmount": "ပမာဏ",
   "salesReportPrintBluetooth": "ပြေစာပရင်တာနဲ့ ထုတ်",
   "salesReportExportPdf": "PDF ထုတ်",
@@ -697,6 +722,7 @@
   "categoryNone": "အမျိုးအစား မသတ်မှတ်",
   "categoryAll": "အားလုံး",
   "categoriesEmpty": "အမျိုးအစား မရှိသေးပါ။",
+  "categoryPickerNoResults": "ရှာနေတဲ့ အမျိုးအစား မတွေ့ပါ။",
   "productCategory": "အမျိုးအစား",
   "analyticsRevenue": "ရောင်းရငွေ",
   "analyticsProfit": "စုစုပေါင်းအမြတ်",
@@ -706,6 +732,7 @@
   "analyticsStockValue": "လက်ကျန်တန်ဖိုး",
   "analyticsDiscountGiven": "လျှော့ဈေး",
   "analyticsTopProducts": "အရောင်းရဆုံး ပစ္စည်းများ",
+  "analyticsSalesByEmployee": "ဝန်ထမ်းအလိုက် ရောင်းအား",
   "analyticsRangeToday": "ယနေ့",
   "analyticsRangeWeek": "၇ ရက်",
   "analyticsRangeMonth": "၃၀ ရက်",
@@ -1119,6 +1146,7 @@
     }
   },
   "syncIssuesQuarantinedHeld": "Cloud sync အလိုအလျောက် ပြီးသည်အထိ ဒီစက်မှာ ထားထားသည်။",
+  "syncIssuesInvoiceCollision": "ဒီ invoice နံပါတ်ကို တခြား device ကနေ အရောင်းတစ်ခုက အသုံးပြုပြီးသားဖြစ်နေသည်။ အရောင်းကိုယ်တိုင်တော့ ဘေးကင်းပါသည် — invoice နံပါတ်အသစ် ပြန်ပေးရန် support ကို ဆက်သွယ်ပါ။",
   "navOrders": "အော်ဒါ",
   "ordersTitle": "Social အော်ဒါများ",
   "ordersEmpty": "အော်ဒါ မရှိသေးပါ။ ထည့်ရန် + ကိုနှိပ်ပါ။",
@@ -1277,7 +1305,28 @@
   "staffMemberName": "အမည်",
   "staffMemberPin": "PIN (ဂဏန်း ၄–၆ လုံး)",
   "staffMemberPinKeepHint": "လက်ရှိ PIN ကို ဆက်ထားချင်ရင် ကွက်လပ်ထားပါ",
+  "staffMemberEmail": "Email (ရွေးချယ်ခွင့်)",
+  "staffMemberEmailHint": "ဒီလူမှာ Staff account (Email login) ပါရှိရင်၊ ခွင့်ပြုထားတဲ့ permission တွေက အဲဒီ account မှာလည်း အလုပ်လုပ်ပါမယ်",
   "staffMemberSaved": "ဝန်ထမ်းအချက်အလက် သိမ်းပြီး",
+  "staffPermissionsTooltip": "ခွင့်ပြုချက်များ",
+  "staffPermissionsTitle": "{name} ရဲ့ ခွင့်ပြုချက်များ",
+  "@staffPermissionsTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffPermissionsIntro": "Sell နဲ့ Orders အပြင် {name} အသုံးပြုနိုင်မယ့် feature တွေကို ဖွင့်ပေးပါ။ ပုံမှန်အားဖြင့် ပိတ်ထားသည်။",
+  "@staffPermissionsIntro": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "staffCapabilityInventoryEdit": "စာရင်းကုန် ပြင်ဆင်ခွင့်",
+  "staffCapabilitySettingsSensitive": "အထူးဆက်တင်များ (stock tracking, backup)",
   "staffRemoveMember": "ဖယ်ရှားရန်",
   "staffRemoveConfirmTitle": "ဒီဝန်ထမ်းကို ဖယ်ရှားမှာလား?",
   "staffRemoveConfirmBody": "{name} ကို Staff mode ပြောင်းတဲ့အခါ နောက်ထပ် မမြင်ရတော့ပါ။ ယခင်ရောင်းချမှုတွေမှာတော့ နာမည် ဆက်ပြနေပါမည်။",

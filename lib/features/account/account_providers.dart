@@ -48,6 +48,17 @@ final backendAccountRoleProvider = Provider<String?>((ref) {
   }
 });
 
+/// Current signed-in account's email, if any — used to link an invited-email
+/// StaffAccount session back to a local roster member sharing the same
+/// address (`StaffMembers.email`). Null when signed out / anonymous.
+final currentAccountEmailProvider = Provider<String?>((ref) {
+  try {
+    return ref.watch(accountRepositoryProvider).currentAccountEmail;
+  } catch (_) {
+    return null;
+  }
+});
+
 /// Whether this device currently has a real (email) account session — the
 /// replacement for the old permanent "Online mode" flag: cloud-capable UI
 /// (Shop Login, Staff accounts, Branches, ...) now gates on *actually having

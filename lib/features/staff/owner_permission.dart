@@ -12,15 +12,22 @@ enum OwnerCapability {
 
 /// Thin central policy for owner gates + which mutations need PIN re-auth.
 ///
-/// Today every capability still collapses to effective-owner (no behavior
-/// change). Naming them here makes future per-capability rules and call-site
-/// audits possible without ripping out Riverpod/`OwnerOnlyGate`.
+/// The owner always passes every capability. A staff member passes only a
+/// capability the owner has explicitly granted them (see
+/// `StaffRepository.watchGrantedCapabilities` / `StaffPermissions` in
+/// tables.dart) — [grantedCapabilities] defaults to empty, so an existing
+/// staff member with no grants yet keeps the exact pre-permissions-feature
+/// behavior (blocked from every `OwnerCapability` gate).
 class OwnerPermissionPolicy {
   const OwnerPermissionPolicy();
 
-  bool allows(OwnerCapability capability, {required bool isEffectiveOwner}) {
-    // All listed capabilities are owner-only today.
-    return isEffectiveOwner;
+  bool allows(
+    OwnerCapability capability, {
+    required bool isEffectiveOwner,
+    Set<OwnerCapability> grantedCapabilities = const {},
+  }) {
+    if (isEffectiveOwner) return true;
+    return grantedCapabilities.contains(capability);
   }
 
   /// True when the capability is a sensitive mutate path that should prompt

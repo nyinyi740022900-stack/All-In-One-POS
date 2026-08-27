@@ -362,7 +362,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (!ref.watch(isEffectiveOwnerProvider)) {
+    if (!ref.watch(hasOwnerCapabilityProvider(OwnerCapability.license))) {
       return Scaffold(
         appBar: AppBar(title: Text(l.settingsLicense)),
         body: const OwnerOnlyGate(

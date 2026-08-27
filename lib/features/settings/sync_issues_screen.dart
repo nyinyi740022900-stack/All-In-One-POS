@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../data/sync/outbox_error.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -88,6 +89,22 @@ class SyncIssuesScreen extends ConsumerWidget {
                               label: l.syncIssuesQuarantinedHeld,
                               tone: StatusTone.critical,
                             ),
+                            // A generic "held" pill doesn't tell an owner
+                            // whether this needs support or will resolve on
+                            // its own — an invoice-number collision (two
+                            // devices offline at once, see migration 0074)
+                            // is the one case that genuinely needs the
+                            // owner to act, so it gets its own explanation.
+                            if (isInvoiceNoCollisionError(row.lastError)) ...[
+                              const SizedBox(height: AppTheme.space2),
+                              Text(
+                                l.syncIssuesInvoiceCollision,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.of(context).danger,
+                                    ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

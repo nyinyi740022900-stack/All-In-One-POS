@@ -27,10 +27,7 @@ class OwnerOnlyGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allowed = ownerPermissionPolicy.allows(
-      capability,
-      isEffectiveOwner: ref.watch(isEffectiveOwnerProvider),
-    );
+    final allowed = ref.watch(hasOwnerCapabilityProvider(capability));
     if (allowed) return child;
     final l = AppLocalizations.of(context);
     return Center(
@@ -131,11 +128,13 @@ Future<bool> requireOwnerPinReauth(
   WidgetRef ref, {
   required OwnerCapability capability,
 }) async {
-  final isOwner = ref.read(isEffectiveOwnerProvider);
-  if (!ownerPermissionPolicy.allows(capability, isEffectiveOwner: isOwner)) {
-    return false;
-  }
+  if (!ref.read(hasOwnerCapabilityProvider(capability))) return false;
   if (!ownerPermissionPolicy.requiresPinReauth(capability)) return true;
+  // A granted staff member (not the owner) has no owner PIN to re-enter —
+  // they already authenticated with their own member PIN when switching
+  // into Staff-as-<name> mode, so the re-auth prompt below is only for the
+  // actual owner.
+  if (!ref.read(isEffectiveOwnerProvider)) return true;
 
   final l = AppLocalizations.of(context);
   final ctrl = ref.read(staffControllerProvider);

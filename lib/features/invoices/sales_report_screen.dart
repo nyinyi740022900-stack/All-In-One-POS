@@ -16,6 +16,8 @@ import '../license/premium_gate.dart';
 import '../printing/document_print.dart';
 import '../printing/printer_connection.dart';
 import '../printing/printing_providers.dart';
+import '../staff/staff_providers.dart';
+import 'cashier_label.dart';
 import 'receipt_data.dart';
 import 'sales_report_data.dart';
 import 'sales_report_pdf.dart';
@@ -36,6 +38,34 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   bool _exportingCsv = false;
   bool _printing = false;
   bool _printingThermal = false;
+  late final TextEditingController _productSearch;
+
+  @override
+  void initState() {
+    super.initState();
+    _productSearch = TextEditingController(
+      text: ref.read(salesReportProductFilterProvider),
+    );
+  }
+
+  @override
+  void dispose() {
+    _productSearch.dispose();
+    super.dispose();
+  }
+
+  /// Resolves a report row's raw `staffId` to the same display name
+  /// invoices/receipts already use — named roster member, else device
+  /// label, else Owner (`cashierNameForSale`, `cashier_label.dart`).
+  String _cashierLabelFor(String? staffId) {
+    final l = AppLocalizations.of(context);
+    final members = ref.read(staffMembersProvider).valueOrNull ?? const [];
+    return cashierNameForSale(
+      staffId: staffId,
+      members: [for (final m in members) (id: m.id, name: m.name)],
+      ownerLabel: l.staffRoleOwner,
+    );
+  }
 
   Future<Uint8List> _pdfBytes(SalesReport report, String rangeLabel) async {
     final l = AppLocalizations.of(context);
@@ -54,9 +84,11 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       dateColumnLabel: l.salesReportColumnDate,
       customerColumnLabel: l.salesReportColumnCustomer,
       addressColumnLabel: l.salesReportColumnAddress,
+      cashierColumnLabel: l.salesReportColumnCashier,
       amountColumnLabel: l.salesReportColumnAmount,
       totalLabel: l.salesReportTotal,
       noSalesLabel: l.salesReportEmpty,
+      cashierLabelFor: _cashierLabelFor,
       pageFormat: printerConfig.pdfPaperSize,
     );
   }
@@ -143,8 +175,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         dateHeader: l.salesReportColumnDate,
         customerHeader: l.salesReportColumnCustomer,
         addressHeader: l.salesReportColumnAddress,
+        cashierHeader: l.salesReportColumnCashier,
         amountHeader: l.salesReportColumnAmount,
         totalLabel: l.salesReportTotal,
+        cashierLabelFor: _cashierLabelFor,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/sales-report.csv');
@@ -213,9 +247,21 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     final report = ref.watch(salesReportProvider);
     final start = ref.watch(salesReportStartDateProvider);
     final end = ref.watch(salesReportEndDateProvider);
+    final productQuery = ref.watch(salesReportProductFilterProvider).trim();
     final printerConfig = ref.watch(printerConfigProvider).valueOrNull;
     final rangeLabel = _rangeLabel(l, start, end);
     final df = DateFormat('yyyy-MM-dd');
+    // Programmatic clears (the suffix icon below) write the provider
+    // directly — mirror the value back into the field, same pattern Stock
+    // Movements' product search uses.
+    ref.listen<String>(salesReportProductFilterProvider, (prev, next) {
+      if (next != _productSearch.text) {
+        _productSearch.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -279,6 +325,32 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space3,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
+            child: TextField(
+              controller: _productSearch,
+              decoration: InputDecoration(
+                hintText: l.stockHistoryFilterProduct,
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                suffixIcon: productQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => ref
+                            .read(salesReportProductFilterProvider.notifier)
+                            .state = '',
+                      ),
+              ),
+              onChanged: (v) =>
+                  ref.read(salesReportProductFilterProvider.notifier).state = v,
+            ),
+          ),
           Expanded(
             child: report.rows.isEmpty
                 ? EmptyStateView(
@@ -295,6 +367,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                       final r = report.rows[i];
                       final detail = [
                         df.format(r.date),
+                        _cashierLabelFor(r.staffId),
                         if (r.customerName.isNotEmpty) r.customerName,
                         if (r.address.isNotEmpty) r.address,
                       ].join(' · ');

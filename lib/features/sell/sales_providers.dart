@@ -89,3 +89,35 @@ final sellCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
   counts[null] = total;
   return counts;
 });
+
+/// All sale-item rows for this shop, watched live — the raw feed
+/// [sellCategorySalesRevenueProvider] aggregates. A separate lightweight
+/// watch rather than reusing analytics' `saleItemChangesProvider` so the Sell
+/// tab doesn't pull in the analytics feature just to rank its category bar.
+final _sellSaleItemChangesProvider = StreamProvider<List<SaleItem>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final shopId = ref.watch(shopIdProvider);
+  return (db.select(db.saleItems)..where((i) => i.shopId.equals(shopId)))
+      .watch();
+});
+
+/// Net revenue per category, all-time, keyed by category id — a refund's
+/// sale items carry negative `lineTotal` (mirroring the sale they reverse),
+/// so a refunded line naturally nets back out instead of needing separate
+/// handling. Feeds [_SellCategoryFilterBar]'s best-sellers-first ordering;
+/// products with no `categoryId` don't contribute (there's no "All" ranking
+/// to speak of).
+final sellCategorySalesRevenueProvider = Provider<Map<String, int>>((ref) {
+  final items = ref.watch(_sellSaleItemChangesProvider).valueOrNull ?? const [];
+  final products = ref.watch(productsStreamProvider).valueOrNull ?? const [];
+  final categoryByProduct = {
+    for (final p in products) p.product.id: p.product.categoryId,
+  };
+  final revenue = <String, int>{};
+  for (final item in items) {
+    final categoryId = categoryByProduct[item.productId];
+    if (categoryId == null) continue;
+    revenue[categoryId] = (revenue[categoryId] ?? 0) + item.lineTotal;
+  }
+  return revenue;
+});

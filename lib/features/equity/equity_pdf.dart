@@ -4,33 +4,33 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'pdf_font.dart';
-import 'receipt_data.dart';
-import 'sales_report_data.dart';
+import '../../data/local/database.dart';
+import '../invoices/pdf_font.dart';
+import '../invoices/receipt_data.dart';
+import 'equity_calculator.dart';
 
-/// Renders a date-range [SalesReport] onto a real A4/A5 page — for a
-/// WiFi/AirPrint printer or a computer's own print dialog, the two cases a
-/// Bluetooth thermal printer can't reach. Visually matches [buildInvoicePdf]
-/// (same accent/header layout) so an invoice and this report read as the
-/// same shop's documents.
-Future<Uint8List> buildSalesReportPdf({
+/// Renders Owner's Equity onto a real A4/A5 page — same header/footer/font
+/// scaffold as `buildPnlPdf`/`buildSalesReportPdf`: a key-value summary
+/// block (Paid-in Capital / Retained Earnings / Total Equity) followed by
+/// the full contribution/drawing ledger.
+Future<Uint8List> buildEquityPdf({
   required String shopName,
   String? shopLogoUrl,
   String? shopPhone,
   String? shopAddress,
   required String title,
-  required String dateRangeLabel,
-  required SalesReport report,
+  required EquitySummary summary,
+  required List<EquityEntry> entries,
   required String currencySymbol,
-  required String invoiceColumnLabel,
+  required String paidInCapitalLabel,
+  required String retainedEarningsLabel,
+  required String totalEquityLabel,
   required String dateColumnLabel,
-  required String customerColumnLabel,
-  required String addressColumnLabel,
-  required String cashierColumnLabel,
+  required String typeColumnLabel,
+  required String noteColumnLabel,
   required String amountColumnLabel,
-  required String totalLabel,
-  required String noSalesLabel,
-  required String Function(String? staffId) cashierLabelFor,
+  required String contributionLabel,
+  required String drawingLabel,
   PdfPaperSize pageFormat = PdfPaperSize.a4,
 }) async {
   final accent = PdfColor.fromInt(0xFF6C4AB6);
@@ -63,9 +63,6 @@ Future<Uint8List> buildSalesReportPdf({
     theme: pw.ThemeData.withFont(
       base: font.regular,
       bold: font.bold,
-      // Noto Sans Myanmar doesn't cover every symbol (e.g. the date-range
-      // arrow "→") — fall back to the bundled Helvetica for anything it's
-      // missing rather than a tofu box.
       fontFallback: [pw.Font.helvetica(), pw.Font.helveticaBold()],
     ),
   );
@@ -114,12 +111,6 @@ Future<Uint8List> buildSalesReportPdf({
                     fontSize: 13,
                     fontWeight: pw.FontWeight.bold,
                     color: accent)),
-            // "→" (as shown on-screen, where Flutter's own text engine
-            // renders it fine) has no glyph in either the bundled Myanmar
-            // font or the Unicode-less Helvetica fallback — swap it for a
-            // plain hyphen here rather than a tofu box.
-            pw.Text(dateRangeLabel.replaceAll('→', '-'),
-                style: pw.TextStyle(fontSize: 10, color: muted)),
             pw.SizedBox(height: 12),
           ],
         );
@@ -131,74 +122,63 @@ Future<Uint8List> buildSalesReportPdf({
             style: pw.TextStyle(fontSize: 8, color: muted)),
       ),
       build: (context) {
-        if (report.rows.isEmpty) {
-          return [
-            pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(vertical: 24),
-              child: pw.Center(
-                child: pw.Text(noSalesLabel,
-                    style: pw.TextStyle(fontSize: 11, color: muted)),
-              ),
-            ),
-          ];
-        }
+        final summaryRows = <(String, String, bool)>[
+          (paidInCapitalLabel, amt(summary.paidInCapital), false),
+          (retainedEarningsLabel, amt(summary.retainedEarnings), false),
+          (totalEquityLabel, amt(summary.totalEquity), true),
+        ];
         return [
           pw.Table(
             border: pw.TableBorder.all(color: line),
             columnWidths: const {
               0: pw.FlexColumnWidth(3),
               1: pw.FlexColumnWidth(2),
-              2: pw.FlexColumnWidth(3),
-              3: pw.FlexColumnWidth(4),
-              4: pw.FlexColumnWidth(2),
-              5: pw.FlexColumnWidth(3),
             },
             children: [
-              pw.TableRow(
-                decoration:
-                    const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF7F5FB)),
-                children: [
-                  _cell(invoiceColumnLabel, bold: true, color: muted),
-                  _cell(dateColumnLabel, bold: true, color: muted),
-                  _cell(customerColumnLabel, bold: true, color: muted),
-                  _cell(addressColumnLabel, bold: true, color: muted),
-                  _cell(cashierColumnLabel, bold: true, color: muted),
-                  _cell(amountColumnLabel,
-                      bold: true, color: muted, align: pw.TextAlign.right),
-                ],
-              ),
-              for (final r in report.rows)
+              for (final r in summaryRows)
                 pw.TableRow(children: [
-                  _cell(r.invoiceNo),
-                  _cell(dateStr(r.date)),
-                  _cell(r.customerName),
-                  _cell(r.address),
-                  _cell(cashierLabelFor(r.staffId)),
-                  _cell(amt(r.amount), align: pw.TextAlign.right),
+                  _cell(r.$1, bold: r.$3),
+                  _cell(r.$2, bold: r.$3, align: pw.TextAlign.right),
                 ]),
             ],
           ),
-          pw.SizedBox(height: 12),
-          pw.Container(
-            padding:
-                const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: pw.BoxDecoration(
-              color: PdfColor.fromInt(0xFFF3EEFA),
-              borderRadius: pw.BorderRadius.circular(6),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          if (entries.isNotEmpty) ...[
+            pw.SizedBox(height: 20),
+            pw.Table(
+              border: pw.TableBorder.all(color: line),
+              columnWidths: const {
+                0: pw.FlexColumnWidth(2),
+                1: pw.FlexColumnWidth(2),
+                2: pw.FlexColumnWidth(3),
+                3: pw.FlexColumnWidth(2),
+              },
               children: [
-                pw.Text(totalLabel.toUpperCase(),
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.Text(amt(report.total),
-                    style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 14,
-                        color: accent)),
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(
+                      color: PdfColor.fromInt(0xFFF7F5FB)),
+                  children: [
+                    _cell(dateColumnLabel, bold: true, color: muted),
+                    _cell(typeColumnLabel, bold: true, color: muted),
+                    _cell(noteColumnLabel, bold: true, color: muted),
+                    _cell(amountColumnLabel,
+                        bold: true, color: muted, align: pw.TextAlign.right),
+                  ],
+                ),
+                for (final e in entries)
+                  pw.TableRow(children: [
+                    _cell(dateStr(e.date)),
+                    _cell(
+                        e.type == equityTypeContribution
+                            ? contributionLabel
+                            : drawingLabel),
+                    _cell(e.note ?? ''),
+                    _cell(
+                        '${e.type == equityTypeContribution ? '+' : '-'}${amt(e.amount)}',
+                        align: pw.TextAlign.right),
+                  ]),
               ],
             ),
-          ),
+          ],
         ];
       },
     ),

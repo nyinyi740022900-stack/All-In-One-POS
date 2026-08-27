@@ -45,6 +45,7 @@ import '../staff/staff_ui.dart';
 import '../storefront/storefront_screen.dart';
 import '../support/support_providers.dart';
 import '../support/viber_launch.dart';
+import 'about_screen.dart';
 import 'device_label_providers.dart';
 import 'help_guide_screen.dart';
 import 'shop_profile_screen.dart';
@@ -66,16 +67,160 @@ class SettingsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final locale = ref.watch(localeControllerProvider);
     final session = ref.watch(sessionScopeProvider);
-    final isOwner = session.isEffectiveOwner;
     final showOwnerCloudTiles = ref.watch(showStaffModeSectionProvider);
     final premium = ref.watch(isPremiumProvider);
     final signedIn = ref.watch(hasRealAccountSessionProvider);
+    final hasStorefront = ref.watch(
+      hasOwnerCapabilityProvider(OwnerCapability.storefront),
+    );
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: ContentWidth(
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppTheme.space5),
           children: [
+            // Account & Team: subscription, sign-in, and who has access —
+            // moved to the top since it's the section owners reach for most
+            // (checking who's signed in, license status, staff/branches).
+            AppSectionHeader(l.settingsSectionAccountTeam),
+            SettingsGroup(
+              children: [
+                if (ref.watch(hasOwnerCapabilityProvider(OwnerCapability.license)))
+                  _LicenseTile(),
+                ListTile(
+                  leading: const IconAvatar(
+                    icon: Icons.account_circle_outlined,
+                  ),
+                  title: Text(l.accountShopLoginTitle),
+                  subtitle: Text(
+                    _accountTileSubtitle(l, ref),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
+                  ),
+                ),
+                // Hidden only for invited email staff. Local PIN staff still
+                // see the tiles (locked) so Switch-to-Staff cannot make
+                // Branches/Staff accounts vanish from Account & Team.
+                //
+                // Staff Accounts and Branches are gated INDEPENDENTLY (not a
+                // single joint isOwner check) — a staff member can be granted
+                // one `OwnerCapability` without the other, so each tile must
+                // resolve its own live/locked state.
+                if (showOwnerCloudTiles) ...[
+                  if (ref.watch(
+                        hasOwnerCapabilityProvider(
+                          OwnerCapability.staffAccounts,
+                        ),
+                      ) &&
+                      signedIn &&
+                      session.backendRole != 'staff')
+                    ListTile(
+                      leading: const IconAvatar(
+                        icon: Icons.admin_panel_settings_outlined,
+                      ),
+                      title: Text(l.staffAccountsTitle),
+                      subtitle: Text(l.staffAccountsSubtitle),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        if (!await requireOwnerPinReauth(
+                              context,
+                              ref,
+                              capability: OwnerCapability.staffAccounts,
+                            ) ||
+                            !context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StaffAccountsScreen(),
+                          ),
+                        );
+                      },
+                    )
+                  else if (!ref.watch(
+                    hasOwnerCapabilityProvider(OwnerCapability.staffAccounts),
+                  ))
+                    _LockedTile(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: l.staffAccountsTitle,
+                      explanation: l.settingsOwnerModeRequired,
+                      unlockLabel: l.staffSwitchTo(l.staffRoleOwner),
+                      onUnlock: () {
+                        switchStaffRole(context, ref, 'owner');
+                      },
+                    )
+                  else
+                    _LockedTile(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: l.staffAccountsTitle,
+                      explanation: l.settingsSignInRequired,
+                      unlockLabel: l.settingsSignIn,
+                      onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ShopLoginScreen(),
+                        ),
+                      ),
+                    ),
+                  if (ref.watch(
+                        hasOwnerCapabilityProvider(OwnerCapability.branches),
+                      ) &&
+                      signedIn &&
+                      session.backendRole != 'staff')
+                    ListTile(
+                      leading: const IconAvatar(
+                        icon: Icons.store_mall_directory_outlined,
+                      ),
+                      title: Text(l.branchesTitle),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        if (!await requireOwnerPinReauth(
+                              context,
+                              ref,
+                              capability: OwnerCapability.branches,
+                            ) ||
+                            !context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BranchesScreen(),
+                          ),
+                        );
+                      },
+                    )
+                  else if (!ref.watch(
+                    hasOwnerCapabilityProvider(OwnerCapability.branches),
+                  ))
+                    _LockedTile(
+                      icon: Icons.store_mall_directory_outlined,
+                      title: l.branchesTitle,
+                      explanation: l.settingsOwnerModeRequired,
+                      unlockLabel: l.staffSwitchTo(l.staffRoleOwner),
+                      onUnlock: () {
+                        switchStaffRole(context, ref, 'owner');
+                      },
+                    )
+                  else
+                    _LockedTile(
+                      icon: Icons.store_mall_directory_outlined,
+                      title: l.branchesTitle,
+                      explanation: l.settingsSignInRequired,
+                      unlockLabel: l.settingsSignIn,
+                      onUnlock: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ShopLoginScreen(),
+                        ),
+                      ),
+                    ),
+                ],
+                _ReferralTile(),
+              ],
+            ),
+
             // Business: day-to-day shop operations. Money/accounting tiles
             // (Credit book, Expenses, Payment accounts, Accounts payable,
             // Owner's equity) deliberately live under Finance below instead —
@@ -96,7 +241,10 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (isOwner) _TrackStockTile(),
+                if (ref.watch(
+                  hasOwnerCapabilityProvider(OwnerCapability.settingsSensitive),
+                ))
+                  _TrackStockTile(),
                 ListTile(
                   leading: const IconAvatar(icon: Icons.point_of_sale_outlined),
                   title: Text(l.cashRegisterTitle),
@@ -136,20 +284,20 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 if (Env.hasBackend && showOwnerCloudTiles)
-                  isOwner && premium
+                  hasStorefront && premium
                       ? _StorefrontTile()
                       : _LockedTile(
                           icon: Icons.storefront,
                           title: l.storefrontTitle,
-                          explanation: !isOwner
+                          explanation: !hasStorefront
                               ? l.settingsOwnerModeRequired
                               : (signedIn
                                     ? l.premiumFeatureBodyOnline
                                     : l.premiumFeatureBody),
-                          unlockLabel: !isOwner
+                          unlockLabel: !hasStorefront
                               ? l.staffSwitchTo(l.staffRoleOwner)
                               : upgradeCtaLabel(l),
-                          onUnlock: !isOwner
+                          onUnlock: !hasStorefront
                               ? () {
                                   switchStaffRole(context, ref, 'owner');
                                 }
@@ -187,125 +335,6 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 _AccountsPayableTile(),
                 _EquityTile(),
-              ],
-            ),
-
-            // Account & Team: subscription, sign-in, and who has access.
-            AppSectionHeader(l.settingsSectionAccountTeam),
-            SettingsGroup(
-              children: [
-                if (isOwner) _LicenseTile(),
-                ListTile(
-                  leading: const IconAvatar(
-                    icon: Icons.account_circle_outlined,
-                  ),
-                  title: Text(l.accountShopLoginTitle),
-                  subtitle: Text(
-                    _accountTileSubtitle(l, ref),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
-                  ),
-                ),
-                // Hidden only for invited email staff. Local PIN staff still
-                // see the tiles (locked) so Switch-to-Staff cannot make
-                // Branches/Staff accounts vanish from Account & Team.
-                if (showOwnerCloudTiles)
-                  if (isOwner &&
-                      signedIn &&
-                      session.backendRole != 'staff') ...[
-                    ListTile(
-                      leading: const IconAvatar(
-                        icon: Icons.admin_panel_settings_outlined,
-                      ),
-                      title: Text(l.staffAccountsTitle),
-                      subtitle: Text(l.staffAccountsSubtitle),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        if (!await requireOwnerPinReauth(
-                              context,
-                              ref,
-                              capability: OwnerCapability.staffAccounts,
-                            ) ||
-                            !context.mounted) {
-                          return;
-                        }
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const StaffAccountsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: const IconAvatar(
-                        icon: Icons.store_mall_directory_outlined,
-                      ),
-                      title: Text(l.branchesTitle),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        if (!await requireOwnerPinReauth(
-                              context,
-                              ref,
-                              capability: OwnerCapability.branches,
-                            ) ||
-                            !context.mounted) {
-                          return;
-                        }
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const BranchesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ] else if (!isOwner) ...[
-                    _LockedTile(
-                      icon: Icons.admin_panel_settings_outlined,
-                      title: l.staffAccountsTitle,
-                      explanation: l.settingsOwnerModeRequired,
-                      unlockLabel: l.staffSwitchTo(l.staffRoleOwner),
-                      onUnlock: () {
-                        switchStaffRole(context, ref, 'owner');
-                      },
-                    ),
-                    _LockedTile(
-                      icon: Icons.store_mall_directory_outlined,
-                      title: l.branchesTitle,
-                      explanation: l.settingsOwnerModeRequired,
-                      unlockLabel: l.staffSwitchTo(l.staffRoleOwner),
-                      onUnlock: () {
-                        switchStaffRole(context, ref, 'owner');
-                      },
-                    ),
-                  ] else ...[
-                    _LockedTile(
-                      icon: Icons.admin_panel_settings_outlined,
-                      title: l.staffAccountsTitle,
-                      explanation: l.settingsSignInRequired,
-                      unlockLabel: l.settingsSignIn,
-                      onUnlock: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ShopLoginScreen(),
-                        ),
-                      ),
-                    ),
-                    _LockedTile(
-                      icon: Icons.store_mall_directory_outlined,
-                      title: l.branchesTitle,
-                      explanation: l.settingsSignInRequired,
-                      unlockLabel: l.settingsSignIn,
-                      onUnlock: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ShopLoginScreen(),
-                        ),
-                      ),
-                    ),
-                  ],
-                _ReferralTile(),
               ],
             ),
 
@@ -387,7 +416,9 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                if (isOwner)
+                if (ref.watch(
+                  hasOwnerCapabilityProvider(OwnerCapability.settingsSensitive),
+                ))
                   ListTile(
                     leading: const IconAvatar(icon: Icons.backup),
                     title: Text(l.backupTitle),
@@ -411,6 +442,14 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 _SupportTile(),
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.info_outline),
+                  title: Text(l.settingsAbout),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AboutScreen()),
+                  ),
+                ),
               ],
             ),
 

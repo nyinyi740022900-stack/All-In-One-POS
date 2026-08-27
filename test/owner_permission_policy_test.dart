@@ -33,4 +33,52 @@ void main() {
       );
     }
   });
+
+  group('grantedCapabilities (owner-granted per-staff-member permissions)', () {
+    test('a staff member with no grants is denied every capability, exactly '
+        'the pre-permissions-feature behavior', () {
+      for (final capability in OwnerCapability.values) {
+        expect(
+          policy.allows(capability, isEffectiveOwner: false),
+          isFalse,
+          reason: '$capability should stay denied with no grants',
+        );
+      }
+    });
+
+    test('a staff member is allowed only the specific capability granted to '
+        'them, not others', () {
+      final granted = {OwnerCapability.inventoryEdit};
+      expect(
+        policy.allows(
+          OwnerCapability.inventoryEdit,
+          isEffectiveOwner: false,
+          grantedCapabilities: granted,
+        ),
+        isTrue,
+      );
+      expect(
+        policy.allows(
+          OwnerCapability.branches,
+          isEffectiveOwner: false,
+          grantedCapabilities: granted,
+        ),
+        isFalse,
+      );
+    });
+
+    test('the owner is always allowed regardless of grantedCapabilities '
+        '(grants are a staff-only concept)', () {
+      for (final capability in OwnerCapability.values) {
+        expect(
+          policy.allows(
+            capability,
+            isEffectiveOwner: true,
+            grantedCapabilities: const {},
+          ),
+          isTrue,
+        );
+      }
+    });
+  });
 }

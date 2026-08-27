@@ -14,8 +14,10 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
 import '../accounting/accounting_csv.dart';
+import '../accounting/accounting_pdf.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import '../sell/payment_labels.dart';
 import 'accounts_payable.dart';
 import 'accounts_payable_providers.dart';
@@ -73,10 +75,62 @@ class AccountsPayableScreen extends ConsumerWidget {
       }
     }
 
+    Future<void> exportPdf() async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        final profile = await ref.read(shopProfileProvider.future);
+        final printerConfig = await ref.read(printerConfigProvider.future);
+        final bytes = await buildLabeledTablePdf(
+          shopName: profile.name,
+          shopLogoUrl: profile.logoUrl,
+          shopPhone: profile.phone,
+          shopAddress: profile.address,
+          title: l.accountsPayableTitle,
+          columnLabels: [
+            l.supplierNameLabel,
+            l.apBilledHeader,
+            l.apPaidHeader,
+            l.apOutstanding,
+          ],
+          columnFlex: const [3, 2, 2, 2],
+          rightAlignColumns: const {1, 2, 3},
+          rows: [
+            for (final b in balances)
+              [
+                b.name,
+                Money(b.billed).withSymbol(currency),
+                Money(b.paid).withSymbol(currency),
+                Money(b.outstanding).withSymbol(currency),
+              ],
+          ],
+          emptyLabel: l.apEmpty,
+          pageFormat: printerConfig.pdfPaperSize,
+        );
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/accounts-payable.pdf');
+        await file.writeAsBytes(bytes);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'application/pdf')],
+            subject: l.accountsPayableTitle,
+          ),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l.accountsPayableTitle),
         actions: [
+          IconButton(
+            tooltip: l.salesReportExportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: exportPdf,
+          ),
           IconButton(
             tooltip: l.apExportCsv,
             icon: const Icon(Icons.table_chart_outlined),

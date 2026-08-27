@@ -28,6 +28,8 @@ String paymentLabel(AppLocalizations l, String method,
       return l.paymentCod;
     case 'cash':
       return l.paymentCash;
+    case 'split':
+      return l.paymentSplit;
     default:
       final account =
           accounts?.where((a) => a.id == method).firstOrNull;
@@ -50,5 +52,6 @@ IconData paymentIcon(String method) => switch (method) {
   'kbzpay' || 'wavepay' || 'ayapay' || 'cbpay' => Icons.smartphone_outlined,
   'credit' => Icons.schedule_outlined,
   'cod' => Icons.local_shipping_outlined,
+  'split' => Icons.call_split,
   _ => Icons.account_balance_wallet_outlined,
 };

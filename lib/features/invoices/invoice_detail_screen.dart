@@ -192,6 +192,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
             'credit',
             'cod',
             'transfer',
+            'split',
           };
           final customName = knownMethods.contains(s.paymentMethod)
               ? null
