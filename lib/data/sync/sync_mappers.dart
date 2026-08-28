@@ -67,6 +67,7 @@ final syncTables = <SyncTableDef>[
   _customers,
   _expenses,
   _cashSessions,
+  _cashTopUps,
   _deviceLabels,
   _recurringExpenses,
   _suppliers,
@@ -1086,6 +1087,7 @@ final _cashSessions = SyncTableDef(
       'opening_amount': r.openingAmount,
       'closed_at': r.closedAt == null ? null : _iso(r.closedAt!),
       'closing_amount': r.closingAmount,
+      'expected_cash_at_close': r.expectedCashAtClose,
       'note': r.note,
       'device_id': r.deviceId,
       'created_at': _iso(r.createdAt),
@@ -1119,8 +1121,60 @@ final _cashSessions = SyncTableDef(
               m['closed_at'] == null ? null : _dt(m['closed_at'])),
           closingAmount: Value(
               m['closing_amount'] == null ? null : _int(m['closing_amount'])),
+          expectedCashAtClose: Value(m['expected_cash_at_close'] == null
+              ? null
+              : _int(m['expected_cash_at_close'])),
           note: Value(m['note'] as String?),
           deviceId: Value(m['device_id'] as String?),
+          createdAt: Value(_dt(m['created_at'])),
+          updatedAt: Value(updated),
+          hlc: Value(hlc),
+          isDeleted: Value(_bool(m['is_deleted'])),
+          dirty: const Value(false),
+        ));
+    return true;
+  },
+);
+
+// --- cash_top_ups --------------------------------------------------------
+final _cashTopUps = SyncTableDef(
+  name: 'cash_top_ups',
+  toRemote: (db, id) async {
+    final r = await (db.select(db.cashTopUps)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'shop_id': r.shopId,
+      'amount': r.amount,
+      'note': r.note,
+      'created_at': _iso(r.createdAt),
+      'updated_at': _iso(r.updatedAt),
+      'hlc': r.hlc,
+      'is_deleted': r.isDeleted,
+    };
+  },
+  upsertLocal: (db, m) async {
+    final id = m['id'] as String;
+    final updated = _dt(m['updated_at']);
+    final local = await (db.select(db.cashTopUps)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    final hlc = hlcOfRemoteRow(m);
+    if (local != null) {
+      final cmpHlc = compareHlc(
+          hlc,
+          local.hlc ??
+              synthHlc(DateTime.fromMillisecondsSinceEpoch(0), local.id));
+      if (cmpHlc < 0 || (cmpHlc == 0 && local.dirty)) {
+        return false;
+      }
+    }
+    await db.into(db.cashTopUps).insertOnConflictUpdate(CashTopUpsCompanion(
+          id: Value(id),
+          shopId: Value(m['shop_id'] as String),
+          amount: Value(_int(m['amount'])),
+          note: Value(m['note'] as String?),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           hlc: Value(hlc),
@@ -1198,6 +1252,7 @@ final _recurringExpenses = SyncTableDef(
       'auto_generate': r.autoGenerate,
       'generation_timing': r.generationTiming,
       'last_generated_period': r.lastGeneratedPeriod,
+      'account_id': r.accountId,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'hlc': r.hlc,
@@ -1232,6 +1287,7 @@ final _recurringExpenses = SyncTableDef(
             generationTiming:
                 Value(m['generation_timing'] as String? ?? 'month_start'),
             lastGeneratedPeriod: Value(m['last_generated_period'] as String?),
+            accountId: Value(m['account_id'] as String?),
             createdAt: Value(_dt(m['created_at'])),
             updatedAt: Value(updated),
             hlc: Value(hlc),

@@ -1,7 +1,8 @@
 
-import 'package:crypto/crypto.dart';
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -28,8 +29,13 @@ class StaffRepository {
   final AppDatabase _db;
   final String _shopId;
   static const _uuid = Uuid();
+  bool _legacyHashStarted = false;
 
   Stream<List<StaffMember>> watchActiveMembers() {
+    if (!_legacyHashStarted) {
+      _legacyHashStarted = true;
+      unawaited(hashLegacyPins());
+    }
     return (_db.select(_db.staffMembers)
           ..where((t) =>
               t.shopId.equals(_shopId) &
@@ -37,6 +43,27 @@ class StaffRepository {
               t.active.equals(true))
           ..orderBy([(t) => OrderingTerm(expression: t.name)]))
         .watch();
+  }
+
+  /// One-shot: hash leftover plaintext PINs so unused roster members are
+  /// not stored in the clear until their first login (N14).
+  Future<void> hashLegacyPins() async {
+    final rows = await (_db.select(_db.staffMembers)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    for (final m in rows) {
+      if (m.pin.startsWith('v1:')) continue;
+      await _db.transaction(() async {
+        await (_db.update(_db.staffMembers)..where((t) => t.id.equals(m.id)))
+            .write(StaffMembersCompanion(
+          pin: Value(_hashPin(m.id, m.pin)),
+          updatedAt: Value(DateTime.now()),
+          dirty: const Value(true),
+        ));
+        await _enqueue(m.id);
+      });
+    }
   }
 
   /// Verifies [pin] against the stored hash. Rows written before hashing was

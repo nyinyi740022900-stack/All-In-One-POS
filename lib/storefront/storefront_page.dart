@@ -519,7 +519,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   String? _township;
   String _paymentMethod = 'transfer';
   bool _submitting = false;
-  String? _orderNo;
+  SubmitOrderResult? _submitted;
   bool _downloading = false;
   List<int>? _proofBytes;
   String? _proofExt;
@@ -583,7 +583,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           folder: widget.info.shopId,
         );
       }
-      final no = await widget.api.submitOrder(
+      final submitted = await widget.api.submitOrder(
         slug: widget.slug,
         customerName: _name.text.trim(),
         phone: _phone.text.trim(),
@@ -595,7 +595,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         lines: widget.lines,
         hp: _hp.text,
       );
-      if (mounted) setState(() => _orderNo = no);
+      if (mounted) setState(() => _submitted = submitted);
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context);
@@ -606,7 +606,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             ? l.storefrontBlocked
             : raw.contains('out_of_stock')
             ? l.storefrontOutOfStock
-            : raw.contains('proof_required')
+            : raw.contains('proof_required') || raw.contains('proof_missing')
             ? l.storefrontProofRequired
             : raw.contains('closed')
             ? l.storefrontClosed
@@ -626,7 +626,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    if (_orderNo != null) return _confirmation(context, l);
+    if (_submitted != null) return _confirmation(context, l);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         AppTheme.space4,
@@ -778,19 +778,27 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     );
   }
 
+  /// Prices the server actually charged — not the first catalog fetch, which
+  /// can go stale if the owner edits a product while this page is open.
+  List<OrderLine> get _chargedLines {
+    final server = _submitted?.lines;
+    if (server != null && server.isNotEmpty) return server;
+    return widget.lines;
+  }
+
   InvoiceData _invoiceData(AppLocalizations l) => InvoiceData(
     shopName: widget.info.displayName ?? l.storefrontShopFallbackName,
     shopLogoUrl: widget.info.logoUrl,
     shopPhone: widget.info.phone,
     shopAddress: widget.info.address,
-    invoiceNo: _orderNo ?? '',
+    invoiceNo: _submitted?.orderNo ?? '',
     date: DateTime.now(),
     customerName: _name.text.trim(),
     customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     deliveryAddress: _address.text.trim().isEmpty ? null : _address.text.trim(),
     township: _township,
     items: [
-      for (final line in widget.lines)
+      for (final line in _chargedLines)
         InvoiceItemData(
           name: line.name,
           qty: line.qty,
@@ -803,9 +811,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     // door by design, a transfer is awaiting the shop's verification of
     // the screenshot — neither is the red "unpaid/credit" state the
     // default stamped on it (see [invoicePaymentStatusDisplay]).
-    paymentStatus: _paymentMethod == 'cod'
-        ? 'cod_pending'
-        : 'transfer_pending',
+    paymentStatus: _paymentMethod == 'cod' ? 'cod_pending' : 'transfer_pending',
     footer: l.receiptThankYou,
   );
 
@@ -850,7 +856,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppTheme.space1),
-            Text(l.storefrontOrderNo(_orderNo!)),
+            Text(l.storefrontOrderNo(_submitted!.orderNo)),
             const SizedBox(height: AppTheme.space4),
             InvoiceView(data: _invoiceData(l)),
             const SizedBox(height: AppTheme.space3),

@@ -9,12 +9,19 @@ class StoreProduct {
   final int price;
   final String unit;
   final String? imageUrl;
+
   /// Remaining units the owner will sell online, if they've set an
   /// `onlineStockLimit` on this product (independent of real in-store
   /// stock). Null means no cap — sell as normal.
   final int? onlineAvailable;
-  const StoreProduct(this.id, this.name, this.price, this.unit, this.imageUrl,
-      {this.onlineAvailable});
+  const StoreProduct(
+    this.id,
+    this.name,
+    this.price,
+    this.unit,
+    this.imageUrl, {
+    this.onlineAvailable,
+  });
 }
 
 /// Public shop info + payment numbers shown to customers.
@@ -71,14 +78,54 @@ class OrderLine {
   const OrderLine(this.productId, this.name, this.price, this.qty);
 }
 
+/// What [StorefrontApi.submitOrder] hands back: the order number plus the
+/// prices the server actually charged (re-read from the product row, never
+/// taken from the client catalog fetch).
+class SubmitOrderResult {
+  const SubmitOrderResult({
+    required this.orderNo,
+    this.itemsTotal,
+    this.lines = const [],
+  });
+  final String orderNo;
+  final int? itemsTotal;
+  final List<OrderLine> lines;
+
+  factory SubmitOrderResult.fromMap(Map<String, dynamic> m) {
+    final rawLines = m['lines'];
+    final lines = rawLines is List
+        ? rawLines
+              .whereType<Map>()
+              .map((e) => e.cast<String, dynamic>())
+              .map(
+                (l) => OrderLine(
+                  l['product_id'] as String? ?? '',
+                  l['name'] as String? ?? '',
+                  (l['price'] as num?)?.toInt() ?? 0,
+                  (l['qty'] as num?)?.toInt() ?? 0,
+                ),
+              )
+              .where((l) => l.productId.isNotEmpty)
+              .toList()
+        : const <OrderLine>[];
+    return SubmitOrderResult(
+      orderNo: m['order_no'] as String? ?? '',
+      itemsTotal: (m['items_total'] as num?)?.toInt(),
+      lines: lines,
+    );
+  }
+}
+
 /// Talks to the `storefront` Edge Function. The browser only ever holds the
 /// anon key; the function reads/writes across RLS with the service role.
 class StorefrontApi {
   SupabaseClient get _c => Supabase.instance.client;
 
   Future<Catalog> fetchCatalog(String slug) async {
-    final res = await _c.functions
-        .invoke('storefront', body: {'action': 'catalog', 'slug': slug});
+    final res = await _c.functions.invoke(
+      'storefront',
+      body: {'action': 'catalog', 'slug': slug},
+    );
     if (res.status != 200) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
@@ -86,14 +133,16 @@ class StorefrontApi {
     final s = (data['storefront'] as Map).cast<String, dynamic>();
     final products = (data['products'] as List)
         .map((e) => (e as Map).cast<String, dynamic>())
-        .map((m) => StoreProduct(
-              m['id'] as String,
-              m['name'] as String,
-              (m['sale_price'] as num?)?.toInt() ?? 0,
-              (m['unit'] as String?) ?? 'pcs',
-              m['image_url'] as String?,
-              onlineAvailable: (m['online_available'] as num?)?.toInt(),
-            ))
+        .map(
+          (m) => StoreProduct(
+            m['id'] as String,
+            m['name'] as String,
+            (m['sale_price'] as num?)?.toInt() ?? 0,
+            (m['unit'] as String?) ?? 'pcs',
+            m['image_url'] as String?,
+            onlineAvailable: (m['online_available'] as num?)?.toInt(),
+          ),
+        )
         .toList();
     return Catalog(
       StoreInfo(
@@ -130,7 +179,9 @@ class StorefrontApi {
   }) async {
     final path =
         '$folder/proof-${DateTime.now().millisecondsSinceEpoch}-${bytes.length}.$ext';
-    await _c.storage.from('payment-proofs').uploadBinary(
+    await _c.storage
+        .from('payment-proofs')
+        .uploadBinary(
           path,
           Uint8List.fromList(bytes),
           fileOptions: const FileOptions(upsert: false),
@@ -140,8 +191,10 @@ class StorefrontApi {
 
   /// Submits a guest order. [paymentMethod] is `'transfer'` (KPay/Wave,
   /// usually with a screenshot) or `'cod'` (cash on delivery) — the shop sees
-  /// a different workflow cue for each. Returns the order number.
-  Future<String> submitOrder({
+  /// a different workflow cue for each. Returns the order number plus the
+  /// server-charged line prices/total (confirmation PNG must use those, not
+  /// the first catalog fetch).
+  Future<SubmitOrderResult> submitOrder({
     required String slug,
     required String customerName,
     String? phone,
@@ -153,31 +206,34 @@ class StorefrontApi {
     required List<OrderLine> lines,
     String? hp,
   }) async {
-    final res = await _c.functions.invoke('storefront', body: {
-      'action': 'submit_order',
-      'slug': slug,
-      'customer_name': customerName,
-      'phone': phone,
-      'address': address,
-      'township': township,
-      'note': note,
-      'payment_method': paymentMethod,
-      'payment_proof_path': paymentProofPath,
-      'hp': hp,
-      'lines': [
-        for (final l in lines)
-          {
-            'product_id': l.productId,
-            'name': l.name,
-            'price': l.price,
-            'qty': l.qty,
-          }
-      ],
-    });
+    final res = await _c.functions.invoke(
+      'storefront',
+      body: {
+        'action': 'submit_order',
+        'slug': slug,
+        'customer_name': customerName,
+        'phone': phone,
+        'address': address,
+        'township': township,
+        'note': note,
+        'payment_method': paymentMethod,
+        'payment_proof_path': paymentProofPath,
+        'hp': hp,
+        'lines': [
+          for (final l in lines)
+            {
+              'product_id': l.productId,
+              'name': l.name,
+              'price': l.price,
+              'qty': l.qty,
+            },
+        ],
+      },
+    );
     if (res.status != 200 || (res.data is Map && res.data['ok'] != true)) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
-    return (res.data as Map)['order_no'] as String;
+    return SubmitOrderResult.fromMap((res.data as Map).cast<String, dynamic>());
   }
 
   /// Submits a subscription-renewal request from the /renew page — the shop
@@ -199,20 +255,23 @@ class StorefrontApi {
     String? paymentProofPath,
     String? hp,
   }) async {
-    final res = await _c.functions.invoke('storefront', body: {
-      'action': 'submit_license_request',
-      'shop_name': shopName,
-      'device_id': deviceId,
-      'email': email,
-      'phone': phone,
-      'plan': plan,
-      'months': months,
-      'method': method,
-      'amount': amount,
-      'ref_no': refNo,
-      'payment_proof_path': paymentProofPath,
-      'hp': hp,
-    });
+    final res = await _c.functions.invoke(
+      'storefront',
+      body: {
+        'action': 'submit_license_request',
+        'shop_name': shopName,
+        'device_id': deviceId,
+        'email': email,
+        'phone': phone,
+        'plan': plan,
+        'months': months,
+        'method': method,
+        'amount': amount,
+        'ref_no': refNo,
+        'payment_proof_path': paymentProofPath,
+        'hp': hp,
+      },
+    );
     if (res.status != 200 || (res.data is Map && res.data['ok'] != true)) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
@@ -230,10 +289,10 @@ class StorefrontApi {
   /// link. The Edge Function decides what is safe to return; this method
   /// deliberately does not ask for anything else.
   Future<RenewalReceipt> fetchReceipt(String requestId) async {
-    final res = await _c.functions.invoke('storefront', body: {
-      'action': 'receipt',
-      'request_id': requestId,
-    });
+    final res = await _c.functions.invoke(
+      'storefront',
+      body: {'action': 'receipt', 'request_id': requestId},
+    );
     if (res.status != 200 || res.data is! Map || res.data['receipt'] == null) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
     }
@@ -251,20 +310,19 @@ class StorefrontApi {
         .from('app_config')
         .select('key, value')
         .inFilter('key', const [
-      'pay.kbzpay.name',
-      'pay.kbzpay.number',
-      'pay.wavepay.name',
-      'pay.wavepay.number',
-      'price.monthly',
-      'price.yearly',
-    ]);
+          'pay.kbzpay.name',
+          'pay.kbzpay.number',
+          'pay.wavepay.name',
+          'pay.wavepay.number',
+          'price.monthly',
+          'price.yearly',
+        ]);
     return {
       for (final r in (rows as List))
         (r['key'] as String): (r['value'] as String? ?? ''),
     };
   }
 }
-
 
 /// One renewal request as the public receipt page sees it.
 ///
@@ -325,23 +383,22 @@ class RenewalReceipt {
       v is String ? DateTime.tryParse(v)?.toLocal() : null;
 
   factory RenewalReceipt.fromMap(Map<String, dynamic> m) => RenewalReceipt(
-        invoiceNo: (m['invoice_no'] as String?) ?? '',
-        shopName: (m['shop_name'] as String?) ?? '',
-        plan: (m['plan'] as String?) ?? 'monthly',
-        months: (m['months'] as num?)?.toInt() ?? 1,
-        amount: (m['amount'] as num?)?.toInt() ?? 0,
-        status: (m['status'] as String?) ?? 'pending',
-        paymentStatus: (m['payment_status'] as String?) ?? 'manual',
-        createdAt: _date(m['created_at']),
-        deviceIdTail: m['device_id_tail'] as String?,
-        method: m['method'] as String?,
-        refNo: m['ref_no'] as String?,
-        issuedKey: m['issued_key'] as String?,
-        rejectReason: m['reject_reason'] as String?,
-        paidAt: _date(m['paid_at']),
-      );
+    invoiceNo: (m['invoice_no'] as String?) ?? '',
+    shopName: (m['shop_name'] as String?) ?? '',
+    plan: (m['plan'] as String?) ?? 'monthly',
+    months: (m['months'] as num?)?.toInt() ?? 1,
+    amount: (m['amount'] as num?)?.toInt() ?? 0,
+    status: (m['status'] as String?) ?? 'pending',
+    paymentStatus: (m['payment_status'] as String?) ?? 'manual',
+    createdAt: _date(m['created_at']),
+    deviceIdTail: m['device_id_tail'] as String?,
+    method: m['method'] as String?,
+    refNo: m['ref_no'] as String?,
+    issuedKey: m['issued_key'] as String?,
+    rejectReason: m['reject_reason'] as String?,
+    paidAt: _date(m['paid_at']),
+  );
 }
-
 
 /// What [StorefrontApi.submitLicenseRequest] hands back: the id the receipt
 /// link is keyed by, and the number the shop will actually quote.

@@ -8,6 +8,7 @@ void main() {
     openingAmount: 50000,
     cashSalesTotal: 85000,
     cashRepaymentsTotal: 5000,
+    topUpsTotal: 0,
     expensesTotal: 12000,
     supplierPaymentsTotal: 3000,
     expectedCash: 125000,
@@ -15,15 +16,16 @@ void main() {
     variance: -500,
   );
 
-  List<String> format({int? closingAmount, int? variance}) {
+  List<String> format({int? closingAmount, int? variance, int topUpsTotal = 0}) {
     return CashSessionReportFormatter(paper: PaperSize.mm58).format(
       CashSessionReport(
         openingAmount: report.openingAmount,
         cashSalesTotal: report.cashSalesTotal,
         cashRepaymentsTotal: report.cashRepaymentsTotal,
+        topUpsTotal: topUpsTotal,
         expensesTotal: report.expensesTotal,
         supplierPaymentsTotal: report.supplierPaymentsTotal,
-        expectedCash: report.expectedCash,
+        expectedCash: report.expectedCash + topUpsTotal,
         closingAmount: closingAmount,
         variance: variance,
       ),
@@ -33,6 +35,7 @@ void main() {
       openingFloatLabel: 'Opening float',
       cashSalesLabel: 'Cash sales',
       cashRepaymentsLabel: 'Cash repayments',
+      topUpsLabel: 'Cash top-ups',
       expensesLabel: 'Expenses',
       supplierPaymentsLabel: 'Supplier payments',
       expectedCashLabel: 'Expected cash',
@@ -86,5 +89,11 @@ void main() {
   test('does not include a "Closed" line for a still-open session', () {
     final lines = format().join('\n');
     expect(lines, isNot(contains('Closed')));
+  });
+
+  test('a mid-session top-up shows its own line', () {
+    final lines = format(topUpsTotal: 4000).join('\n');
+    expect(lines, contains('Cash top-ups'));
+    expect(lines, contains('4,000 Ks'));
   });
 }

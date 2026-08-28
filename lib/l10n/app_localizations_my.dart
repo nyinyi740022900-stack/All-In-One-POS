@@ -380,7 +380,19 @@ class AppLocalizationsMy extends AppLocalizations {
   String get cashReportCashRepayments => 'ငွေသား ကြွေးဆပ်ငွေ';
 
   @override
+  String get cashReportTopUps => 'ငွေသား ထပ်ဖြည့်ငွေ';
+
+  @override
   String get cashReportSupplierPayments => 'ငွေသား ကုန်သွင်းငွေ';
+
+  @override
+  String get cashAddTopUp => 'ငွေသား ထပ်ဖြည့်ရန်';
+
+  @override
+  String get cashTopUpAmount => 'ထပ်ဖြည့်တဲ့ ပမာဏ';
+
+  @override
+  String get cashTopUpSaved => 'ငွေသား ထပ်ဖြည့်မှု သိမ်းပြီးပါပြီ';
 
   @override
   String get creditTitle => 'အကြွေးစာရင်း';
@@ -1413,8 +1425,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invoiceRefundConfirmTitle => 'ဒီပြေစာကို ပြန်အမ်းမှာလား?';
 
   @override
-  String get invoiceRefundConfirmBody =>
-      'ရောင်းချမှုကို ပြန်ပြင်ပြီး ကုန်ပစ္စည်းအရေအတွက် ပြန်ဖြည့်ပါမည်။ နောက်ပြန်ရုတ်သိမ်း၍ မရပါ။';
+  String invoiceRefundConfirmBody(String amount) {
+    return 'ဒါက $amount ပြန်အမ်းပေးမည်၊ အရောင်းကို ပြန်ပြင်ပေးမည်၊ ကုန်ပစ္စည်းလက်ကျန်ကိုလည်း ပြန်ထည့်ပေးမည်ဖြစ်ပြီး ပြန်ရုပ်သိမ်းလို့ မရတော့ပါ။';
+  }
 
   @override
   String invoiceRefundOf(String invoiceNo) {
@@ -2598,7 +2611,8 @@ class AppLocalizationsMy extends AppLocalizations {
   String get backupExport => 'Backup ထုတ်';
 
   @override
-  String get backupExportHint => 'data အားလုံးကို file အဖြစ်သိမ်းပြီး share';
+  String get backupExportHint =>
+      'ဒီဆိုင်ရဲ့ လုပ်ငန်း data (အရောင်း၊ stock၊ အော်ဒါ၊ ဖောက်သည်၊ ငွေသား၊ ဝန်ထမ်း၊ ပေးသွင်းသူ) ကို file အဖြစ်သိမ်းပြီး share။ ဖုန်း settings နဲ့ sync တန်းကို မပါဝင်ပါ။';
 
   @override
   String get backupImport => 'Backup ပြန်သွင်း';
@@ -2618,7 +2632,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get backupImportConfirmBody =>
-      'ဒါက လက်ရှိ ကုန်ပစ္စည်း၊ အရောင်း၊ အကြွေး data တွေကို ဖျက်ပြီး backup နဲ့ အစားထိုးမှာပါ။ ပြန်ပြင်လို့ မရပါ။';
+      'ဒါက ဒီဆိုင်ရဲ့ လက်ရှိ လုပ်ငန်း data (ကုန်ပစ္စည်း၊ အရောင်း၊ အော်ဒါ၊ ဖောက်သည်၊ ငွေသား၊ ဝန်ထမ်း၊ ပေးသွင်းသူ စသည်) ကို ဖျက်ပြီး backup နဲ့ အစားထိုးမှာပါ။ ဖုန်း settings ကျန်ပါမည်။ ပြန်ပြင်လို့ မရပါ။';
 
   @override
   String get backupImportConfirmAction => 'အစားထိုး';
@@ -2871,7 +2885,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get orderConvertHint =>
-      'ပြေစာထုတ်ပြီး catalog ပစ္စည်းများအတွက် stock နှုတ်ပါမည်။';
+      'ကောက်ခံရရှိသော ပမာဏကို အရောင်းအဖြစ် မှတ်ပြီး catalog ပစ္စည်းများအတွက် stock နှုတ်ပါမည်။ မပေးရသေးသော COD ကို ကောက်ခံသည့် ပမာဏ ထည့်မှသာ ပေးပြီးဟု မှတ်ပါမည်။';
 
   @override
   String orderConverted(String invoice) {
@@ -2887,6 +2901,13 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get orderCancel => 'ပြန်ပို့အဖြစ် မှတ်မည်';
+
+  @override
+  String get orderCancelConfirmTitle => 'ဒီအော်ဒါကို ပယ်ဖျက်မည်လား?';
+
+  @override
+  String get orderCancelConfirmBody =>
+      'အော်ဒါကို ပယ်ဖျက်အဖြစ် မှတ်ပါမည်။ အရောင်းအဖြစ် မပြောင်းရသေးသဖြင့် ပြေစာ သို့မဟုတ် stock ပြန်ပြင်စရာ မရှိပါ။';
 
   @override
   String get orderRestore => 'ပြန်ပို့မှု ပြန်ရုပ်သိမ်းမည်';
@@ -3020,6 +3041,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get staffPinHint => 'ဂဏန်း ၄–၆ လုံး';
+
+  @override
+  String get staffOwnerPinRequired =>
+      'ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က Settings မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။';
 
   @override
   String get staffPinSaved => 'PIN သိမ်းပြီး';

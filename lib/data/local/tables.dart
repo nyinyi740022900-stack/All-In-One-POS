@@ -581,12 +581,34 @@ class CashSessions extends Table with SyncColumns {
   IntColumn get openingAmount => integer()();
   DateTimeColumn get closedAt => dateTime().nullable()();
   IntColumn get closingAmount => integer().nullable()();
+
+  /// Frozen "expected in drawer" at the moment this session closed.
+  /// Closed reports read this snapshot so a later expense edit cannot
+  /// rewrite yesterday's variance. Null on open sessions and on rows
+  /// closed before schema v37.
+  IntColumn get expectedCashAtClose => integer().nullable()();
   TextColumn get note => text().nullable()();
 
   /// The device that opened this session (`SettingsRepository.deviceId()`,
   /// same stable id used elsewhere) — a raw UUID means nothing to an owner
   /// on its own; see [DeviceLabels] for the friendly name shown in the UI.
   TextColumn get deviceId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Cash physically added to the till mid-session — e.g. the owner topping up
+/// the drawer from their own pocket to cover a large cash-out (a supplier
+/// paid in cash), separate from [EquityEntries] (that's a balance-sheet
+/// concept and deliberately never touches Cash Register math). No `sessionId`
+/// FK — same window-based convention [Expenses]/[SupplierPayments] already
+/// use with `computeExpectedCash` (matched by `createdAt` falling inside the
+/// open session's `[openedAt, closedAt)` window), so a top-up always belongs
+/// to whichever session was open when it was recorded.
+class CashTopUps extends Table with SyncColumns {
+  IntColumn get amount => integer()();
+  TextColumn get note => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -627,6 +649,11 @@ class RecurringExpenses extends Table with SyncColumns {
   TextColumn get generationTiming =>
       text().withDefault(const Constant('month_start'))();
   TextColumn get lastGeneratedPeriod => text().nullable()();
+
+  /// Same meaning as [Expenses.accountId]: null = paid from the till.
+  /// Copied onto each generated expense so recurring rent charged to
+  /// KBZPay does not empty the cash drawer.
+  TextColumn get accountId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

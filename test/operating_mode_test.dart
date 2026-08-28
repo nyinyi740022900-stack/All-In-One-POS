@@ -160,4 +160,19 @@ void main() {
     addTearDown(container.dispose);
     expect(await container.read(dailyGateNeededProvider.future), isFalse);
   });
+
+  test('dailyGateNeededProvider is true while shopId is still empty', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final settings = SettingsRepository(db);
+    final container = ProviderContainer(
+      overrides: [
+        settingsRepositoryProvider.overrideWithValue(settings),
+        databaseProvider.overrideWithValue(db),
+        shopIdProvider.overrideWith((ref) => ''),
+      ],
+    );
+    addTearDown(container.dispose);
+    expect(await container.read(dailyGateNeededProvider.future), isTrue);
+  });
 }

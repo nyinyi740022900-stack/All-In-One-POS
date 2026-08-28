@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../accounts/payment_account_providers.dart';
 import '../analytics/analytics_providers.dart';
+import '../cash/cash_providers.dart';
 import '../credit/credit_providers.dart';
 import '../equity/equity_providers.dart';
 import '../printing/printing_providers.dart' show settingsRepositoryProvider;
@@ -29,6 +30,14 @@ final balanceSheetProvider = FutureProvider<BalanceSheet>((ref) async {
   for (final a in accounts) {
     cashAndAccounts += await ref.watch(accountBalanceProvider(a).future);
   }
+  // Physical till cash is not a PaymentAccount (Cash Register is a
+  // separate ledger). Without this, a cash sale never moved the Balance
+  // Sheet's cash line.
+  ref.watch(currentCashSessionProvider);
+  ref.watch(cashSessionHistoryProvider);
+  ref.watch(cashInputSignalProvider);
+  cashAndAccounts +=
+      await ref.watch(cashSessionRepositoryProvider).physicalCashNow();
 
   final retained = await ref.watch(cumulativeNetProfitProvider.future);
   final paidIn =

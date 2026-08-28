@@ -56,4 +56,5 @@ ReceiptLabels receiptLabels(AppLocalizations l) => ReceiptLabels(
       payment: l.sellPaymentMethod,
       paid: l.sellAmountPaid,
       change: l.sellChange,
+      amountDue: l.invoiceAmountDue,
     );

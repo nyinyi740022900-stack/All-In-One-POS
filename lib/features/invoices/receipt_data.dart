@@ -90,6 +90,7 @@ class ReceiptData {
   final int total;
   final int paid;
   final int change;
+  final int owed;
   final String paymentMethod;
   final String? footer;
 
@@ -110,6 +111,7 @@ class ReceiptData {
     required this.total,
     required this.paid,
     required this.change,
+    this.owed = 0,
     required this.paymentMethod,
     this.footer,
   });

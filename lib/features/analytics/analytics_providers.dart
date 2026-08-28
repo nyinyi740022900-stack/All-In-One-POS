@@ -92,18 +92,44 @@ final _stockLevelChangesProvider = StreamProvider<List<StockLevel>>((ref) {
       .watch();
 });
 
-/// Σ(quantity × current cost) over live stock levels — the only thing
-/// summaries read out of `stock_levels`. Content-memoized like
-/// [productCostMapProvider]: a stock adjustment that nets the same value
-/// (or any unrelated write) no longer re-runs Analytics/P&L.
+final _stockLotChangesProvider = StreamProvider<List<StockLot>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.select(db.stockLots).watch();
+});
+
+final _liveProductIdsProvider = Provider<Set<String>>((ref) {
+  final products =
+      ref.watch(_productChangesProvider).valueOrNull ?? const <Product>[];
+  return {for (final p in products) if (!p.isDeleted) p.id};
+});
+
+/// Σ FIFO lots (`remainingQty × unitCost`) for live products; qty ×
+/// current cost only when a product has no lots. Deleted products are
+/// excluded so tombstoned catalogue rows cannot inflate inventory value.
 int? _stockValueCache;
 final stockValueProvider = Provider<int>((ref) {
   final levels =
       ref.watch(_stockLevelChangesProvider).valueOrNull ?? const <StockLevel>[];
+  final lots =
+      ref.watch(_stockLotChangesProvider).valueOrNull ?? const <StockLot>[];
   final costs = ref.watch(productCostMapProvider);
+  final liveIds = ref.watch(_liveProductIdsProvider);
+  final lotValueByProduct = <String, int>{};
+  for (final lot in lots) {
+    if (!liveIds.contains(lot.productId)) continue;
+    lotValueByProduct[lot.productId] =
+        (lotValueByProduct[lot.productId] ?? 0) +
+            lot.remainingQty * lot.unitCost;
+  }
   var value = 0;
   for (final l in levels) {
-    value += l.quantity * (costs[l.productId] ?? 0);
+    if (!liveIds.contains(l.productId)) continue;
+    final fromLots = lotValueByProduct[l.productId];
+    if (fromLots != null) {
+      value += fromLots;
+    } else {
+      value += l.quantity * (costs[l.productId] ?? 0);
+    }
   }
   final cached = _stockValueCache;
   if (cached != null && cached == value) return cached;

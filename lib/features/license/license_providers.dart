@@ -245,11 +245,12 @@ class LicenseController extends StateNotifier<LicenseState> {
   }
 
   /// See [LicenseRepository.repairSession]'s own doc comment for why this
-  /// exists and what it does (fresh sign-out/sign-in, then re-stamps the
-  /// new session from this device's existing license) — this is the
-  /// controller-level wrapper so the fix applies to app-wide state
-  /// (`shopIdProvider`, cached license) the same way every other
-  /// mint/activate path here does, not just the repository's own cache.
+  /// exists and what it does (re-stamps the current session from this
+  /// device's existing license when the JWT already carries that shop_id)
+  /// — this is the controller-level wrapper so the fix applies to
+  /// app-wide state (`shopIdProvider`, cached license) the same way every
+  /// other mint/activate path here does, not just the repository's own
+  /// cache.
   Future<ActivationResult> repairSession() async {
     final result = await _repo.repairSession();
     if (result.ok && result.license != null) {

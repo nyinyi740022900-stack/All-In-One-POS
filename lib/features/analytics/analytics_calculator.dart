@@ -12,6 +12,7 @@ typedef SaleRow = ({
   String? staffId,
 });
 typedef ItemRow = ({
+  String saleId,
   String productId,
   String name,
   int qty,
@@ -170,12 +171,18 @@ AnalyticsSummary computeAnalytics({
   final qtyByProduct = <String, int>{};
   final revByProduct = <String, int>{};
   final nameByProduct = <String, String>{};
+  final salesById = {for (final s in sales) s.id: s};
   for (final it in items) {
     cost += it.costSnapshot ?? it.qty * (productCost[it.productId] ?? 0);
     qtyByProduct[it.productId] = (qtyByProduct[it.productId] ?? 0) + it.qty;
-    revByProduct[it.productId] =
-        (revByProduct[it.productId] ?? 0) + it.lineTotal;
     nameByProduct[it.productId] = it.name;
+    final sale = salesById[it.saleId];
+    final subtotal = sale == null ? 0 : sale.total + sale.discount;
+    final allocated = (sale == null || subtotal == 0 || sale.discount == 0)
+        ? it.lineTotal
+        : (it.lineTotal * sale.total) ~/ subtotal;
+    revByProduct[it.productId] =
+        (revByProduct[it.productId] ?? 0) + allocated;
   }
 
   final top = qtyByProduct.keys

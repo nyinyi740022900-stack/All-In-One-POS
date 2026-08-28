@@ -9,7 +9,7 @@
 //   catalog       { slug }  -> { storefront, products }
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
-//                    lines[], hp } -> { ok, order_no }
+//                    lines[], hp } -> { ok, order_no, items_total, lines[] }
 //   submit_license_request { shop_name, device_id, email?, phone?, plan,
 //                    months, method?, amount, ref_no (6-digit transaction
 //                    suffix), payment_proof_path?, hp } -> { ok } — the
@@ -31,7 +31,8 @@
 // owner to notice before packing (real stock can lag synced reality); a line
 // over a product's owner-set `online_stock_limit` (a deliberate cap,
 // independent of real stock, e.g. reserving only some units for online) IS
-// hard-rejected (409 `out_of_stock`) — see `sumOrderedByProduct`.
+// hard-rejected (409 `out_of_stock`) — see `sumOrderedByProduct` (pending/
+// active orders only; delivered and cancelled do not consume the cap).
 // Opening hours (Asia/Yangon) and require_transfer_proof: see migration 0053.
 //
 // Deploy: supabase functions deploy storefront
@@ -95,9 +96,72 @@ function escapeHtml(s: string): string {
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
+/// Canonical form for storefront block-list matching: strip spaces/dashes,
+/// then map `+959` / `959` / a leading `9` onto local `09…`. Must stay in
+/// lockstep with Dart `normalizeStorefrontPhone`.
+function normalizePhone(raw: string): string {
+  let v = raw.trim().replace(/[\s-]/g, "");
+  if (v.startsWith("+959")) v = "09" + v.slice(4);
+  else if (v.startsWith("959")) v = "09" + v.slice(3);
+  else if (v.startsWith("9") && !v.startsWith("09")) v = "0" + v;
+  return v;
+}
+
+/// True when [proofPath] is a real object in the private `payment-proofs`
+/// bucket. Prefix-only checks are not enough — a crafted path that never
+/// uploaded would still attach to the order. List first (no bytes); download
+/// if list is inconclusive so a just-uploaded object still counts.
+async function paymentProofExists(
+  admin: Admin,
+  proofPath: string,
+): Promise<boolean> {
+  const slash = proofPath.lastIndexOf("/");
+  if (slash <= 0) return false;
+  const folder = proofPath.slice(0, slash);
+  const name = proofPath.slice(slash + 1);
+  if (!name) return false;
+  const { data, error } = await admin.storage
+    .from("payment-proofs")
+    .list(folder, { limit: 20, search: name });
+  if (!error && (data ?? []).some((o: { name: string }) => o.name === name)) {
+    return true;
+  }
+  const { data: blob, error: dlErr } = await admin.storage
+    .from("payment-proofs")
+    .download(proofPath);
+  return !dlErr && blob != null;
+}
+
+async function deleteOrderAndItems(
+  admin: Admin,
+  orderId: string,
+): Promise<void> {
+  const { error: itemsErr } = await admin
+    .from("order_items")
+    .delete()
+    .eq("order_id", orderId);
+  if (itemsErr) {
+    console.error(
+      `submit_order: failed to delete items for ${orderId}`,
+      itemsErr,
+    );
+  }
+  const { error: orderErr } = await admin.from("orders").delete().eq(
+    "id",
+    orderId,
+  );
+  if (orderErr) {
+    console.error(
+      `submit_order: failed to roll back order ${orderId}`,
+      orderErr,
+    );
+  }
+}
+
 /// For products that have an `online_stock_limit` set, sums how many units
-/// are already spoken for by this shop's existing, non-cancelled storefront
-/// orders — so the caller can compute what's left of the owner-set cap.
+/// are already spoken for by this shop's existing, pending/active storefront
+/// orders — cancelled AND delivered are excluded (delivered has already been
+/// fulfilled / converted, so it must not keep consuming the online cap).
 /// order_items has no DB-level FK to orders (plain text columns, see 0015),
 /// so this can't use a single embedded-join query; it's two queries instead.
 async function sumOrderedByProduct(
@@ -113,7 +177,8 @@ async function sumOrderedByProduct(
     .eq("shop_id", shopId)
     .eq("channel", "storefront")
     .eq("is_deleted", false)
-    .neq("status", "cancelled");
+    .neq("status", "cancelled")
+    .neq("status", "delivered");
   const orderIds = (activeOrders ?? []).map((o: { id: string }) => o.id);
   if (orderIds.length === 0) return ordered;
   const { data: orderedRows } = await admin
@@ -510,16 +575,26 @@ Deno.serve(async (req) => {
     }
 
     // Block-list: a phone the owner has blocked (usually after a scam/spam
-    // order) can't place a new one. No phone at all means nothing to check —
-    // an unidentifiable order isn't blockable by this mechanism.
+    // order) can't place a new one. Compare after normalizePhone so `09` /
+    // `9` / `+959` / spaced forms of the same number all hit. Fetch the
+    // shop's (small) list rather than equality on the raw string, so a
+    // legacy un-normalized row still matches. No phone at all means nothing
+    // to check — an unidentifiable order isn't blockable by this mechanism.
     if (phone) {
-      const { data: blocked } = await admin
-        .from("storefront_blocklist")
-        .select("phone")
-        .eq("shop_id", sf.shop_id)
-        .eq("phone", phone)
-        .maybeSingle();
-      if (blocked) return json({ error: "blocked" }, 403);
+      const needle = normalizePhone(phone);
+      if (needle) {
+        const { data: blockedRows } = await admin
+          .from("storefront_blocklist")
+          .select("phone")
+          .eq("shop_id", sf.shop_id);
+        if (
+          (blockedRows ?? []).some(
+            (r: { phone: string }) => normalizePhone(r.phone) === needle,
+          )
+        ) {
+          return json({ error: "blocked" }, 403);
+        }
+      }
     }
 
     // 'transfer' (KPay/Wave, usually with a screenshot) or 'cod' (cash on
@@ -540,30 +615,33 @@ Deno.serve(async (req) => {
     if (proofPath && !proofPath.startsWith(`${sf.shop_id}/`)) {
       return json({ error: "bad_proof_path" }, 400);
     }
+    if (proofPath && !(await paymentProofExists(admin, proofPath))) {
+      return json({ error: "proof_missing" }, 400);
+    }
 
     // Security: every line must name a real, active product belonging to
     // THIS shop, with a sane positive quantity. Price/name are never taken
     // from the client — a browser console can send anything — they're always
     // re-read from the product row so a submitted order can't under-price or
-    // free-ride an item. (There's no free-text/custom-item path on the
-    // storefront cart — every OrderLine the app builds already carries a
-    // real catalog product_id.)
+    // free-ride an item. Duplicate lines of the same product are summed
+    // before the online-cap compare (and stored as one line) so splitting
+    // qty across two rows cannot sneak past remaining.
     const MAX_QTY = 999;
-    const productIds = [
-      ...new Set(
-        rawLines
-          .map((l) => `${l.product_id ?? ""}`.trim())
-          .filter((id) => id.length > 0),
-      ),
-    ];
-    if (productIds.length === 0) {
-      return json({ error: "bad_request" }, 400);
-    }
+    const qtyByProduct = new Map<string, number>();
     for (const l of rawLines) {
+      const id = `${l.product_id ?? ""}`.trim();
       const qty = Number(l.qty);
+      if (!id) return json({ error: "bad_request" }, 400);
       if (!Number.isInteger(qty) || qty <= 0 || qty > MAX_QTY) {
         return json({ error: "invalid_quantity" }, 400);
       }
+      const next = (qtyByProduct.get(id) ?? 0) + qty;
+      if (next > MAX_QTY) return json({ error: "invalid_quantity" }, 400);
+      qtyByProduct.set(id, next);
+    }
+    const productIds = [...qtyByProduct.keys()];
+    if (productIds.length === 0) {
+      return json({ error: "bad_request" }, 400);
     }
 
     const { data: products, error: pErr } = await admin
@@ -591,7 +669,8 @@ Deno.serve(async (req) => {
 
     // Online stock cap: unlike the real-stock check above, this IS a hard
     // block — it's a number the owner deliberately set aside for online
-    // sales, not a value that can be stale from sync lag.
+    // sales, not a value that can be stale from sync lag. Compared against
+    // the summed qty per product, not each raw line on its own.
     const cappedIds = (products ?? [])
       .filter((p) => p.online_stock_limit != null)
       .map((p) => p.id as string);
@@ -602,37 +681,33 @@ Deno.serve(async (req) => {
     );
 
     let outOfStockProductId: string | null = null;
-    const lines = rawLines.map((l) => {
-      const product = byId.get(`${l.product_id ?? ""}`.trim());
-      if (!product) return null;
-      const qty = Number(l.qty);
-      const available = stockById.get(product.id) ?? 0;
-      if (product.online_stock_limit != null) {
-        const remaining = (product.online_stock_limit as number) -
-          (orderedByProduct.get(product.id) ?? 0);
-        if (qty > remaining) outOfStockProductId = product.id;
-      }
-      return {
-        productId: product.id as string,
-        name: product.name as string,
-        price: product.sale_price as number,
-        qty,
-        lowStock: qty > available,
-      };
-    });
-    if (lines.some((l) => l === null)) {
-      return json({ error: "invalid_product" }, 400);
-    }
-    if (outOfStockProductId) {
-      return json({ error: "out_of_stock", product_id: outOfStockProductId }, 409);
-    }
-    const validLines = lines as {
+    const validLines: {
       productId: string;
       name: string;
       price: number;
       qty: number;
       lowStock: boolean;
-    }[];
+    }[] = [];
+    for (const [productId, qty] of qtyByProduct) {
+      const product = byId.get(productId);
+      if (!product) return json({ error: "invalid_product" }, 400);
+      const available = stockById.get(product.id) ?? 0;
+      if (product.online_stock_limit != null) {
+        const remaining = (product.online_stock_limit as number) -
+          (orderedByProduct.get(product.id) ?? 0);
+        if (qty > remaining) outOfStockProductId = product.id as string;
+      }
+      validLines.push({
+        productId: product.id as string,
+        name: product.name as string,
+        price: product.sale_price as number,
+        qty,
+        lowStock: qty > available,
+      });
+    }
+    if (outOfStockProductId) {
+      return json({ error: "out_of_stock", product_id: outOfStockProductId }, 409);
+    }
 
     const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
     const orderId = crypto.randomUUID();
@@ -678,30 +753,54 @@ Deno.serve(async (req) => {
     }));
     const { error: iErr } = await admin.from("order_items").insert(items);
     if (iErr) {
-      // Compensating rollback: the two inserts aren't in a single DB
-      // transaction (this client has no RPC for that), so if the items
-      // insert fails after the order insert already succeeded, delete the
-      // now-orphaned order rather than leaving a real order with
-      // items_total set and zero line items visible in the shop's Orders
-      // list.
-      const { error: delErr } = await admin.from("orders").delete().eq(
-        "id",
-        orderId,
-      );
-      if (delErr) {
-        // Nothing further to compensate with from here — surface it in the
-        // function logs so an orphaned order (real row, zero items) can at
-        // least be found and cleaned up manually instead of vanishing
-        // silently.
-        console.error(
-          `submit_order: failed to roll back orphaned order ${orderId} after order_items insert failed`,
-          delErr,
-        );
-      }
+      // Compensating rollback: supabase-js has no multi-statement
+      // transaction, so if the items insert fails after the order insert
+      // already succeeded, delete both rather than leaving a real order
+      // with items_total set and zero line items.
+      await deleteOrderAndItems(admin, orderId);
       return json({ error: "server_error", detail: iErr.message }, 500);
     }
 
-    return json({ ok: true, order_no: orderNo });
+    // Re-check the online cap after both rows exist. Two concurrent
+    // submit_order calls can both pass the pre-insert remaining check for
+    // the last unit; whichever commit leaves a product over its cap is
+    // rolled back here. (A true SELECT FOR UPDATE would need a Postgres
+    // RPC — each REST call is its own transaction.)
+    if (cappedIds.length > 0) {
+      const orderedAfter = await sumOrderedByProduct(
+        admin,
+        sf.shop_id,
+        cappedIds,
+      );
+      let overProductId: string | null = null;
+      for (const p of products ?? []) {
+        if (p.online_stock_limit == null) continue;
+        if (
+          (orderedAfter.get(p.id as string) ?? 0) >
+            (p.online_stock_limit as number)
+        ) {
+          overProductId = p.id as string;
+          break;
+        }
+      }
+      if (overProductId) {
+        await deleteOrderAndItems(admin, orderId);
+        return json({ error: "out_of_stock", product_id: overProductId }, 409);
+      }
+    }
+
+    return json({
+      ok: true,
+      order_no: orderNo,
+      items_total: itemsTotal,
+      lines: validLines.map((l) => ({
+        product_id: l.productId,
+        name: l.name,
+        price: l.price,
+        qty: l.qty,
+        line_total: l.price * l.qty,
+      })),
+    });
   }
 
   return json({ error: "bad_action" }, 400);

@@ -70,6 +70,20 @@ class StorefrontRow {
   );
 }
 
+/// Canonical form for storefront block-list matching: strip spaces/dashes,
+/// then map `+959` / `959` / a leading `9` onto local `09…`.
+String normalizeStorefrontPhone(String raw) {
+  var v = raw.trim().replaceAll(RegExp(r'[\s-]'), '');
+  if (v.startsWith('+959')) {
+    v = '09${v.substring(4)}';
+  } else if (v.startsWith('959')) {
+    v = '09${v.substring(3)}';
+  } else if (v.startsWith('9') && !v.startsWith('09')) {
+    v = '0$v';
+  }
+  return v;
+}
+
 /// A phone number the owner has blocked from placing new storefront orders,
 /// usually after a scam/spam order.
 class BlockedCustomer {
@@ -237,24 +251,35 @@ class StorefrontRepository {
 
   /// Blocks [phone] from placing new storefront orders on this shop. Blocking
   /// the same number twice is a no-op (upsert on the shop_id+phone unique
-  /// index) rather than an error.
+  /// index) rather than an error. The stored value is [normalizeStorefrontPhone]
+  /// so `09` / `9` / `+959` forms collide on one row.
   Future<void> block(String phone, {String? reason}) {
+    final normalized = normalizeStorefrontPhone(phone);
+    if (normalized.isEmpty) return Future.value();
     return _withRlsRetry(
       () => _c.from('storefront_blocklist').upsert({
         'shop_id': _shopId,
-        'phone': phone,
+        'phone': normalized,
         'reason': reason,
       }, onConflict: 'shop_id,phone'),
     );
   }
 
   Future<void> unblock(String phone) {
-    return _withRlsRetry(
-      () => _c
+    final normalized = normalizeStorefrontPhone(phone);
+    return _withRlsRetry(() async {
+      await _c
           .from('storefront_blocklist')
           .delete()
           .eq('shop_id', _shopId)
-          .eq('phone', phone),
-    );
+          .eq('phone', phone);
+      if (normalized.isNotEmpty && normalized != phone) {
+        await _c
+            .from('storefront_blocklist')
+            .delete()
+            .eq('shop_id', _shopId)
+            .eq('phone', normalized);
+      }
+    });
   }
 }

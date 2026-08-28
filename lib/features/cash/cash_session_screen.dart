@@ -69,7 +69,9 @@ class CashSessionScreen extends ConsumerWidget {
               ),
             )
           else
-            ...pastSessions.map((s) => _HistoryTile(session: s)),
+            ...pastSessions.map(
+              (s) => _HistoryTile(key: ValueKey(s.id), session: s),
+            ),
         ],
       ),
     );
@@ -114,6 +116,8 @@ class CashSessionScreen extends ConsumerWidget {
     CashSession session,
   ) async {
     final l = AppLocalizations.of(context);
+    final expected = ref.read(expectedCashProvider).valueOrNull;
+    if (expected == null) return;
     final amount = await showDialog<int>(
       context: context,
       builder: (_) => _AmountDialog(
@@ -123,8 +127,7 @@ class CashSessionScreen extends ConsumerWidget {
         warningText: l.cashCloseWarning,
         // The figure the cashier is counting AGAINST — without it inside the
         // dialog they'd have to memorise it off the card behind the overlay.
-        expectedCash:
-            ref.read(expectedCashProvider).valueOrNull ?? session.openingAmount,
+        expectedCash: expected,
       ),
     );
     if (amount == null || !context.mounted) return;
@@ -257,9 +260,33 @@ class _OpenCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppTheme.space3),
+            const SizedBox(height: AppTheme.space2),
+            // Cash physically added to the drawer mid-session (e.g. the
+            // owner covering a shortfall from their own pocket) — without
+            // this the only way to reflect real cash added to the till was
+            // to close the register and reopen with a new float, discarding
+            // everything already recorded for the current session.
             OutlinedButton.icon(
-              onPressed: onClose,
+              onPressed: () => _addTopUp(context, ref),
+              icon: const Icon(Icons.add_card_outlined),
+              label: Text(l.cashAddTopUp),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            // Lets the owner see WHAT makes up "Expected cash now" (cash
+            // sales/repayments in vs. expenses/supplier payments out) before
+            // deciding whether/how to close — previously this breakdown was
+            // only ever available AFTER closing, via the history row's own
+            // report icon, which is too late to catch a mis-recorded entry.
+            OutlinedButton.icon(
+              onPressed: () => showCashReportSheet(context, ref, session),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: Text(l.cashReportTitle),
+            ),
+            const SizedBox(height: AppTheme.space2),
+            OutlinedButton.icon(
+              onPressed: expected.hasValue && expected.valueOrNull != null
+                  ? onClose
+                  : null,
               icon: const Icon(Icons.lock_outline),
               label: Text(l.cashCloseRegister),
             ),
@@ -267,6 +294,26 @@ class _OpenCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _addTopUp(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final amount = await showDialog<int>(
+      context: context,
+      builder: (_) => _AmountDialog(
+        title: l.cashAddTopUp,
+        amountLabel: l.cashTopUpAmount,
+        confirmLabel: l.cashAddTopUp,
+      ),
+    );
+    if (amount == null || amount <= 0 || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(cashSessionRepositoryProvider).addTopUp(amount: amount);
+      messenger.showSnackBar(SnackBar(content: Text(l.cashTopUpSaved)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
   }
 
   Widget _kv(BuildContext context, String label, Widget value) {
@@ -284,7 +331,7 @@ class _OpenCard extends ConsumerWidget {
 }
 
 class _HistoryTile extends ConsumerStatefulWidget {
-  const _HistoryTile({required this.session});
+  const _HistoryTile({super.key, required this.session});
   final CashSession session;
 
   @override
@@ -368,236 +415,258 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.receipt_long_outlined),
                   tooltip: l.cashReportTitle,
-                  onPressed: () => _showReportSheet(context, ref),
+                  onPressed: () =>
+                      showCashReportSheet(context, ref, widget.session),
                 ),
               ],
             ),
     );
   }
+}
 
-  Future<void> _showReportSheet(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final printerConfig = await ref.read(printerConfigProvider.future);
-    if (!context.mounted) return;
-    await showAppModal<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+/// Print/Share entry point for a session's itemized breakdown (opening float,
+/// cash sales/repayments in, expenses/supplier payments out, expected cash,
+/// and — once closed — counted cash + variance). Shared by [_HistoryTile]
+/// (a closed session) and [_OpenCard] (the currently open one, so the owner
+/// can see WHY "Expected cash now" is whatever it is — e.g. a large supplier
+/// payment recorded as cash — without having to close the register first to
+/// get a report). `reportFor`/`buildCashSessionReportPdf`/
+/// `buildCashSessionReportCsv`/`CashSessionReportFormatter` all already
+/// handle a null `closedAt`/`closingAmount`/`variance` gracefully, so no
+/// change was needed there — this only had to stop being private to
+/// [_HistoryTileState].
+Future<void> showCashReportSheet(
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+) async {
+  final l = AppLocalizations.of(context);
+  final printerConfig = await ref.read(printerConfigProvider.future);
+  if (!context.mounted) return;
+  await showAppModal<void>(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.print_outlined),
+            title: Text(l.documentPrint),
+            onTap: () {
+              Navigator.pop(ctx);
+              _printPdf(context, ref, session);
+            },
+          ),
+          if (printerConfig.hasPrinter)
             ListTile(
-              leading: const Icon(Icons.print_outlined),
-              title: Text(l.documentPrint),
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(l.cashReportPrintBluetooth),
               onTap: () {
                 Navigator.pop(ctx);
-                _printPdf(context, ref);
+                _printReport(
+                  context,
+                  ref,
+                  session,
+                  printerConfig.mac!,
+                  printerConfig.paper,
+                  printerConfig.connection,
+                );
               },
             ),
-            if (printerConfig.hasPrinter)
-              ListTile(
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: Text(l.cashReportPrintBluetooth),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _printReport(
-                    context,
-                    ref,
-                    printerConfig.mac!,
-                    printerConfig.paper,
-                    printerConfig.connection,
-                  );
-                },
-              ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: Text(l.cashReportSharePdf),
-              onTap: () {
-                Navigator.pop(ctx);
-                _sharePdf(context, ref);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: Text(l.cashReportShareCsv),
-              onTap: () {
-                Navigator.pop(ctx);
-                _shareCsv(context, ref);
-              },
-            ),
-          ],
-        ),
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: Text(l.cashReportSharePdf),
+            onTap: () {
+              Navigator.pop(ctx);
+              _sharePdf(context, ref, session);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.table_chart_outlined),
+            title: Text(l.cashReportShareCsv),
+            onTap: () {
+              Navigator.pop(ctx);
+              _shareCsv(context, ref, session);
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Future<Uint8List> _pdfBytes(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final report = await ref
-        .read(cashSessionRepositoryProvider)
-        .reportFor(widget.session);
+Future<Uint8List> _pdfBytes(
+    BuildContext context, WidgetRef ref, CashSession session) async {
+  final l = AppLocalizations.of(context);
+  final report =
+      await ref.read(cashSessionRepositoryProvider).reportFor(session);
+  final varianceText = report.variance == null
+      ? null
+      : _varianceTextFor(l, report.variance!);
+  final profile = await ref.read(shopProfileProvider.future);
+  final printerConfig = await ref.read(printerConfigProvider.future);
+  return buildCashSessionReportPdf(
+    shopName: profile.name,
+    shopLogoUrl: profile.logoUrl,
+    shopPhone: profile.phone,
+    shopAddress: profile.address,
+    title: l.cashReportTitle,
+    report: report,
+    currencySymbol: l.currencySymbol,
+    openedLabel: l.cashOpenedAt,
+    closedLabel: l.cashClosedAt,
+    openingFloatLabel: l.cashOpeningAmount,
+    cashSalesLabel: l.cashReportCashSales,
+    cashRepaymentsLabel: l.cashReportCashRepayments,
+    topUpsLabel: l.cashReportTopUps,
+    expensesLabel: l.expensesTitle,
+    supplierPaymentsLabel: l.cashReportSupplierPayments,
+    expectedCashLabel: l.cashExpectedNow,
+    countedCashLabel: l.cashClosingAmount,
+    openedAt: session.openedAt,
+    closedAt: session.closedAt,
+    varianceLabel: l.cashVariance,
+    varianceText: varianceText,
+    pageFormat: printerConfig.pdfPaperSize,
+  );
+}
+
+Future<void> _printPdf(
+    BuildContext context, WidgetRef ref, CashSession session) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final bytes = await _pdfBytes(context, ref, session);
+    if (!context.mounted) return;
+    await printPdfDocument(bytes: bytes, name: l.cashReportTitle);
+  } catch (e) {
+    if (!context.mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+  }
+}
+
+Future<void> _printReport(
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+  String mac,
+  PaperSize paper,
+  PrinterConnection connection,
+) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final report =
+        await ref.read(cashSessionRepositoryProvider).reportFor(session);
     final varianceText = report.variance == null
         ? null
         : _varianceTextFor(l, report.variance!);
+    final lines =
+        CashSessionReportFormatter(
+          paper: paper,
+          currencySymbol: l.currencySymbol,
+        ).format(
+          report,
+          title: l.cashReportTitle,
+          openedLabel: l.cashOpenedAt,
+          closedLabel: l.cashClosedAt,
+          openingFloatLabel: l.cashOpeningAmount,
+          cashSalesLabel: l.cashReportCashSales,
+          cashRepaymentsLabel: l.cashReportCashRepayments,
+          topUpsLabel: l.cashReportTopUps,
+          expensesLabel: l.expensesTitle,
+          supplierPaymentsLabel: l.cashReportSupplierPayments,
+          expectedCashLabel: l.cashExpectedNow,
+          countedCashLabel: l.cashClosingAmount,
+          openedAt: session.openedAt,
+          closedAt: session.closedAt,
+          varianceLabel: l.cashVariance,
+          varianceText: varianceText,
+        );
     final profile = await ref.read(shopProfileProvider.future);
-    final printerConfig = await ref.read(printerConfigProvider.future);
-    return buildCashSessionReportPdf(
-      shopName: profile.name,
-      shopLogoUrl: profile.logoUrl,
-      shopPhone: profile.phone,
-      shopAddress: profile.address,
-      title: l.cashReportTitle,
-      report: report,
-      currencySymbol: l.currencySymbol,
-      openedLabel: l.cashOpenedAt,
-      closedLabel: l.cashClosedAt,
+    final result = await ref
+        .read(printerServiceProvider)
+        .printZReport(
+          lines,
+          profile.name,
+          paper: paper,
+          mac: mac,
+          connection: connection,
+        );
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+  }
+}
+
+Future<void> _sharePdf(
+    BuildContext context, WidgetRef ref, CashSession session) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final bytes = await _pdfBytes(context, ref, session);
+    final dir = await getTemporaryDirectory();
+    // Dated so a shop sharing a week of reports to the owner can tell
+    // them apart in the chat thread.
+    final stamp = DateFormat(
+      'yyyyMMdd-HHmm',
+    ).format(session.closedAt ?? session.openedAt);
+    final file = File('${dir.path}/cash-report-$stamp.pdf');
+    await file.writeAsBytes(bytes);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/pdf')],
+        subject: l.cashReportTitle,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+  }
+}
+
+Future<void> _shareCsv(
+    BuildContext context, WidgetRef ref, CashSession session) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final report =
+        await ref.read(cashSessionRepositoryProvider).reportFor(session);
+    final varianceText = report.variance == null
+        ? null
+        : _varianceTextFor(l, report.variance!);
+    final csv = buildCashSessionReportCsv(
+      report,
       openingFloatLabel: l.cashOpeningAmount,
       cashSalesLabel: l.cashReportCashSales,
       cashRepaymentsLabel: l.cashReportCashRepayments,
+      topUpsLabel: l.cashReportTopUps,
       expensesLabel: l.expensesTitle,
       supplierPaymentsLabel: l.cashReportSupplierPayments,
       expectedCashLabel: l.cashExpectedNow,
       countedCashLabel: l.cashClosingAmount,
-      openedAt: widget.session.openedAt,
-      closedAt: widget.session.closedAt,
       varianceLabel: l.cashVariance,
       varianceText: varianceText,
-      pageFormat: printerConfig.pdfPaperSize,
+      lineHeader: l.pnlLine,
+      amountHeader: '${l.pnlAmount} (${l.currencySymbol})',
     );
-  }
-
-  Future<void> _printPdf(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final bytes = await _pdfBytes(context, ref);
-      if (!context.mounted) return;
-      await printPdfDocument(bytes: bytes, name: l.cashReportTitle);
-    } catch (e) {
-      if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
-  }
-
-  Future<void> _printReport(
-    BuildContext context,
-    WidgetRef ref,
-    String mac,
-    PaperSize paper,
-    PrinterConnection connection,
-  ) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final report = await ref
-          .read(cashSessionRepositoryProvider)
-          .reportFor(widget.session);
-      final varianceText = report.variance == null
-          ? null
-          : _varianceTextFor(l, report.variance!);
-      final lines =
-          CashSessionReportFormatter(
-            paper: paper,
-            currencySymbol: l.currencySymbol,
-          ).format(
-            report,
-            title: l.cashReportTitle,
-            openedLabel: l.cashOpenedAt,
-            closedLabel: l.cashClosedAt,
-            openingFloatLabel: l.cashOpeningAmount,
-            cashSalesLabel: l.cashReportCashSales,
-            cashRepaymentsLabel: l.cashReportCashRepayments,
-            expensesLabel: l.expensesTitle,
-            supplierPaymentsLabel: l.cashReportSupplierPayments,
-            expectedCashLabel: l.cashExpectedNow,
-            countedCashLabel: l.cashClosingAmount,
-            openedAt: widget.session.openedAt,
-            closedAt: widget.session.closedAt,
-            varianceLabel: l.cashVariance,
-            varianceText: varianceText,
-          );
-      final profile = await ref.read(shopProfileProvider.future);
-      final result = await ref
-          .read(printerServiceProvider)
-          .printZReport(
-            lines,
-            profile.name,
-            paper: paper,
-            mac: mac,
-            connection: connection,
-          );
-      if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
-  }
-
-  Future<void> _sharePdf(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final bytes = await _pdfBytes(context, ref);
-      final dir = await getTemporaryDirectory();
-      // Dated so a shop sharing a week of reports to the owner can tell
-      // them apart in the chat thread.
-      final stamp = DateFormat(
-        'yyyyMMdd-HHmm',
-      ).format(widget.session.closedAt ?? widget.session.openedAt);
-      final file = File('${dir.path}/cash-report-$stamp.pdf');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'application/pdf')],
-          subject: l.cashReportTitle,
-        ),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
-  }
-
-  Future<void> _shareCsv(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final report = await ref
-          .read(cashSessionRepositoryProvider)
-          .reportFor(widget.session);
-      final varianceText = report.variance == null
-          ? null
-          : _varianceTextFor(l, report.variance!);
-      final csv = buildCashSessionReportCsv(
-        report,
-        openingFloatLabel: l.cashOpeningAmount,
-        cashSalesLabel: l.cashReportCashSales,
-        cashRepaymentsLabel: l.cashReportCashRepayments,
-        expensesLabel: l.expensesTitle,
-        supplierPaymentsLabel: l.cashReportSupplierPayments,
-        expectedCashLabel: l.cashExpectedNow,
-        countedCashLabel: l.cashClosingAmount,
-        varianceLabel: l.cashVariance,
-        varianceText: varianceText,
-        lineHeader: l.pnlLine,
-        amountHeader: '${l.pnlAmount} (${l.currencySymbol})',
-      );
-      final dir = await getTemporaryDirectory();
-      final stamp = DateFormat(
-        'yyyyMMdd-HHmm',
-      ).format(widget.session.closedAt ?? widget.session.openedAt);
-      final file = File('${dir.path}/cash-report-$stamp.csv');
-      await file.writeAsString(csv);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'text/csv')],
-          subject: l.cashReportTitle,
-        ),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
+    final dir = await getTemporaryDirectory();
+    final stamp = DateFormat(
+      'yyyyMMdd-HHmm',
+    ).format(session.closedAt ?? session.openedAt);
+    final file = File('${dir.path}/cash-report-$stamp.csv');
+    await file.writeAsString(csv);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'text/csv')],
+        subject: l.cashReportTitle,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
   }
 }
 

@@ -29,6 +29,7 @@ class CashSessionReportFormatter {
     required String openingFloatLabel,
     required String cashSalesLabel,
     required String cashRepaymentsLabel,
+    required String topUpsLabel,
     required String expensesLabel,
     required String supplierPaymentsLabel,
     required String expectedCashLabel,
@@ -49,6 +50,7 @@ class CashSessionReportFormatter {
     out.add(_two(openingFloatLabel, _amt(report.openingAmount)));
     out.add(_two(cashSalesLabel, _amt(report.cashSalesTotal)));
     out.add(_two(cashRepaymentsLabel, _amt(report.cashRepaymentsTotal)));
+    out.add(_two(topUpsLabel, _amt(report.topUpsTotal)));
     out.add(_two(expensesLabel, '-${_amt(report.expensesTotal)}'));
     out.add(_two(supplierPaymentsLabel,
         '-${_amt(report.supplierPaymentsTotal)}'));

@@ -230,6 +230,7 @@ class _PaymentAccountEditorDialogState
             const SizedBox(height: AppTheme.space2),
             TextField(
               controller: _opening,
+              readOnly: widget.existing != null,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(

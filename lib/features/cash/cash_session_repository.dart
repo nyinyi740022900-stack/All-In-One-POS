@@ -5,10 +5,10 @@ import 'package:uuid/uuid.dart';
 import '../../data/local/database.dart';
 
 /// What the drawer should hold: [openingAmount] + every cash-tendered
-/// [payments]/[repayments] − every [expenses] amount − cash [supplierPayments].
-/// Pure (no DB, no I/O) so it's directly unit-testable — callers are expected
-/// to have already filtered each list to the session's own
-/// `[openedAt, closedAt)` window.
+/// [payments]/[repayments] + [topUps] − every [expenses] amount − cash
+/// [supplierPayments]. Pure (no DB, no I/O) so it's directly unit-testable —
+/// callers are expected to have already filtered each list to the session's
+/// own `[openedAt, closedAt)` window.
 ///
 /// An expense's `accountId` (added by the Payment Accounts feature) marks it
 /// as paid from a non-cash account; a null `accountId` means it came out of
@@ -19,20 +19,25 @@ import '../../data/local/database.dart';
 /// left the drawer's expected figure permanently too high whenever a supplier
 /// was paid in cash (regression: supplier payments were added by the
 /// Accounts Payable feature but `computeExpectedCash` was never updated to
-/// fold them).
+/// fold them). [topUps] is cash physically added to the drawer mid-session
+/// (e.g. the owner covering a shortfall from their own pocket) — see
+/// `CashTopUps`' doc comment in tables.dart for why this is deliberately
+/// separate from Owner's Equity's Contribution/Drawing ledger.
 int computeExpectedCash({
   required int openingAmount,
   required List<Payment> payments,
   required List<CreditPayment> repayments,
   required List<Expense> expenses,
   required List<SupplierPayment> supplierPayments,
+  required List<CashTopUp> topUps,
 }) {
   final cashIn = payments
           .where((p) => p.method == 'cash')
           .fold<int>(0, (sum, p) => sum + p.amount) +
       repayments
           .where((r) => r.method == 'cash')
-          .fold<int>(0, (sum, r) => sum + r.amount);
+          .fold<int>(0, (sum, r) => sum + r.amount) +
+      topUps.fold<int>(0, (sum, t) => sum + t.amount);
   final cashOut = expenses
       .where((e) => e.accountId == null)
       .fold<int>(0, (sum, e) => sum + e.amount) +
@@ -50,6 +55,7 @@ class CashSessionReport {
   final int openingAmount;
   final int cashSalesTotal;
   final int cashRepaymentsTotal;
+  final int topUpsTotal;
   final int expensesTotal;
   final int supplierPaymentsTotal;
   final int expectedCash;
@@ -60,6 +66,7 @@ class CashSessionReport {
     required this.openingAmount,
     required this.cashSalesTotal,
     required this.cashRepaymentsTotal,
+    required this.topUpsTotal,
     required this.expensesTotal,
     required this.supplierPaymentsTotal,
     required this.expectedCash,
@@ -107,6 +114,36 @@ class CashSessionRepository {
     return (_db.select(_db.supplierPayments)
             ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
+  }
+
+  /// Every non-deleted cash top-up for this shop, unfiltered by date —
+  /// mirrors [watchAllExpenses]/[watchAllSupplierPayments], used only to
+  /// trigger [expectedCash] recomputation when one is recorded.
+  Stream<List<CashTopUp>> watchAllTopUps() {
+    return (_db.select(_db.cashTopUps)
+            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .watch();
+  }
+
+  /// Records cash physically added to the drawer mid-session — see
+  /// `CashTopUps`' doc comment in tables.dart. Not scoped to a specific
+  /// session id; it's picked up by whichever session's window it falls in
+  /// (same convention as an [Expense]/[SupplierPayment]).
+  Future<String> addTopUp({required int amount, String? note}) async {
+    final id = _uuid.v4();
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      await _db.into(_db.cashTopUps).insert(CashTopUpsCompanion.insert(
+            id: id,
+            shopId: _shopId,
+            amount: amount,
+            note: Value(note),
+            updatedAt: Value(now),
+            dirty: const Value(true),
+          ));
+      await _enqueueTopUp(id);
+    });
+    return id;
   }
 
   /// Every session, newest first — the register's history.
@@ -162,10 +199,23 @@ class CashSessionRepository {
   }) async {
     final now = DateTime.now();
     await _db.transaction(() async {
+      final existing = await (_db.select(_db.cashSessions)
+            ..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+      if (existing == null) {
+        throw StateError('session_not_found');
+      }
+      if (existing.closedAt != null) {
+        throw StateError('already_closed');
+      }
+      // Snapshot while still open so later till-expense edits cannot
+      // rewrite this session's expected/variance (P6).
+      final expected = await expectedCash(existing);
       await (_db.update(_db.cashSessions)..where((t) => t.id.equals(id)))
           .write(CashSessionsCompanion(
         closedAt: Value(now),
         closingAmount: Value(closingAmount),
+        expectedCashAtClose: Value(expected),
         note: note == null ? const Value.absent() : Value(note),
         updatedAt: Value(now),
         dirty: const Value(true),
@@ -179,6 +229,9 @@ class CashSessionRepository {
   /// supplier payments within the session's window and hands them to
   /// [computeExpectedCash].
   Future<int> expectedCash(CashSession session) async {
+    if (session.closedAt != null && session.expectedCashAtClose != null) {
+      return session.expectedCashAtClose!;
+    }
     final end = session.closedAt;
 
     final payments = await (_db.select(_db.payments)
@@ -225,6 +278,15 @@ class CashSessionRepository {
               return pred;
             }))
         .get();
+    final topUps = await (_db.select(_db.cashTopUps)
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              return pred;
+            }))
+        .get();
 
     return computeExpectedCash(
       openingAmount: session.openingAmount,
@@ -232,6 +294,7 @@ class CashSessionRepository {
       repayments: repayments,
       expenses: expenses,
       supplierPayments: supplierPayments,
+      topUps: topUps,
     );
   }
 
@@ -286,6 +349,17 @@ class CashSessionRepository {
               return pred;
             }))
         .get();
+    final topUps = await (_db.select(_db.cashTopUps)
+            ..where((t) {
+              var pred = t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.createdAt.isBiggerOrEqualValue(session.openedAt);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
+              return pred;
+            }))
+        .get();
 
     final cashSalesTotal = payments
         .where((p) => p.method == 'cash')
@@ -293,22 +367,29 @@ class CashSessionRepository {
     final cashRepaymentsTotal = repayments
         .where((r) => r.method == 'cash')
         .fold<int>(0, (sum, r) => sum + r.amount);
+    final topUpsTotal = topUps.fold<int>(0, (sum, t) => sum + t.amount);
     final expensesTotal = expenses
         .where((e) => e.accountId == null)
         .fold<int>(0, (sum, e) => sum + e.amount);
     final supplierPaymentsTotal = supplierPayments
         .where((p) => p.method == 'cash')
         .fold<int>(0, (sum, p) => sum + p.amount);
-    final expectedCash = session.openingAmount +
+    final liveExpected = session.openingAmount +
         cashSalesTotal +
-        cashRepaymentsTotal -
+        cashRepaymentsTotal +
+        topUpsTotal -
         expensesTotal -
         supplierPaymentsTotal;
+    final expectedCash =
+        (session.closedAt != null && session.expectedCashAtClose != null)
+            ? session.expectedCashAtClose!
+            : liveExpected;
 
     return CashSessionReport(
       openingAmount: session.openingAmount,
       cashSalesTotal: cashSalesTotal,
       cashRepaymentsTotal: cashRepaymentsTotal,
+      topUpsTotal: topUpsTotal,
       expensesTotal: expensesTotal,
       supplierPaymentsTotal: supplierPaymentsTotal,
       expectedCash: expectedCash,
@@ -319,9 +400,75 @@ class CashSessionRepository {
     );
   }
 
+  /// Physical cash this shop holds for the books: open session's live
+  /// expected, else the last counted close, else all-time till movements
+  /// (shops that never opened Cash Register).
+  Future<int> physicalCashNow() async {
+    final open = await (_db.select(_db.cashSessions)
+          ..where((t) =>
+              t.shopId.equals(_shopId) &
+              t.isDeleted.equals(false) &
+              t.closedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.openedAt)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (open != null) return expectedCash(open);
+
+    final lastClosed = await (_db.select(_db.cashSessions)
+          ..where((t) =>
+              t.shopId.equals(_shopId) &
+              t.isDeleted.equals(false) &
+              t.closedAt.isNotNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (lastClosed != null) {
+      return lastClosed.closingAmount ??
+          lastClosed.expectedCashAtClose ??
+          0;
+    }
+
+    final payments = await (_db.select(_db.payments)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    final repayments = await (_db.select(_db.creditPayments)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    final expenses = await (_db.select(_db.expenses)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    final supplierPayments = await (_db.select(_db.supplierPayments)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    final topUps = await (_db.select(_db.cashTopUps)
+          ..where((t) =>
+              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .get();
+    return computeExpectedCash(
+      openingAmount: 0,
+      payments: payments,
+      repayments: repayments,
+      expenses: expenses,
+      supplierPayments: supplierPayments,
+      topUps: topUps,
+    );
+  }
+
   Future<void> _enqueue(String id) async {
     await _db.into(_db.outbox).insert(OutboxCompanion.insert(
           entityTable: 'cash_sessions',
+          rowId: id,
+          op: 'upsert',
+        ));
+  }
+
+  Future<void> _enqueueTopUp(String id) async {
+    await _db.into(_db.outbox).insert(OutboxCompanion.insert(
+          entityTable: 'cash_top_ups',
           rowId: id,
           op: 'upsert',
         ));

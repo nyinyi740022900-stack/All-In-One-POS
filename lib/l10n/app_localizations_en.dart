@@ -379,7 +379,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashReportCashRepayments => 'Cash repayments';
 
   @override
+  String get cashReportTopUps => 'Cash top-ups';
+
+  @override
   String get cashReportSupplierPayments => 'Cash supplier payments';
+
+  @override
+  String get cashAddTopUp => 'Add cash';
+
+  @override
+  String get cashTopUpAmount => 'Amount added';
+
+  @override
+  String get cashTopUpSaved => 'Cash top-up added';
 
   @override
   String get creditTitle => 'Credit book';
@@ -1418,8 +1430,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceRefundConfirmTitle => 'Refund this invoice?';
 
   @override
-  String get invoiceRefundConfirmBody =>
-      'This reverses the sale, restores stock, and cannot be undone.';
+  String invoiceRefundConfirmBody(String amount) {
+    return 'This refunds $amount, reverses the sale, and restores stock. This cannot be undone.';
+  }
 
   @override
   String invoiceRefundOf(String invoiceNo) {
@@ -2585,7 +2598,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupExport => 'Export backup';
 
   @override
-  String get backupExportHint => 'Save all data to a file and share it.';
+  String get backupExportHint =>
+      'Save this shop\'s business data (sales, stock, orders, customers, cash, staff, suppliers) to a file and share it. Device settings and the sync queue are not included.';
 
   @override
   String get backupImport => 'Import backup';
@@ -2605,7 +2619,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupImportConfirmBody =>
-      'This will erase the current products, sales and credit data and replace them with the backup. This cannot be undone.';
+      'This will erase this shop\'s current business data (products, sales, orders, customers, cash, staff, suppliers, and the rest) and replace it with the backup. Device settings stay. This cannot be undone.';
 
   @override
   String get backupImportConfirmAction => 'Replace';
@@ -2865,7 +2879,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderConvertHint =>
-      'Creates an invoice and deducts stock for catalog items.';
+      'Records the collected amount as a sale and deducts stock for catalog items. Unpaid COD stays unpaid until you enter what was collected.';
 
   @override
   String orderConverted(String invoice) {
@@ -2881,6 +2895,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderCancel => 'Mark as return';
+
+  @override
+  String get orderCancelConfirmTitle => 'Cancel this order?';
+
+  @override
+  String get orderCancelConfirmBody =>
+      'This marks the order cancelled. It has not been converted to a sale, so no invoice or stock will be reversed.';
 
   @override
   String get orderRestore => 'Undo return';
@@ -3014,6 +3035,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get staffPinHint => '4–6 digits';
+
+  @override
+  String get staffOwnerPinRequired =>
+      'The owner must set a PIN in Settings before staff can switch to Owner.';
 
   @override
   String get staffPinSaved => 'PIN saved';

@@ -286,6 +286,7 @@ class OrdersRepository {
   Future<String> convertToSale(
     String orderId, {
     String paymentMethod = 'cash',
+    int? paid,
     bool trackStock = true,
   }) async {
     final order = await getOrder(orderId);
@@ -297,6 +298,14 @@ class OrdersRepository {
     // Delivery fee folds into the sale subtotal (it isn't a line item and has
     // no discount), so the `subtotal − discount = total` invariant holds.
     final total = order.itemsTotal + order.deliveryFee;
+    // Unpaid COD must not book the full ticket as collected (that inflated
+    // Cash Register expected cash before the courier remitted). An explicit
+    // [paid] wins; otherwise COD that's still unpaid collects 0, and every
+    // other convert (counter cash/KBZPay, already-marked-paid) collects total.
+    final collected = paid ??
+        (order.paymentMethod == 'cod' && order.paymentStatus != 'paid'
+            ? 0
+            : total);
 
     var effectiveSaleId = saleId;
     await _db.transaction(() async {
@@ -316,7 +325,7 @@ class OrdersRepository {
             invoiceNo: invoiceNo,
             subtotal: Value(total),
             total: Value(total),
-            paid: Value(total),
+            paid: Value(collected),
             paymentMethod: Value(paymentMethod),
             customerName: Value(order.customerName),
             customerPhone: Value(order.customerPhone),
@@ -355,22 +364,30 @@ class OrdersRepository {
         await _enqueue('sale_items', siId, 'upsert');
       }
 
-      final payId = _uuid.v4();
-      await _db.into(_db.payments).insert(PaymentsCompanion.insert(
-            id: payId,
-            shopId: _shopId,
-            saleId: saleId,
-            method: paymentMethod,
-            amount: total,
-            updatedAt: Value(now),
-          ));
-      await _enqueue('payments', payId, 'upsert');
+      if (collected > 0) {
+        final payId = _uuid.v4();
+        await _db.into(_db.payments).insert(PaymentsCompanion.insert(
+              id: payId,
+              shopId: _shopId,
+              saleId: saleId,
+              method: paymentMethod,
+              amount: collected,
+              updatedAt: Value(now),
+            ));
+        await _enqueue('payments', payId, 'upsert');
+      }
 
       await (_db.update(_db.orders)..where((o) => o.id.equals(orderId)))
           .write(OrdersCompanion(
         saleId: Value(saleId),
         status: const Value('delivered'),
-        paymentStatus: const Value('paid'),
+        paymentStatus: Value(
+          collected >= total
+              ? 'paid'
+              : collected > 0
+                  ? 'partial'
+                  : order.paymentStatus,
+        ),
         updatedAt: Value(now),
         dirty: const Value(true),
       ));

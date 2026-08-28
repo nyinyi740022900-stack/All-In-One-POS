@@ -788,11 +788,35 @@ abstract class AppLocalizations {
   /// **'Cash repayments'**
   String get cashReportCashRepayments;
 
+  /// No description provided for @cashReportTopUps.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash top-ups'**
+  String get cashReportTopUps;
+
   /// No description provided for @cashReportSupplierPayments.
   ///
   /// In en, this message translates to:
   /// **'Cash supplier payments'**
   String get cashReportSupplierPayments;
+
+  /// No description provided for @cashAddTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Add cash'**
+  String get cashAddTopUp;
+
+  /// No description provided for @cashTopUpAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount added'**
+  String get cashTopUpAmount;
+
+  /// No description provided for @cashTopUpSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash top-up added'**
+  String get cashTopUpSaved;
 
   /// No description provided for @creditTitle.
   ///
@@ -2693,8 +2717,8 @@ abstract class AppLocalizations {
   /// No description provided for @invoiceRefundConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This reverses the sale, restores stock, and cannot be undone.'**
-  String get invoiceRefundConfirmBody;
+  /// **'This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.'**
+  String invoiceRefundConfirmBody(String amount);
 
   /// No description provided for @invoiceRefundOf.
   ///
@@ -4787,7 +4811,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupExportHint.
   ///
   /// In en, this message translates to:
-  /// **'Save all data to a file and share it.'**
+  /// **'Save this shop\'s business data (sales, stock, orders, customers, cash, staff, suppliers) to a file and share it. Device settings and the sync queue are not included.'**
   String get backupExportHint;
 
   /// No description provided for @backupImport.
@@ -4823,7 +4847,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupImportConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This will erase the current products, sales and credit data and replace them with the backup. This cannot be undone.'**
+  /// **'This will erase this shop\'s current business data (products, sales, orders, customers, cash, staff, suppliers, and the rest) and replace it with the backup. Device settings stay. This cannot be undone.'**
   String get backupImportConfirmBody;
 
   /// No description provided for @backupImportConfirmAction.
@@ -5279,7 +5303,7 @@ abstract class AppLocalizations {
   /// No description provided for @orderConvertHint.
   ///
   /// In en, this message translates to:
-  /// **'Creates an invoice and deducts stock for catalog items.'**
+  /// **'Records the collected amount as a sale and deducts stock for catalog items. Unpaid COD stays unpaid until you enter what was collected.'**
   String get orderConvertHint;
 
   /// No description provided for @orderConverted.
@@ -5305,6 +5329,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark as return'**
   String get orderCancel;
+
+  /// No description provided for @orderCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this order?'**
+  String get orderCancelConfirmTitle;
+
+  /// No description provided for @orderCancelConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This marks the order cancelled. It has not been converted to a sale, so no invoice or stock will be reversed.'**
+  String get orderCancelConfirmBody;
 
   /// No description provided for @orderRestore.
   ///
@@ -5545,6 +5581,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'4–6 digits'**
   String get staffPinHint;
+
+  /// No description provided for @staffOwnerPinRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The owner must set a PIN in Settings before staff can switch to Owner.'**
+  String get staffOwnerPinRequired;
 
   /// No description provided for @staffPinSaved.
   ///

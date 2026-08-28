@@ -31,6 +31,7 @@ class RecurringExpenseRepository {
     bool active = true,
     bool autoGenerate = false,
     String generationTiming = 'month_start',
+    String? accountId,
     // Exists purely so tests can pick a deterministic date, same reason
     // generateDueExpenses takes one, rather than depending on the real
     // calendar — see the "justEnabled" catch-up guard below.
@@ -71,6 +72,7 @@ class RecurringExpenseRepository {
               autoGenerate: Value(autoGenerate),
               generationTiming: Value(generationTiming),
               lastGeneratedPeriod: Value(lastGeneratedPeriod),
+              accountId: Value(accountId),
               updatedAt: Value(effectiveNow),
               dirty: const Value(true),
             ),
@@ -145,6 +147,7 @@ class RecurringExpenseRepository {
         amount: t.amount,
         date: effectiveNow,
         note: t.note,
+        accountId: t.accountId,
       );
       await _db.transaction(() async {
         await (_db.update(_db.recurringExpenses)

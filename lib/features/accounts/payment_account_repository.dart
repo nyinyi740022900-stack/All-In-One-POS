@@ -81,13 +81,16 @@ class PaymentAccountRepository {
   }) async {
     final accountId = id ?? _uuid.v4();
     final now = DateTime.now();
+    final existing = id == null ? null : await getAccount(id);
     await _db.transaction(() async {
       await _db.into(_db.paymentAccounts).insertOnConflictUpdate(
             PaymentAccountsCompanion(
               id: Value(accountId),
               shopId: Value(_shopId),
               name: Value(name),
-              openingBalance: Value(openingBalance),
+              openingBalance: existing == null
+                  ? Value(openingBalance)
+                  : const Value.absent(),
               updatedAt: Value(now),
               dirty: const Value(true),
             ),

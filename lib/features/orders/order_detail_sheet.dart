@@ -415,6 +415,22 @@ class OrderDetailSheet extends ConsumerWidget {
     final repo = ref.read(ordersRepositoryProvider);
     final saleId = o.saleId;
     if (saleId == null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l.orderCancelConfirmTitle),
+          content: Text(l.orderCancelConfirmBody),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l.commonCancel)),
+            FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l.orderCancel)),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
       try {
         await repo.setStatus(o.id, 'cancelled');
       } catch (e) {

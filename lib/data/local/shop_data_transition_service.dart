@@ -116,9 +116,11 @@ class ShopDataTransitionService {
       await _promoteOrders(fromShopId, toShopId);
       await _promoteOrderItems(fromShopId, toShopId);
       await _promoteStaffMembers(fromShopId, toShopId);
+      await _promoteStaffPermissions(fromShopId, toShopId);
       await _promoteCustomers(fromShopId, toShopId);
       await _promoteExpenses(fromShopId, toShopId);
       await _promoteCashSessions(fromShopId, toShopId);
+      await _promoteCashTopUps(fromShopId, toShopId);
       await _promoteDeviceLabels(fromShopId, toShopId);
       await _promoteRecurringExpenses(fromShopId, toShopId);
       await _promoteSuppliers(fromShopId, toShopId);
@@ -301,6 +303,19 @@ class ShopDataTransitionService {
     );
   }
 
+  Future<void> _promoteStaffPermissions(String from, String to) async {
+    final rows = await (_db.select(
+      _db.staffPermissions,
+    )..where((t) => t.shopId.equals(from))).get();
+    await (_db.update(_db.staffPermissions)
+          ..where((t) => t.shopId.equals(from)))
+        .write(StaffPermissionsCompanion(shopId: Value(to)));
+    await _enqueueOutbox(
+      'staff_permissions',
+      rows.where((r) => !r.isDeleted).map((r) => r.id),
+    );
+  }
+
   Future<void> _promoteCustomers(String from, String to) async {
     final rows = await (_db.select(
       _db.customers,
@@ -334,6 +349,18 @@ class ShopDataTransitionService {
         .write(CashSessionsCompanion(shopId: Value(to)));
     await _enqueueOutbox(
       'cash_sessions',
+      rows.where((r) => !r.isDeleted).map((r) => r.id),
+    );
+  }
+
+  Future<void> _promoteCashTopUps(String from, String to) async {
+    final rows = await (_db.select(
+      _db.cashTopUps,
+    )..where((t) => t.shopId.equals(from))).get();
+    await (_db.update(_db.cashTopUps)..where((t) => t.shopId.equals(from)))
+        .write(CashTopUpsCompanion(shopId: Value(to)));
+    await _enqueueOutbox(
+      'cash_top_ups',
       rows.where((r) => !r.isDeleted).map((r) => r.id),
     );
   }

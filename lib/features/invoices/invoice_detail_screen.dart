@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../data/local/database.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
@@ -39,13 +40,15 @@ class InvoiceDetailScreen extends ConsumerWidget {
   /// Inline pane on tablets — no route AppBar back affordance needed.
   final bool embedded;
 
-  Future<void> _refund(BuildContext context, WidgetRef ref, String no) async {
+  Future<void> _refund(
+      BuildContext context, WidgetRef ref, Sale s) async {
     final l = AppLocalizations.of(context);
+    final amount = Money(s.total).withSymbol(l.currencySymbol);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.invoiceRefundConfirmTitle),
-        content: Text(l.invoiceRefundConfirmBody),
+        content: Text(l.invoiceRefundConfirmBody(amount)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -361,7 +364,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       foregroundColor: colors.danger,
                       side: BorderSide(color: colors.danger),
                     ),
-                    onPressed: () => _refund(context, ref, s.invoiceNo),
+                    onPressed: () => _refund(context, ref, s),
                     icon: const Icon(Icons.undo),
                     label: Text(l.invoiceRefund),
                   ),

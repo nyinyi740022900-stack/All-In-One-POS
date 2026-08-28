@@ -30,10 +30,7 @@ class CreditCustomer {
     required this.openInvoices,
   });
 
-  int get outstanding {
-    final o = billed - paid;
-    return o < 0 ? 0 : o;
-  }
+  int get outstanding => billed - paid;
 }
 
 /// The stable grouping key for a customer within the credit book: their
@@ -127,7 +124,7 @@ class CreditRepository {
         paid: paid[key] ?? 0,
         openInvoices: openInvoices[key] ?? 0,
       );
-      if (includeSettled || c.outstanding > 0) customers.add(c);
+      if (includeSettled || c.outstanding != 0) customers.add(c);
     }
     customers.sort((a, b) => b.outstanding.compareTo(a.outstanding));
     return customers;

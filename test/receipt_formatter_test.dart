@@ -15,6 +15,7 @@ const _labels = ReceiptLabels(
   payment: 'Payment',
   paid: 'Paid',
   change: 'Change',
+  amountDue: 'Amount due',
 );
 
 ReceiptData _sample(
@@ -91,6 +92,55 @@ void main() {
           ReceiptFormatter(paper: PaperSize.mm58, labels: _labels)
               .format(_sample());
       expect(without.any((l) => l.startsWith('Customer')), isFalse);
+    });
+
+    test('credit with zero down still prints paid 0 and amount due', () {
+      final lines = ReceiptFormatter(paper: PaperSize.mm58, labels: _labels)
+          .format(ReceiptData(
+        shopName: 'Aung Minimart',
+        invoiceNo: 'INV-1',
+        dateTime: DateTime(2026, 7, 10, 14, 30),
+        items: const [
+          ReceiptLineItem(
+              name: 'Ring', qty: 1, unitPrice: 10000, lineTotal: 10000),
+        ],
+        subtotal: 10000,
+        discount: 0,
+        total: 10000,
+        paid: 0,
+        change: 0,
+        owed: 10000,
+        paymentMethod: 'Credit',
+      ));
+      expect(lines.any((l) => l.startsWith('Paid')), isTrue);
+      expect(lines.any((l) => l.contains('0 Ks') && l.startsWith('Paid')),
+          isTrue);
+      expect(lines.any((l) => l.startsWith('Amount due')), isTrue);
+    });
+
+    test('partial credit prints paid and remaining amount due', () {
+      final lines = ReceiptFormatter(paper: PaperSize.mm58, labels: _labels)
+          .format(ReceiptData(
+        shopName: 'Aung Minimart',
+        invoiceNo: 'INV-1',
+        dateTime: DateTime(2026, 7, 10, 14, 30),
+        items: const [
+          ReceiptLineItem(
+              name: 'Ring', qty: 1, unitPrice: 10000, lineTotal: 10000),
+        ],
+        subtotal: 10000,
+        discount: 0,
+        total: 10000,
+        paid: 4000,
+        change: 0,
+        owed: 6000,
+        paymentMethod: 'Credit',
+      ));
+      expect(lines.any((l) => l.startsWith('Paid') && l.contains('4,000')),
+          isTrue);
+      expect(
+          lines.any((l) => l.startsWith('Amount due') && l.contains('6,000')),
+          isTrue);
     });
 
     test('delivery address is printed when present, omitted otherwise', () {

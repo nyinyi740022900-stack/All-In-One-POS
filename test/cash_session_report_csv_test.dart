@@ -7,6 +7,7 @@ void main() {
     openingAmount: 50000,
     cashSalesTotal: 85000,
     cashRepaymentsTotal: 5000,
+    topUpsTotal: 4000,
     expensesTotal: 12000,
     supplierPaymentsTotal: 3000,
     expectedCash: 125000,
@@ -18,6 +19,7 @@ void main() {
     openingAmount: 50000,
     cashSalesTotal: 85000,
     cashRepaymentsTotal: 5000,
+    topUpsTotal: 4000,
     expensesTotal: 12000,
     supplierPaymentsTotal: 3000,
     expectedCash: 125000,
@@ -32,6 +34,7 @@ void main() {
         openingFloatLabel: 'Opening float',
         cashSalesLabel: 'Cash sales',
         cashRepaymentsLabel: 'Cash repayments',
+        topUpsLabel: 'Cash top-ups',
         expensesLabel: 'Expenses',
         supplierPaymentsLabel: 'Supplier payments',
         expectedCashLabel: 'Expected cash',
@@ -49,6 +52,7 @@ void main() {
       expect(lines, contains('Opening float,50000'));
       expect(lines, contains('Cash sales,85000'));
       expect(lines, contains('Cash repayments,5000'));
+      expect(lines, contains('Cash top-ups,4000'));
       expect(lines, contains('Expenses,-12000'));
       expect(lines, contains('Supplier payments,-3000'));
       expect(lines.last, 'Expected cash,125000');

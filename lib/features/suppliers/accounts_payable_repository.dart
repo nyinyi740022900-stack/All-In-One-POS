@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
+import 'accounts_payable.dart';
 
 /// Reads received purchase orders + supplier payments and records new
 /// payments — the write/read side of Accounts Payable. Aggregation itself
@@ -45,6 +46,27 @@ class AccountsPayableRepository {
     final id = _uuid.v4();
     final now = DateTime.now();
     await _db.transaction(() async {
+      final pos = await (_db.select(_db.purchaseOrders)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.status.equals('received')))
+          .get();
+      final existingPayments = await (_db.select(_db.supplierPayments)
+            ..where((t) =>
+                t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+          .get();
+      final key = poSupplierKeyFor(supplierId, supplierName);
+      final balances = aggregateAccountsPayable(
+        pos,
+        existingPayments,
+        includeSettled: true,
+      );
+      final match = balances.where((b) => b.key == key);
+      final outstanding = match.isEmpty ? 0 : match.first.outstanding;
+      if (amount > outstanding) {
+        throw StateError('payment_exceeds_outstanding');
+      }
       await _db.into(_db.supplierPayments).insert(
             SupplierPaymentsCompanion.insert(
               id: id,

@@ -54,6 +54,16 @@ SupplierPayment _supplierPayment(String method, int amount) =>
       dirty: false,
     );
 
+CashTopUp _topUp(int amount) => CashTopUp(
+      id: 'topup-$amount',
+      shopId: 'shop-1',
+      amount: amount,
+      createdAt: DateTime(2026, 8, 1),
+      updatedAt: DateTime(2026, 8, 1),
+      isDeleted: false,
+      dirty: false,
+    );
+
 void main() {
   group('computeExpectedCash (pure)', () {
     test('opening + cash payments − expenses, non-cash tenders ignored', () {
@@ -63,6 +73,7 @@ void main() {
         repayments: const [],
         expenses: [_expense(3000)],
         supplierPayments: const [],
+        topUps: const [],
       );
       expect(result, 57000); // 50000 + 10000 - 3000
     });
@@ -74,6 +85,7 @@ void main() {
         repayments: [_repayment('cash', 5000), _repayment('wavepay', 9000)],
         expenses: const [],
         supplierPayments: const [],
+        topUps: const [],
       );
       expect(result, 5000);
     });
@@ -85,6 +97,7 @@ void main() {
         repayments: const [],
         expenses: const [],
         supplierPayments: const [],
+        topUps: const [],
       );
       expect(result, 10000);
     });
@@ -97,6 +110,7 @@ void main() {
         repayments: const [],
         expenses: [_expense(3000, accountId: 'kbzpay')],
         supplierPayments: const [],
+        topUps: const [],
       );
       expect(result, 60000); // 50000 + 10000, the 3000 expense is ignored
     });
@@ -109,6 +123,7 @@ void main() {
         expenses: const [],
         supplierPayments: [_supplierPayment('cash', 3000),
                            _supplierPayment('kbzpay', 7000)],
+        topUps: const [],
       );
       expect(result, 57000); // 50000 + 10000 - 3000 (cash sp only)
     });
@@ -120,8 +135,21 @@ void main() {
         repayments: const [],
         expenses: const [],
         supplierPayments: const [],
+        topUps: const [],
       );
       expect(result, 20000);
+    });
+
+    test('a mid-session top-up counts as cash in, same as a cash sale', () {
+      final result = computeExpectedCash(
+        openingAmount: 10000,
+        payments: const [],
+        repayments: const [],
+        expenses: const [],
+        supplierPayments: const [],
+        topUps: [_topUp(5000), _topUp(2000)],
+      );
+      expect(result, 17000); // 10000 + 5000 + 2000
     });
   });
 
@@ -160,6 +188,38 @@ void main() {
       expect(history.single.note, 'short 500');
     });
 
+    test('closeSession refuses a session that is already closed', () async {
+      final id = await repo.openSession(openingAmount: 30000);
+      await repo.closeSession(id, closingAmount: 30000);
+      expect(
+        () => repo.closeSession(id, closingAmount: 1),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('closed session expected cash is a snapshot, not live-recomputed',
+        () async {
+      final id = await repo.openSession(openingAmount: 10000);
+      await db.into(db.payments).insert(PaymentsCompanion.insert(
+            id: 'p-snap',
+            shopId: 'shop-1',
+            saleId: 'sale-snap',
+            method: 'cash',
+            amount: 5000,
+          ));
+      await repo.closeSession(id, closingAmount: 15000);
+      final closed = (await db.select(db.cashSessions).get()).single;
+      expect(closed.expectedCashAtClose, 15000);
+      await db.into(db.expenses).insert(ExpensesCompanion.insert(
+            id: 'e-after',
+            shopId: 'shop-1',
+            category: 'other',
+            amount: 2000,
+            date: DateTime.now(),
+          ));
+      expect(await repo.expectedCash(closed), 15000);
+    });
+
     test('expectedCash reflects sales/repayments/expenses recorded after '
         'the session opened', () async {
       final id = await repo.openSession(openingAmount: 10000);
@@ -183,6 +243,20 @@ void main() {
       final expected = await repo.expectedCash(session!);
       expect(expected, 13000); // 10000 + 5000 - 2000
       expect(id, isNotEmpty);
+    });
+
+    test('addTopUp enqueues outbox and is folded into expectedCash', () async {
+      await repo.openSession(openingAmount: 10000);
+      final session = await repo.watchCurrentSession().first;
+
+      final topUpId = await repo.addTopUp(amount: 4000, note: 'owner top-up');
+
+      final outbox = await db.select(db.outbox).get();
+      expect(outbox.any((o) => o.entityTable == 'cash_top_ups'), isTrue);
+
+      final expected = await repo.expectedCash(session!);
+      expect(expected, 14000); // 10000 + 4000
+      expect(topUpId, isNotEmpty);
     });
 
     group('reportFor', () {
@@ -222,13 +296,15 @@ void main() {
               accountId: const Value('kbzpay'),
               date: DateTime.now(),
             ));
+        await repo.addTopUp(amount: 3000);
 
         final report = await repo.reportFor(session!);
         expect(report.openingAmount, 10000);
         expect(report.cashSalesTotal, 5000);
         expect(report.cashRepaymentsTotal, 1000);
+        expect(report.topUpsTotal, 3000);
         expect(report.expensesTotal, 2000); // the kbzpay-paid e2 is excluded
-        expect(report.expectedCash, 14000); // 10000 + 5000 + 1000 - 2000
+        expect(report.expectedCash, 17000); // 10000+5000+1000+3000-2000
         expect(report.closingAmount, isNull);
         expect(report.variance, isNull);
         expect(id, isNotEmpty);

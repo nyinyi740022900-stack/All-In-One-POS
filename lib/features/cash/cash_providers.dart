@@ -34,6 +34,7 @@ class _CashInputSignal extends StateNotifier<int> {
     ref.listen(repaymentsProvider, (_, _) => _bump());
     ref.listen(_cashExpensesWatchProvider, (_, _) => _bump());
     ref.listen(_cashSupplierPaymentsWatchProvider, (_, _) => _bump());
+    ref.listen(_cashTopUpsWatchProvider, (_, _) => _bump());
   }
 
   Timer? _timer;
@@ -80,4 +81,10 @@ final _cashExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
 final _cashSupplierPaymentsWatchProvider =
     StreamProvider<List<SupplierPayment>>((ref) {
   return ref.watch(cashSessionRepositoryProvider).watchAllSupplierPayments();
+});
+
+/// Invalidation-only signal — see [expectedCashProvider]. A mid-session
+/// top-up fills the till, so the drawer must recompute when one is recorded.
+final _cashTopUpsWatchProvider = StreamProvider<List<CashTopUp>>((ref) {
+  return ref.watch(cashSessionRepositoryProvider).watchAllTopUps();
 });

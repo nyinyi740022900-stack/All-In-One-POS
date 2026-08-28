@@ -167,7 +167,11 @@
   "cashReportShareCsv": "Share CSV",
   "cashReportCashSales": "Cash sales",
   "cashReportCashRepayments": "Cash repayments",
+  "cashReportTopUps": "Cash top-ups",
   "cashReportSupplierPayments": "Cash supplier payments",
+  "cashAddTopUp": "Add cash",
+  "cashTopUpAmount": "Amount added",
+  "cashTopUpSaved": "Cash top-up added",
   "creditTitle": "Credit book",
   "creditCustomerName": "Customer name",
   "customerPhone": "Phone (optional)",
@@ -622,7 +626,14 @@
   "invoiceStatusPayOnDelivery": "Pay on delivery",
   "invoiceStatusAwaitingConfirmation": "Awaiting confirmation",
   "invoiceRefundConfirmTitle": "Refund this invoice?",
-  "invoiceRefundConfirmBody": "This reverses the sale, restores stock, and cannot be undone.",
+  "invoiceRefundConfirmBody": "This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.",
+  "@invoiceRefundConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceRefundOf": "Refund of {invoiceNo}",
   "@invoiceRefundOf": {
     "placeholders": {
@@ -1116,13 +1127,13 @@
   "backupTitle": "Backup & restore",
   "backupHint": "Your data is stored on this device. Export a backup file and keep it safe (e.g. send it to Viber → My Notes).",
   "backupExport": "Export backup",
-  "backupExportHint": "Save all data to a file and share it.",
+  "backupExportHint": "Save this shop's business data (sales, stock, orders, customers, cash, staff, suppliers) to a file and share it. Device settings and the sync queue are not included.",
   "backupImport": "Import backup",
   "backupImportHint": "Restore data from a backup file.",
   "backupShareSubject": "All In One POS backup",
   "backupShareText": "All In One POS data backup. Keep this file to restore later.",
   "backupImportConfirmTitle": "Replace all data?",
-  "backupImportConfirmBody": "This will erase the current products, sales and credit data and replace them with the backup. This cannot be undone.",
+  "backupImportConfirmBody": "This will erase this shop's current business data (products, sales, orders, customers, cash, staff, suppliers, and the rest) and replace it with the backup. Device settings stay. This cannot be undone.",
   "backupImportConfirmAction": "Replace",
   "backupImportDone": "Restored {count} rows",
   "@backupImportDone": {
@@ -1254,7 +1265,7 @@
   },
   "orderChangeCarrier": "Change",
   "orderConvertToSale": "Convert to sale",
-  "orderConvertHint": "Creates an invoice and deducts stock for catalog items.",
+  "orderConvertHint": "Records the collected amount as a sale and deducts stock for catalog items. Unpaid COD stays unpaid until you enter what was collected.",
   "orderConverted": "Order converted to a sale ({invoice}).",
   "@orderConverted": {
     "placeholders": {
@@ -1266,6 +1277,8 @@
   "orderConvertFailed": "Couldn't convert this order to a sale. Please try again.",
   "orderAlreadySale": "Already recorded as a sale.",
   "orderCancel": "Mark as return",
+  "orderCancelConfirmTitle": "Cancel this order?",
+  "orderCancelConfirmBody": "This marks the order cancelled. It has not been converted to a sale, so no invoice or stock will be reversed.",
   "orderRestore": "Undo return",
   "orderReturnConfirmTitle": "Return this order?",
   "orderReturnConfirmBody": "This refunds {amount}, reverses the sale, and restores stock. This cannot be undone.",
@@ -1341,6 +1354,7 @@
     }
   },
   "staffPinHint": "4–6 digits",
+  "staffOwnerPinRequired": "The owner must set a PIN in Settings before staff can switch to Owner.",
   "staffPinSaved": "PIN saved",
   "staffOwnerOnly": "Owner only",
   "staffOwnerOnlyDesc": "Switch to Owner mode (Settings) to view this.",

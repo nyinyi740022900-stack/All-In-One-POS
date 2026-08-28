@@ -153,6 +153,34 @@ void main() {
     expect(saleMove.qtyDelta, -2);
   });
 
+  test('unpaid COD convert books paid 0 and writes no payment row', () async {
+    final pid = await seedProduct(name: 'Bag', price: 20000, qty: 5);
+    final id = await orders.saveOrder(
+      customerName: 'Nilar',
+      channel: 'facebook',
+      deliveryFee: 2000,
+      lines: [
+        OrderDraftLine(productId: pid, name: 'Bag', price: 20000, qty: 1),
+      ],
+    );
+    await (db.update(db.orders)..where((t) => t.id.equals(id))).write(
+      const OrdersCompanion(paymentMethod: Value('cod')),
+    );
+    await orders.setStatus(id, 'delivered');
+    final saleId = await orders.convertToSale(id, paymentMethod: 'cash');
+    final sale =
+        await (db.select(db.sales)..where((s) => s.id.equals(saleId)))
+            .getSingle();
+    expect(sale.total, 22000);
+    expect(sale.paid, 0);
+    final pays = await (db.select(db.payments)
+          ..where((t) => t.saleId.equals(saleId)))
+        .get();
+    expect(pays, isEmpty);
+    final order = await orders.getOrder(id);
+    expect(order.paymentStatus, 'unpaid');
+  });
+
   test('convertToSale carries the delivery address onto the sale', () async {
     final pid = await seedProduct(name: 'Bag', price: 20000, qty: 5);
     final id = await orders.saveOrder(

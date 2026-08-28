@@ -48,6 +48,7 @@ class AnalyticsRepository {
             .get();
     final itemRows = items
         .map((i) => (
+              saleId: i.saleId,
               productId: i.productId,
               name: i.nameSnapshot,
               qty: i.qty,
@@ -59,14 +60,32 @@ class AnalyticsRepository {
     final products = await (_db.select(_db.products)
           ..where((p) => p.shopId.equals(_shopId)))
         .get();
+    // COGS fallback must still see tombstoned products — a sale of a SKU
+    // that was later deleted still has a real historical cost.
     final productCost = {for (final p in products) p.id: p.costPrice};
+    final liveIds = {for (final p in products) if (!p.isDeleted) p.id};
+
+    final lots = await _db.select(_db.stockLots).get();
+    final lotValueByProduct = <String, int>{};
+    for (final lot in lots) {
+      if (!liveIds.contains(lot.productId)) continue;
+      lotValueByProduct[lot.productId] =
+          (lotValueByProduct[lot.productId] ?? 0) +
+              lot.remainingQty * lot.unitCost;
+    }
 
     final levels = await (_db.select(_db.stockLevels)
           ..where((s) => s.shopId.equals(_shopId) & s.isDeleted.equals(false)))
         .get();
     var stockValue = 0;
     for (final lvl in levels) {
-      stockValue += lvl.quantity * (productCost[lvl.productId] ?? 0);
+      if (!liveIds.contains(lvl.productId)) continue;
+      final fromLots = lotValueByProduct[lvl.productId];
+      if (fromLots != null) {
+        stockValue += fromLots;
+      } else {
+        stockValue += lvl.quantity * (productCost[lvl.productId] ?? 0);
+      }
     }
 
     final expenseRows = await (_db.select(_db.expenses)

@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import 'expense_repository.dart';
 import 'expense_screen.dart' show categoryIcon, categoryLabel;
 import 'recurring_expense_providers.dart';
@@ -90,6 +91,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
   late String _category;
   late bool _autoGenerate;
   late String _generationTiming;
+  String? _accountId;
   bool _saving = false;
 
   @override
@@ -99,6 +101,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
     _category = e?.category ?? expenseCategories.first;
     _autoGenerate = e?.autoGenerate ?? false;
     _generationTiming = e?.generationTiming ?? 'month_start';
+    _accountId = e?.accountId;
     if (e != null) {
       _amount.text = '${e.amount}';
       _note.text = e.note ?? '';
@@ -128,6 +131,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
             active: widget.existing?.active ?? true,
             autoGenerate: _autoGenerate,
             generationTiming: _generationTiming,
+            accountId: _accountId,
           );
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l.recurringExpenseSaved)));
@@ -211,6 +215,27 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
                     label: Text(categoryLabel(l, c)),
                     selected: _category == c,
                     onSelected: (_) => setState(() => _category = c),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(l.expensePaidFrom, style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: AppTheme.space1),
+            Wrap(
+              spacing: AppTheme.space2,
+              runSpacing: AppTheme.space2,
+              children: [
+                ChoiceChip(
+                  label: Text(l.paymentCash),
+                  selected: _accountId == null,
+                  onSelected: (_) => setState(() => _accountId = null),
+                ),
+                for (final a in ref.watch(paymentAccountsProvider).valueOrNull ??
+                    const [])
+                  ChoiceChip(
+                    label: Text(a.name),
+                    selected: _accountId == a.id,
+                    onSelected: (_) => setState(() => _accountId = a.id),
                   ),
               ],
             ),

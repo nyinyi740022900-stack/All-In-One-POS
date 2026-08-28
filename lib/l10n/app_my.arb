@@ -150,7 +150,11 @@
   "cashReportShareCsv": "CSV မျှဝေမည်",
   "cashReportCashSales": "ငွေသား ရောင်းအား",
   "cashReportCashRepayments": "ငွေသား ကြွေးဆပ်ငွေ",
+  "cashReportTopUps": "ငွေသား ထပ်ဖြည့်ငွေ",
   "cashReportSupplierPayments": "ငွေသား ကုန်သွင်းငွေ",
+  "cashAddTopUp": "ငွေသား ထပ်ဖြည့်ရန်",
+  "cashTopUpAmount": "ထပ်ဖြည့်တဲ့ ပမာဏ",
+  "cashTopUpSaved": "ငွေသား ထပ်ဖြည့်မှု သိမ်းပြီးပါပြီ",
   "creditTitle": "အကြွေးစာရင်း",
   "creditCustomerName": "ဝယ်သူအမည်",
   "customerPhone": "ဖုန်း (မဖြည့်လည်းရ)",
@@ -588,7 +592,14 @@
   "invoiceStatusPayOnDelivery": "ပစ္စည်းရောက်မှ ပေးချေရမည်",
   "invoiceStatusAwaitingConfirmation": "အတည်ပြုရန် ကျန်",
   "invoiceRefundConfirmTitle": "ဒီပြေစာကို ပြန်အမ်းမှာလား?",
-  "invoiceRefundConfirmBody": "ရောင်းချမှုကို ပြန်ပြင်ပြီး ကုန်ပစ္စည်းအရေအတွက် ပြန်ဖြည့်ပါမည်။ နောက်ပြန်ရုတ်သိမ်း၍ မရပါ။",
+  "invoiceRefundConfirmBody": "ဒါက {amount} ပြန်အမ်းပေးမည်၊ အရောင်းကို ပြန်ပြင်ပေးမည်၊ ကုန်ပစ္စည်းလက်ကျန်ကိုလည်း ပြန်ထည့်ပေးမည်ဖြစ်ပြီး ပြန်ရုပ်သိမ်းလို့ မရတော့ပါ။",
+  "@invoiceRefundConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "invoiceRefundOf": "{invoiceNo} ၏ ပြန်အမ်းငွေ",
   "@invoiceRefundOf": {
     "placeholders": {
@@ -1075,13 +1086,13 @@
   "backupTitle": "Backup & ပြန်ယူ",
   "backupHint": "သင့် data ကို ဒီဖုန်းထဲမှာ သိမ်းထားပါတယ်။ Backup file ထုတ်ပြီး လုံခြုံစွာ သိမ်းပါ (ဥပမာ Viber → My Notes သို့ ပို့ပါ)။",
   "backupExport": "Backup ထုတ်",
-  "backupExportHint": "data အားလုံးကို file အဖြစ်သိမ်းပြီး share",
+  "backupExportHint": "ဒီဆိုင်ရဲ့ လုပ်ငန်း data (အရောင်း၊ stock၊ အော်ဒါ၊ ဖောက်သည်၊ ငွေသား၊ ဝန်ထမ်း၊ ပေးသွင်းသူ) ကို file အဖြစ်သိမ်းပြီး share။ ဖုန်း settings နဲ့ sync တန်းကို မပါဝင်ပါ။",
   "backupImport": "Backup ပြန်သွင်း",
   "backupImportHint": "Backup file ကနေ data ပြန်ယူ",
   "backupShareSubject": "All In One POS backup",
   "backupShareText": "All In One POS data backup။ နောက်မှ ပြန်ယူဖို့ ဒီ file ကို သိမ်းထားပါ။",
   "backupImportConfirmTitle": "data အားလုံး အစားထိုးမလား?",
-  "backupImportConfirmBody": "ဒါက လက်ရှိ ကုန်ပစ္စည်း၊ အရောင်း၊ အကြွေး data တွေကို ဖျက်ပြီး backup နဲ့ အစားထိုးမှာပါ။ ပြန်ပြင်လို့ မရပါ။",
+  "backupImportConfirmBody": "ဒါက ဒီဆိုင်ရဲ့ လက်ရှိ လုပ်ငန်း data (ကုန်ပစ္စည်း၊ အရောင်း၊ အော်ဒါ၊ ဖောက်သည်၊ ငွေသား၊ ဝန်ထမ်း၊ ပေးသွင်းသူ စသည်) ကို ဖျက်ပြီး backup နဲ့ အစားထိုးမှာပါ။ ဖုန်း settings ကျန်ပါမည်။ ပြန်ပြင်လို့ မရပါ။",
   "backupImportConfirmAction": "အစားထိုး",
   "backupImportDone": "row {count} ခု ပြန်ယူပြီး",
   "@backupImportDone": {
@@ -1213,7 +1224,7 @@
   },
   "orderChangeCarrier": "ပြောင်းမည်",
   "orderConvertToSale": "အရောင်းအဖြစ် ပြောင်း",
-  "orderConvertHint": "ပြေစာထုတ်ပြီး catalog ပစ္စည်းများအတွက် stock နှုတ်ပါမည်။",
+  "orderConvertHint": "ကောက်ခံရရှိသော ပမာဏကို အရောင်းအဖြစ် မှတ်ပြီး catalog ပစ္စည်းများအတွက် stock နှုတ်ပါမည်။ မပေးရသေးသော COD ကို ကောက်ခံသည့် ပမာဏ ထည့်မှသာ ပေးပြီးဟု မှတ်ပါမည်။",
   "orderConverted": "အော်ဒါကို အရောင်းအဖြစ် ပြောင်းပြီး ({invoice})။",
   "orderConvertFailed": "ဒီအော်ဒါကို အရောင်းအဖြစ် ပြောင်း၍မရပါ။ ထပ်ကြိုးစားကြည့်ပါ။",
   "@orderConverted": {
@@ -1225,6 +1236,8 @@
   },
   "orderAlreadySale": "အရောင်းအဖြစ် မှတ်တမ်းတင်ပြီးပြီ။",
   "orderCancel": "ပြန်ပို့အဖြစ် မှတ်မည်",
+  "orderCancelConfirmTitle": "ဒီအော်ဒါကို ပယ်ဖျက်မည်လား?",
+  "orderCancelConfirmBody": "အော်ဒါကို ပယ်ဖျက်အဖြစ် မှတ်ပါမည်။ အရောင်းအဖြစ် မပြောင်းရသေးသဖြင့် ပြေစာ သို့မဟုတ် stock ပြန်ပြင်စရာ မရှိပါ။",
   "orderRestore": "ပြန်ပို့မှု ပြန်ရုပ်သိမ်းမည်",
   "orderReturnConfirmTitle": "ဒီအော်ဒါကို ပြန်ပို့မည်လား?",
   "orderReturnConfirmBody": "ဒါက {amount} ပြန်အမ်းပေးမည်၊ အရောင်းကို ပြန်ပြင်ပေးမည်၊ ကုန်ပစ္စည်းလက်ကျန်ကိုလည်း ပြန်ထည့်ပေးမည်ဖြစ်ပြီး ပြန်ရုပ်သိမ်းလို့ မရတော့ပါ။",
@@ -1293,6 +1306,7 @@
     }
   },
   "staffPinHint": "ဂဏန်း ၄–၆ လုံး",
+  "staffOwnerPinRequired": "ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က Settings မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။",
   "staffPinSaved": "PIN သိမ်းပြီး",
   "staffOwnerOnly": "ပိုင်ရှင်သာ ကြည့်နိုင်",
   "staffOwnerOnlyDesc": "ဒါကို ကြည့်ရန် Owner mode (Settings) သို့ ပြောင်းပါ။",

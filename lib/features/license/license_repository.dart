@@ -204,20 +204,16 @@ class LicenseRepository {
   }
 
   /// Last-resort recovery when [refreshSessionAndVerifyClaim] keeps failing
-  /// even after its own retry — the signal that this device's local session
-  /// isn't merely *stale* (an ordinary `refreshSession()` would fix that)
-  /// but has lost its refresh token entirely, so refreshing it can never
-  /// succeed no matter how many times it's attempted (confirmed in
-  /// production: zero successful refreshes across dozens of attempts over
-  /// 24+ hours for one real device). The only way out is a genuinely fresh
-  /// session: sign out (clears only the local Supabase Auth session — the
-  /// local Drift database with all of this shop's actual data is completely
-  /// untouched), sign back in anonymously (a brand new session with a valid
-  /// refresh token from the moment it's created), then ask the server to
-  /// re-stamp *that* session with this device's existing shop_id claim,
-  /// found by device_id rather than by key since a self-serve trial's
-  /// cached key is only ever the local [trialKey] placeholder — the real
-  /// per-license key was never sent to (or knowable by) the client.
+  /// even after its own retry. Asks the server to re-stamp this session's
+  /// `app_metadata.shop_id` from the device's existing license (looked up
+  /// by device_id rather than key, since a self-serve trial's cached key
+  /// is only ever the local [trialKey] placeholder).
+  ///
+  /// Must keep the current session: `resync_session` requires the JWT to
+  /// already carry this license's `shop_id` (device_id is the public App
+  /// Reference ID and is not proof of ownership). Signing out and signing
+  /// in anonymously used to be the recovery path — it is also the hijack
+  /// (anyone who knows the public id could stamp a fresh anon session).
   Future<ActivationResult> repairSession() async {
     if (!Env.hasBackend) return const ActivationResult.failure('no_backend');
     final current = await this.current();
@@ -226,11 +222,10 @@ class LicenseRepository {
     }
     final deviceId = await _settings.deviceId();
     final auth = Supabase.instance.client.auth;
+    if (auth.currentUser == null) {
+      return const ActivationResult.failure('not_authenticated');
+    }
     try {
-      try {
-        await auth.signOut();
-      } catch (_) {}
-      await auth.signInAnonymously();
       final res = await invokeActivate({
         'action': 'resync_session',
         'device_id': deviceId,
@@ -251,8 +246,8 @@ class LicenseRepository {
         lastVerifiedAt: now,
         tier: data['tier'] as String? ?? 'offline',
       );
-      // The fresh session should carry the claim immediately (it was just
-      // stamped, synchronously, before this response came back) — verify
+      // The session should carry the claim immediately (it was just
+      // restamped, synchronously, before this response came back) — verify
       // rather than assume, same discipline every other mint/activate path
       // here already follows.
       final verified = await refreshSessionAndVerifyClaim(lic.shopId);

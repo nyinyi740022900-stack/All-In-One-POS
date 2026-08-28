@@ -77,9 +77,14 @@ class ReceiptFormatter {
     }
     out.add(_two(labels.total, _amt(r.total)));
     out.add(_two(labels.payment, r.paymentMethod));
-    if (r.paid > 0) {
+    if (r.paid > 0 || r.owed > 0) {
       out.add(_two(labels.paid, _amt(r.paid)));
+    }
+    if (r.change > 0) {
       out.add(_two(labels.change, _amt(r.change)));
+    }
+    if (r.owed > 0) {
+      out.add(_two(labels.amountDue, _amt(r.owed)));
     }
     out.add(_divider());
 
@@ -156,6 +161,7 @@ class ReceiptLabels {
   final String payment;
   final String paid;
   final String change;
+  final String amountDue;
 
   const ReceiptLabels({
     required this.invoice,
@@ -170,5 +176,6 @@ class ReceiptLabels {
     required this.payment,
     required this.paid,
     required this.change,
+    required this.amountDue,
   });
 }

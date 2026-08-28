@@ -203,6 +203,41 @@ void main() {
     expect(sale.total, 700);
   });
 
+  test('credit down-payment is stored as cash so the till counts it', () async {
+    final p = await seedProduct(name: 'Ring', price: 10000, qty: 5);
+    final r = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+      paymentMethod: 'credit',
+      paid: 4000,
+      customerName: 'Ma Ma',
+    );
+    final sale =
+        await (db.select(db.sales)..where((s) => s.id.equals(r.saleId)))
+            .getSingle();
+    expect(sale.paid, 4000);
+    expect(sale.total, 10000);
+    final pays = await (db.select(db.payments)
+          ..where((t) => t.saleId.equals(r.saleId)))
+        .get();
+    expect(pays, hasLength(1));
+    expect(pays.single.method, 'cash');
+    expect(pays.single.amount, 4000);
+  });
+
+  test('credit overpay does not record the excess as a payment', () async {
+    final p = await seedProduct(name: 'Ring', price: 10000, qty: 5);
+    final r = await sales.finalizeSale(
+      cart: CartState(lines: [CartLine(product: p, qty: 1)]),
+      paymentMethod: 'credit',
+      paid: 12000,
+      customerName: 'Ma Ma',
+    );
+    final pays = await (db.select(db.payments)
+          ..where((t) => t.saleId.equals(r.saleId)))
+        .get();
+    expect(pays.single.amount, 10000);
+  });
+
   test('finalizeSale prices at the cart\'s customerTier, not salePrice',
       () async {
     final p = await seedProduct(
@@ -341,6 +376,25 @@ void main() {
             ..where((pay) => pay.saleId.equals(refund.saleId)))
           .get();
       expect(refundPayments.single.amount, -2100);
+    });
+
+    test('invoice-only original does not restore stock even if trackStock is on',
+        () async {
+      final p = await seedProduct(name: 'Service', price: 5000, qty: 10);
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: p, qty: 2)]),
+        paymentMethod: 'cash',
+        paid: 10000,
+        trackStock: false,
+      );
+      await sales.refundSale(sold.saleId, trackStock: true);
+      final returnMoves = (await db.select(db.stockMovements).get())
+          .where((m) => m.type == 'return');
+      expect(returnMoves, isEmpty);
+      final stock = await (db.select(db.stockLevels)
+            ..where((s) => s.productId.equals(p.id)))
+          .getSingle();
+      expect(stock.quantity, 10);
     });
 
     test('the original sale row is never mutated', () async {

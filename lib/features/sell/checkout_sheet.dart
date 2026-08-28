@@ -23,6 +23,7 @@ import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'cart.dart';
+import 'amount_pad.dart';
 import 'cash_tender.dart';
 import 'payment_labels.dart';
 import 'sales_providers.dart';
@@ -834,7 +835,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                         Expanded(child: Text(l.sellConfirm, maxLines: 2)),
                         const SizedBox(width: AppTheme.space2),
                         Text(
-                          Money(total).withSymbol(currency),
+                          Money(_method == 'credit' ? paid : total)
+                              .withSymbol(currency),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontFeatures: AppTheme.tabularFigures,
@@ -1128,11 +1130,7 @@ class _AmountPadDialogState extends State<_AmountPadDialog> {
 
   void _digit(String d) {
     setState(() {
-      // Append: "5" shifts by one digit, "00" by two ("0" on a zero value
-      // stays zero — amounts have no leading zeros).
-      final next = _value * d.length + int.parse(d);
-      if ('$next'.length > 10) return;
-      _value = next;
+      _value = appendPadDigits(_value, d);
     });
   }
 
@@ -1579,7 +1577,7 @@ class _SuccessBody extends StatelessWidget {
           const SizedBox(height: AppTheme.space3),
           SummaryRow(l.commonTotal, fmt(success.total)),
           SummaryRow(l.sellAmountPaid, fmt(success.paid)),
-          if (!success.isCredit && success.change > 0)
+          if (success.change > 0)
             SummaryRow(
               l.sellChange,
               fmt(success.change),

@@ -145,7 +145,9 @@ class SalesRepository {
             ));
         await _enqueue('sale_items', itemId);
 
-        if (trackStock) {
+        if (trackStock &&
+            item.productId.isNotEmpty &&
+            originalTrackedStock) {
           // Restore the original cost basis, not whatever it costs today —
           // this is the same physical stock coming back. Per-unit average
           // when we know the line's exact COGS. Audit QA-C1: lines with no
@@ -157,9 +159,7 @@ class SalesRepository {
           // lot reopens at a real figure; skipped when there is no product
           // (free-text line) or the original never deducted stock.
           int? unitCost;
-          if (item.qty != 0 &&
-              item.productId.isNotEmpty &&
-              originalTrackedStock) {
+          if (item.qty != 0) {
             if (item.costSnapshot != null) {
               unitCost = (item.costSnapshot! / item.qty).round();
             } else {
@@ -383,18 +383,24 @@ class SalesRepository {
         // Tender actually collected. For cash/digital this equals the total
         // (change is handled separately); for a credit sale it may be a
         // partial down-payment (or 0), leaving total − paid owed by the
-        // customer.
+        // customer. A cash/wallet deposit on the credit path must land as
+        // method=cash so Cash Register expected cash includes it — stamping
+        // the Payments row as 'credit' hid the physical notes in the till.
         final settled = effectivePaid > total ? total : effectivePaid;
-        final payId = _uuid.v4();
-        await _db.into(_db.payments).insert(PaymentsCompanion.insert(
-              id: payId,
-              shopId: _shopId,
-              saleId: saleId,
-              method: paymentMethod!,
-              amount: settled,
-              updatedAt: Value(now),
-            ));
-        await _enqueue('payments', payId);
+        if (settled > 0) {
+          final payId = _uuid.v4();
+          final tenderMethod =
+              paymentMethod == 'credit' ? 'cash' : paymentMethod!;
+          await _db.into(_db.payments).insert(PaymentsCompanion.insert(
+                id: payId,
+                shopId: _shopId,
+                saleId: saleId,
+                method: tenderMethod,
+                amount: settled,
+                updatedAt: Value(now),
+              ));
+          await _enqueue('payments', payId);
+        }
       }
     });
 

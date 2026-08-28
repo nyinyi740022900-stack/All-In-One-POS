@@ -86,6 +86,14 @@ void main() {
       expect(result.single.openInvoices, 2);
     });
 
+    test('overpaid customer keeps negative outstanding (store credit)', () {
+      final result = CreditRepository.aggregate(
+        [creditSale('Bo', 5000, 8000)],
+        const [],
+      );
+      expect(result.single.outstanding, -3000);
+    });
+
     test('customers sorted by outstanding, largest first', () {
       final result = CreditRepository.aggregate(
         [creditSale('Small', 1000, 0), creditSale('Big', 9000, 0)],

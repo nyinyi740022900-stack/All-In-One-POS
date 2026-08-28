@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../data/local/database.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../data/repositories/stock_lots.dart';
 
 /// Import/export of the **active shop's** business data as a single JSON file.
 ///
@@ -36,6 +37,22 @@ class BackupService {
     'credit_payments',
     'license_payments',
     'expenses',
+    'orders',
+    'order_items',
+    'customers',
+    'staff_members',
+    'staff_permissions',
+    'cash_sessions',
+    'cash_top_ups',
+    'device_labels',
+    'recurring_expenses',
+    'suppliers',
+    'purchase_orders',
+    'purchase_order_items',
+    'payment_accounts',
+    'supplier_payments',
+    'equity_entries',
+    'shop_profiles',
   ];
 
   Future<Map<String, List<Map<String, dynamic>>>> _readAll() async {
@@ -70,6 +87,53 @@ class BackupService {
       // (amount/category/date/note) round-trips through a backup.
       'expenses':
           (await _db.select(_db.expenses).get()).map((r) => r.toJson()).toList(),
+      'orders':
+          (await _db.select(_db.orders).get()).map((r) => r.toJson()).toList(),
+      'order_items': (await _db.select(_db.orderItems).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'customers': (await _db.select(_db.customers).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'staff_members': (await _db.select(_db.staffMembers).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'staff_permissions': (await _db.select(_db.staffPermissions).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'cash_sessions': (await _db.select(_db.cashSessions).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'cash_top_ups': (await _db.select(_db.cashTopUps).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'device_labels': (await _db.select(_db.deviceLabels).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'recurring_expenses': (await _db.select(_db.recurringExpenses).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'suppliers': (await _db.select(_db.suppliers).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'purchase_orders': (await _db.select(_db.purchaseOrders).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'purchase_order_items': (await _db.select(_db.purchaseOrderItems).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'payment_accounts': (await _db.select(_db.paymentAccounts).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'supplier_payments': (await _db.select(_db.supplierPayments).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'equity_entries': (await _db.select(_db.equityEntries).get())
+          .map((r) => r.toJson())
+          .toList(),
+      'shop_profiles': (await _db.select(_db.shopProfiles).get())
+          .map((r) => r.toJson())
+          .toList(),
     };
   }
 
@@ -139,11 +203,28 @@ class BackupService {
       await _db.delete(_db.sales).go();
       await _db.delete(_db.stockMovements).go();
       await _db.delete(_db.stockLevels).go();
+      await _db.delete(_db.stockLots).go();
       await _db.delete(_db.products).go();
       await _db.delete(_db.categories).go();
       await _db.delete(_db.creditPayments).go();
       await _db.delete(_db.licensePayments).go();
       await _db.delete(_db.expenses).go();
+      await _db.delete(_db.orderItems).go();
+      await _db.delete(_db.orders).go();
+      await _db.delete(_db.customers).go();
+      await _db.delete(_db.staffPermissions).go();
+      await _db.delete(_db.staffMembers).go();
+      await _db.delete(_db.cashTopUps).go();
+      await _db.delete(_db.cashSessions).go();
+      await _db.delete(_db.deviceLabels).go();
+      await _db.delete(_db.recurringExpenses).go();
+      await _db.delete(_db.purchaseOrderItems).go();
+      await _db.delete(_db.purchaseOrders).go();
+      await _db.delete(_db.supplierPayments).go();
+      await _db.delete(_db.suppliers).go();
+      await _db.delete(_db.paymentAccounts).go();
+      await _db.delete(_db.equityEntries).go();
+      await _db.delete(_db.shopProfiles).go();
 
       for (final m in rows('categories')) {
         final row = Category.fromJson(m).copyWith(updatedAt: now, dirty: true);
@@ -214,6 +295,122 @@ class BackupService {
         await _db.into(_db.expenses).insert(row);
         await _enqueue('expenses', row.id);
         written++;
+      }
+      for (final m in rows('orders')) {
+        final row = Order.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.orders).insert(row);
+        await _enqueue('orders', row.id);
+        written++;
+      }
+      for (final m in rows('order_items')) {
+        final row =
+            OrderItem.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.orderItems).insert(row);
+        await _enqueue('order_items', row.id);
+        written++;
+      }
+      for (final m in rows('customers')) {
+        final row = Customer.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.customers).insert(row);
+        await _enqueue('customers', row.id);
+        written++;
+      }
+      for (final m in rows('staff_members')) {
+        final row =
+            StaffMember.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.staffMembers).insert(row);
+        await _enqueue('staff_members', row.id);
+        written++;
+      }
+      for (final m in rows('staff_permissions')) {
+        final row =
+            StaffPermission.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.staffPermissions).insert(row);
+        await _enqueue('staff_permissions', row.id);
+        written++;
+      }
+      for (final m in rows('cash_sessions')) {
+        final row =
+            CashSession.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.cashSessions).insert(row);
+        await _enqueue('cash_sessions', row.id);
+        written++;
+      }
+      for (final m in rows('cash_top_ups')) {
+        final row =
+            CashTopUp.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.cashTopUps).insert(row);
+        await _enqueue('cash_top_ups', row.id);
+        written++;
+      }
+      for (final m in rows('device_labels')) {
+        final row =
+            DeviceLabel.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.deviceLabels).insert(row);
+        await _enqueue('device_labels', row.id);
+        written++;
+      }
+      for (final m in rows('recurring_expenses')) {
+        final row =
+            RecurringExpense.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.recurringExpenses).insert(row);
+        await _enqueue('recurring_expenses', row.id);
+        written++;
+      }
+      for (final m in rows('suppliers')) {
+        final row = Supplier.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.suppliers).insert(row);
+        await _enqueue('suppliers', row.id);
+        written++;
+      }
+      for (final m in rows('purchase_orders')) {
+        final row =
+            PurchaseOrder.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.purchaseOrders).insert(row);
+        await _enqueue('purchase_orders', row.id);
+        written++;
+      }
+      for (final m in rows('purchase_order_items')) {
+        final row = PurchaseOrderItem.fromJson(m)
+            .copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.purchaseOrderItems).insert(row);
+        await _enqueue('purchase_order_items', row.id);
+        written++;
+      }
+      for (final m in rows('payment_accounts')) {
+        final row =
+            PaymentAccount.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.paymentAccounts).insert(row);
+        await _enqueue('payment_accounts', row.id);
+        written++;
+      }
+      for (final m in rows('supplier_payments')) {
+        final row =
+            SupplierPayment.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.supplierPayments).insert(row);
+        await _enqueue('supplier_payments', row.id);
+        written++;
+      }
+      for (final m in rows('equity_entries')) {
+        final row =
+            EquityEntry.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.equityEntries).insert(row);
+        await _enqueue('equity_entries', row.id);
+        written++;
+      }
+      for (final m in rows('shop_profiles')) {
+        final row =
+            ShopProfileRow.fromJson(m).copyWith(updatedAt: now, dirty: true);
+        await _db.into(_db.shopProfiles).insert(row);
+        await _enqueue('shop_profiles', row.id);
+        written++;
+      }
+      final productIds = {
+        for (final m in await _db.select(_db.stockMovements).get())
+          m.productId,
+      };
+      for (final id in productIds) {
+        await rebuildStockLots(_db, id);
       }
       // Cursor resets belong INSIDE the transaction: they are the whole
       // point of a restore (the next pull must re-fetch everything the

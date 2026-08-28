@@ -13,22 +13,32 @@ String localCalendarYmd([DateTime? now]) =>
 /// confirmed locally via staff PIN when there's no live account session,
 /// see `DailyGate`).
 ///
-/// A failed settings read resolves to **false** (fail-open) rather than
-//  leaving the provider in error state: `app.dart` holds the whole app on
-/// an infinite "checking your shop" spinner while this has no value, so an
-/// error here (e.g. the Drift DB still locked by Free-plan setup writes
-/// right after onboarding) used to look exactly like a dead "Get started"
-/// button — onboarding closed, then nothing ever appeared, and only a full
-/// restart recomputed it successfully.
+/// A failed settings read retries, then resolves to **true** (fail-closed:
+/// show the gate) rather than skipping identity confirm. Leaving this
+/// provider in error holds the whole app on an infinite "checking your shop"
+/// spinner (`app.dart`), so we still never surface the error state.
 final dailyGateNeededProvider = FutureProvider<bool>((ref) async {
   final shopId = ref.watch(shopIdProvider);
-  if (shopId.isEmpty) return false;
-  try {
-    final ymd = await ref
-        .watch(settingsRepositoryProvider)
-        .dailyGateYmd(shopId);
-    return ymd != localCalendarYmd();
-  } catch (_) {
-    return false;
+  if (shopId.isEmpty) return true;
+  Object? lastError;
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      final ymd = await ref
+          .watch(settingsRepositoryProvider)
+          .dailyGateYmd(shopId);
+      return ymd != localCalendarYmd();
+    } catch (e) {
+      lastError = e;
+      if (attempt < 2) {
+        await Future<void>.delayed(
+            Duration(milliseconds: 150 * (attempt + 1)));
+      }
+    }
   }
+  // Fail closed: require the gate rather than skipping identity confirm.
+  // Returning false here used to let the Sell shell open unsigned when
+  // settings were briefly locked. Retry above avoids the spinner-death
+  // of leaving this provider in error.
+  assert(lastError != null);
+  return true;
 });

@@ -59,6 +59,7 @@ ReceiptData receiptFromSale(
     total: sale.total,
     paid: effectivePaid,
     change: sale.changeDue,
+    owed: outstanding,
     paymentMethod: paymentMethodLabel,
     footer: (shop.footer != null && shop.footer!.isNotEmpty)
         ? shop.footer

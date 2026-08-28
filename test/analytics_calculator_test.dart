@@ -49,6 +49,7 @@ void main() {
       sales: [sale(2100, at: d1)],
       items: [
         (
+          saleId: '',
           productId: 'p1',
           name: 'Coke',
           qty: 3,
@@ -71,6 +72,7 @@ void main() {
       items: [
         // Bought this batch at 600/unit, not the product's current 550.
         (
+          saleId: '',
           productId: 'p1',
           name: 'Coke',
           qty: 3,
@@ -109,9 +111,9 @@ void main() {
     final s = computeAnalytics(
       sales: const [],
       items: [
-        (productId: 'a', name: 'A', qty: 1, lineTotal: 100, costSnapshot: null),
-        (productId: 'b', name: 'B', qty: 5, lineTotal: 900, costSnapshot: null),
-        (productId: 'a', name: 'A', qty: 2, lineTotal: 200, costSnapshot: null),
+        (saleId: '', productId: 'a', name: 'A', qty: 1, lineTotal: 100, costSnapshot: null),
+        (saleId: '', productId: 'b', name: 'B', qty: 5, lineTotal: 900, costSnapshot: null),
+        (saleId: '', productId: 'a', name: 'A', qty: 2, lineTotal: 200, costSnapshot: null),
       ],
       productCost: const {},
       stockValue: 0,
@@ -123,6 +125,37 @@ void main() {
     final a = s.topProducts.firstWhere((t) => t.productId == 'a');
     expect(a.qty, 3); // merged 1 + 2
     expect(a.revenue, 300);
+  });
+
+  test('top products allocate order-level discount across lines', () {
+    final s = computeAnalytics(
+      sales: [sale(800, id: 's1', discount: 200)],
+      items: [
+        (
+          saleId: 's1',
+          productId: 'a',
+          name: 'A',
+          qty: 1,
+          lineTotal: 400,
+          costSnapshot: null,
+        ),
+        (
+          saleId: 's1',
+          productId: 'b',
+          name: 'B',
+          qty: 1,
+          lineTotal: 600,
+          costSnapshot: null,
+        ),
+      ],
+      productCost: const {},
+      stockValue: 0,
+      start: start,
+      end: end,
+    );
+    // subtotal 1000, total 800 → A 320, B 480
+    expect(s.topProducts.firstWhere((t) => t.productId == 'a').revenue, 320);
+    expect(s.topProducts.firstWhere((t) => t.productId == 'b').revenue, 480);
   });
 
   test('stock value is passed through', () {
@@ -160,7 +193,7 @@ void main() {
     final noExpenses = computeAnalytics(
       sales: [sale(2100, at: d1)],
       items: [
-        (productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
+        (saleId: '', productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
       ],
       productCost: const {},
       stockValue: 0,
@@ -174,7 +207,7 @@ void main() {
     final withExpenses = computeAnalytics(
       sales: [sale(2100, at: d1)],
       items: [
-        (productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
+        (saleId: '', productId: 'p1', name: 'Coke', qty: 3, lineTotal: 2100, costSnapshot: 1800),
       ],
       productCost: const {},
       stockValue: 0,

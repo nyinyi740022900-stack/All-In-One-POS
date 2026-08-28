@@ -39,6 +39,7 @@ bool isDuplicateColumnMigrationError(Object error) {
     Customers,
     Expenses,
     CashSessions,
+    CashTopUps,
     DeviceLabels,
     RecurringExpenses,
     Suppliers,
@@ -62,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 35;
+  int get schemaVersion => 37;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -316,6 +317,19 @@ class AppDatabase extends _$AppDatabase {
       if (from < 35) {
         await _safeAddColumn(m, staffMembers, staffMembers.email);
       }
+      // v36: mid-session Cash Register top-ups — see CashTopUps' doc
+      // comment in tables.dart.
+      if (from < 36) {
+        await m.createTable(cashTopUps);
+      }
+      // v37: freeze expected cash at close; recurring templates remember
+      // which account (or till) generated expenses should debit.
+      if (from < 37) {
+        await _safeAddColumn(
+            m, cashSessions, cashSessions.expectedCashAtClose);
+        await _safeAddColumn(
+            m, recurringExpenses, recurringExpenses.accountId);
+      }
     },
   );
 
@@ -456,9 +470,11 @@ class AppDatabase extends _$AppDatabase {
       await delete(orders).go();
       await delete(orderItems).go();
       await delete(staffMembers).go();
+      await delete(staffPermissions).go();
       await delete(customers).go();
       await delete(expenses).go();
       await delete(cashSessions).go();
+      await delete(cashTopUps).go();
       await delete(deviceLabels).go();
       await delete(recurringExpenses).go();
       await delete(suppliers).go();

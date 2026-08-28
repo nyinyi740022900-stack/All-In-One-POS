@@ -247,19 +247,13 @@ Deno.serve(async (req) => {
     );
   }
   if (action === "resync_session") {
-    // Recovery path for a device whose Supabase session lost its shop_id
-    // claim in a way an ordinary refreshSession() retry can't fix (e.g. the
-    // local refresh token itself is gone — a plain refresh throws before
-    // any network call, so no amount of client-side retrying ever reaches
-    // this server to pick up the corrected claim). The client is expected
-    // to sign out + sign back in anonymously *before* calling this, so
-    // `userData.user` here is a fresh identity with no shop_id yet — this
-    // just re-stamps it from the device's own already-issued license,
-    // found by device_id rather than by key (the client may only have the
-    // 'TRIAL' local placeholder, not the real per-license key — see
-    // LicenseRepository.startFreeTrial's own doc comment on that
-    // placeholder). Rate-limited like every other action that accepts an
-    // arbitrary-ish client-supplied identifier.
+    // Re-stamps app_metadata.shop_id on the CALLING session from an
+    // existing license looked up by device_id (a self-serve trial's
+    // cached key is only the local 'TRIAL' placeholder). device_id is
+    // the public App Reference ID, so this is rate-limited and
+    // handleResyncSession refuses to stamp unless the JWT already
+    // carries that license's shop_id — anonymous callers who only
+    // know the public id cannot hijack the shop.
     if (!(await checkAndRecordRateLimit(admin, ip))) {
       return json({ ok: false, error: "rate_limited" }, 200);
     }
@@ -1048,12 +1042,13 @@ const SELF_SERVE_TRIAL_MONTHS = 2;
 
 // Re-stamps app_metadata.shop_id on the CALLING session from an existing
 // license found by device_id — the recovery half of `resync_session`
-// (see its dispatch comment above for why this exists: a session whose
-// local refresh token is simply gone can't be fixed by refreshing it, only
-// by attaching a fresh session to the shop it already owns). Looks up by
-// device_id, not key, since a self-serve trial's cached key on the client
-// is just the local 'TRIAL' placeholder — the client genuinely doesn't
-// know its own real per-license key.
+// (see its dispatch comment above). Looks up by device_id, not key, since
+// a self-serve trial's cached key on the client is just the local 'TRIAL'
+// placeholder. Ownership is NOT the public device_id: `licenses` has no
+// bound user_id/email (activate proves ownership with the secret key,
+// then stamps shop_id). Require that proof already on the JWT so a
+// matching claim can be restamped, while anonymous callers who only
+// know the App Reference ID are rejected.
 async function handleResyncSession(
   admin: AdminClient,
   user: SupabaseUser,
@@ -1070,8 +1065,14 @@ async function handleResyncSession(
   if (licErr) return json({ ok: false, error: "server_error" }, 500);
   if (!license) return json({ ok: false, error: "not_found" }, 200);
 
+  const claimShopId = shopIdOf(user);
+  if (!claimShopId || claimShopId !== license.shop_id) {
+    return json({ ok: false, error: "forbidden" }, 200);
+  }
+
+  const prev = (user.app_metadata ?? {}) as Record<string, unknown>;
   const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, {
-    app_metadata: { shop_id: license.shop_id },
+    app_metadata: { ...prev, shop_id: license.shop_id },
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 

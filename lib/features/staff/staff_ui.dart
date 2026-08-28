@@ -208,6 +208,15 @@ Future<String?> promptOwnerPinForSwitch(
   final ctrl = ref.read(staffControllerProvider);
   final pinSet = await ctrl.hasPin();
   if (!context.mounted) return null;
+  if (!pinSet) {
+    final role = ref.read(effectiveRoleProvider);
+    if (role == 'staff') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.staffOwnerPinRequired)),
+      );
+      return null;
+    }
+  }
   if (pinSet) {
     final pin = await promptPin(context, l.staffEnterPin);
     if (pin == null || pin.isEmpty) return null;
