@@ -650,7 +650,17 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           TextButton.icon(
             icon: const Icon(Icons.call_outlined, size: 18),
             label: Text(l.storefrontCallShop),
-            onPressed: () => launchUrl(Uri(scheme: 'tel', path: phone)),
+            onPressed: () async {
+              final ok = await launchUrl(
+                Uri(scheme: 'tel', path: phone),
+                mode: LaunchMode.externalApplication,
+              );
+              if (!ok && dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(l.commonUnexpectedError)),
+                );
+              }
+            },
           ),
           TextButton.icon(
             icon: const Icon(Icons.chat_bubble_outline, size: 18),
