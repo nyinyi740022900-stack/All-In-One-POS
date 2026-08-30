@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import '../features/invoices/invoice_capture.dart';
 import '../features/invoices/invoice_view.dart';
 import '../features/orders/myanmar_townships.dart';
 import '../features/storefront/storefront_repository.dart';
+import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
 import 'storefront_api.dart';
 import 'storefront_download.dart';
@@ -600,6 +602,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
       if (mounted) {
         final l = AppLocalizations.of(context);
         final raw = '$e';
+        final blockedOrRateLimited =
+            raw.contains('rate_limited') || raw.contains('blocked');
         final message = raw.contains('rate_limited')
             ? l.storefrontRateLimited
             : raw.contains('blocked')
@@ -613,13 +617,53 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             : raw.contains('invalid_product')
             ? l.storefrontInvalidProduct
             : _submitFallbackMessage(l, raw);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        // These two codes mean the order genuinely cannot go through this
+        // form (shared-IP false positive on the block-list, or the 10-min
+        // rate window) — a SnackBar that vanishes in a few seconds leaves a
+        // real customer stuck with no path to actually buy. Offer the
+        // shop's own phone/Viber directly instead of a dead end.
+        if (blockedOrRateLimited && (widget.info.phone ?? '').isNotEmpty) {
+          await _showContactShopDialog(context, l, message);
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
+        }
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _showContactShopDialog(
+    BuildContext context,
+    AppLocalizations l,
+    String message,
+  ) {
+    final phone = widget.info.phone!;
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.storefrontContactShopTitle),
+        content: Text(message),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.call_outlined, size: 18),
+            label: Text(l.storefrontCallShop),
+            onPressed: () => launchUrl(Uri(scheme: 'tel', path: phone)),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.chat_bubble_outline, size: 18),
+            label: Text(l.storefrontChatViber),
+            onPressed: () => openSupportViber(dialogContext, number: phone),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l.commonOk),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

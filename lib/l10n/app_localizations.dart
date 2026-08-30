@@ -6050,6 +6050,24 @@ abstract class AppLocalizations {
   /// **'This shop isn\'t able to accept orders from your network. Please contact the shop directly.'**
   String get storefrontBlocked;
 
+  /// No description provided for @storefrontContactShopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact the shop'**
+  String get storefrontContactShopTitle;
+
+  /// No description provided for @storefrontCallShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get storefrontCallShop;
+
+  /// No description provided for @storefrontChatViber.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat on Viber'**
+  String get storefrontChatViber;
+
   /// No description provided for @storefrontOutOfStock.
   ///
   /// In en, this message translates to:

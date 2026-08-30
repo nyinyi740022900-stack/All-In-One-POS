@@ -3300,6 +3300,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'This shop isn\'t able to accept orders from your network. Please contact the shop directly.';
 
   @override
+  String get storefrontContactShopTitle => 'Contact the shop';
+
+  @override
+  String get storefrontCallShop => 'Call';
+
+  @override
+  String get storefrontChatViber => 'Chat on Viber';
+
+  @override
   String get storefrontOutOfStock =>
       'Sorry, one of your items just sold out online. Please adjust your cart and try again.';
 

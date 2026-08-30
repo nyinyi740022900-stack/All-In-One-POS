@@ -3305,6 +3305,15 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီဆိုင်က ဒီ network ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။';
 
   @override
+  String get storefrontContactShopTitle => 'ဆိုင်ကို ဆက်သွယ်ရန်';
+
+  @override
+  String get storefrontCallShop => 'ဖုန်းခေါ်ရန်';
+
+  @override
+  String get storefrontChatViber => 'Viber ဖြင့် ဆက်သွယ်ရန်';
+
+  @override
   String get storefrontOutOfStock =>
       'စိတ်မကောင်းပါဘူး၊ Cart ထဲက ပစ္စည်းတစ်ခု Online မှာ ကုန်သွားပါပြီ။ Cart ကို ပြင်ပြီး ထပ်ကြိုးစားပါ။';
 
