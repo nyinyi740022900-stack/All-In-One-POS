@@ -1,0 +1,155 @@
+# Build a direct-install release APK (Phase: website/Viber distribution,
+# ahead of Play Store approval — see marketing-site's Android download card
+# and docs/play_store/).
+#
+# This is NOT the Play Store artifact (that's `flutter build appbundle`,
+# built by hand per the deploy skill, with COMMERCE_UI left at its default
+# false). This workflow builds the *direct-install* APK, the one channel
+# allowed to ship with COMMERCE_UI=true (no store billing-policy rule
+# applies outside a store) — see lib/core/build_flags.dart.
+#
+# Required repo secrets (release build fails loudly if any are missing —
+# same "no silent debug signing" rule as a local build without
+# android/key.properties, see docs/play_store/SIGNING.md):
+#   ANDROID_KEYSTORE_BASE64   `base64 -i allinonepos-upload.jks | pbcopy`
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+#
+# Optional secrets (missing → empty dart-defines, app runs offline-only):
+#   SUPABASE_URL, SUPABASE_ANON_KEY, SENTRY_DSN
+
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'lib/l10n/**'
+      - '.github/workflows/android_apk.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'lib/l10n/**'
+      - '.github/workflows/android_apk.yml'
+
+concurrency:
+  group: android-apk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: flutter build apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Write dart-defines
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          cat > env.ci.json <<JSON
+          {
+            "SUPABASE_URL": "${SUPABASE_URL}",
+            "SUPABASE_ANON_KEY": "${SUPABASE_ANON_KEY}",
+            "SENTRY_DSN": "${SENTRY_DSN}"
+          }
+          JSON
+          echo "Wrote env.ci.json (secret values redacted)"
+
+      - name: Write release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || \
+             [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "::error::Missing one or more ANDROID_KEYSTORE_* secrets — see this workflow's header comment. Refusing to build an unsigned release APK."
+            exit 1
+          fi
+          keystore_path="$RUNNER_TEMP/allinonepos-upload.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          cat > android/key.properties <<PROPS
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=$keystore_path
+          PROPS
+          echo "Wrote android/key.properties (secret values redacted)"
+
+      # The one channel allowed to ship the purchase UI — see this file's
+      # header comment and lib/core/build_flags.dart. Never add this define
+      # to env.ci.json/env.local.json; every other build (store IPA/AAB)
+      # reads that file too, and must NOT carry it.
+      - name: Build release APK
+        run: |
+          flutter build apk --release \
+            --dart-define-from-file=env.ci.json \
+            --dart-define=COMMERCE_UI=true
+
+      - name: Stage Release folder
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/AllInOnePOS-android.apk
+          ls -la dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AllInOnePOS-android-${{ github.sha }}
+          path: dist/AllInOnePOS-android.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # Rolling "android-latest" GitHub Release — same pattern as
+      # windows_desktop.yml's "windows-latest": a permanent, no-login
+      # download URL the marketing site can link to directly.
+      - name: Publish rolling Android release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: All In One POS — Android (latest)
+          body: |
+            Automatically updated on every push to `main` that touches the app.
+            Built from commit ${{ github.sha }}.
+
+            Direct-install APK — not from the Play Store. Download
+            **AllInOnePOS-android.apk**, open it, and allow "install from
+            unknown sources" when prompted.
+          files: dist/AllInOnePOS-android.apk
+          make_latest: false
