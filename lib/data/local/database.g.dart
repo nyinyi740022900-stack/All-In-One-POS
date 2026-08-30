@@ -7719,6 +7719,17 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customerIpMeta = const VerificationMeta(
+    'customerIp',
+  );
+  @override
+  late final GeneratedColumn<String> customerIp = GeneratedColumn<String>(
+    'customer_ip',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deliveryAddressMeta = const VerificationMeta(
     'deliveryAddress',
   );
@@ -7875,6 +7886,7 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     status,
     customerName,
     customerPhone,
+    customerIp,
     deliveryAddress,
     deliveryFee,
     itemsTotal,
@@ -7982,6 +7994,12 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
           data['customer_phone']!,
           _customerPhoneMeta,
         ),
+      );
+    }
+    if (data.containsKey('customer_ip')) {
+      context.handle(
+        _customerIpMeta,
+        customerIp.isAcceptableOrUnknown(data['customer_ip']!, _customerIpMeta),
       );
     }
     if (data.containsKey('delivery_address')) {
@@ -8143,6 +8161,10 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         DriftSqlType.string,
         data['${effectivePrefix}customer_phone'],
       ),
+      customerIp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}customer_ip'],
+      ),
       deliveryAddress: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}delivery_address'],
@@ -8230,6 +8252,10 @@ class Order extends DataClass implements Insertable<Order> {
   final String status;
   final String customerName;
   final String? customerPhone;
+
+  /// Storefront client IP (last X-Forwarded-For hop). Null for POS/manual
+  /// orders. Used to block a harassing/scam address from new web orders.
+  final String? customerIp;
   final String? deliveryAddress;
   final int deliveryFee;
 
@@ -8287,6 +8313,7 @@ class Order extends DataClass implements Insertable<Order> {
     required this.status,
     required this.customerName,
     this.customerPhone,
+    this.customerIp,
     this.deliveryAddress,
     required this.deliveryFee,
     required this.itemsTotal,
@@ -8319,6 +8346,9 @@ class Order extends DataClass implements Insertable<Order> {
     map['customer_name'] = Variable<String>(customerName);
     if (!nullToAbsent || customerPhone != null) {
       map['customer_phone'] = Variable<String>(customerPhone);
+    }
+    if (!nullToAbsent || customerIp != null) {
+      map['customer_ip'] = Variable<String>(customerIp);
     }
     if (!nullToAbsent || deliveryAddress != null) {
       map['delivery_address'] = Variable<String>(deliveryAddress);
@@ -8372,6 +8402,9 @@ class Order extends DataClass implements Insertable<Order> {
       customerPhone: customerPhone == null && nullToAbsent
           ? const Value.absent()
           : Value(customerPhone),
+      customerIp: customerIp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customerIp),
       deliveryAddress: deliveryAddress == null && nullToAbsent
           ? const Value.absent()
           : Value(deliveryAddress),
@@ -8424,6 +8457,7 @@ class Order extends DataClass implements Insertable<Order> {
       status: serializer.fromJson<String>(json['status']),
       customerName: serializer.fromJson<String>(json['customerName']),
       customerPhone: serializer.fromJson<String?>(json['customerPhone']),
+      customerIp: serializer.fromJson<String?>(json['customerIp']),
       deliveryAddress: serializer.fromJson<String?>(json['deliveryAddress']),
       deliveryFee: serializer.fromJson<int>(json['deliveryFee']),
       itemsTotal: serializer.fromJson<int>(json['itemsTotal']),
@@ -8455,6 +8489,7 @@ class Order extends DataClass implements Insertable<Order> {
       'status': serializer.toJson<String>(status),
       'customerName': serializer.toJson<String>(customerName),
       'customerPhone': serializer.toJson<String?>(customerPhone),
+      'customerIp': serializer.toJson<String?>(customerIp),
       'deliveryAddress': serializer.toJson<String?>(deliveryAddress),
       'deliveryFee': serializer.toJson<int>(deliveryFee),
       'itemsTotal': serializer.toJson<int>(itemsTotal),
@@ -8484,6 +8519,7 @@ class Order extends DataClass implements Insertable<Order> {
     String? status,
     String? customerName,
     Value<String?> customerPhone = const Value.absent(),
+    Value<String?> customerIp = const Value.absent(),
     Value<String?> deliveryAddress = const Value.absent(),
     int? deliveryFee,
     int? itemsTotal,
@@ -8512,6 +8548,7 @@ class Order extends DataClass implements Insertable<Order> {
     customerPhone: customerPhone.present
         ? customerPhone.value
         : this.customerPhone,
+    customerIp: customerIp.present ? customerIp.value : this.customerIp,
     deliveryAddress: deliveryAddress.present
         ? deliveryAddress.value
         : this.deliveryAddress,
@@ -8556,6 +8593,9 @@ class Order extends DataClass implements Insertable<Order> {
       customerPhone: data.customerPhone.present
           ? data.customerPhone.value
           : this.customerPhone,
+      customerIp: data.customerIp.present
+          ? data.customerIp.value
+          : this.customerIp,
       deliveryAddress: data.deliveryAddress.present
           ? data.deliveryAddress.value
           : this.deliveryAddress,
@@ -8607,6 +8647,7 @@ class Order extends DataClass implements Insertable<Order> {
           ..write('status: $status, ')
           ..write('customerName: $customerName, ')
           ..write('customerPhone: $customerPhone, ')
+          ..write('customerIp: $customerIp, ')
           ..write('deliveryAddress: $deliveryAddress, ')
           ..write('deliveryFee: $deliveryFee, ')
           ..write('itemsTotal: $itemsTotal, ')
@@ -8638,6 +8679,7 @@ class Order extends DataClass implements Insertable<Order> {
     status,
     customerName,
     customerPhone,
+    customerIp,
     deliveryAddress,
     deliveryFee,
     itemsTotal,
@@ -8668,6 +8710,7 @@ class Order extends DataClass implements Insertable<Order> {
           other.status == this.status &&
           other.customerName == this.customerName &&
           other.customerPhone == this.customerPhone &&
+          other.customerIp == this.customerIp &&
           other.deliveryAddress == this.deliveryAddress &&
           other.deliveryFee == this.deliveryFee &&
           other.itemsTotal == this.itemsTotal &&
@@ -8696,6 +8739,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<String> status;
   final Value<String> customerName;
   final Value<String?> customerPhone;
+  final Value<String?> customerIp;
   final Value<String?> deliveryAddress;
   final Value<int> deliveryFee;
   final Value<int> itemsTotal;
@@ -8723,6 +8767,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.status = const Value.absent(),
     this.customerName = const Value.absent(),
     this.customerPhone = const Value.absent(),
+    this.customerIp = const Value.absent(),
     this.deliveryAddress = const Value.absent(),
     this.deliveryFee = const Value.absent(),
     this.itemsTotal = const Value.absent(),
@@ -8751,6 +8796,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.status = const Value.absent(),
     required String customerName,
     this.customerPhone = const Value.absent(),
+    this.customerIp = const Value.absent(),
     this.deliveryAddress = const Value.absent(),
     this.deliveryFee = const Value.absent(),
     this.itemsTotal = const Value.absent(),
@@ -8782,6 +8828,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Expression<String>? status,
     Expression<String>? customerName,
     Expression<String>? customerPhone,
+    Expression<String>? customerIp,
     Expression<String>? deliveryAddress,
     Expression<int>? deliveryFee,
     Expression<int>? itemsTotal,
@@ -8810,6 +8857,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       if (status != null) 'status': status,
       if (customerName != null) 'customer_name': customerName,
       if (customerPhone != null) 'customer_phone': customerPhone,
+      if (customerIp != null) 'customer_ip': customerIp,
       if (deliveryAddress != null) 'delivery_address': deliveryAddress,
       if (deliveryFee != null) 'delivery_fee': deliveryFee,
       if (itemsTotal != null) 'items_total': itemsTotal,
@@ -8840,6 +8888,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Value<String>? status,
     Value<String>? customerName,
     Value<String?>? customerPhone,
+    Value<String?>? customerIp,
     Value<String?>? deliveryAddress,
     Value<int>? deliveryFee,
     Value<int>? itemsTotal,
@@ -8868,6 +8917,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       status: status ?? this.status,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      customerIp: customerIp ?? this.customerIp,
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       deliveryFee: deliveryFee ?? this.deliveryFee,
       itemsTotal: itemsTotal ?? this.itemsTotal,
@@ -8923,6 +8973,9 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     }
     if (customerPhone.present) {
       map['customer_phone'] = Variable<String>(customerPhone.value);
+    }
+    if (customerIp.present) {
+      map['customer_ip'] = Variable<String>(customerIp.value);
     }
     if (deliveryAddress.present) {
       map['delivery_address'] = Variable<String>(deliveryAddress.value);
@@ -8984,6 +9037,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
           ..write('status: $status, ')
           ..write('customerName: $customerName, ')
           ..write('customerPhone: $customerPhone, ')
+          ..write('customerIp: $customerIp, ')
           ..write('deliveryAddress: $deliveryAddress, ')
           ..write('deliveryFee: $deliveryFee, ')
           ..write('itemsTotal: $itemsTotal, ')
@@ -24381,6 +24435,7 @@ typedef $$OrdersTableCreateCompanionBuilder =
       Value<String> status,
       required String customerName,
       Value<String?> customerPhone,
+      Value<String?> customerIp,
       Value<String?> deliveryAddress,
       Value<int> deliveryFee,
       Value<int> itemsTotal,
@@ -24410,6 +24465,7 @@ typedef $$OrdersTableUpdateCompanionBuilder =
       Value<String> status,
       Value<String> customerName,
       Value<String?> customerPhone,
+      Value<String?> customerIp,
       Value<String?> deliveryAddress,
       Value<int> deliveryFee,
       Value<int> itemsTotal,
@@ -24492,6 +24548,11 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<String> get customerPhone => $composableBuilder(
     column: $table.customerPhone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customerIp => $composableBuilder(
+    column: $table.customerIp,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24630,6 +24691,11 @@ class $$OrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customerIp => $composableBuilder(
+    column: $table.customerIp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get deliveryAddress => $composableBuilder(
     column: $table.deliveryAddress,
     builder: (column) => ColumnOrderings(column),
@@ -24745,6 +24811,11 @@ class $$OrdersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get customerIp => $composableBuilder(
+    column: $table.customerIp,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get deliveryAddress => $composableBuilder(
     column: $table.deliveryAddress,
     builder: (column) => column,
@@ -24845,6 +24916,7 @@ class $$OrdersTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<String> customerName = const Value.absent(),
                 Value<String?> customerPhone = const Value.absent(),
+                Value<String?> customerIp = const Value.absent(),
                 Value<String?> deliveryAddress = const Value.absent(),
                 Value<int> deliveryFee = const Value.absent(),
                 Value<int> itemsTotal = const Value.absent(),
@@ -24872,6 +24944,7 @@ class $$OrdersTableTableManager
                 status: status,
                 customerName: customerName,
                 customerPhone: customerPhone,
+                customerIp: customerIp,
                 deliveryAddress: deliveryAddress,
                 deliveryFee: deliveryFee,
                 itemsTotal: itemsTotal,
@@ -24901,6 +24974,7 @@ class $$OrdersTableTableManager
                 Value<String> status = const Value.absent(),
                 required String customerName,
                 Value<String?> customerPhone = const Value.absent(),
+                Value<String?> customerIp = const Value.absent(),
                 Value<String?> deliveryAddress = const Value.absent(),
                 Value<int> deliveryFee = const Value.absent(),
                 Value<int> itemsTotal = const Value.absent(),
@@ -24928,6 +25002,7 @@ class $$OrdersTableTableManager
                 status: status,
                 customerName: customerName,
                 customerPhone: customerPhone,
+                customerIp: customerIp,
                 deliveryAddress: deliveryAddress,
                 deliveryFee: deliveryFee,
                 itemsTotal: itemsTotal,

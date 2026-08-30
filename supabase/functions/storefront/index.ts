@@ -24,7 +24,7 @@
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
 // blind-filling bots; at most 5 attempts per (shop, IP) per 10 minutes
-// (`storefront_order_attempts`); a phone on the owner's block-list
+// (`storefront_order_attempts`); an IP on the owner's block-list
 // (`storefront_blocklist`) is rejected outright (403 `blocked`). Two
 // different stock checks: a line over the shop's real recorded stock is
 // still accepted, just flagged on `order_items.low_stock_at_order` for the
@@ -96,15 +96,183 @@ function escapeHtml(s: string): string {
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-/// Canonical form for storefront block-list matching: strip spaces/dashes,
-/// then map `+959` / `959` / a leading `9` onto local `09…`. Must stay in
-/// lockstep with Dart `normalizeStorefrontPhone`.
-function normalizePhone(raw: string): string {
-  let v = raw.trim().replace(/[\s-]/g, "");
-  if (v.startsWith("+959")) v = "09" + v.slice(4);
-  else if (v.startsWith("959")) v = "09" + v.slice(3);
-  else if (v.startsWith("9") && !v.startsWith("09")) v = "0" + v;
-  return v;
+function clientIp(req: Request): string {
+  const fromXff = normalizeIp(req.headers.get("x-forwarded-for") ?? "");
+  if (fromXff) return fromXff;
+  return normalizeIp(req.headers.get("x-real-ip") ?? "");
+}
+
+function validIpv4(ip: string): boolean {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return false;
+  for (const p of parts) {
+    const n = Number(p);
+    if (!Number.isInteger(n) || n < 0 || n > 255) return false;
+    if (p.length > 1 && p.startsWith("0")) return false;
+  }
+  return true;
+}
+
+/** Eight 16-bit groups, or null if `s` is not a valid IPv6 textual form. */
+function parseIpv6Groups(s: string): number[] | null {
+  if (!s || s.includes(":::")) return null;
+  let head = s;
+  let dotted: string | null = null;
+  if (s.includes(".")) {
+    const embedded = s.match(/^(.*):(\d{1,3}(?:\.\d{1,3}){3})$/);
+    if (!embedded) return null;
+    head = embedded[1];
+    dotted = embedded[2];
+    if (head === ":") head = "::";
+    if (!validIpv4(dotted)) return null;
+  }
+  const prefix = parseIpv6N(head, dotted == null ? 8 : 6);
+  if (!prefix) return null;
+  if (dotted == null) return prefix;
+  const o = dotted.split(".").map(Number);
+  return [...prefix, (o[0] << 8) | o[1], (o[2] << 8) | o[3]];
+}
+
+function parseIpv6N(s: string, n: number): number[] | null {
+  const sides = s.split("::");
+  if (sides.length > 2) return null;
+  const parseSide = (side: string): number[] | null => {
+    if (!side) return [];
+    const parts = side.split(":");
+    const out: number[] = [];
+    for (const p of parts) {
+      if (!p || p.length > 4 || !/^[0-9a-f]+$/.test(p)) return null;
+      out.push(parseInt(p, 16));
+    }
+    return out;
+  };
+  if (sides.length === 1) {
+    const g = parseSide(s);
+    if (g == null || g.length !== n) return null;
+    return g;
+  }
+  const left = parseSide(sides[0]);
+  const right = parseSide(sides[1]);
+  if (left == null || right == null) return null;
+  const missing = n - left.length - right.length;
+  if (missing < 1) return null;
+  return [...left, ...Array(missing).fill(0), ...right];
+}
+
+function ipv4FromIpv6(g: number[]): string | null {
+  if (g.length !== 8) return null;
+  if (g[0] !== 0 || g[1] !== 0 || g[2] !== 0 || g[3] !== 0 || g[4] !== 0) {
+    return null;
+  }
+  const mapped = g[5] === 0xffff;
+  const compatible = g[5] === 0;
+  if (!mapped && !compatible) return null;
+  if (compatible && g[6] === 0 && g[7] <= 1) return null;
+  const a = (g[6] >> 8) & 0xff;
+  const b = g[6] & 0xff;
+  const c = (g[7] >> 8) & 0xff;
+  const d = g[7] & 0xff;
+  return `${a}.${b}.${c}.${d}`;
+}
+
+/** RFC 5952: lowercase hex, no leading zeros, `::` for the longest zero run. */
+function canonicalIpv6(g: number[]): string {
+  let bestStart = -1;
+  let bestLen = 0;
+  let i = 0;
+  while (i < 8) {
+    if (g[i] !== 0) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < 8 && g[j] === 0) j++;
+    const len = j - i;
+    if (len > bestLen) {
+      bestStart = i;
+      bestLen = len;
+    }
+    i = j;
+  }
+  const hex = (n: number) => n.toString(16);
+  if (bestLen < 2) return g.map(hex).join(":");
+  const left = g.slice(0, bestStart).map(hex).join(":");
+  const right = g.slice(bestStart + bestLen).map(hex).join(":");
+  if (!left) return "::" + right;
+  if (!right) return left + "::";
+  return left + "::" + right;
+}
+
+/// Canonical client IP for block-list matching. Must stay in lockstep with
+/// Dart `normalizeStorefrontIp`. Uses only the last X-Forwarded-For hop
+/// (trusted-proxy count 1). Does not walk left into client-supplied hops.
+function normalizeIp(raw: string): string {
+  const hops = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (hops.length === 0) return "";
+  const n = normalizeOneHop(hops[hops.length - 1]);
+  if (!n || isNonPublicIp(n)) return "";
+  return n;
+}
+
+function normalizeOneHop(raw: string): string {
+  let v = raw.trim().toLowerCase();
+  if (!v || v === "unknown" || v === "null") return "";
+  const bracket = v.match(/^\[([0-9a-f:.]+)\](?::\d+)?$/);
+  if (bracket) v = bracket[1];
+  const v4 = v.match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/);
+  if (v4) {
+    const ip = v4[1];
+    if (!validIpv4(ip)) return "";
+    if (ip === "0.0.0.0" || ip.startsWith("127.")) return "";
+    return ip;
+  }
+  const groups = parseIpv6Groups(v);
+  if (!groups) return "";
+  if (groups.every((n) => n === 0)) return "";
+  if (
+    groups[0] === 0 &&
+    groups[1] === 0 &&
+    groups[2] === 0 &&
+    groups[3] === 0 &&
+    groups[4] === 0 &&
+    groups[5] === 0 &&
+    groups[6] === 0 &&
+    groups[7] === 1
+  ) {
+    return "";
+  }
+  const mappedV4 = ipv4FromIpv6(groups);
+  if (mappedV4) {
+    if (!validIpv4(mappedV4)) return "";
+    if (mappedV4 === "0.0.0.0" || mappedV4.startsWith("127.")) return "";
+    return mappedV4;
+  }
+  return canonicalIpv6(groups);
+}
+
+function isNonPublicIp(ip: string): boolean {
+  if (ip.includes(".")) return isNonPublicIpv4(ip);
+  return isNonPublicIpv6(ip);
+}
+
+function isNonPublicIpv4(ip: string): boolean {
+  const p = ip.split(".").map(Number);
+  if (p.length !== 4) return true;
+  const a = p[0];
+  const b = p[1];
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 169 && b === 254) return true;
+  return false;
+}
+
+function isNonPublicIpv6(ip: string): boolean {
+  const g = parseIpv6Groups(ip);
+  if (!g || g.length !== 8) return true;
+  if ((g[0] & 0xffc0) === 0xfe80) return true;
+  if ((g[0] & 0xfe00) === 0xfc00) return true;
+  return false;
 }
 
 /// True when [proofPath] is a real object in the private `payment-proofs`
@@ -216,9 +384,8 @@ async function handleSubmitLicenseRequest(
   // whole point of this entry point is that the shop isn't resolved yet) —
   // mirrors activate_attempts' IP-only shape, not submit_order's (shop_id,
   // ip) shape.
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
-    .split(",")[0]
-    .trim();
+  const ip = clientIp(req);
+  if (!ip) return json({ error: "rate_limited" }, 429);
   const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const { count } = await admin
     .from("license_request_attempts")
@@ -342,9 +509,8 @@ async function handleReceipt(
 ): Promise<Response> {
   // Same IP budget as the other public entry points. Guessing a UUID is
   // infeasible, but this stops anyone turning the endpoint into a probe.
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
-    .split(",")[0]
-    .trim();
+  const ip = clientIp(req);
+  if (!ip) return json({ error: "rate_limited" }, 429);
   const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const { count } = await admin
     .from("license_request_attempts")
@@ -549,9 +715,13 @@ Deno.serve(async (req) => {
     // Rate limit: at most 5 submit_order calls per (shop, IP) per 10
     // minutes — counted before validation, so rapid junk requests can't
     // dodge the limit just by being individually invalid.
-    const ip = (req.headers.get("x-forwarded-for") ?? "unknown")
-      .split(",")[0]
-      .trim();
+    const ip = clientIp(req);
+    if (!ip) {
+      // No public client IP: do not share an "unknown" bucket (that would
+      // rate-limit every header-less caller together, and would let a
+      // spoofed leftmost hop skip a real block). Fail closed.
+      return json({ error: "rate_limited" }, 429);
+    }
     const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const { count } = await admin
       .from("storefront_order_attempts")
@@ -574,27 +744,16 @@ Deno.serve(async (req) => {
       return json({ error: "bad_request" }, 400);
     }
 
-    // Block-list: a phone the owner has blocked (usually after a scam/spam
-    // order) can't place a new one. Compare after normalizePhone so `09` /
-    // `9` / `+959` / spaced forms of the same number all hit. Fetch the
-    // shop's (small) list rather than equality on the raw string, so a
-    // legacy un-normalized row still matches. No phone at all means nothing
-    // to check — an unidentifiable order isn't blockable by this mechanism.
-    if (phone) {
-      const needle = normalizePhone(phone);
-      if (needle) {
-        const { data: blockedRows } = await admin
-          .from("storefront_blocklist")
-          .select("phone")
-          .eq("shop_id", sf.shop_id);
-        if (
-          (blockedRows ?? []).some(
-            (r: { phone: string }) => normalizePhone(r.phone) === needle,
-          )
-        ) {
-          return json({ error: "blocked" }, 403);
-        }
-      }
+    // Block-list: an IP the owner has blocked (usually after a scam/spam
+    // order) can't place a new one. `ip` is already the last XFF hop.
+    const { data: blockedRows } = await admin
+      .from("storefront_blocklist")
+      .select("ip")
+      .eq("shop_id", sf.shop_id)
+      .eq("ip", ip)
+      .limit(1);
+    if ((blockedRows ?? []).length > 0) {
+      return json({ error: "blocked" }, 403);
     }
 
     // 'transfer' (KPay/Wave, usually with a screenshot) or 'cod' (cash on
@@ -726,6 +885,7 @@ Deno.serve(async (req) => {
       status: "new",
       customer_name: name,
       customer_phone: phone || null,
+      customer_ip: ip,
       delivery_address: (body.address ?? "").trim() || null,
       township: (body.township ?? "").trim() || null,
       items_total: itemsTotal,

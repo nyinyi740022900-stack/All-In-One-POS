@@ -4,13 +4,39 @@
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-// Language toggle — every translatable element carries its authored
-// Myanmar markup as normal content plus a data-i18n-en attribute (an HTML
-// string, so inline tags like <strong> survive translation). The Myanmar
-// version is cached from the live DOM on first run rather than duplicated
-// in markup, so authoring a page only means adding the English string.
+// Language switch + Viber support FAB. Every translatable element carries
+// its authored Myanmar markup as normal content plus a data-i18n-en
+// attribute (an HTML string, so inline tags like <strong> survive
+// translation). The Myanmar version is cached from the live DOM on first
+// run rather than duplicated in markup, so authoring a page only means
+// adding the English string.
 (function i18n() {
   const STORAGE_KEY = 'aiopos-lang';
+  const VIBER_HREF = 'viber://chat?number=959740022900';
+
+  // Mount before we snapshot [data-i18n-en] so the FAB label is included.
+  if (!document.querySelector('.viber-fab')) {
+    const fab = document.createElement('a');
+    fab.className = 'viber-fab';
+    fab.href = VIBER_HREF;
+    fab.setAttribute('aria-label', 'Viber မှ ဆက်သွယ်ရန်');
+    const scriptEl = document.querySelector('script[src*="script.js"]');
+    const iconSrc = scriptEl
+      ? new URL('assets/viber-icon.png', scriptEl.src.replace(/script\.js(?:\?.*)?$/, '')).href
+      : 'assets/viber-icon.png';
+    fab.innerHTML =
+      '<img class="viber-fab-icon" src="' + iconSrc + '" width="56" height="56" alt="" />' +
+      '<span class="viber-fab-label" data-i18n-en="Chat on Viber">Viber မှ ဆက်သွယ်ရန်</span>';
+    document.body.appendChild(fab);
+  }
+
+  if (!document.querySelector('.viber-toast')) {
+    const toast = document.createElement('div');
+    toast.className = 'viber-toast';
+    toast.setAttribute('role', 'status');
+    document.body.appendChild(toast);
+  }
+
   const nodes = document.querySelectorAll('[data-i18n-en]');
   nodes.forEach((el) => {
     if (!el.dataset.i18nMy) el.dataset.i18nMy = el.innerHTML;
@@ -21,9 +47,19 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
     nodes.forEach((el) => {
       el.innerHTML = lang === 'en' ? el.dataset.i18nEn : el.dataset.i18nMy;
     });
-    document.querySelectorAll('.lang-toggle').forEach((btn) => {
-      btn.textContent = lang === 'en' ? 'မြန်မာ' : 'English';
-      btn.setAttribute('aria-label', lang === 'en' ? 'မြန်မာဘာသာသို့ ပြောင်းရန်' : 'Switch to English');
+    document.querySelectorAll('.lang-option').forEach((btn) => {
+      const on = btn.dataset.lang === lang;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.lang-switch').forEach((group) => {
+      group.setAttribute('aria-label', lang === 'en' ? 'Language' : 'ဘာသာစကား');
+    });
+    document.querySelectorAll('.viber-fab').forEach((fab) => {
+      fab.setAttribute(
+        'aria-label',
+        lang === 'en' ? 'Chat on Viber' : 'Viber မှ ဆက်သွယ်ရန်',
+      );
     });
   }
 
@@ -33,13 +69,79 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
   } catch (_) {}
   apply(current);
 
-  document.querySelectorAll('.lang-toggle').forEach((btn) => {
+  document.querySelectorAll('.lang-option').forEach((btn) => {
     btn.addEventListener('click', () => {
-      current = current === 'en' ? 'my' : 'en';
+      if (btn.dataset.lang === current) return;
+      current = btn.dataset.lang;
       apply(current);
       try {
         localStorage.setItem(STORAGE_KEY, current);
       } catch (_) {}
+    });
+  });
+
+  // Desktop browsers (Mac Safari especially) treat viber:// as an invalid
+  // address and show a blocking alert. Phones/tablets can still open Viber.
+  const VIBER_NUMBER = '09740022900';
+
+  function viberOpensNatively() {
+    const ua = navigator.userAgent || '';
+    if (/Android|iPhone|iPod/i.test(ua)) return true;
+    if (navigator.maxTouchPoints > 1 && /Macintosh|iPad/i.test(ua)) return true;
+    return false;
+  }
+
+  function copyViberNumber() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard
+        .writeText(VIBER_NUMBER)
+        .then(function () {
+          return true;
+        })
+        .catch(function () {
+          return fallbackCopy();
+        });
+    }
+    return Promise.resolve(fallbackCopy());
+  }
+
+  function fallbackCopy() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = VIBER_NUMBER;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showViberToast() {
+    const toast = document.querySelector('.viber-toast');
+    if (!toast) return;
+    const en = document.documentElement.getAttribute('lang') === 'en';
+    toast.textContent = en
+      ? 'Viber number copied: ' + VIBER_NUMBER
+      : 'Viber နံပါတ် ကူးပြီးပါပြီ — ' + VIBER_NUMBER;
+    toast.classList.add('is-on');
+    clearTimeout(showViberToast._hide);
+    showViberToast._hide = setTimeout(function () {
+      toast.classList.remove('is-on');
+    }, 2800);
+  }
+
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest('a[href^="viber:"]');
+    if (!a || viberOpensNatively()) return;
+    e.preventDefault();
+    copyViberNumber().then(function (ok) {
+      if (ok) showViberToast();
     });
   });
 })();

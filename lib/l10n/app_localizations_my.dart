@@ -2852,15 +2852,36 @@ class AppLocalizationsMy extends AppLocalizations {
   String get orderDeleteConfirm => 'ဒီအော်ဒါ ဖျက်မလား? ပြန်ဖျက်၍ မရပါ။';
 
   @override
-  String get orderBlockCustomer => 'ဒီဝယ်သူကို ပိတ်ပင်မည်';
+  String get orderBlockCustomer => 'ဒီ IP ကို ပိတ်ပင်မည်';
 
   @override
-  String orderBlockCustomerConfirm(String phone) {
-    return '$phone ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?';
+  String orderBlockCustomerConfirm(String ip) {
+    return '$ip ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?';
   }
 
   @override
-  String get orderCustomerBlocked => 'ဝယ်သူ ပိတ်ပင်ပြီး';
+  String get orderCustomerBlocked => 'IP ပိတ်ပင်ပြီး';
+
+  @override
+  String get orderBlockFailed => 'ဒီ IP ကို ပိတ်ပင်၍ မရပါ။';
+
+  @override
+  String get orderIpCopied => 'IP ကူးယူပြီး';
+
+  @override
+  String get orderBlockIpHint =>
+      'Block ကို နှိပ်ရင် ဒီ network ကနေ web order အသစ် တင်လို့ မရတော့ပါ။ ပြန်ဖြေချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ ဖြေနိုင်ပါတယ်။';
+
+  @override
+  String get orderNoCustomerIp => 'ဒီ order မှာ IP မပါပါ';
+
+  @override
+  String get orderNoCustomerIpHint =>
+      'ဒီ web order ကို IP မသိမ်းခင် တင်ထားတာပါ။ ပိတ်ချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ IP ထည့်ပါ။';
+
+  @override
+  String get orderBlockCustomerHow =>
+      'ပိတ်ပြီးရင် ဒီ network က web order အသစ် တင်လို့ မရတော့ပါ။ ရှိပြီးသား order တွေ မပျက်ပါ။ Settings → ပိတ်ပင်ထားသော IP များ မှာ ပြန်ဖြေနိုင်ပါတယ်။';
 
   @override
   String get orderLowStockAtOrder =>
@@ -3229,16 +3250,26 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
-  String get storefrontBlockedCustomers => 'ပိတ်ပင်ထားသော ဝယ်သူများ';
+  String get storefrontBlockedCustomers => 'ပိတ်ပင်ထားသော IP များ';
 
   @override
-  String get storefrontNoBlockedCustomers => 'ဘယ်သူမှ ပိတ်ပင်မထားပါ။';
+  String get storefrontNoBlockedCustomers => 'IP တစ်ခုမှ ပိတ်ပင်မထားပါ။';
+
+  @override
+  String get storefrontBlockedHow =>
+      'Network တစ်ခုက web order အသစ် မတင်နိုင်အောင် ပိတ်နိုင်ပါတယ်။ ဒီမှာ IP ထည့်ပါ၊ သို့မဟုတ် IP ပြသော web order ပေါ်က Block ကို နှိပ်ပါ။';
 
   @override
   String get storefrontUnblock => 'ပိတ်ပင်ချက် ဖြေလိုက်ပါ';
 
   @override
-  String get storefrontAddBlocked => 'ဖုန်းနံပါတ် ပိတ်ပင်မည်';
+  String get storefrontAddBlocked => 'IP လိပ်စာ ပိတ်ပင်မည်';
+
+  @override
+  String get storefrontIpAddress => 'IP လိပ်စာ';
+
+  @override
+  String get storefrontIpInvalid => 'မှန်ကန်သော IP လိပ်စာ ထည့်ပါ။';
 
   @override
   String get storefrontBlockReasonOptional => 'အကြောင်းရင်း (ရွေးချယ်ခွင့်)';
@@ -3271,7 +3302,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontBlocked =>
-      'ဒီဆိုင်က ဒီဖုန်းနံပါတ်ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။';
+      'ဒီဆိုင်က ဒီ network ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။';
 
   @override
   String get storefrontOutOfStock =>

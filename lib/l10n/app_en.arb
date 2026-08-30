@@ -1242,16 +1242,22 @@
   "orderDeleteConvertedWarn": "This order already produced an invoice. Deleting the order only detaches it — that invoice and any refund stay in your Invoices list.",
   "orderInvalidLine": "Check the item rows — a filled row needs both a name and a quantity",
   "orderDeleteConfirm": "Delete this order? This cannot be undone.",
-  "orderBlockCustomer": "Block this customer",
-  "orderBlockCustomerConfirm": "Block {phone} from placing new orders on your storefront?",
+  "orderBlockCustomer": "Block this IP",
+  "orderBlockCustomerConfirm": "Block {ip} from placing new orders on your storefront?",
   "@orderBlockCustomerConfirm": {
     "placeholders": {
-      "phone": {
+      "ip": {
         "type": "String"
       }
     }
   },
-  "orderCustomerBlocked": "Customer blocked",
+  "orderCustomerBlocked": "IP blocked",
+  "orderBlockFailed": "Couldn't block this IP.",
+  "orderIpCopied": "IP copied",
+  "orderBlockIpHint": "Tap Block to stop new web orders from this network. Unblock anytime in Settings → My web storefront → Blocked IPs.",
+  "orderNoCustomerIp": "No IP on this order",
+  "orderNoCustomerIpHint": "This web order was placed before IP tracking. To block: Settings → My web storefront → Blocked IPs, then add the address.",
+  "orderBlockCustomerHow": "After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Settings → Blocked IPs.",
   "orderLowStockAtOrder": "Requested more than the recorded stock at the time of this order",
   "orderCarrierHint": "Type or pick a carrier",
   "orderHandOffButton": "Handed off to carrier",
@@ -1447,10 +1453,13 @@
       }
     }
   },
-  "storefrontBlockedCustomers": "Blocked customers",
-  "storefrontNoBlockedCustomers": "No one is blocked.",
+  "storefrontBlockedCustomers": "Blocked IPs",
+  "storefrontNoBlockedCustomers": "No IPs are blocked.",
+  "storefrontBlockedHow": "Stop new web orders from a network. Add an IP here, or tap Block on a web order that shows an IP.",
   "storefrontUnblock": "Unblock",
-  "storefrontAddBlocked": "Block a phone number",
+  "storefrontAddBlocked": "Block an IP address",
+  "storefrontIpAddress": "IP address",
+  "storefrontIpInvalid": "Enter a valid IP address.",
   "storefrontBlockReasonOptional": "Reason (optional)",
   "storefrontPaymentInfoTitle": "Payment accounts",
   "storefrontPaymentInfoHint": "Shown to customers at checkout so they know who to transfer to.",
@@ -1460,7 +1469,7 @@
   "storefrontPayWaveNumber": "WavePay number",
   "storefrontNumberCopied": "Number copied",
   "storefrontRateLimited": "Too many orders submitted recently — please wait a few minutes and try again.",
-  "storefrontBlocked": "This shop isn't able to accept orders from this phone number. Please contact the shop directly.",
+  "storefrontBlocked": "This shop isn't able to accept orders from your network. Please contact the shop directly.",
   "storefrontOutOfStock": "Sorry, one of your items just sold out online. Please adjust your cart and try again.",
   "storefrontInvalidProduct": "One of the items in your cart is no longer available. Please remove it and try again.",
   "storefrontOnlineLeft": "{count} left online",

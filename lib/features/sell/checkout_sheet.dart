@@ -49,7 +49,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   final _customer = TextEditingController();
   final _customerFocus = FocusNode();
   final _phone = TextEditingController();
+  final _phoneFocus = FocusNode();
   final _address = TextEditingController();
+  final _addressFocus = FocusNode();
   bool _submitting = false;
   // Seller-controlled, per-sale: reveal the optional customer name/phone fields.
   bool _addCustomer = false;
@@ -99,6 +101,22 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   _SaleSuccess? _success;
 
   @override
+  void initState() {
+    super.initState();
+    // Any customer field taking focus summons the OS keyboard, so the
+    // amount pad must get out of the way — otherwise BOTH keyboards stack
+    // and the field being typed into is buried between them (owner report:
+    // tapping into "Customer name" left the numeric pad on screen).
+    for (final node in [_customerFocus, _phoneFocus, _addressFocus]) {
+      node.addListener(() {
+        if (node.hasFocus && _padVisible && mounted) {
+          setState(() => _padVisible = false);
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     // Cancelled/dismissed without confirming — don't leave a picked
     // customer's tier pricing applied to the cart for whatever happens next.
@@ -109,7 +127,9 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     _customer.dispose();
     _customerFocus.dispose();
     _phone.dispose();
+    _phoneFocus.dispose();
     _address.dispose();
+    _addressFocus.dispose();
     super.dispose();
   }
 
@@ -158,7 +178,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   /// editing the split.
   Future<void> _selectMethod(String m, int total) async {
     if (m != 'split') {
-      setState(() => _method = m);
+      setState(() {
+        _method = m;
+        // Picking Credit is an explicit "this sale needs a customer" signal
+        // — and unlike a shortfall typed digit-by-digit, it's a deliberate
+        // tap, not a transient mid-keystroke state. Close the pad here so
+        // the `forced && !_padVisible` latch below fires on this very build
+        // and the customer card opens immediately, instead of waiting for
+        // the seller to dismiss the pad themselves (owner report: "Credit
+        // amount နဲ့လဲ add customer မပေါ်ပါ").
+        if (m == 'credit') _padVisible = false;
+      });
       return;
     }
     final accounts = ref.read(paymentAccountsProvider).valueOrNull ?? const [];
@@ -450,11 +480,20 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // just "the dialog hasn't been completed yet", not a credit shortfall.
     final forced =
         _method == 'credit' || (owed > 0 && _method != 'split');
-    // Latch the section open only while the seller is not mid-amount-entry —
-    // see [_customerSectionLatched]. Monotonic (never resets mid-sheet), and
-    // read right after assignment so this build already reflects it.
-    final midAmountEntry = _padVisible || _paid.text.trim().isNotEmpty;
-    if (forced && !midAmountEntry) _customerSectionLatched = true;
+    // Latch the section open only while the pad isn't actively being typed
+    // into — see [_customerSectionLatched]. Monotonic (never resets
+    // mid-sheet), and read right after assignment so this build already
+    // reflects it. Deliberately keyed on `_padVisible` alone, NOT on
+    // `_paid.text` being non-empty: gating on the text too used to block
+    // this from EVER latching once any digit had been typed (the field
+    // never re-empties itself just because the pad closed), so a shortfall
+    // amount typed and confirmed left "Add customer" permanently stuck
+    // collapsed — the seller had to scroll up and tap it open by hand every
+    // time (owner report). Gating on `_padVisible` still avoids yanking the
+    // section into view mid-keystroke (typing "2" of "20000" already reads
+    // as a huge shortfall), but correctly latches the instant they finish
+    // and close the pad.
+    if (forced && !_padVisible) _customerSectionLatched = true;
     final showCustomer = _addCustomer || _customerSectionLatched;
 
     // A committed sale replaces the whole sheet: the one figure the cashier
@@ -512,7 +551,28 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Flexible(
-                  child: SingleChildScrollView(
+                  // Drag-to-dismiss the amount pad, the same convention iOS
+                  // lists use for the OS keyboard
+                  // (ScrollViewKeyboardDismissBehavior.onDrag). The pad is
+                  // pinned outside this scroll so it can never scroll away
+                  // on its own — without this it just sat there occupying
+                  // half the sheet while the seller scrolled up to the
+                  // customer fields, reading as if it were "following" them
+                  // (owner report).
+                  //
+                  // Gated on `dragDetails != null` — i.e. a real finger drag.
+                  // `_ensurePaidFieldVisible()` fires a PROGRAMMATIC
+                  // `Scrollable.ensureVisible` after EVERY pad keystroke, and
+                  // dismissing on that would close the pad on the first digit
+                  // typed.
+                  child: NotificationListener<ScrollStartNotification>(
+                    onNotification: (n) {
+                      if (n.dragDetails != null && _padVisible) {
+                        setState(() => _padVisible = false);
+                      }
+                      return false;
+                    },
+                    child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -794,6 +854,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                       ],
                     ),
                   ),
+                  ),
                 ),
                 // The numeric pad is PINNED above the footer, outside the
                 // scroll — opening it used to push it below the fold of a
@@ -877,6 +938,12 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       onTap: () => setState(() {
         final v = !showCustomer;
         _addCustomer = v;
+        // Opening this section makes room for it by collapsing the numeric
+        // pad — the pad is pinned OUTSIDE the scroll (see its own comment
+        // below), so it kept eating the sheet's height and never closed on
+        // its own, making "Add customer" feel like it was chasing the
+        // scroll rather than opening (owner report).
+        if (v) _padVisible = false;
         // Collapsing hides these fields — clear them too, so leftover typed
         // text can't silently still get attached to the sale/directory at
         // confirm time even though the fields are gone.
@@ -985,6 +1052,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             const SizedBox(height: AppTheme.space3),
             TextField(
               controller: _phone,
+              focusNode: _phoneFocus,
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumber],
               decoration: InputDecoration(labelText: l.customerPhone),
@@ -992,6 +1060,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
             const SizedBox(height: AppTheme.space3),
             TextField(
               controller: _address,
+              focusNode: _addressFocus,
               autofillHints: const [AutofillHints.streetAddressLine1],
               decoration: InputDecoration(labelText: l.customerAddress),
             ),

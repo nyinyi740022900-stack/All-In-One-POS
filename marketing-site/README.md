@@ -20,7 +20,7 @@ marketing-site/
   icons.css           animated custom icon set (entrance + continuous micro-loop per feature)
   feature-page.css    shared layout for the 19 feature tutorial pages
   script.js           scroll-reveal (IntersectionObserver) + parallax (rAF) + phone-shot
-                       fallback + language toggle
+                       fallback + language switcher + Viber support FAB
   features/           one full "how to use" tutorial page per feature area —
                        sell.html, inventory.html, invoices.html, printing.html,
                        analytics.html, credit.html, expenses.html, cash.html,
@@ -78,7 +78,7 @@ sips -Z 700 -s format jpeg -s formatOptions 82 raw-screenshot.png \
 The `<img>` in the matching `features/<feature>.html` `.tstep` already
 points at that path — no HTML change needed once the file lands there.
 
-### Language toggle (English / Myanmar)
+### Language switcher (English / Myanmar)
 
 Every page ships bilingual. The Myanmar text is the page's real markup, as
 always; an element that needs an English version just gets a
@@ -88,12 +88,30 @@ e.g. `&lt;strong&gt;`, since the attribute value is parsed once by the
 browser and only literal `<`/`>` inside it would break the tag). `script.js`
 caches each element's original Myanmar `innerHTML` on load, then swaps
 `innerHTML` between the cached Myanmar and the `data-i18n-en` string when
-the `.lang-toggle` button (present in every page's nav) is clicked. The
-choice is remembered in `localStorage` across pages.
+a `.lang-option` in the nav segmented control is clicked (flag + country /
+language name: 🇲🇲 Myanmar, 🇬🇧 English). The choice is remembered in
+`localStorage` across pages.
 
 To add a new translatable element: write the Myanmar content normally, then
 add `data-i18n-en="English version"` to the same tag. Nothing else to wire
 up — no key registry, no per-page dictionary.
+
+### Viber support FAB
+
+`script.js` mounts a floating bottom-right control on every page that deep-
+links to the support Viber chat (`viber://chat?number=959740022900`, same
+number as the Premium card). The control uses the official Viber app icon
+(`assets/viber-icon.png`); desktop adds a "Chat on Viber" /
+"Viber မှ ဆက်သွယ်ရန်" label beside it, mobile is the 56px icon alone
+(label kept for screen readers). Safe-area insets keep it above the iPhone
+home indicator. On phones/tablets the `viber://` link opens the app; on
+desktop (Mac Safari included) the click copies `09740022900` and shows a
+toast instead — custom schemes otherwise surface as "Safari cannot open
+the page because the address is invalid." On small screens the language
+switcher stays in the header row (compact flag + name); the nav Get
+Started button is hidden because the hero already has Download. Hero
+"Download Now" / "See How It Works" stay on one row (`flex-wrap: nowrap`)
+at laptop widths too.
 
 ### Cinematic photo technique
 

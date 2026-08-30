@@ -63,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 37;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -329,6 +329,11 @@ class AppDatabase extends _$AppDatabase {
             m, cashSessions, cashSessions.expectedCashAtClose);
         await _safeAddColumn(
             m, recurringExpenses, recurringExpenses.accountId);
+      }
+      // v38: storefront client IP on orders, so the owner can block that
+      // address instead of a phone number (mirrors remote 0077).
+      if (from < 38) {
+        await _safeAddColumn(m, orders, orders.customerIp);
       }
     },
   );

@@ -2846,15 +2846,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderDeleteConfirm => 'Delete this order? This cannot be undone.';
 
   @override
-  String get orderBlockCustomer => 'Block this customer';
+  String get orderBlockCustomer => 'Block this IP';
 
   @override
-  String orderBlockCustomerConfirm(String phone) {
-    return 'Block $phone from placing new orders on your storefront?';
+  String orderBlockCustomerConfirm(String ip) {
+    return 'Block $ip from placing new orders on your storefront?';
   }
 
   @override
-  String get orderCustomerBlocked => 'Customer blocked';
+  String get orderCustomerBlocked => 'IP blocked';
+
+  @override
+  String get orderBlockFailed => 'Couldn\'t block this IP.';
+
+  @override
+  String get orderIpCopied => 'IP copied';
+
+  @override
+  String get orderBlockIpHint =>
+      'Tap Block to stop new web orders from this network. Unblock anytime in Settings → My web storefront → Blocked IPs.';
+
+  @override
+  String get orderNoCustomerIp => 'No IP on this order';
+
+  @override
+  String get orderNoCustomerIpHint =>
+      'This web order was placed before IP tracking. To block: Settings → My web storefront → Blocked IPs, then add the address.';
+
+  @override
+  String get orderBlockCustomerHow =>
+      'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Settings → Blocked IPs.';
 
   @override
   String get orderLowStockAtOrder =>
@@ -3224,16 +3245,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storefrontBlockedCustomers => 'Blocked customers';
+  String get storefrontBlockedCustomers => 'Blocked IPs';
 
   @override
-  String get storefrontNoBlockedCustomers => 'No one is blocked.';
+  String get storefrontNoBlockedCustomers => 'No IPs are blocked.';
+
+  @override
+  String get storefrontBlockedHow =>
+      'Stop new web orders from a network. Add an IP here, or tap Block on a web order that shows an IP.';
 
   @override
   String get storefrontUnblock => 'Unblock';
 
   @override
-  String get storefrontAddBlocked => 'Block a phone number';
+  String get storefrontAddBlocked => 'Block an IP address';
+
+  @override
+  String get storefrontIpAddress => 'IP address';
+
+  @override
+  String get storefrontIpInvalid => 'Enter a valid IP address.';
 
   @override
   String get storefrontBlockReasonOptional => 'Reason (optional)';
@@ -3266,7 +3297,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontBlocked =>
-      'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.';
+      'This shop isn\'t able to accept orders from your network. Please contact the shop directly.';
 
   @override
   String get storefrontOutOfStock =>

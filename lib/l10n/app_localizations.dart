@@ -5249,20 +5249,56 @@ abstract class AppLocalizations {
   /// No description provided for @orderBlockCustomer.
   ///
   /// In en, this message translates to:
-  /// **'Block this customer'**
+  /// **'Block this IP'**
   String get orderBlockCustomer;
 
   /// No description provided for @orderBlockCustomerConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Block {phone} from placing new orders on your storefront?'**
-  String orderBlockCustomerConfirm(String phone);
+  /// **'Block {ip} from placing new orders on your storefront?'**
+  String orderBlockCustomerConfirm(String ip);
 
   /// No description provided for @orderCustomerBlocked.
   ///
   /// In en, this message translates to:
-  /// **'Customer blocked'**
+  /// **'IP blocked'**
   String get orderCustomerBlocked;
+
+  /// No description provided for @orderBlockFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t block this IP.'**
+  String get orderBlockFailed;
+
+  /// No description provided for @orderIpCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'IP copied'**
+  String get orderIpCopied;
+
+  /// No description provided for @orderBlockIpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Block to stop new web orders from this network. Unblock anytime in Settings → My web storefront → Blocked IPs.'**
+  String get orderBlockIpHint;
+
+  /// No description provided for @orderNoCustomerIp.
+  ///
+  /// In en, this message translates to:
+  /// **'No IP on this order'**
+  String get orderNoCustomerIp;
+
+  /// No description provided for @orderNoCustomerIpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This web order was placed before IP tracking. To block: Settings → My web storefront → Blocked IPs, then add the address.'**
+  String get orderNoCustomerIpHint;
+
+  /// No description provided for @orderBlockCustomerHow.
+  ///
+  /// In en, this message translates to:
+  /// **'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Settings → Blocked IPs.'**
+  String get orderBlockCustomerHow;
 
   /// No description provided for @orderLowStockAtOrder.
   ///
@@ -5915,14 +5951,20 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontBlockedCustomers.
   ///
   /// In en, this message translates to:
-  /// **'Blocked customers'**
+  /// **'Blocked IPs'**
   String get storefrontBlockedCustomers;
 
   /// No description provided for @storefrontNoBlockedCustomers.
   ///
   /// In en, this message translates to:
-  /// **'No one is blocked.'**
+  /// **'No IPs are blocked.'**
   String get storefrontNoBlockedCustomers;
+
+  /// No description provided for @storefrontBlockedHow.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop new web orders from a network. Add an IP here, or tap Block on a web order that shows an IP.'**
+  String get storefrontBlockedHow;
 
   /// No description provided for @storefrontUnblock.
   ///
@@ -5933,8 +5975,20 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontAddBlocked.
   ///
   /// In en, this message translates to:
-  /// **'Block a phone number'**
+  /// **'Block an IP address'**
   String get storefrontAddBlocked;
+
+  /// No description provided for @storefrontIpAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'IP address'**
+  String get storefrontIpAddress;
+
+  /// No description provided for @storefrontIpInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid IP address.'**
+  String get storefrontIpInvalid;
 
   /// No description provided for @storefrontBlockReasonOptional.
   ///
@@ -5993,7 +6047,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontBlocked.
   ///
   /// In en, this message translates to:
-  /// **'This shop isn\'t able to accept orders from this phone number. Please contact the shop directly.'**
+  /// **'This shop isn\'t able to accept orders from your network. Please contact the shop directly.'**
   String get storefrontBlocked;
 
   /// No description provided for @storefrontOutOfStock.

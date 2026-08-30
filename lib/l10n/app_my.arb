@@ -1201,16 +1201,22 @@
   "orderDeleteConvertedWarn": "ဒီအော်ဒါက ငွေတောင်းခံလွှာ ထွက်ပြီးသား။ အော်ဒါ ဖျက်လိုက်ရုံသာ — ငွေတောင်းခံလွှာနှင့် ပြန်အမ်းငွေတို့က Invoices စာရင်းမှာ ရှိနေမည်။",
   "orderInvalidLine": "အတန်းများ စစ်ပါ — ဖြည့်ထားသော အတန်းတိုင်းမှာ အမည်နှင့် အရေအတွက် နှစ်ခုလုံး လိုသည်",
   "orderDeleteConfirm": "ဒီအော်ဒါ ဖျက်မလား? ပြန်ဖျက်၍ မရပါ။",
-  "orderBlockCustomer": "ဒီဝယ်သူကို ပိတ်ပင်မည်",
-  "orderBlockCustomerConfirm": "{phone} ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?",
+  "orderBlockCustomer": "ဒီ IP ကို ပိတ်ပင်မည်",
+  "orderBlockCustomerConfirm": "{ip} ကို သင့် storefront ပေါ်မှာ order အသစ် ထပ်တင်ခွင့် ပိတ်ပင်မလား?",
   "@orderBlockCustomerConfirm": {
     "placeholders": {
-      "phone": {
+      "ip": {
         "type": "String"
       }
     }
   },
-  "orderCustomerBlocked": "ဝယ်သူ ပိတ်ပင်ပြီး",
+  "orderCustomerBlocked": "IP ပိတ်ပင်ပြီး",
+  "orderBlockFailed": "ဒီ IP ကို ပိတ်ပင်၍ မရပါ။",
+  "orderIpCopied": "IP ကူးယူပြီး",
+  "orderBlockIpHint": "Block ကို နှိပ်ရင် ဒီ network ကနေ web order အသစ် တင်လို့ မရတော့ပါ။ ပြန်ဖြေချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ ဖြေနိုင်ပါတယ်။",
+  "orderNoCustomerIp": "ဒီ order မှာ IP မပါပါ",
+  "orderNoCustomerIpHint": "ဒီ web order ကို IP မသိမ်းခင် တင်ထားတာပါ။ ပိတ်ချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ IP ထည့်ပါ။",
+  "orderBlockCustomerHow": "ပိတ်ပြီးရင် ဒီ network က web order အသစ် တင်လို့ မရတော့ပါ။ ရှိပြီးသား order တွေ မပျက်ပါ။ Settings → ပိတ်ပင်ထားသော IP များ မှာ ပြန်ဖြေနိုင်ပါတယ်။",
   "orderLowStockAtOrder": "ဒီ order တင်တဲ့အချိန်မှာ မှတ်တမ်းတင်ထားတဲ့ လက်ကျန်ထက် ပိုတောင်းထားပါတယ်",
   "orderCarrierHint": "Carrier ရိုက်ထည့် (သို့) ရွေးပါ",
   "orderHandOffButton": "Carrier ကို အပ်ပြီး",
@@ -1399,10 +1405,13 @@
       }
     }
   },
-  "storefrontBlockedCustomers": "ပိတ်ပင်ထားသော ဝယ်သူများ",
-  "storefrontNoBlockedCustomers": "ဘယ်သူမှ ပိတ်ပင်မထားပါ။",
+  "storefrontBlockedCustomers": "ပိတ်ပင်ထားသော IP များ",
+  "storefrontNoBlockedCustomers": "IP တစ်ခုမှ ပိတ်ပင်မထားပါ။",
+  "storefrontBlockedHow": "Network တစ်ခုက web order အသစ် မတင်နိုင်အောင် ပိတ်နိုင်ပါတယ်။ ဒီမှာ IP ထည့်ပါ၊ သို့မဟုတ် IP ပြသော web order ပေါ်က Block ကို နှိပ်ပါ။",
   "storefrontUnblock": "ပိတ်ပင်ချက် ဖြေလိုက်ပါ",
-  "storefrontAddBlocked": "ဖုန်းနံပါတ် ပိတ်ပင်မည်",
+  "storefrontAddBlocked": "IP လိပ်စာ ပိတ်ပင်မည်",
+  "storefrontIpAddress": "IP လိပ်စာ",
+  "storefrontIpInvalid": "မှန်ကန်သော IP လိပ်စာ ထည့်ပါ။",
   "storefrontBlockReasonOptional": "အကြောင်းရင်း (ရွေးချယ်ခွင့်)",
   "storefrontPaymentInfoTitle": "ငွေပေးချေမှု အကောင့်များ",
   "storefrontPaymentInfoHint": "ဖောက်သည်က checkout မှာ ဘယ်သူ့ဆီ လွှဲရမလဲ သိရအောင် ပြပေးပါမည်။",
@@ -1412,7 +1421,7 @@
   "storefrontPayWaveNumber": "WavePay နံပါတ်",
   "storefrontNumberCopied": "နံပါတ် ကူးယူပြီး",
   "storefrontRateLimited": "မကြာသေးမီက order များစွာ တင်ထားပါတယ် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။",
-  "storefrontBlocked": "ဒီဆိုင်က ဒီဖုန်းနံပါတ်ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။",
+  "storefrontBlocked": "ဒီဆိုင်က ဒီ network ကနေ order လက်မခံနိုင်တော့ပါ။ ဆိုင်ကို တိုက်ရိုက် ဆက်သွယ်ပါ။",
   "storefrontOutOfStock": "စိတ်မကောင်းပါဘူး၊ Cart ထဲက ပစ္စည်းတစ်ခု Online မှာ ကုန်သွားပါပြီ။ Cart ကို ပြင်ပြီး ထပ်ကြိုးစားပါ။",
   "storefrontInvalidProduct": "Cart ထဲက ပစ္စည်းတစ်ခုသည် ရရှိနိုင်တော့ပါ။ ၎င်းကို ဖယ်ရှားပြီး ထပ်ကြိုးစားပါ။",
   "storefrontOnlineLeft": "Online ကျန် {count} ခု",

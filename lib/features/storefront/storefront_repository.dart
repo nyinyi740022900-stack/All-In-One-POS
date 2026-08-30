@@ -84,12 +84,206 @@ String normalizeStorefrontPhone(String raw) {
   return v;
 }
 
-/// A phone number the owner has blocked from placing new storefront orders,
+final _ipv4 = RegExp(r'^(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$');
+final _bracketedIpv6 = RegExp(r'^\[([0-9a-f:.]+)\](?::\d+)?$');
+final _embeddedIpv4 = RegExp(r'^(.*):(\d{1,3}(?:\.\d{1,3}){3})$');
+
+/// Canonical client IP for storefront block-list matching. Uses only the
+/// last `X-Forwarded-For` hop (the one the last trusted proxy added), strips
+/// a `:port` (IPv4) or `[addr]:port` (IPv6), canonicalizes IPv6 (RFC 5952).
+/// Empty for blank / `unknown` / private / loopback / garbage so those cannot
+/// land on the block-list. Does not walk left into client-supplied hops.
+String normalizeStorefrontIp(String raw) {
+  final hops = raw
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+  if (hops.isEmpty) return '';
+  final n = _normalizeOneHop(hops.last);
+  if (n.isEmpty || _isNonPublicIp(n)) return '';
+  return n;
+}
+
+String _normalizeOneHop(String raw) {
+  var v = raw.trim().toLowerCase();
+  if (v.isEmpty || v == 'unknown' || v == 'null') return '';
+
+  final bracket = _bracketedIpv6.firstMatch(v);
+  if (bracket != null) v = bracket.group(1)!;
+
+  final v4 = _ipv4.firstMatch(v);
+  if (v4 != null) {
+    final ip = v4.group(1)!;
+    if (!_validIpv4(ip)) return '';
+    if (ip == '0.0.0.0' || ip.startsWith('127.')) return '';
+    return ip;
+  }
+
+  final groups = _parseIpv6Groups(v);
+  if (groups == null) return '';
+  if (groups.every((g) => g == 0)) return '';
+  if (groups.length == 8 &&
+      groups[0] == 0 &&
+      groups[1] == 0 &&
+      groups[2] == 0 &&
+      groups[3] == 0 &&
+      groups[4] == 0 &&
+      groups[5] == 0 &&
+      groups[6] == 0 &&
+      groups[7] == 1) {
+    return '';
+  }
+  final mappedV4 = _ipv4FromIpv6(groups);
+  if (mappedV4 != null) {
+    if (!_validIpv4(mappedV4)) return '';
+    if (mappedV4 == '0.0.0.0' || mappedV4.startsWith('127.')) return '';
+    return mappedV4;
+  }
+  return _canonicalIpv6(groups);
+}
+
+bool _isNonPublicIp(String ip) {
+  if (ip.contains('.')) return _isNonPublicIpv4(ip);
+  return _isNonPublicIpv6(ip);
+}
+
+bool _isNonPublicIpv4(String ip) {
+  final p = ip.split('.').map(int.parse).toList();
+  if (p.length != 4) return true;
+  final a = p[0];
+  final b = p[1];
+  if (a == 10) return true;
+  if (a == 172 && b >= 16 && b <= 31) return true;
+  if (a == 192 && b == 168) return true;
+  if (a == 169 && b == 254) return true;
+  return false;
+}
+
+bool _isNonPublicIpv6(String ip) {
+  final g = _parseIpv6Groups(ip);
+  if (g == null || g.length != 8) return true;
+  if (g[0] & 0xffc0 == 0xfe80) return true; // link-local
+  if (g[0] & 0xfe00 == 0xfc00) return true; // unique local
+  return false;
+}
+
+bool _validIpv4(String ip) {
+  final parts = ip.split('.');
+  if (parts.length != 4) return false;
+  for (final p in parts) {
+    final n = int.tryParse(p);
+    if (n == null || n < 0 || n > 255) return false;
+    if (p.length > 1 && p.startsWith('0')) return false;
+  }
+  return true;
+}
+
+/// Eight 16-bit groups, or null if [s] is not a valid IPv6 textual form.
+/// Accepts IPv4-embedded tails (`::ffff:192.0.2.1`).
+List<int>? _parseIpv6Groups(String s) {
+  if (s.isEmpty || s.contains(':::')) return null;
+  String head = s;
+  String? dotted;
+  if (s.contains('.')) {
+    final embedded = _embeddedIpv4.firstMatch(s);
+    if (embedded == null) return null;
+    head = embedded.group(1)!;
+    dotted = embedded.group(2)!;
+    if (head == ':') head = '::';
+    if (!_validIpv4(dotted)) return null;
+  }
+  final prefix = _parseIpv6N(head, dotted == null ? 8 : 6);
+  if (prefix == null) return null;
+  if (dotted == null) return prefix;
+  final o = dotted.split('.').map(int.parse).toList();
+  return [...prefix, (o[0] << 8) | o[1], (o[2] << 8) | o[3]];
+}
+
+List<int>? _parseIpv6N(String s, int n) {
+  final sides = s.split('::');
+  if (sides.length > 2) return null;
+
+  List<int>? parseSide(String side) {
+    if (side.isEmpty) return [];
+    final parts = side.split(':');
+    final out = <int>[];
+    for (final p in parts) {
+      if (p.isEmpty || p.length > 4 || !RegExp(r'^[0-9a-f]+$').hasMatch(p)) {
+        return null;
+      }
+      out.add(int.parse(p, radix: 16));
+    }
+    return out;
+  }
+
+  if (sides.length == 1) {
+    final g = parseSide(s);
+    if (g == null || g.length != n) return null;
+    return g;
+  }
+  final left = parseSide(sides[0]);
+  final right = parseSide(sides[1]);
+  if (left == null || right == null) return null;
+  final missing = n - left.length - right.length;
+  if (missing < 1) return null;
+  return [...left, ...List.filled(missing, 0), ...right];
+}
+
+/// IPv4-mapped (`::ffff:a.b.c.d`) or IPv4-compatible (`::a.b.c.d`, not ::/::1).
+String? _ipv4FromIpv6(List<int> g) {
+  if (g.length != 8) return null;
+  if (g[0] != 0 || g[1] != 0 || g[2] != 0 || g[3] != 0 || g[4] != 0) {
+    return null;
+  }
+  final mapped = g[5] == 0xffff;
+  final compatible = g[5] == 0;
+  if (!mapped && !compatible) return null;
+  if (compatible && g[6] == 0 && g[7] <= 1) return null;
+  final a = (g[6] >> 8) & 0xff;
+  final b = g[6] & 0xff;
+  final c = (g[7] >> 8) & 0xff;
+  final d = g[7] & 0xff;
+  return '$a.$b.$c.$d';
+}
+
+/// RFC 5952: lowercase hex, no leading zeros, `::` for the longest zero run
+/// of 2+ groups (leftmost on a tie).
+String _canonicalIpv6(List<int> g) {
+  var bestStart = -1;
+  var bestLen = 0;
+  var i = 0;
+  while (i < 8) {
+    if (g[i] != 0) {
+      i++;
+      continue;
+    }
+    var j = i;
+    while (j < 8 && g[j] == 0) {
+      j++;
+    }
+    final len = j - i;
+    if (len > bestLen) {
+      bestStart = i;
+      bestLen = len;
+    }
+    i = j;
+  }
+  String hex(int n) => n.toRadixString(16);
+  if (bestLen < 2) return g.map(hex).join(':');
+  final left = g.sublist(0, bestStart).map(hex).join(':');
+  final right = g.sublist(bestStart + bestLen).map(hex).join(':');
+  if (left.isEmpty) return '::$right';
+  if (right.isEmpty) return '$left::';
+  return '$left::$right';
+}
+
+/// An IP the owner has blocked from placing new storefront orders,
 /// usually after a scam/spam order.
 class BlockedCustomer {
-  final String phone;
+  final String ip;
   final String? reason;
-  const BlockedCustomer(this.phone, this.reason);
+  const BlockedCustomer(this.ip, this.reason);
 }
 
 /// Manages the signed-in shop's storefront row. All access is RLS-scoped to the
@@ -244,41 +438,46 @@ class StorefrontRepository {
     return rows
         .map((e) => (e as Map).cast<String, dynamic>())
         .map(
-          (m) => BlockedCustomer(m['phone'] as String, m['reason'] as String?),
+          (m) => BlockedCustomer(
+            (m['ip'] as String?) ?? '',
+            m['reason'] as String?,
+          ),
         )
+        .where((b) => b.ip.isNotEmpty)
         .toList();
   }
 
-  /// Blocks [phone] from placing new storefront orders on this shop. Blocking
-  /// the same number twice is a no-op (upsert on the shop_id+phone unique
-  /// index) rather than an error. The stored value is [normalizeStorefrontPhone]
-  /// so `09` / `9` / `+959` forms collide on one row.
-  Future<void> block(String phone, {String? reason}) {
-    final normalized = normalizeStorefrontPhone(phone);
-    if (normalized.isEmpty) return Future.value();
-    return _withRlsRetry(
-      () => _c.from('storefront_blocklist').upsert({
+  /// Returns `false` when [ip] could not be normalized to a blockable
+  /// address (nothing was written) so callers can tell success apart
+  /// from a no-op. Blocking the same address twice is still a no-op
+  /// upsert (returns `true`).
+  Future<bool> block(String ip, {String? reason}) {
+    final normalized = normalizeStorefrontIp(ip);
+    if (normalized.isEmpty) return Future.value(false);
+    return _withRlsRetry(() async {
+      await _c.from('storefront_blocklist').upsert({
         'shop_id': _shopId,
-        'phone': normalized,
+        'ip': normalized,
         'reason': reason,
-      }, onConflict: 'shop_id,phone'),
-    );
+      }, onConflict: 'shop_id,ip');
+      return true;
+    });
   }
 
-  Future<void> unblock(String phone) {
-    final normalized = normalizeStorefrontPhone(phone);
+  Future<void> unblock(String ip) {
+    final normalized = normalizeStorefrontIp(ip);
     return _withRlsRetry(() async {
       await _c
           .from('storefront_blocklist')
           .delete()
           .eq('shop_id', _shopId)
-          .eq('phone', phone);
-      if (normalized.isNotEmpty && normalized != phone) {
+          .eq('ip', ip);
+      if (normalized.isNotEmpty && normalized != ip) {
         await _c
             .from('storefront_blocklist')
             .delete()
             .eq('shop_id', _shopId)
-            .eq('phone', normalized);
+            .eq('ip', normalized);
       }
     });
   }

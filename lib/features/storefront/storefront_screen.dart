@@ -537,6 +537,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.block),
           title: Text(l.storefrontBlockedCustomers),
+          subtitle: Text(l.storefrontBlockedHow),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const _BlockedCustomersScreen()),
@@ -547,8 +548,8 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   }
 }
 
-/// Lists phone numbers the owner has blocked from placing new storefront
-/// orders (see [OrderDetailSheet]'s "Block this customer" action), with an
+/// Lists IPs the owner has blocked from placing new storefront
+/// orders (see [OrderDetailSheet]'s "Block this IP" action), with an
 /// unblock action for each.
 class _BlockedCustomersScreen extends ConsumerWidget {
   const _BlockedCustomersScreen();
@@ -572,7 +573,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
     try {
       await ref
           .read(storefrontRepositoryProvider)
-          .block(draft.phone, reason: draft.reason);
+          .block(draft.ip, reason: draft.reason);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -609,6 +610,7 @@ class _BlockedCustomersScreen extends ConsumerWidget {
             return EmptyStateView(
               icon: Icons.block,
               title: l.storefrontNoBlockedCustomers,
+              message: l.storefrontBlockedHow,
             );
           }
           return ListView.separated(
@@ -617,33 +619,48 @@ class _BlockedCustomersScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               final b = rows[i];
               return ListTile(
-                leading: const IconAvatar(icon: Icons.phone_disabled),
-                title: Text(b.phone),
+                leading: const IconAvatar(icon: Icons.public_off),
+                title: Text(b.ip),
                 subtitle: (b.reason ?? '').isEmpty ? null : Text(b.reason!),
-                trailing: TextButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(storefrontRepositoryProvider)
-                          .unblock(b.phone);
-                    } catch (e) {
-                      if (context.mounted) {
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: l.copied,
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: b.ip));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _storefrontErrorMessage(
-                                AppLocalizations.of(context),
-                                e,
-                              ),
-                            ),
-                          ),
+                          SnackBar(content: Text(l.orderIpCopied)),
                         );
-                      }
-                    } finally {
-                      ref.invalidate(blockedCustomersProvider);
-                    }
-                  },
-                  child: Text(l.storefrontUnblock),
+                      },
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        try {
+                          await ref
+                              .read(storefrontRepositoryProvider)
+                              .unblock(b.ip);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _storefrontErrorMessage(
+                                    AppLocalizations.of(context),
+                                    e,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        } finally {
+                          ref.invalidate(blockedCustomersProvider);
+                        }
+                      },
+                      child: Text(l.storefrontUnblock),
+                    ),
+                  ],
                 ),
               );
             },
@@ -655,12 +672,12 @@ class _BlockedCustomersScreen extends ConsumerWidget {
 }
 
 class _BlockedCustomerDraft {
-  const _BlockedCustomerDraft(this.phone, this.reason);
-  final String phone;
+  const _BlockedCustomerDraft(this.ip, this.reason);
+  final String ip;
   final String? reason;
 }
 
-/// Phone + optional reason editor for blocking a storefront customer. A
+/// IP + optional reason editor for blocking a storefront client. A
 /// `StatefulWidget` purely so its two controllers are owned by something
 /// whose `dispose()` runs on real teardown — see
 /// [_BlockedCustomersScreen._addBlock].
@@ -673,23 +690,27 @@ class _AddBlockedCustomerDialog extends StatefulWidget {
 }
 
 class _AddBlockedCustomerDialogState extends State<_AddBlockedCustomerDialog> {
-  final _phone = TextEditingController();
+  final _ip = TextEditingController();
   final _reason = TextEditingController();
+  String? _ipError;
 
   @override
   void dispose() {
-    _phone.dispose();
+    _ip.dispose();
     _reason.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final phone = _phone.text.trim();
-    if (phone.isEmpty) return;
+    final ip = normalizeStorefrontIp(_ip.text);
+    if (ip.isEmpty) {
+      setState(() => _ipError = AppLocalizations.of(context).storefrontIpInvalid);
+      return;
+    }
     final reason = _reason.text.trim();
     Navigator.of(
       context,
-    ).pop(_BlockedCustomerDraft(phone, reason.isEmpty ? null : reason));
+    ).pop(_BlockedCustomerDraft(ip, reason.isEmpty ? null : reason));
   }
 
   @override
@@ -701,10 +722,16 @@ class _AddBlockedCustomerDialogState extends State<_AddBlockedCustomerDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: _phone,
+            controller: _ip,
             autofocus: true,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: l.customerPhone),
+            keyboardType: TextInputType.text,
+            decoration: InputDecoration(
+              labelText: l.storefrontIpAddress,
+              errorText: _ipError,
+            ),
+            onChanged: (_) {
+              if (_ipError != null) setState(() => _ipError = null);
+            },
           ),
           const SizedBox(height: AppTheme.space2),
           TextField(

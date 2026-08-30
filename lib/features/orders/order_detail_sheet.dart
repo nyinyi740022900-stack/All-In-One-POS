@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -116,20 +117,8 @@ class OrderDetailSheet extends ConsumerWidget {
             const Divider(),
             _kv(context, Icons.person_outline, o.customerName),
             if (o.customerPhone != null && o.customerPhone!.isNotEmpty)
-              Row(
-                children: [
-                  Expanded(
-                      child: _kv(
-                          context, Icons.phone_outlined, o.customerPhone!)),
-                  IconButton(
-                    tooltip: l.orderBlockCustomer,
-                    icon: const Icon(Icons.block, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () =>
-                        _blockCustomer(context, ref, l, o.customerPhone!),
-                  ),
-                ],
-              ),
+              _kv(context, Icons.phone_outlined, o.customerPhone!),
+            ..._ipBlockSection(context, ref, l, o),
             if (o.deliveryAddress != null && o.deliveryAddress!.isNotEmpty)
               _kv(context, Icons.location_on_outlined, o.deliveryAddress!),
             if (o.township != null && o.township!.isNotEmpty)
@@ -290,6 +279,63 @@ class OrderDetailSheet extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _ipBlockSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+    Order o,
+  ) {
+    final ip = (o.customerIp ?? '').trim();
+    final hintStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.outline,
+        );
+    if (ip.isNotEmpty) {
+      return [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: _kv(context, Icons.public_outlined, ip)),
+            IconButton(
+              tooltip: l.copied,
+              icon: const Icon(Icons.copy, size: 18),
+              visualDensity: VisualDensity.compact,
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: ip));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.orderIpCopied)),
+                );
+              },
+            ),
+            IconButton(
+              tooltip: l.orderBlockCustomer,
+              icon: const Icon(Icons.block, size: 18),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _blockCustomer(context, ref, l, ip),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(
+            left: 26,
+            bottom: AppTheme.space1,
+          ),
+          child: Text(l.orderBlockIpHint, style: hintStyle),
+        ),
+      ];
+    }
+    if (o.channel != 'storefront') return const [];
+    return [
+      _kv(context, Icons.public_outlined, l.orderNoCustomerIp),
+      Padding(
+        padding: const EdgeInsets.only(
+          left: 26,
+          bottom: AppTheme.space1,
+        ),
+        child: Text(l.orderNoCustomerIpHint, style: hintStyle),
+      ),
+    ];
   }
 
   Future<void> _printInvoice(BuildContext context, WidgetRef ref, Order o,
@@ -519,13 +565,21 @@ class OrderDetailSheet extends ConsumerWidget {
   }
 
   Future<void> _blockCustomer(BuildContext context, WidgetRef ref,
-      AppLocalizations l, String phone) async {
+      AppLocalizations l, String ip) async {
     final ok = await showDialog<bool>(
       context: context,
       // See _confirmDelete's comment: must pop via the dialog's own context.
       builder: (dialogContext) => AlertDialog(
         title: Text(l.orderBlockCustomer),
-        content: Text(l.orderBlockCustomerConfirm(phone)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.orderBlockCustomerConfirm(ip)),
+            const SizedBox(height: AppTheme.space2),
+            Text(l.orderBlockCustomerHow),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -539,8 +593,10 @@ class OrderDetailSheet extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(storefrontRepositoryProvider).block(phone);
-      messenger.showSnackBar(SnackBar(content: Text(l.orderCustomerBlocked)));
+      final blocked = await ref.read(storefrontRepositoryProvider).block(ip);
+      messenger.showSnackBar(SnackBar(
+        content: Text(blocked ? l.orderCustomerBlocked : l.orderBlockFailed),
+      ));
     } catch (e) {
       messenger
           .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));

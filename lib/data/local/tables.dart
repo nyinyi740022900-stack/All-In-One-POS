@@ -415,6 +415,10 @@ class Orders extends Table with SyncColumns {
 
   TextColumn get customerName => text()();
   TextColumn get customerPhone => text().nullable()();
+
+  /// Storefront client IP (last X-Forwarded-For hop). Null for
+  /// POS/manual orders. Used to block a harassing/scam address from new web orders.
+  TextColumn get customerIp => text().nullable()();
   TextColumn get deliveryAddress => text().nullable()();
   IntColumn get deliveryFee => integer().withDefault(const Constant(0))();
 
