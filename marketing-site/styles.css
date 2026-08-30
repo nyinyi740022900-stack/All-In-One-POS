@@ -750,6 +750,8 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 .download-card p { color: var(--muted); font-size: 14.5px; }
 .dl-note { font-size: 12.5px; color: var(--muted); opacity: 0.8; }
 .dl-note.dl-note-on-photo { color: rgba(255,255,255,0.65); }
+.dl-btn-row { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.is-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 .badge-soon {
   display: inline-block;
   background: var(--surface-tint);
