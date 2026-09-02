@@ -353,7 +353,13 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   /// same external-launch shape as [_openRenewPage]. Only reachable via
   /// [_choosePurchaseRegion], which already requires `kCommerceUiEnabled`
   /// (see the store build's commerce gate) and a configured Lemon Squeezy
-  /// store.
+  /// store. Opens the product's shared `buy_now_url` directly — no
+  /// Monthly/Yearly dialog here, since Lemon Squeezy's own checkout page
+  /// already shows that picker for a multi-variant product; a per-variant
+  /// URL keyed by the numeric variant id (what an earlier version of this
+  /// built) 404s live, since Lemon Squeezy's `/checkout/buy/[id]` route
+  /// only resolves for a UUID checkout link, not the numeric variant id
+  /// used for webhook matching.
   Future<void> _openLemonSqueezyCheckout() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -364,41 +370,18 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       }
       return;
     }
-    if (!mounted) return;
-    final plan = await showDialog<LicensePlan>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l.licenseBuyOrRenewTitle),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, LicensePlan.monthly),
-            child: Text(l.licensePlanMonthly),
-          ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, LicensePlan.yearly),
-            child: Text(l.licensePlanYearly),
-          ),
-        ],
-      ),
-    );
-    if (plan == null) return;
-    final variant = plan == LicensePlan.yearly
-        ? cfg.lemonSqueezyVariantYearly
-        : cfg.lemonSqueezyVariantMonthly;
     final lic = ref.read(licenseControllerProvider).license;
     var deviceId = lic?.deviceId ?? '';
     if (deviceId.isEmpty) {
       deviceId = ref.read(deviceIdProvider).valueOrNull ?? '';
     }
     final shopId = ref.read(shopIdProvider);
-    final uri = Uri.https(
-      '${cfg.lemonSqueezyStoreSlug}.lemonsqueezy.com',
-      '/checkout/buy/$variant',
-      {
-        'checkout[custom][shop_id]': shopId,
-        if (deviceId.isNotEmpty) 'checkout[custom][device_id]': deviceId,
-      },
-    );
+    final base = Uri.parse(cfg.lemonSqueezyBuyNowUrl);
+    final uri = base.replace(queryParameters: {
+      ...base.queryParameters,
+      'checkout[custom][shop_id]': shopId,
+      if (deviceId.isNotEmpty) 'checkout[custom][device_id]': deviceId,
+    });
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));

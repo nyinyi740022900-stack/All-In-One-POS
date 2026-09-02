@@ -2254,7 +2254,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseRegionMyanmar => 'မြန်မာနိုင်ငံ';
 
   @override
-  String get licenseRegionInternational => 'နိုင်ငံတကာ';
+  String get licenseRegionInternational => 'အခြားဒေသ';
 
   @override
   String get licenseContactViber => 'Viber ကနေ ဆက်သွယ်မည်';

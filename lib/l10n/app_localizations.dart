@@ -4223,7 +4223,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseRegionInternational.
   ///
   /// In en, this message translates to:
-  /// **'International'**
+  /// **'Other Region'**
   String get licenseRegionInternational;
 
   /// No description provided for @licenseContactViber.

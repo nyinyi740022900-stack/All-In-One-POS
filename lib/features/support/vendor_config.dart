@@ -24,10 +24,24 @@ class VendorConfig {
   /// Lemon Squeezy store subdomain + variant ids for the international
   /// (non-Myanmar) in-app subscribe path — see `_PurchasePaths` in
   /// `license_widgets.dart`. Empty until the owner sets them from the
-  /// admin console's Config tab.
+  /// admin console's Config tab. `lemonSqueezyVariantMonthly`/`Yearly` are
+  /// used server-side only (the webhook resolves months by matching a
+  /// purchased variant's numeric id against these) — the client no longer
+  /// builds a checkout URL from them, since Lemon Squeezy's hosted checkout
+  /// has no working `/checkout/buy/[numeric_variant_id]` route for a
+  /// multi-variant subscription product (confirmed live: 404). The one
+  /// working link Lemon Squeezy gives a multi-variant product is its shared
+  /// `buy_now_url`, which already lets the customer pick Monthly/Yearly on
+  /// Lemon Squeezy's own page — see `lemonSqueezyBuyNowUrl`.
   final String lemonSqueezyStoreSlug;
   final String lemonSqueezyVariantMonthly;
   final String lemonSqueezyVariantYearly;
+
+  /// The product's shared hosted-checkout URL (Lemon Squeezy dashboard:
+  /// product's "Share" button, or the `buy_now_url` embedded in a variant's
+  /// page) — shows Monthly/Yearly as a picker on Lemon Squeezy's own page,
+  /// so the app doesn't need to ask separately before redirecting.
+  final String lemonSqueezyBuyNowUrl;
 
   const VendorConfig({
     this.kbzName = '',
@@ -44,15 +58,13 @@ class VendorConfig {
     this.lemonSqueezyStoreSlug = '',
     this.lemonSqueezyVariantMonthly = '',
     this.lemonSqueezyVariantYearly = '',
+    this.lemonSqueezyBuyNowUrl = '',
   });
 
   bool get hasKbz => kbzNumber.isNotEmpty;
   bool get hasWave => waveNumber.isNotEmpty;
   bool get hasSupport => supportViber.isNotEmpty;
-  bool get hasLemonSqueezy =>
-      lemonSqueezyStoreSlug.isNotEmpty &&
-      lemonSqueezyVariantMonthly.isNotEmpty &&
-      lemonSqueezyVariantYearly.isNotEmpty;
+  bool get hasLemonSqueezy => lemonSqueezyBuyNowUrl.isNotEmpty;
 
   /// [tier] is the shop's own `CachedLicense.tier` ('offline'/'online'),
   /// fixed at shop-creation time — see `CachedLicense.tier`. Online prices
@@ -86,6 +98,7 @@ class VendorConfig {
       lemonSqueezyStoreSlug: m['pay.lemonsqueezy.store_slug'] ?? '',
       lemonSqueezyVariantMonthly: m['pay.lemonsqueezy.variant_monthly'] ?? '',
       lemonSqueezyVariantYearly: m['pay.lemonsqueezy.variant_yearly'] ?? '',
+      lemonSqueezyBuyNowUrl: m['pay.lemonsqueezy.buy_now_url'] ?? '',
     );
   }
 
@@ -104,6 +117,7 @@ class VendorConfig {
         'pay.lemonsqueezy.store_slug': lemonSqueezyStoreSlug,
         'pay.lemonsqueezy.variant_monthly': lemonSqueezyVariantMonthly,
         'pay.lemonsqueezy.variant_yearly': lemonSqueezyVariantYearly,
+        'pay.lemonsqueezy.buy_now_url': lemonSqueezyBuyNowUrl,
       };
 
   static const empty = VendorConfig();
