@@ -4,7 +4,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../core/payment_method.dart';
 import '../../data/sync/outbox_error.dart';
+
+// Deliberately provider-free (no `flutter_riverpod`/`core/providers.dart`
+// import here) — this file is also imported by the *public* storefront web
+// build (`lib/storefront/storefront_page.dart` → `storefront_main.dart`),
+// and `core/providers.dart` pulls in `data/local/database.dart`
+// (Drift/`sqlite3_flutter_libs`, native `dart:ffi`), which doesn't compile
+// for web at all. The Riverpod providers live in `storefront_providers.dart`
+// instead, imported only by the main (mobile/admin) app's screens. Learned
+// this the hard way: an earlier version of this file added exactly that
+// import to fix an unrelated cycle and broke `flutter build web -t
+// lib/storefront/storefront_main.dart` with a wall of "dart:ffi is not
+// available on this platform" errors — never repeat that mistake.
 
 /// Public base URL where the storefront web app is hosted. A shop's page is
 /// `$storefrontBaseUrl/<slug>`.
@@ -23,15 +36,13 @@ class StorefrontRow {
   final String? phone;
   final String? address;
   final String? logoUrl;
-  final String? payKpay;
-  final String? payKpayName;
-  final String? payWave;
-  final String? payWaveName;
+  final List<PaymentMethod> paymentMethods;
   final bool enabled;
   final bool hoursEnabled;
   final int? openMinute;
   final int? closeMinute;
   final bool requireTransferProof;
+  final String currencyCode;
 
   const StorefrontRow({
     required this.slug,
@@ -39,15 +50,13 @@ class StorefrontRow {
     this.phone,
     this.address,
     this.logoUrl,
-    this.payKpay,
-    this.payKpayName,
-    this.payWave,
-    this.payWaveName,
+    this.paymentMethods = const [],
     this.enabled = true,
     this.hoursEnabled = false,
     this.openMinute,
     this.closeMinute,
     this.requireTransferProof = true,
+    this.currencyCode = 'MMK',
   });
 
   String get url => '$storefrontBaseUrl/$slug';
@@ -58,15 +67,13 @@ class StorefrontRow {
     phone: m['phone'] as String?,
     address: m['address'] as String?,
     logoUrl: m['logo_url'] as String?,
-    payKpay: m['pay_kpay'] as String?,
-    payKpayName: m['pay_kpay_name'] as String?,
-    payWave: m['pay_wave'] as String?,
-    payWaveName: m['pay_wave_name'] as String?,
+    paymentMethods: PaymentMethod.listFromJson(m['payment_methods']),
     enabled: m['enabled'] as bool? ?? true,
     hoursEnabled: m['hours_enabled'] as bool? ?? false,
     openMinute: (m['open_minute'] as num?)?.toInt(),
     closeMinute: (m['close_minute'] as num?)?.toInt(),
     requireTransferProof: m['require_transfer_proof'] as bool? ?? true,
+    currencyCode: m['currency_code'] as String? ?? 'MMK',
   );
 }
 
@@ -374,37 +381,34 @@ class StorefrontRepository {
   }
 
   /// Updates display fields on an existing storefront (name/phone/address
-  /// shown to customers, the logo, and the KBZPay/WavePay name+number shown
-  /// at checkout). Pass only what changed; omitted fields are left as-is.
-  /// Pass an empty string (not null) to clear a payment field the owner
+  /// shown to customers, the logo, and the payment methods shown at
+  /// checkout). Pass only what changed; omitted fields are left as-is. Pass
+  /// an empty list (not null) to clear every payment method the owner
   /// removed.
   Future<void> updateProfile({
     String? displayName,
     String? phone,
     String? address,
     String? logoUrl,
-    String? payKpay,
-    String? payKpayName,
-    String? payWave,
-    String? payWaveName,
+    List<PaymentMethod>? paymentMethods,
     bool? hoursEnabled,
     int? openMinute,
     int? closeMinute,
     bool? requireTransferProof,
+    String? currencyCode,
   }) async {
     final patch = <String, dynamic>{
       'display_name': ?displayName,
       'phone': ?phone,
       'address': ?address,
       'logo_url': ?logoUrl,
-      'pay_kpay': ?payKpay,
-      'pay_kpay_name': ?payKpayName,
-      'pay_wave': ?payWave,
-      'pay_wave_name': ?payWaveName,
+      if (paymentMethods != null)
+        'payment_methods': PaymentMethod.listToJson(paymentMethods),
       'hours_enabled': ?hoursEnabled,
       'open_minute': ?openMinute,
       'close_minute': ?closeMinute,
       'require_transfer_proof': ?requireTransferProof,
+      'currency_code': ?currencyCode,
     };
     if (patch.isEmpty) return;
     await _withRlsRetry(

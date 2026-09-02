@@ -6,7 +6,12 @@
 // while exposing ONLY safe fields (never secrets, never other shops' data).
 //
 // Actions:
-//   catalog       { slug }  -> { storefront, products }
+//   catalog       { slug }  -> { storefront, products, categories }
+//                    products only include rows with `sell_online = true`
+//                    (owner-controlled per-product toggle, migration 0084 —
+//                    a product can be sold in-store but hidden from this
+//                    public catalog; defaults true so nothing changed for
+//                    any shop until an owner explicitly flips one off).
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no, items_total, lines[] }
@@ -20,6 +25,9 @@
 //                    for an online-tier shop); writes a pending row to
 //                    license_requests for the admin dashboard's Requests
 //                    tab to pick up.
+//   my_requests {} (Authorization: Bearer <user JWT>) -> { requests[] } —
+//                    the /renew page's optional sign-in convenience layer;
+//                    the signed-in shop's own last 20 renewal requests.
 //   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
@@ -562,11 +570,49 @@ async function handleReceipt(
   });
 }
 
+/// The last 20 renewal requests for the signed-in shop — same safe-field
+/// selection as [handleReceipt] (never `payment_proof_path`/phone/email),
+/// scoped by `app_metadata.shop_id` off the caller's own JWT rather than an
+/// RLS policy, so `license_requests` stays service-role-only end to end
+/// (see 0069's "don't open this table to anon" note — this handler never
+/// grants anon or cross-shop access, only "the shop I already am").
+async function handleMyRequests(
+  url: string,
+  anonKey: string,
+  admin: Admin,
+  req: Request,
+): Promise<Response> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const asUser = createClient(url, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await asUser.auth.getUser();
+  if (userErr || !userData?.user) {
+    return json({ error: "not_authenticated" }, 401);
+  }
+  const shopId =
+    (userData.user.app_metadata as Record<string, unknown> | null)
+      ?.shop_id as string | undefined;
+  if (!shopId) return json({ requests: [] });
+
+  const { data, error } = await admin
+    .from("license_requests")
+    .select(
+      "id, invoice_no, plan, months, amount, method, status, payment_status, created_at",
+    )
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) return json({ error: "server_error", detail: error.message }, 500);
+  return json({ requests: data ?? [] });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json({});
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const admin = createClient(url, serviceKey);
   const shopWebBase = "https://shop.allinonepos.app";
 
@@ -636,6 +682,16 @@ Deno.serve(async (req) => {
     return handleReceipt(admin, body, req);
   }
 
+  // The /renew page's optional sign-in convenience layer: a shop with a
+  // Supabase Auth account (created in-app via "Create shop login") can see
+  // its own past renewal requests instead of only ever seeing the one it
+  // just submitted. Requires a real session — the caller's own access token
+  // travels in the Authorization header exactly like any authenticated
+  // Postgrest/Function call from the mobile app.
+  if (action === "my_requests") {
+    return handleMyRequests(url, anonKey, admin, req);
+  }
+
   const slug = (body.slug ?? "").trim();
   if (!slug) return json({ error: "bad_request" }, 400);
 
@@ -656,10 +712,13 @@ Deno.serve(async (req) => {
   if (action === "catalog") {
     const { data: products, error } = await admin
       .from("products")
-      .select("id, name, sale_price, unit, image_url, online_stock_limit")
+      .select(
+        "id, name, sale_price, unit, image_url, online_stock_limit, category_id",
+      )
       .eq("shop_id", sf.shop_id)
       .eq("is_active", true)
       .eq("is_deleted", false)
+      .eq("sell_online", true)
       .order("name");
     if (error) return json({ error: "server_error" }, 500);
 
@@ -676,6 +735,29 @@ Deno.serve(async (req) => {
       return { ...p, online_available: available };
     });
 
+    // Categories the storefront can filter by — only ones actually in use by
+    // a published product (an empty/unused category list would just be a
+    // filter row of chips with nothing behind them). `category_id` has no DB
+    // foreign key (see 0001_init.sql), so this is a plain in-memory join
+    // rather than a Postgrest embedded-resource select.
+    const usedCategoryIds = new Set(
+      (products ?? [])
+        .map((p) => p.category_id as string | null)
+        .filter((id): id is string => !!id),
+    );
+    let categoriesOut: { id: string; name: string }[] = [];
+    if (usedCategoryIds.size > 0) {
+      const { data: categories } = await admin
+        .from("categories")
+        .select("id, name, sort")
+        .eq("shop_id", sf.shop_id)
+        .eq("is_deleted", false)
+        .order("sort");
+      categoriesOut = (categories ?? [])
+        .filter((c) => usedCategoryIds.has(c.id as string))
+        .map((c) => ({ id: c.id as string, name: c.name as string }));
+    }
+
     return json({
       storefront: {
         // Needed by the guest page to upload its proof into the shop's own
@@ -686,11 +768,9 @@ Deno.serve(async (req) => {
         display_name: sf.display_name,
         phone: sf.phone,
         address: sf.address,
-        pay_kpay: sf.pay_kpay,
-        pay_kpay_name: sf.pay_kpay_name,
-        pay_wave: sf.pay_wave,
-        pay_wave_name: sf.pay_wave_name,
+        payment_methods: sf.payment_methods ?? [],
         logo_url: sf.logo_url,
+        currency_code: sf.currency_code ?? "MMK",
         accepting_orders: acceptingOrders,
         hours_enabled: sf.hours_enabled === true,
         open_minute: sf.open_minute ?? null,
@@ -698,6 +778,7 @@ Deno.serve(async (req) => {
         require_transfer_proof: sf.require_transfer_proof !== false,
       },
       products: productsOut,
+      categories: categoriesOut,
     });
   }
 
@@ -803,12 +884,18 @@ Deno.serve(async (req) => {
       return json({ error: "bad_request" }, 400);
     }
 
+    // sell_online is re-checked here too, not just in `catalog` — a customer's
+    // browser can hold an already-fetched catalog for the whole session, so
+    // without this an owner toggling a product off mid-session would not
+    // actually stop an in-flight order for it. A filtered-out product simply
+    // isn't in `byId` below, which already rejects an unknown product id.
     const { data: products, error: pErr } = await admin
       .from("products")
       .select("id, name, sale_price, online_stock_limit")
       .eq("shop_id", sf.shop_id)
       .eq("is_active", true)
       .eq("is_deleted", false)
+      .eq("sell_online", true)
       .in("id", productIds);
     if (pErr) return json({ error: "server_error" }, 500);
     const byId = new Map((products ?? []).map((p) => [p.id, p]));

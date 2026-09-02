@@ -27,9 +27,9 @@ void main() {
     });
 
     test('Money.fromString preserves sign while clamping magnitude', () {
-      expect(Money.fromString('9' * 25).kyat, maxMoneyInputKyat);
-      expect(Money.fromString('-${'9' * 25}').kyat, -maxMoneyInputKyat);
-      expect(Money.fromString('1,500').kyat, 1500);
+      expect(Money.fromString('9' * 25).minor, maxMoneyInputKyat);
+      expect(Money.fromString('-${'9' * 25}').minor, -maxMoneyInputKyat);
+      expect(Money.fromString('1,500').minor, 1500);
     });
   });
 

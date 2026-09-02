@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -36,13 +37,14 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
   bool _exportingPdf = false;
   bool _exportingCsv = false;
 
-  Widget _row(BuildContext context, String label, int amount, String currency,
+  Widget _row(BuildContext context, String label, int amount,
+      CurrencyDef currency, String locale,
       {bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: SummaryRow(
         label,
-        Money(amount).withSymbol(currency),
+        Money(amount).withCurrency(currency, locale),
         emphasis: bold,
       ),
     );
@@ -50,6 +52,8 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
 
   Future<Uint8List> _pdfBytes(EquitySummary summary,
       List<EquityEntry> entries, AppLocalizations l) async {
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final profile = await ref.read(shopProfileProvider.future);
     final printerConfig = await ref.read(printerConfigProvider.future);
     return buildEquityPdf(
@@ -60,7 +64,8 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
       title: l.equityTitle,
       summary: summary,
       entries: entries,
-      currencySymbol: l.currencySymbol,
+      currencySymbol: currency.label(locale),
+      exponent: currency.exponent,
       paidInCapitalLabel: l.equityPaidInCapital,
       retainedEarningsLabel: l.equityRetainedEarnings,
       totalEquityLabel: l.equityTotal,
@@ -101,6 +106,7 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exportingCsv = true);
     try {
+      final currency = ref.read(shopCurrencyProvider);
       final csv = buildEquityCsv(
         summary,
         entries,
@@ -113,6 +119,7 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
         paidInCapitalLabel: l.equityPaidInCapital,
         retainedEarningsLabel: l.equityRetainedEarnings,
         totalEquityLabel: l.equityTotal,
+        exponent: currency.exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/owners-equity.csv');
@@ -144,7 +151,8 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
         ),
       );
     }
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final entries = ref.watch(equityEntriesProvider).valueOrNull ?? const [];
     final summaryAsync = ref.watch(equitySummaryProvider);
     final df = DateFormat('yyyy-MM-dd');
@@ -202,11 +210,13 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
               data: (s) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _row(context, l.equityPaidInCapital, s.paidInCapital, cur),
+                  _row(context, l.equityPaidInCapital, s.paidInCapital, currency,
+                      locale),
                   _row(context, l.equityRetainedEarnings, s.retainedEarnings,
-                      cur),
+                      currency, locale),
                   const Divider(),
-                  _row(context, l.equityTotal, s.totalEquity, cur, bold: true),
+                  _row(context, l.equityTotal, s.totalEquity, currency, locale,
+                      bold: true),
                 ],
               ),
             ),
@@ -246,7 +256,7 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             MoneyText(
-                              '${isContribution ? '+' : '-'}${Money(e.amount).withSymbol(cur)}',
+                              '${isContribution ? '+' : '-'}${Money(e.amount).withCurrency(currency, locale)}',
                               emphasis: true,
                               color:
                                   isContribution ? colors.success : colors.danger,

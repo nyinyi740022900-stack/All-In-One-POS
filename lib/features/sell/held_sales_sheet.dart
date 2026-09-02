@@ -6,6 +6,7 @@ import '../../../core/layout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'cart.dart';
 import 'held_sales_provider.dart';
 
@@ -33,7 +34,8 @@ class _HeldSalesSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final held = ref.watch(heldSalesProvider);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final messenger = ScaffoldMessenger.of(context);
 
     return SafeArea(
@@ -89,7 +91,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           MoneyText(
-                            h.total.withSymbol(currency),
+                            h.total.withCurrency(currency, locale),
                             style: Theme.of(context).textTheme.titleSmall,
                             emphasis: true,
                           ),

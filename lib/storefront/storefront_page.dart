@@ -1,15 +1,15 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/currency_def.dart';
 import '../core/image_util.dart';
+import '../core/money.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/invoices/invoice_capture.dart';
 import '../features/invoices/invoice_view.dart';
-import '../features/orders/myanmar_townships.dart';
 import '../features/storefront/storefront_repository.dart';
 import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
@@ -17,9 +17,8 @@ import 'storefront_api.dart';
 import 'storefront_download.dart';
 import 'storefront_seo.dart';
 
-final _money = NumberFormat('#,##0', 'en_US');
-String _ks(AppLocalizations l, int v) =>
-    '${_money.format(v)} ${l.currencySymbol}';
+String _ks(CurrencyDef currency, String locale, int v) =>
+    Money(v).withCurrency(currency, locale);
 
 /// Last-resort classification for `_submit`'s catch block, for any backend
 /// error code (or client-side failure) not already special-cased above —
@@ -101,11 +100,21 @@ class _StorefrontPageState extends State<StorefrontPage> {
   late Future<Catalog> _future;
   final Map<String, int> _cart = {}; // productId -> qty
   late Map<String, StoreProduct> _byId = {};
+  StoreInfo? _info;
+  final _searchController = TextEditingController();
+  String _search = '';
+  String? _categoryId;
 
   @override
   void initState() {
     super.initState();
     _future = _api.fetchCatalog(widget.slug);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   int get _total =>
@@ -126,7 +135,22 @@ class _StorefrontPageState extends State<StorefrontPage> {
     }
   });
 
-  Future<void> _checkout(Catalog catalog) async {
+  List<StoreProduct> _visible(Catalog catalog) {
+    var list = catalog.products;
+    if (_categoryId != null) {
+      list = list.where((p) => p.categoryId == _categoryId).toList();
+    }
+    final query = _search.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      list = list.where((p) => p.name.toLowerCase().contains(query)).toList();
+    }
+    return list;
+  }
+
+  /// Opens the cart → details/payment → confirmation flow, starting on the
+  /// cart-review step so a customer always lands somewhere they can adjust
+  /// quantities or back out entirely — not straight into a payment form.
+  Future<void> _openCheckoutFlow(Catalog catalog) async {
     if (!catalog.info.acceptingOrders) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,30 +158,28 @@ class _StorefrontPageState extends State<StorefrontPage> {
       );
       return;
     }
-    final lines = _cart.entries
-        .map(
-          (e) => OrderLine(
-            e.key,
-            _byId[e.key]!.name,
-            _byId[e.key]!.price,
-            e.value,
-          ),
-        )
-        .toList();
-    final result = await showModalBottomSheet<String>(
+    await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _CheckoutSheet(
+      builder: (_) => _CheckoutFlowSheet(
         slug: widget.slug,
         api: _api,
         info: catalog.info,
-        lines: lines,
-        total: _total,
+        cart: _cart,
+        byId: _byId,
+        currency: CurrencyDef.byCode(catalog.info.currencyCode),
+        onAdd: _add,
+        onSub: _sub,
+        // Clears the instant an order actually succeeds, not when the sheet
+        // later closes — the confirmation step has no way to force the sheet
+        // to stay open, so a customer swiping it away instead of tapping
+        // "Done" must not leave the just-ordered items sitting in the cart
+        // (that risked a confused re-tap submitting a duplicate order).
+        onOrderPlaced: () {
+          if (mounted) setState(() => _cart.clear());
+        },
       ),
     );
-    if (result != null && mounted) {
-      setState(() => _cart.clear());
-    }
   }
 
   @override
@@ -179,6 +201,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
           }
           final catalog = snap.data!;
           _byId = {for (final p in catalog.products) p.id: p};
+          _info = catalog.info;
           final name = catalog.info.displayName ?? widget.slug;
           final desc = [
             if ((catalog.info.phone ?? '').isNotEmpty) catalog.info.phone,
@@ -190,6 +213,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
             imageUrl: catalog.info.logoUrl,
             pageUrl: '$storefrontBaseUrl/${widget.slug}',
           );
+          final visible = _visible(catalog);
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _ShopBanner(info: catalog.info)),
@@ -200,26 +224,87 @@ class _StorefrontPageState extends State<StorefrontPage> {
                     actions: const [SizedBox.shrink()],
                   ),
                 ),
-              SliverPadding(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 220,
-                    mainAxisSpacing: AppTheme.space3,
-                    crossAxisSpacing: AppTheme.space3,
-                    childAspectRatio: 0.72,
+              if (catalog.products.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.space3,
+                      AppTheme.space3,
+                      AppTheme.space3,
+                      0,
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: l.commonSearch,
+                        prefixIcon: const Icon(Icons.search),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setState(() => _search = v),
+                    ),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, i) {
-                    final p = catalog.products[i];
-                    return _ProductCard(
-                      product: p,
-                      qty: _cart[p.id] ?? 0,
-                      onAdd: () => _add(p),
-                      onSub: () => _sub(p),
-                    );
-                  }, childCount: catalog.products.length),
                 ),
-              ),
+                if (catalog.categories.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: CategoryFilterBar(
+                      selectedId: _categoryId,
+                      onSelected: (id) => setState(() => _categoryId = id),
+                      options: [
+                        CategoryFilterOption(
+                          id: null,
+                          label: l.categoryAll,
+                          count: catalog.products.length,
+                        ),
+                        for (final c in catalog.categories)
+                          CategoryFilterOption(
+                            id: c.id,
+                            label: c.name,
+                            count: catalog.products
+                                .where((p) => p.categoryId == c.id)
+                                .length,
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+              if (catalog.products.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyStateView(
+                    icon: Icons.storefront_outlined,
+                    title: l.storefrontCatalogEmpty,
+                  ),
+                )
+              else if (visible.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyStateView(
+                    icon: Icons.search_off,
+                    title: l.storefrontNoSearchResults,
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(AppTheme.space3),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 220,
+                      mainAxisSpacing: AppTheme.space3,
+                      crossAxisSpacing: AppTheme.space3,
+                      childAspectRatio: 0.72,
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, i) {
+                      final p = visible[i];
+                      return _ProductCard(
+                        product: p,
+                        qty: _cart[p.id] ?? 0,
+                        onAdd: () => _add(p),
+                        onSub: () => _sub(p),
+                        currency: CurrencyDef.byCode(catalog.info.currencyCode),
+                      );
+                    }, childCount: visible.length),
+                  ),
+                ),
             ],
           );
         },
@@ -233,12 +318,19 @@ class _StorefrontPageState extends State<StorefrontPage> {
                   onPressed: () async {
                     final c = await _future;
                     if (!context.mounted) return;
-                    await _checkout(c);
+                    await _openCheckoutFlow(c);
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(AppTheme.space2),
                     child: Text(
-                      l.storefrontCheckoutBar(_count, _ks(l, _total)),
+                      l.storefrontCheckoutBar(
+                        _count,
+                        _ks(
+                          CurrencyDef.byCode(_info?.currencyCode),
+                          Localizations.localeOf(context).languageCode,
+                          _total,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -359,15 +451,18 @@ class _ProductCard extends StatelessWidget {
     required this.qty,
     required this.onAdd,
     required this.onSub,
+    required this.currency,
   });
   final StoreProduct product;
   final int qty;
   final VoidCallback onAdd;
   final VoidCallback onSub;
+  final CurrencyDef currency;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final soldOut = product.onlineAvailable == 0;
     final atCap =
         product.onlineAvailable != null && qty >= product.onlineAvailable!;
@@ -425,7 +520,7 @@ class _ProductCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: MoneyText(
-                        _ks(l, product.price),
+                        _ks(currency, locale, product.price),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -455,31 +550,7 @@ class _ProductCard extends StatelessWidget {
                       )
                     else
                       IntrinsicWidth(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton.filledTonal(
-                              onPressed: onSub,
-                              icon: const Icon(Icons.remove, size: 18),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.space2,
-                              ),
-                              child: Text(
-                                '$qty',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      fontFeatures: AppTheme.tabularFigures,
-                                    ),
-                              ),
-                            ),
-                            IconButton.filledTonal(
-                              onPressed: atCap ? null : onAdd,
-                              icon: const Icon(Icons.add, size: 18),
-                            ),
-                          ],
-                        ),
+                        child: _QtyStepper(qty: qty, onAdd: onAdd, onSub: onSub, atCap: atCap),
                       ),
                   ],
                 ),
@@ -492,25 +563,94 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-class _CheckoutSheet extends StatefulWidget {
-  const _CheckoutSheet({
+/// Tonal −/qty/+ control shared by the product grid card and the cart-review
+/// step — one place styling this the same way everywhere it appears, with
+/// real tooltips on the icon-only buttons (they had none before).
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({
+    required this.qty,
+    required this.onAdd,
+    required this.onSub,
+    required this.atCap,
+  });
+  final int qty;
+  final VoidCallback onAdd;
+  final VoidCallback onSub;
+  final bool atCap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton.filledTonal(
+          tooltip: l.sellDecreaseQty,
+          onPressed: onSub,
+          icon: const Icon(Icons.remove, size: 18),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space2),
+          child: Text(
+            '$qty',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontFeatures: AppTheme.tabularFigures),
+          ),
+        ),
+        IconButton.filledTonal(
+          tooltip: l.sellIncreaseQty,
+          onPressed: atCap ? null : onAdd,
+          icon: const Icon(Icons.add, size: 18),
+        ),
+      ],
+    );
+  }
+}
+
+/// Cart review → your details/payment → confirmation, in one modal sheet.
+///
+/// Three complaints drove this shape (owner feedback on the live storefront,
+/// 2026-09-02): the old sheet went straight from "Checkout" to a payment
+/// form with no way to see/edit the cart first; it had no visible close/back
+/// control other than swipe-to-dismiss; and it read as a plain form, not
+/// "an e-commerce checkout". A shared header (back arrow on the details step,
+/// a close X on every non-confirmation step) plus a cart-review first step
+/// answers all three without a second sheet or a route push.
+class _CheckoutFlowSheet extends StatefulWidget {
+  const _CheckoutFlowSheet({
     required this.slug,
     required this.api,
     required this.info,
-    required this.lines,
-    required this.total,
+    required this.cart,
+    required this.byId,
+    required this.currency,
+    required this.onAdd,
+    required this.onSub,
+    required this.onOrderPlaced,
   });
   final String slug;
   final StorefrontApi api;
   final StoreInfo info;
-  final List<OrderLine> lines;
-  final int total;
+
+  /// Same `Map` instance the product grid mutates — edits made on the
+  /// cart-review step (via [onAdd]/[onSub]) show up on the grid's bottom bar
+  /// the moment this sheet closes, with no separate sync step.
+  final Map<String, int> cart;
+  final Map<String, StoreProduct> byId;
+  final CurrencyDef currency;
+  final void Function(StoreProduct) onAdd;
+  final void Function(StoreProduct) onSub;
+
+  /// Called once, right when an order submission actually succeeds — not
+  /// tied to how (or whether) the sheet is later dismissed.
+  final VoidCallback onOrderPlaced;
 
   @override
-  State<_CheckoutSheet> createState() => _CheckoutSheetState();
+  State<_CheckoutFlowSheet> createState() => _CheckoutFlowSheetState();
 }
 
-class _CheckoutSheetState extends State<_CheckoutSheet> {
+class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
@@ -518,7 +658,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   // Honeypot: real customers never see or fill this field; a scripted bot
   // that blindly fills every input on the form will. Checked server-side.
   final _hp = TextEditingController();
-  String? _township;
   String _paymentMethod = 'transfer';
   bool _submitting = false;
   SubmitOrderResult? _submitted;
@@ -526,6 +665,24 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   List<int>? _proofBytes;
   String? _proofExt;
   String? _proofName;
+
+  /// true = showing the cart-review step, false = the details/payment step.
+  /// Confirmation is a separate check (`_submitted != null`), not a third
+  /// value here — once an order is placed there's no "back" into either.
+  bool _reviewingCart = true;
+
+  /// Computed live from [widget.cart] on every build, not a snapshot taken
+  /// when the sheet opened — the cart-review step lets the customer keep
+  /// editing quantities, so a fixed list would go stale the moment they did.
+  List<OrderLine> get _lines => [
+    for (final e in widget.cart.entries)
+      if (e.value > 0)
+        OrderLine(e.key, widget.byId[e.key]!.name, widget.byId[e.key]!.price, e.value),
+  ];
+  int get _total => _lines.fold(0, (s, l) => s + l.price * l.qty);
+
+  void _bumpAdd(StoreProduct p) => setState(() => widget.onAdd(p));
+  void _bumpSub(StoreProduct p) => setState(() => widget.onSub(p));
 
   @override
   void dispose() {
@@ -556,6 +713,42 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     });
   }
 
+  /// Re-fetches the catalog right before submitting and reconciles it against
+  /// the cart — a product's price (or availability) can change while the
+  /// customer is mid-checkout, since the whole catalog was only fetched once
+  /// when the page loaded. `submit_order` always re-reads prices server-side
+  /// regardless, so the *charge* is never wrong — but without this check, a
+  /// "transfer" customer could still manually wire a stale total before ever
+  /// seeing the real one (only the confirmation screen would show the
+  /// mismatch, after the money already moved). A cart item that disappeared
+  /// entirely (hidden/deleted) is dropped from the cart here rather than left
+  /// to null-crash `_lines` on the next rebuild. Returns true if anything
+  /// changed, so the caller can send the customer back to review it instead
+  /// of submitting against stale numbers. Best-effort: a network hiccup here
+  /// must not block an otherwise-valid submission, so it fails open (false).
+  Future<bool> _refreshPricesAndCart() async {
+    try {
+      final fresh = await widget.api.fetchCatalog(widget.slug);
+      final freshById = {for (final p in fresh.products) p.id: p};
+      var changed = false;
+      for (final id in widget.cart.keys.toList()) {
+        final freshProduct = freshById[id];
+        if (freshProduct == null) {
+          widget.cart.remove(id);
+          changed = true;
+        } else if (widget.byId[id]?.price != freshProduct.price) {
+          changed = true;
+        }
+      }
+      widget.byId
+        ..clear()
+        ..addAll(freshById);
+      return changed;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -576,6 +769,21 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
       return;
     }
     setState(() => _submitting = true);
+    if (await _refreshPricesAndCart()) {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _reviewingCart = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(AppLocalizations.of(context).storefrontPricesChanged),
+          ),
+        );
+      }
+      return;
+    }
     try {
       String? proofPath;
       if (_paymentMethod == 'transfer' && _proofBytes != null) {
@@ -590,14 +798,21 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         customerName: _name.text.trim(),
         phone: _phone.text.trim(),
         address: _address.text.trim(),
-        township: _township,
+        // Township is no longer collected as a separate field — the free-text
+        // delivery address above already asks for the full address, and a
+        // second structured field for the same information read as duplicate
+        // data entry (owner feedback, 2026-09-02). The column stays nullable
+        // server-side and still displays on the shop's order detail view for
+        // orders entered manually in-app, which still collect it.
+        township: null,
         note: _note.text.trim(),
         paymentMethod: _paymentMethod,
         paymentProofPath: _paymentMethod == 'transfer' ? proofPath : null,
-        lines: widget.lines,
+        lines: _lines,
         hp: _hp.text,
       );
       if (mounted) setState(() => _submitted = submitted);
+      widget.onOrderPlaced();
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context);
@@ -676,6 +891,239 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     );
   }
 
+  /// Shared step header: a title, a back arrow when [onBack] is given (the
+  /// details step returns to cart review), and an always-present close X
+  /// (`Navigator.pop` with no result — the parent only clears the mini-cart
+  /// when the sheet resolves with a non-null result, so backing out this way
+  /// never discards a submitted order). This is the fix for "no way to
+  /// cancel or go back" — a swipe-to-dismiss gesture existed before, but
+  /// nothing on screen told a customer it was there.
+  Widget _header(
+    BuildContext context, {
+    required String title,
+    VoidCallback? onBack,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: onBack == null
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onBack,
+                ),
+        ),
+        Expanded(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+          visualDensity: VisualDensity.compact,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+
+  Widget _cartStep(BuildContext context, AppLocalizations l) {
+    final lines = _lines;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _header(context, title: l.storefrontYourCart),
+        const SizedBox(height: AppTheme.space2),
+        if (lines.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.space5),
+            child: EmptyStateView(
+              icon: Icons.shopping_cart_outlined,
+              title: l.storefrontCartEmptyTitle,
+              message: l.storefrontCartEmptyBody,
+              actionLabel: l.storefrontContinueShopping,
+              onAction: () => Navigator.of(context).pop(),
+            ),
+          )
+        else ...[
+          for (final line in lines)
+            _CartLineRow(
+              line: line,
+              product: widget.byId[line.productId]!,
+              currency: widget.currency,
+              onAdd: () => _bumpAdd(widget.byId[line.productId]!),
+              onSub: () => _bumpSub(widget.byId[line.productId]!),
+            ),
+          const Divider(),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.commonTotal,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              MoneyText(
+                _ks(
+                  widget.currency,
+                  Localizations.localeOf(context).languageCode,
+                  _total,
+                ),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space3),
+          FilledButton(
+            onPressed: () => setState(() => _reviewingCart = false),
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.space2),
+              child: Text(l.storefrontProceedToCheckout),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _detailsStep(BuildContext context, AppLocalizations l) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _header(
+          context,
+          title: l.storefrontYourDetails,
+          onBack: () => setState(() => _reviewingCart = true),
+        ),
+        const SizedBox(height: AppTheme.space3),
+        // Honeypot — kept out of the visible layout entirely (zero size,
+        // not just hidden) so no real customer can tab/scroll into it.
+        Offstage(child: TextField(controller: _hp, autofocus: false)),
+        TextField(
+          controller: _name,
+          decoration: InputDecoration(labelText: l.storefrontNameRequired),
+        ),
+        const SizedBox(height: AppTheme.space2),
+        TextField(
+          controller: _phone,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(labelText: l.shopPhone),
+        ),
+        const SizedBox(height: AppTheme.space2),
+        TextField(
+          controller: _address,
+          maxLines: 2,
+          decoration: InputDecoration(labelText: l.orderDeliveryAddress),
+        ),
+        const SizedBox(height: AppTheme.space2),
+        TextField(
+          controller: _note,
+          decoration: InputDecoration(labelText: l.orderNote),
+        ),
+        const SizedBox(height: AppTheme.space4),
+        SectionHeader(title: l.storefrontPayment),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(
+              value: 'transfer',
+              label: Text(l.storefrontBankTransfer),
+              icon: const Icon(Icons.account_balance_outlined),
+            ),
+            ButtonSegment(
+              value: 'cod',
+              label: Text(l.storefrontCashOnDelivery),
+              icon: const Icon(Icons.local_shipping_outlined),
+            ),
+          ],
+          selected: {_paymentMethod},
+          onSelectionChanged: (s) => setState(() => _paymentMethod = s.first),
+        ),
+        const SizedBox(height: AppTheme.space3),
+        if (_paymentMethod == 'transfer') ...[
+          if (widget.info.paymentMethods.isNotEmpty) ...[
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.storefrontPayTo,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: AppTheme.space1),
+                    for (final m in widget.info.paymentMethods)
+                      _PayAccountRow(
+                        method: m.label,
+                        name: m.accountName,
+                        number: m.accountNumber,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space2),
+          ],
+          OutlinedButton.icon(
+            onPressed: _pickProof,
+            icon: const Icon(Icons.upload_file),
+            label: Text(
+              _proofName == null
+                  ? (widget.info.requireTransferProof
+                        ? l.storefrontAttachProofRequired
+                        : l.storefrontAttachProof)
+                  : l.storefrontProofAttached(_proofName!),
+            ),
+          ),
+        ] else
+          Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.space3),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 18),
+                  const SizedBox(width: AppTheme.space2),
+                  Expanded(child: Text(l.storefrontCodNoticeBeforeOrder)),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: AppTheme.space4),
+        Text(
+          l.storefrontTotal(
+            _ks(
+              widget.currency,
+              Localizations.localeOf(context).languageCode,
+              _total,
+            ),
+          ),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppTheme.space3),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space2),
+            child: _submitting
+                ? const ButtonSpinner()
+                : Text(l.storefrontPlaceOrder),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -689,155 +1137,20 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         bottom + AppTheme.space4,
       ),
       child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l.storefrontYourDetails,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppTheme.space3),
-            // Honeypot — kept out of the visible layout entirely (zero size,
-            // not just hidden) so no real customer can tab/scroll into it.
-            Offstage(child: TextField(controller: _hp, autofocus: false)),
-            TextField(
-              controller: _name,
-              decoration: InputDecoration(labelText: l.storefrontNameRequired),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: _phone,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(labelText: l.shopPhone),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: _address,
-              maxLines: 2,
-              decoration: InputDecoration(labelText: l.orderDeliveryAddress),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            DropdownButtonFormField<String>(
-              initialValue: _township,
-              isExpanded: true,
-              decoration: InputDecoration(labelText: l.deliveryTownship),
-              items: [
-                for (final t in myanmarTownships)
-                  DropdownMenuItem(value: t, child: Text(t)),
-              ],
-              onChanged: (v) => setState(() => _township = v),
-            ),
-            const SizedBox(height: AppTheme.space2),
-            TextField(
-              controller: _note,
-              decoration: InputDecoration(labelText: l.orderNote),
-            ),
-            const SizedBox(height: AppTheme.space4),
-            SectionHeader(title: l.storefrontPayment),
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment(
-                  value: 'transfer',
-                  label: Text(l.storefrontBankTransfer),
-                  icon: const Icon(Icons.account_balance_outlined),
-                ),
-                ButtonSegment(
-                  value: 'cod',
-                  label: Text(l.storefrontCashOnDelivery),
-                  icon: const Icon(Icons.local_shipping_outlined),
-                ),
-              ],
-              selected: {_paymentMethod},
-              onSelectionChanged: (s) =>
-                  setState(() => _paymentMethod = s.first),
-            ),
-            const SizedBox(height: AppTheme.space3),
-            if (_paymentMethod == 'transfer') ...[
-              if ((widget.info.payKpay ?? '').isNotEmpty ||
-                  (widget.info.payWave ?? '').isNotEmpty) ...[
-                Card(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.space3),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l.storefrontPayTo,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: AppTheme.space1),
-                        if ((widget.info.payKpay ?? '').isNotEmpty)
-                          _PayAccountRow(
-                            method: 'KBZPay',
-                            name: widget.info.payKpayName,
-                            number: widget.info.payKpay!,
-                          ),
-                        if ((widget.info.payWave ?? '').isNotEmpty)
-                          _PayAccountRow(
-                            method: 'WavePay',
-                            name: widget.info.payWaveName,
-                            number: widget.info.payWave!,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.space2),
-              ],
-              OutlinedButton.icon(
-                onPressed: _pickProof,
-                icon: const Icon(Icons.upload_file),
-                label: Text(
-                  _proofName == null
-                      ? (widget.info.requireTransferProof
-                            ? l.storefrontAttachProofRequired
-                            : l.storefrontAttachProof)
-                      : l.storefrontProofAttached(_proofName!),
-                ),
-              ),
-            ] else
-              Card(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.space3),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, size: 18),
-                      const SizedBox(width: AppTheme.space2),
-                      Expanded(child: Text(l.storefrontCodNoticeBeforeOrder)),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: AppTheme.space4),
-            Text(
-              l.storefrontTotal(_ks(l, widget.total)),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppTheme.space3),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space2),
-                child: _submitting
-                    ? const ButtonSpinner()
-                    : Text(l.storefrontPlaceOrder),
-              ),
-            ),
-          ],
-        ),
+        child: _reviewingCart
+            ? _cartStep(context, l)
+            : _detailsStep(context, l),
       ),
     );
   }
 
-  /// Prices the server actually charged — not the first catalog fetch, which
-  /// can go stale if the owner edits a product while this page is open.
+  /// Prices the server actually charged — not the client-computed [_lines],
+  /// which can go stale between submit and this confirmation view if the
+  /// owner edits a product mid-checkout.
   List<OrderLine> get _chargedLines {
     final server = _submitted?.lines;
     if (server != null && server.isNotEmpty) return server;
-    return widget.lines;
+    return _lines;
   }
 
   InvoiceData _invoiceData(AppLocalizations l) => InvoiceData(
@@ -850,7 +1163,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     customerName: _name.text.trim(),
     customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     deliveryAddress: _address.text.trim().isEmpty ? null : _address.text.trim(),
-    township: _township,
     items: [
       for (final line in _chargedLines)
         InvoiceItemData(
@@ -915,21 +1227,14 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             InvoiceView(data: _invoiceData(l)),
             const SizedBox(height: AppTheme.space3),
             if (_paymentMethod == 'transfer' &&
-                ((widget.info.payKpay ?? '').isNotEmpty ||
-                    (widget.info.payWave ?? '').isNotEmpty)) ...[
+                widget.info.paymentMethods.isNotEmpty) ...[
               Text(l.storefrontTransferInstructions),
               const SizedBox(height: AppTheme.space2),
-              if ((widget.info.payKpay ?? '').isNotEmpty)
+              for (final m in widget.info.paymentMethods)
                 _PayAccountRow(
-                  method: 'KBZPay',
-                  name: widget.info.payKpayName,
-                  number: widget.info.payKpay!,
-                ),
-              if ((widget.info.payWave ?? '').isNotEmpty)
-                _PayAccountRow(
-                  method: 'WavePay',
-                  name: widget.info.payWaveName,
-                  number: widget.info.payWave!,
+                  method: m.label,
+                  name: m.accountName,
+                  number: m.accountNumber,
                 ),
               const SizedBox(height: AppTheme.space4),
             ] else if (_paymentMethod == 'cod') ...[
@@ -960,6 +1265,78 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One line in the cart-review step: thumbnail, name + unit price, and a
+/// trailing qty stepper stacked over the tabular line total — the pattern
+/// convergent across small-shop ordering apps (stepper on the trailing
+/// edge, total right-aligned under it) rather than a bare quantity number.
+/// No separate "remove" control: dragging the stepper to 0 removes the line,
+/// same gesture the product grid already teaches on the way in.
+class _CartLineRow extends StatelessWidget {
+  const _CartLineRow({
+    required this.line,
+    required this.product,
+    required this.currency,
+    required this.onAdd,
+    required this.onSub,
+  });
+  final OrderLine line;
+  final StoreProduct product;
+  final CurrencyDef currency;
+  final VoidCallback onAdd;
+  final VoidCallback onSub;
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final atCap =
+        product.onlineAvailable != null && line.qty >= product.onlineAvailable!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ProductThumb(name: line.name, imageUrl: product.imageUrl, size: 48),
+          const SizedBox(width: AppTheme.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // No `maxLines`/`overflow: ellipsis` here on purpose — a
+                // Myanmar product name can run 20-40% longer than its
+                // English counterpart and stack diacritics, so this wraps to
+                // as many lines as it needs instead of clipping the one
+                // thing that tells the customer what they're buying.
+                Text(line.name, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  _ks(currency, locale, line.price),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.of(context).muted,
+                    fontFeatures: AppTheme.tabularFigures,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppTheme.space2),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _QtyStepper(qty: line.qty, onAdd: onAdd, onSub: onSub, atCap: atCap),
+              const SizedBox(height: AppTheme.space1),
+              MoneyText(
+                _ks(currency, locale, line.price * line.qty),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

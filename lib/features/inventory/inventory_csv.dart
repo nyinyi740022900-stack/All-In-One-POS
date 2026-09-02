@@ -1,4 +1,5 @@
 import '../../core/csv_util.dart';
+import '../../core/money.dart';
 import '../../domain/product_with_stock.dart';
 
 /// Pure: renders the current product list (with stock) as CSV, for handing
@@ -17,6 +18,7 @@ String buildInventoryCsv(
   required String salePriceHeader,
   required String quantityHeader,
   required String reorderLevelHeader,
+  int exponent = 0,
 }) {
   return csvDocument(
     [
@@ -36,8 +38,8 @@ String buildInventoryCsv(
           p.product.sku ?? '',
           p.product.barcode ?? '',
           categoryNameById[p.product.categoryId] ?? '',
-          p.product.costPrice,
-          p.product.salePrice,
+          formatMinorUnitsPlain(p.product.costPrice, exponent: exponent),
+          formatMinorUnitsPlain(p.product.salePrice, exponent: exponent),
           p.quantity,
           p.reorderLevel,
         ],

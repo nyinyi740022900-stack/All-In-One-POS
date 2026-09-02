@@ -1026,6 +1026,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get productVipPrice => 'VIP ဈေး';
 
   @override
+  String get productSellOnline => 'Web storefront မှာ ရောင်းမည်';
+
+  @override
+  String get productSellOnlineHint =>
+      'ပိတ်ထားရင် ဒီပစ္စည်းကို Web storefront ပေါ်မှာ လုံးဝ ဖျောက်ထားပေးပါမယ် — ဆိုင်ထဲမှာတော့ ပုံမှန် ရောင်းလို့ရပါတယ်။ Default အနေနဲ့ ဖွင့်ထားပါတယ်။';
+
+  @override
   String get productOnlineStockLimitHint =>
       'အွန်လိုင်းအတွက် အကြံပြု — Web storefront ကနေ ဒီပစ္စည်း ဘယ်နှစ်ခုအထိ ရောင်းမလဲ သတ်မှတ်ပါ (ဆိုင်ထဲ လက်ကျန် လုံခြုံအောင်)။ ကွက်လပ် = ကန့်သတ် မရှိ။';
 
@@ -1345,6 +1352,13 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get shopPhone => 'ဖုန်း';
+
+  @override
+  String get shopCurrency => 'ငွေကြေးအမျိုးအစား';
+
+  @override
+  String get shopCurrencyLockedHint =>
+      'ပထမဆုံးအရောင်း ဖြစ်ပြီးနောက် ငွေကြေးအမျိုးအစား ပြောင်းလို့မရတော့ပါ။';
 
   @override
   String get receiptFooter => 'ပြေစာအောက်ခြေ စာသား';
@@ -2232,6 +2246,15 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get licensePayOnlineHint =>
       'ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ။ Premium အသစ်ဝယ်တာရော သက်တမ်းတိုးတာရော ရပါတယ် — app ထဲ account မလိုပါ။';
+
+  @override
+  String get licenseChooseRegionTitle => 'သင့်ဆိုင် ဘယ်နေရာမှာလဲ';
+
+  @override
+  String get licenseRegionMyanmar => 'မြန်မာနိုင်ငံ';
+
+  @override
+  String get licenseRegionInternational => 'နိုင်ငံတကာ';
 
   @override
   String get licenseContactViber => 'Viber ကနေ ဆက်သွယ်မည်';
@@ -3198,6 +3221,13 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontLogoLabel => 'ဆိုင် Logo';
 
   @override
+  String get storefrontEditInShopProfile => 'ဆိုင်အချက်အလက်မှာ ပြင်ရန်';
+
+  @override
+  String get storefrontFromShopProfileHint =>
+      'အမည်၊ ဖုန်း၊ လိပ်စာ၊ Logo နဲ့ Payment accounts တွေက ပြေစာနဲ့ တူတူသုံးထားတာပါ — Settings → ဆိုင်အချက်အလက် ထဲမှာ တစ်နေရာတည်း ပြင်ပါ။';
+
+  @override
   String get storefrontProfileSaved => 'သိမ်းပြီးပါပြီ';
 
   @override
@@ -3218,6 +3248,10 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontProofRequired => 'မှာယူမီ လွှဲငွေ screenshot တွဲပေးပါ။';
+
+  @override
+  String get storefrontPricesChanged =>
+      'ဈေးနှုန်း အချို့ ပြောင်းလဲသွားပါတယ် — ခြင်းတောင်းကို ပြန်စစ်ပြီး ထပ်မှာပေးပါ။';
 
   @override
   String get storefrontAttachProofRequired => 'ငွေလွှဲ screenshot တွဲပါ *';
@@ -3282,16 +3316,19 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဖောက်သည်က checkout မှာ ဘယ်သူ့ဆီ လွှဲရမလဲ သိရအောင် ပြပေးပါမည်။';
 
   @override
-  String get storefrontPayKpayName => 'KBZPay အကောင့်နာမည်';
+  String get paymentMethodLabel => 'ငွေပေးချေမှုနည်းလမ်း (ဥပမာ KBZPay, PayPal)';
 
   @override
-  String get storefrontPayKpayNumber => 'KBZPay နံပါတ်';
+  String get paymentMethodAccountName => 'အကောင့်နာမည်';
 
   @override
-  String get storefrontPayWaveName => 'WavePay အကောင့်နာမည်';
+  String get paymentMethodAccountNumber => 'အကောင့်နံပါတ်';
 
   @override
-  String get storefrontPayWaveNumber => 'WavePay နံပါတ်';
+  String get paymentMethodAdd => 'ငွေပေးချေမှုနည်းလမ်း ထပ်ထည့်ရန်';
+
+  @override
+  String get paymentMethodRemove => 'ငွေပေးချေမှုနည်းလမ်း ဖျက်ရန်';
 
   @override
   String get storefrontNumberCopied => 'နံပါတ် ကူးယူပြီး';
@@ -3333,6 +3370,29 @@ class AppLocalizationsMy extends AppLocalizations {
   String storefrontCheckoutBar(int count, String total) {
     return 'ငွေရှင်း · $count item(s) · $total';
   }
+
+  @override
+  String get storefrontNoSearchResults =>
+      'ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။';
+
+  @override
+  String get storefrontCatalogEmpty => 'ဒီဆိုင်တွင် ပစ္စည်းများ မထည့်ရသေးပါ။';
+
+  @override
+  String get storefrontYourCart => 'သင့်ဈေးဝယ်တောင်း';
+
+  @override
+  String get storefrontCartEmptyTitle => 'သင့်ဈေးဝယ်တောင်း ဗလာဖြစ်နေပါသည်';
+
+  @override
+  String get storefrontCartEmptyBody =>
+      'ဆိုင်ကို လှည့်ကြည့်ပြီး ပစ္စည်းများ ထည့်ပါ။';
+
+  @override
+  String get storefrontContinueShopping => 'ဆက်လက်ဝယ်ယူရန်';
+
+  @override
+  String get storefrontProceedToCheckout => 'ရှေ့ဆက်မည်';
 
   @override
   String get storefrontShopFallbackName => 'ဆိုင်';
@@ -3435,6 +3495,25 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontRenewEmailHint =>
       'ဒါရှိရင် အပေါ်က App Reference ID မလိုပါဘူး — တစ်ခုပဲ ဖြည့်ရင် ရပါတယ်။';
+
+  @override
+  String get storefrontRenewSignInPrompt =>
+      'Account ရှိပြီးသားလား။ အချက်အလက် ထပ်မရိုက်ရအောင်နဲ့ ယခင် တောင်းဆိုမှုများ ကြည့်ရအောင် Sign in ဝင်ပါ။';
+
+  @override
+  String get storefrontRenewSignInFailed =>
+      'Sign in ဝင်လို့မရပါ။ Email နဲ့ Password ကို ပြန်စစ်ပါ။';
+
+  @override
+  String storefrontRenewSignedInAs(String email) {
+    return '$email အနေနဲ့ Sign in ဝင်ထားပါတယ်';
+  }
+
+  @override
+  String get storefrontRenewHistoryTitle => 'ယခင် တောင်းဆိုမှုများ';
+
+  @override
+  String get storefrontRenewHistoryEmpty => 'တောင်းဆိုမှု မရှိသေးပါ။';
 
   @override
   String get storefrontRenewPlan => 'အစီအစဉ်';

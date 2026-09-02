@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'order_detail_sheet.dart';
 import 'order_editor_sheet.dart';
 import 'order_labels.dart';
@@ -38,6 +40,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final l = AppLocalizations.of(context);
     final ordersAsync = ref.watch(ordersStreamProvider);
     final filtered = ref.watch(filteredOrdersListProvider);
+    final currency = ref.watch(shopCurrencyProvider);
     final split = isMediumPlus(context);
 
     if (_selectedOrderId != null &&
@@ -91,6 +94,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                       itemBuilder: (context, i) => _OrderCard(
                         key: ValueKey('order-${filtered[i].id}'),
                         order: filtered[i],
+                        currency: currency,
                         selected: split && filtered[i].id == _selectedOrderId,
                         onTap: () => openOrder(filtered[i]),
                       ),
@@ -296,17 +300,19 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({
     super.key,
     required this.order,
+    required this.currency,
     required this.onTap,
     this.selected = false,
   });
   final Order order;
+  final CurrencyDef currency;
   final VoidCallback onTap;
   final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sym = l.currencySymbol;
+    final locale = Localizations.localeOf(context).languageCode;
     final total = order.itemsTotal + order.deliveryFee;
     final scheme = Theme.of(context).colorScheme;
     return Padding(
@@ -363,7 +369,7 @@ class _OrderCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      Money(total).withSymbol(sym),
+                      Money(total).withCurrency(currency, locale),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),

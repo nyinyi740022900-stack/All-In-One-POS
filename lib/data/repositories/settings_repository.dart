@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/payment_method.dart';
 import '../../features/invoices/receipt_data.dart';
 import '../../features/printing/label_data.dart';
 import '../../features/printing/printer_connection.dart';
@@ -57,6 +58,9 @@ class SettingsRepository {
   static const _kShopAddress = 'shop.address';
   static const _kShopPhone = 'shop.phone';
   static const _kShopLogo = 'shop.logo_url';
+  static const _kShopCountry = 'shop.country';
+  static const _kShopCurrency = 'shop.currency';
+  static const _kShopPaymentMethods = 'shop.payment_methods';
   static const _kReceiptFooter = 'receipt.footer';
   static const _kTrackStock = 'shop.track_stock';
   static const _kReferralSeenEarned = 'referral.seen_earned';
@@ -672,6 +676,11 @@ class SettingsRepository {
       phone: await get(_kShopPhone),
       logoUrl: await get(_kShopLogo),
       footer: await get(_kReceiptFooter),
+      country: (await get(_kShopCountry)) ?? 'MM',
+      currencyCode: (await get(_kShopCurrency)) ?? 'MMK',
+      paymentMethods: PaymentMethod.listFromJson(
+        jsonDecode((await get(_kShopPaymentMethods)) ?? '[]'),
+      ),
     );
   }
 
@@ -718,6 +727,47 @@ class SettingsRepository {
     if (p.footer != null) {
       await _set(_shopKey(_kReceiptFooter, shopId), p.footer!);
     }
+    // country is no longer editable from any screen (License screen asks
+    // Myanmar-vs-International at subscribe time instead — see
+    // `LicenseScreen._choosePurchaseRegion`); never overwrite whatever value
+    // is already there so an old install's setting isn't silently reset to
+    // the 'MM' default on every unrelated profile save.
+    if (p.paymentMethods != null) {
+      await _set(
+        _shopKey(_kShopPaymentMethods, shopId),
+        jsonEncode(PaymentMethod.listToJson(p.paymentMethods!)),
+      );
+    }
+    // currency is NOT written here even when p.currencyCode is non-null —
+    // it has its own dedicated setter (setShopCurrency) because it must
+    // enforce the after-first-sale lock; folding it into this generic
+    // optional-write body would let a plain profile save bypass that check.
+  }
+
+  /// Whether [shopId] may still change its POS currency — true only once it
+  /// has zero finalized (non-deleted) sales. Once a sale exists, its total
+  /// is stored as a raw integer of minor units under the currency that was
+  /// active at the time; switching the shop's currency afterward would
+  /// silently reinterpret that same integer under a different exponent
+  /// (e.g. an MMK 1,250 sale would read as USD $12.50) — so the switch is
+  /// locked, not migrated.
+  Future<bool> currencyChangeAllowed(String shopId) async {
+    final rows = await (_db.select(_db.sales)
+          ..where((t) => t.shopId.equals(shopId) & t.isDeleted.equals(false))
+          ..limit(1))
+        .get();
+    return rows.isEmpty;
+  }
+
+  /// Sets the shop's POS currency (see [ShopProfile.currencyCode]). A
+  /// dedicated setter — like [setShopLogoUrl] — rather than folded into
+  /// [saveShopProfile], so [currencyChangeAllowed]'s lock is always
+  /// enforced regardless of caller.
+  Future<void> setShopCurrency(String shopId, String currencyCode) async {
+    if (!await currencyChangeAllowed(shopId)) {
+      throw StateError('currency_locked_after_first_sale');
+    }
+    await _set(_shopKey(_kShopCurrency, shopId), currencyCode);
   }
 
   /// One-time copy-down from the synced `shop_profiles` mirror into the
@@ -742,6 +792,14 @@ class SettingsRepository {
         shopId,
         ShopProfile(name: row.name, address: row.address, phone: row.phone),
       );
+      // Currency bypasses saveShopProfile/setShopCurrency's own lock check on
+      // purpose: this is a fresh device *adopting* the shop's already-decided
+      // currency, not a user-initiated change, so the after-first-sale lock
+      // (which exists to stop a change, not a same-value hydration) must not
+      // block it — a device that already has local sales pulled down would
+      // otherwise stay stuck on the 'MMK' default forever with no way to fix
+      // it, since the picker itself is locked once a sale exists.
+      await _set(_shopKey(_kShopCurrency, shopId), row.currencyCode);
     }
     await _set(flagKey, 'true');
   }
@@ -790,11 +848,39 @@ class ShopProfile {
   final String? phone;
   final String? logoUrl;
   final String? footer;
+
+  /// ISO-2 code, defaults `'MM'`. No screen edits this anymore — the
+  /// License screen asks Myanmar-vs-International at subscribe time instead
+  /// (`LicenseScreen._choosePurchaseRegion`) — kept only so an old value
+  /// already on a device/row isn't lost.
+  final String country;
+
+  /// Custom-named ways customers can pay (e.g. KBZPay, PayPal, PromptPay),
+  /// shown at checkout so they know who to transfer to. Null means "don't
+  /// touch what's saved" (for [SettingsRepository.saveShopProfile], matching
+  /// address/phone/footer's optional-write pattern); an empty list means
+  /// "the owner explicitly cleared every method". The single edit point for
+  /// both the printed receipt and — when the shop has a published web
+  /// Storefront — `storefronts.payment_methods`, mirrored there by
+  /// `ShopProfileScreen._save` so the owner never re-types these in two
+  /// places. See `StorefrontScreen`, which only shows them read-only.
+  final List<PaymentMethod>? paymentMethods;
+
+  /// ISO 4217 code for what this shop sells in (`CurrencyDef.byCode`).
+  /// Null means "don't touch what's saved" for
+  /// [SettingsRepository.saveShopProfile] — unlike [country], this field
+  /// genuinely can be set, but only through the dedicated
+  /// [SettingsRepository.setShopCurrency] (which enforces the
+  /// after-first-sale lock), never through a plain profile save.
+  final String? currencyCode;
   const ShopProfile({
     required this.name,
     this.address,
     this.phone,
     this.logoUrl,
     this.footer,
+    this.country = 'MM',
+    this.paymentMethods,
+    this.currencyCode,
   });
 }

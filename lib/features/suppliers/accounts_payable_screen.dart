@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -42,7 +43,8 @@ class AccountsPayableScreen extends ConsumerWidget {
         ),
       );
     }
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final filter = ref.watch(accountsPayableFilterProvider);
     final balances = filter == AccountsPayableFilter.all
         ? ref.watch(allSupplierBalancesProvider)
@@ -58,6 +60,7 @@ class AccountsPayableScreen extends ConsumerWidget {
           billedHeader: l.apBilledHeader,
           paidHeader: l.apPaidHeader,
           outstandingHeader: l.apOutstanding,
+          exponent: currency.exponent,
         );
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/accounts-payable.csv');
@@ -98,9 +101,9 @@ class AccountsPayableScreen extends ConsumerWidget {
             for (final b in balances)
               [
                 b.name,
-                Money(b.billed).withSymbol(currency),
-                Money(b.paid).withSymbol(currency),
-                Money(b.outstanding).withSymbol(currency),
+                Money(b.billed).withCurrency(currency, locale),
+                Money(b.paid).withCurrency(currency, locale),
+                Money(b.outstanding).withCurrency(currency, locale),
               ],
           ],
           emptyLabel: l.apEmpty,
@@ -151,7 +154,7 @@ class AccountsPayableScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
                 MoneyText(
-                  Money(total).withSymbol(currency),
+                  Money(total).withCurrency(currency, locale),
                   textAlign: TextAlign.start,
                   emphasis: true,
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -206,7 +209,7 @@ class AccountsPayableScreen extends ConsumerWidget {
                                 icon: Icons.check_circle,
                               )
                             : MoneyText(
-                                Money(b.outstanding).withSymbol(currency),
+                                Money(b.outstanding).withCurrency(currency, locale),
                                 emphasis: true,
                                 color: colors.danger,
                               ),
@@ -238,7 +241,8 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final balance = ref.watch(allSupplierBalancesProvider).firstWhere(
           (b) => b.key == supplierKey,
           orElse: () => SupplierBalance(
@@ -272,7 +276,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
               Text(l.apOutstanding,
                   style: Theme.of(context).textTheme.titleMedium),
               MoneyText(
-                Money(balance.outstanding).withSymbol(currency),
+                Money(balance.outstanding).withCurrency(currency, locale),
                 emphasis: true,
                 style: Theme.of(context).textTheme.titleLarge,
                 color: balance.outstanding > 0
@@ -294,7 +298,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
           subtitle: po.receivedAt != null
               ? Text(df.format(po.receivedAt!))
               : null,
-          trailing: MoneyText(Money(po.itemsTotal).withSymbol(currency)),
+          trailing: MoneyText(Money(po.itemsTotal).withCurrency(currency, locale)),
         ),
       if (payments.isNotEmpty) ...[
         const SizedBox(height: AppTheme.space3),
@@ -306,7 +310,7 @@ class AccountsPayableSupplierScreen extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.check_circle, color: colors.success),
             title: MoneyText(
-              '-${Money(p.amount).withSymbol(currency)}',
+              '-${Money(p.amount).withCurrency(currency, locale)}',
               textAlign: TextAlign.left,
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -360,7 +364,10 @@ class _SupplierPaymentDialogState
   @override
   void initState() {
     super.initState();
-    _amount.text = '${widget.balance.outstanding}';
+    _amount.text = formatDecimalMinorUnits(
+      widget.balance.outstanding,
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
   }
 
   @override
@@ -371,7 +378,10 @@ class _SupplierPaymentDialogState
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     if (amount <= 0 || amount > widget.balance.outstanding) return;
@@ -400,7 +410,12 @@ class _SupplierPaymentDialogState
     final l = AppLocalizations.of(context);
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     final methods = paymentMethodIds(accounts);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: currency.exponent,
+    );
     final exceedsOutstanding = amount > widget.balance.outstanding;
     return AlertDialog(
       title: Text(l.apRecordPayment),
@@ -410,17 +425,18 @@ class _SupplierPaymentDialogState
           TextField(
             controller: _amount,
             autofocus: true,
-            keyboardType: TextInputType.number,
+            keyboardType:
+                TextInputType.numberWithOptions(decimal: currency.exponent > 0),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              DecimalMoneyInputFormatter(exponent: currency.exponent),
+              LengthLimitingTextInputFormatter(12),
             ],
             decoration: InputDecoration(
               labelText: l.creditAmount,
               errorText: exceedsOutstanding
                   ? l.creditRepaymentExceedsOutstanding(
                       Money(widget.balance.outstanding)
-                          .withSymbol(l.currencySymbol))
+                          .withCurrency(currency, locale))
                   : null,
             ),
             onChanged: (_) => setState(() {}),

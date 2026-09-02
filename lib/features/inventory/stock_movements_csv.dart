@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../../core/csv_util.dart';
+import '../../core/money.dart';
 import 'inventory_providers.dart';
 
 /// Pure: renders the filtered stock-movement ledger as CSV, for handing the
@@ -20,6 +21,7 @@ String buildStockMovementsCsv(
   required String noteHeader,
   required String Function(String type) typeLabel,
   DateFormat? dateFormat,
+  int exponent = 0,
 }) {
   final fmt = dateFormat ?? DateFormat('yyyy-MM-dd HH:mm');
   return csvDocument(
@@ -38,7 +40,7 @@ String buildStockMovementsCsv(
           mp.productName,
           typeLabel(mp.movement.type),
           mp.movement.qtyDelta,
-          mp.movement.unitCost,
+          formatMinorUnitsPlain(mp.movement.unitCost, exponent: exponent),
           mp.movement.note ?? '',
         ],
     ],

@@ -1970,6 +1970,18 @@ abstract class AppLocalizations {
   /// **'VIP price'**
   String get productVipPrice;
 
+  /// No description provided for @productSellOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell on web storefront'**
+  String get productSellOnline;
+
+  /// No description provided for @productSellOnlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off hides this product from your public web storefront entirely — it still sells normally in-store. On by default.'**
+  String get productSellOnlineHint;
+
   /// No description provided for @productOnlineStockLimitHint.
   ///
   /// In en, this message translates to:
@@ -2563,6 +2575,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Phone'**
   String get shopPhone;
+
+  /// No description provided for @shopCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get shopCurrency;
+
+  /// No description provided for @shopCurrencyLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency can\'t be changed after your first sale.'**
+  String get shopCurrencyLockedHint;
 
   /// No description provided for @receiptFooter.
   ///
@@ -4183,6 +4207,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.'**
   String get licensePayOnlineHint;
+
+  /// No description provided for @licenseChooseRegionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where is your shop?'**
+  String get licenseChooseRegionTitle;
+
+  /// No description provided for @licenseRegionMyanmar.
+  ///
+  /// In en, this message translates to:
+  /// **'Myanmar Region'**
+  String get licenseRegionMyanmar;
+
+  /// No description provided for @licenseRegionInternational.
+  ///
+  /// In en, this message translates to:
+  /// **'International'**
+  String get licenseRegionInternational;
 
   /// No description provided for @licenseContactViber.
   ///
@@ -5858,6 +5900,18 @@ abstract class AppLocalizations {
   /// **'Shop logo'**
   String get storefrontLogoLabel;
 
+  /// No description provided for @storefrontEditInShopProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit in Shop profile'**
+  String get storefrontEditInShopProfile;
+
+  /// No description provided for @storefrontFromShopProfileHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Settings → Shop profile.'**
+  String get storefrontFromShopProfileHint;
+
   /// No description provided for @storefrontProfileSaved.
   ///
   /// In en, this message translates to:
@@ -5893,6 +5947,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please attach your transfer screenshot before placing the order.'**
   String get storefrontProofRequired;
+
+  /// No description provided for @storefrontPricesChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Some prices have changed — please review your cart before placing the order again.'**
+  String get storefrontPricesChanged;
 
   /// No description provided for @storefrontAttachProofRequired.
   ///
@@ -6008,29 +6068,35 @@ abstract class AppLocalizations {
   /// **'Shown to customers at checkout so they know who to transfer to.'**
   String get storefrontPaymentInfoHint;
 
-  /// No description provided for @storefrontPayKpayName.
+  /// No description provided for @paymentMethodLabel.
   ///
   /// In en, this message translates to:
-  /// **'KBZPay account name'**
-  String get storefrontPayKpayName;
+  /// **'Payment method (e.g. KBZPay, PayPal)'**
+  String get paymentMethodLabel;
 
-  /// No description provided for @storefrontPayKpayNumber.
+  /// No description provided for @paymentMethodAccountName.
   ///
   /// In en, this message translates to:
-  /// **'KBZPay number'**
-  String get storefrontPayKpayNumber;
+  /// **'Account name'**
+  String get paymentMethodAccountName;
 
-  /// No description provided for @storefrontPayWaveName.
+  /// No description provided for @paymentMethodAccountNumber.
   ///
   /// In en, this message translates to:
-  /// **'WavePay account name'**
-  String get storefrontPayWaveName;
+  /// **'Account number'**
+  String get paymentMethodAccountNumber;
 
-  /// No description provided for @storefrontPayWaveNumber.
+  /// No description provided for @paymentMethodAdd.
   ///
   /// In en, this message translates to:
-  /// **'WavePay number'**
-  String get storefrontPayWaveNumber;
+  /// **'Add payment method'**
+  String get paymentMethodAdd;
+
+  /// No description provided for @paymentMethodRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove payment method'**
+  String get paymentMethodRemove;
 
   /// No description provided for @storefrontNumberCopied.
   ///
@@ -6097,6 +6163,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Checkout · {count} item(s) · {total}'**
   String storefrontCheckoutBar(int count, String total);
+
+  /// No description provided for @storefrontNoSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No products match your search.'**
+  String get storefrontNoSearchResults;
+
+  /// No description provided for @storefrontCatalogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop hasn\'t added any products yet.'**
+  String get storefrontCatalogEmpty;
+
+  /// No description provided for @storefrontYourCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cart'**
+  String get storefrontYourCart;
+
+  /// No description provided for @storefrontCartEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cart is empty'**
+  String get storefrontCartEmptyTitle;
+
+  /// No description provided for @storefrontCartEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse the shop and add items to get started.'**
+  String get storefrontCartEmptyBody;
+
+  /// No description provided for @storefrontContinueShopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue shopping'**
+  String get storefrontContinueShopping;
+
+  /// No description provided for @storefrontProceedToCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed to checkout'**
+  String get storefrontProceedToCheckout;
 
   /// No description provided for @storefrontShopFallbackName.
   ///
@@ -6271,6 +6379,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Have this? You don\'t need the App Reference ID above — either one is enough.'**
   String get storefrontRenewEmailHint;
+
+  /// No description provided for @storefrontRenewSignInPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Have an account? Sign in to skip typing your details and see your past requests.'**
+  String get storefrontRenewSignInPrompt;
+
+  /// No description provided for @storefrontRenewSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t sign in. Check your email and password.'**
+  String get storefrontRenewSignInFailed;
+
+  /// No description provided for @storefrontRenewSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {email}'**
+  String storefrontRenewSignedInAs(String email);
+
+  /// No description provided for @storefrontRenewHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your past requests'**
+  String get storefrontRenewHistoryTitle;
+
+  /// No description provided for @storefrontRenewHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No requests yet.'**
+  String get storefrontRenewHistoryEmpty;
 
   /// No description provided for @storefrontRenewPlan.
   ///

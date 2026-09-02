@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../../core/money.dart';
 import 'receipt_data.dart';
 
 /// Turns a [ReceiptData] into an ordered list of plain-text lines laid out for
@@ -12,16 +13,21 @@ class ReceiptFormatter {
     required this.paper,
     required this.labels,
     this.currencySymbol = 'Ks',
+    this.exponent = 0,
   });
 
   final PaperSize paper;
   final ReceiptLabels labels;
   final String currencySymbol;
 
+  /// Decimal places for money amounts on this receipt — 0 for MMK/JPY, 2
+  /// for THB/USD. Defaults to 0 so any caller not yet passing it prints
+  /// byte-identical MMK output.
+  final int exponent;
+
   int get _w => paper.chars;
 
-  final _money = NumberFormat('#,##0', 'en_US');
-  String _amt(int v) => '${_money.format(v)} $currencySymbol';
+  String _amt(int v) => '${formatMinorUnits(v, exponent: exponent)} $currencySymbol';
 
   /// [includeHeader] controls whether the shop name/address/phone block is
   /// included as plain centered text. The raster renderer draws that block
@@ -61,7 +67,8 @@ class ReceiptFormatter {
     // Items: name on its own line, then "qty x price ....... lineTotal".
     for (final it in r.items) {
       out.addAll(_wrap(it.name));
-      out.add(_two('  ${it.qty} x ${_money.format(it.unitPrice)}',
+      out.add(_two(
+          '  ${it.qty} x ${formatMinorUnits(it.unitPrice, exponent: exponent)}',
           _amt(it.lineTotal)));
       final itemDiscount = lineDiscountOf(
           unitPrice: it.unitPrice, qty: it.qty, lineTotal: it.lineTotal);

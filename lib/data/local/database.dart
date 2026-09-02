@@ -63,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 38;
+  int get schemaVersion => 41;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -334,6 +334,23 @@ class AppDatabase extends _$AppDatabase {
       // address instead of a phone number (mirrors remote 0077).
       if (from < 38) {
         await _safeAddColumn(m, orders, orders.customerIp);
+      }
+      // v39: shop country flag — dormant infrastructure, no screen routes
+      // on it anymore (see ShopProfiles.country's doc comment).
+      if (from < 39) {
+        await _safeAddColumn(m, shopProfiles, shopProfiles.country);
+      }
+      // v40: per-shop POS currency (Ks/THB/$/¥) — see the multi-country
+      // foundation design doc. Default 'MMK' keeps every existing shop
+      // numerically identical (exponent 0, same integers on disk).
+      if (from < 40) {
+        await _safeAddColumn(m, shopProfiles, shopProfiles.currencyCode);
+      }
+      // v41: per-product online-storefront visibility toggle. Default true
+      // keeps every existing product showing on the public storefront exactly
+      // as before this column existed.
+      if (from < 41) {
+        await _safeAddColumn(m, products, products.sellOnline);
       }
     },
   );

@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../../core/money.dart';
 import '../invoices/receipt_data.dart';
 import 'cash_session_repository.dart';
 
@@ -8,17 +9,18 @@ import 'cash_session_repository.dart';
 /// `SalesReportFormatter`, reused as-is by `renderReportImage` (shop name is
 /// drawn separately by that renderer, so it isn't part of this body).
 class CashSessionReportFormatter {
-  CashSessionReportFormatter({required this.paper, this.currencySymbol = 'Ks'});
+  CashSessionReportFormatter(
+      {required this.paper, this.currencySymbol = 'Ks', this.exponent = 0});
 
   final PaperSize paper;
   final String currencySymbol;
+  final int exponent;
 
   int get _w => paper.chars;
 
-  final _money = NumberFormat('#,##0', 'en_US');
   String _amt(int v) {
     final sign = v < 0 ? '-' : '';
-    return '$sign${_money.format(v.abs())} $currencySymbol';
+    return '$sign${formatMinorUnits(v.abs(), exponent: exponent)} $currencySymbol';
   }
 
   List<String> format(

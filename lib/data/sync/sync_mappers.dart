@@ -307,6 +307,7 @@ final _products = SyncTableDef(
       'wholesale_price': r.wholesalePrice,
       'vip_price': r.vipPrice,
       'online_stock_limit': r.onlineStockLimit,
+      'sell_online': r.sellOnline,
       'unit': r.unit,
       'image_path': r.imagePath,
       'image_url': r.imageUrl,
@@ -348,6 +349,8 @@ final _products = SyncTableDef(
           onlineStockLimit: Value(m['online_stock_limit'] == null
               ? null
               : _int(m['online_stock_limit'])),
+          sellOnline: Value(
+              m['sell_online'] == null ? true : _bool(m['sell_online'])),
           unit: Value((m['unit'] as String?) ?? 'pcs'),
           imagePath: Value(m['image_path'] as String?),
           imageUrl: Value(m['image_url'] as String?),
@@ -1367,6 +1370,8 @@ final _shopProfiles = SyncTableDef(
       'name': r.name,
       'phone': r.phone,
       'address': r.address,
+      'country': r.country,
+      'currency_code': r.currencyCode,
       'created_at': _iso(r.createdAt),
       'updated_at': _iso(r.updatedAt),
       'hlc': r.hlc,
@@ -1395,6 +1400,8 @@ final _shopProfiles = SyncTableDef(
           name: Value(m['name'] as String),
           phone: Value(m['phone'] as String?),
           address: Value(m['address'] as String?),
+          country: Value(m['country'] as String? ?? 'MM'),
+          currencyCode: Value(m['currency_code'] as String? ?? 'MMK'),
           createdAt: Value(_dt(m['created_at'])),
           updatedAt: Value(updated),
           hlc: Value(hlc),

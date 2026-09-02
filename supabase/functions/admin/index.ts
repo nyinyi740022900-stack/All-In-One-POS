@@ -573,7 +573,40 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) return json({ error: "server_error" }, 500);
-      return json({ rows: data });
+
+      // Resolve each request's matched shop_id (stamped by the public
+      // /renew form's unverified email->account lookup, or by an
+      // already-signed-in app) to that shop's ACTUAL registered name, so
+      // the admin can spot a request typed under one shop_name that
+      // actually resolved to a DIFFERENT shop (email typo, or someone
+      // else's account email) before hitting "Confirm payment" — the email
+      // field has no ownership proof, so this resolved name is the
+      // reviewer's only real cross-check.
+      const shopIds = Array.from(
+        new Set(
+          (data ?? [])
+            .map((r) => `${r.shop_id ?? ""}`.trim())
+            .filter((id) => id.length > 0),
+        ),
+      );
+      const resolvedNames = new Map<string, string>();
+      if (shopIds.length > 0) {
+        const { data: licRows } = await admin
+          .from("licenses")
+          .select("shop_id, shop_name")
+          .in("shop_id", shopIds);
+        for (const r of licRows ?? []) {
+          if (r.shop_name && !resolvedNames.has(r.shop_id)) {
+            resolvedNames.set(r.shop_id, r.shop_name as string);
+          }
+        }
+      }
+      const rows = (data ?? []).map((r) => ({
+        ...r,
+        resolved_shop_name: resolvedNames.get(`${r.shop_id ?? ""}`.trim()) ??
+          null,
+      }));
+      return json({ rows });
     }
 
     case "fulfill_request": {
@@ -586,6 +619,25 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (reqErr) return json({ error: "server_error" }, 500);
       if (!reqRow) return json({ error: "not_found" }, 404);
+
+      // Idempotency: atomically claim this request (pending -> processing)
+      // BEFORE minting/extending anything. renew_license/create_license are
+      // not idempotent — a double "Confirm payment" click, a retried call
+      // after a perceived timeout, or two admin tabs open on the same
+      // request must not both mint/extend for one payment. Only the caller
+      // that wins this conditional update proceeds; every other caller sees
+      // `already_fulfilled` immediately. If the mint below fails, the claim
+      // is released back to "pending" so the request can be retried instead
+      // of getting stuck at "processing" forever.
+      const { data: claimed, error: claimErr } = await admin
+        .from("license_requests")
+        .update({ status: "processing", updated_at: new Date().toISOString() })
+        .eq("id", reqId)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimErr) return json({ error: "server_error" }, 500);
+      if (!claimed) return json({ error: "already_fulfilled" }, 409);
 
       const months = body.months ?? reqRow.months ?? 1;
       const dev = (reqRow.device_id ?? "").trim();
@@ -621,6 +673,15 @@ Deno.serve(async (req) => {
         existing = data;
       }
 
+      // Releases this request's claim back to "pending" so a failed mint can
+      // be retried through the normal admin flow instead of getting stuck at
+      // "processing" forever with no license actually extended.
+      const releaseClaim = () =>
+        admin
+          .from("license_requests")
+          .update({ status: "pending" })
+          .eq("id", reqId);
+
       let key: string;
       let referredShopId: string;
       let expiresAt: string | null = null;
@@ -630,7 +691,10 @@ Deno.serve(async (req) => {
           p_key: existing.key,
           p_months: months,
         });
-        if (error) return json({ error: "server_error", detail: error.message }, 500);
+        if (error) {
+          await releaseClaim();
+          return json({ error: "server_error", detail: error.message }, 500);
+        }
         key = existing.key;
         referredShopId = existing.shop_id as string;
         expiresAt = data as string;
@@ -643,7 +707,10 @@ Deno.serve(async (req) => {
           p_months: months,
           p_shop_name: reqRow.shop_name ?? null,
         });
-        if (mkErr) return json({ error: "server_error", detail: mkErr.message }, 500);
+        if (mkErr) {
+          await releaseClaim();
+          return json({ error: "server_error", detail: mkErr.message }, 500);
+        }
         key = newKey as string;
         referredShopId = shopId;
         action = "issue";

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../printing/printing_providers.dart';
 import 'expense_repository.dart';
 import 'expense_screen.dart' show categoryIcon, categoryLabel;
 import 'recurring_expense_providers.dart';
@@ -20,6 +22,8 @@ class RecurringExpensesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final templates =
         ref.watch(recurringExpenseTemplatesProvider).valueOrNull ?? const [];
     return Scaffold(
@@ -43,8 +47,8 @@ class RecurringExpensesScreen extends ConsumerWidget {
                   title: Text(categoryLabel(l, t.category)),
                   subtitle: Text(
                     t.note == null || t.note!.isEmpty
-                        ? Money(t.amount).withSymbol(l.currencySymbol)
-                        : '${Money(t.amount).withSymbol(l.currencySymbol)} · ${t.note}',
+                        ? Money(t.amount).withCurrency(currency, locale)
+                        : '${Money(t.amount).withCurrency(currency, locale)} · ${t.note}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -103,7 +107,10 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
     _generationTiming = e?.generationTiming ?? 'month_start';
     _accountId = e?.accountId;
     if (e != null) {
-      _amount.text = '${e.amount}';
+      _amount.text = formatDecimalMinorUnits(
+        e.amount,
+        exponent: ref.read(shopCurrencyProvider).exponent,
+      );
       _note.text = e.note ?? '';
     }
   }
@@ -117,7 +124,10 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
     if (amount <= 0) return;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -189,6 +199,7 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final currencyExponent = ref.watch(shopCurrencyProvider).exponent;
     return AlertDialog(
       title: Text(widget.existing == null
           ? l.recurringExpenseAdd
@@ -201,8 +212,12 @@ class _TemplateDialogState extends ConsumerState<_TemplateDialog> {
             TextField(
               controller: _amount,
               autofocus: widget.existing == null,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              keyboardType: TextInputType.numberWithOptions(
+                  decimal: currencyExponent > 0),
+              inputFormatters: [
+                DecimalMoneyInputFormatter(exponent: currencyExponent),
+                LengthLimitingTextInputFormatter(12),
+              ],
               decoration: InputDecoration(labelText: l.expenseAmount),
             ),
             const SizedBox(height: AppTheme.space3),

@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../../core/csv_util.dart';
+import '../../core/money.dart';
 import '../../data/local/database.dart';
 import 'equity_calculator.dart';
 
@@ -21,7 +22,9 @@ String buildEquityCsv(
   required String paidInCapitalLabel,
   required String retainedEarningsLabel,
   required String totalEquityLabel,
+  int exponent = 0,
 }) {
+  String fmt(int minor) => formatMinorUnitsPlain(minor, exponent: exponent);
   return csvDocument(
     [dateHeader, typeHeader, noteHeader, amountHeader],
     [
@@ -30,11 +33,11 @@ String buildEquityCsv(
           _day.format(e.date),
           e.type == equityTypeContribution ? contributionLabel : drawingLabel,
           e.note ?? '',
-          e.type == equityTypeContribution ? e.amount : -e.amount,
+          fmt(e.type == equityTypeContribution ? e.amount : -e.amount),
         ],
-      ['', '', paidInCapitalLabel, summary.paidInCapital],
-      ['', '', retainedEarningsLabel, summary.retainedEarnings],
-      ['', '', totalEquityLabel, summary.totalEquity],
+      ['', '', paidInCapitalLabel, fmt(summary.paidInCapital)],
+      ['', '', retainedEarningsLabel, fmt(summary.retainedEarnings)],
+      ['', '', totalEquityLabel, fmt(summary.totalEquity)],
     ],
   );
 }

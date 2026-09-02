@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
 import '../credit/credit_repository.dart';
 import '../credit/credit_screen.dart';
+import '../printing/printing_providers.dart';
 import 'customer_providers.dart';
 
 /// Customer directory: browse/search/add/edit the shop's saved customers —
@@ -242,16 +243,18 @@ class _CustomerRow extends StatelessWidget {
 
 /// The outstanding balance, as the route into the credit book — the same
 /// "the pill *is* the control" pattern Inventory uses for its stock badge.
-class _OwedPill extends StatelessWidget {
+class _OwedPill extends ConsumerWidget {
   const _OwedPill({required this.customer, required this.owed});
 
   final Customer customer;
   final int owed;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final label = l.invoiceOwed(Money(owed).withSymbol(l.currencySymbol));
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final label = l.invoiceOwed(Money(owed).withCurrency(currency, locale));
     return Tooltip(
       message: l.creditTitle,
       child: InkWell(

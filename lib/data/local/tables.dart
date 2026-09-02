@@ -55,6 +55,13 @@ class Products extends Table with SyncColumns {
   /// Unlike the real-stock warning, this cap is hard-enforced: it's a number
   /// the owner set on purpose, not a value that can be stale from sync lag.
   IntColumn get onlineStockLimit => integer().nullable()();
+
+  /// Whether this product appears in the public web storefront's catalog.
+  /// Defaults `true` so every existing product keeps showing exactly as
+  /// before this column existed — a shop opts a product OUT of online sale,
+  /// not in. In-store surfaces (Sell, Inventory, POs) ignore this entirely;
+  /// it only gates the storefront Edge Function's `catalog` query.
+  BoolColumn get sellOnline => boolean().withDefault(const Constant(true))();
   TextColumn get unit => text().withDefault(const Constant('pcs'))();
   TextColumn get imagePath => text().nullable()();
   /// Public storage URL of the product photo (shown on the web storefront).
@@ -272,6 +279,20 @@ class ShopProfiles extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get phone => text().nullable()();
   TextColumn get address => text().nullable()();
+  /// ISO-2 code, defaults `'MM'`. No screen edits this anymore (the License
+  /// screen asks Myanmar-vs-International at subscribe time instead) —
+  /// dormant, available infrastructure only. Not a POS/billing currency
+  /// model — see [currencyCode] for that.
+  TextColumn get country =>
+      text().withDefault(const Constant('MM'))();
+
+  /// ISO 4217 code for what this shop sells in (`CurrencyDef.byCode`).
+  /// Default `'MMK'` keeps every existing shop numerically identical
+  /// (exponent 0, same integers on disk) — see the multi-country foundation
+  /// design doc. Locked once the shop has any finalized sale
+  /// (`SettingsRepository.currencyChangeAllowed`).
+  TextColumn get currencyCode =>
+      text().withDefault(const Constant('MMK'))();
 
   @override
   Set<Column> get primaryKey => {id};

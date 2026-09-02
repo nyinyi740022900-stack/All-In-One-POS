@@ -117,7 +117,8 @@ class SellScreen extends ConsumerWidget {
     final products = ref.watch(productsStreamProvider);
     final filtered = ref.watch(sellProductsProvider);
     final cart = ref.watch(cartProvider);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final licState = ref.watch(licenseControllerProvider);
     final expiresAt = licState.status.expiresAt;
@@ -234,7 +235,7 @@ class SellScreen extends ConsumerWidget {
                   return _ProductCard(
                     key: ValueKey('sell-${p.product.id}'),
                     name: p.product.name,
-                    price: Money(p.product.salePrice).withSymbol(currency),
+                    price: Money(p.product.salePrice).withCurrency(currency, locale),
                     imageUrl: p.product.imageUrl,
                     outOfStock: trackStock && p.quantity <= 0,
                     onTap: () {
@@ -329,7 +330,7 @@ class SellScreen extends ConsumerWidget {
             ? null
             : _CartBar(
                 itemCount: cart.itemCount,
-                total: cart.total.withSymbol(currency),
+                total: cart.total.withCurrency(currency, locale),
                 onCheckout: () => _openCheckout(context),
               ),
       ),
@@ -347,7 +348,8 @@ class _CartPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final cart = ref.watch(cartProvider);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     // Audit M3: rebuilt per cart mutation before; now products-only.
     final stockById = ref.watch(stockByIdProvider);
@@ -405,7 +407,7 @@ class _CartPanel extends ConsumerWidget {
                         ),
                         title: Text(line.product.name, maxLines: 2),
                         subtitle: MoneyText(
-                          cart.lineTotalFor(line).withSymbol(currency),
+                          cart.lineTotalFor(line).withCurrency(currency, locale),
                           style: Theme.of(context).textTheme.bodySmall,
                           textAlign: TextAlign.left,
                         ),
@@ -472,7 +474,7 @@ class _CartPanel extends ConsumerWidget {
                   children: [
                     Text('${l.sellCheckout}  (${cart.itemCount})'),
                     Text(
-                      cart.total.withSymbol(currency),
+                      cart.total.withCurrency(currency, locale),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontFeatures: AppTheme.tabularFigures,

@@ -43,7 +43,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
   Future<void> _refund(
       BuildContext context, WidgetRef ref, Sale s) async {
     final l = AppLocalizations.of(context);
-    final amount = Money(s.total).withSymbol(l.currencySymbol);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final amount = Money(s.total).withCurrency(currency, locale);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -126,7 +128,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final detail = ref.watch(saleDetailProvider(saleId));
     final refundOf = ref.watch(refundOfProvider(saleId));
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
 
     return Scaffold(
@@ -211,7 +214,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
             d.items,
             profile,
             owedBySaleId: owedBySaleMap,
-            currencySymbol: currency,
+            currencySymbol: currency.label(locale),
+            exponent: currency.exponent,
             cashier: cashier,
             paymentMethodCustomName: customName,
             defaultFooter: l.receiptThankYou,
@@ -267,11 +271,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     if (thisOwed > 0) ...[
                       SummaryRow(
                         l.creditDeposit,
-                        Money(s.paid).withSymbol(currency),
+                        Money(s.paid).withCurrency(currency, locale),
                       ),
                       SummaryRow(
                         l.creditBalanceDue,
-                        Money(thisOwed).withSymbol(currency),
+                        Money(thisOwed).withCurrency(currency, locale),
                         emphasis: true,
                         color: colors.danger,
                       ),
@@ -279,11 +283,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     if (previousBalance > 0) ...[
                       SummaryRow(
                         l.creditPreviousBalance,
-                        Money(previousBalance).withSymbol(currency),
+                        Money(previousBalance).withCurrency(currency, locale),
                       ),
                       SummaryRow(
                         l.creditTotalBalanceDue,
-                        Money(totalOutstanding).withSymbol(currency),
+                        Money(totalOutstanding).withCurrency(currency, locale),
                         emphasis: true,
                         color: colors.danger,
                       ),

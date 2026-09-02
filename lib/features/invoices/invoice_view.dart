@@ -2,6 +2,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -47,6 +48,11 @@ class InvoiceData {
   final String? paymentMethodCustomName;
   final String? cashier;
   final String currencySymbol;
+
+  /// Decimal places for money amounts on this document — see
+  /// [CurrencyDef.exponent]. Defaults to 0 (byte-identical MMK output for
+  /// any caller not yet passing it).
+  final int exponent;
   final String? footer;
 
   const InvoiceData({
@@ -70,6 +76,7 @@ class InvoiceData {
     this.paymentMethodCustomName,
     this.cashier,
     this.currencySymbol = 'Ks',
+    this.exponent = 0,
     this.footer,
   });
 
@@ -144,8 +151,8 @@ class InvoiceView extends StatelessWidget {
   static const _accent = Color(0xFF0F5C3E);
   static const _muted = Color(0xFF5C6B64);
   static const _line = Color(0xFFDCE6E0);
-  static final _money = NumberFormat('#,##0', 'en_US');
-  String _amt(int v) => '${_money.format(v)} ${data.currencySymbol}';
+  String _amt(int v) =>
+      '${formatMinorUnits(v, exponent: data.exponent)} ${data.currencySymbol}';
 
   @override
   Widget build(BuildContext context) {

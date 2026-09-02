@@ -10,9 +10,10 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../printing/printing_providers.dart';
 import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
-import '../storefront/storefront_screen.dart' show storefrontRepositoryProvider;
+import '../storefront/storefront_providers.dart' show storefrontRepositoryProvider;
 import 'order_invoice.dart';
 import 'order_editor_sheet.dart';
 import 'order_labels.dart';
@@ -50,7 +51,8 @@ class OrderDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final orders = ref.watch(ordersStreamProvider).valueOrNull ?? const [];
     Order? order;
     for (final o in orders) {
@@ -142,7 +144,7 @@ class OrderDetailSheet extends ConsumerWidget {
                       const SizedBox(width: AppTheme.space1),
                     ],
                     Expanded(child: Text('${it.nameSnapshot}  ×${it.qty}')),
-                    Text(Money(it.lineTotal).withSymbol(sym)),
+                    Text(Money(it.lineTotal).withCurrency(currency, locale)),
                   ],
                 ),
               ),
@@ -153,7 +155,7 @@ class OrderDetailSheet extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(l.orderDeliveryFee),
-                    Text(Money(o.deliveryFee).withSymbol(sym)),
+                    Text(Money(o.deliveryFee).withCurrency(currency, locale)),
                   ],
                 ),
               ),
@@ -163,7 +165,7 @@ class OrderDetailSheet extends ConsumerWidget {
               children: [
                 Text(l.orderTotal,
                     style: Theme.of(context).textTheme.titleMedium),
-                Text(Money(total).withSymbol(sym),
+                Text(Money(total).withCurrency(currency, locale),
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -493,7 +495,9 @@ class OrderDetailSheet extends ConsumerWidget {
       if (!alreadyRefunded) {
         final sale = await salesRepo.getSale(saleId);
         if (!context.mounted) return;
-        final amount = Money(sale.total).withSymbol(l.currencySymbol);
+        final currency = ref.read(shopCurrencyProvider);
+        final locale = Localizations.localeOf(context).languageCode;
+        final amount = Money(sale.total).withCurrency(currency, locale);
         final ok = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(

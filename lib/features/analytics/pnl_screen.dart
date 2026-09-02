@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -44,6 +45,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
 
   Future<Uint8List> _pdfBytes(PnlStatement p) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final profile = await ref.read(shopProfileProvider.future);
     final printerConfig = await ref.read(printerConfigProvider.future);
     return buildPnlPdf(
@@ -53,7 +56,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       shopAddress: profile.address,
       title: l.pnlTitle,
       statement: p,
-      currencySymbol: l.currencySymbol,
+      currencySymbol: currency.label(locale),
+      exponent: currency.exponent,
       dateRangeLabel: l.pnlDateRange,
       revenueLabel: l.pnlRevenue,
       cogsLabel: l.pnlCogs,
@@ -150,6 +154,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         totalExpensesLabel: l.pnlTotalExpenses,
         netProfitLabel: l.pnlNetProfit,
         categoryLabel: (c) => categoryLabel(l, c),
+        exponent: ref.read(shopCurrencyProvider).exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/profit-and-loss.csv');
@@ -177,9 +182,14 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _printingThermal = true);
     try {
+      final currency = ref.read(shopCurrencyProvider);
+      final locale = Localizations.localeOf(context).languageCode;
       final profile = await ref.read(shopProfileProvider.future);
-      final lines = PnlFormatter(paper: paper, currencySymbol: l.currencySymbol)
-          .format(
+      final lines = PnlFormatter(
+        paper: paper,
+        currencySymbol: currency.label(locale),
+        exponent: currency.exponent,
+      ).format(
             p,
             title: l.pnlTitle,
             dateRangeLabel: l.pnlDateRange,
@@ -221,7 +231,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
     BuildContext context,
     String label,
     int amount,
-    String currency, {
+    CurrencyDef currency,
+    String locale, {
     bool bold = false,
     bool indent = false,
     Color? color,
@@ -230,7 +241,7 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
       padding: EdgeInsets.only(left: indent ? AppTheme.space4 : 0),
       child: SummaryRow(
         label,
-        Money(amount).withSymbol(currency),
+        Money(amount).withCurrency(currency, locale),
         emphasis: bold,
         color: color,
       ),
@@ -251,7 +262,8 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
         ),
       );
     }
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final start = ref.watch(pnlStartDateProvider);
     final end = ref.watch(pnlEndDateProvider);
     final printerConfig = ref.watch(printerConfigProvider).valueOrNull;
@@ -312,14 +324,15 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: AppTheme.space3),
-                    _row(context, l.pnlRevenue, p.revenue, sym),
-                    _row(context, l.pnlCogs, -p.cogs, sym),
+                    _row(context, l.pnlRevenue, p.revenue, currency, locale),
+                    _row(context, l.pnlCogs, -p.cogs, currency, locale),
                     const Divider(),
                     _row(
                       context,
                       l.pnlGrossProfit,
                       p.grossProfit,
-                      sym,
+                      currency,
+                      locale,
                       bold: true,
                     ),
                     const SizedBox(height: AppTheme.space3),
@@ -329,16 +342,19 @@ class _PnlScreenState extends ConsumerState<PnlScreen> {
                           context,
                           categoryLabel(l, entry.key),
                           -entry.value,
-                          sym,
+                          currency,
+                          locale,
                           indent: true,
                         ),
-                    _row(context, l.pnlTotalExpenses, -p.totalExpenses, sym),
+                    _row(context, l.pnlTotalExpenses, -p.totalExpenses, currency,
+                        locale),
                     const Divider(),
                     _row(
                       context,
                       l.pnlNetProfit,
                       p.netProfit,
-                      sym,
+                      currency,
+                      locale,
                       bold: true,
                       color: netColor,
                     ),

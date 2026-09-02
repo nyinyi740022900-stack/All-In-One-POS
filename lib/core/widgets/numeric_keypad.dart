@@ -22,12 +22,18 @@ class NumericKeypad extends StatelessWidget {
     required this.onDigit,
     required this.onBackspace,
     this.keyHeight = 52,
+    this.decimalKey = false,
   });
 
-  /// Receives `'0'`–`'9'` or `'00'`.
+  /// Receives `'0'`–`'9'`, `'00'`, or (when [decimalKey] is set) `'.'`.
   final ValueChanged<String> onDigit;
   final VoidCallback onBackspace;
   final double keyHeight;
+
+  /// Swaps the `'00'` key for a `'.'` key — for a currency with fractional
+  /// minor units (THB/USD, exponent > 0), where round-hundreds entry isn't
+  /// the common case but a decimal point is needed to type cents.
+  final bool decimalKey;
 
   void _tap(String digit) {
     HapticFeedback.selectionClick();
@@ -86,7 +92,9 @@ class NumericKeypad extends StatelessWidget {
           Row(children: [for (final d in row) key(label: d, onTap: () => _tap(d))]),
         Row(
           children: [
-            key(label: '00', onTap: () => _tap('00')),
+            decimalKey
+                ? key(label: '.', onTap: () => _tap('.'))
+                : key(label: '00', onTap: () => _tap('00')),
             key(label: '0', onTap: () => _tap('0')),
             key(
               icon: Icons.backspace_outlined,

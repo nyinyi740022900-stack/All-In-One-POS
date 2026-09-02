@@ -1,5 +1,4 @@
-import 'package:intl/intl.dart';
-
+import '../../core/money.dart';
 import 'receipt_data.dart';
 import 'sales_report_data.dart';
 
@@ -10,17 +9,24 @@ import 'sales_report_data.dart';
 /// amount on one line, customer/address wrapped beneath when present, then
 /// a Total line.
 class SalesReportFormatter {
-  SalesReportFormatter({required this.paper, this.currencySymbol = 'Ks'});
+  SalesReportFormatter({
+    required this.paper,
+    this.currencySymbol = 'Ks',
+    this.exponent = 0,
+  });
 
   final PaperSize paper;
   final String currencySymbol;
 
+  /// Decimal places for money amounts on this report — see
+  /// [ReceiptFormatter.exponent]. Defaults to 0 (byte-identical MMK output).
+  final int exponent;
+
   int get _w => paper.chars;
 
-  final _money = NumberFormat('#,##0', 'en_US');
   String _amt(int v) {
     final sign = v < 0 ? '-' : '';
-    return '$sign${_money.format(v.abs())} $currencySymbol';
+    return '$sign${formatMinorUnits(v.abs(), exponent: exponent)} $currencySymbol';
   }
 
   List<String> format(

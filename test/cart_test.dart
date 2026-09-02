@@ -18,6 +18,7 @@ Product _product(String id,
       vipPrice: vipPrice,
       unit: 'pcs',
       isActive: true,
+      sellOnline: true,
     );
 
 void main() {
@@ -76,14 +77,14 @@ void main() {
     cart.addProduct(p, maxQty: 5);
     cart.increment('a', maxQty: 5); // qty 2
 
-    expect(cart.state.subtotal.kyat, 2000); // retail default
+    expect(cart.state.subtotal.minor, 2000); // retail default
 
     cart.setCustomerTier('wholesale');
-    expect(cart.state.subtotal.kyat, 1600);
+    expect(cart.state.subtotal.minor, 1600);
     expect(cart.state.lines.single.qty, 2); // lines themselves unchanged
 
     cart.setCustomerTier(null);
-    expect(cart.state.subtotal.kyat, 2000); // back to retail
+    expect(cart.state.subtotal.minor, 2000); // back to retail
   });
 
   test('clear() resets customerTier back to retail', () {
@@ -103,10 +104,10 @@ void main() {
 
       final lineA = cart.state.lines.firstWhere((l) => l.product.id == 'a');
       final lineB = cart.state.lines.firstWhere((l) => l.product.id == 'b');
-      expect(cart.state.lineTotalFor(lineA).kyat, 800);
-      expect(cart.state.lineTotalFor(lineB).kyat, 500); // untouched
-      expect(cart.state.subtotal.kyat, 1300);
-      expect(cart.state.total.kyat, 1300);
+      expect(cart.state.lineTotalFor(lineA).minor, 800);
+      expect(cart.state.lineTotalFor(lineB).minor, 500); // untouched
+      expect(cart.state.subtotal.minor, 1300);
+      expect(cart.state.total.minor, 1300);
     });
 
     test('a discount larger than the line total clamps to zero, not negative',
@@ -116,8 +117,8 @@ void main() {
       cart.setLineDiscount('a', 5000);
 
       final line = cart.state.lines.single;
-      expect(cart.state.lineTotalFor(line).kyat, 0);
-      expect(cart.state.subtotal.kyat, 0);
+      expect(cart.state.lineTotalFor(line).minor, 0);
+      expect(cart.state.subtotal.minor, 0);
     });
 
     test('negative input is clamped to 0 (no discount)', () {
@@ -133,8 +134,8 @@ void main() {
       cart.addProduct(_product('a', price: 1000));
       cart.setLineDiscount('a', 200); // line total 800
       cart.setDiscount(100); // order-level, on top
-      expect(cart.state.subtotal.kyat, 800);
-      expect(cart.state.total.kyat, 700);
+      expect(cart.state.subtotal.minor, 800);
+      expect(cart.state.total.minor, 700);
     });
   });
 }

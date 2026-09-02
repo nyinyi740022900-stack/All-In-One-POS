@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/providers.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -28,6 +29,21 @@ final labelPrinterConfigProvider = StreamProvider<LabelPrinterConfig>((ref) {
 final shopProfileProvider = FutureProvider<ShopProfile>((ref) {
   final shopId = ref.watch(shopIdProvider);
   return ref.watch(settingsRepositoryProvider).shopProfile(shopId);
+});
+
+/// The shop's current POS currency — the single lookup point every display
+/// site formats money against. Fails closed to MMK while the profile is
+/// still loading/erroring, same as `CurrencyDef.byCode(null)`.
+final shopCurrencyProvider = Provider<CurrencyDef>((ref) {
+  final profile = ref.watch(shopProfileProvider).valueOrNull;
+  return CurrencyDef.byCode(profile?.currencyCode);
+});
+
+/// Whether the Shop Profile currency picker should be enabled — false once
+/// the shop has any finalized sale (`SettingsRepository.currencyChangeAllowed`).
+final currencyChangeAllowedProvider = FutureProvider<bool>((ref) {
+  final shopId = ref.watch(shopIdProvider);
+  return ref.watch(settingsRepositoryProvider).currencyChangeAllowed(shopId);
 });
 
 /// Whether the shop tracks inventory (true) or runs invoice-only (false).

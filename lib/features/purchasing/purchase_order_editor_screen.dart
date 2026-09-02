@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/currency_def.dart';
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -9,6 +11,7 @@ import '../../data/local/database.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
 import '../inventory/inventory_providers.dart';
+import '../printing/printing_providers.dart';
 import '../suppliers/supplier_providers.dart';
 import 'purchase_order_providers.dart';
 import 'purchase_order_repository.dart';
@@ -113,10 +116,11 @@ class _PurchaseOrderEditorScreenState
     // `filteredProductsProvider` itself reads from, so this picker now does
     // only its own local text search, independent of any other tab's state.
     final products = ref.read(productsStreamProvider).valueOrNull ?? const [];
+    final currency = ref.read(shopCurrencyProvider);
     final picked = await showModalBottomSheet<ProductWithStock>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _ProductPickerSheet(products: products),
+      builder: (_) => _ProductPickerSheet(products: products, currency: currency),
     );
     if (picked == null) return;
     setState(() {
@@ -135,9 +139,10 @@ class _PurchaseOrderEditorScreenState
   }
 
   Future<void> _editLine(_EditableLine line) async {
+    final currency = ref.read(shopCurrencyProvider);
     final result = await showDialog<_LineEditResult>(
       context: context,
-      builder: (_) => _LineEditorDialog(line: line),
+      builder: (_) => _LineEditorDialog(line: line, currency: currency),
     );
     if (result == null) return;
     setState(() {
@@ -194,7 +199,8 @@ class _PurchaseOrderEditorScreenState
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.poCreate)),
@@ -237,15 +243,15 @@ class _PurchaseOrderEditorScreenState
                 contentPadding: EdgeInsets.zero,
                 title: Text(line.name),
                 subtitle: Text(
-                    '${line.qty} x ${Money(line.unitCost).withSymbol(cur)}'),
-                trailing: MoneyText(Money(line.lineTotal).withSymbol(cur)),
+                    '${line.qty} x ${Money(line.unitCost).withCurrency(currency, locale)}'),
+                trailing: MoneyText(Money(line.lineTotal).withCurrency(currency, locale)),
                 onTap: () => _editLine(line),
               ),
           const Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
             child: SummaryRow(
-                l.commonTotal, Money(_total).withSymbol(cur),
+                l.commonTotal, Money(_total).withCurrency(currency, locale),
                 emphasis: true),
           ),
           const SizedBox(height: AppTheme.space3),
@@ -284,8 +290,9 @@ class _LineEditResult {
 /// [_ProductPickerSheet]'s search field), same pattern fixed repeatedly
 /// elsewhere this session.
 class _LineEditorDialog extends StatefulWidget {
-  const _LineEditorDialog({required this.line});
+  const _LineEditorDialog({required this.line, required this.currency});
   final _EditableLine line;
+  final CurrencyDef currency;
 
   @override
   State<_LineEditorDialog> createState() => _LineEditorDialogState();
@@ -293,7 +300,10 @@ class _LineEditorDialog extends StatefulWidget {
 
 class _LineEditorDialogState extends State<_LineEditorDialog> {
   late final _qty = TextEditingController(text: '${widget.line.qty}');
-  late final _cost = TextEditingController(text: '${widget.line.unitCost}');
+  late final _cost = TextEditingController(
+    text: formatDecimalMinorUnits(widget.line.unitCost,
+        exponent: widget.currency.exponent),
+  );
 
   @override
   void dispose() {
@@ -345,10 +355,11 @@ class _LineEditorDialogState extends State<_LineEditorDialog> {
           const SizedBox(height: AppTheme.space2),
           TextField(
             controller: _cost,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.numberWithOptions(
+                decimal: widget.currency.exponent > 0),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              DecimalMoneyInputFormatter(exponent: widget.currency.exponent),
+              LengthLimitingTextInputFormatter(12),
             ],
             decoration: InputDecoration(labelText: l.poUnitCost),
           ),
@@ -369,7 +380,10 @@ class _LineEditorDialogState extends State<_LineEditorDialog> {
             context,
             _LineEditResult.save(
               qty: int.tryParse(_qty.text.trim()) ?? widget.line.qty,
-              cost: int.tryParse(_cost.text.trim()) ?? widget.line.unitCost,
+              cost: _cost.text.trim().isEmpty
+                  ? widget.line.unitCost
+                  : parseDecimalMinorUnits(_cost.text.trim(),
+                      exponent: widget.currency.exponent),
             ),
           ),
           child: Text(l.commonSave),
@@ -384,8 +398,9 @@ class _LineEditorDialogState extends State<_LineEditorDialog> {
 /// that resolves on *pop* — the first of two dispose-after-`await` crash
 /// instances in this file.
 class _ProductPickerSheet extends StatefulWidget {
-  const _ProductPickerSheet({required this.products});
+  const _ProductPickerSheet({required this.products, required this.currency});
   final List<ProductWithStock> products;
+  final CurrencyDef currency;
 
   @override
   State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
@@ -404,6 +419,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final filtered = _query.isEmpty
         ? widget.products
         : widget.products
@@ -446,7 +462,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                             title: Text(p.product.name),
                             subtitle: MoneyText(
                               Money(p.product.costPrice)
-                                  .withSymbol(l.currencySymbol),
+                                  .withCurrency(widget.currency, locale),
                               textAlign: TextAlign.left,
                               style: Theme.of(context).textTheme.bodySmall,
                             ),

@@ -108,6 +108,7 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
         totalExpensesLabel: l.pnlTotalExpenses,
         netProfitLabel: l.taxNetProfitLabel,
         categoryLabel: (c) => categoryLabel(l, c),
+        exponent: ref.read(shopCurrencyProvider).exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/tax-summary.csv');
@@ -130,6 +131,8 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exporting = true);
     try {
+      final currency = ref.read(shopCurrencyProvider);
+      final locale = Localizations.localeOf(context).languageCode;
       final profile = await ref.read(shopProfileProvider.future);
       final printerConfig = await ref.read(printerConfigProvider.future);
       final bytes = await buildPnlPdf(
@@ -139,7 +142,8 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
         shopAddress: profile.address,
         title: l.accountingTaxSummary,
         statement: p,
-        currencySymbol: l.currencySymbol,
+        currencySymbol: currency.label(locale),
+        exponent: currency.exponent,
         dateRangeLabel: l.pnlDateRange,
         revenueLabel: l.taxRevenueLabel,
         cogsLabel: l.pnlCogs,
@@ -179,7 +183,8 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
         ),
       );
     }
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final start = _start ?? _defaultStart;
     final end = _end ?? _defaultEnd;
     final df = DateFormat('yyyy-MM-dd');
@@ -217,8 +222,9 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
           onAction: () => ref.invalidate(taxStatementProvider),
         ),
         data: (p) {
-          Widget row(String label, int amount, {bool bold = false}) =>
-              SummaryRow(label, Money(amount).withSymbol(sym), emphasis: bold);
+          Widget row(String label, int amount, {bool bold = false}) => SummaryRow(
+              label, Money(amount).withCurrency(currency, locale),
+              emphasis: bold);
           return Column(
             children: [
               Expanded(
@@ -239,7 +245,7 @@ class _TaxReportScreenState extends ConsumerState<TaxReportScreen> {
                       if (entry.value != 0)
                         SummaryRow(
                           categoryLabel(l, entry.key),
-                          Money(-entry.value).withSymbol(sym),
+                          Money(-entry.value).withCurrency(currency, locale),
                         ),
                     row(l.pnlTotalExpenses, -p.totalExpenses),
                     const Divider(),

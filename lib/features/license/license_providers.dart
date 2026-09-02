@@ -222,6 +222,15 @@ class LicenseController extends StateNotifier<LicenseState> {
       if (!AppDatabase.usePerShopDbFiles) {
         await db.wipeSyncedData();
       }
+      // Best-effort: this device is leaving `current`'s shop behind for a
+      // brand-new Free-plan shop_id (see `startFreePlan`) while reusing the
+      // SAME physical device_id. Release the old shop's server-side device
+      // binding so it doesn't linger forever — otherwise a later
+      // device_id-only /renew request (from this device, now under a
+      // different shop, or a next owner after a resale) can resolve back to
+      // this now-unrelated shop's license row instead of its own. Never
+      // blocks the Free-plan transition if this fails or there's no backend.
+      await _repo.releaseDevice(current.deviceId);
     }
     final lic = await _repo.startFreePlan();
     await _reopenShopDbIfNeeded(lic.shopId);

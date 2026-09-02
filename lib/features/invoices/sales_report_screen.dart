@@ -69,6 +69,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   Future<Uint8List> _pdfBytes(SalesReport report, String rangeLabel) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final profile = await ref.read(shopProfileProvider.future);
     final printerConfig = await ref.read(printerConfigProvider.future);
     return buildSalesReportPdf(
@@ -79,7 +81,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       title: l.salesReportTitle,
       dateRangeLabel: rangeLabel,
       report: report,
-      currencySymbol: l.currencySymbol,
+      currencySymbol: currency.label(locale),
+      exponent: currency.exponent,
       invoiceColumnLabel: l.salesReportColumnInvoice,
       dateColumnLabel: l.salesReportColumnDate,
       customerColumnLabel: l.salesReportColumnCustomer,
@@ -205,6 +208,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   }) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Always the ASCII symbol here, never the localized label — same
+    // column-alignment rationale as the thermal receipt printer (see
+    // PrinterService.buildBytes).
+    final currency = ref.read(shopCurrencyProvider);
     setState(() => _printingThermal = true);
     try {
       final profile = await ref.read(shopProfileProvider.future);
@@ -220,6 +227,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             totalLabel: l.salesReportTotal,
             noSalesLabel: l.salesReportEmpty,
             connection: connection,
+            currencySymbol: currency.symbol,
+            exponent: currency.exponent,
           );
       messenger.showSnackBar(
         SnackBar(content: Text(result.ok ? l.printSuccess : l.printFailed)),
@@ -243,7 +252,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ),
       );
     }
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final report = ref.watch(salesReportProvider);
     final start = ref.watch(salesReportStartDateProvider);
     final end = ref.watch(salesReportEndDateProvider);
@@ -318,7 +328,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 ),
                 const SizedBox(width: AppTheme.space3),
                 MoneyText(
-                  Money(report.total).withSymbol(sym),
+                  Money(report.total).withCurrency(currency, locale),
                   style: Theme.of(context).textTheme.headlineSmall,
                   emphasis: true,
                 ),
@@ -393,7 +403,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         trailing: MoneyText(
-                          Money(r.amount).withSymbol(sym),
+                          Money(r.amount).withCurrency(currency, locale),
                           style: Theme.of(context).textTheme.bodyLarge,
                           emphasis: true,
                           color: r.isRefund

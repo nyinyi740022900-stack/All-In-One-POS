@@ -309,6 +309,11 @@ class _PurchasePaths extends ConsumerWidget {
   final bool busy;
   final bool hasAccount;
   final bool showCheckRenewal;
+
+  /// `LicenseScreen._choosePurchaseRegion` — Myanmar goes straight to the
+  /// `/renew` web page; once a Lemon Squeezy store is configured, this asks
+  /// Myanmar vs International right at tap time instead of relying on a
+  /// persistent shop setting.
   final VoidCallback onPayOnline;
   final VoidCallback onContactViber;
   final VoidCallback onCheckRenewal;

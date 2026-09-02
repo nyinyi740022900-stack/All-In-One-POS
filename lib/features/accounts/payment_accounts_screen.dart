@@ -9,6 +9,7 @@ import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'payment_account_providers.dart';
 
 /// Payment-account directory: browse/add/edit/delete the shop's named money
@@ -96,6 +97,8 @@ class PaymentAccountsScreen extends ConsumerWidget {
     }
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     final loading = ref.watch(paymentAccountsProvider).isLoading;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.paymentAccountsTitle)),
@@ -126,7 +129,7 @@ class PaymentAccountsScreen extends ConsumerWidget {
                       title: Text(a.name),
                       subtitle: balance.when(
                         data: (v) => MoneyText(
-                          Money(v).withSymbol(l.currencySymbol),
+                          Money(v).withCurrency(currency, locale),
                           textAlign: TextAlign.left,
                           color: v < 0 ? colors.danger : null,
                         ),

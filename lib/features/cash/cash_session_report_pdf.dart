@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../core/money.dart';
 import '../invoices/pdf_font.dart';
 import '../invoices/receipt_data.dart';
 import 'cash_session_repository.dart';
@@ -20,6 +21,7 @@ Future<Uint8List> buildCashSessionReportPdf({
   required String title,
   required CashSessionReport report,
   required String currencySymbol,
+  int exponent = 0,
   required String openedLabel,
   required String closedLabel,
   required String openingFloatLabel,
@@ -52,10 +54,7 @@ Future<Uint8List> buildCashSessionReportPdf({
 
   String amt(int v) {
     final sign = v < 0 ? '-' : '';
-    return '$sign${v.abs().toString().replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (m) => ',',
-        )} $currencySymbol';
+    return '$sign${formatMinorUnits(v.abs(), exponent: exponent)} $currencySymbol';
   }
 
   String dateTimeStr(DateTime d) =>

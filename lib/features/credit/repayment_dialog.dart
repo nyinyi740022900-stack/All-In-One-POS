@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../printing/printing_providers.dart';
 import '../sell/payment_labels.dart';
 import 'credit_providers.dart';
 import 'credit_repository.dart';
@@ -44,7 +46,10 @@ class _RepaymentDialogState extends ConsumerState<RepaymentDialog> {
   @override
   void initState() {
     super.initState();
-    _amount.text = '${widget.customer.outstanding}';
+    _amount.text = formatDecimalMinorUnits(
+      widget.customer.outstanding,
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
   }
 
   @override
@@ -55,7 +60,10 @@ class _RepaymentDialogState extends ConsumerState<RepaymentDialog> {
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     if (amount <= 0 || amount > widget.customer.outstanding) return;
@@ -81,7 +89,12 @@ class _RepaymentDialogState extends ConsumerState<RepaymentDialog> {
     // just cash + accounts (never includes it, unlike checkout).
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     final methods = paymentMethodIds(accounts);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: currency.exponent,
+    );
     final exceedsOutstanding = amount > widget.customer.outstanding;
     return AlertDialog(
       title: Text(l.creditRecordRepayment),
@@ -91,17 +104,18 @@ class _RepaymentDialogState extends ConsumerState<RepaymentDialog> {
           TextField(
             controller: _amount,
             autofocus: true,
-            keyboardType: TextInputType.number,
+            keyboardType:
+                TextInputType.numberWithOptions(decimal: currency.exponent > 0),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              DecimalMoneyInputFormatter(exponent: currency.exponent),
+              LengthLimitingTextInputFormatter(12),
             ],
             decoration: InputDecoration(
               labelText: l.creditAmount,
               errorText: exceedsOutstanding
                   ? l.creditRepaymentExceedsOutstanding(
                       Money(widget.customer.outstanding)
-                          .withSymbol(l.currencySymbol))
+                          .withCurrency(currency, locale))
                   : null,
             ),
             onChanged: (_) => setState(() {}),

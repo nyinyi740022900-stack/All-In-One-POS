@@ -21,6 +21,14 @@ class VendorConfig {
   final int deviceFreeLimit;
   final int deviceExtraFee;
 
+  /// Lemon Squeezy store subdomain + variant ids for the international
+  /// (non-Myanmar) in-app subscribe path — see `_PurchasePaths` in
+  /// `license_widgets.dart`. Empty until the owner sets them from the
+  /// admin console's Config tab.
+  final String lemonSqueezyStoreSlug;
+  final String lemonSqueezyVariantMonthly;
+  final String lemonSqueezyVariantYearly;
+
   const VendorConfig({
     this.kbzName = '',
     this.kbzNumber = '',
@@ -33,11 +41,18 @@ class VendorConfig {
     this.priceYearlyOnline = 0,
     this.deviceFreeLimit = 3,
     this.deviceExtraFee = 0,
+    this.lemonSqueezyStoreSlug = '',
+    this.lemonSqueezyVariantMonthly = '',
+    this.lemonSqueezyVariantYearly = '',
   });
 
   bool get hasKbz => kbzNumber.isNotEmpty;
   bool get hasWave => waveNumber.isNotEmpty;
   bool get hasSupport => supportViber.isNotEmpty;
+  bool get hasLemonSqueezy =>
+      lemonSqueezyStoreSlug.isNotEmpty &&
+      lemonSqueezyVariantMonthly.isNotEmpty &&
+      lemonSqueezyVariantYearly.isNotEmpty;
 
   /// [tier] is the shop's own `CachedLicense.tier` ('offline'/'online'),
   /// fixed at shop-creation time — see `CachedLicense.tier`. Online prices
@@ -68,6 +83,9 @@ class VendorConfig {
           int.tryParse(m['price.yearly.online'] ?? '') ?? priceYearly,
       deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 3,
       deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
+      lemonSqueezyStoreSlug: m['pay.lemonsqueezy.store_slug'] ?? '',
+      lemonSqueezyVariantMonthly: m['pay.lemonsqueezy.variant_monthly'] ?? '',
+      lemonSqueezyVariantYearly: m['pay.lemonsqueezy.variant_yearly'] ?? '',
     );
   }
 
@@ -83,6 +101,9 @@ class VendorConfig {
         'price.yearly.online': '$priceYearlyOnline',
         'device.free_limit': '$deviceFreeLimit',
         'device.extra_fee': '$deviceExtraFee',
+        'pay.lemonsqueezy.store_slug': lemonSqueezyStoreSlug,
+        'pay.lemonsqueezy.variant_monthly': lemonSqueezyVariantMonthly,
+        'pay.lemonsqueezy.variant_yearly': lemonSqueezyVariantYearly,
       };
 
   static const empty = VendorConfig();

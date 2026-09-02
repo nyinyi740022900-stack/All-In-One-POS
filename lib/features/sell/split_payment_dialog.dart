@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
@@ -7,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/sales_repository.dart' show PaymentEntry;
 import '../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'payment_labels.dart';
 
 /// Lets the cashier charge one sale across 2+ payment methods (e.g. cash +
@@ -35,11 +37,13 @@ Future<List<PaymentEntry>?> showSplitPaymentDialog(
 class _SplitRow {
   String method;
   final TextEditingController amount;
-  _SplitRow(this.method, int initialAmount)
-    : amount = TextEditingController(text: formatThousands(initialAmount));
+  _SplitRow(this.method, int initialAmount, {required int exponent})
+    : amount = TextEditingController(
+        text: formatDecimalMinorUnits(initialAmount, exponent: exponent),
+      );
 }
 
-class _SplitPaymentDialog extends StatefulWidget {
+class _SplitPaymentDialog extends ConsumerStatefulWidget {
   const _SplitPaymentDialog({
     required this.total,
     required this.methodIds,
@@ -53,23 +57,31 @@ class _SplitPaymentDialog extends StatefulWidget {
   final List<PaymentEntry>? initial;
 
   @override
-  State<_SplitPaymentDialog> createState() => _SplitPaymentDialogState();
+  ConsumerState<_SplitPaymentDialog> createState() =>
+      _SplitPaymentDialogState();
 }
 
-class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
+class _SplitPaymentDialogState extends ConsumerState<_SplitPaymentDialog> {
   late final List<_SplitRow> _rows = _initialRows();
 
   List<_SplitRow> _initialRows() {
+    final exponent = ref.read(shopCurrencyProvider).exponent;
     final initial = widget.initial;
     if (initial != null && initial.length >= 2) {
-      return [for (final e in initial) _SplitRow(e.method, e.amount)];
+      return [
+        for (final e in initial)
+          _SplitRow(e.method, e.amount, exponent: exponent),
+      ];
     }
     // Default to the first two available methods, the remainder pre-filled
     // on the second row — the common "cash covers most of it, the wallet
     // covers the rest" case then needs only one number typed.
     final a = widget.methodIds.isNotEmpty ? widget.methodIds[0] : 'cash';
     final b = widget.methodIds.length > 1 ? widget.methodIds[1] : 'kbzpay';
-    return [_SplitRow(a, 0), _SplitRow(b, widget.total)];
+    return [
+      _SplitRow(a, 0, exponent: exponent),
+      _SplitRow(b, widget.total, exponent: exponent),
+    ];
   }
 
   @override
@@ -80,7 +92,10 @@ class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
     super.dispose();
   }
 
-  int _amountOf(_SplitRow r) => parseThousands(r.amount.text);
+  int _amountOf(_SplitRow r) => parseDecimalMinorUnits(
+        r.amount.text,
+        exponent: ref.read(shopCurrencyProvider).exponent,
+      );
   int get _sum => _rows.fold(0, (a, r) => a + _amountOf(r));
   int get _remaining => widget.total - _sum;
 
@@ -110,7 +125,11 @@ class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
       orElse: () => widget.methodIds.first,
     );
     setState(
-      () => _rows.add(_SplitRow(next, _remaining > 0 ? _remaining : 0)),
+      () => _rows.add(_SplitRow(
+        next,
+        _remaining > 0 ? _remaining : 0,
+        exponent: ref.read(shopCurrencyProvider).exponent,
+      )),
     );
   }
 
@@ -123,7 +142,8 @@ class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final colors = AppColors.of(context);
     final canAddMore = _rows.length < widget.methodIds.length;
 
@@ -180,11 +200,13 @@ class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
                       flex: 4,
                       child: TextField(
                         controller: row.amount,
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.numberWithOptions(
+                            decimal: currency.exponent > 0),
                         textAlign: TextAlign.end,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          ThousandsSeparatorInputFormatter(),
+                          DecimalMoneyInputFormatter(
+                              exponent: currency.exponent),
+                          LengthLimitingTextInputFormatter(12),
                         ],
                         decoration: const InputDecoration(isDense: true),
                         onChanged: (_) => setState(() {}),
@@ -212,7 +234,9 @@ class _SplitPaymentDialogState extends State<_SplitPaymentDialog> {
               ),
             const SizedBox(height: AppTheme.space2),
             Text(
-              l.splitPaymentRemaining(Money(_remaining).withSymbol(currency)),
+              l.splitPaymentRemaining(
+                Money(_remaining).withCurrency(currency, locale),
+              ),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: _remaining == 0 ? colors.success : colors.warning,
                 fontWeight: FontWeight.bold,

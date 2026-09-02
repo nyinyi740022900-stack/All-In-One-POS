@@ -28,6 +28,7 @@ Product _product({
     salePrice: salePrice,
     unit: 'pcs',
     isActive: true,
+    sellOnline: true,
   );
 }
 

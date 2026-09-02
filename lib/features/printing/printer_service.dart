@@ -176,13 +176,18 @@ class PrinterService {
     ReceiptData data, {
     required PaperSize paper,
     required ReceiptLabels labels,
+    // Always the ASCII symbol on receipts (never a localized label like
+    // ကျပ်) so money columns stay aligned regardless of the UI language.
+    // Defaults preserve the old hardcoded-MMK behavior for any caller not
+    // yet passing the shop's actual currency.
+    String currencySymbol = 'Ks',
+    int exponent = 0,
   }) async {
     final bodyLines = ReceiptFormatter(
       paper: paper,
       labels: labels,
-      // Always the ASCII 'Ks' on receipts so money columns stay aligned even
-      // when the UI language is Burmese.
-      currencySymbol: 'Ks',
+      currencySymbol: currencySymbol,
+      exponent: exponent,
     ).format(data, includeHeader: false);
 
     final logo = await _fetchLogo(data.logoUrl);
@@ -220,9 +225,17 @@ class PrinterService {
     required String mac,
     required ReceiptLabels labels,
     PrinterConnection connection = PrinterConnection.bluetooth,
+    String currencySymbol = 'Ks',
+    int exponent = 0,
   }) async {
     try {
-      final bytes = await buildBytes(data, paper: paper, labels: labels);
+      final bytes = await buildBytes(
+        data,
+        paper: paper,
+        labels: labels,
+        currencySymbol: currencySymbol,
+        exponent: exponent,
+      );
       return _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
@@ -239,8 +252,14 @@ class PrinterService {
     required String dateRangeLabel,
     required String totalLabel,
     required String noSalesLabel,
+    String currencySymbol = 'Ks',
+    int exponent = 0,
   }) async {
-    final bodyLines = SalesReportFormatter(paper: paper).format(
+    final bodyLines = SalesReportFormatter(
+      paper: paper,
+      currencySymbol: currencySymbol,
+      exponent: exponent,
+    ).format(
       report,
       title: title,
       dateRangeLabel: dateRangeLabel,
@@ -278,6 +297,8 @@ class PrinterService {
     required String totalLabel,
     required String noSalesLabel,
     PrinterConnection connection = PrinterConnection.bluetooth,
+    String currencySymbol = 'Ks',
+    int exponent = 0,
   }) async {
     try {
       final bytes = await buildReportBytes(
@@ -288,6 +309,8 @@ class PrinterService {
         dateRangeLabel: dateRangeLabel,
         totalLabel: totalLabel,
         noSalesLabel: noSalesLabel,
+        currencySymbol: currencySymbol,
+        exponent: exponent,
       );
       return _send(bytes, address: mac, connection: connection);
     } catch (e) {

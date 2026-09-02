@@ -21,6 +21,7 @@ import '../support/support_providers.dart';
 import '../support/viber_launch.dart';
 import 'license_providers.dart';
 import 'license_status.dart';
+import '../../core/providers.dart';
 
 part 'license_widgets.dart';
 
@@ -308,6 +309,102 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
     }
   }
 
+  /// `_PurchasePaths.onPayOnline` — the single "Pay online" action, for
+  /// every shop regardless of country. When Lemon Squeezy is configured,
+  /// asks Myanmar vs International right here at the moment of subscribing
+  /// (owner's explicit request, replacing the earlier persistent
+  /// `ShopProfile.country` flag — that field/column still exists but is no
+  /// longer read by the app) and dispatches to [_openRenewPage] or
+  /// [_openLemonSqueezyCheckout] accordingly. Before Lemon Squeezy is
+  /// configured there's only one real path, so it skips straight to
+  /// [_openRenewPage] rather than showing a chooser with one dead option.
+  Future<void> _choosePurchaseRegion() async {
+    final cfg = await ref.read(vendorConfigProvider.future);
+    if (!cfg.hasLemonSqueezy) {
+      await _openRenewPage();
+      return;
+    }
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    final region = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.licenseChooseRegionTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'mm'),
+            child: Text(l.licenseRegionMyanmar),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'intl'),
+            child: Text(l.licenseRegionInternational),
+          ),
+        ],
+      ),
+    );
+    if (region == 'mm') {
+      await _openRenewPage();
+    } else if (region == 'intl') {
+      await _openLemonSqueezyCheckout();
+    }
+  }
+
+  /// International purchase path — a hosted Lemon Squeezy checkout URL,
+  /// same external-launch shape as [_openRenewPage]. Only reachable via
+  /// [_choosePurchaseRegion], which already requires `kCommerceUiEnabled`
+  /// (see the store build's commerce gate) and a configured Lemon Squeezy
+  /// store.
+  Future<void> _openLemonSqueezyCheckout() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final cfg = await ref.read(vendorConfigProvider.future);
+    if (!cfg.hasLemonSqueezy) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+      }
+      return;
+    }
+    if (!mounted) return;
+    final plan = await showDialog<LicensePlan>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.licenseBuyOrRenewTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, LicensePlan.monthly),
+            child: Text(l.licensePlanMonthly),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, LicensePlan.yearly),
+            child: Text(l.licensePlanYearly),
+          ),
+        ],
+      ),
+    );
+    if (plan == null) return;
+    final variant = plan == LicensePlan.yearly
+        ? cfg.lemonSqueezyVariantYearly
+        : cfg.lemonSqueezyVariantMonthly;
+    final lic = ref.read(licenseControllerProvider).license;
+    var deviceId = lic?.deviceId ?? '';
+    if (deviceId.isEmpty) {
+      deviceId = ref.read(deviceIdProvider).valueOrNull ?? '';
+    }
+    final shopId = ref.read(shopIdProvider);
+    final uri = Uri.https(
+      '${cfg.lemonSqueezyStoreSlug}.lemonsqueezy.com',
+      '/checkout/buy/$variant',
+      {
+        'checkout[custom][shop_id]': shopId,
+        if (deviceId.isNotEmpty) 'checkout[custom][device_id]': deviceId,
+      },
+    );
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
+
   Future<void> _refresh() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -389,7 +486,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               busy: _busy,
               hasAccount: hasAccount,
               showCheckRenewal: state.license?.plan != LicensePlan.free,
-              onPayOnline: _openRenewPage,
+              onPayOnline: _choosePurchaseRegion,
               onContactViber: _contactSupportForPremium,
               onCheckRenewal: _refresh,
             ),
@@ -498,7 +595,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               busy: _busy,
               hasAccount: true,
               showCheckRenewal: true,
-              onPayOnline: _openRenewPage,
+              onPayOnline: _choosePurchaseRegion,
               onContactViber: _contactSupportForPremium,
               onCheckRenewal: _refresh,
             ),
@@ -546,7 +643,7 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
                 busy: _busy,
                 hasAccount: false,
                 showCheckRenewal: false,
-                onPayOnline: _openRenewPage,
+                onPayOnline: _choosePurchaseRegion,
                 onContactViber: _contactSupportForPremium,
                 onCheckRenewal: _refresh,
               ),

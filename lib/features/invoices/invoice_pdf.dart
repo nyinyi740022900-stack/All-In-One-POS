@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
 import 'invoice_payment_status.dart';
 import 'invoice_view.dart';
@@ -34,7 +35,7 @@ Future<Uint8List> buildInvoicePdf(
   }
 
   String amt(int v) =>
-      '${v.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} ${data.currencySymbol}';
+      '${formatMinorUnits(v, exponent: data.exponent)} ${data.currencySymbol}';
 
   int unitPrice(InvoiceItemData it) {
     if (it.unitPrice != 0) return it.unitPrice;

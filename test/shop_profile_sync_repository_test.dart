@@ -48,4 +48,15 @@ void main() {
     await repo.sync(shopId: '', name: 'Nothing');
     expect(await db.select(db.shopProfiles).get(), isEmpty);
   });
+
+  test('a later sync without country never resets an already-set value '
+      'back to the MM default — country is no longer editable from any '
+      'screen, so omitting it must leave whatever is already there alone',
+      () async {
+    await repo.sync(shopId: 'shop-1', name: 'Shop', country: 'XX');
+    await repo.sync(shopId: 'shop-1', name: 'Shop', phone: '09999');
+
+    final row = (await db.select(db.shopProfiles).get()).single;
+    expect(row.country, 'XX');
+  });
 }

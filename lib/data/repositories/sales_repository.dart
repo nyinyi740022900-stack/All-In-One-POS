@@ -294,8 +294,8 @@ class SalesRepository {
 
     final saleId = _uuid.v4();
     final now = DateTime.now();
-    final subtotal = cart.subtotal.kyat;
-    final total = cart.total.kyat;
+    final subtotal = cart.subtotal.minor;
+    final total = cart.total.minor;
     final effectivePaid = isSplit
         ? payments.fold<int>(0, (a, e) => a + e.amount)
         : paid!;
@@ -354,9 +354,9 @@ class SalesRepository {
               saleId: saleId,
               productId: line.product.id,
               nameSnapshot: line.product.name,
-              priceSnapshot: cart.unitPriceFor(line).kyat,
+              priceSnapshot: cart.unitPriceFor(line).minor,
               qty: line.qty,
-              lineTotal: cart.lineTotalFor(line).kyat,
+              lineTotal: cart.lineTotalFor(line).minor,
               costSnapshot: Value(costSnapshot),
               updatedAt: Value(now),
             ));

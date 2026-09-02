@@ -74,6 +74,7 @@ InvoiceData invoiceDataFromSale(
   List<SaleItem> items,
   ShopProfile shop, {
   required String currencySymbol,
+  int exponent = 0,
   String? cashier,
   String? paymentMethodCustomName,
   String? defaultFooter,
@@ -122,6 +123,7 @@ InvoiceData invoiceDataFromSale(
     paymentMethodCustomName: paymentMethodCustomName,
     cashier: cashier,
     currencySymbol: currencySymbol,
+    exponent: exponent,
     footer: (shop.footer != null && shop.footer!.isNotEmpty)
         ? shop.footer
         : defaultFooter,

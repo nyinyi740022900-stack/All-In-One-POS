@@ -1,4 +1,5 @@
 import '../../core/csv_util.dart';
+import '../../core/money.dart';
 import 'analytics_calculator.dart';
 
 /// A formal Profit & Loss layout for a date range — the same figures
@@ -59,17 +60,19 @@ String buildPnlCsv(
   required String totalExpensesLabel,
   required String netProfitLabel,
   required String Function(String category) categoryLabel,
+  int exponent = 0,
 }) {
+  String fmt(int minor) => formatMinorUnitsPlain(minor, exponent: exponent);
   return csvDocument(
     [lineHeader, amountHeader],
     [
-      [revenueLabel, p.revenue],
-      [cogsLabel, -p.cogs],
-      [grossProfitLabel, p.grossProfit],
+      [revenueLabel, fmt(p.revenue)],
+      [cogsLabel, fmt(-p.cogs)],
+      [grossProfitLabel, fmt(p.grossProfit)],
       for (final entry in p.expensesByCategory.entries)
-        if (entry.value != 0) [categoryLabel(entry.key), -entry.value],
-      [totalExpensesLabel, -p.totalExpenses],
-      [netProfitLabel, p.netProfit],
+        if (entry.value != 0) [categoryLabel(entry.key), fmt(-entry.value)],
+      [totalExpensesLabel, fmt(-p.totalExpenses)],
+      [netProfitLabel, fmt(p.netProfit)],
     ],
   );
 }

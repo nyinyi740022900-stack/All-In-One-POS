@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../../core/money.dart';
 import '../invoices/receipt_data.dart';
 import 'pnl_data.dart';
 
@@ -7,17 +8,17 @@ import 'pnl_data.dart';
 /// printer's paper width — same shape/helpers as `CashSessionReportFormatter`
 /// (a key-value body, not a row table), reused as-is by `renderReportImage`.
 class PnlFormatter {
-  PnlFormatter({required this.paper, this.currencySymbol = 'Ks'});
+  PnlFormatter({required this.paper, this.currencySymbol = 'Ks', this.exponent = 0});
 
   final PaperSize paper;
   final String currencySymbol;
+  final int exponent;
 
   int get _w => paper.chars;
 
-  final _money = NumberFormat('#,##0', 'en_US');
   String _amt(int v) {
     final sign = v < 0 ? '-' : '';
-    return '$sign${_money.format(v.abs())} $currencySymbol';
+    return '$sign${formatMinorUnits(v.abs(), exponent: exponent)} $currencySymbol';
   }
 
   List<String> format(

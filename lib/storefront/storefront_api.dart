@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/payment_method.dart';
+
 /// A product shown on the public storefront.
 class StoreProduct {
   final String id;
@@ -14,6 +16,11 @@ class StoreProduct {
   /// `onlineStockLimit` on this product (independent of real in-store
   /// stock). Null means no cap — sell as normal.
   final int? onlineAvailable;
+
+  /// The product's category, if it has one — drives the storefront's
+  /// category filter chips. Null products just never match a chip other
+  /// than "All".
+  final String? categoryId;
   const StoreProduct(
     this.id,
     this.name,
@@ -21,7 +28,17 @@ class StoreProduct {
     this.unit,
     this.imageUrl, {
     this.onlineAvailable,
+    this.categoryId,
   });
+}
+
+/// A category the storefront can filter its product grid by — only
+/// categories actually used by a published product are sent (see the
+/// Edge Function), so this list never shows an empty filter.
+class StoreCategory {
+  final String id;
+  final String name;
+  const StoreCategory(this.id, this.name);
 }
 
 /// Public shop info + payment numbers shown to customers.
@@ -34,39 +51,36 @@ class StoreInfo {
   final String? displayName;
   final String? phone;
   final String? address;
-  final String? payKpay;
-  final String? payKpayName;
-  final String? payWave;
-  final String? payWaveName;
+  final List<PaymentMethod> paymentMethods;
   final String? logoUrl;
   final bool acceptingOrders;
   final bool requireTransferProof;
   final bool hoursEnabled;
   final int? openMinute;
   final int? closeMinute;
+  final String currencyCode;
 
   const StoreInfo({
     required this.shopId,
     this.displayName,
     this.phone,
     this.address,
-    this.payKpay,
-    this.payKpayName,
-    this.payWave,
-    this.payWaveName,
+    this.paymentMethods = const [],
     this.logoUrl,
     this.acceptingOrders = true,
     this.requireTransferProof = true,
     this.hoursEnabled = false,
     this.openMinute,
     this.closeMinute,
+    this.currencyCode = 'MMK',
   });
 }
 
 class Catalog {
   final StoreInfo info;
   final List<StoreProduct> products;
-  const Catalog(this.info, this.products);
+  final List<StoreCategory> categories;
+  const Catalog(this.info, this.products, [this.categories = const []]);
 }
 
 /// One line the customer wants to order.
@@ -141,20 +155,33 @@ class StorefrontApi {
             (m['unit'] as String?) ?? 'pcs',
             m['image_url'] as String?,
             onlineAvailable: (m['online_available'] as num?)?.toInt(),
+            categoryId: m['category_id'] as String?,
           ),
         )
         .toList();
+    final categoriesRaw = data['categories'];
+    final categories = categoriesRaw is List
+        ? categoriesRaw
+              .whereType<Map>()
+              .map((e) => e.cast<String, dynamic>())
+              .map(
+                (m) => StoreCategory(
+                  m['id'] as String? ?? '',
+                  m['name'] as String? ?? '',
+                ),
+              )
+              .where((c) => c.id.isNotEmpty)
+              .toList()
+        : const <StoreCategory>[];
     return Catalog(
       StoreInfo(
         shopId: s['shop_id'] as String? ?? '',
         displayName: s['display_name'] as String?,
         phone: s['phone'] as String?,
         address: s['address'] as String?,
-        payKpay: s['pay_kpay'] as String?,
-        payKpayName: s['pay_kpay_name'] as String?,
-        payWave: s['pay_wave'] as String?,
-        payWaveName: s['pay_wave_name'] as String?,
+        paymentMethods: PaymentMethod.listFromJson(s['payment_methods']),
         logoUrl: s['logo_url'] as String?,
+        currencyCode: s['currency_code'] as String? ?? 'MMK',
         acceptingOrders: s['accepting_orders'] as bool? ?? true,
         requireTransferProof: s['require_transfer_proof'] as bool? ?? true,
         hoursEnabled: s['hours_enabled'] as bool? ?? false,
@@ -162,6 +189,7 @@ class StorefrontApi {
         closeMinute: (s['close_minute'] as num?)?.toInt(),
       ),
       products,
+      categories,
     );
   }
 
@@ -301,6 +329,29 @@ class StorefrontApi {
     );
   }
 
+  /// The /renew page's optional sign-in convenience layer: the signed-in
+  /// shop's own past renewal requests. Requires an active Supabase Auth
+  /// session — `functions.invoke` automatically sends the current session's
+  /// access token as the Authorization header once signed in, same as any
+  /// other authenticated call from the mobile app. Throws (rather than
+  /// returning an empty list) when not signed in, so a caller can tell
+  /// "no session" apart from "signed in, genuinely no requests yet".
+  Future<List<RenewalRequestSummary>> fetchMyRequests() async {
+    final res = await _c.functions.invoke(
+      'storefront',
+      body: {'action': 'my_requests'},
+    );
+    if (res.status != 200 || res.data is! Map) {
+      throw Exception(res.data is Map ? res.data['error'] : 'error');
+    }
+    final rows = (res.data as Map)['requests'];
+    if (rows is! List) return const [];
+    return rows
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .map(RenewalRequestSummary.fromMap)
+        .toList();
+  }
+
   /// Payment-account info (KBZPay/WavePay name+number) to show a shop owner
   /// on the /renew page — read directly from `app_config`, anon-readable
   /// (`0006_app_config.sql`), same source `VendorConfigRepository` uses on
@@ -406,4 +457,46 @@ class SubmittedLicenseRequest {
   const SubmittedLicenseRequest({required this.requestId, this.invoiceNo});
   final String requestId;
   final String? invoiceNo;
+}
+
+/// One row of [StorefrontApi.fetchMyRequests] — deliberately a lighter shape
+/// than [RenewalReceipt] (no `payment_proof_path`/phone/email even server-
+/// side; see `handleMyRequests`'s doc comment): just enough for a history
+/// list, with [id] to open the full [RenewalReceipt] on tap.
+class RenewalRequestSummary {
+  const RenewalRequestSummary({
+    required this.id,
+    required this.invoiceNo,
+    required this.plan,
+    required this.months,
+    required this.amount,
+    required this.status,
+    required this.createdAt,
+    this.method,
+  });
+
+  final String id;
+  final String invoiceNo;
+  final String plan;
+  final int months;
+  final int amount;
+
+  /// 'pending' | 'fulfilled' | 'rejected'
+  final String status;
+  final DateTime? createdAt;
+  final String? method;
+
+  factory RenewalRequestSummary.fromMap(Map<String, dynamic> m) =>
+      RenewalRequestSummary(
+        id: (m['id'] as String?) ?? '',
+        invoiceNo: (m['invoice_no'] as String?) ?? '',
+        plan: (m['plan'] as String?) ?? 'monthly',
+        months: (m['months'] as num?)?.toInt() ?? 1,
+        amount: (m['amount'] as num?)?.toInt() ?? 0,
+        status: (m['status'] as String?) ?? 'pending',
+        createdAt: m['created_at'] is String
+            ? DateTime.tryParse(m['created_at'] as String)?.toLocal()
+            : null,
+        method: m['method'] as String?,
+      );
 }

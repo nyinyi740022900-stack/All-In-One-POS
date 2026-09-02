@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -154,7 +155,7 @@ double _kpiTileExtent(BuildContext context) {
   return AppTheme.space3 * 2 + labelBlock + AppTheme.space2 + valueLine;
 }
 
-class _Dashboard extends StatelessWidget {
+class _Dashboard extends ConsumerWidget {
   const _Dashboard({
     required this.summary,
     required this.trackStock,
@@ -166,15 +167,16 @@ class _Dashboard extends StatelessWidget {
   final int lowStockCount;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
 
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
       children: [
         _GlanceStrip(
-          revenue: Money(summary.revenue).withSymbol(cur),
+          revenue: Money(summary.revenue).withCurrency(currency, locale),
           salesCount: '${summary.salesCount}',
           lowStockCount: lowStockCount,
           trackStock: trackStock,
@@ -223,12 +225,12 @@ class _Dashboard extends StatelessWidget {
             // ---------------------------------------------------------------
             StatCard(
               label: l.analyticsProfit,
-              value: Money(summary.profit).withSymbol(cur),
+              value: Money(summary.profit).withCurrency(currency, locale),
               icon: Icons.trending_up,
             ),
             StatCard(
               label: l.analyticsExpenses,
-              value: Money(summary.expenses).withSymbol(cur),
+              value: Money(summary.expenses).withCurrency(currency, locale),
               icon: Icons.receipt_long,
               onTap: () => Navigator.of(
                 context,
@@ -236,7 +238,7 @@ class _Dashboard extends StatelessWidget {
             ),
             StatCard(
               label: l.analyticsNetProfit,
-              value: Money(summary.netProfit).withSymbol(cur),
+              value: Money(summary.netProfit).withCurrency(currency, locale),
               icon: Icons.savings_outlined,
               // Losing money is the one thing on this screen worth shouting
               // about; breaking even or better is not a badge, so it stays
@@ -249,19 +251,19 @@ class _Dashboard extends StatelessWidget {
             if (trackStock)
               StatCard(
                 label: l.analyticsStockValue,
-                value: Money(summary.stockValue).withSymbol(cur),
+                value: Money(summary.stockValue).withCurrency(currency, locale),
                 icon: Icons.inventory_2,
                 onTap: () => context.go('/inventory'),
               ),
             StatCard(
               label: l.analyticsCollected,
-              value: Money(summary.collected).withSymbol(cur),
+              value: Money(summary.collected).withCurrency(currency, locale),
               icon: Icons.account_balance,
               onTap: () => context.go('/invoices'),
             ),
             StatCard(
               label: l.analyticsCreditOutstanding,
-              value: Money(summary.creditOutstanding).withSymbol(cur),
+              value: Money(summary.creditOutstanding).withCurrency(currency, locale),
               icon: Icons.account_balance_wallet,
               // Money owed to the shop is a to-do, not an emergency — amber,
               // the same tone the Orders list gives an order still waiting on
@@ -558,16 +560,18 @@ String _weekdayShortLabel(AppLocalizations l, DateTime day) =>
       _ => l.weekdayShortSun,
     };
 
-class _RevenueChartCard extends StatelessWidget {
+class _RevenueChartCard extends ConsumerWidget {
   const _RevenueChartCard({required this.daily});
 
   final List<DailyRevenue> daily;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final maxY = daily.fold<int>(0, (m, d) => d.revenue > m ? d.revenue : m);
     // Today renders one bar — nothing to distinguish. A 7-day week labels
     // every bar with its weekday and fits the card width. A 30-day month
@@ -594,7 +598,7 @@ class _RevenueChartCard extends StatelessWidget {
               trailing: maxY == 0
                   ? null
                   : MoneyText(
-                      Money(maxY).withSymbol(l.currencySymbol),
+                      Money(maxY).withCurrency(currency, locale),
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -612,10 +616,10 @@ class _RevenueChartCard extends StatelessWidget {
                       scrollDirection: Axis.horizontal,
                       child: SizedBox(
                         width: math.max(daily.length * 24.0, 600.0),
-                        child: _chart(context, theme, scheme),
+                        child: _chart(context, theme, scheme, currency, locale),
                       ),
                     )
-                  : _chart(context, theme, scheme),
+                  : _chart(context, theme, scheme, currency, locale),
             ),
             if (labelMode == _ChartLabelMode.sparseDay) ...[
               const SizedBox(height: AppTheme.space1),
@@ -638,6 +642,8 @@ class _RevenueChartCard extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme scheme,
+    CurrencyDef currency,
+    String locale,
   ) {
     final l = AppLocalizations.of(context);
     final daily = this.daily;
@@ -678,7 +684,7 @@ class _RevenueChartCard extends StatelessWidget {
               final day = daily[group.x].day;
               return BarTooltipItem(
                 '${df.format(day)}\n'
-                '${Money(rod.toY.round()).withSymbol(l.currencySymbol)}',
+                '${Money(rod.toY.round()).withCurrency(currency, locale)}',
                 theme.textTheme.labelMedium!.copyWith(
                   color: scheme.onInverseSurface,
                   fontFeatures: AppTheme.tabularFigures,
@@ -773,7 +779,8 @@ class _SalesByEmployeeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
     final memberPairs = [for (final m in members) (id: m.id, name: m.name)];
 
@@ -825,7 +832,7 @@ class _SalesByEmployeeCard extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  trailing: MoneyText(Money(e.revenue).withSymbol(cur)),
+                  trailing: MoneyText(Money(e.revenue).withCurrency(currency, locale)),
                 ),
               ),
           ],
@@ -835,15 +842,16 @@ class _SalesByEmployeeCard extends ConsumerWidget {
   }
 }
 
-class _TopProductsCard extends StatelessWidget {
+class _TopProductsCard extends ConsumerWidget {
   const _TopProductsCard({required this.top});
 
   final List<TopProduct> top;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.space3),
@@ -876,7 +884,7 @@ class _TopProductsCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  trailing: MoneyText(Money(e.value.revenue).withSymbol(cur)),
+                  trailing: MoneyText(Money(e.value.revenue).withCurrency(currency, locale)),
                 ),
               ),
           ],

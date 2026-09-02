@@ -72,6 +72,7 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exporting = true);
     try {
+      final currency = ref.read(shopCurrencyProvider);
       final csv = buildCashFlowCsv(
         flows,
         accountHeader: l.paymentAccountNameLabel,
@@ -79,6 +80,7 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
         inflowHeader: l.cashFlowInflow,
         outflowHeader: l.cashFlowOutflow,
         closingHeader: l.cashFlowClosing,
+        exponent: currency.exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/cash-flow.csv');
@@ -101,7 +103,8 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _exportingPdf = true);
     try {
-      final sym = l.currencySymbol;
+      final currency = ref.read(shopCurrencyProvider);
+      final locale = Localizations.localeOf(context).languageCode;
       var totalIn = 0;
       var totalOut = 0;
       for (final f in flows) {
@@ -131,16 +134,16 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
           for (final f in flows)
             [
               f.name,
-              Money(f.opening).withSymbol(sym),
-              Money(f.inflow).withSymbol(sym),
-              Money(-f.outflow).withSymbol(sym),
-              Money(f.closing).withSymbol(sym),
+              Money(f.opening).withCurrency(currency, locale),
+              Money(f.inflow).withCurrency(currency, locale),
+              Money(-f.outflow).withCurrency(currency, locale),
+              Money(f.closing).withCurrency(currency, locale),
             ],
           [
             l.cashFlowInflow,
             '',
-            Money(totalIn).withSymbol(sym),
-            Money(-totalOut).withSymbol(sym),
+            Money(totalIn).withCurrency(currency, locale),
+            Money(-totalOut).withCurrency(currency, locale),
             '',
           ],
         ],
@@ -177,7 +180,8 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
         ),
       );
     }
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final start = _start ?? _defaultStart;
     final end = _end ?? _defaultEnd;
     final df = DateFormat('yyyy-MM-dd');
@@ -248,16 +252,16 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
                             const SizedBox(height: AppTheme.space2),
                             SummaryRow(
                               l.cashFlowOpening,
-                              Money(f.opening).withSymbol(sym),
+                              Money(f.opening).withCurrency(currency, locale),
                             ),
                             SummaryRow(
                               l.cashFlowInflow,
-                              Money(f.inflow).withSymbol(sym),
+                              Money(f.inflow).withCurrency(currency, locale),
                               color: AppColors.of(context).success,
                             ),
                             SummaryRow(
                               l.cashFlowOutflow,
-                              Money(-f.outflow).withSymbol(sym),
+                              Money(-f.outflow).withCurrency(currency, locale),
                               color: f.outflow > 0
                                   ? Theme.of(context).colorScheme.error
                                   : null,
@@ -265,19 +269,19 @@ class _CashFlowScreenState extends ConsumerState<CashFlowScreen> {
                             const Divider(),
                             SummaryRow(
                               l.cashFlowClosing,
-                              Money(f.closing).withSymbol(sym),
+                              Money(f.closing).withCurrency(currency, locale),
                               emphasis: true,
                             ),
                             const SizedBox(height: AppTheme.space4),
                           ],
                           SummaryRow(
                             l.cashFlowInflow,
-                            Money(totalIn).withSymbol(sym),
+                            Money(totalIn).withCurrency(currency, locale),
                             emphasis: true,
                           ),
                           SummaryRow(
                             l.cashFlowOutflow,
-                            Money(-totalOut).withSymbol(sym),
+                            Money(-totalOut).withCurrency(currency, locale),
                             emphasis: true,
                           ),
                           const SizedBox(height: AppTheme.space3),

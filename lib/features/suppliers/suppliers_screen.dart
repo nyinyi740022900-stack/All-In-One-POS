@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'accounts_payable.dart';
 import 'accounts_payable_providers.dart';
 import 'supplier_providers.dart';
@@ -19,7 +20,8 @@ class SuppliersScreen extends ConsumerWidget {
   Future<void> _confirmDelete(
       BuildContext context, WidgetRef ref, Supplier s) async {
     final l = AppLocalizations.of(context);
-    final currency = l.currencySymbol;
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final key = poSupplierKeyFor(s.id, s.name);
     final balance = ref
         .read(supplierBalancesProvider)
@@ -39,7 +41,7 @@ class SuppliersScreen extends ConsumerWidget {
               const SizedBox(height: AppTheme.space3),
               Text(
                 l.supplierDeleteConfirmApWarning(
-                    s.name, Money(outstanding).withSymbol(currency)),
+                    s.name, Money(outstanding).withCurrency(currency, locale)),
                 style: Theme.of(ctx)
                     .textTheme
                     .bodyMedium

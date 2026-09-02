@@ -15,6 +15,7 @@ Product _product(String id, {int price = 1000}) => Product(
       salePrice: price,
       unit: 'pcs',
       isActive: true,
+      sellOnline: true,
     );
 
 CartState _cart(String productId, {int qty = 1, int discount = 0}) {

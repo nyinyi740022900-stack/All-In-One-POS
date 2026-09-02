@@ -42,6 +42,7 @@ Future<void> shareAgedReceivablesCsv(
 ) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final currency = ref.read(shopCurrencyProvider);
   final rows = ref.read(agedReceivablesProvider);
   final totals = ref.read(agingTotalsProvider);
   final csv = [
@@ -62,7 +63,7 @@ Future<void> shareAgedReceivablesCsv(
         _agingDay.format(r.finalizedAt),
         DateTime.now().difference(r.finalizedAt).inDays,
         _agingBucketLabel(l, r.bucket),
-        r.outstanding,
+        formatMinorUnitsPlain(r.outstanding, exponent: currency.exponent),
       ].map(csvField).join(','),
     for (var i = 0; i < totals.length; i++)
       [
@@ -72,7 +73,7 @@ Future<void> shareAgedReceivablesCsv(
         '',
         '',
         '',
-        totals[i],
+        formatMinorUnitsPlain(totals[i], exponent: currency.exponent),
       ].map(csvField).join(','),
   ].join('\r\n');
   try {
@@ -98,6 +99,8 @@ Future<void> shareAgedReceivablesPdf(
 ) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final currency = ref.read(shopCurrencyProvider);
+  final locale = Localizations.localeOf(context).languageCode;
   final rows = ref.read(agedReceivablesProvider);
   final totals = ref.read(agingTotalsProvider);
   final bucketLabels = [
@@ -135,7 +138,7 @@ Future<void> shareAgedReceivablesPdf(
             _agingDay.format(r.finalizedAt),
             '${DateTime.now().difference(r.finalizedAt).inDays}',
             _agingBucketLabel(l, r.bucket),
-            Money(r.outstanding).withSymbol(l.currencySymbol),
+            Money(r.outstanding).withCurrency(currency, locale),
           ],
         for (var i = 0; i < totals.length; i++)
           [
@@ -145,7 +148,7 @@ Future<void> shareAgedReceivablesPdf(
             '',
             '',
             '',
-            Money(totals[i]).withSymbol(l.currencySymbol),
+            Money(totals[i]).withCurrency(currency, locale),
           ],
       ],
       boldRowIndices: {
@@ -175,7 +178,8 @@ class CreditScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final filter = ref.watch(creditFilterProvider);
     final customers = filter == CreditFilter.all
         ? ref.watch(allCreditCustomersProvider)
@@ -231,7 +235,7 @@ class CreditScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
                 MoneyText(
-                  Money(total).withSymbol(currency),
+                  Money(total).withCurrency(currency, locale),
                   textAlign: TextAlign.start,
                   emphasis: true,
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -293,7 +297,7 @@ class CreditScreen extends ConsumerWidget {
                                 ],
                               )
                             : Text(
-                                Money(c.outstanding).withSymbol(currency),
+                                Money(c.outstanding).withCurrency(currency, locale),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: colors.danger,
@@ -330,7 +334,8 @@ class CreditCustomerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final customer = ref.watch(creditCustomersProvider).firstWhere(
           (c) => c.key == customerKey,
           orElse: () => CreditCustomer(
@@ -376,7 +381,7 @@ class CreditCustomerScreen extends ConsumerWidget {
               Text(l.creditOutstanding,
                   style: Theme.of(context).textTheme.titleMedium),
               Text(
-                Money(customer.outstanding).withSymbol(currency),
+                Money(customer.outstanding).withCurrency(currency, locale),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color:
@@ -398,7 +403,7 @@ class CreditCustomerScreen extends ConsumerWidget {
           subtitle: Text(df.format(sale.finalizedAt)),
           trailing: Text(
             owed > 0
-                ? Money(owed).withSymbol(currency)
+                ? Money(owed).withCurrency(currency, locale)
                 : l.creditSettled,
             style: TextStyle(
                 color: owed > 0 ? colors.danger : colors.success),
@@ -413,7 +418,7 @@ class CreditCustomerScreen extends ConsumerWidget {
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.check_circle, color: colors.success),
-            title: Text('+${Money(p.amount).withSymbol(currency)}'),
+            title: Text('+${Money(p.amount).withCurrency(currency, locale)}'),
             subtitle: Text(
                 '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
           ),
@@ -453,6 +458,8 @@ class _AgingStrip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final totals = ref.watch(agingTotalsProvider);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final labels = [
       l.agingBucket0,
       l.agingBucket1,
@@ -466,7 +473,7 @@ class _AgingStrip extends ConsumerWidget {
         for (var i = 0; i < totals.length; i++)
           StatusPill(
             label:
-                '${labels[i]}: ${Money(totals[i]).withSymbol(l.currencySymbol)}',
+                '${labels[i]}: ${Money(totals[i]).withCurrency(currency, locale)}',
             tone: totals[i] > 0 ? StatusTone.attention : StatusTone.neutral,
           ),
       ],

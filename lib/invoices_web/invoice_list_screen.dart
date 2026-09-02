@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/currency_def.dart';
 import '../core/money.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
@@ -106,11 +107,19 @@ class InvoiceListScreen extends StatefulWidget {
 class _InvoiceListScreenState extends State<InvoiceListScreen> {
   late Future<List<InvoiceRow>> _future;
   String _query = '';
+  // This web target has no local Drift DB / Riverpod `shopCurrencyProvider`
+  // (a separate, DB-less entry point — see `printing_providers.dart`'s
+  // provider chain), so the shop's currency is fetched directly from
+  // Supabase instead, same as `_load()` reads `sales` directly. Fails
+  // closed to MMK (`CurrencyDef.byCode(null)`) until the fetch resolves,
+  // matching `shopCurrencyProvider`'s own fail-closed default.
+  CurrencyDef _currency = CurrencyDef.byCode(null);
 
   @override
   void initState() {
     super.initState();
     _future = _load();
+    _loadCurrency();
   }
 
   Future<List<InvoiceRow>> _load() async {
@@ -123,6 +132,20 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     return rows
         .map((e) => InvoiceRow.fromRow((e as Map).cast<String, dynamic>()))
         .toList();
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      final row = await Supabase.instance.client
+          .from('shop_profiles')
+          .select('currency_code')
+          .limit(1)
+          .maybeSingle();
+      final code = row?['currency_code'] as String?;
+      if (mounted) setState(() => _currency = CurrencyDef.byCode(code));
+    } catch (_) {
+      // Best-effort — stays MMK on failure, same as the mobile default.
+    }
   }
 
   Future<void> _signOut() async {
@@ -205,7 +228,8 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    MoneyText(Money(r.total).withSymbol(l.currencySymbol)),
+                                    MoneyText(Money(r.total).withCurrency(
+                                        _currency, widget.locale.languageCode)),
                                     if (r.isRefund)
                                       Text(l.invoiceRefunded,
                                           style: Theme.of(context)

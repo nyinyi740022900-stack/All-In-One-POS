@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../core/money.dart';
 import 'pdf_font.dart';
 import 'receipt_data.dart';
 import 'sales_report_data.dart';
@@ -22,6 +23,7 @@ Future<Uint8List> buildSalesReportPdf({
   required String dateRangeLabel,
   required SalesReport report,
   required String currencySymbol,
+  int exponent = 0,
   required String invoiceColumnLabel,
   required String dateColumnLabel,
   required String customerColumnLabel,
@@ -49,10 +51,7 @@ Future<Uint8List> buildSalesReportPdf({
 
   String amt(int v) {
     final sign = v < 0 ? '-' : '';
-    return '$sign${v.abs().toString().replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (m) => ',',
-        )} $currencySymbol';
+    return '$sign${formatMinorUnits(v.abs(), exponent: exponent)} $currencySymbol';
   }
 
   String dateStr(DateTime d) =>

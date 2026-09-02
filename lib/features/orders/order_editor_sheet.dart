@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../data/local/database.dart';
@@ -10,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../customers/customer_picker.dart';
 import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
+import '../printing/printing_providers.dart';
 import 'order_labels.dart';
 import 'orders_providers.dart';
 import 'orders_repository.dart';
@@ -124,11 +126,12 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
 
   Future<void> _pickProduct(_LineDraft line) async {
     final products = ref.read(productsStreamProvider).valueOrNull ?? const [];
+    final currency = ref.read(shopCurrencyProvider);
     final selected = await showModalBottomSheet<ProductPick>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _ProductPickerSheet(products: products),
+      builder: (_) => _ProductPickerSheet(products: products, currency: currency),
     );
     if (selected == null) return;
     setState(() {
@@ -239,7 +242,8 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -309,7 +313,7 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
                   ],
                   decoration: InputDecoration(
                     labelText: l.orderDeliveryFee,
-                    suffixText: sym,
+                    suffixText: currency.label(locale),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -338,9 +342,10 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
           ),
           for (final line in _lines) _itemRow(l, line),
           const SizedBox(height: 16),
-          _totalRow(l.orderItemsTotal, Money(_itemsTotal).withSymbol(sym)),
+          _totalRow(l.orderItemsTotal,
+              Money(_itemsTotal).withCurrency(currency, locale)),
           _totalRow(l.orderTotal,
-              Money(_itemsTotal + _deliveryFeeVal).withSymbol(sym),
+              Money(_itemsTotal + _deliveryFeeVal).withCurrency(currency, locale),
               bold: true),
           const SizedBox(height: 16),
           FilledButton.icon(
@@ -489,8 +494,9 @@ class ProductPick {
 }
 
 class _ProductPickerSheet extends StatefulWidget {
-  const _ProductPickerSheet({required this.products});
+  const _ProductPickerSheet({required this.products, required this.currency});
   final List<ProductWithStock> products;
+  final CurrencyDef currency;
 
   @override
   State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
@@ -502,6 +508,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final q = _q.trim().toLowerCase();
     final items = widget.products
         .where((p) => q.isEmpty || p.product.name.toLowerCase().contains(q))
@@ -533,8 +540,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                   return ListTile(
                     dense: true,
                     title: Text(p.name),
-                    trailing:
-                        Text(Money(p.salePrice).withSymbol(l.currencySymbol)),
+                    trailing: Text(
+                      Money(p.salePrice).withCurrency(widget.currency, locale),
+                    ),
                     onTap: () => Navigator.of(context)
                         .pop(ProductPick(p.id, p.name, p.salePrice)),
                   );

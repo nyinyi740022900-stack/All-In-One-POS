@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -133,7 +134,10 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     super.dispose();
   }
 
-  int get _paidAmount => parseThousands(_paid.text);
+  int get _paidAmount => parseDecimalMinorUnits(
+        _paid.text,
+        exponent: ref.read(shopCurrencyProvider).exponent,
+      );
 
   /// This customer's outstanding credit-book balance *before* this sale —
   /// 0 if they have none (or aren't a directory customer at all).
@@ -163,7 +167,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   /// zero down, so Exact has to write the number.
   void _applyTenderExact(int total) {
     if (_method == 'credit') {
-      _setPaidDigits('$total');
+      _setPaidAmount(total);
     } else {
       _setPaidDigits('');
     }
@@ -211,7 +215,28 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // setState, but chip writes only notified the TextField — Change/Owed
     // rows kept showing stale zeros until the next unrelated rebuild
     // (owner report: tapping 3,000/5,000/10,000 never showed the change).
-    setState(() => _setPaidDigits('$kyat'));
+    setState(() => _setPaidAmount(kyat));
+  }
+
+  /// Writes a minor-units amount into the paid field, formatted for the
+  /// shop's own currency exponent — unlike [_setPaidDigits] (whole-unit
+  /// digits only), this is safe to call with a THB/USD amount too. Currently
+  /// only ever called with MMK amounts (cash-tender chips are gated to
+  /// MMK-only shops), but the two call sites here take a plain minor-units
+  /// int with no such guarantee baked into their own signature, so this
+  /// stays correct rather than silently 10^exponent-wrong if that gate is
+  /// ever loosened.
+  void _setPaidAmount(int minorUnits) {
+    final exponent = ref.read(shopCurrencyProvider).exponent;
+    if (exponent <= 0) {
+      _setPaidDigits('$minorUnits');
+      return;
+    }
+    final text = formatDecimalMinorUnits(minorUnits, exponent: exponent);
+    _paid.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   /// Writes [digits] into the paid field, grouped with thousands separators
@@ -219,6 +244,21 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   /// chip values would otherwise display ungrouped next to grouped typing.
   void _setPaidDigits(String digits) {
     final text = ThousandsSeparatorInputFormatter.formatThousandsText(digits);
+    _paid.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  /// Decimal-currency sibling of [_setPaidDigits] — [raw] is digits plus at
+  /// most one '.', written grouped on the whole part (matching
+  /// [DecimalMoneyInputFormatter]'s own formatting).
+  void _setPaidRaw(String raw) {
+    final dotIndex = raw.indexOf('.');
+    final whole = dotIndex < 0 ? raw : raw.substring(0, dotIndex);
+    final frac = dotIndex < 0 ? '' : raw.substring(dotIndex + 1);
+    final groupedWhole = ThousandsSeparatorInputFormatter.formatThousandsText(whole);
+    final text = dotIndex < 0 ? groupedWhole : '$groupedWhole.$frac';
     _paid.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
@@ -244,19 +284,50 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   }
 
   void _padDigit(String d) {
-    final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
-    final next = digits + d;
-    // 10 digits ≈ up to 9,999,999,999 Ks — far past any retail ticket.
-    if (next.length > 10) return;
-    _setPaidDigits(next);
+    final exponent = ref.read(shopCurrencyProvider).exponent;
+    if (exponent <= 0) {
+      final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
+      final next = digits + d;
+      // 10 digits ≈ up to 9,999,999,999 Ks — far past any retail ticket.
+      if (next.length > 10) return;
+      _setPaidDigits(next);
+      setState(() {});
+      _ensurePaidFieldVisible();
+      return;
+    }
+    // Decimal currency: the keypad's '.' key replaces '00' (see
+    // NumericKeypad's decimalKey) — accumulate raw digits + at most one dot,
+    // capping fractional digits at the currency's own exponent.
+    final raw = _paid.text.replaceAll(',', '');
+    String next;
+    if (d == '.') {
+      if (raw.contains('.')) return;
+      next = raw.isEmpty ? '0.' : '$raw.';
+    } else {
+      final dotIndex = raw.indexOf('.');
+      if (dotIndex >= 0 && raw.length - dotIndex - 1 >= exponent) return;
+      if (raw.replaceAll('.', '').length >= 10) return;
+      next = raw + d;
+    }
+    _setPaidRaw(next);
     setState(() {});
     _ensurePaidFieldVisible();
   }
 
   void _padBackspace() {
-    final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
-    if (digits.isNotEmpty) {
-      _setPaidDigits(digits.substring(0, digits.length - 1));
+    final exponent = ref.read(shopCurrencyProvider).exponent;
+    if (exponent <= 0) {
+      final digits = ThousandsSeparatorInputFormatter.digitsOf(_paid.text);
+      if (digits.isNotEmpty) {
+        _setPaidDigits(digits.substring(0, digits.length - 1));
+      }
+      setState(() {});
+      _ensurePaidFieldVisible();
+      return;
+    }
+    final raw = _paid.text.replaceAll(',', '');
+    if (raw.isNotEmpty) {
+      _setPaidRaw(raw.substring(0, raw.length - 1));
     }
     setState(() {});
     _ensurePaidFieldVisible();
@@ -291,7 +362,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       context: context,
       builder: (_) => _AmountPadDialog(
         title: l.sellDiscount,
-        currency: l.currencySymbol,
+        currency: ref.read(shopCurrencyProvider),
         initial: ref.read(cartProvider).discount,
         percentBase: subtotal,
       ),
@@ -311,7 +382,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       context: context,
       builder: (_) => _AmountPadDialog(
         title: l.sellItemDiscountTitle(line.product.name),
-        currency: l.currencySymbol,
+        currency: ref.read(shopCurrencyProvider),
         initial: line.discount,
         percentBase:
             resolveUnitPrice(line.product, cart.customerTier) * line.qty,
@@ -463,7 +534,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final cart = ref.watch(cartProvider);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
     // Live stock per product, to cap the qty steppers (no overselling).
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
@@ -471,7 +543,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // EVERY keypad digit tap — by scanning the whole product stream. It now
     // lives in stockByIdProvider, which only recomputes when products do.
     final stockById = ref.watch(stockByIdProvider);
-    final total = cart.total.kyat;
+    final total = cart.total.minor;
     final paid = _resolvePaid(total);
     final change = paid > total ? paid - total : 0;
     final owed = total - paid > 0 ? total - paid : 0;
@@ -501,7 +573,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // up until they tap Done, instead of vanishing with the sheet.
     final success = _success;
     if (success != null) {
-      return _SuccessBody(success: success, onDone: () => Navigator.of(context).pop());
+      return _SuccessBody(
+        success: success,
+        currency: currency,
+        onDone: () => Navigator.of(context).pop(),
+      );
     }
 
     // Keep the sheet clear of the status bar. A full cart grew this sheet to
@@ -624,7 +700,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                                 ),
                                 const Spacer(),
                                 MoneyText(
-                                  cart.total.withSymbol(currency),
+                                  cart.total.withCurrency(currency, locale),
                                   style: Theme.of(context).textTheme.titleMedium,
                                   emphasis: true,
                                 ),
@@ -696,16 +772,16 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
 
                         SummaryRow(
                           l.sellSubtotal,
-                          cart.subtotal.withSymbol(currency),
+                          cart.subtotal.withCurrency(currency, locale),
                         ),
                         _DiscountRow(
                           discount: cart.discount,
                           currency: currency,
-                          onTap: () => _editOrderDiscount(cart.subtotal.kyat),
+                          onTap: () => _editOrderDiscount(cart.subtotal.minor),
                         ),
                         SummaryRow(
                           l.commonTotal,
-                          Money(total).withSymbol(currency),
+                          Money(total).withCurrency(currency, locale),
                           emphasis: true,
                         ),
                         const SizedBox(height: AppTheme.space4),
@@ -786,7 +862,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                               labelText: _method == 'credit'
                                   ? l.creditPaidNow
                                   : l.sellAmountPaid,
-                              hintText: Money(total).withSymbol(currency),
+                              hintText: Money(total).withCurrency(currency, locale),
                               suffixIcon: Icon(
                                 _padVisible
                                     ? Icons.keyboard_hide_outlined
@@ -794,7 +870,12 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                               ),
                             ),
                           ),
-                          if (total > 0) ...[
+                          // Quick-cash chips are MM banknote denominations
+                          // (500/1,000/5,000/...) — showing them in ฿/$/¥
+                          // would be actively wrong, so they're hidden
+                          // entirely for a non-MMK shop rather than shown
+                          // with the wrong numbers.
+                          if (total > 0 && currency.code == 'MMK') ...[
                             const SizedBox(height: AppTheme.space2),
                             _TenderChips(
                               suggestions: cashTenderSuggestions(total),
@@ -816,17 +897,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           if (_method == 'credit') ...[
                             SummaryRow(
                               l.creditDeposit,
-                              Money(paid).withSymbol(currency),
+                              Money(paid).withCurrency(currency, locale),
                             ),
                             SummaryRow(
                               l.creditBalanceDue,
-                              Money(owed).withSymbol(currency),
+                              Money(owed).withCurrency(currency, locale),
                               emphasis: true,
                             ),
                           ] else if (owed > 0) ...[
                             SummaryRow(
                               l.creditOwed,
-                              Money(owed).withSymbol(currency),
+                              Money(owed).withCurrency(currency, locale),
                               emphasis: true,
                             ),
                             // A typed shortfall silently becomes credit at confirm
@@ -846,7 +927,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           ] else
                             SummaryRow(
                               l.sellChange,
-                              Money(change).withSymbol(currency),
+                              Money(change).withCurrency(currency, locale),
                             ),
                         ],
 
@@ -866,6 +947,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                     child: NumericKeypad(
                       onDigit: _padDigit,
                       onBackspace: _padBackspace,
+                      decimalKey: currency.exponent > 0,
                     ),
                   ),
                 const Divider(height: 1),
@@ -897,7 +979,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                         const SizedBox(width: AppTheme.space2),
                         Text(
                           Money(_method == 'credit' ? paid : total)
-                              .withSymbol(currency),
+                              .withCurrency(currency, locale),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontFeatures: AppTheme.tabularFigures,
@@ -932,6 +1014,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     bool showCustomer,
   ) {
     final colors = AppColors.of(context);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final name = _customer.text.trim();
     return InkWell(
       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -988,7 +1072,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                   else if (_previousBalance > 0)
                     Text(
                       '${l.creditPreviousBalance} · '
-                      '${Money(_previousBalance).withSymbol(l.currencySymbol)}',
+                      '${Money(_previousBalance).withCurrency(currency, locale)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontFeatures: AppTheme.tabularFigures,
                       ),
@@ -1116,7 +1200,7 @@ class _TenderChips extends StatelessWidget {
   final int paidAmount;
   final bool fieldEmpty;
   final bool isCredit;
-  final String currency;
+  final CurrencyDef currency;
   final String exactLabel;
   final VoidCallback onExact;
   final ValueChanged<int> onAmount;
@@ -1128,6 +1212,7 @@ class _TenderChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (suggestions.isEmpty) return const SizedBox.shrink();
+    final locale = Localizations.localeOf(context).languageCode;
     final extras = suggestions.skip(1);
     return Wrap(
       spacing: AppTheme.space2,
@@ -1153,7 +1238,7 @@ class _TenderChips extends StatelessWidget {
               vertical: AppTheme.space2,
             ),
             label: Text(
-              Money(amount).withSymbol(currency),
+              Money(amount).withCurrency(currency, locale),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontFeatures: AppTheme.tabularFigures,
               ),
@@ -1182,7 +1267,7 @@ class _AmountPadDialog extends StatefulWidget {
   });
 
   final String title;
-  final String currency;
+  final CurrencyDef currency;
   final int initial;
 
   /// When set, offers 5/10/15/20% quick chips of this base amount.
@@ -1209,6 +1294,7 @@ class _AmountPadDialogState extends State<_AmountPadDialog> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final locale = Localizations.localeOf(context).languageCode;
     return AlertDialog(
       title: Text(widget.title),
       content: Column(
@@ -1226,7 +1312,7 @@ class _AmountPadDialogState extends State<_AmountPadDialog> {
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
             child: MoneyText(
-              Money(_value).withSymbol(widget.currency),
+              Money(_value).withCurrency(widget.currency, locale),
               style: Theme.of(context).textTheme.headlineSmall,
               emphasis: true,
             ),
@@ -1366,7 +1452,7 @@ class _CartLineTile extends StatelessWidget {
 
   final CartLine line;
   final Money lineTotal;
-  final String currency;
+  final CurrencyDef currency;
   final VoidCallback onInc;
   final VoidCallback onDec;
   final VoidCallback onDiscountTap;
@@ -1375,6 +1461,7 @@ class _CartLineTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
       child: Row(
@@ -1402,7 +1489,7 @@ class _CartLineTile extends StatelessWidget {
                 // leaving the sheet — and so the row still says something
                 // useful when the qty is 1.
                 Text(
-                  Money(line.product.salePrice).withSymbol(currency),
+                  Money(line.product.salePrice).withCurrency(currency, locale),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontFeatures: AppTheme.tabularFigures,
                   ),
@@ -1453,12 +1540,12 @@ class _CartLineTile extends StatelessWidget {
                 ],
               ),
               MoneyText(
-                lineTotal.withSymbol(currency),
+                lineTotal.withCurrency(currency, locale),
                 style: theme.textTheme.titleSmall,
               ),
               if (line.discount > 0)
                 MoneyText(
-                  '-${Money(line.discount).withSymbol(currency)}',
+                  '-${Money(line.discount).withCurrency(currency, locale)}',
                   style: theme.textTheme.bodySmall,
                   color: theme.colorScheme.error,
                 ),
@@ -1520,13 +1607,14 @@ class _DiscountRow extends StatelessWidget {
   });
 
   final int discount;
-  final String currency;
+  final CurrencyDef currency;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final locale = Localizations.localeOf(context).languageCode;
     return InkWell(
       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
       onTap: onTap,
@@ -1536,7 +1624,7 @@ class _DiscountRow extends StatelessWidget {
           children: [
             Expanded(child: Text(l.sellDiscount)),
             MoneyText(
-              Money(discount).withSymbol(currency),
+              Money(discount).withCurrency(currency, locale),
               color: discount > 0 ? scheme.primary : null,
             ),
             const SizedBox(width: AppTheme.space1),
@@ -1574,17 +1662,22 @@ class _SaleSuccess {
 /// needed *while counting money into the customer's hand*, and the old flow
 /// popped the sheet — figure and all — the instant the sale committed.
 class _SuccessBody extends StatelessWidget {
-  const _SuccessBody({required this.success, required this.onDone});
+  const _SuccessBody({
+    required this.success,
+    required this.currency,
+    required this.onDone,
+  });
 
   final _SaleSuccess success;
+  final CurrencyDef currency;
   final VoidCallback onDone;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final colors = AppColors.of(context);
-    final currency = l.currencySymbol;
-    String fmt(int v) => Money(v).withSymbol(currency);
+    final locale = Localizations.localeOf(context).languageCode;
+    String fmt(int v) => Money(v).withCurrency(currency, locale);
 
     // The one figure the cashier acts on next: change to hand over, the
     // credit balance just booked, or the total collected.
@@ -1718,13 +1811,14 @@ class _SplitPaymentSummary extends StatelessWidget {
   });
 
   final List<PaymentEntry>? entries;
-  final String currency;
+  final CurrencyDef currency;
   final List<PaymentAccount> accounts;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final list = entries;
     if (list == null || list.isEmpty) {
       return OutlinedButton.icon(
@@ -1754,7 +1848,7 @@ class _SplitPaymentSummary extends StatelessWidget {
                   Expanded(
                     child: Text(paymentLabel(l, e.method, accounts: accounts)),
                   ),
-                  Text(Money(e.amount).withSymbol(currency)),
+                  Text(Money(e.amount).withCurrency(currency, locale)),
                 ],
               ),
             ),
@@ -1768,7 +1862,7 @@ class _SplitPaymentSummary extends StatelessWidget {
                 ),
               ),
               MoneyText(
-                Money(total).withSymbol(currency),
+                Money(total).withCurrency(currency, locale),
                 emphasis: true,
               ),
               const SizedBox(width: AppTheme.space2),

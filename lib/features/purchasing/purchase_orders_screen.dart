@@ -8,6 +8,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart';
 import 'purchase_order_detail_screen.dart';
 import 'purchase_order_editor_screen.dart';
 import 'purchase_order_providers.dart';
@@ -51,6 +52,8 @@ class PurchaseOrdersScreen extends ConsumerWidget {
     final orders = ref.watch(purchaseOrdersProvider).valueOrNull ?? const [];
     final loading = ref.watch(purchaseOrdersProvider).isLoading;
     final df = DateFormat('yyyy-MM-dd');
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.purchaseOrdersTitle)),
@@ -87,7 +90,7 @@ class PurchaseOrdersScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           MoneyText(
-                              Money(po.itemsTotal).withSymbol(l.currencySymbol)),
+                              Money(po.itemsTotal).withCurrency(currency, locale)),
                           const SizedBox(height: AppTheme.space1),
                           StatusPill(
                             label: poStatusLabel(l, po.status),

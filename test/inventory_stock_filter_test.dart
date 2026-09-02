@@ -17,6 +17,7 @@ Product _product(String id, {int salePrice = 1000}) => Product(
       salePrice: salePrice,
       unit: 'pcs',
       isActive: true,
+      sellOnline: true,
     );
 
 ProductWithStock _row(Product p, int qty, int reorder) =>

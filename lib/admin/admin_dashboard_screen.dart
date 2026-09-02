@@ -670,6 +670,8 @@ String _adminErrorMessage(Object e) {
       return 'Something went wrong on the server — try again.';
     case 'license_already_exists':
       return 'This shop already has a license.';
+    case 'already_fulfilled':
+      return 'This request was already confirmed — refresh to see it.';
     case 'last_owner':
       return 'Cannot unlink the last owner of this shop.';
     case 'cannot_unlink_admin':
@@ -685,4 +687,10 @@ String _adminErrorMessage(Object e) {
   return raw.replaceFirst('Exception: ', '');
 }
 
+// Deliberately hardcoded to MMK, not `shopCurrencyProvider` — this admin
+// console sums revenue/KPIs *across every shop*, and shops can now run in
+// different currencies (THB/USD/JPY). Those integers never numerically add
+// together, so a cross-shop total can only ever be presented in one fixed
+// unit; MMK stays the reporting currency here regardless of any individual
+// shop's own POS currency.
 String _ks(int kyat) => Money(kyat).withSymbol('Ks');

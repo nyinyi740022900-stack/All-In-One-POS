@@ -1033,6 +1033,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productVipPrice => 'VIP price';
 
   @override
+  String get productSellOnline => 'Sell on web storefront';
+
+  @override
+  String get productSellOnlineHint =>
+      'Off hides this product from your public web storefront entirely — it still sells normally in-store. On by default.';
+
+  @override
   String get productOnlineStockLimitHint =>
       'Recommended for online sales: set how many units this product may sell on your web storefront (keeps walk-in stock safe). Leave blank for no online cap.';
 
@@ -1351,6 +1358,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shopPhone => 'Phone';
+
+  @override
+  String get shopCurrency => 'Currency';
+
+  @override
+  String get shopCurrencyLockedHint =>
+      'Currency can\'t be changed after your first sale.';
 
   @override
   String get receiptFooter => 'Receipt footer';
@@ -2223,6 +2237,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get licensePayOnlineHint =>
       'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.';
+
+  @override
+  String get licenseChooseRegionTitle => 'Where is your shop?';
+
+  @override
+  String get licenseRegionMyanmar => 'Myanmar Region';
+
+  @override
+  String get licenseRegionInternational => 'International';
 
   @override
   String get licenseContactViber => 'Message on Viber';
@@ -3192,6 +3215,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontLogoLabel => 'Shop logo';
 
   @override
+  String get storefrontEditInShopProfile => 'Edit in Shop profile';
+
+  @override
+  String get storefrontFromShopProfileHint =>
+      'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Settings → Shop profile.';
+
+  @override
   String get storefrontProfileSaved => 'Saved';
 
   @override
@@ -3213,6 +3243,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontProofRequired =>
       'Please attach your transfer screenshot before placing the order.';
+
+  @override
+  String get storefrontPricesChanged =>
+      'Some prices have changed — please review your cart before placing the order again.';
 
   @override
   String get storefrontAttachProofRequired => 'Attach payment screenshot *';
@@ -3277,16 +3311,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Shown to customers at checkout so they know who to transfer to.';
 
   @override
-  String get storefrontPayKpayName => 'KBZPay account name';
+  String get paymentMethodLabel => 'Payment method (e.g. KBZPay, PayPal)';
 
   @override
-  String get storefrontPayKpayNumber => 'KBZPay number';
+  String get paymentMethodAccountName => 'Account name';
 
   @override
-  String get storefrontPayWaveName => 'WavePay account name';
+  String get paymentMethodAccountNumber => 'Account number';
 
   @override
-  String get storefrontPayWaveNumber => 'WavePay number';
+  String get paymentMethodAdd => 'Add payment method';
+
+  @override
+  String get paymentMethodRemove => 'Remove payment method';
 
   @override
   String get storefrontNumberCopied => 'Number copied';
@@ -3328,6 +3365,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String storefrontCheckoutBar(int count, String total) {
     return 'Checkout · $count item(s) · $total';
   }
+
+  @override
+  String get storefrontNoSearchResults => 'No products match your search.';
+
+  @override
+  String get storefrontCatalogEmpty =>
+      'This shop hasn\'t added any products yet.';
+
+  @override
+  String get storefrontYourCart => 'Your cart';
+
+  @override
+  String get storefrontCartEmptyTitle => 'Your cart is empty';
+
+  @override
+  String get storefrontCartEmptyBody =>
+      'Browse the shop and add items to get started.';
+
+  @override
+  String get storefrontContinueShopping => 'Continue shopping';
+
+  @override
+  String get storefrontProceedToCheckout => 'Proceed to checkout';
 
   @override
   String get storefrontShopFallbackName => 'Shop';
@@ -3429,6 +3489,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontRenewEmailHint =>
       'Have this? You don\'t need the App Reference ID above — either one is enough.';
+
+  @override
+  String get storefrontRenewSignInPrompt =>
+      'Have an account? Sign in to skip typing your details and see your past requests.';
+
+  @override
+  String get storefrontRenewSignInFailed =>
+      'Couldn\'t sign in. Check your email and password.';
+
+  @override
+  String storefrontRenewSignedInAs(String email) {
+    return 'Signed in as $email';
+  }
+
+  @override
+  String get storefrontRenewHistoryTitle => 'Your past requests';
+
+  @override
+  String get storefrontRenewHistoryEmpty => 'No requests yet.';
 
   @override
   String get storefrontRenewPlan => 'Plan';

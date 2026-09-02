@@ -56,6 +56,9 @@ Future<void> printSaleReceipt(
       ),
     );
 
+    // Always the ASCII symbol here, never the localized label — same
+    // column-alignment rationale as PrinterService.buildBytes.
+    final currency = ref.read(shopCurrencyProvider);
     final result = await ref
         .read(printerServiceProvider)
         .printReceipt(
@@ -64,6 +67,8 @@ Future<void> printSaleReceipt(
           mac: config.mac!,
           labels: receiptLabels(l),
           connection: config.connection,
+          currencySymbol: currency.symbol,
+          exponent: currency.exponent,
         );
 
     messenger.showSnackBar(

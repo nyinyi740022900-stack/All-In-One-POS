@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,9 +8,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../core/input/thousands_formatter.dart';
 import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../data/sync/sync_providers.dart';
 import '../../domain/product_with_stock.dart';
 import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
@@ -41,6 +45,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   late final TextEditingController _reorder;
   String? _categoryId;
   String? _imageUrl;
+  late bool _sellOnline;
   bool _saving = false;
   bool _uploading = false;
 
@@ -48,24 +53,33 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   void initState() {
     super.initState();
     final e = widget.existing;
+    final exponent = ref.read(shopCurrencyProvider).exponent;
     _categoryId = e?.product.categoryId;
     _imageUrl = e?.product.imageUrl;
+    _sellOnline = e?.product.sellOnline ?? true;
     _name = TextEditingController(text: e?.product.name ?? '');
     _sku = TextEditingController(text: e?.product.sku ?? '');
     _barcode = TextEditingController(text: e?.product.barcode ?? '');
     _salePrice = TextEditingController(
-      text: e == null ? '' : '${e.product.salePrice}',
+      text: e == null
+          ? ''
+          : formatDecimalMinorUnits(e.product.salePrice, exponent: exponent),
     );
     _costPrice = TextEditingController(
-      text: e == null ? '' : '${e.product.costPrice}',
+      text: e == null
+          ? ''
+          : formatDecimalMinorUnits(e.product.costPrice, exponent: exponent),
     );
     _wholesalePrice = TextEditingController(
       text: e?.product.wholesalePrice == null
           ? ''
-          : '${e!.product.wholesalePrice}',
+          : formatDecimalMinorUnits(e!.product.wholesalePrice!,
+              exponent: exponent),
     );
     _vipPrice = TextEditingController(
-      text: e?.product.vipPrice == null ? '' : '${e!.product.vipPrice}',
+      text: e?.product.vipPrice == null
+          ? ''
+          : formatDecimalMinorUnits(e!.product.vipPrice!, exponent: exponent),
     );
     _onlineStockLimit = TextEditingController(
       text: e?.product.onlineStockLimit == null
@@ -100,6 +114,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   int _int(TextEditingController c) => int.tryParse(c.text.trim()) ?? 0;
   int? _intOrNull(TextEditingController c) =>
       c.text.trim().isEmpty ? null : int.tryParse(c.text.trim());
+  int _money(TextEditingController c, int exponent) =>
+      parseDecimalMinorUnits(c.text.trim(), exponent: exponent);
+  int? _moneyOrNull(TextEditingController c, int exponent) => c.text.trim().isEmpty
+      ? null
+      : parseDecimalMinorUnits(c.text.trim(), exponent: exponent);
 
   Future<void> _pickImage() async {
     final res = await FilePicker.platform.pickFiles(
@@ -179,6 +198,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
+      final exponent = ref.read(shopCurrencyProvider).exponent;
       await ref
           .read(inventoryRepositoryProvider)
           .upsertProduct(
@@ -187,15 +207,22 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             sku: _sku.text.trim().isEmpty ? null : _sku.text.trim(),
             barcode: _barcode.text.trim().isEmpty ? null : _barcode.text.trim(),
             categoryId: _categoryId,
-            salePrice: _int(_salePrice),
-            costPrice: _int(_costPrice),
-            wholesalePrice: _intOrNull(_wholesalePrice),
-            vipPrice: _intOrNull(_vipPrice),
+            salePrice: _money(_salePrice, exponent),
+            costPrice: _money(_costPrice, exponent),
+            wholesalePrice: _moneyOrNull(_wholesalePrice, exponent),
+            vipPrice: _moneyOrNull(_vipPrice, exponent),
             onlineStockLimit: _intOrNull(_onlineStockLimit),
+            sellOnline: _sellOnline,
             quantity: _int(_quantity),
             reorderLevel: _int(_reorder),
             imageUrl: _imageUrl,
           );
+      // Best-effort, not awaited: a product edit can change what the public
+      // web storefront shows (price, sellOnline, stock cap) and the owner
+      // reasonably expects that to reach it promptly rather than sit in the
+      // outbox until the next periodic sync (up to 5 minutes) — a failure
+      // here doesn't block the save, which already succeeded locally above.
+      unawaited(ref.read(syncControllerProvider.notifier).sync());
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
@@ -215,6 +242,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     final l = AppLocalizations.of(context);
     final isEdit = widget.existing != null;
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
+    final currencyExponent = ref.watch(shopCurrencyProvider).exponent;
     return HardwareScannerListener(
       onScan: (code) => setState(() => _barcode.text = code.trim()),
       child: Scaffold(
@@ -254,8 +282,18 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                   _categoryDropdown(l),
                 ]),
                 _group([
-                  _field(_salePrice, l.productPrice, number: true),
-                  _field(_costPrice, l.productCost, number: true),
+                  _field(
+                    _salePrice,
+                    l.productPrice,
+                    money: true,
+                    moneyExponent: currencyExponent,
+                  ),
+                  _field(
+                    _costPrice,
+                    l.productCost,
+                    money: true,
+                    moneyExponent: currencyExponent,
+                  ),
                   Text(
                     l.productTierPricesHint,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -263,15 +301,28 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                   _field(
                     _wholesalePrice,
                     l.productWholesalePrice,
-                    number: true,
+                    money: true,
+                    moneyExponent: currencyExponent,
                   ),
-                  _field(_vipPrice, l.productVipPrice, number: true),
+                  _field(
+                    _vipPrice,
+                    l.productVipPrice,
+                    money: true,
+                    moneyExponent: currencyExponent,
+                  ),
                 ]),
                 _group([
                   if (trackStock) ...[
                     _field(_quantity, l.productQuantity, number: true),
                     _field(_reorder, l.productReorderLevel, number: true),
                   ],
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l.productSellOnline),
+                    subtitle: Text(l.productSellOnlineHint),
+                    value: _sellOnline,
+                    onChanged: (v) => setState(() => _sellOnline = v),
+                  ),
                   Text(
                     l.productOnlineStockLimitHint,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -451,6 +502,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     TextEditingController c,
     String label, {
     bool number = false,
+    bool money = false,
+    int moneyExponent = 0,
     Widget? suffixIcon,
     int? maxLength,
     String? Function(String?)? validator,
@@ -466,7 +519,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
           vertical: AppTheme.space4,
         ),
       ),
-      keyboardType: number ? TextInputType.number : TextInputType.text,
+      keyboardType: money
+          ? TextInputType.numberWithOptions(decimal: moneyExponent > 0)
+          : (number ? TextInputType.number : TextInputType.text),
       // Every field here is followed by another one — hand the keyboard a
       // "next" key instead of a newline it can't use.
       textInputAction: TextInputAction.next,
@@ -474,12 +529,20 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       // guarding against a fat-fingered huge number losing precision on the
       // admin web (dart2js) build, where numbers are JS doubles. Fields that
       // are numeric but aren't money (barcodes) pass their own [maxLength].
-      inputFormatters: number
+      // A money field uses the exponent-aware formatter so a THB/USD shop
+      // can type a decimal point; for exponent 0 (MMK/JPY) it behaves
+      // exactly like the plain digits-only formatter below.
+      inputFormatters: money
           ? [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(maxLength ?? 9),
+              DecimalMoneyInputFormatter(exponent: moneyExponent),
+              LengthLimitingTextInputFormatter(maxLength ?? 12),
             ]
-          : null,
+          : (number
+                ? [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(maxLength ?? 9),
+                  ]
+                : null),
       validator: validator,
     );
   }

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -24,12 +25,16 @@ import 'cash_session_report_pdf.dart';
 
 /// "Exact" / "short by X" / "over by X" — shared by the close dialog's live
 /// preview and the history tiles so the two can never drift apart.
-String _varianceTextFor(AppLocalizations l, int variance) {
-  final sym = l.currencySymbol;
+String _varianceTextFor(
+  AppLocalizations l,
+  int variance,
+  CurrencyDef currency,
+  String locale,
+) {
   if (variance == 0) return l.cashVarianceExact;
   return variance < 0
-      ? l.cashVarianceShort(Money(-variance).withSymbol(sym))
-      : l.cashVarianceOver(Money(variance).withSymbol(sym));
+      ? l.cashVarianceShort(Money(-variance).withCurrency(currency, locale))
+      : l.cashVarianceOver(Money(variance).withCurrency(currency, locale));
 }
 
 /// Cash-drawer session: open with a declared float, watch what the drawer
@@ -79,12 +84,16 @@ class CashSessionScreen extends ConsumerWidget {
 
   Future<void> _openRegister(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final amount = await showDialog<int>(
       context: context,
       builder: (_) => _AmountDialog(
         title: l.cashOpenRegister,
         amountLabel: l.cashOpeningAmount,
         confirmLabel: l.cashOpenRegister,
+        currency: currency,
+        locale: locale,
       ),
     );
     if (amount == null || !context.mounted) return;
@@ -116,6 +125,8 @@ class CashSessionScreen extends ConsumerWidget {
     CashSession session,
   ) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final expected = ref.read(expectedCashProvider).valueOrNull;
     if (expected == null) return;
     final amount = await showDialog<int>(
@@ -128,6 +139,8 @@ class CashSessionScreen extends ConsumerWidget {
         // The figure the cashier is counting AGAINST — without it inside the
         // dialog they'd have to memorise it off the card behind the overlay.
         expectedCash: expected,
+        currency: currency,
+        locale: locale,
       ),
     );
     if (amount == null || !context.mounted) return;
@@ -187,7 +200,8 @@ class _OpenCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final expected = ref.watch(expectedCashProvider);
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final colors = AppColors.of(context);
@@ -208,7 +222,7 @@ class _OpenCard extends ConsumerWidget {
             _kv(
               context,
               l.cashOpeningAmount,
-              MoneyText(Money(session.openingAmount).withSymbol(sym)),
+              MoneyText(Money(session.openingAmount).withCurrency(currency, locale)),
             ),
             const Divider(height: AppTheme.space5),
             Row(
@@ -253,7 +267,7 @@ class _OpenCard extends ConsumerWidget {
                     ),
                   ),
                   data: (v) => MoneyText(
-                    Money(v ?? 0).withSymbol(sym),
+                    Money(v ?? 0).withCurrency(currency, locale),
                     emphasis: true,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -298,12 +312,16 @@ class _OpenCard extends ConsumerWidget {
 
   Future<void> _addTopUp(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final amount = await showDialog<int>(
       context: context,
       builder: (_) => _AmountDialog(
         title: l.cashAddTopUp,
         amountLabel: l.cashTopUpAmount,
         confirmLabel: l.cashAddTopUp,
+        currency: currency,
+        locale: locale,
       ),
     );
     if (amount == null || amount <= 0 || !context.mounted) return;
@@ -350,7 +368,8 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final session = widget.session;
     final closing = session.closingAmount;
@@ -366,8 +385,8 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
       subtitle: Text(
         closing == null
             ? l.cashRegisterOpen
-            : '${l.cashOpeningAmount}: ${Money(session.openingAmount).withSymbol(sym)}'
-                  ' → ${l.cashClosingAmount}: ${Money(closing).withSymbol(sym)}',
+            : '${l.cashOpeningAmount}: ${Money(session.openingAmount).withCurrency(currency, locale)}'
+                  ' → ${l.cashClosingAmount}: ${Money(closing).withCurrency(currency, locale)}',
       ),
       trailing: closing == null
           ? null
@@ -404,7 +423,7 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
                     final variance = closing - snap.data!;
                     final colors = AppColors.of(context);
                     return Text(
-                      _varianceTextFor(l, variance),
+                      _varianceTextFor(l, variance, currency, locale),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: variance == 0 ? colors.success : colors.danger,
                       ),
@@ -498,11 +517,13 @@ Future<void> showCashReportSheet(
 Future<Uint8List> _pdfBytes(
     BuildContext context, WidgetRef ref, CashSession session) async {
   final l = AppLocalizations.of(context);
+  final currency = ref.read(shopCurrencyProvider);
+  final locale = Localizations.localeOf(context).languageCode;
   final report =
       await ref.read(cashSessionRepositoryProvider).reportFor(session);
   final varianceText = report.variance == null
       ? null
-      : _varianceTextFor(l, report.variance!);
+      : _varianceTextFor(l, report.variance!, currency, locale);
   final profile = await ref.read(shopProfileProvider.future);
   final printerConfig = await ref.read(printerConfigProvider.future);
   return buildCashSessionReportPdf(
@@ -512,7 +533,8 @@ Future<Uint8List> _pdfBytes(
     shopAddress: profile.address,
     title: l.cashReportTitle,
     report: report,
-    currencySymbol: l.currencySymbol,
+    currencySymbol: currency.label(locale),
+    exponent: currency.exponent,
     openedLabel: l.cashOpenedAt,
     closedLabel: l.cashClosedAt,
     openingFloatLabel: l.cashOpeningAmount,
@@ -554,17 +576,20 @@ Future<void> _printReport(
   PrinterConnection connection,
 ) async {
   final l = AppLocalizations.of(context);
+  final currency = ref.read(shopCurrencyProvider);
+  final locale = Localizations.localeOf(context).languageCode;
   final messenger = ScaffoldMessenger.of(context);
   try {
     final report =
         await ref.read(cashSessionRepositoryProvider).reportFor(session);
     final varianceText = report.variance == null
         ? null
-        : _varianceTextFor(l, report.variance!);
+        : _varianceTextFor(l, report.variance!, currency, locale);
     final lines =
         CashSessionReportFormatter(
           paper: paper,
-          currencySymbol: l.currencySymbol,
+          currencySymbol: currency.label(locale),
+          exponent: currency.exponent,
         ).format(
           report,
           title: l.cashReportTitle,
@@ -631,13 +656,15 @@ Future<void> _sharePdf(
 Future<void> _shareCsv(
     BuildContext context, WidgetRef ref, CashSession session) async {
   final l = AppLocalizations.of(context);
+  final currency = ref.read(shopCurrencyProvider);
+  final locale = Localizations.localeOf(context).languageCode;
   final messenger = ScaffoldMessenger.of(context);
   try {
     final report =
         await ref.read(cashSessionRepositoryProvider).reportFor(session);
     final varianceText = report.variance == null
         ? null
-        : _varianceTextFor(l, report.variance!);
+        : _varianceTextFor(l, report.variance!, currency, locale);
     final csv = buildCashSessionReportCsv(
       report,
       openingFloatLabel: l.cashOpeningAmount,
@@ -651,7 +678,8 @@ Future<void> _shareCsv(
       varianceLabel: l.cashVariance,
       varianceText: varianceText,
       lineHeader: l.pnlLine,
-      amountHeader: '${l.pnlAmount} (${l.currencySymbol})',
+      amountHeader: '${l.pnlAmount} (${currency.label(locale)})',
+      exponent: currency.exponent,
     );
     final dir = await getTemporaryDirectory();
     final stamp = DateFormat(
@@ -675,6 +703,8 @@ class _AmountDialog extends StatefulWidget {
     required this.title,
     required this.amountLabel,
     required this.confirmLabel,
+    required this.currency,
+    required this.locale,
     this.warningText,
     this.expectedCash,
   });
@@ -682,6 +712,8 @@ class _AmountDialog extends StatefulWidget {
   final String amountLabel;
   final String confirmLabel;
   final String? warningText;
+  final CurrencyDef currency;
+  final String locale;
 
   /// Close-flow only: the drawer's expected contents, shown above the field
   /// with a live variance preview as the cashier types their count — the
@@ -739,7 +771,7 @@ class _AmountDialogState extends State<_AmountDialog> {
           const SizedBox(width: AppTheme.space1),
           Expanded(
             child: Text(
-              _varianceTextFor(l, variance),
+              _varianceTextFor(l, variance, widget.currency, widget.locale),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: color,
                 fontFeatures: AppTheme.tabularFigures,
@@ -765,7 +797,7 @@ class _AmountDialogState extends State<_AmountDialog> {
               padding: const EdgeInsets.only(bottom: AppTheme.space2),
               child: SummaryRow(
                 l.cashExpectedNow,
-                Money(widget.expectedCash!).withSymbol(l.currencySymbol),
+                Money(widget.expectedCash!).withCurrency(widget.currency, widget.locale),
                 emphasis: true,
               ),
             ),
@@ -781,7 +813,7 @@ class _AmountDialogState extends State<_AmountDialog> {
             }),
             decoration: InputDecoration(
               labelText: widget.amountLabel,
-              suffixText: l.currencySymbol,
+              suffixText: widget.currency.label(widget.locale),
               errorText: _error,
             ),
           ),

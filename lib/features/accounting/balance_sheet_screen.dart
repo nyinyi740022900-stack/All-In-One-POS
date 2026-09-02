@@ -57,11 +57,13 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
     if (sheet == null) return;
     setState(() => _exporting = true);
     try {
-      final sym = l.currencySymbol;
+      final currency = ref.read(shopCurrencyProvider);
+      final locale = Localizations.localeOf(context).languageCode;
       final csv = buildBalanceSheetCsv(
         _rows(sheet),
         labelHeader: l.pnlLine,
-        amountHeader: '${l.pnlAmount} ($sym)',
+        amountHeader: '${l.pnlAmount} (${currency.label(locale)})',
+        exponent: currency.exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/balance-sheet.csv');
@@ -86,7 +88,8 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
     if (sheet == null) return;
     setState(() => _exportingPdf = true);
     try {
-      final sym = l.currencySymbol;
+      final currency = ref.read(shopCurrencyProvider);
+      final locale = Localizations.localeOf(context).languageCode;
       final profile = await ref.read(shopProfileProvider.future);
       final printerConfig = await ref.read(printerConfigProvider.future);
       final bytes = await buildLabeledTablePdf(
@@ -95,7 +98,7 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
         shopPhone: profile.phone,
         shopAddress: profile.address,
         title: l.accountingBalanceSheet,
-        columnLabels: [l.pnlLine, '${l.pnlAmount} ($sym)'],
+        columnLabels: [l.pnlLine, '${l.pnlAmount} (${currency.label(locale)})'],
         columnFlex: const [3, 2],
         rightAlignColumns: const {1},
         // Same rows the on-screen view bolds: the Assets/Liabilities/Equity
@@ -103,7 +106,7 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
         boldRowIndices: const {0, 4, 6, 9},
         rows: [
           for (final r in _rows(sheet))
-            [r.$1, Money(r.$2).withSymbol(sym)],
+            [r.$1, Money(r.$2).withCurrency(currency, locale)],
         ],
         pageFormat: printerConfig.pdfPaperSize,
       );
@@ -137,7 +140,8 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
         ),
       );
     }
-    final sym = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final closedThrough = ref.watch(booksClosedThroughProvider).valueOrNull;
     final async = ref.watch(balanceSheetProvider);
 
@@ -173,7 +177,7 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
           Widget row(String label, int amount, {bool bold = false}) =>
               SummaryRow(
                 label,
-                Money(amount).withSymbol(sym),
+                Money(amount).withCurrency(currency, locale),
                 emphasis: bold,
               );
           return ListView(

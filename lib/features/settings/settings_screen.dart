@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../core/build_flags.dart';
 import '../../core/env.dart';
 import '../../core/layout.dart';
-import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -65,7 +64,6 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final locale = ref.watch(localeControllerProvider);
     final session = ref.watch(sessionScopeProvider);
     final showOwnerCloudTiles = ref.watch(showStaffModeSectionProvider);
     final premium = ref.watch(isPremiumProvider);
@@ -345,29 +343,6 @@ class SettingsScreen extends ConsumerWidget {
             SettingsGroup(
               children: [
                 ListTile(
-                  leading: const IconAvatar(icon: Icons.language),
-                  title: Text(l.settingsLanguage),
-                  trailing: DropdownButton<String>(
-                    value: locale,
-                    underline: const SizedBox.shrink(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        ref.read(localeControllerProvider.notifier).set(v);
-                      }
-                    },
-                    items: [
-                      DropdownMenuItem(
-                        value: 'my',
-                        child: Text(l.languageMyanmar),
-                      ),
-                      DropdownMenuItem(
-                        value: 'en',
-                        child: Text(l.languageEnglish),
-                      ),
-                    ],
-                  ),
-                ),
-                ListTile(
                   leading: const IconAvatar(icon: Icons.print),
                   title: Text(l.settingsPrinter),
                   trailing: const Icon(Icons.chevron_right),
@@ -556,12 +531,14 @@ class _CreditTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final total = ref.watch(creditOutstandingTotalProvider);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     return ListTile(
       leading: const IconAvatar(icon: Icons.account_balance_wallet),
       title: Text(l.creditTitle),
       subtitle: Text(
         total > 0
-            ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
+            ? l.creditTotalDue(Money(total).withCurrency(currency, locale))
             : l.creditNoneDue,
       ),
       trailing: const Icon(Icons.chevron_right),
@@ -577,12 +554,14 @@ class _AccountsPayableTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final total = ref.watch(accountsPayableTotalProvider);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     return ListTile(
       leading: const IconAvatar(icon: Icons.request_quote_outlined),
       title: Text(l.accountsPayableTitle),
       subtitle: Text(
         total > 0
-            ? l.creditTotalDue(Money(total).withSymbol(l.currencySymbol))
+            ? l.creditTotalDue(Money(total).withCurrency(currency, locale))
             : l.apNoneDue,
       ),
       trailing: const Icon(Icons.chevron_right),

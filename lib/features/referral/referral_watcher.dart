@@ -58,9 +58,14 @@ class ReferralWatcher {
         final delta = summary.earned - seen;
         final code = await settings.savedLocale() ?? 'my';
         final l = await AppLocalizations.delegate.load(Locale(code));
+        // No BuildContext here (this is a background watcher, not a widget),
+        // so — like the locale above — the currency comes from `_ref`
+        // directly rather than `Localizations.localeOf(context)`.
+        final currency = _ref.read(shopCurrencyProvider);
         await NotificationService.instance.showCommission(
           title: l.referralNotifTitle,
-          body: l.referralNotifBody(Money(delta).withSymbol(l.currencySymbol)),
+          body: l.referralNotifBody(
+              Money(delta).withCurrency(currency, code)),
         );
         await settings.setReferralSeenEarned(summary.earned);
         // Refresh any open referral screen.

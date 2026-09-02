@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'purchase_order_editor_screen.dart';
 import 'purchase_order_providers.dart';
 import 'purchase_orders_screen.dart';
@@ -119,7 +120,8 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final orders = ref.watch(purchaseOrdersProvider).valueOrNull ?? const [];
     final po = orders.where((o) => o.id == poId).firstOrNull;
     final items = ref.watch(purchaseOrderItemsProvider(poId)).valueOrNull ?? const [];
@@ -182,11 +184,12 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
               title: Text(it.nameSnapshot),
               subtitle: Text(
-                  '${it.qty} x ${Money(it.unitCost).withSymbol(cur)}'),
-              trailing: MoneyText(Money(it.lineTotal).withSymbol(cur)),
+                  '${it.qty} x ${Money(it.unitCost).withCurrency(currency, locale)}'),
+              trailing: MoneyText(Money(it.lineTotal).withCurrency(currency, locale)),
             ),
           const Divider(),
-          SummaryRow(l.commonTotal, Money(po.itemsTotal).withSymbol(cur),
+          SummaryRow(l.commonTotal,
+              Money(po.itemsTotal).withCurrency(currency, locale),
               emphasis: true),
           if (isOpen) ...[
             const SizedBox(height: AppTheme.space4),

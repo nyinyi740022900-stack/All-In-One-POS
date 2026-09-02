@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/build_flags.dart';
+import '../../core/currency_def.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -41,13 +42,14 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
       messenger.showSnackBar(SnackBar(content: Text(l.referralRedeemNotEnough)));
       return;
     }
-    final cur = l.currencySymbol;
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.referralRedeemConfirmTitle),
         content: Text(l.referralRedeemConfirmBody(
-            months, Money(months * price).withSymbol(cur))),
+            months, Money(months * price).withCurrency(currency, locale))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -102,6 +104,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final summaryAsync = ref.watch(referralSummaryProvider);
     final cfg = ref.watch(vendorConfigProvider);
     final monthly = cfg.valueOrNull?.priceFor('monthly') ?? 20000;
+    final currency = ref.watch(shopCurrencyProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l.referralTitle)),
@@ -126,6 +129,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                 monthlyPrice: monthly,
                 busy: _busy,
                 onRedeem: _redeem,
+                currency: currency,
               ),
               const SizedBox(height: AppTheme.space3),
               _CodeCard(
@@ -156,17 +160,19 @@ class _WalletCard extends StatelessWidget {
     required this.monthlyPrice,
     required this.busy,
     required this.onRedeem,
+    required this.currency,
   });
 
   final ReferralSummary summary;
   final int monthlyPrice;
   final bool busy;
   final VoidCallback onRedeem;
+  final CurrencyDef currency;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final locale = Localizations.localeOf(context).languageCode;
     final theme = Theme.of(context);
     final price = monthlyPrice <= 0 ? 20000 : monthlyPrice;
     final canRedeem = summary.balance >= price;
@@ -187,7 +193,7 @@ class _WalletCard extends StatelessWidget {
                     color: theme.colorScheme.onPrimaryContainer)),
             const SizedBox(height: AppTheme.space1),
             Text(
-              Money(summary.balance).withSymbol(cur),
+              Money(summary.balance).withCurrency(currency, locale),
               style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onPrimaryContainer,
@@ -216,7 +222,7 @@ class _WalletCard extends StatelessWidget {
                   ],
                 ),
                 Text(
-                    '${l.referralEarnedTotal}: ${Money(summary.earned).withSymbol(cur)}',
+                    '${l.referralEarnedTotal}: ${Money(summary.earned).withCurrency(currency, locale)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onPrimaryContainer)),
               ],
@@ -234,7 +240,7 @@ class _WalletCard extends StatelessWidget {
             Text(
               canRedeem
                   ? l.referralRedeem
-                  : l.referralNextGoal(Money(remaining).withSymbol(cur)),
+                  : l.referralNextGoal(Money(remaining).withCurrency(currency, locale)),
               style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onPrimaryContainer),
             ),

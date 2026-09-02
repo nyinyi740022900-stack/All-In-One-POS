@@ -10,6 +10,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../credit/credit_providers.dart';
+import '../printing/printing_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
 import '../sell/hardware_scanner_listener.dart';
 import '../sell/sales_providers.dart';
@@ -64,7 +65,8 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     final query =
         ref.watch(debouncedInvoiceSearchProvider).trim().toLowerCase();
     final owedBySale = ref.watch(creditOwedBySaleProvider);
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final split = isMediumPlus(context);
     int owedOf(Sale s) => owedBySale[s.id] ?? (s.total - s.paid);
 
@@ -184,7 +186,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                   ),
                                 ),
                                 MoneyText(
-                                  Money(row.total).withSymbol(currency),
+                                  Money(row.total).withCurrency(currency, locale),
                                   style: Theme.of(context).textTheme.titleSmall,
                                   emphasis: true,
                                 ),
@@ -265,14 +267,14 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                Money(s.total).withSymbol(currency),
+                                Money(s.total).withCurrency(currency, locale),
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               if (isCredit && owed > 0)
                                 Text(
                                   l.invoiceOwed(
-                                    Money(owed).withSymbol(currency),
+                                    Money(owed).withCurrency(currency, locale),
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(

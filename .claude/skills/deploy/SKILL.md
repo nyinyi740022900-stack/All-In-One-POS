@@ -57,6 +57,20 @@ cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 Stable URL: https://admin.allinonepos.app (use this; the per-deployment URL
 is SSO-gated).
 
+⚠️ **§3b/3c reuse the same `build/web/` directory for different Vercel
+projects.** `vercel link` writes the target project into `build/web/.vercel/`,
+which persists across rebuilds — if you `link` to `shop` then later `link` to
+`invoices` in the same session, `build/web` is now linked to `invoices` even
+after you rebuild it with `shop` content. Deploying without re-linking ships
+the wrong build to the wrong live URL with a clean, misleading `"status":
+"ok"` exit (caught live 2026-09-02, PROJECT_SPEC #286 — shipped `shop`'s
+build to `invoices.allinonepos.app`). **Always run `vercel link --project
+<name>` immediately before every `vercel deploy` in §3b/3c, even if you
+already linked to that same project earlier in the session** — never assume
+the existing link still matches. After any deploy in this shared directory,
+verify the live page title (or another target-specific marker) before
+trusting the deploy, not just the exit code.
+
 ## 3b. Storefront web → Vercel
 Same build/deploy shape as above, different target + project:
 ```bash

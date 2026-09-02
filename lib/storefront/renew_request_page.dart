@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
@@ -57,6 +58,20 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   // input will. Checked server-side.
   final _hp = TextEditingController();
 
+  // Optional sign-in convenience layer (owner ask: "email login, convenience
+  // only — payment approval stays the existing manual KBZPay/WavePay
+  // screenshot + admin-review flow, no automation added"). Plain
+  // Supabase Auth sign-in, not `AccountRepository` — that class's
+  // device-claiming/local-wipe logic is mobile-app-specific and doesn't
+  // apply to a stateless web page; only `signInWithPassword` itself carries
+  // over.
+  final _signInEmail = TextEditingController();
+  final _signInPassword = TextEditingController();
+  bool _signingIn = false;
+  String? _signInError;
+  List<RenewalRequestSummary>? _myRequests;
+  bool _loadingHistory = false;
+
   String _plan = 'monthly';
   String _method = 'kbzpay';
   bool _submitting = false;
@@ -105,6 +120,11 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     _deviceId.text = q['device_id'] ?? '';
     _email.text = q['email'] ?? '';
     _months.addListener(_recalcAmount);
+    // A previous visit's session persists across page loads (Supabase Web
+    // SDK default) — pick it back up without asking to sign in again.
+    if (Supabase.instance.client.auth.currentSession != null) {
+      _loadAccountData();
+    }
   }
 
   /// The price per month/year is admin-fixed, not negotiable — so unlike a
@@ -138,6 +158,70 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   bool get _amountLocked =>
       (_plan == 'yearly' ? _priceYearly : _priceMonthly) != null;
 
+  Future<void> _signIn() async {
+    final l = AppLocalizations.of(context);
+    setState(() {
+      _signingIn = true;
+      _signInError = null;
+    });
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _signInEmail.text.trim(),
+        password: _signInPassword.text,
+      );
+      if (!mounted) return;
+      _signInPassword.clear();
+      await _loadAccountData();
+    } catch (e) {
+      if (mounted) setState(() => _signInError = l.storefrontRenewSignInFailed);
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  Future<void> _signOut() async {
+    await Supabase.instance.client.auth.signOut();
+    if (mounted) setState(() => _myRequests = null);
+  }
+
+  /// Runs right after sign-in (and once on page load if a session already
+  /// persisted from a previous visit): prefills the shop name from the
+  /// account's own profile and loads its request history. Best-effort on
+  /// the name — a fetch failure there shouldn't block seeing history, which
+  /// is the actual point of signing in.
+  Future<void> _loadAccountData() async {
+    final email = Supabase.instance.client.auth.currentUser?.email;
+    if (email != null && _email.text.trim().isEmpty) _email.text = email;
+    try {
+      final row = await Supabase.instance.client
+          .from('shop_profiles')
+          .select('name')
+          .limit(1)
+          .maybeSingle();
+      final name = row?['name'] as String?;
+      if (mounted && (name ?? '').isNotEmpty) {
+        setState(() => _shopName.text = name!);
+      }
+    } catch (_) {}
+    setState(() => _loadingHistory = true);
+    try {
+      final rows = await _api.fetchMyRequests();
+      if (mounted) setState(() => _myRequests = rows);
+    } catch (_) {
+      if (mounted) setState(() => _myRequests = []);
+    } finally {
+      if (mounted) setState(() => _loadingHistory = false);
+    }
+  }
+
+  void _openHistoryReceipt(RenewalRequestSummary r) {
+    setState(() {
+      _submitted = true;
+      _requestId = r.id;
+      _invoiceNo = r.invoiceNo;
+    });
+  }
+
   @override
   void dispose() {
     _shopName.dispose();
@@ -147,6 +231,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     _amount.dispose();
     _refNo.dispose();
     _months.dispose();
+    _signInEmail.dispose();
+    _signInPassword.dispose();
     _hp.dispose();
     super.dispose();
   }
@@ -286,6 +372,121 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     );
   }
 
+  /// Sign-in convenience card, shown above the form itself. Signed out: a
+  /// compact email/password sign-in. Signed in: who's signed in + Sign out
+  /// + the request history (shop name/email above were already prefilled by
+  /// [_loadAccountData]).
+  Widget _accountSection(AppLocalizations l) {
+    final email = Supabase.instance.client.auth.currentUser?.email;
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: email == null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l.storefrontRenewSignInPrompt,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: AppTheme.space2),
+                  TextField(
+                    controller: _signInEmail,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(labelText: l.accountEmail),
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  TextField(
+                    controller: _signInPassword,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: l.accountPassword),
+                    onSubmitted: (_) => _signingIn ? null : _signIn(),
+                  ),
+                  if (_signInError != null) ...[
+                    const SizedBox(height: AppTheme.space1),
+                    Text(_signInError!,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.of(context).danger)),
+                  ],
+                  const SizedBox(height: AppTheme.space2),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      onPressed: _signingIn ? null : _signIn,
+                      icon: _signingIn
+                          ? const ButtonSpinner(size: 16)
+                          : const Icon(Icons.login),
+                      label: Text(l.accountSignIn),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(l.storefrontRenewSignedInAs(email),
+                            style: Theme.of(context).textTheme.bodyMedium),
+                      ),
+                      TextButton(
+                        onPressed: _signOut,
+                        child: Text(l.accountSignOut),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  _historyList(l),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _historyList(AppLocalizations l) {
+    if (_loadingHistory) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppTheme.space2),
+        child: Center(child: ButtonSpinner()),
+      );
+    }
+    final requests = _myRequests ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l.storefrontRenewHistoryTitle,
+            style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: AppTheme.space1),
+        if (requests.isEmpty)
+          Text(l.storefrontRenewHistoryEmpty,
+              style: Theme.of(context).textTheme.bodySmall)
+        else
+          for (final r in requests) _historyRow(l, r),
+      ],
+    );
+  }
+
+  Widget _historyRow(AppLocalizations l, RenewalRequestSummary r) {
+    final (Color tone, String statusLabel) = switch (r.status) {
+      'fulfilled' => (
+          AppColors.of(context).success,
+          l.receiptStatusFulfilled,
+        ),
+      'rejected' => (AppColors.of(context).danger, l.receiptStatusRejected),
+      _ => (AppColors.of(context).warning, l.receiptStatusPending),
+    };
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(r.invoiceNo.isNotEmpty ? r.invoiceNo : r.id),
+      subtitle: Text('${_ks(l, r.amount)} · $statusLabel'),
+      trailing: Icon(Icons.chevron_right, color: tone),
+      onTap: () => _openHistoryReceipt(r),
+    );
+  }
+
   Widget _form(AppLocalizations l) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.space4),
@@ -297,6 +498,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           const SizedBox(height: AppTheme.space2),
           Text(l.storefrontRenewHint,
               style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: AppTheme.space4),
+          _accountSection(l),
           const SizedBox(height: AppTheme.space4),
           // Honeypot — kept out of the visible layout entirely (zero size),
           // so no real user can tab/scroll into it.

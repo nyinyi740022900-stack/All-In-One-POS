@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/image_util.dart';
+import '../../core/input/thousands_formatter.dart';
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -148,7 +149,8 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final cur = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final expenses =
         ref.watch(expensesInRangeProvider).valueOrNull ?? const <Expense>[];
     final total = ref.watch(expensesTotalProvider);
@@ -169,6 +171,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
           amountHeader: l.expenseAmount,
           accountHeader: l.paymentAccountNameLabel,
           noteHeader: l.stockHistoryHeaderNote,
+          exponent: currency.exponent,
         );
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/expenses.csv');
@@ -213,7 +216,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
               [
                 df.format(e.date),
                 categoryLabel(l, e.category),
-                Money(e.amount).withSymbol(cur),
+                Money(e.amount).withCurrency(currency, locale),
                 e.accountId == null ? '' : (accountNameById[e.accountId!] ?? ''),
                 e.note ?? '',
               ],
@@ -301,7 +304,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                     style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: AppTheme.space1),
                 MoneyText(
-                  Money(total).withSymbol(cur),
+                  Money(total).withCurrency(currency, locale),
                   textAlign: TextAlign.left,
                   emphasis: true,
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -331,7 +334,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         trailing: MoneyText(
-                          Money(e.amount).withSymbol(cur),
+                          Money(e.amount).withCurrency(currency, locale),
                           emphasis: true,
                         ),
                         onTap: () => _openDialog(context, existing: e),
@@ -369,6 +372,8 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
 
   Future<void> _openTemplatePicker(BuildContext context) async {
     final l = AppLocalizations.of(context);
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     final templates = await ref.read(recurringExpenseTemplatesProvider.future);
     final active = templates.where((t) => t.active).toList();
     if (!context.mounted) return;
@@ -396,7 +401,7 @@ class _ExpenseScreenState extends ConsumerState<ExpenseScreen> {
                 subtitle: t.note == null || t.note!.isEmpty
                     ? null
                     : Text(t.note!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: Text(Money(t.amount).withSymbol(l.currencySymbol),
+                trailing: Text(Money(t.amount).withCurrency(currency, locale),
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 onTap: () => Navigator.pop(ctx, t),
               ),
@@ -450,11 +455,12 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     _date = e?.date ?? DateTime.now();
     _receiptPhotoPath = e?.receiptPhotoPath;
     _accountId = e?.accountId;
+    final exponent = ref.read(shopCurrencyProvider).exponent;
     if (e != null) {
-      _amount.text = '${e.amount}';
+      _amount.text = formatDecimalMinorUnits(e.amount, exponent: exponent);
       _note.text = e.note ?? '';
     } else if (p != null) {
-      _amount.text = '${p.amount}';
+      _amount.text = formatDecimalMinorUnits(p.amount, exponent: exponent);
       _note.text = p.note ?? '';
     }
   }
@@ -501,7 +507,10 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
-    final amount = int.tryParse(_amount.text.trim()) ?? 0;
+    final amount = parseDecimalMinorUnits(
+      _amount.text.trim(),
+      exponent: ref.read(shopCurrencyProvider).exponent,
+    );
     if (amount <= 0) return;
     final closedThrough = await ref.read(booksClosedThroughProvider.future);
     if (isDateInClosedBooks(closedThrough, _date)) {
@@ -583,6 +592,7 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
     final df = DateFormat('yyyy-MM-dd');
     final photoExists =
         _receiptPhotoPath != null && File(_receiptPhotoPath!).existsSync();
+    final currencyExponent = ref.watch(shopCurrencyProvider).exponent;
 
     return AlertDialog(
       title: Text(widget.existing == null ? l.expenseAdd : l.expenseEdit),
@@ -594,8 +604,12 @@ class _ExpenseDialogState extends ConsumerState<_ExpenseDialog> {
             TextField(
               controller: _amount,
               autofocus: widget.existing == null,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              keyboardType: TextInputType.numberWithOptions(
+                  decimal: currencyExponent > 0),
+              inputFormatters: [
+                DecimalMoneyInputFormatter(exponent: currencyExponent),
+                LengthLimitingTextInputFormatter(12),
+              ],
               decoration: InputDecoration(labelText: l.expenseAmount),
             ),
             const SizedBox(height: AppTheme.space3),

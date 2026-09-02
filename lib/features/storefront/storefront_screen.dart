@@ -1,18 +1,20 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../data/repositories/settings_repository.dart' show ShopProfile;
 import '../../data/sync/outbox_error.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart' show shopProfileProvider;
+import '../settings/shop_profile_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
+import 'storefront_providers.dart';
 import 'storefront_repository.dart';
 
 /// Classifies a Storefront repository error into specific, actionable
@@ -76,20 +78,11 @@ class _ErrorRetryView extends StatelessWidget {
   }
 }
 
-final storefrontRepositoryProvider = Provider<StorefrontRepository>((ref) {
-  return StorefrontRepository(ref.watch(shopIdProvider));
-});
-
-final myStorefrontProvider = FutureProvider<StorefrontRow?>((ref) {
-  return ref.watch(storefrontRepositoryProvider).mine();
-});
-
-final blockedCustomersProvider = FutureProvider<List<BlockedCustomer>>((ref) {
-  return ref.watch(storefrontRepositoryProvider).listBlocked();
-});
-
-/// Owner screen to publish/manage the shop's public web storefront: name,
-/// phone, address, logo, and the enabled toggle + shareable link.
+/// Owner screen to publish/manage the shop's public web storefront. Name,
+/// phone, address, logo, and payment accounts are edited once in Settings →
+/// Shop profile and best-effort mirrored here — this screen only shows them
+/// read-only, plus its own settings: hours, require-transfer-proof, the
+/// enabled toggle, the shareable link, and blocked customers.
 class StorefrontScreen extends ConsumerStatefulWidget {
   const StorefrontScreen({super.key});
 
@@ -98,45 +91,16 @@ class StorefrontScreen extends ConsumerStatefulWidget {
 }
 
 class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
-  final _name = TextEditingController();
-  final _phone = TextEditingController();
-  final _address = TextEditingController();
-  final _kpayName = TextEditingController();
-  final _kpayNumber = TextEditingController();
-  final _waveName = TextEditingController();
-  final _waveNumber = TextEditingController();
   bool _busy = false;
-  bool _uploadingLogo = false;
-  String? _logoUrl;
   bool _initializedFromRow = false;
   bool _hoursEnabled = false;
   int _openMinute = 9 * 60;
   int _closeMinute = 18 * 60;
   bool _requireProof = true;
 
-  @override
-  void dispose() {
-    _name.dispose();
-    _phone.dispose();
-    _address.dispose();
-    _kpayName.dispose();
-    _kpayNumber.dispose();
-    _waveName.dispose();
-    _waveNumber.dispose();
-    super.dispose();
-  }
-
   void _initFrom(StorefrontRow row) {
     if (_initializedFromRow) return;
     _initializedFromRow = true;
-    _name.text = row.displayName ?? '';
-    _phone.text = row.phone ?? '';
-    _address.text = row.address ?? '';
-    _logoUrl = row.logoUrl;
-    _kpayName.text = row.payKpayName ?? '';
-    _kpayNumber.text = row.payKpay ?? '';
-    _waveName.text = row.payWaveName ?? '';
-    _waveNumber.text = row.payWave ?? '';
     _hoursEnabled = row.hoursEnabled;
     _openMinute = row.openMinute ?? 9 * 60;
     _closeMinute = row.closeMinute ?? 18 * 60;
@@ -166,22 +130,27 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     });
   }
 
+  /// First publish: pulls name/phone/address straight from the shop's own
+  /// profile (Settings → Shop profile) instead of asking the owner to retype
+  /// it — `_saveProfile` below pushes logo/payment accounts right after, so
+  /// a freshly-published storefront starts fully in sync, not just name/
+  /// phone/address (`publish`'s own insert doesn't set those columns).
   Future<void> _publish() async {
     final l = AppLocalizations.of(context);
-    if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.storefrontNeedsName)));
-      return;
-    }
     setState(() => _busy = true);
     try {
+      final p = await ref.read(shopProfileProvider.future);
       await ref
           .read(storefrontRepositoryProvider)
           .publish(
-            displayName: _name.text.trim(),
-            phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-            address: _address.text.trim().isEmpty ? null : _address.text.trim(),
+            displayName: p.name,
+            phone: (p.phone ?? '').isEmpty ? null : p.phone,
+            address: (p.address ?? '').isEmpty ? null : p.address,
+          );
+      await ref.read(storefrontRepositoryProvider).updateProfile(
+            logoUrl: p.logoUrl ?? '',
+            paymentMethods: p.paymentMethods ?? const [],
+            currencyCode: p.currencyCode ?? 'MMK',
           );
       ref.invalidate(myStorefrontProvider);
     } catch (e) {
@@ -195,20 +164,16 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     }
   }
 
+  /// Saves this screen's own settings only (hours/require-proof) — name/
+  /// phone/address/logo/payment accounts are mirrored by
+  /// `ShopProfileScreen._save` whenever the owner edits them there, not from
+  /// this screen at all (see the class doc).
   Future<void> _saveProfile() async {
     setState(() => _busy = true);
     try {
       await ref
           .read(storefrontRepositoryProvider)
           .updateProfile(
-            displayName: _name.text.trim(),
-            phone: _phone.text.trim(),
-            address: _address.text.trim(),
-            logoUrl: _logoUrl,
-            payKpayName: _kpayName.text.trim(),
-            payKpay: _kpayNumber.text.trim(),
-            payWaveName: _waveName.text.trim(),
-            payWave: _waveNumber.text.trim(),
             hoursEnabled: _hoursEnabled,
             openMinute: _openMinute,
             closeMinute: _closeMinute,
@@ -233,35 +198,6 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _pickLogo() async {
-    final res = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    final file = res?.files.firstOrNull;
-    if (file == null || file.bytes == null) return;
-    setState(() => _uploadingLogo = true);
-    try {
-      final ext = (file.extension ?? 'jpg').toLowerCase();
-      final url = await ref
-          .read(storefrontRepositoryProvider)
-          .uploadLogo(file.bytes!, ext);
-      if (mounted) setState(() => _logoUrl = url);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _storefrontErrorMessage(AppLocalizations.of(context), e),
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _uploadingLogo = false);
     }
   }
 
@@ -306,38 +242,82 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
     );
   }
 
+  void _openShopProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ShopProfileScreen()),
+    );
+  }
+
+  /// Read-only summary of the fields now edited exclusively in Settings →
+  /// Shop profile — used by both `_publishForm` (before a storefront row
+  /// exists) and `_manageView` (after), so the owner sees the same "here's
+  /// what's about to go out / what's already live" info in one shared shape.
+  Widget _shopProfileSummary(AppLocalizations l, ShopProfile p) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              clipBehavior: Clip.antiAlias,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: (p.logoUrl ?? '').isEmpty
+                  ? const Icon(Icons.storefront, size: 28)
+                  : Image.network(
+                      p.logoUrl!,
+                      fit: BoxFit.cover,
+                      cacheWidth: ProductThumb.cacheWidthFor(
+                          56, MediaQuery.devicePixelRatioOf(context)),
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.broken_image_outlined),
+                    ),
+            ),
+            const SizedBox(width: AppTheme.space3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p.name, style: Theme.of(context).textTheme.titleSmall),
+                  if ((p.phone ?? '').isEmpty && (p.address ?? '').isEmpty)
+                    Text(l.storefrontFromShopProfileHint,
+                        style: Theme.of(context).textTheme.bodySmall)
+                  else
+                    Text(
+                      [
+                        if ((p.phone ?? '').isNotEmpty) p.phone,
+                        if ((p.address ?? '').isNotEmpty) p.address,
+                      ].join(' · '),
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: _openShopProfile,
+              child: Text(l.storefrontEditInShopProfile),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _publishForm(AppLocalizations l) {
+    final profile = ref.watch(shopProfileProvider).valueOrNull;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space4),
       children: [
         Text(l.storefrontDesc),
         const SizedBox(height: AppTheme.space4),
-        TextField(
-          controller: _name,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            labelText: l.storefrontDisplayName,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppTheme.space3),
-        TextField(
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            labelText: l.storefrontPhoneShown,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppTheme.space3),
-        TextField(
-          controller: _address,
-          maxLines: 2,
-          decoration: InputDecoration(
-            labelText: l.storefrontAddressShown,
-            border: const OutlineInputBorder(),
-          ),
-        ),
+        if (profile != null) _shopProfileSummary(l, profile),
         const SizedBox(height: AppTheme.space4),
         FilledButton.icon(
           onPressed: _busy ? null : _publish,
@@ -349,91 +329,11 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
   }
 
   Widget _manageView(AppLocalizations l, StorefrontRow row) {
+    final profile = ref.watch(shopProfileProvider).valueOrNull;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space4),
       children: [
-        Center(
-          child: Column(
-            children: [
-              Container(
-                width: 84,
-                height: 84,
-                clipBehavior: Clip.antiAlias,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-                child: (_logoUrl ?? '').isEmpty
-                    ? const Icon(Icons.storefront, size: 36)
-                    : Image.network(
-                        _logoUrl!,
-                        fit: BoxFit.cover,
-                        cacheWidth: ProductThumb.cacheWidthFor(
-                            84, MediaQuery.devicePixelRatioOf(context)),
-                        errorBuilder: (_, _, _) =>
-                            const Icon(Icons.broken_image_outlined),
-                      ),
-              ),
-              const SizedBox(height: AppTheme.space2),
-              TextButton.icon(
-                onPressed: _uploadingLogo ? null : _pickLogo,
-                icon: _uploadingLogo
-                    ? const ButtonSpinner(size: 14)
-                    : const Icon(Icons.add_a_photo_outlined, size: 18),
-                label: Text(l.storefrontLogoLabel),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _name,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(labelText: l.storefrontDisplayName),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(labelText: l.storefrontPhoneShown),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _address,
-          maxLines: 2,
-          decoration: InputDecoration(labelText: l.storefrontAddressShown),
-        ),
-        const Divider(height: AppTheme.space6),
-        SectionHeader(title: l.storefrontPaymentInfoTitle),
-        Text(
-          l.storefrontPaymentInfoHint,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _kpayName,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(labelText: l.storefrontPayKpayName),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _kpayNumber,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(labelText: l.storefrontPayKpayNumber),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _waveName,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(labelText: l.storefrontPayWaveName),
-        ),
-        const SizedBox(height: AppTheme.space2),
-        TextField(
-          controller: _waveNumber,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(labelText: l.storefrontPayWaveNumber),
-        ),
+        if (profile != null) _shopProfileSummary(l, profile),
         const Divider(height: AppTheme.space6),
         SectionHeader(title: l.storefrontHoursTitle),
         SwitchListTile(
@@ -520,9 +420,7 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         const SizedBox(height: AppTheme.space2),
         FilledButton.tonalIcon(
           onPressed: () async {
-            final name = (_name.text.trim().isEmpty)
-                ? (row.displayName ?? l.storefrontShopFallbackName)
-                : _name.text.trim();
+            final name = row.displayName ?? l.storefrontShopFallbackName;
             await SharePlus.instance.share(
               ShareParams(text: l.storefrontShareText(name, row.url)),
             );

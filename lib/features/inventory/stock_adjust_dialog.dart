@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/input/thousands_formatter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../printing/printing_providers.dart';
 import 'inventory_providers.dart';
 
 enum _Mode { restock, adjust }
@@ -117,8 +119,10 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
           : '${_reasonLabel(l, _reason)} — ${_noteController.text.trim()}',
     };
 
-    final unitCost = _mode == _Mode.restock
-        ? int.tryParse(_unitCostController.text.trim())
+    final unitCost = _mode == _Mode.restock &&
+            _unitCostController.text.trim().isNotEmpty
+        ? parseDecimalMinorUnits(_unitCostController.text.trim(),
+            exponent: ref.read(shopCurrencyProvider).exponent)
         : null;
 
     final navigator = Navigator.of(context);
@@ -147,6 +151,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final currencyExponent = ref.watch(shopCurrencyProvider).exponent;
     return AlertDialog(
       title: Text(l.stockAdjustTitle),
       content: SingleChildScrollView(
@@ -198,10 +203,11 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               const SizedBox(height: AppTheme.space3),
               TextField(
                 controller: _unitCostController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                    decimal: currencyExponent > 0),
                 inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(9),
+                  DecimalMoneyInputFormatter(exponent: currencyExponent),
+                  LengthLimitingTextInputFormatter(12),
                 ],
                 decoration: InputDecoration(
                   labelText: l.stockAdjustUnitCost,

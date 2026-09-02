@@ -149,6 +149,19 @@ class _RequestsTab extends StatelessWidget {
         final proofPath = r['payment_proof_path'] as String?;
         final shopId = r['shop_id'] as String?;
         final rejectReason = r['reject_reason'] as String?;
+        // Item 5 mitigation: the public /renew form's email field has no
+        // ownership verification, so `shop_id` can silently resolve to a
+        // DIFFERENT shop than the one the requester typed as `shop_name`.
+        // Surface the resolved shop's actual registered name so a mismatch
+        // is visible at a glance instead of requiring the admin to manually
+        // cross-reference an opaque shop_id.
+        final resolvedShopName = (r['resolved_shop_name'] as String?)?.trim();
+        final submittedShopName = '${r['shop_name'] ?? ''}'.trim();
+        final shopNameMismatch = shopId != null &&
+            shopId.isNotEmpty &&
+            resolvedShopName != null &&
+            resolvedShopName.isNotEmpty &&
+            resolvedShopName.toLowerCase() != submittedShopName.toLowerCase();
         return ListTile(
           leading: (proofPath != null && proofPath.isNotEmpty)
               ? _RequestProofImage(
@@ -215,6 +228,27 @@ class _RequestsTab extends StatelessWidget {
                     : '(No shop_id — treated as a new shop)',
                 style: textTheme.bodySmall,
               ),
+              if (shopId != null && shopId.isNotEmpty)
+                Text(
+                  resolvedShopName != null && resolvedShopName.isNotEmpty
+                      ? 'Account on file: $resolvedShopName'
+                      : 'Account on file: (no name saved)',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: shopNameMismatch
+                        ? AppColors.of(context).danger
+                        : null,
+                    fontWeight: shopNameMismatch ? FontWeight.bold : null,
+                  ),
+                ),
+              if (shopNameMismatch)
+                Text(
+                  'Typed shop name doesn\'t match this account — verify '
+                  'before confirming.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.of(context).danger,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
             ],
           ),
           trailing: fulfilled

@@ -19,6 +19,7 @@ void main() {
       salePrice: 700,
       unit: 'pcs',
       isActive: true,
+      sellOnline: true,
     );
   }
 

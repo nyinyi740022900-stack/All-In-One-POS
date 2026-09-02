@@ -1,10 +1,18 @@
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/core/payment_method.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/invoices/receipt_data.dart';
 import 'package:mm_pos/features/printing/printer_connection.dart';
+
+Future<void> _insertSale(AppDatabase db, {required String shopId}) =>
+    db.into(db.sales).insert(SalesCompanion.insert(
+          id: 'sale-$shopId',
+          shopId: shopId,
+          invoiceNo: 'INV-$shopId',
+        ));
 
 void main() {
   late AppDatabase db;
@@ -122,6 +130,146 @@ void main() {
       expect(profile.name, 'My Shop');
       expect(profile.address, isNull);
     });
+
+    test('country defaults to MM when never set', () async {
+      final profile = await repo.shopProfile('shop-fresh');
+      expect(profile.country, 'MM');
+    });
+
+    test('saveShopProfile never writes country — no screen edits it '
+        'anymore (LicenseScreen asks Myanmar-vs-International at subscribe '
+        'time instead), so a save must not silently reset an old value back '
+        'to the MM default', () async {
+      await repo.saveShopProfile(
+        'shop-a',
+        const ShopProfile(name: 'Shop A', country: 'XX'),
+      );
+      expect((await repo.shopProfile('shop-a')).country, 'MM');
+    });
+
+    test('no payment methods saved anywhere defaults to an empty list',
+        () async {
+      final profile = await repo.shopProfile('shop-fresh');
+      expect(profile.paymentMethods, isEmpty);
+    });
+
+    test('custom-named payment methods round-trip, per shop', () async {
+      await repo.saveShopProfile(
+        'shop-intl',
+        const ShopProfile(
+          name: 'Intl Shop',
+          paymentMethods: [
+            PaymentMethod(label: 'PayPal', accountNumber: 'pay@shop.com'),
+            PaymentMethod(
+              label: 'PromptPay',
+              accountName: 'Shop Co',
+              accountNumber: '081-234-5678',
+            ),
+          ],
+        ),
+      );
+      await repo.saveShopProfile(
+        'shop-mm',
+        const ShopProfile(
+          name: 'MM Shop',
+          paymentMethods: [
+            PaymentMethod(label: 'KBZPay', accountNumber: '09123456'),
+          ],
+        ),
+      );
+
+      final intl = (await repo.shopProfile('shop-intl')).paymentMethods!;
+      expect(intl, hasLength(2));
+      expect(intl[0].label, 'PayPal');
+      expect(intl[0].accountNumber, 'pay@shop.com');
+      expect(intl[1].label, 'PromptPay');
+      expect(intl[1].accountName, 'Shop Co');
+
+      final mm = (await repo.shopProfile('shop-mm')).paymentMethods!;
+      expect(mm, hasLength(1));
+      expect(mm.single.label, 'KBZPay');
+    });
+
+    test('saving an empty payment-methods list explicitly clears it '
+        '(vs. null, which leaves the saved value untouched)', () async {
+      await repo.saveShopProfile(
+        'shop-a',
+        const ShopProfile(
+          name: 'Shop A',
+          paymentMethods: [
+            PaymentMethod(label: 'KBZPay', accountNumber: '09123456'),
+          ],
+        ),
+      );
+      await repo.saveShopProfile(
+        'shop-a',
+        const ShopProfile(name: 'Shop A', paymentMethods: []),
+      );
+
+      expect((await repo.shopProfile('shop-a')).paymentMethods, isEmpty);
+    });
+
+    test('currency defaults to MMK when never set', () async {
+      final profile = await repo.shopProfile('shop-fresh');
+      expect(profile.currencyCode, 'MMK');
+    });
+
+    test('currency is per-shop — one shop\'s THB never leaks into '
+        'another\'s MMK', () async {
+      await repo.setShopCurrency('shop-intl', 'THB');
+      await repo.setShopCurrency('shop-mm', 'MMK');
+
+      expect((await repo.shopProfile('shop-intl')).currencyCode, 'THB');
+      expect((await repo.shopProfile('shop-mm')).currencyCode, 'MMK');
+    });
+
+    test('saveShopProfile never writes currency — only setShopCurrency '
+        'does, so a plain profile save never bypasses the after-first-sale '
+        'lock', () async {
+      await repo.setShopCurrency('shop-a', 'THB');
+      await repo.saveShopProfile(
+        'shop-a',
+        const ShopProfile(name: 'Shop A', currencyCode: 'USD'),
+      );
+
+      expect((await repo.shopProfile('shop-a')).currencyCode, 'THB');
+    });
+  });
+
+  group('currencyChangeAllowed / setShopCurrency (after-first-sale lock)', () {
+    test('allowed on an empty shop', () async {
+      expect(await repo.currencyChangeAllowed('shop-empty'), isTrue);
+    });
+
+    test('locked once the shop has any finalized sale', () async {
+      await _insertSale(db, shopId: 'shop-with-sale');
+      expect(await repo.currencyChangeAllowed('shop-with-sale'), isFalse);
+    });
+
+    test('a soft-deleted sale does not lock the shop', () async {
+      await db.into(db.sales).insert(SalesCompanion.insert(
+            id: 'sale-deleted',
+            shopId: 'shop-deleted-sale',
+            invoiceNo: 'INV-deleted',
+            isDeleted: const Value(true),
+          ));
+      expect(await repo.currencyChangeAllowed('shop-deleted-sale'), isTrue);
+    });
+
+    test('setShopCurrency succeeds on an empty shop', () async {
+      await repo.setShopCurrency('shop-empty', 'THB');
+      expect((await repo.shopProfile('shop-empty')).currencyCode, 'THB');
+    });
+
+    test('setShopCurrency throws once a sale exists, and does not change '
+        'the stored value', () async {
+      await _insertSale(db, shopId: 'shop-locked');
+      await expectLater(
+        repo.setShopCurrency('shop-locked', 'THB'),
+        throwsA(isA<StateError>()),
+      );
+      expect((await repo.shopProfile('shop-locked')).currencyCode, 'MMK');
+    });
   });
 
   group('hydrateShopProfileFromSyncIfNeeded (new-device profile pull-down)', () {
@@ -131,6 +279,7 @@ void main() {
       required String name,
       String? phone,
       String? address,
+      String? currencyCode,
     }) async {
       await db.into(db.shopProfiles).insertOnConflictUpdate(
             ShopProfilesCompanion.insert(
@@ -139,6 +288,9 @@ void main() {
               name: name,
               phone: Value(phone),
               address: Value(address),
+              currencyCode: currencyCode == null
+                  ? const Value.absent()
+                  : Value(currencyCode),
             ),
           );
     }
@@ -193,6 +345,46 @@ void main() {
         await repo.hydrateShopProfileFromSyncIfNeeded('shop-main');
 
         expect((await repo.shopProfile('shop-main')).name, 'Renamed Store');
+      },
+    );
+
+    test(
+      'also copies the synced row\'s currency — a second device joining an '
+      'already-THB shop must not default to MMK (audit: this used to be '
+      'skipped, permanently stranding a new device once it had any local '
+      'sale, since the currency picker locks after the first one)',
+      () async {
+        await insertSyncedRow(
+          db,
+          'shop-thb',
+          name: 'Bangkok Store',
+          currencyCode: 'THB',
+        );
+
+        await repo.hydrateShopProfileFromSyncIfNeeded('shop-thb');
+
+        expect((await repo.shopProfile('shop-thb')).currencyCode, 'THB');
+      },
+    );
+
+    test(
+      'currency hydration bypasses the after-first-sale lock — it is '
+      'adopting the shop\'s existing value, not changing it',
+      () async {
+        await insertSyncedRow(
+          db,
+          'shop-thb-sold',
+          name: 'Already Trading',
+          currencyCode: 'THB',
+        );
+        await _insertSale(db, shopId: 'shop-thb-sold');
+
+        await repo.hydrateShopProfileFromSyncIfNeeded('shop-thb-sold');
+
+        expect(
+          (await repo.shopProfile('shop-thb-sold')).currencyCode,
+          'THB',
+        );
       },
     );
 

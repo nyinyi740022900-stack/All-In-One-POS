@@ -18,6 +18,7 @@ void main() {
         salePrice: 700,
         unit: 'pcs',
         isActive: true,
+        sellOnline: true,
         createdAt: DateTime(2026, 1, 1),
         updatedAt: DateTime(2026, 1, 1),
         isDeleted: false,

@@ -130,6 +130,7 @@ class InventoryRepository {
     int? wholesalePrice,
     int? vipPrice,
     int? onlineStockLimit,
+    bool sellOnline = true,
     String unit = 'pcs',
     int? quantity,
     int reorderLevel = 0,
@@ -151,6 +152,7 @@ class InventoryRepository {
         wholesalePrice: Value(wholesalePrice),
         vipPrice: Value(vipPrice),
         onlineStockLimit: Value(onlineStockLimit),
+        sellOnline: Value(sellOnline),
         unit: Value(unit),
         // Only overwrite the photo URL when one is supplied (keep existing).
         imageUrl: imageUrl == null ? const Value.absent() : Value(imageUrl),

@@ -105,6 +105,7 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
     }
     final messenger = ScaffoldMessenger.of(context);
     final movements = ref.read(filteredMovementsProvider);
+    final currency = ref.read(shopCurrencyProvider);
     try {
       final csv = buildStockMovementsCsv(
         movements,
@@ -115,6 +116,7 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
         unitCostHeader: l.stockHistoryHeaderUnitCost,
         noteHeader: l.stockHistoryHeaderNote,
         typeLabel: (t) => stockMovementTypeLabel(l, t),
+        exponent: currency.exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/stock-history.csv');

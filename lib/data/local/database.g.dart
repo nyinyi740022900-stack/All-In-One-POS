@@ -736,6 +736,21 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sellOnlineMeta = const VerificationMeta(
+    'sellOnline',
+  );
+  @override
+  late final GeneratedColumn<bool> sellOnline = GeneratedColumn<bool>(
+    'sell_online',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sell_online" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _unitMeta = const VerificationMeta('unit');
   @override
   late final GeneratedColumn<String> unit = GeneratedColumn<String>(
@@ -801,6 +816,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     wholesalePrice,
     vipPrice,
     onlineStockLimit,
+    sellOnline,
     unit,
     imagePath,
     imageUrl,
@@ -923,6 +939,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         ),
       );
     }
+    if (data.containsKey('sell_online')) {
+      context.handle(
+        _sellOnlineMeta,
+        sellOnline.isAcceptableOrUnknown(data['sell_online']!, _sellOnlineMeta),
+      );
+    }
     if (data.containsKey('unit')) {
       context.handle(
         _unitMeta,
@@ -1020,6 +1042,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.int,
         data['${effectivePrefix}online_stock_limit'],
       ),
+      sellOnline: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sell_online'],
+      )!,
       unit: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}unit'],
@@ -1080,6 +1106,13 @@ class Product extends DataClass implements Insertable<Product> {
   /// Unlike the real-stock warning, this cap is hard-enforced: it's a number
   /// the owner set on purpose, not a value that can be stale from sync lag.
   final int? onlineStockLimit;
+
+  /// Whether this product appears in the public web storefront's catalog.
+  /// Defaults `true` so every existing product keeps showing exactly as
+  /// before this column existed — a shop opts a product OUT of online sale,
+  /// not in. In-store surfaces (Sell, Inventory, POs) ignore this entirely;
+  /// it only gates the storefront Edge Function's `catalog` query.
+  final bool sellOnline;
   final String unit;
   final String? imagePath;
 
@@ -1103,6 +1136,7 @@ class Product extends DataClass implements Insertable<Product> {
     this.wholesalePrice,
     this.vipPrice,
     this.onlineStockLimit,
+    required this.sellOnline,
     required this.unit,
     this.imagePath,
     this.imageUrl,
@@ -1141,6 +1175,7 @@ class Product extends DataClass implements Insertable<Product> {
     if (!nullToAbsent || onlineStockLimit != null) {
       map['online_stock_limit'] = Variable<int>(onlineStockLimit);
     }
+    map['sell_online'] = Variable<bool>(sellOnline);
     map['unit'] = Variable<String>(unit);
     if (!nullToAbsent || imagePath != null) {
       map['image_path'] = Variable<String>(imagePath);
@@ -1180,6 +1215,7 @@ class Product extends DataClass implements Insertable<Product> {
       onlineStockLimit: onlineStockLimit == null && nullToAbsent
           ? const Value.absent()
           : Value(onlineStockLimit),
+      sellOnline: Value(sellOnline),
       unit: Value(unit),
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
@@ -1213,6 +1249,7 @@ class Product extends DataClass implements Insertable<Product> {
       wholesalePrice: serializer.fromJson<int?>(json['wholesalePrice']),
       vipPrice: serializer.fromJson<int?>(json['vipPrice']),
       onlineStockLimit: serializer.fromJson<int?>(json['onlineStockLimit']),
+      sellOnline: serializer.fromJson<bool>(json['sellOnline']),
       unit: serializer.fromJson<String>(json['unit']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
@@ -1239,6 +1276,7 @@ class Product extends DataClass implements Insertable<Product> {
       'wholesalePrice': serializer.toJson<int?>(wholesalePrice),
       'vipPrice': serializer.toJson<int?>(vipPrice),
       'onlineStockLimit': serializer.toJson<int?>(onlineStockLimit),
+      'sellOnline': serializer.toJson<bool>(sellOnline),
       'unit': serializer.toJson<String>(unit),
       'imagePath': serializer.toJson<String?>(imagePath),
       'imageUrl': serializer.toJson<String?>(imageUrl),
@@ -1263,6 +1301,7 @@ class Product extends DataClass implements Insertable<Product> {
     Value<int?> wholesalePrice = const Value.absent(),
     Value<int?> vipPrice = const Value.absent(),
     Value<int?> onlineStockLimit = const Value.absent(),
+    bool? sellOnline,
     String? unit,
     Value<String?> imagePath = const Value.absent(),
     Value<String?> imageUrl = const Value.absent(),
@@ -1288,6 +1327,7 @@ class Product extends DataClass implements Insertable<Product> {
     onlineStockLimit: onlineStockLimit.present
         ? onlineStockLimit.value
         : this.onlineStockLimit,
+    sellOnline: sellOnline ?? this.sellOnline,
     unit: unit ?? this.unit,
     imagePath: imagePath.present ? imagePath.value : this.imagePath,
     imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
@@ -1317,6 +1357,9 @@ class Product extends DataClass implements Insertable<Product> {
       onlineStockLimit: data.onlineStockLimit.present
           ? data.onlineStockLimit.value
           : this.onlineStockLimit,
+      sellOnline: data.sellOnline.present
+          ? data.sellOnline.value
+          : this.sellOnline,
       unit: data.unit.present ? data.unit.value : this.unit,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
@@ -1343,6 +1386,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('wholesalePrice: $wholesalePrice, ')
           ..write('vipPrice: $vipPrice, ')
           ..write('onlineStockLimit: $onlineStockLimit, ')
+          ..write('sellOnline: $sellOnline, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -1352,7 +1396,7 @@ class Product extends DataClass implements Insertable<Product> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     shopId,
     createdAt,
@@ -1369,11 +1413,12 @@ class Product extends DataClass implements Insertable<Product> {
     wholesalePrice,
     vipPrice,
     onlineStockLimit,
+    sellOnline,
     unit,
     imagePath,
     imageUrl,
     isActive,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1394,6 +1439,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.wholesalePrice == this.wholesalePrice &&
           other.vipPrice == this.vipPrice &&
           other.onlineStockLimit == this.onlineStockLimit &&
+          other.sellOnline == this.sellOnline &&
           other.unit == this.unit &&
           other.imagePath == this.imagePath &&
           other.imageUrl == this.imageUrl &&
@@ -1417,6 +1463,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<int?> wholesalePrice;
   final Value<int?> vipPrice;
   final Value<int?> onlineStockLimit;
+  final Value<bool> sellOnline;
   final Value<String> unit;
   final Value<String?> imagePath;
   final Value<String?> imageUrl;
@@ -1439,6 +1486,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.wholesalePrice = const Value.absent(),
     this.vipPrice = const Value.absent(),
     this.onlineStockLimit = const Value.absent(),
+    this.sellOnline = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1462,6 +1510,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.wholesalePrice = const Value.absent(),
     this.vipPrice = const Value.absent(),
     this.onlineStockLimit = const Value.absent(),
+    this.sellOnline = const Value.absent(),
     this.unit = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.imageUrl = const Value.absent(),
@@ -1487,6 +1536,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<int>? wholesalePrice,
     Expression<int>? vipPrice,
     Expression<int>? onlineStockLimit,
+    Expression<bool>? sellOnline,
     Expression<String>? unit,
     Expression<String>? imagePath,
     Expression<String>? imageUrl,
@@ -1510,6 +1560,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (wholesalePrice != null) 'wholesale_price': wholesalePrice,
       if (vipPrice != null) 'vip_price': vipPrice,
       if (onlineStockLimit != null) 'online_stock_limit': onlineStockLimit,
+      if (sellOnline != null) 'sell_online': sellOnline,
       if (unit != null) 'unit': unit,
       if (imagePath != null) 'image_path': imagePath,
       if (imageUrl != null) 'image_url': imageUrl,
@@ -1535,6 +1586,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<int?>? wholesalePrice,
     Value<int?>? vipPrice,
     Value<int?>? onlineStockLimit,
+    Value<bool>? sellOnline,
     Value<String>? unit,
     Value<String?>? imagePath,
     Value<String?>? imageUrl,
@@ -1558,6 +1610,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       wholesalePrice: wholesalePrice ?? this.wholesalePrice,
       vipPrice: vipPrice ?? this.vipPrice,
       onlineStockLimit: onlineStockLimit ?? this.onlineStockLimit,
+      sellOnline: sellOnline ?? this.sellOnline,
       unit: unit ?? this.unit,
       imagePath: imagePath ?? this.imagePath,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -1617,6 +1670,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (onlineStockLimit.present) {
       map['online_stock_limit'] = Variable<int>(onlineStockLimit.value);
     }
+    if (sellOnline.present) {
+      map['sell_online'] = Variable<bool>(sellOnline.value);
+    }
     if (unit.present) {
       map['unit'] = Variable<String>(unit.value);
     }
@@ -1654,6 +1710,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('wholesalePrice: $wholesalePrice, ')
           ..write('vipPrice: $vipPrice, ')
           ..write('onlineStockLimit: $onlineStockLimit, ')
+          ..write('sellOnline: $sellOnline, ')
           ..write('unit: $unit, ')
           ..write('imagePath: $imagePath, ')
           ..write('imageUrl: $imageUrl, ')
@@ -8253,8 +8310,8 @@ class Order extends DataClass implements Insertable<Order> {
   final String customerName;
   final String? customerPhone;
 
-  /// Storefront client IP (last X-Forwarded-For hop). Null for POS/manual
-  /// orders. Used to block a harassing/scam address from new web orders.
+  /// Storefront client IP (last X-Forwarded-For hop). Null for
+  /// POS/manual orders. Used to block a harassing/scam address from new web orders.
   final String? customerIp;
   final String? deliveryAddress;
   final int deliveryFee;
@@ -20322,6 +20379,30 @@ class $ShopProfilesTable extends ShopProfiles
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('MM'),
+  );
+  static const VerificationMeta _currencyCodeMeta = const VerificationMeta(
+    'currencyCode',
+  );
+  @override
+  late final GeneratedColumn<String> currencyCode = GeneratedColumn<String>(
+    'currency_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('MMK'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -20334,6 +20415,8 @@ class $ShopProfilesTable extends ShopProfiles
     name,
     phone,
     address,
+    country,
+    currencyCode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -20410,6 +20493,21 @@ class $ShopProfilesTable extends ShopProfiles
         address.isAcceptableOrUnknown(data['address']!, _addressMeta),
       );
     }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('currency_code')) {
+      context.handle(
+        _currencyCodeMeta,
+        currencyCode.isAcceptableOrUnknown(
+          data['currency_code']!,
+          _currencyCodeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -20459,6 +20557,14 @@ class $ShopProfilesTable extends ShopProfiles
         DriftSqlType.string,
         data['${effectivePrefix}address'],
       ),
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      )!,
+      currencyCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_code'],
+      )!,
     );
   }
 
@@ -20486,6 +20592,19 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
   final String name;
   final String? phone;
   final String? address;
+
+  /// ISO-2 code, defaults `'MM'`. No screen edits this anymore (the License
+  /// screen asks Myanmar-vs-International at subscribe time instead) —
+  /// dormant, available infrastructure only. Not a POS/billing currency
+  /// model — see [currencyCode] for that.
+  final String country;
+
+  /// ISO 4217 code for what this shop sells in (`CurrencyDef.byCode`).
+  /// Default `'MMK'` keeps every existing shop numerically identical
+  /// (exponent 0, same integers on disk) — see the multi-country foundation
+  /// design doc. Locked once the shop has any finalized sale
+  /// (`SettingsRepository.currencyChangeAllowed`).
+  final String currencyCode;
   const ShopProfileRow({
     required this.id,
     required this.shopId,
@@ -20497,6 +20616,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     required this.name,
     this.phone,
     this.address,
+    required this.country,
+    required this.currencyCode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -20517,6 +20638,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     if (!nullToAbsent || address != null) {
       map['address'] = Variable<String>(address);
     }
+    map['country'] = Variable<String>(country);
+    map['currency_code'] = Variable<String>(currencyCode);
     return map;
   }
 
@@ -20536,6 +20659,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       address: address == null && nullToAbsent
           ? const Value.absent()
           : Value(address),
+      country: Value(country),
+      currencyCode: Value(currencyCode),
     );
   }
 
@@ -20555,6 +20680,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       address: serializer.fromJson<String?>(json['address']),
+      country: serializer.fromJson<String>(json['country']),
+      currencyCode: serializer.fromJson<String>(json['currencyCode']),
     );
   }
   @override
@@ -20571,6 +20698,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'address': serializer.toJson<String?>(address),
+      'country': serializer.toJson<String>(country),
+      'currencyCode': serializer.toJson<String>(currencyCode),
     };
   }
 
@@ -20585,6 +20714,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     String? name,
     Value<String?> phone = const Value.absent(),
     Value<String?> address = const Value.absent(),
+    String? country,
+    String? currencyCode,
   }) => ShopProfileRow(
     id: id ?? this.id,
     shopId: shopId ?? this.shopId,
@@ -20596,6 +20727,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     name: name ?? this.name,
     phone: phone.present ? phone.value : this.phone,
     address: address.present ? address.value : this.address,
+    country: country ?? this.country,
+    currencyCode: currencyCode ?? this.currencyCode,
   );
   ShopProfileRow copyWithCompanion(ShopProfilesCompanion data) {
     return ShopProfileRow(
@@ -20609,6 +20742,10 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
+      country: data.country.present ? data.country.value : this.country,
+      currencyCode: data.currencyCode.present
+          ? data.currencyCode.value
+          : this.currencyCode,
     );
   }
 
@@ -20624,7 +20761,9 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
           ..write('hlc: $hlc, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
-          ..write('address: $address')
+          ..write('address: $address, ')
+          ..write('country: $country, ')
+          ..write('currencyCode: $currencyCode')
           ..write(')'))
         .toString();
   }
@@ -20641,6 +20780,8 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
     name,
     phone,
     address,
+    country,
+    currencyCode,
   );
   @override
   bool operator ==(Object other) =>
@@ -20655,7 +20796,9 @@ class ShopProfileRow extends DataClass implements Insertable<ShopProfileRow> {
           other.hlc == this.hlc &&
           other.name == this.name &&
           other.phone == this.phone &&
-          other.address == this.address);
+          other.address == this.address &&
+          other.country == this.country &&
+          other.currencyCode == this.currencyCode);
 }
 
 class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
@@ -20669,6 +20812,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> address;
+  final Value<String> country;
+  final Value<String> currencyCode;
   final Value<int> rowid;
   const ShopProfilesCompanion({
     this.id = const Value.absent(),
@@ -20681,6 +20826,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
+    this.country = const Value.absent(),
+    this.currencyCode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShopProfilesCompanion.insert({
@@ -20694,6 +20841,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     required String name,
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
+    this.country = const Value.absent(),
+    this.currencyCode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        shopId = Value(shopId),
@@ -20709,6 +20858,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? address,
+    Expression<String>? country,
+    Expression<String>? currencyCode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -20722,6 +20873,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
+      if (country != null) 'country': country,
+      if (currencyCode != null) 'currency_code': currencyCode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -20737,6 +20890,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     Value<String>? name,
     Value<String?>? phone,
     Value<String?>? address,
+    Value<String>? country,
+    Value<String>? currencyCode,
     Value<int>? rowid,
   }) {
     return ShopProfilesCompanion(
@@ -20750,6 +20905,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      country: country ?? this.country,
+      currencyCode: currencyCode ?? this.currencyCode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -20787,6 +20944,12 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
     if (address.present) {
       map['address'] = Variable<String>(address.value);
     }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (currencyCode.present) {
+      map['currency_code'] = Variable<String>(currencyCode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -20806,6 +20969,8 @@ class ShopProfilesCompanion extends UpdateCompanion<ShopProfileRow> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
+          ..write('country: $country, ')
+          ..write('currencyCode: $currencyCode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -21184,6 +21349,7 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<int?> wholesalePrice,
       Value<int?> vipPrice,
       Value<int?> onlineStockLimit,
+      Value<bool> sellOnline,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -21208,6 +21374,7 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<int?> wholesalePrice,
       Value<int?> vipPrice,
       Value<int?> onlineStockLimit,
+      Value<bool> sellOnline,
       Value<String> unit,
       Value<String?> imagePath,
       Value<String?> imageUrl,
@@ -21301,6 +21468,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<int> get onlineStockLimit => $composableBuilder(
     column: $table.onlineStockLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sellOnline => $composableBuilder(
+    column: $table.sellOnline,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21414,6 +21586,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sellOnline => $composableBuilder(
+    column: $table.sellOnline,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get unit => $composableBuilder(
     column: $table.unit,
     builder: (column) => ColumnOrderings(column),
@@ -21498,6 +21675,11 @@ class $$ProductsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sellOnline => $composableBuilder(
+    column: $table.sellOnline,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get unit =>
       $composableBuilder(column: $table.unit, builder: (column) => column);
 
@@ -21555,6 +21737,7 @@ class $$ProductsTableTableManager
                 Value<int?> wholesalePrice = const Value.absent(),
                 Value<int?> vipPrice = const Value.absent(),
                 Value<int?> onlineStockLimit = const Value.absent(),
+                Value<bool> sellOnline = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -21577,6 +21760,7 @@ class $$ProductsTableTableManager
                 wholesalePrice: wholesalePrice,
                 vipPrice: vipPrice,
                 onlineStockLimit: onlineStockLimit,
+                sellOnline: sellOnline,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,
@@ -21601,6 +21785,7 @@ class $$ProductsTableTableManager
                 Value<int?> wholesalePrice = const Value.absent(),
                 Value<int?> vipPrice = const Value.absent(),
                 Value<int?> onlineStockLimit = const Value.absent(),
+                Value<bool> sellOnline = const Value.absent(),
                 Value<String> unit = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
@@ -21623,6 +21808,7 @@ class $$ProductsTableTableManager
                 wholesalePrice: wholesalePrice,
                 vipPrice: vipPrice,
                 onlineStockLimit: onlineStockLimit,
+                sellOnline: sellOnline,
                 unit: unit,
                 imagePath: imagePath,
                 imageUrl: imageUrl,
@@ -30423,6 +30609,8 @@ typedef $$ShopProfilesTableCreateCompanionBuilder =
       required String name,
       Value<String?> phone,
       Value<String?> address,
+      Value<String> country,
+      Value<String> currencyCode,
       Value<int> rowid,
     });
 typedef $$ShopProfilesTableUpdateCompanionBuilder =
@@ -30437,6 +30625,8 @@ typedef $$ShopProfilesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> phone,
       Value<String?> address,
+      Value<String> country,
+      Value<String> currencyCode,
       Value<int> rowid,
     });
 
@@ -30496,6 +30686,16 @@ class $$ShopProfilesTableFilterComposer
 
   ColumnFilters<String> get address => $composableBuilder(
     column: $table.address,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -30558,6 +30758,16 @@ class $$ShopProfilesTableOrderingComposer
     column: $table.address,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ShopProfilesTableAnnotationComposer
@@ -30598,6 +30808,14 @@ class $$ShopProfilesTableAnnotationComposer
 
   GeneratedColumn<String> get address =>
       $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => column,
+  );
 }
 
 class $$ShopProfilesTableTableManager
@@ -30641,6 +30859,8 @@ class $$ShopProfilesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
+                Value<String> country = const Value.absent(),
+                Value<String> currencyCode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShopProfilesCompanion(
                 id: id,
@@ -30653,6 +30873,8 @@ class $$ShopProfilesTableTableManager
                 name: name,
                 phone: phone,
                 address: address,
+                country: country,
+                currencyCode: currencyCode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -30667,6 +30889,8 @@ class $$ShopProfilesTableTableManager
                 required String name,
                 Value<String?> phone = const Value.absent(),
                 Value<String?> address = const Value.absent(),
+                Value<String> country = const Value.absent(),
+                Value<String> currencyCode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShopProfilesCompanion.insert(
                 id: id,
@@ -30679,6 +30903,8 @@ class $$ShopProfilesTableTableManager
                 name: name,
                 phone: phone,
                 address: address,
+                country: country,
+                currencyCode: currencyCode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

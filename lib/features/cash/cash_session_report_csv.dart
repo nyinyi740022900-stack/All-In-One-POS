@@ -1,4 +1,5 @@
 import '../../core/csv_util.dart';
+import '../../core/money.dart';
 import 'cash_session_repository.dart';
 
 /// A [CashSessionReport] as label/value CSV rows — same figures as
@@ -18,19 +19,21 @@ String buildCashSessionReportCsv(
   String? varianceText,
   required String lineHeader,
   required String amountHeader,
+  int exponent = 0,
 }) {
+  String fmt(int minor) => formatMinorUnitsPlain(minor, exponent: exponent);
   return csvDocument(
     [lineHeader, amountHeader],
     [
-      [openingFloatLabel, report.openingAmount],
-      [cashSalesLabel, report.cashSalesTotal],
-      [cashRepaymentsLabel, report.cashRepaymentsTotal],
-      [topUpsLabel, report.topUpsTotal],
-      [expensesLabel, -report.expensesTotal],
-      [supplierPaymentsLabel, -report.supplierPaymentsTotal],
-      [expectedCashLabel, report.expectedCash],
+      [openingFloatLabel, fmt(report.openingAmount)],
+      [cashSalesLabel, fmt(report.cashSalesTotal)],
+      [cashRepaymentsLabel, fmt(report.cashRepaymentsTotal)],
+      [topUpsLabel, fmt(report.topUpsTotal)],
+      [expensesLabel, fmt(-report.expensesTotal)],
+      [supplierPaymentsLabel, fmt(-report.supplierPaymentsTotal)],
+      [expectedCashLabel, fmt(report.expectedCash)],
       if (report.closingAmount != null)
-        [countedCashLabel, report.closingAmount],
+        [countedCashLabel, fmt(report.closingAmount!)],
       if (report.closingAmount != null &&
           varianceLabel != null &&
           varianceText != null)

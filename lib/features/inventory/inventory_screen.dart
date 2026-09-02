@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/currency_def.dart';
 import '../../core/layout.dart';
 import '../../core/money.dart';
 import '../../core/providers.dart';
@@ -93,6 +94,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final categories =
         ref.read(categoriesStreamProvider).valueOrNull ?? const [];
     final categoryNameById = {for (final c in categories) c.id: c.name};
+    final currency = ref.read(shopCurrencyProvider);
     try {
       final csv = buildInventoryCsv(
         products,
@@ -105,6 +107,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         salePriceHeader: l.productPrice,
         quantityHeader: l.productQuantity,
         reorderLevelHeader: l.productReorderLevel,
+        exponent: currency.exponent,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/inventory.csv');
@@ -135,7 +138,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final categories =
         ref.read(categoriesStreamProvider).valueOrNull ?? const [];
     final categoryNameById = {for (final c in categories) c.id: c.name};
-    final cur = l.currencySymbol;
+    final currency = ref.read(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     try {
       final profile = await ref.read(shopProfileProvider.future);
       final printerConfig = await ref.read(printerConfigProvider.future);
@@ -161,8 +165,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               p.product.name,
               p.product.sku ?? '',
               categoryNameById[p.product.categoryId] ?? '',
-              Money(p.product.costPrice).withSymbol(cur),
-              Money(p.product.salePrice).withSymbol(cur),
+              Money(p.product.costPrice).withCurrency(currency, locale),
+              Money(p.product.salePrice).withCurrency(currency, locale),
               '${p.quantity}',
             ],
         ],
@@ -189,7 +193,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final products = ref.watch(filteredProductsProvider);
     final lowCount = ref.watch(lowStockCountProvider);
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
-    final currency = l.currencySymbol;
+    final currency = ref.watch(shopCurrencyProvider);
     // Cashiers can browse inventory but not add/edit products; managers can.
     final canEdit = ref.watch(canEditInventoryProvider);
     ref.listen<String>(inventorySearchProvider, (prev, next) {
@@ -518,7 +522,7 @@ class _ProductTile extends ConsumerWidget {
   });
 
   final ProductWithStock p;
-  final String currency;
+  final CurrencyDef currency;
   final bool trackStock;
   final bool canEdit;
   final VoidCallback onOpen;
@@ -532,14 +536,24 @@ class _ProductTile extends ConsumerWidget {
         currentQuantity: p.quantity,
       );
 
+  /// Native label-printer text commands need pure ASCII — a currency whose
+  /// display symbol isn't ASCII (฿/¥) falls back to its 3-letter code
+  /// instead, so the label always renders cleanly rather than printing a
+  /// mangled or blank glyph. MMK's `Ks` and USD's `$` are already ASCII, so
+  /// this changes nothing for either.
+  String get _labelPriceSymbol {
+    final symbol = currency.symbol;
+    final isAscii = symbol.codeUnits.every((c) => c < 128);
+    return isAscii ? symbol : currency.code;
+  }
+
   void _printLabel(BuildContext context, WidgetRef ref) => showLabelPrintDialog(
     context,
     ref,
     data: LabelData(
       name: p.product.name,
-      // Always the ASCII 'Ks' so it prints cleanly via native text
-      // commands.
-      priceText: Money(p.product.salePrice).withSymbol('Ks'),
+      priceText: Money(p.product.salePrice)
+          .withSymbol(_labelPriceSymbol, exponent: currency.exponent),
       barcode: labelBarcodeFor(p.product),
     ),
   );
@@ -548,6 +562,7 @@ class _ProductTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final outOfStock = trackStock && p.quantity <= 0;
 
     return InkWell(
@@ -587,7 +602,7 @@ class _ProductTile extends ConsumerWidget {
                   // the figure that needs to catch the eye is the stock
                   // count, not the price.
                   MoneyText(
-                    Money(p.product.salePrice).withSymbol(currency),
+                    Money(p.product.salePrice).withCurrency(currency, locale),
                     style: theme.textTheme.bodyMedium,
                     color: theme.colorScheme.onSurfaceVariant,
                     textAlign: TextAlign.left,

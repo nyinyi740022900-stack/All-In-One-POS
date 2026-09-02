@@ -11,8 +11,8 @@ import '../invoices/invoice_capture.dart';
 import '../invoices/invoice_view.dart';
 import '../invoices/receipt_mapper.dart';
 import '../printing/printing_providers.dart';
-import '../storefront/storefront_screen.dart' show storefrontRepositoryProvider;
-import 'order_labels.dart';
+import '../sell/payment_labels.dart';
+import '../storefront/storefront_providers.dart' show storefrontRepositoryProvider;
 
 /// Builds a polished invoice image for an order and opens the share sheet so
 /// the shop can save it (Photos/Files) or send it to the customer
@@ -113,11 +113,14 @@ Future<void> printOrderInvoice(
     order,
     items,
     shop,
-    paymentMethodLabel: orderPaymentLabel(l, order.paymentStatus),
+    paymentMethodLabel: paymentLabel(l, order.paymentMethod ?? 'cash'),
     deliveryFeeLabel: l.orderDeliveryFee,
     defaultFooter: l.receiptThankYou,
   );
 
+  // Always the ASCII symbol here, never the localized label — same
+  // column-alignment rationale as PrinterService.buildBytes.
+  final currency = ref.read(shopCurrencyProvider);
   final result = await ref
       .read(printerServiceProvider)
       .printReceipt(
@@ -126,6 +129,8 @@ Future<void> printOrderInvoice(
         mac: config.mac!,
         labels: receiptLabels(l),
         connection: config.connection,
+        currencySymbol: currency.symbol,
+        exponent: currency.exponent,
       );
 
   messenger.showSnackBar(
