@@ -566,6 +566,11 @@ class AppLocalizationsMy extends AppLocalizations {
       'ပိုင်ဆိုင်မှု၊ ကြွေးကျန်နှင့် ပိုင်ရှင်ရင်းနှီးငွေ ခြုံငုံကြည့်ရန်';
 
   @override
+  String accountingNetWorthFigure(String amount) {
+    return 'စုစုပေါင်းပိုင်ဆိုင်မှု: $amount';
+  }
+
+  @override
   String get accountingCashFlow => 'ငွေဝင်ငွေထွက် စာရင်း';
 
   @override
@@ -573,11 +578,21 @@ class AppLocalizationsMy extends AppLocalizations {
       'အကောင့်တစ်ခုချင်း ငွေဝင်/ငွေထွက်ကို ကာလရွေးကြည့်ရန်';
 
   @override
+  String accountingCashFlowFigure(String amount) {
+    return 'ဒီလ: $amount';
+  }
+
+  @override
   String get accountingTaxSummary => 'အခွန် အစီရင်ခံစာ';
 
   @override
   String get accountingTaxSummarySubtitle =>
       'အခွန်တင်သွင်းရန် ရောင်းအား/ကုန်ကျစရိတ် အချုပ်';
+
+  @override
+  String accountingTaxFigure(String amount) {
+    return 'အသားတင်အမြတ် (ယခုနှစ်အတွင်း): $amount';
+  }
 
   @override
   String get accountingYearEndClose => 'နှစ်ကုန် ပိတ်စာရင်း';
@@ -1830,6 +1845,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsRevenue => 'ရောင်းရငွေ';
+
+  @override
+  String analyticsTrendVsPrevious(String sign, int percent) {
+    return 'ရှေ့ကာလထက် $sign$percent%';
+  }
 
   @override
   String get analyticsProfit => 'စုစုပေါင်းအမြတ်';

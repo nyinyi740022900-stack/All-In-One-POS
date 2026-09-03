@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../license/premium_gate.dart';
+import '../printing/printing_providers.dart' show shopCurrencyProvider;
+import 'accounting_providers.dart';
 import 'balance_sheet_screen.dart';
 import 'cash_flow_screen.dart';
 import 'tax_report_screen.dart';
@@ -41,23 +44,65 @@ class AccountingScreen extends ConsumerWidget {
       );
     }
 
+    // A live figure per report — previously every tile showed the same
+    // static description forever, so "how's my shop doing" needed opening
+    // each one just to see a number. Each watch mirrors the exact default
+    // range its own screen uses, so this hits the same provider cache
+    // rather than computing anything twice. Falls back to the static
+    // subtitle while the figure is still loading (first paint, cold cache).
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final monthEnd = now.month == 12
+        ? DateTime(now.year + 1, 1, 1)
+        : DateTime(now.year, now.month + 1, 1);
+    final yearStart = DateTime(now.year, 1, 1);
+    final todayExclusiveEnd =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+    final balanceSheet = ref.watch(balanceSheetProvider).valueOrNull;
+    final netWorthSubtitle = balanceSheet == null
+        ? l.accountingBalanceSheetSubtitle
+        : l.accountingNetWorthFigure(
+            Money(balanceSheet.assets - balanceSheet.liabilities)
+                .withCurrency(currency, locale));
+
+    final cashFlows = ref
+        .watch(cashFlowProvider((start: monthStart, endExclusive: monthEnd)))
+        .valueOrNull;
+    final cashFlowSubtitle = cashFlows == null
+        ? l.accountingCashFlowSubtitle
+        : l.accountingCashFlowFigure(Money(cashFlows.fold<int>(
+                0, (sum, f) => sum + f.inflow - f.outflow))
+            .withCurrency(currency, locale));
+
+    final taxStatement = ref
+        .watch(taxStatementProvider(
+            (start: yearStart, endExclusive: todayExclusiveEnd)))
+        .valueOrNull;
+    final taxSubtitle = taxStatement == null
+        ? l.accountingTaxSummarySubtitle
+        : l.accountingTaxFigure(
+            Money(taxStatement.netProfit).withCurrency(currency, locale));
+
     final tiles = [
       (
         Icons.account_balance_outlined,
         l.accountingBalanceSheet,
-        l.accountingBalanceSheetSubtitle,
+        netWorthSubtitle,
         const BalanceSheetScreen(),
       ),
       (
         Icons.swap_vert_outlined,
         l.accountingCashFlow,
-        l.accountingCashFlowSubtitle,
+        cashFlowSubtitle,
         const CashFlowScreen(),
       ),
       (
         Icons.request_quote_outlined,
         l.accountingTaxSummary,
-        l.accountingTaxSummarySubtitle,
+        taxSubtitle,
         const TaxReportScreen(),
       ),
       (

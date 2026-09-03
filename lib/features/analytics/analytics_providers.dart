@@ -179,3 +179,27 @@ final analyticsSummaryProvider = FutureProvider<AnalyticsSummary>((ref) async {
           creditOwedBySaleId:
               ref.watch(creditOwedBySaleProvider));
 });
+
+/// The immediately-preceding period, same length as the current range —
+/// yesterday for "today", the prior 7 days for "week", the prior 30 for
+/// "month" — so the dashboard can show a "vs last period" comparison
+/// instead of only ever an absolute figure. Same watches as
+/// [analyticsSummaryProvider] since it draws from the same tables.
+final analyticsPreviousSummaryProvider =
+    FutureProvider<AnalyticsSummary>((ref) async {
+  ref.watch(salesStreamProvider);
+  ref.watch(creditOwedBySaleProvider);
+  ref.watch(saleItemChangesProvider);
+  ref.watch(expenseChangesProvider);
+  ref.watch(productCostMapProvider);
+  ref.watch(stockValueProvider);
+  final range = ref.watch(analyticsRangeProvider);
+  final bounds = rangeBounds(range, DateTime.now());
+  final periodLength = bounds.end.difference(bounds.start);
+  final previousStart = bounds.start.subtract(periodLength);
+  return ref
+      .watch(analyticsRepositoryProvider)
+      .summary(previousStart, bounds.start,
+          creditOwedBySaleId:
+              ref.watch(creditOwedBySaleProvider));
+});

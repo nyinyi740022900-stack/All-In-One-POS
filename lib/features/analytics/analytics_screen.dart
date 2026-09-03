@@ -171,12 +171,18 @@ class _Dashboard extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
+    final previousSummary =
+        ref.watch(analyticsPreviousSummaryProvider).valueOrNull;
+    final revenueChangePercent = previousSummary == null
+        ? null
+        : periodOverPeriodChange(summary.revenue, previousSummary.revenue);
 
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
       children: [
         _GlanceStrip(
           revenue: Money(summary.revenue).withCurrency(currency, locale),
+          revenueChangePercent: revenueChangePercent,
           salesCount: '${summary.salesCount}',
           lowStockCount: lowStockCount,
           trackStock: trackStock,
@@ -295,12 +301,14 @@ class _Dashboard extends ConsumerWidget {
 class _GlanceStrip extends ConsumerWidget {
   const _GlanceStrip({
     required this.revenue,
+    this.revenueChangePercent,
     required this.salesCount,
     required this.lowStockCount,
     required this.trackStock,
   });
 
   final String revenue;
+  final double? revenueChangePercent;
   final String salesCount;
   final int lowStockCount;
   final bool trackStock;
@@ -319,6 +327,7 @@ class _GlanceStrip extends ConsumerWidget {
             Expanded(
               child: _GlanceCell(
                 value: revenue,
+                changePercent: revenueChangePercent,
                 label: l.analyticsRevenue,
                 onTap: () => context.go('/invoices'),
               ),
@@ -374,6 +383,7 @@ class _GlanceCell extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.tone,
+    this.changePercent,
   });
 
   final String value;
@@ -381,10 +391,21 @@ class _GlanceCell extends StatelessWidget {
   final VoidCallback onTap;
   final StatusTone? tone;
 
+  /// vs the immediately-preceding period of the same length (yesterday for
+  /// "today", the prior 7 days for "week", etc.) — null when there's no
+  /// previous-period figure to compare against yet ([periodOverPeriodChange]
+  /// returns null for a zero base), in which case no trend row is shown at
+  /// all rather than a misleading "+∞%" or a silently-omitted comparison
+  /// that looks the same as "unchanged."
+  final double? changePercent;
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final color = tone?.colors(AppColors.of(context)).on;
+    final colors = AppColors.of(context);
+    final color = tone?.colors(colors).on;
+    final change = changePercent;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -415,6 +436,28 @@ class _GlanceCell extends StatelessWidget {
                 color: color ?? theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            if (change != null) ...[
+              const SizedBox(height: AppTheme.space1),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    change >= 0
+                        ? Icons.arrow_upward
+                        : Icons.arrow_downward,
+                    size: 12,
+                    color: change >= 0 ? colors.success : colors.warning,
+                  ),
+                  Text(
+                    l.analyticsTrendVsPrevious(
+                        change >= 0 ? '+' : '-', change.round().abs()),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: change >= 0 ? colors.success : colors.warning,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

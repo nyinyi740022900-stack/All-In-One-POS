@@ -259,10 +259,34 @@
   "accountingTitle": "Accounting",
   "accountingBalanceSheet": "Balance Sheet",
   "accountingBalanceSheetSubtitle": "Assets, liabilities and owner's equity at a glance",
+  "accountingNetWorthFigure": "Net worth: {amount}",
+  "@accountingNetWorthFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingCashFlow": "Cash flow",
   "accountingCashFlowSubtitle": "Money in and out per account, for a chosen period",
+  "accountingCashFlowFigure": "This month: {amount}",
+  "@accountingCashFlowFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingTaxSummary": "Tax summary",
   "accountingTaxSummarySubtitle": "Turnover, expenses and profit for a filing period",
+  "accountingTaxFigure": "Net profit, year to date: {amount}",
+  "@accountingTaxFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingYearEndClose": "Year-end close",
   "accountingYearEndCloseSubtitle": "Lock a finished year against edits",
   "balanceSheetAssets": "Assets",
@@ -779,6 +803,17 @@
   "categoryPickerNoResults": "No categories match your search.",
   "productCategory": "Category",
   "analyticsRevenue": "Revenue",
+  "analyticsTrendVsPrevious": "{sign}{percent}% vs previous period",
+  "@analyticsTrendVsPrevious": {
+    "placeholders": {
+      "sign": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "analyticsProfit": "Gross profit",
   "analyticsExpenses": "Total expenses",
   "analyticsNetProfit": "Net profit",

@@ -239,3 +239,12 @@ double barFillAlpha(double revenue, double peak) {
   if (ratio >= 1) return 1.0;
   return 0.35 + 0.65 * ratio;
 }
+
+/// Percent change from [previous] to [current], for a "vs last period"
+/// comparison. Null when [previous] is zero — a jump from 0 is not a
+/// percentage (it's either undefined or a meaningless "+∞%"), so the caller
+/// should just omit the comparison rather than show a nonsense figure.
+double? periodOverPeriodChange(int current, int previous) {
+  if (previous == 0) return null;
+  return (current - previous) / previous.abs() * 100;
+}

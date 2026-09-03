@@ -1130,6 +1130,12 @@ abstract class AppLocalizations {
   /// **'Assets, liabilities and owner\'s equity at a glance'**
   String get accountingBalanceSheetSubtitle;
 
+  /// No description provided for @accountingNetWorthFigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Net worth: {amount}'**
+  String accountingNetWorthFigure(String amount);
+
   /// No description provided for @accountingCashFlow.
   ///
   /// In en, this message translates to:
@@ -1142,6 +1148,12 @@ abstract class AppLocalizations {
   /// **'Money in and out per account, for a chosen period'**
   String get accountingCashFlowSubtitle;
 
+  /// No description provided for @accountingCashFlowFigure.
+  ///
+  /// In en, this message translates to:
+  /// **'This month: {amount}'**
+  String accountingCashFlowFigure(String amount);
+
   /// No description provided for @accountingTaxSummary.
   ///
   /// In en, this message translates to:
@@ -1153,6 +1165,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turnover, expenses and profit for a filing period'**
   String get accountingTaxSummarySubtitle;
+
+  /// No description provided for @accountingTaxFigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Net profit, year to date: {amount}'**
+  String accountingTaxFigure(String amount);
 
   /// No description provided for @accountingYearEndClose.
   ///
@@ -3463,6 +3481,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Revenue'**
   String get analyticsRevenue;
+
+  /// No description provided for @analyticsTrendVsPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'{sign}{percent}% vs previous period'**
+  String analyticsTrendVsPrevious(String sign, int percent);
 
   /// No description provided for @analyticsProfit.
   ///

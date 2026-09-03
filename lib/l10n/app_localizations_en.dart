@@ -578,6 +578,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Assets, liabilities and owner\'s equity at a glance';
 
   @override
+  String accountingNetWorthFigure(String amount) {
+    return 'Net worth: $amount';
+  }
+
+  @override
   String get accountingCashFlow => 'Cash flow';
 
   @override
@@ -585,11 +590,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Money in and out per account, for a chosen period';
 
   @override
+  String accountingCashFlowFigure(String amount) {
+    return 'This month: $amount';
+  }
+
+  @override
   String get accountingTaxSummary => 'Tax summary';
 
   @override
   String get accountingTaxSummarySubtitle =>
       'Turnover, expenses and profit for a filing period';
+
+  @override
+  String accountingTaxFigure(String amount) {
+    return 'Net profit, year to date: $amount';
+  }
 
   @override
   String get accountingYearEndClose => 'Year-end close';
@@ -1832,6 +1847,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsRevenue => 'Revenue';
+
+  @override
+  String analyticsTrendVsPrevious(String sign, int percent) {
+    return '$sign$percent% vs previous period';
+  }
 
   @override
   String get analyticsProfit => 'Gross profit';

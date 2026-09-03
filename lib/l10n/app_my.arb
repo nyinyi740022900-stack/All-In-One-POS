@@ -236,10 +236,34 @@
   "accountingTitle": "စာရင်းကိုင်",
   "accountingBalanceSheet": "ဘာလန်ရှိတ် စာရင်း",
   "accountingBalanceSheetSubtitle": "ပိုင်ဆိုင်မှု၊ ကြွေးကျန်နှင့် ပိုင်ရှင်ရင်းနှီးငွေ ခြုံငုံကြည့်ရန်",
+  "accountingNetWorthFigure": "စုစုပေါင်းပိုင်ဆိုင်မှု: {amount}",
+  "@accountingNetWorthFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingCashFlow": "ငွေဝင်ငွေထွက် စာရင်း",
   "accountingCashFlowSubtitle": "အကောင့်တစ်ခုချင်း ငွေဝင်/ငွေထွက်ကို ကာလရွေးကြည့်ရန်",
+  "accountingCashFlowFigure": "ဒီလ: {amount}",
+  "@accountingCashFlowFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingTaxSummary": "အခွန် အစီရင်ခံစာ",
   "accountingTaxSummarySubtitle": "အခွန်တင်သွင်းရန် ရောင်းအား/ကုန်ကျစရိတ် အချုပ်",
+  "accountingTaxFigure": "အသားတင်အမြတ် (ယခုနှစ်အတွင်း): {amount}",
+  "@accountingTaxFigure": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "accountingYearEndClose": "နှစ်ကုန် ပိတ်စာရင်း",
   "accountingYearEndCloseSubtitle": "ပြီးစီးသောနှစ်ကို ပြင်ဆင်ခွင့်ပိတ်ရန်",
   "balanceSheetAssets": "ပိုင်ဆိုင်မှုများ",
@@ -745,6 +769,17 @@
   "categoryPickerNoResults": "ရှာနေတဲ့ အမျိုးအစား မတွေ့ပါ။",
   "productCategory": "အမျိုးအစား",
   "analyticsRevenue": "ရောင်းရငွေ",
+  "analyticsTrendVsPrevious": "ရှေ့ကာလထက် {sign}{percent}%",
+  "@analyticsTrendVsPrevious": {
+    "placeholders": {
+      "sign": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "analyticsProfit": "စုစုပေါင်းအမြတ်",
   "analyticsExpenses": "ကုန်ကျစရိတ် စုစုပေါင်း",
   "analyticsNetProfit": "အသားတင်အမြတ်",

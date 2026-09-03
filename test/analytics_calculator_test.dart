@@ -361,4 +361,30 @@ void main() {
       expect(barFillAlpha(0, 175000), 0.35);
     });
   });
+
+  group('periodOverPeriodChange (dashboard "vs last period" comparison)', () {
+    test('an increase is a positive percentage of the previous value', () {
+      expect(periodOverPeriodChange(150, 100), closeTo(50.0, 1e-9));
+    });
+
+    test('a decrease is a negative percentage of the previous value', () {
+      expect(periodOverPeriodChange(80, 100), closeTo(-20.0, 1e-9));
+    });
+
+    test('no change is exactly zero', () {
+      expect(periodOverPeriodChange(100, 100), 0.0);
+    });
+
+    test('a zero previous value is undefined, not a nonsense percentage', () {
+      expect(periodOverPeriodChange(500, 0), isNull);
+      expect(periodOverPeriodChange(0, 0), isNull);
+    });
+
+    test('a negative previous value (a loss) still normalizes by magnitude',
+        () {
+      // Going from a 100 loss to a 50 loss is an improvement, i.e. a
+      // positive change, even though `previous` itself is negative.
+      expect(periodOverPeriodChange(-50, -100), closeTo(50.0, 1e-9));
+    });
+  });
 }
