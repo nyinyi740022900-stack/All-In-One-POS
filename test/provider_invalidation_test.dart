@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/features/accounts/payment_account_providers.dart';
+import 'package:mm_pos/features/accounting/accounting_providers.dart';
 import 'package:mm_pos/features/cash/cash_providers.dart';
 
 /// Guards the "derived figure goes silently stale" bug class — the one
@@ -278,4 +279,66 @@ void main() {
     });
   });
 
+  /// The Balance Sheet composes almost every money figure in the app
+  /// (account balances, till cash, stock at cost, receivables, payables,
+  /// equity), so it inherits each of their watch graphs. A break anywhere
+  /// upstream shows up here as a shop's net worth quietly not moving.
+  group('balanceSheetProvider reflects upstream money movement', () {
+    Future<({int before, int after})> assetsAround(
+      Future<void> Function() mutate,
+    ) async {
+      final sub = container.listen(
+        balanceSheetProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      // Same settle-first discipline as the till: this composes
+      // cashInputSignalProvider, whose debounce fires on the initial
+      // subscription emissions of every stream under it.
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      final before = (await container.read(balanceSheetProvider.future)).assets;
+      await mutate();
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      final after = (await container.read(balanceSheetProvider.future)).assets;
+      sub.close();
+      return (before: before, after: after);
+    }
+
+    test('a payment into an account raises assets', () async {
+      final r = await assetsAround(() async {
+        await db.into(db.payments).insert(PaymentsCompanion.insert(
+              id: 'bs-pay',
+              shopId: shopId,
+              saleId: 'bs-sale',
+              method: accountId,
+              amount: 4000,
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before + 4000,
+          reason: 'the Balance Sheet did not follow the account balance — '
+              'something in the chain from payments -> accountBalance -> '
+              'balanceSheet stopped propagating.');
+    });
+
+    test('an expense paid from an account lowers assets', () async {
+      final r = await assetsAround(() async {
+        await db.into(db.expenses).insert(ExpensesCompanion.insert(
+              id: 'bs-exp',
+              shopId: shopId,
+              category: 'other',
+              amount: 1100,
+              date: DateTime.now(),
+              accountId: const Value(accountId),
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before - 1100,
+          reason: 'the Balance Sheet did not follow an account expense.');
+    });
+  });
 }
