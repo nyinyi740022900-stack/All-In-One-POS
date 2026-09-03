@@ -108,7 +108,7 @@ class PaymentAccountsScreen extends ConsumerWidget {
         label: Text(l.paymentAccountAdd),
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoadingView()
           : accounts.isEmpty
               ? EmptyStateView(
                   icon: Icons.account_balance_wallet_outlined,

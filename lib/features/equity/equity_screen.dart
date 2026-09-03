@@ -202,7 +202,7 @@ class _OwnerEquityScreenState extends ConsumerState<OwnerEquityScreen> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.all(AppTheme.space4),
             child: summaryAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const AppLoadingView(),
               error: (_, _) => ErrorRetryView(
                 message: l.commonUnexpectedError,
                 onRetry: () => ref.invalidate(equitySummaryProvider),
