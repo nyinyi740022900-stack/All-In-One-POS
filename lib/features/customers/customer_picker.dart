@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/layout.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'customer_providers.dart';
@@ -173,7 +174,11 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                       itemBuilder: (context, i) {
                         final c = filtered[i];
                         return ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          leading: ProductThumb(
+                            name: c.name,
+                            size: 40,
+                            radius: AppTheme.radiusFull,
+                          ),
                           title: Text(c.name),
                           subtitle:
                               (c.phone ?? '').isEmpty ? null : Text(c.phone!),

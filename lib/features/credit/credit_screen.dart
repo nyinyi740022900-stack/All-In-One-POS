@@ -264,28 +264,27 @@ class CreditScreen extends ConsumerWidget {
                       final settled = c.outstanding <= 0;
                       final colors = AppColors.of(context);
                       return ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        leading: ProductThumb(
+                          name: c.name,
+                          size: 40,
+                          radius: AppTheme.radiusFull,
+                        ),
                         title: Text(c.name),
                         subtitle: Text(l.creditOpenInvoices(c.openInvoices)),
+                        // Same StatusPill/MoneyText pair Accounts Payable's
+                        // own settled/outstanding row already uses for the
+                        // identical concept — this row used to hand-roll a
+                        // third visual language for the same "owed" fact.
                         trailing: settled
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check_circle,
-                                      color: colors.success, size: 18),
-                                  const SizedBox(width: AppTheme.space1),
-                                  Text(l.creditSettled,
-                                      style: TextStyle(
-                                          color: colors.success,
-                                          fontWeight: FontWeight.bold)),
-                                ],
+                            ? StatusPill(
+                                label: l.creditSettled,
+                                tone: StatusTone.positive,
+                                icon: Icons.check_circle,
                               )
-                            : Text(
+                            : MoneyText(
                                 Money(c.outstanding).withCurrency(currency, locale),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.danger,
-                                ),
+                                emphasis: true,
+                                color: colors.danger,
                               ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -364,13 +363,11 @@ class CreditCustomerScreen extends ConsumerWidget {
             children: [
               Text(l.creditOutstanding,
                   style: Theme.of(context).textTheme.titleMedium),
-              Text(
+              MoneyText(
                 Money(customer.outstanding).withCurrency(currency, locale),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color:
-                          customer.outstanding > 0 ? colors.danger : colors.success,
-                    ),
+                style: Theme.of(context).textTheme.titleLarge,
+                emphasis: true,
+                color: customer.outstanding > 0 ? colors.danger : colors.success,
               ),
             ],
           ),
@@ -385,13 +382,12 @@ class CreditCustomerScreen extends ConsumerWidget {
           contentPadding: EdgeInsets.zero,
           title: Text(sale.invoiceNo),
           subtitle: Text(df.format(sale.finalizedAt)),
-          trailing: Text(
-            owed > 0
-                ? Money(owed).withCurrency(currency, locale)
-                : l.creditSettled,
-            style: TextStyle(
-                color: owed > 0 ? colors.danger : colors.success),
-          ),
+          trailing: owed > 0
+              ? MoneyText(
+                  Money(owed).withCurrency(currency, locale),
+                  color: colors.danger,
+                )
+              : Text(l.creditSettled, style: TextStyle(color: colors.success)),
         ),
       if (repayments.isNotEmpty) ...[
         const SizedBox(height: AppTheme.space3),
