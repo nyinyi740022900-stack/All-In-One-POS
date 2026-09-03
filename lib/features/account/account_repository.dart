@@ -389,9 +389,7 @@ class AccountRepository {
         if (classifyInvokeError(e) != 'not_authenticated' || attempt == 2) {
           return SignupResult.failure(classifyInvokeError(e));
         }
-        try {
-          await Supabase.instance.client.auth.refreshSession();
-        } catch (_) {}
+        await refreshSessionBounded();
         await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
       }
     }

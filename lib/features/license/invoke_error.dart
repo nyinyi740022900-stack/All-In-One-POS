@@ -1,6 +1,25 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Bound on a single Edge Function round trip. Without this, a stalled
+/// connection (weak signal, dead Wi-Fi) leaves `functions.invoke` awaiting
+/// forever — the caller's spinner looks frozen rather than failing into a
+/// "no internet" message the user can act on.
+const _invokeTimeout = Duration(seconds: 15);
+const _refreshTimeout = Duration(seconds: 8);
+
+/// Best-effort session refresh, bounded so a stalled connection can't hang a
+/// caller that's already wrapping this in `try {} catch (_) {}` for the
+/// "refresh failed, fall through to the original result" case — a silent
+/// catch only guards against a thrown error, not an `await` that never
+/// returns.
+Future<void> refreshSessionBounded() async {
+  try {
+    await Supabase.instance.client.auth.refreshSession().timeout(_refreshTimeout);
+  } catch (_) {}
+}
 
 /// Parses Edge Function JSON whether supabase_flutter decoded a Map, a
 /// nested map with non-String keys, or left a JSON string.
@@ -31,6 +50,7 @@ String? errorCodeFromInvokeData(Map<String, dynamic>? data) {
 /// and blocked Check for renewal on a phone that was clearly online.
 bool isLikelyNetworkError(Object error) {
   if (error is FunctionException) return false;
+  if (error is TimeoutException) return true;
   final text = error.toString().toLowerCase();
   return text.contains('socketexception') ||
       text.contains('clientexception') ||
@@ -77,16 +97,16 @@ Future<FunctionResponse> invokeActivate(Map<String, dynamic> body) async {
   final client = Supabase.instance.client;
   var token = client.auth.currentSession?.accessToken;
   if (token == null) {
-    try {
-      await client.auth.refreshSession();
-    } catch (_) {}
+    await refreshSessionBounded();
     token = client.auth.currentSession?.accessToken;
   }
-  return client.functions.invoke(
-    'activate',
-    body: body,
-    headers: {
-      if (token != null) 'Authorization': 'Bearer $token',
-    },
-  );
+  return client.functions
+      .invoke(
+        'activate',
+        body: body,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      )
+      .timeout(_invokeTimeout);
 }

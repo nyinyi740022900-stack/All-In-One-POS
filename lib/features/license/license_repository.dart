@@ -270,9 +270,7 @@ class LicenseRepository {
     var result = await _refreshAccountLicenseOnce();
     if (result.errorCode == 'not_activated' ||
         result.errorCode == 'not_authenticated') {
-      try {
-        await Supabase.instance.client.auth.refreshSession();
-      } catch (_) {}
+      await refreshSessionBounded();
       result = await _refreshAccountLicenseOnce();
     }
     return result;
@@ -374,7 +372,7 @@ class LicenseRepository {
     Object? lastError;
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        await auth.refreshSession();
+        await auth.refreshSession().timeout(const Duration(seconds: 8));
       } catch (e) {
         lastError = e;
         continue;
