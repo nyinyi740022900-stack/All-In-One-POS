@@ -165,7 +165,7 @@ class PrinterService {
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
       if (res.statusCode != 200) return null;
-      return decodeLogoImage(res.bodyBytes);
+      return await decodeLogoImage(res.bodyBytes);
     } catch (_) {
       return null;
     }
@@ -236,7 +236,7 @@ class PrinterService {
         currencySymbol: currencySymbol,
         exponent: exponent,
       );
-      return _send(bytes, address: mac, connection: connection);
+      return await _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -312,7 +312,7 @@ class PrinterService {
         currencySymbol: currencySymbol,
         exponent: exponent,
       );
-      return _send(bytes, address: mac, connection: connection);
+      return await _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -360,7 +360,7 @@ class PrinterService {
   }) async {
     try {
       final bytes = await buildZReportBytes(bodyLines, shopName, paper: paper);
-      return _send(bytes, address: mac, connection: connection);
+      return await _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -435,7 +435,7 @@ class PrinterService {
   }) async {
     try {
       final bytes = await buildLabelBytes(data, paper: paper, copies: copies);
-      return _send(bytes, address: mac, connection: connection);
+      return await _send(bytes, address: mac, connection: connection);
     } catch (e) {
       return PrintResult(false, e.toString());
     }
@@ -468,7 +468,7 @@ class PrinterService {
     try {
       final bytes = await buildTsplBytes(data, size: size, copies: copies);
       // TSPL, not ESC/POS — no ESC @ init (see [_send]).
-      return _send(bytes, address: mac, connection: connection, escInit: false);
+      return await _send(bytes, address: mac, connection: connection, escInit: false);
     } catch (e) {
       return PrintResult(false, e.toString());
     }

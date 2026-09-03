@@ -48,9 +48,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # PINNED on purpose. `channel: stable` is a moving target: the first
+      # run of this workflow picked up 3.47.2 and failed on a lint that
+      # didn't exist in the 3.44.8 used locally
+      # (`unawaited_return_in_try_block` — which, to its credit, found six
+      # real escaped-error bugs in printer_service.dart). Useful signal, but
+      # a gate that can start failing on a day nobody changed anything isn't
+      # a gate. Bump this deliberately, in its own commit, so the new lints
+      # land as a reviewable change.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.47.2
           channel: stable
           cache: true
 
