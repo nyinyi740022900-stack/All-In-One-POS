@@ -620,6 +620,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get balanceSheetEquity => 'Owner\'s equity';
 
   @override
+  String get balanceSheetNetWorth => 'Net worth (Assets − Liabilities)';
+
+  @override
   String get balanceSheetUntracked => 'Untracked (opening balances)';
 
   @override

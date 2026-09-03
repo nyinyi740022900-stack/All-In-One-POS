@@ -608,6 +608,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get balanceSheetEquity => 'ပိုင်ရှင် ရင်းနှီးငွေ';
 
   @override
+  String get balanceSheetNetWorth =>
+      'စုစုပေါင်းပိုင်ဆိုင်မှု (ပိုင်ဆိုင်မှု − အကြွေးတင်ငွေ)';
+
+  @override
   String get balanceSheetUntracked => 'မှတ်တမ်းမဝင် (အစပိုင်း လက်ကျန်)';
 
   @override

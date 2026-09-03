@@ -220,7 +220,11 @@ class _BalanceSheetScreenState extends ConsumerState<BalanceSheetScreen> {
               const Divider(),
               row(l.balanceSheetEquity, sheet.equityTotal, bold: true),
               const SizedBox(height: AppTheme.space4),
-              row(l.balanceSheetAssets,
+              // Assets − Liabilities, i.e. what's left if every debt were
+              // paid off today — a distinct figure from the "Assets" total
+              // shown above, previously mislabeled with that same string so
+              // the screen showed "Assets" twice with two different numbers.
+              row(l.balanceSheetNetWorth,
                   sheet.assets - sheet.liabilities, bold: true),
               const SizedBox(height: AppTheme.space4),
               // The honest line: what the three-way comparison can't

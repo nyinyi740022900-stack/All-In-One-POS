@@ -272,6 +272,7 @@
   "balanceSheetLiabilities": "Liabilities",
   "balanceSheetPayables": "Supplier payables",
   "balanceSheetEquity": "Owner's equity",
+  "balanceSheetNetWorth": "Net worth (Assets − Liabilities)",
   "balanceSheetUntracked": "Untracked (opening balances)",
   "balanceSheetUntrackedNote": "Usually the stock value entered by hand as opening stock (plus manual count adjustments) — this ledger was not born from a double-entry general ledger, so the three-way difference is shown instead of hidden.",
   "cashFlowOpening": "Opening",

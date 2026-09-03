@@ -37,8 +37,8 @@ StatusTone orderStatusTone(String status) => switch (status) {
   _ => StatusTone.attention,
 };
 
-/// Tone for an order's payment status (see [orderPaymentLabel] for why there
-/// are only two).
+/// Tone for an order's payment status — anything short of fully paid
+/// (including `partial`, see [orderPaymentLabel]) reads as attention.
 StatusTone orderPaymentTone(String status) =>
     status == 'paid' ? StatusTone.positive : StatusTone.attention;
 
@@ -79,13 +79,20 @@ IconData orderChannelIcon(String channel) {
   }
 }
 
-/// Localized label for a payment status code. Order.paymentStatus is only
-/// ever written as 'paid' or 'unpaid' (setPaymentStatus, convertToSale, the
-/// storefront submit_order function) — there's no 'partial' state to label.
+/// Localized label for a payment status code. `setPaymentStatus`, the
+/// storefront `submit_order` function, and a fresh order all only ever write
+/// 'paid' or 'unpaid' — but `convertToSale` also writes 'partial' when the
+/// amount collected at conversion is more than zero and less than the total,
+/// so that state must be labeled explicitly rather than falling through to
+/// "Unpaid" for an order that actually collected some payment. Shares
+/// `invoiceStatusPartial`'s wording with the Invoices ledger's own
+/// paid/partial/unpaid labeling for the same underlying concept.
 String orderPaymentLabel(AppLocalizations l, String status) {
   switch (status) {
     case 'paid':
       return l.orderPayPaid;
+    case 'partial':
+      return l.invoiceStatusPartial;
     case 'unpaid':
     default:
       return l.orderPayUnpaid;

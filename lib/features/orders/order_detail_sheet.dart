@@ -821,8 +821,17 @@ class _PaymentSectionState extends ConsumerState<_PaymentSection> {
               const SizedBox(width: AppTheme.space2),
             ],
             StatusPill(
-              label: isPaid ? l.orderPayPaid : l.orderAwaitingPayment,
-              tone: orderPaymentTone(isPaid ? 'paid' : 'unpaid'),
+              // 'partial' (set by convertToSale when some but not all of the
+              // total was collected) used to collapse into the same
+              // "Awaiting payment" bucket as 'unpaid' via the isPaid
+              // boolean, silently losing the fact that some money DID come
+              // in — call it out explicitly instead.
+              label: switch (o.paymentStatus) {
+                'paid' => l.orderPayPaid,
+                'partial' => l.invoiceStatusPartial,
+                _ => l.orderAwaitingPayment,
+              },
+              tone: orderPaymentTone(o.paymentStatus),
               icon: isPaid
                   ? Icons.check_circle_outline
                   : Icons.schedule_outlined,

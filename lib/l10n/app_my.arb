@@ -249,6 +249,7 @@
   "balanceSheetLiabilities": "ကြွေးကျန်များ",
   "balanceSheetPayables": "ပေးရန်ကျန် (Supplier)",
   "balanceSheetEquity": "ပိုင်ရှင် ရင်းနှီးငွေ",
+  "balanceSheetNetWorth": "စုစုပေါင်းပိုင်ဆိုင်မှု (ပိုင်ဆိုင်မှု − အကြွေးတင်ငွေ)",
   "balanceSheetUntracked": "မှတ်တမ်းမဝင် (အစပိုင်း လက်ကျန်)",
   "balanceSheetUntrackedNote": "ယောဘုာအားဖြင့် အစပိုင်းတွင် လက်ဖြင့် ထည့်သွင်းခဲ့သော ကုန်လက်ကျန်တန်ဖိုး (နှင့် လက်ဖြင့်ချိန်ညှိမှုများ) ဖြစ်ပါသည် — ဤစနစ်သည် double-entry စနစ်မဟုတ်သဖြင့် ကွာခြားချက်ကို ဖုံးကွယ်မထားဘဲ ပြထားပါသည်။",
   "cashFlowOpening": "အစလက်ကျန်",

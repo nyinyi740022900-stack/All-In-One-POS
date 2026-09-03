@@ -1208,6 +1208,12 @@ abstract class AppLocalizations {
   /// **'Owner\'s equity'**
   String get balanceSheetEquity;
 
+  /// No description provided for @balanceSheetNetWorth.
+  ///
+  /// In en, this message translates to:
+  /// **'Net worth (Assets − Liabilities)'**
+  String get balanceSheetNetWorth;
+
   /// No description provided for @balanceSheetUntracked.
   ///
   /// In en, this message translates to:
