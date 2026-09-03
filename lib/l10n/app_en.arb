@@ -1460,6 +1460,7 @@
   "storefrontPublish": "Publish storefront",
   "storefrontDisplayName": "Storefront name",
   "storefrontYourLink": "Your shop link",
+  "storefrontViewAction": "View storefront",
   "storefrontEnabled": "Storefront enabled",
   "storefrontCopied": "Link copied",
   "storefrontNeedsName": "Enter a storefront name",

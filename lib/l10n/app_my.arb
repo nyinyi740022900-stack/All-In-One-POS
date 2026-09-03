@@ -1412,6 +1412,7 @@
   "storefrontPublish": "ဆိုင် ထုတ်ဝေမည်",
   "storefrontDisplayName": "ဆိုင်နာမည်",
   "storefrontYourLink": "သင့်ဆိုင် link",
+  "storefrontViewAction": "ဆိုင်ကို ကြည့်ရန်",
   "storefrontEnabled": "ဆိုင် ဖွင့်ထားသည်",
   "storefrontCopied": "Link ကူးယူပြီး",
   "storefrontNeedsName": "ဆိုင်နာမည် ထည့်ပါ",

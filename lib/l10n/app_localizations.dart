@@ -5906,6 +5906,12 @@ abstract class AppLocalizations {
   /// **'Your shop link'**
   String get storefrontYourLink;
 
+  /// No description provided for @storefrontViewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View storefront'**
+  String get storefrontViewAction;
+
   /// No description provided for @storefrontEnabled.
   ///
   /// In en, this message translates to:

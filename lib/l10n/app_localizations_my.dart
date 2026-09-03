@@ -3234,6 +3234,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontYourLink => 'သင့်ဆိုင် link';
 
   @override
+  String get storefrontViewAction => 'ဆိုင်ကို ကြည့်ရန်';
+
+  @override
   String get storefrontEnabled => 'ဆိုင် ဖွင့်ထားသည်';
 
   @override

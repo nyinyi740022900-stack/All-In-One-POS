@@ -377,9 +377,12 @@ class _PurchasePaths extends ConsumerWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: AppTheme.space1),
+        // Promoted from bodySmall: "payment isn't collected in this app"
+        // is decision-relevant, not a muted caption a shopper might skim
+        // past right before tapping Pay online.
         Text(
           l.licenseBuyOrRenewIntro,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: AppTheme.space3),
         FilledButton.icon(

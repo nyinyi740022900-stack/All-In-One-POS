@@ -3226,6 +3226,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontYourLink => 'Your shop link';
 
   @override
+  String get storefrontViewAction => 'View storefront';
+
+  @override
   String get storefrontEnabled => 'Storefront enabled';
 
   @override

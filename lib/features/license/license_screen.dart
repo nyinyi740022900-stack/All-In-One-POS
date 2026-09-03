@@ -333,11 +333,23 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 'mm'),
-            child: Text(l.licenseRegionMyanmar),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined),
+                const SizedBox(width: AppTheme.space3),
+                Text(l.licenseRegionMyanmar),
+              ],
+            ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 'intl'),
-            child: Text(l.licenseRegionInternational),
+            child: Row(
+              children: [
+                const Icon(Icons.public_outlined),
+                const SizedBox(width: AppTheme.space3),
+                Text(l.licenseRegionInternational),
+              ],
+            ),
           ),
         ],
       ),
@@ -583,15 +595,12 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               onCheckRenewal: _refresh,
             ),
           ] else ...[
-            Text(
-              l.licenseActivateTitle,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppTheme.space1),
-            Text(l.licenseGetKey, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: AppTheme.space3),
-            ..._buildKeyEntryFields(l),
-            const SizedBox(height: AppTheme.space2),
+            // Try Premium leads: most first-run visitors have no key at all
+            // (they've never bought one), so the free-trial path — no key
+            // needed — is what they should see first, not a key-entry form
+            // that assumes the opposite. Matches the weighting the Free-plan
+            // screen's own "no account" branch already uses above (Try
+            // Premium/contact-trial ahead of its "Have a key?" divider).
             FilledButton.icon(
               onPressed: _busy ? null : _startSelfServeTrial,
               icon: _busy
@@ -604,15 +613,29 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
               label: Text(l.licenseFreeTrial),
             ),
             const SizedBox(height: AppTheme.space1),
+            // Promoted from bodySmall: "2 months, every Premium feature, no
+            // payment" is the single most decision-relevant line on this
+            // screen for a first-run visitor, not a muted caption.
             Text(
               l.licenseTrialSelfServeHint,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: AppTheme.space1),
             TextButton(
               onPressed: _busy ? null : _contactSupportForTrial,
               child: Text(l.licenseContactSupportTitle),
             ),
+            const SizedBox(height: AppTheme.space5),
+            const Divider(),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.licenseActivateTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(l.licenseGetKey, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: AppTheme.space3),
+            ..._buildKeyEntryFields(l),
             // Commerce-only tail. This device has never been activated, so
             // the block has no "check my renewal" half to keep — it is
             // purely "here is where to buy". A store build (see

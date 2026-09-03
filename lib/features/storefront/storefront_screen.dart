@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -346,13 +347,15 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(l.storefrontHoursOpen),
-            trailing: Text(_fmtMinute(_openMinute)),
+            // A bare time with no chevron/pencil gave no visual signal the
+            // row was tappable at all.
+            trailing: _HoursValue(text: _fmtMinute(_openMinute)),
             onTap: () => _pickMinute(open: true),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(l.storefrontHoursClose),
-            trailing: Text(_fmtMinute(_closeMinute)),
+            trailing: _HoursValue(text: _fmtMinute(_closeMinute)),
             onTap: () => _pickMinute(open: false),
           ),
         ],
@@ -406,14 +409,30 @@ class _StorefrontScreenState extends ConsumerState<StorefrontScreen> {
         Card(
           child: ListTile(
             title: Text(row.url),
-            trailing: IconButton(
-              icon: const Icon(Icons.copy),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: row.url));
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l.storefrontCopied)));
-              },
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Previously the owner could Publish then Share a link
+                // without ever confirming what a customer actually sees —
+                // this is the missing "see it for myself" step.
+                IconButton(
+                  tooltip: l.storefrontViewAction,
+                  icon: const Icon(Icons.open_in_new),
+                  onPressed: () => launchUrl(
+                    Uri.parse(row.url),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l.commonCopy,
+                  icon: const Icon(Icons.copy),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: row.url));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l.storefrontCopied)));
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -648,6 +667,29 @@ class _AddBlockedCustomerDialogState extends State<_AddBlockedCustomerDialog> {
           child: Text(l.commonCancel),
         ),
         FilledButton(onPressed: _submit, child: Text(l.orderBlockCustomer)),
+      ],
+    );
+  }
+}
+
+/// An hours row's trailing time, with a small chevron so the row visibly
+/// invites a tap instead of reading as a plain (non-interactive) label.
+class _HoursValue extends StatelessWidget {
+  const _HoursValue({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(text),
+        const SizedBox(width: AppTheme.space1),
+        Icon(
+          Icons.chevron_right,
+          size: 18,
+          color: Theme.of(context).colorScheme.outline,
+        ),
       ],
     );
   }
