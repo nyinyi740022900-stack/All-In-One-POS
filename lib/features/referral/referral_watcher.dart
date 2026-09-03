@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
 import 'referral_providers.dart';
+import '../../core/currency_def.dart';
 
 /// Watches the server-side referral commission total and fires a local
 /// notification when it grows — the "🎉 commission earned" dopamine hit.
@@ -63,7 +64,8 @@ class ReferralWatcher {
         // No BuildContext here (this is a background watcher, not a widget),
         // so — like the locale above — the currency comes from `_ref`
         // directly rather than `Localizations.localeOf(context)`.
-        final currency = _ref.read(shopCurrencyProvider);
+        // Ks, not the POS currency — see referral_screen.dart.
+        const currency = CurrencyDef.mmk;
         await NotificationService.instance.showCommission(
           title: l.referralNotifTitle,
           body: l.referralNotifBody(

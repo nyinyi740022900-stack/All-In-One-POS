@@ -84,5 +84,28 @@ void main() {
       final c = await repo.getCustomer(id);
       expect(c!.address, 'Yangon'); // unchanged
     });
+    test('a duplicated name resolves instead of throwing (blocked sales)',
+        () async {
+      // Two devices creating "Ma Aye" offline both sync in, and the
+      // directory has no uniqueness check — so duplicates are normal, not
+      // exotic. `getSingleOrNull` THREW on them, and because a credit sale
+      // forces directory linkage, every checkout for that customer failed
+      // permanently behind a generic error with nothing pointing at the
+      // cause. Resolving to the oldest match keeps the sale possible;
+      // merging duplicates is a directory chore, not a checkout blocker.
+      final first = await repo.resolveOrCreate('Ma Aye');
+      await repo.upsertCustomer(id: 'dupe-2', name: 'Ma Aye');
+
+      final resolved = await repo.resolveOrCreate('Ma Aye');
+      expect(resolved, first,
+          reason: 'should settle on the oldest row, not throw or fork.');
+    });
+
+    test('a duplicate differing only by case also resolves', () async {
+      final first = await repo.resolveOrCreate('Su Su');
+      await repo.upsertCustomer(id: 'dupe-case', name: 'SU SU');
+      final resolved = await repo.resolveOrCreate('su su');
+      expect(resolved, first);
+    });
   });
 }

@@ -2712,6 +2712,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get backupInvalidFile => 'ဒါက မှန်ကန်တဲ့ backup ဖိုင် မဟုတ်ပုံရပါတယ်။';
 
   @override
+  String get backupWrongShop =>
+      'ဒီ backup က တခြားဆိုင်ရဲ့ ဖိုင်ပါ။ အဲ့ဆိုင်ကို အရင်ဖွင့်ပါ၊ ဒါမှမဟုတ် ဒီဆိုင်ရဲ့ backup ကို ရွေးပါ။';
+
+  @override
+  String get backupUnsyncedBlocked =>
+      'ဒီစက်မှာ cloud ကို မရောက်သေးတဲ့ အရောင်းတွေ ရှိနေပါတယ်။ Sync ပြီးအောင် အရင်စောင့်ပါ — အခု restore လုပ်ရင် အဲ့ဒါတွေ အပြီးပျောက်သွားပါမယ်။';
+
+  @override
   String get settingsSync => 'Cloud ချိတ်ဆက်မှု';
 
   @override
@@ -3289,6 +3297,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontProofRequired => 'မှာယူမီ လွှဲငွေ screenshot တွဲပေးပါ။';
+
+  @override
+  String get storefrontProofUnsupported =>
+      'ဒီဓာတ်ပုံပုံစံကို တင်လို့မရပါ။ Screenshot ရိုက်ပြီး တင်ပါ၊ ဒါမှမဟုတ် JPG/PNG ရွေးပါ။';
+
+  @override
+  String get storefrontProofTooLarge =>
+      'ဓာတ်ပုံ အရွယ်ကြီးလွန်းပါတယ် (အများဆုံး 5 MB)။ Screenshot ရိုက်ပြီး တင်ပါ၊ ဒါမှမဟုတ် ပိုသေးတဲ့ပုံ ရွေးပါ။';
 
   @override
   String get storefrontPricesChanged =>

@@ -428,7 +428,14 @@ class _LineEditorDialogState extends State<_LineEditorDialog> {
           onPressed: () => Navigator.pop(
             context,
             _LineEditResult.save(
-              qty: int.tryParse(_qty.text.trim()) ?? widget.line.qty,
+              // Clamp to >= 1: `receivePO` calls `adjustStock` per line and
+              // that throws on a zero delta, so a line saved with qty 0
+              // rolled back the whole receive transaction — the PO could
+              // never be received, with only a generic error to go on.
+              qty: switch (int.tryParse(_qty.text.trim())) {
+                final n? when n > 0 => n,
+                _ => widget.line.qty,
+              },
               cost: _cost.text.trim().isEmpty
                   ? widget.line.unitCost
                   : parseDecimalMinorUnits(_cost.text.trim(),

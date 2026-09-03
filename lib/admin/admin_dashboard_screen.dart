@@ -303,9 +303,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         months: months,
       );
       _snack(
-        outcome.created
-            ? 'No license existed — created one, expires ${outcome.expiresAt}'
-            : 'Extended to ${outcome.expiresAt}',
+        outcome.duplicate
+            // The server granted NOTHING — it recognised this as a repeat of
+            // a recent identical extend. Saying "Extended to <date>" here
+            // would be a lie in the one case where the admin most needs the
+            // truth: two separate top-ups bought in quick succession look
+            // identical to a double-click, and the shop would be a month
+            // short with everyone believing it was applied.
+            ? 'Ignored as a repeat of a recent identical extend — nothing '
+                'was added. Still expires ${outcome.expiresAt}. If this was '
+                'a second, separate payment, wait a minute and try again.'
+            : outcome.created
+                ? 'No license existed — created one, expires ${outcome.expiresAt}'
+                : 'Extended to ${outcome.expiresAt}',
       );
       _reload();
     } catch (e) {
@@ -482,6 +492,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
       if (!mounted) return;
       await _showCopyDialog('Payment confirmed', key);
+      _reload();
+    } on RequestNotClosedException catch (e) {
+      // The licence IS issued — this is not a failure to retry. Clicking
+      // Confirm again would mint a second one for the same payment, so say
+      // so in a dialog (not a snackbar that scrolls away) and hand over the
+      // key that was already created.
+      if (!mounted) return;
+      await _showCopyDialog(
+        'Licence issued — but the request is still open',
+        e.key,
+      );
+      if (!mounted) return;
+      _snack(
+        'Do NOT confirm this request again — the licence above was already '
+        'issued. Close the request by hand instead.',
+      );
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));

@@ -4970,6 +4970,18 @@ abstract class AppLocalizations {
   /// **'This doesn\'t look like a valid backup file.'**
   String get backupInvalidFile;
 
+  /// No description provided for @backupWrongShop.
+  ///
+  /// In en, this message translates to:
+  /// **'That backup belongs to a different shop. Open that shop first, or pick this shop\'s own backup file.'**
+  String get backupWrongShop;
+
+  /// No description provided for @backupUnsyncedBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This device still has sales that haven\'t reached the cloud. Let it finish syncing first — restoring now would delete them for good.'**
+  String get backupUnsyncedBlocked;
+
   /// No description provided for @settingsSync.
   ///
   /// In en, this message translates to:
@@ -6007,6 +6019,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please attach your transfer screenshot before placing the order.'**
   String get storefrontProofRequired;
+
+  /// No description provided for @storefrontProofUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo format can\'t be uploaded. Please take a screenshot instead, or choose a JPG or PNG.'**
+  String get storefrontProofUnsupported;
+
+  /// No description provided for @storefrontProofTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo is too large (max 5 MB). Please take a screenshot instead, or choose a smaller image.'**
+  String get storefrontProofTooLarge;
 
   /// No description provided for @storefrontPricesChanged.
   ///

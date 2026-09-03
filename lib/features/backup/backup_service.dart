@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../data/local/database.dart';
+import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/stock_lots.dart';
 
@@ -15,11 +16,44 @@ import '../../data/repositories/stock_lots.dart';
 /// license cache, printer config — including the device sidecar after
 /// per-shop cutover) and the `outbox` — so restoring a backup on the same
 /// device never clobbers its identity or pending sync queue.
+/// Thrown when a backup file belongs to a different shop than the one that
+/// is currently open. Restoring it would delete this shop's rows and insert
+/// the other shop's, which every read path then filters out by `shop_id` —
+/// leaving the owner staring at an empty shop while the outbox retries
+/// forever against a JWT claim that no longer matches. Backup filenames are
+/// bare timestamps, so picking the wrong file is easy.
+class ShopMismatchException implements Exception {
+  const ShopMismatchException({required this.fileShopId});
+  final String fileShopId;
+  @override
+  String toString() => 'shop_mismatch';
+}
+
+/// Thrown when this device still has writes that have never reached the
+/// cloud. A restore deletes the rows those queued writes point at, and the
+/// push loop then drops each orphan as "local row gone" — the sales are
+/// gone from the device and never arrive anywhere. Switching branches
+/// already refuses for exactly this reason (`assertSafeToClear`); this makes
+/// the destructive path here refuse too.
+class UnsyncedDataException implements Exception {
+  const UnsyncedDataException(this.reason);
+
+  /// `stuck_outbox` or `pending_sync`, matching `assertSafeToClear`.
+  final String reason;
+  @override
+  String toString() => reason;
+}
+
 class BackupService {
-  BackupService(this._db, this._settings);
+  BackupService(this._db, this._settings, {this.shopId = '', this.guard});
 
   final AppDatabase _db;
   final SettingsRepository _settings;
+  final String shopId;
+
+  /// Same precheck branch switching uses. Null in contexts that have no
+  /// transition service (tests), where the guard is simply skipped.
+  final ShopDataTransitionService? guard;
 
   static const formatVersion = 1;
 
@@ -143,6 +177,10 @@ class BackupService {
     final total = tables.values.fold<int>(0, (s, l) => s + l.length);
     final envelope = {
       'app': 'mm_pos',
+      // Recorded so a restore can refuse a file from a DIFFERENT shop —
+      // the filenames are bare timestamps and give the owner nothing to
+      // tell two shops' backups apart.
+      'shopId': shopId,
       'formatVersion': formatVersion,
       'schemaVersion': _db.schemaVersion,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
@@ -188,6 +226,17 @@ class BackupService {
     if (decoded is! Map || decoded['app'] != 'mm_pos') {
       throw const FormatException('Not an MM POS backup file.');
     }
+    // Files written before `shopId` was recorded carry no claim about which
+    // shop they belong to, so they are allowed through as before — there is
+    // nothing to check them against.
+    final fileShopId = (decoded['shopId'] as String?) ?? '';
+    if (fileShopId.isNotEmpty &&
+        shopId.isNotEmpty &&
+        fileShopId != shopId) {
+      throw ShopMismatchException(fileShopId: fileShopId);
+    }
+    final blocked = await guard?.assertSafeToClear();
+    if (blocked != null) throw UnsyncedDataException(blocked);
     final tables = (decoded['tables'] as Map).cast<String, dynamic>();
     List<Map<String, dynamic>> rows(String name) =>
         ((tables[name] as List?) ?? const [])

@@ -2699,6 +2699,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'This doesn\'t look like a valid backup file.';
 
   @override
+  String get backupWrongShop =>
+      'That backup belongs to a different shop. Open that shop first, or pick this shop\'s own backup file.';
+
+  @override
+  String get backupUnsyncedBlocked =>
+      'This device still has sales that haven\'t reached the cloud. Let it finish syncing first — restoring now would delete them for good.';
+
+  @override
   String get settingsSync => 'Cloud sync';
 
   @override
@@ -3283,6 +3291,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontProofRequired =>
       'Please attach your transfer screenshot before placing the order.';
+
+  @override
+  String get storefrontProofUnsupported =>
+      'That photo format can\'t be uploaded. Please take a screenshot instead, or choose a JPG or PNG.';
+
+  @override
+  String get storefrontProofTooLarge =>
+      'That photo is too large (max 5 MB). Please take a screenshot instead, or choose a smaller image.';
 
   @override
   String get storefrontPricesChanged =>

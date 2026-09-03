@@ -42,7 +42,15 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
       messenger.showSnackBar(SnackBar(content: Text(l.referralRedeemNotEnough)));
       return;
     }
-    final currency = ref.read(shopCurrencyProvider);
+// Referral money is Myanmar kyat, always. Commissions are recorded in Ks
+// server-side (`referral_commissions.base_amount`, migration 0013) and the
+// licence price the balance is redeemed against is Ks too — the vendor bills
+// in kyat regardless of the currency a shop SELLS in. Formatting these with
+// `shopCurrencyProvider` (the POS's selling currency) rendered a 30,000 Ks
+// balance as "300.00 ฿" for a THB shop: wrong by the exponent AND in a
+// currency the vendor never charges. `/renew` already hardcodes Ks for the
+// same reason (renew_request_page.dart).
+    const currency = CurrencyDef.mmk;
     final locale = Localizations.localeOf(context).languageCode;
     final ok = await showDialog<bool>(
       context: context,
@@ -104,7 +112,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final summaryAsync = ref.watch(referralSummaryProvider);
     final cfg = ref.watch(vendorConfigProvider);
     final monthly = cfg.valueOrNull?.priceFor('monthly') ?? 20000;
-    final currency = ref.watch(shopCurrencyProvider);
+    const currency = CurrencyDef.mmk;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.referralTitle)),

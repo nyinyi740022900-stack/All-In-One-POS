@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'backup_providers.dart';
+import 'backup_service.dart';
 
 /// Classifies a raw export/import exception into a translated summary for
 /// `l.backupFailed`'s `{error}` placeholder — previously that placeholder
@@ -19,6 +20,10 @@ import 'backup_providers.dart';
 /// summary; anything else falls back to the shared generic-error string.
 String _backupErrorReason(AppLocalizations l, Object e) {
   if (e is FormatException) return l.backupInvalidFile;
+  // Both of these are refusals, not failures — the restore was stopped on
+  // purpose because going ahead would have destroyed data. Say which.
+  if (e is ShopMismatchException) return l.backupWrongShop;
+  if (e is UnsyncedDataException) return l.backupUnsyncedBlocked;
   return l.commonUnexpectedError;
 }
 

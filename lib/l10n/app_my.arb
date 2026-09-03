@@ -1158,6 +1158,8 @@
     }
   },
   "backupInvalidFile": "ဒါက မှန်ကန်တဲ့ backup ဖိုင် မဟုတ်ပုံရပါတယ်။",
+  "backupWrongShop": "ဒီ backup က တခြားဆိုင်ရဲ့ ဖိုင်ပါ။ အဲ့ဆိုင်ကို အရင်ဖွင့်ပါ၊ ဒါမှမဟုတ် ဒီဆိုင်ရဲ့ backup ကို ရွေးပါ။",
+  "backupUnsyncedBlocked": "ဒီစက်မှာ cloud ကို မရောက်သေးတဲ့ အရောင်းတွေ ရှိနေပါတယ်။ Sync ပြီးအောင် အရင်စောင့်ပါ — အခု restore လုပ်ရင် အဲ့ဒါတွေ အပြီးပျောက်သွားပါမယ်။",
   "settingsSync": "Cloud ချိတ်ဆက်မှု",
   "syncNow": "ယခု sync လုပ်",
   "syncIdle": "အသစ်ဖြစ်နေသည်",
@@ -1439,6 +1441,8 @@
   },
   "storefrontClosed": "ဒီဆိုင်သည် အွန်လိုင်း မှာယူမှု လက်မခံသေးပါ။ ဖွင့်ချိန်အတွင်း ထပ်ကြိုးစားပါ။",
   "storefrontProofRequired": "မှာယူမီ လွှဲငွေ screenshot တွဲပေးပါ။",
+  "storefrontProofUnsupported": "ဒီဓာတ်ပုံပုံစံကို တင်လို့မရပါ။ Screenshot ရိုက်ပြီး တင်ပါ၊ ဒါမှမဟုတ် JPG/PNG ရွေးပါ။",
+  "storefrontProofTooLarge": "ဓာတ်ပုံ အရွယ်ကြီးလွန်းပါတယ် (အများဆုံး 5 MB)။ Screenshot ရိုက်ပြီး တင်ပါ၊ ဒါမှမဟုတ် ပိုသေးတဲ့ပုံ ရွေးပါ။",
   "storefrontPricesChanged": "ဈေးနှုန်း အချို့ ပြောင်းလဲသွားပါတယ် — ခြင်းတောင်းကို ပြန်စစ်ပြီး ထပ်မှာပေးပါ။",
   "storefrontAttachProofRequired": "ငွေလွှဲ screenshot တွဲပါ *",
   "storefrontHoursTitle": "ဖွင့်ချိန် (ရန်ကုန် အချိန်)",

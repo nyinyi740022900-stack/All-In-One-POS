@@ -2,10 +2,33 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/net/edge_invoke.dart';
 
+/// The licence was issued but its request row is still open — see
+/// [AdminApi.confirmPayment]. Confirming again would mint a second licence
+/// for the same payment, so this must never be presented as a plain failure
+/// the admin can retry.
+class RequestNotClosedException implements Exception {
+  const RequestNotClosedException({required this.key, this.detail = ''});
+  final String key;
+  final String detail;
+  @override
+  String toString() => 'request_not_closed';
+}
+
 class ExtendLicenseResult {
-  const ExtendLicenseResult({required this.expiresAt, required this.created});
+  const ExtendLicenseResult({
+    required this.expiresAt,
+    required this.created,
+    this.duplicate = false,
+  });
   final String expiresAt;
   final bool created;
+
+  /// The server suppressed this call as a repeat of a recent identical
+  /// extend (same key, same months, inside its dedup window) and granted
+  /// **nothing**. Reporting it as a plain success is a real error: a shop
+  /// that pays for two separate 1-month top-ups in quick succession would be
+  /// shown "Extended to `<date>`" twice while receiving one month.
+  final bool duplicate;
 }
 
 class DeviceAllowanceResult {
@@ -177,9 +200,22 @@ class AdminApi {
     return ExtendLicenseResult(
       expiresAt: '${data['expires_at']}',
       created: data['created'] == true,
+      duplicate: data['duplicate'] == true,
     );
   }
 
+  /// Confirms a paid renewal request: mints or extends the licence, then
+  /// marks the request fulfilled.
+  ///
+  /// Throws [RequestNotClosedException] when the licence was issued but the
+  /// request row could NOT be flipped to `fulfilled` — the server returns
+  /// HTTP 200 with `request_marked_fulfilled: false` for exactly this case,
+  /// precisely so the caller does not treat it as a clean success. Ignoring
+  /// it was a real double-mint path: the request reappears as pending, the
+  /// admin clicks Confirm again, the pending->processing claim succeeds
+  /// (the status genuinely is still pending), and `create_license` — which
+  /// has no shop_id uniqueness guard — mints a SECOND licence for one
+  /// payment.
   Future<String> confirmPayment({
     required String requestId,
     int? months,
@@ -191,7 +227,15 @@ class AdminApi {
     if (months != null) body['months'] = months;
     final res = await _c.functions.invokeBounded('admin', body: body);
     _throwIfError(res);
-    return (res.data as Map)['key'] as String;
+    final data = res.data as Map;
+    final key = data['key'] as String;
+    if (data['request_marked_fulfilled'] == false) {
+      throw RequestNotClosedException(
+        key: key,
+        detail: '${data['detail'] ?? ''}',
+      );
+    }
+    return key;
   }
 
   Future<void> rejectRequest({

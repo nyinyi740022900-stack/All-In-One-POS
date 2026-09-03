@@ -485,15 +485,23 @@ Deno.serve(async (req) => {
       // Guard against a double-click / two-tab race on this manual admin
       // action — unlike fulfill_request (an atomic pending->processing claim
       // on a request row), extend_license has no natural row to claim before
-      // minting. An identical extend already logged for this exact key in
-      // the last 10 seconds is almost certainly the same click landing twice
-      // (slow network + impatience, or two open admin tabs), not two
+      // minting. An identical extend already logged for this exact key
+      // within the window below is almost certainly the same click landing
+      // twice (slow network + impatience, or two open admin tabs), not two
       // genuinely separate intended extensions. (Scoped to the `lic` branch
       // only — license_events has no shop_id column, only `key`, so the rare
       // zero-license-rows mint-fresh branch below has no matching key yet to
       // guard on.)
+      //
+      // The window MUST stay comfortably longer than the client's own invoke
+      // timeout (`kEdgeInvokeTimeout`, 15s — see lib/core/net/edge_invoke.dart).
+      // It was 10s, i.e. SHORTER: a slow extend that actually committed at
+      // t=8s still timed out on the client at t=15s, and the admin — shown a
+      // failure — clicked again at t≈20s with the window already closed, so
+      // 12 paid months became 24 granted. 90s also covers the human "did that
+      // work? let me try once more" interval, which 15s alone would not.
       if (lic) {
-        const recentDupeWindow = new Date(Date.now() - 10_000).toISOString();
+        const recentDupeWindow = new Date(Date.now() - 90_000).toISOString();
         const { data: recent } = await admin
           .from("license_events")
           .select("expires_at")

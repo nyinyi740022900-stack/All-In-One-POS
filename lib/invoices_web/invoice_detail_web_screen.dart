@@ -71,6 +71,22 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
     // hasn't published a storefront just gets a plain, un-branded header.
     final sf = await client.from('storefronts').select().maybeSingle();
 
+    // Currency comes from `shop_profiles`, NOT from the storefront row.
+    // `storefronts.currency_code` defaults to 'MMK' (migration 0083) and is
+    // only mirrored there when a storefront exists and the currency was
+    // saved — so for the common case (no storefront published, which needs
+    // Premium) `sf` is null and this fell back to MMK/exponent 0: a THB
+    // shop's 12550 minor units printed as "12,550 Ks" instead of "฿125.50",
+    // on screen AND on the A4 PDF handed to the customer. The sibling list
+    // screen already reads the authoritative source (migration 0082); the
+    // two disagreeing is how this surfaced.
+    final profile = await client
+        .from('shop_profiles')
+        .select('currency_code')
+        .limit(1)
+        .maybeSingle();
+    final currency = CurrencyDef.byCode(profile?['currency_code'] as String?);
+
     final paid = (sale['paid'] as num?)?.toInt() ?? 0;
     final total = (sale['total'] as num?)?.toInt() ?? 0;
     final paymentStatus = paid >= total
@@ -165,8 +181,8 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       paymentMethodCode: methodCode,
       paymentMethodCustomName: customName,
       cashier: cashier,
-      currencySymbol: CurrencyDef.byCode(sf?['currency_code'] as String?).symbol,
-      exponent: CurrencyDef.byCode(sf?['currency_code'] as String?).exponent,
+      currencySymbol: currency.symbol,
+      exponent: currency.exponent,
     );
   }
 

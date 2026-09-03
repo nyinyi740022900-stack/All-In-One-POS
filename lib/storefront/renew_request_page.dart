@@ -244,6 +244,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     });
   }
 
+  /// See storefront_page.dart's _pickProof — same HEIC/size trap, and
+  /// worse here: the owner has already transferred the money.
   Future<void> _pickProof() async {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -253,6 +255,19 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     if (file == null || file.bytes == null) return;
     final c = await compressImage(Uint8List.fromList(file.bytes!),
         fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+    const uploadable = {'jpg', 'jpeg', 'png', 'webp'};
+    const maxProofBytes = 5 * 1024 * 1024;
+    if (!uploadable.contains(c.ext) || c.bytes.length > maxProofBytes) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(uploadable.contains(c.ext)
+            ? l.storefrontProofTooLarge
+            : l.storefrontProofUnsupported),
+      ));
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _proofBytes = c.bytes;
       _proofExt = c.ext;

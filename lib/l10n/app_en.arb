@@ -1199,6 +1199,8 @@
     }
   },
   "backupInvalidFile": "This doesn't look like a valid backup file.",
+  "backupWrongShop": "That backup belongs to a different shop. Open that shop first, or pick this shop's own backup file.",
+  "backupUnsyncedBlocked": "This device still has sales that haven't reached the cloud. Let it finish syncing first — restoring now would delete them for good.",
   "settingsSync": "Cloud sync",
   "syncNow": "Sync now",
   "syncIdle": "Up to date",
@@ -1487,6 +1489,8 @@
   },
   "storefrontClosed": "This shop is closed for online orders right now. Please try again during opening hours.",
   "storefrontProofRequired": "Please attach your transfer screenshot before placing the order.",
+  "storefrontProofUnsupported": "That photo format can't be uploaded. Please take a screenshot instead, or choose a JPG or PNG.",
+  "storefrontProofTooLarge": "That photo is too large (max 5 MB). Please take a screenshot instead, or choose a smaller image.",
   "storefrontPricesChanged": "Some prices have changed — please review your cart before placing the order again.",
   "storefrontAttachProofRequired": "Attach payment screenshot *",
   "storefrontHoursTitle": "Opening hours (Yangon time)",

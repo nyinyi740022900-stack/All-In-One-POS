@@ -694,6 +694,16 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
     super.dispose();
   }
 
+  /// The `payment-proofs` bucket accepts only jpeg/png/webp under 5 MiB
+  /// (migration 0032), and nothing enforced either here. `compressImage`
+  /// returns the ORIGINAL bytes with the original extension whenever it
+  /// cannot decode the input — which is exactly what happens to HEIC, the
+  /// default iPhone photo format that `FileType.image` (accept="image/*")
+  /// happily offers on iOS Safari. The upload then went out as
+  /// `proof-….heic`, the storage client derived `image/heic` from the path,
+  /// and the bucket refused it — surfacing as a generic error that no amount
+  /// of retrying could clear, with no way to detach the proof. Reject it
+  /// here instead, in words the customer can act on.
   Future<void> _pickProof() async {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -706,6 +716,19 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
       Uint8List.fromList(file.bytes!),
       fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
     );
+    const uploadable = {'jpg', 'jpeg', 'png', 'webp'};
+    const maxProofBytes = 5 * 1024 * 1024;
+    if (!uploadable.contains(c.ext) || c.bytes.length > maxProofBytes) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(uploadable.contains(c.ext)
+            ? l.storefrontProofTooLarge
+            : l.storefrontProofUnsupported),
+      ));
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _proofBytes = c.bytes;
       _proofExt = c.ext;

@@ -76,12 +76,23 @@ class CustomerRepository {
   Future<String> resolveOrCreate(String name,
       {String? phone, String? address}) async {
     final trimmed = name.trim();
-    final existing = await (_db.select(_db.customers)
+    // `getSingleOrNull` THROWS when more than one row matches, and nothing
+    // stops duplicate names: the directory has no uniqueness check, and two
+    // devices creating "Ma Aye" offline both sync in. That turned every
+    // credit sale to a duplicated name into a permanent, unexplained
+    // checkout failure (the caller only surfaces a generic error). Take the
+    // oldest match instead — it is the one other rows most likely already
+    // reference, and merging duplicates is a directory problem, not a
+    // reason to block the sale.
+    final matches = await (_db.select(_db.customers)
           ..where((t) =>
               t.shopId.equals(_shopId) &
               t.isDeleted.equals(false) &
-              t.name.lower().equals(trimmed.toLowerCase())))
-        .getSingleOrNull();
+              t.name.lower().equals(trimmed.toLowerCase()))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)])
+          ..limit(1))
+        .get();
+    final existing = matches.isEmpty ? null : matches.first;
     if (existing != null) {
       final needsPhone =
           (existing.phone ?? '').isEmpty && (phone ?? '').isNotEmpty;
