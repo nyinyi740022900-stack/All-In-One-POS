@@ -1066,6 +1066,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get productQuantity => 'အရေအတွက်';
 
   @override
+  String get productQuantityEditHint =>
+      'ဒီနေရာက လက်ကျန်ကို တိုက်ရိုက် ပြောင်းလဲပါတယ်၊ အကြောင်းရင်း မမှတ်တမ်းတင်ပါဘူး — မှတ်တမ်းပါတဲ့ ပြင်ဆင်မှုအတွက် Inventory list ထဲက Adjust Stock ကို သုံးပါ။';
+
+  @override
   String get productReorderLevel => 'အနည်းဆုံး လက်ကျန်';
 
   @override
@@ -3391,6 +3395,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontCatalogEmpty => 'ဒီဆိုင်တွင် ပစ္စည်းများ မထည့်ရသေးပါ။';
+
+  @override
+  String poLineCatalogCostDiffers(String amount) {
+    return 'Catalog ဈေးနှုန်း: $amount';
+  }
 
   @override
   String get storefrontYourCart => 'သင့်ဈေးဝယ်တောင်း';

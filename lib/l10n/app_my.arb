@@ -453,6 +453,7 @@
   "productSku": "ကုဒ်နံပါတ်",
   "productStock": "လက်ကျန်",
   "productQuantity": "အရေအတွက်",
+  "productQuantityEditHint": "ဒီနေရာက လက်ကျန်ကို တိုက်ရိုက် ပြောင်းလဲပါတယ်၊ အကြောင်းရင်း မမှတ်တမ်းတင်ပါဘူး — မှတ်တမ်းပါတဲ့ ပြင်ဆင်မှုအတွက် Inventory list ထဲက Adjust Stock ကို သုံးပါ။",
   "productReorderLevel": "အနည်းဆုံး လက်ကျန်",
   "productUnit": "ယူနစ်",
   "inventoryUpdateStock": "လက်ကျန် ပြင်ဆင်ရန်",
@@ -1464,6 +1465,14 @@
   },
   "storefrontNoSearchResults": "ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။",
   "storefrontCatalogEmpty": "ဒီဆိုင်တွင် ပစ္စည်းများ မထည့်ရသေးပါ။",
+  "poLineCatalogCostDiffers": "Catalog ဈေးနှုန်း: {amount}",
+  "@poLineCatalogCostDiffers": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontYourCart": "သင့်ဈေးဝယ်တောင်း",
   "storefrontCartEmptyTitle": "သင့်ဈေးဝယ်တောင်း ဗလာဖြစ်နေပါသည်",
   "storefrontCartEmptyBody": "ဆိုင်ကို လှည့်ကြည့်ပြီး ပစ္စည်းများ ထည့်ပါ။",

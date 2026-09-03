@@ -480,6 +480,7 @@
   "productSku": "SKU",
   "productStock": "Stock",
   "productQuantity": "Quantity",
+  "productQuantityEditHint": "Sets the stock count directly, with no reason recorded — for a tracked correction, use Adjust Stock from the Inventory list instead.",
   "productReorderLevel": "Reorder level",
   "productUnit": "Unit",
   "inventoryUpdateStock": "Update stock",
@@ -1512,6 +1513,14 @@
   },
   "storefrontNoSearchResults": "No products match your search.",
   "storefrontCatalogEmpty": "This shop hasn't added any products yet.",
+  "poLineCatalogCostDiffers": "Catalog cost: {amount}",
+  "@poLineCatalogCostDiffers": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storefrontYourCart": "Your cart",
   "storefrontCartEmptyTitle": "Your cart is empty",
   "storefrontCartEmptyBody": "Browse the shop and add items to get started.",

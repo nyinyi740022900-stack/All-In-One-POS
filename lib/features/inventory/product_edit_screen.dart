@@ -336,7 +336,16 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 ]),
                 _group([
                   if (trackStock) ...[
-                    _field(_quantity, l.productQuantity, number: true),
+                    _field(
+                      _quantity,
+                      l.productQuantity,
+                      number: true,
+                      // Only for an existing product — a new one's quantity
+                      // IS the starting stock, no ambiguity to flag. Editing
+                      // an existing product's count here silently overwrites
+                      // it with no audit trail, unlike Adjust Stock.
+                      helperText: isEdit ? l.productQuantityEditHint : null,
+                    ),
                     _field(_reorder, l.productReorderLevel, number: true),
                   ],
                   SwitchListTile(
@@ -530,6 +539,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     Widget? suffixIcon,
     int? maxLength,
     String? Function(String?)? validator,
+    String? helperText,
   }) {
     return TextFormField(
       controller: c,
@@ -537,6 +547,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       decoration: InputDecoration(
         labelText: label,
         suffixIcon: suffixIcon,
+        helperText: helperText,
+        helperMaxLines: 3,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppTheme.space4,
           vertical: AppTheme.space4,

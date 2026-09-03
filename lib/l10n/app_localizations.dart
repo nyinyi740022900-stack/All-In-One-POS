@@ -2042,6 +2042,12 @@ abstract class AppLocalizations {
   /// **'Quantity'**
   String get productQuantity;
 
+  /// No description provided for @productQuantityEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets the stock count directly, with no reason recorded — for a tracked correction, use Adjust Stock from the Inventory list instead.'**
+  String get productQuantityEditHint;
+
   /// No description provided for @productReorderLevel.
   ///
   /// In en, this message translates to:
@@ -6199,6 +6205,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This shop hasn\'t added any products yet.'**
   String get storefrontCatalogEmpty;
+
+  /// No description provided for @poLineCatalogCostDiffers.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog cost: {amount}'**
+  String poLineCatalogCostDiffers(String amount);
 
   /// No description provided for @storefrontYourCart.
   ///

@@ -1072,6 +1072,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productQuantity => 'Quantity';
 
   @override
+  String get productQuantityEditHint =>
+      'Sets the stock count directly, with no reason recorded — for a tracked correction, use Adjust Stock from the Inventory list instead.';
+
+  @override
   String get productReorderLevel => 'Reorder level';
 
   @override
@@ -3385,6 +3389,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontCatalogEmpty =>
       'This shop hasn\'t added any products yet.';
+
+  @override
+  String poLineCatalogCostDiffers(String amount) {
+    return 'Catalog cost: $amount';
+  }
 
   @override
   String get storefrontYourCart => 'Your cart';

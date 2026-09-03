@@ -73,6 +73,26 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
     super.dispose();
   }
 
+  // A restock/adjustment is most often ±1 (one broken item, one unit
+  // received) — clamping here mirrors the floor `_submit` already enforces
+  // (can't restock below 1, can't adjust a product's stock below zero) so
+  // the stepper can't walk the field into a state that would just bounce
+  // back as an error on save.
+  void _stepQty(int delta) {
+    final current = int.tryParse(_qtyController.text.trim()) ?? 0;
+    var next = current + delta;
+    if (_mode == _Mode.restock) {
+      if (next < 1) next = 1;
+    } else {
+      final floor = -widget.currentQuantity;
+      if (next < floor) next = floor;
+    }
+    setState(() {
+      _qtyController.text = next.toString();
+      _error = null;
+    });
+  }
+
   Future<void> _submit() async {
     final l = AppLocalizations.of(context);
     final raw = _qtyController.text.trim();
@@ -186,18 +206,41 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
             const SizedBox(height: AppTheme.space3),
-            TextField(
-              controller: _qtyController,
-              keyboardType:
-                  TextInputType.numberWithOptions(signed: _mode == _Mode.adjust),
-              inputFormatters: [LengthLimitingTextInputFormatter(10)],
-              decoration: InputDecoration(
-                labelText: l.stockAdjustQuantity,
-                hintText: _mode == _Mode.restock
-                    ? l.stockAdjustQuantityHintRestock
-                    : l.stockAdjustQuantityHintAdjust,
-                errorText: _error,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // The typed-only field covered the common ±1 case (one item
+                // received/broken) in three taps — keyboard open, type,
+                // dismiss — instead of one.
+                IconButton.filledTonal(
+                  onPressed: () => _stepQty(-1),
+                  icon: const Icon(Icons.remove),
+                  tooltip: l.sellDecreaseQty,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: TextField(
+                    controller: _qtyController,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.numberWithOptions(
+                        signed: _mode == _Mode.adjust),
+                    inputFormatters: [LengthLimitingTextInputFormatter(10)],
+                    decoration: InputDecoration(
+                      labelText: l.stockAdjustQuantity,
+                      hintText: _mode == _Mode.restock
+                          ? l.stockAdjustQuantityHintRestock
+                          : l.stockAdjustQuantityHintAdjust,
+                      errorText: _error,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.space2),
+                IconButton.filledTonal(
+                  onPressed: () => _stepQty(1),
+                  icon: const Icon(Icons.add),
+                  tooltip: l.sellIncreaseQty,
+                ),
+              ],
             ),
             if (_mode == _Mode.restock) ...[
               const SizedBox(height: AppTheme.space3),

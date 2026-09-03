@@ -25,6 +25,51 @@ class _EditableLine {
   int get lineTotal => qty * unitCost;
 }
 
+/// One PO line, flagging when its cost has drifted from what's saved on the
+/// product today — that mismatch is often the actual trigger to go update
+/// the catalogue price, and previously had no visual cue distinguishing
+/// "still the catalogue default" from "I typed today's real supplier price."
+class _POLineTile extends StatelessWidget {
+  const _POLineTile({
+    required this.line,
+    required this.catalogCost,
+    required this.currency,
+    required this.locale,
+    required this.onTap,
+  });
+
+  final _EditableLine line;
+  final int? catalogCost;
+  final CurrencyDef currency;
+  final String locale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final differs = catalogCost != null && catalogCost != line.unitCost;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(line.name),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${line.qty} x ${Money(line.unitCost).withCurrency(currency, locale)}'),
+          if (differs)
+            Text(
+              l.poLineCatalogCostDiffers(
+                  Money(catalogCost!).withCurrency(currency, locale)),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+        ],
+      ),
+      trailing: MoneyText(Money(line.lineTotal).withCurrency(currency, locale)),
+      onTap: onTap,
+    );
+  }
+}
+
 /// Create (or edit, while still `open`) a purchase order: pick a supplier,
 /// add product lines with qty + unit cost, save as a draft. See
 /// `PurchaseOrderRepository.savePO`.
@@ -201,6 +246,7 @@ class _PurchaseOrderEditorScreenState
     final l = AppLocalizations.of(context);
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
+    final products = ref.watch(productsStreamProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(title: Text(l.poCreate)),
@@ -239,12 +285,15 @@ class _PurchaseOrderEditorScreenState
             )
           else
             for (final line in _lines)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(line.name),
-                subtitle: Text(
-                    '${line.qty} x ${Money(line.unitCost).withCurrency(currency, locale)}'),
-                trailing: MoneyText(Money(line.lineTotal).withCurrency(currency, locale)),
+              _POLineTile(
+                line: line,
+                catalogCost: products
+                    .where((p) => p.product.id == line.productId)
+                    .firstOrNull
+                    ?.product
+                    .costPrice,
+                currency: currency,
+                locale: locale,
                 onTap: () => _editLine(line),
               ),
           const Divider(),
