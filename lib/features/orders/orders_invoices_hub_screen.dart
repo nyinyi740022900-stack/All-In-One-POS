@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../credit/credit_screen.dart';
 import '../invoices/invoices_screen.dart';
 import '../invoices/sales_report_screen.dart';
 import '../sell/hardware_scanner_listener.dart';
@@ -99,6 +100,18 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
         // the title still earns its row rather than echoing the tab.
         title: Text(onOrders ? l.ordersTitle : l.navInvoices),
         actions: [
+          // A peer-level entry point into Credit — credit sales originate
+          // right here (the Invoices "credit" filter chip), but the credit
+          // book itself was previously reachable only from Settings, so
+          // "who owes me money" meant leaving this destination entirely.
+          if (!onOrders)
+            IconButton(
+              tooltip: l.creditTitle,
+              icon: const Icon(Icons.credit_score_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CreditScreen()),
+              ),
+            ),
           if (!onOrders)
             IconButton(
               tooltip: l.salesReportTitle,

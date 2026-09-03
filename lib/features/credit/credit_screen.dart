@@ -373,22 +373,24 @@ class CreditCustomerScreen extends ConsumerWidget {
           ),
         ),
       ),
-      const SizedBox(height: AppTheme.space3),
-      Text(l.creditInvoices, style: Theme.of(context).textTheme.titleSmall),
-      for (final (:sale, :owed) in invoiceRows)
-        ListTile(
-          key: ValueKey('inv-${sale.id}'),
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          title: Text(sale.invoiceNo),
-          subtitle: Text(df.format(sale.finalizedAt)),
-          trailing: owed > 0
-              ? MoneyText(
-                  Money(owed).withCurrency(currency, locale),
-                  color: colors.danger,
-                )
-              : Text(l.creditSettled, style: TextStyle(color: colors.success)),
-        ),
+      if (invoiceRows.isNotEmpty) ...[
+        const SizedBox(height: AppTheme.space3),
+        Text(l.creditInvoices, style: Theme.of(context).textTheme.titleSmall),
+        for (final (:sale, :owed) in invoiceRows)
+          ListTile(
+            key: ValueKey('inv-${sale.id}'),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(sale.invoiceNo),
+            subtitle: Text(df.format(sale.finalizedAt)),
+            trailing: owed > 0
+                ? MoneyText(
+                    Money(owed).withCurrency(currency, locale),
+                    color: colors.danger,
+                  )
+                : Text(l.creditSettled, style: TextStyle(color: colors.success)),
+          ),
+      ],
       if (repayments.isNotEmpty) ...[
         const SizedBox(height: AppTheme.space3),
         Text(l.creditRepayments, style: Theme.of(context).textTheme.titleSmall),
