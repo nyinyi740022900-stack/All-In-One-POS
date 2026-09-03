@@ -100,7 +100,7 @@ class _StorefrontPageState extends State<StorefrontPage> {
   final _api = StorefrontApi();
   late Future<Catalog> _future;
   final Map<String, int> _cart = {}; // productId -> qty
-  late Map<String, StoreProduct> _byId = {};
+  final Map<String, StoreProduct> _byId = {};
   StoreInfo? _info;
   final _searchController = TextEditingController();
   String _search = '';
@@ -201,7 +201,19 @@ class _StorefrontPageState extends State<StorefrontPage> {
             return _NotFound(slug: widget.slug);
           }
           final catalog = snap.data!;
-          _byId = {for (final p in catalog.products) p.id: p};
+          // Populate ONCE, then leave it alone. `_future` is created a
+          // single time in initState, so the only source of fresher data is
+          // `_refreshPricesAndCart`, which writes straight into this same
+          // map (it is handed to the checkout sheet by reference). Rebuilding
+          // it from `catalog` on every rebuild threw that away: after the
+          // sheet bounced the customer back with "prices changed", closing
+          // the sheet restored the OLD price on the grid and in the checkout
+          // bar, and re-opening checkout fired the same bounce again from
+          // the same stale state — the exact deception the refresh exists to
+          // prevent.
+          if (_byId.isEmpty) {
+            _byId.addAll({for (final p in catalog.products) p.id: p});
+          }
           _info = catalog.info;
           final name = catalog.info.displayName ?? widget.slug;
           final desc = [

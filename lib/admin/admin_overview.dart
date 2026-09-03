@@ -66,7 +66,8 @@ class _OverviewPage extends StatelessWidget {
               onTap: onOpenInbox,
             ),
             StatCard(
-              label: 'Revenue this month',
+              // Manual (Myanmar) payments only — see AdminStats.
+              label: 'Manual payments this month',
               value: _ks(stats.revenueThisMonth),
               icon: Icons.payments_outlined,
               onTap: onOpenPayments,
@@ -83,7 +84,7 @@ class _OverviewPage extends StatelessWidget {
         const SizedBox(height: AppTheme.space2),
         Text(
           '${stats.accountCount} linked login${stats.accountCount == 1 ? '' : 's'}  ·  '
-          'All-time paid ${_ks(stats.revenueAllTime)}',
+          'All-time manual ${_ks(stats.revenueAllTime)}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

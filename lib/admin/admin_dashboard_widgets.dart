@@ -54,6 +54,12 @@ class _HistoryTab extends StatelessWidget {
         final action = r['action'];
         final isExtend = action == 'extend';
         final isDecline = action == 'reject';
+        // Anything that is not extend/reject fell through to "Confirmed",
+        // so a `device_allowance` audit row (key null, shop_name null,
+        // device null, months = slots granted) rendered in the only audit
+        // surface this console has as `Confirmed · 12 mo · —` — an
+        // administrative grant indistinguishable from a confirmed payment.
+        final isAllowance = action == 'device_allowance';
         // Neutral, not color-coded: "Extended" vs "Confirmed" is a category
         // the title text already states, not a state the shop needs a
         // signal for (same reasoning Analytics' KPI grid settled on — color
@@ -66,21 +72,27 @@ class _HistoryTab extends StatelessWidget {
                 ? Icons.cancel
                 : isExtend
                 ? Icons.more_time
+                : isAllowance
+                ? Icons.devices_other
                 : Icons.vpn_key,
             tone: isDecline ? StatusTone.critical : null,
           ),
           title: Text(
             isDecline
                 ? 'Declined  ·  ${r['shop_name'] ?? '—'}'
-                : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}',
+                : isAllowance
+                    ? 'Extra devices granted  ·  ${r['months']}  ·  ${r['shop_id'] ?? '—'}'
+                    : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}',
           ),
           subtitle: Text(
             isDecline
                 ? 'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
-                : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
-                      'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}',
+                : isAllowance
+                    ? 'Device-slot allowance  ·  ${_date(r['created_at'])}'
+                    : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
+                        'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}',
           ),
-          isThreeLine: !isDecline,
+          isThreeLine: !isDecline && !isAllowance,
         );
       },
     );
@@ -109,10 +121,19 @@ class _RequestsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var rows = this.rows;
+    // `processing` is the transient state `fulfill_request` claims before
+    // minting. If the release never runs (isolate killed, connection lost
+    // mid-call) the request stays there — and while these filters were a
+    // binary pending/not-pending, that paid request DISAPPEARED from the
+    // inbox and the badge and surfaced under "settled", where it still
+    // rendered live Confirm/Decline buttons that answer 409. Treat it as
+    // still open, which is what it is.
+    bool open(Map<String, dynamic> r) =>
+        r['status'] == 'pending' || r['status'] == 'processing';
     if (pendingOnly) {
-      rows = rows.where((r) => r['status'] == 'pending').toList();
+      rows = rows.where(open).toList();
     } else if (settledOnly) {
-      rows = rows.where((r) => r['status'] != 'pending').toList();
+      rows = rows.where((r) => !open(r)).toList();
     }
     if (rows.isEmpty) {
       return EmptyStateView(
@@ -385,16 +406,26 @@ class _ReferralsTab extends StatelessWidget {
   Future<void> _confirmApplyCredit(
     BuildContext context,
     String shopId,
-    int balance,
+    int lifetimeEarned,
   ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Apply referral credit?'),
+        // Deliberately quotes LIFETIME EARNED, not a redeemable balance:
+        // the true balance is earned − redeemed, `referral_redemptions` is
+        // never fetched by this console, and the old copy called the
+        // lifetime figure "referral balance". For any referrer who had
+        // redeemed before, that overstated what was left — the server
+        // (correctly) then granted 0 months and the snackbar contradicted
+        // the dialog. The server computes the real figure under a per-shop
+        // lock; the outcome it returns is the honest number.
         content: Text(
-          'Converts as much of $shopId\'s $balance Ks referral balance as '
-          'covers full months into a license extension for that shop, and '
-          'deducts it from their balance. This cannot be undone.',
+          '$shopId has earned ${_ks(lifetimeEarned)} in commissions '
+          'lifetime. This converts whatever of their REMAINING balance '
+          'covers full months into a license extension and deducts it. '
+          'The exact months are decided by the server. This cannot be '
+          'undone.',
         ),
         actions: [
           TextButton(
@@ -464,7 +495,7 @@ class _ReferralsTab extends StatelessWidget {
               leading: const IconAvatar(icon: Icons.card_giftcard),
               title: SelectableText(sid),
               subtitle: Text(
-                '${counts[sid]} payment(s)  ·  earned ${earned[sid]} Ks',
+                '${counts[sid]} payment(s)  ·  earned ${_ks(earned[sid] ?? 0)} lifetime',
               ),
               trailing: FilledButton(
                 style: _compactFilledButtonStyle(),

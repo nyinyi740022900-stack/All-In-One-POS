@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/money.dart';
@@ -50,6 +51,20 @@ class ReferralWatcher {
       final settings = _ref.read(settingsRepositoryProvider);
       final shopId = _ref.read(shopIdProvider);
       final summary = await _ref.read(referralRepositoryProvider).summary();
+
+      // `summary()` is scoped server-side by the JWT's shop_id claim, while
+      // the watermark is keyed by the LOCAL shop id — and `switchBranch`
+      // refreshes the session to the new shop BEFORE swapping the local id
+      // and DB. A resume or a timer tick inside that window would read shop
+      // B's earnings and store them under shop A: A then never fires a
+      // commission notification again until its own earnings pass B's, or
+      // fires a spurious one for a delta it already saw. Same class as the
+      // watermark bug fixed in #295-9, reached through the read side
+      // instead of the key. Skip the tick rather than write a mismatch;
+      // the next one lands after the switch settles.
+      final claim = Supabase.instance.client.auth.currentUser
+          ?.appMetadata['shop_id'] as String?;
+      if (claim != null && claim.isNotEmpty && claim != shopId) return;
 
       final seen = await settings.referralSeenEarned(shopId);
       if (seen == null) {

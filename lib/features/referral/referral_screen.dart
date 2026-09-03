@@ -34,9 +34,17 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
 
     // Confirm first, showing exactly how much converts to how many months.
     final summary = ref.read(referralSummaryProvider).valueOrNull;
-    final rawPrice =
-        ref.read(vendorConfigProvider).valueOrNull?.priceFor('monthly') ?? 20000;
-    final price = rawPrice <= 0 ? 20000 : rawPrice;
+    // Must match the SQL function's own fallback (`coalesce(..., 10000)` in
+    // migration 0014) — this said 20000, so on a device whose cached vendor
+    // config never carried `price.monthly` the screen and the server
+    // disagreed by 2x: a 15,000 Ks balance was refused here while the server
+    // would have granted a month, and a 40,000 balance promised 2 months in
+    // the dialog where the server granted 4.
+    const fallbackMonthlyPriceKs = 10000;
+    final rawPrice = ref.read(vendorConfigProvider).valueOrNull
+            ?.priceFor('monthly') ??
+        fallbackMonthlyPriceKs;
+    final price = rawPrice <= 0 ? fallbackMonthlyPriceKs : rawPrice;
     final months = summary == null ? 0 : summary.balance ~/ price;
     if (months < 1) {
       messenger.showSnackBar(SnackBar(content: Text(l.referralRedeemNotEnough)));
@@ -84,7 +92,13 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
             SnackBar(content: Text(l.referralRedeemNotEnough)));
       }
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(l.referralRedeemNotEnough)));
+      // NOT "not enough balance" — this catch also swallows a dropped
+      // connection, an expired session, and the SQL function's own
+      // "no shop context" / "no license for shop" errors. Telling an owner
+      // their visibly non-zero balance is insufficient is both false and
+      // unactionable.
+      messenger
+          .showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

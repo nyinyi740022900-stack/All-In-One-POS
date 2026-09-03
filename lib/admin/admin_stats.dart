@@ -58,6 +58,16 @@ class AdminStats {
   /// Sum of *fulfilled* license-request amounts in [now]'s calendar month.
   /// Manual complimentary extends are not included — they never mint a
   /// payment row.
+  /// **Manual (Myanmar) payments only.** Summed from *fulfilled*
+  /// `license_requests.amount` — the flow an admin confirms by hand.
+  ///
+  /// International Premium sold through Lemon Squeezy is NOT included at
+  /// all: `lemonsqueezy-webhook` mints and renews through the same RPCs but
+  /// never writes a `license_requests` row (its own header says so), so
+  /// those sales contribute zero here. This is an omitted channel, not a
+  /// currency choice — reading these as total revenue understates it. The
+  /// labels say "manual" for that reason; a real total needs the webhook's
+  /// `license_events` folded in server-side.
   final int revenueThisMonth;
   final int revenueAllTime;
   final int expiringIn7Days;
@@ -107,7 +117,10 @@ class AdminStats {
 
     for (final r in requests) {
       final status = '${r['status']}';
-      if (status == 'pending') pending++;
+      // Counts `processing` too — see _RequestsTab: a claim that never
+      // released leaves a paid request open, and dropping it from the badge
+      // is how it goes unnoticed.
+      if (status == 'pending' || status == 'processing') pending++;
       if (status != 'fulfilled') continue;
       final amount = (r['amount'] as num?)?.toInt() ?? 0;
       revenueAll += amount;
