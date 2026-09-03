@@ -54,7 +54,11 @@ class _InvoicesWebAppState extends State<InvoicesWebApp> {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       home: activated
-          ? InvoiceListScreen(locale: _locale, onToggleLocale: _toggleLocale)
+          ? InvoiceListScreen(
+              locale: _locale,
+              onToggleLocale: _toggleLocale,
+              onSignedOut: _refresh,
+            )
           : ActivateScreen(
               locale: _locale,
               onToggleLocale: _toggleLocale,

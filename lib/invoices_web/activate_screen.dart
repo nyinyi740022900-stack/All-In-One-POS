@@ -91,6 +91,13 @@ class _ActivateScreenState extends State<ActivateScreen> {
       return;
     }
     widget.onActivated();
+    // The root re-evaluates its gate on that callback. If the claim did NOT
+    // land (activate can return ok:true without stamping app_metadata, and
+    // a lagging refreshSession looks the same), the root rebuilds THIS same
+    // State with _busy still true: both buttons disabled, a spinner, and no
+    // error — recoverable only by reloading the page. Clear the flag so the
+    // screen stays usable either way.
+    if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _signIn() async {

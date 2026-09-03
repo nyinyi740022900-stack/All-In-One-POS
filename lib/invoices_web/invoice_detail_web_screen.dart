@@ -6,6 +6,7 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/invoices/cashier_label.dart';
 import '../features/invoices/invoice_pdf.dart';
+import '../features/invoices/invoice_payment_status.dart';
 import '../features/invoices/invoice_view.dart';
 import '../l10n/app_localizations.dart';
 import 'invoices_web_download.dart';
@@ -89,9 +90,12 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
 
     final paid = (sale['paid'] as num?)?.toInt() ?? 0;
     final total = (sale['total'] as num?)?.toInt() ?? 0;
-    final paymentStatus = paid >= total
-        ? 'paid'
-        : (paid > 0 ? 'partial' : 'unpaid');
+    // Use the shared classifier, not an inline comparison. Refunds are
+    // stored as NEGATIVE-total rows, and `paid >= total` reads `0 >= -1000`
+    // as **paid** — so a refund of an unpaid credit sale printed "PAID", and
+    // the `paid > 0` partial branch was unreachable for any refund at all.
+    // `invoicePaymentStatusCode` compares magnitudes for exactly this.
+    final paymentStatus = invoicePaymentStatusCode(paid: paid, total: total);
     final methodCode = (sale['payment_method'] as String?) ?? 'cash';
 
     String? customName;
@@ -159,7 +163,12 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       shopPhone: sf?['phone'] as String?,
       shopAddress: sf?['address'] as String?,
       invoiceNo: sale['invoice_no'] as String,
-      date: DateTime.parse(sale['finalized_at'] as String),
+      // `.toLocal()`: finalized_at is stored UTC (sync_mappers `_iso`) and
+      // every other reader converts back. Without it the invoice and its A4
+      // PDF showed Myanmar times 6h30m early — and any sale after 17:30
+      // local carried the PREVIOUS day's date on a document the customer
+      // keeps as a receipt.
+      date: DateTime.parse(sale['finalized_at'] as String).toLocal(),
       customerName: (sale['customer_name'] as String?) ?? '',
       customerPhone: sale['customer_phone'] as String?,
       deliveryAddress: sale['delivery_address'] as String?,
@@ -188,10 +197,17 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
 
   Future<void> _downloadPdf(InvoiceData data) async {
     setState(() => _downloading = true);
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      final l = AppLocalizations.of(context);
       final bytes = await buildInvoicePdf(data, l);
       downloadBytes(bytes, '${data.invoiceNo}.pdf', 'application/pdf');
+    } catch (_) {
+      // `try/finally` with no `catch` meant a PDF layout error or a failed
+      // JS-interop download left the button spinning, un-spinning, and
+      // saying NOTHING — for the one action this page exists to perform.
+      messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _downloading = false);
     }

@@ -277,19 +277,29 @@ class AdminApi {
     required String plan,
     required int months,
   }) async {
-    final res = await _c.functions.invokeBounded(
-      'admin',
-      body: {
-        'action': 'create_license',
-        'shop_id': shopId,
-        if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
-        'plan': plan,
-        'months': months,
-      },
-    );
-    if (res.data is Map &&
-        (res.data as Map)['error'] == 'license_already_exists') {
-      throw const LicenseAlreadyExistsException();
+    final FunctionResponse res;
+    try {
+      res = await _c.functions.invokeBounded(
+        'admin',
+        body: {
+          'action': 'create_license',
+          'shop_id': shopId,
+          if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
+          'plan': plan,
+          'months': months,
+        },
+      );
+    } on FunctionException catch (e) {
+      // The server answers `license_already_exists` with HTTP **400**, and
+      // functions_client throws on any non-2xx — so the old check against
+      // `res.data` below was unreachable and this typed exception was never
+      // raised. The caller's specific "use Extend instead of Generate key"
+      // guidance was dead with it.
+      final details = e.details;
+      if (details is Map && details['error'] == 'license_already_exists') {
+        throw const LicenseAlreadyExistsException();
+      }
+      rethrow;
     }
     _throwIfError(res);
     return (res.data as Map)['key'] as String;

@@ -968,6 +968,22 @@ class _CopyField extends StatelessWidget {
 /// The irreversible "Confirm payment" gate: at-a-glance verification of
 /// shop / amount / plan / txn (with one-tap copy for the txn ref against
 /// the bank app), Enter-to-confirm, and an explicit cannot-be-undone line.
+/// The shop name actually on file for the request's `shop_id`, or null when
+/// the request resolved to no account.
+String? _resolvedName(Map<String, dynamic> r) {
+  final n = (r['resolved_shop_name'] as String?)?.trim();
+  return (n == null || n.isEmpty) ? null : n;
+}
+
+/// True when the typed shop name disagrees with the account the payment
+/// would actually credit — see `_ConfirmPaymentDialog`.
+bool _nameMismatch(Map<String, dynamic> r) {
+  final resolved = _resolvedName(r);
+  final shopId = '${r['shop_id'] ?? ''}'.trim();
+  if (resolved == null || shopId.isEmpty) return false;
+  return resolved.toLowerCase() != '${r['shop_name'] ?? ''}'.trim().toLowerCase();
+}
+
 class _ConfirmPaymentDialog extends StatelessWidget {
   const _ConfirmPaymentDialog({required this.request});
   final Map<String, dynamic> request;
@@ -991,6 +1007,40 @@ class _ConfirmPaymentDialog extends StatelessWidget {
             children: [
               Text('${r['shop_name'] ?? '—'}',
                   style: Theme.of(context).textTheme.titleMedium),
+              // The name above is what the REQUESTER TYPED — it proves
+              // nothing. `fulfill_request` credits `shop_id`, so the account
+              // this actually pays is the resolved one below, and the two
+              // disagreeing is the only signal that a typo'd email is about
+              // to extend a stranger's shop. The list row already warns in
+              // red; this dialog — the declared "safety gate and
+              // at-a-glance verification surface", and the only thing the
+              // Enter shortcut and the dashboard's inbox tile pass through —
+              // showed neither the resolved name nor the shop_id at all.
+              if (_resolvedName(r) != null) ...[
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  'Account on file: ${_resolvedName(r)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _nameMismatch(r)
+                            ? AppColors.of(context).danger
+                            : null,
+                        fontWeight:
+                            _nameMismatch(r) ? FontWeight.bold : null,
+                      ),
+                ),
+                if (_nameMismatch(r))
+                  Text(
+                    'This does NOT match the name on the request — check '
+                    'you are paying the right shop.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.of(context).danger,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+              ],
+              if ('${r['shop_id'] ?? ''}'.trim().isNotEmpty)
+                Text('Shop: ${r['shop_id']}',
+                    style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: AppTheme.space2),
               SummaryRow(
                 'Amount',

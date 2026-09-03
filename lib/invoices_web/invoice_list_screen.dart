@@ -72,7 +72,8 @@ class InvoiceRow {
         customerPhone: m['customer_phone'] as String?,
         paymentMethod: (m['payment_method'] as String?) ?? 'cash',
         total: (m['total'] as num?)?.toInt() ?? 0,
-        finalizedAt: DateTime.parse(m['finalized_at'] as String),
+        // Stored UTC — see invoice_detail_web_screen.
+        finalizedAt: DateTime.parse(m['finalized_at'] as String).toLocal(),
         isRefund: m['refund_of_sale_id'] != null,
       );
 }
@@ -95,10 +96,22 @@ String _loadErrorMessage(AppLocalizations l, Object error) {
 }
 
 class InvoiceListScreen extends StatefulWidget {
-  const InvoiceListScreen(
-      {super.key, required this.locale, required this.onToggleLocale});
+  const InvoiceListScreen({
+    super.key,
+    required this.locale,
+    required this.onToggleLocale,
+    required this.onSignedOut,
+  });
   final Locale locale;
   final VoidCallback onToggleLocale;
+
+  /// Rebuilds the ROOT so its `activated` gate re-evaluates. Without it,
+  /// `setState` here only rebuilt this list — leaving the previous shop's
+  /// ledger (customer names, phone numbers, totals) on screen after Sign
+  /// Out, on the shared counter computer this tool is for. The odd tell was
+  /// that toggling the language *did* snap back to the activate screen,
+  /// because that rebuilds the root.
+  final VoidCallback onSignedOut;
 
   @override
   State<InvoiceListScreen> createState() => _InvoiceListScreenState();
@@ -150,7 +163,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
 
   Future<void> _signOut() async {
     await InvoicesWebSession.signOut();
-    if (mounted) setState(() {});
+    if (mounted) widget.onSignedOut();
   }
 
   @override

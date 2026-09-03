@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:barcode_widget/barcode_widget.dart';
@@ -54,6 +55,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _error;
   bool _loading = false;
   bool _didPickLanding = false;
+
+  /// Set while a money-moving action is in flight. Every such action here
+  /// runs an `await` that `invokeBounded` may let stand for a full 15s with
+  /// nothing on screen saying so — which is precisely what makes an admin
+  /// click again. The buttons themselves stay enabled (they live in child
+  /// widgets), so this guards at the handler instead: a second tap is
+  /// dropped rather than becoming a second extend/mint/credit.
+  bool _moneyBusy = false;
 
   _AdminSection _section = _AdminSection.dashboard;
   AdminShopFilter _shopFilter = AdminShopFilter.all;
@@ -296,6 +305,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
     if (ok != true) return;
+    if (_moneyBusy) return;
+    setState(() => _moneyBusy = true);
     try {
       final outcome = await widget.api.extendLicense(
         email: byEmail ? identifier : null,
@@ -320,6 +331,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _moneyBusy = false);
     }
   }
 
@@ -485,6 +498,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       builder: (_) => _ConfirmPaymentDialog(request: request),
     );
     if (ok != true || !mounted) return;
+    if (_moneyBusy) return;
+    setState(() => _moneyBusy = true);
     try {
       final key = await widget.api.confirmPayment(
         requestId: '${request['id']}',
@@ -511,6 +526,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _moneyBusy = false);
     }
   }
 
@@ -533,6 +550,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _applyCredit(String shopId) async {
+    if (_moneyBusy) return;
+    setState(() => _moneyBusy = true);
     try {
       final res = await widget.api.applyReferralCredit(shopId: shopId);
       final months = (res['months'] as num?)?.toInt() ?? 0;
@@ -546,6 +565,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _moneyBusy = false);
     }
   }
 
@@ -678,7 +699,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
 String _adminErrorMessage(Object e) {
   final raw = e.toString();
-  final code = RegExp(r'^Exception: (\w+)').firstMatch(raw)?.group(1);
+
+  // A timeout is NOT a failure you may blindly retry. `invokeBounded` gives
+  // up at 15s, but the server keeps going — the licence may already be
+  // minted. Retrying is exactly how one payment becomes two licence terms,
+  // so say what to do instead of offering the usual "try again".
+  if (e is TimeoutException) {
+    return 'That took too long to answer. It may still have gone through — '
+        'reload and check before trying again.';
+  }
+
+  // Every `json({error: ...}, 4xx/5xx)` the Edge Function returns arrives
+  // as a thrown FunctionException, NOT as a FunctionResponse — so the
+  // error code lives in `details`, and the old `^Exception: (\w+)` pattern
+  // (which only matches a plain `Exception('code')`) never matched a single
+  // real server error. Every curated message below was unreachable: the
+  // admin saw the raw exception string and could not tell "already done,
+  // stop" from "failed, retry" — the precise decision that produces a
+  // double-fire on a money action.
+  String? code;
+  if (e is FunctionException) {
+    final details = e.details;
+    if (details is Map) code = details['error'] as String?;
+    code ??= '${e.status}';
+  }
+  code ??= RegExp(r'^Exception: (\w+)').firstMatch(raw)?.group(1);
   switch (code) {
     case 'not_found':
       return 'No shop found matching that email or App Reference ID.';
