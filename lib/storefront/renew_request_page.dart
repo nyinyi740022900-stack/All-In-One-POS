@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -76,6 +77,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   String _method = 'kbzpay';
   bool _submitting = false;
   bool _submitted = false;
+
+  /// Generated once and reused across retries so a lost response cannot
+  /// become a second paid renewal request. See StorefrontApi.
+  String? _clientRequestId;
   String? _requestId;
   String? _invoiceNo;
   List<int>? _proofBytes;
@@ -312,6 +317,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         );
       }
       final submitted = await _api.submitLicenseRequest(
+        clientRequestId: _clientRequestId ??= const Uuid().v4(),
         shopName: shopName,
         deviceId: deviceId,
         email: _email.text.trim(),

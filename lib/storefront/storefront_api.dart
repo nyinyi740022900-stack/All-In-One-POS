@@ -224,8 +224,15 @@ class StorefrontApi {
   /// a different workflow cue for each. Returns the order number plus the
   /// server-charged line prices/total (confirmation PNG must use those, not
   /// the first catalog fetch).
+  /// [clientOrderId] is the browser-generated order id. Pass the SAME value
+  /// on every retry of one checkout: the server resolves a repeat to the
+  /// order it already created instead of making a second one. Without it, a
+  /// submit that commits just past the 15s invoke timeout looks like a plain
+  /// failure to the customer, who taps Place Order again — and the shop
+  /// packs and ships two orders for one transfer.
   Future<SubmitOrderResult> submitOrder({
     required String slug,
+    required String clientOrderId,
     required String customerName,
     String? phone,
     String? address,
@@ -240,6 +247,7 @@ class StorefrontApi {
       'storefront',
       body: {
         'action': 'submit_order',
+        'client_order_id': clientOrderId,
         'slug': slug,
         'customer_name': customerName,
         'phone': phone,
@@ -272,7 +280,12 @@ class StorefrontApi {
   /// Returns the new row's id plus its human-quotable `invoice_no`, so the
   /// page can show the receipt straight away and hand the owner a link to
   /// come back to.
+  /// [clientRequestId] must be the SAME value on every retry of one
+  /// submission — see [submitOrder]. A duplicate here is worse than a
+  /// duplicate order: two pending renewals for one transfer, and an admin
+  /// confirming both mints two licences.
   Future<SubmittedLicenseRequest> submitLicenseRequest({
+    required String clientRequestId,
     required String shopName,
     required String deviceId,
     String? email,
@@ -289,6 +302,7 @@ class StorefrontApi {
       'storefront',
       body: {
         'action': 'submit_license_request',
+        'client_request_id': clientRequestId,
         'shop_name': shopName,
         'device_id': deviceId,
         'email': email,

@@ -496,7 +496,30 @@ async function handleSubmitLicenseRequest(
   }
 
   const now = new Date().toISOString();
-  const requestId = crypto.randomUUID();
+
+  // Idempotency, same shape as submit_order: the browser generates the
+  // request id so a retry after a lost response resolves to the request it
+  // already created. The stake here is higher than an order — a duplicate
+  // means two pending renewals for one transfer, and an admin confirming
+  // both mints two licences (create_license has no shop_id uniqueness
+  // guard). A caller that sends nothing keeps the old behaviour.
+  const clientRequestId = `${body.client_request_id ?? ""}`.trim();
+  if (clientRequestId) {
+    const { data: existing } = await admin
+      .from("license_requests")
+      .select("id, invoice_no")
+      .eq("id", clientRequestId)
+      .maybeSingle();
+    if (existing) {
+      return json({
+        ok: true,
+        duplicate: true,
+        request_id: existing.id,
+        invoice_no: existing.invoice_no,
+      });
+    }
+  }
+  const requestId = clientRequestId || crypto.randomUUID();
   // Human-quotable receipt number, derived from the id so it is unique
   // without a sequence and stable forever — the same trick submit_order uses
   // for `order_no`. This is also what we will hand MyanMyanPay as its
@@ -996,7 +1019,48 @@ Deno.serve(async (req) => {
     }
 
     const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
-    const orderId = crypto.randomUUID();
+
+    // Idempotency: the browser generates the order id and sends it, so a
+    // retry after a lost response resolves to the SAME order instead of a
+    // second one.
+    //
+    // This matters because the client bounds each invoke at 15s
+    // (kEdgeInvokeTimeout) while this handler does 6+ sequential round
+    // trips plus a possible cold start. An order that commits at ~16s looks
+    // to the customer like a plain failure — the button re-enables and the
+    // message is generic — so they tap Place Order again, and the shop
+    // packs and ships two orders for one transfer. Same convention the sync
+    // outbox already uses ("every row has a client-generated UUID" —
+    // CLAUDE.md); a caller that sends nothing keeps the old behaviour.
+    const clientOrderId = `${body.client_order_id ?? ""}`.trim();
+    if (clientOrderId) {
+      const { data: existing } = await admin
+        .from("orders")
+        .select("id, order_no, items_total")
+        .eq("id", clientOrderId)
+        .eq("shop_id", sf.shop_id)
+        .maybeSingle();
+      if (existing) {
+        const { data: prior } = await admin
+          .from("order_items")
+          .select("product_id, name_snapshot, price_snapshot, qty, line_total")
+          .eq("order_id", clientOrderId);
+        return json({
+          ok: true,
+          duplicate: true,
+          order_no: existing.order_no,
+          items_total: existing.items_total,
+          lines: (prior ?? []).map((i) => ({
+            product_id: i.product_id,
+            name: i.name_snapshot,
+            price: i.price_snapshot,
+            qty: i.qty,
+            line_total: i.line_total,
+          })),
+        });
+      }
+    }
+    const orderId = clientOrderId || crypto.randomUUID();
     const now = new Date().toISOString();
     // Derived from the order's own (guaranteed-unique) id rather than a
     // millisecond timestamp — two orders submitted in the same millisecond

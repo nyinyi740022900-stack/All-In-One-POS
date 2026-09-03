@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -660,6 +661,13 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
   final _hp = TextEditingController();
   String _paymentMethod = 'transfer';
   bool _submitting = false;
+
+  /// The order id this checkout will use, generated once and REUSED across
+  /// retries so the server can recognise a repeat and return the order it
+  /// already made rather than creating a second one. Cleared only after a
+  /// confirmed success, so every "it failed, try again" tap in one checkout
+  /// carries the same id. See StorefrontApi.submitOrder.
+  String? _clientOrderId;
   SubmitOrderResult? _submitted;
   bool _downloading = false;
   List<int>? _proofBytes;
@@ -816,8 +824,10 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
           folder: widget.info.shopId,
         );
       }
+      _clientOrderId ??= const Uuid().v4();
       final submitted = await widget.api.submitOrder(
         slug: widget.slug,
+        clientOrderId: _clientOrderId!,
         customerName: _name.text.trim(),
         phone: _phone.text.trim(),
         address: _address.text.trim(),
