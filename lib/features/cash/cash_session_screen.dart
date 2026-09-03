@@ -327,7 +327,12 @@ class _OpenCard extends ConsumerWidget {
             // this the only way to reflect real cash added to the till was
             // to close the register and reopen with a new float, discarding
             // everything already recorded for the current session.
-            OutlinedButton.icon(
+            // These two are informational/non-committal — demoted to
+            // TextButton so the one action that actually ends the session
+            // (below) is the only OutlinedButton in the group, instead of
+            // three identically-weighted buttons burying the day's most
+            // consequential tap among two that don't need the same weight.
+            TextButton.icon(
               onPressed: () => _addTopUp(context, ref),
               icon: const Icon(Icons.add_card_outlined),
               label: Text(l.cashAddTopUp),
@@ -338,7 +343,7 @@ class _OpenCard extends ConsumerWidget {
             // deciding whether/how to close — previously this breakdown was
             // only ever available AFTER closing, via the history row's own
             // report icon, which is too late to catch a mis-recorded entry.
-            OutlinedButton.icon(
+            TextButton.icon(
               onPressed: () => showCashReportSheet(context, ref, session),
               icon: const Icon(Icons.receipt_long_outlined),
               label: Text(l.cashReportTitle),

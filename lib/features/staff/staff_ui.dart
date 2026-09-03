@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import 'owner_permission.dart';
@@ -32,7 +33,7 @@ class OwnerOnlyGate extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppTheme.space6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -41,12 +42,12 @@ class OwnerOnlyGate extends ConsumerWidget {
               size: 56,
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             Text(
               l.staffOwnerOnly,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppTheme.space2),
             Text(l.staffOwnerOnlyDesc, textAlign: TextAlign.center),
           ],
         ),
@@ -64,21 +65,32 @@ class StaffBadge extends ConsumerWidget {
     if (ref.watch(isEffectiveOwnerProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final name = ref.watch(activeStaffNameProvider);
+    // Neutral/informational, not a status signal — this badge says who's
+    // signed in, it isn't reporting that anything is good, bad, or
+    // attention-worthy, so it takes the same muted tone the app already
+    // reserves for "just informational" states rather than a raw Material
+    // scheme colour with no meaning in this app's own palette.
+    final colors = AppColors.of(context);
     return Container(
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.only(right: AppTheme.space3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.space2,
+        vertical: AppTheme.space1,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        color: colors.neutralSurface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.badge_outlined, size: 14),
-          const SizedBox(width: 4),
+          Icon(Icons.badge_outlined, size: 14, color: colors.muted),
+          const SizedBox(width: AppTheme.space1),
           Text(
             name ?? l.staffBadge,
-            style: Theme.of(context).textTheme.labelSmall,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colors.muted,
+            ),
           ),
         ],
       ),

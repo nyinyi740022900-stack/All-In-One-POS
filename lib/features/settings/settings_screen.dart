@@ -433,10 +433,10 @@ class SettingsScreen extends ConsumerWidget {
             // out from Account instead of managing the shop PIN.
             if (ref.watch(showStaffModeSectionProvider)) ...[
               AppSectionHeader(l.settingsSectionOwnerTools),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppTheme.space3),
-                child: StaffModeCard(),
-              ),
+              // Was a bare Padding (no card) — the one section guaranteed to
+              // always be visible read as visually unfinished next to every
+              // other section's bordered SettingsGroup card.
+              const SettingsGroup(children: [StaffModeCard()]),
             ],
           ],
         ),

@@ -32,12 +32,14 @@ class BackupScreen extends ConsumerStatefulWidget {
 }
 
 class _BackupScreenState extends ConsumerState<BackupScreen> {
-  bool _busy = false;
+  bool _exporting = false;
+  bool _importing = false;
+  bool get _busy => _exporting || _importing;
 
   Future<void> _export() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    setState(() => _busy = true);
+    setState(() => _exporting = true);
     try {
       final file = await ref.read(backupServiceProvider).writeBackupFile();
       await SharePlus.instance.share(
@@ -51,7 +53,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       messenger.showSnackBar(
           SnackBar(content: Text(l.backupFailed(_backupErrorReason(l, e)))));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _exporting = false);
     }
   }
 
@@ -85,7 +87,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
     if (ok != true) return;
 
-    setState(() => _busy = true);
+    setState(() => _importing = true);
     try {
       final jsonStr =
           await File(picked.files.single.path!).readAsString();
@@ -97,7 +99,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       messenger.showSnackBar(
           SnackBar(content: Text(l.backupFailed(_backupErrorReason(l, e)))));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _importing = false);
     }
   }
 
@@ -116,6 +118,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               leading: const IconAvatar(icon: Icons.upload_file),
               title: Text(l.backupExport),
               subtitle: Text(l.backupExportHint),
+              // Inline on the tapped row instead of a spinner appended below
+              // both cards, which grew the page height and shifted the
+              // Import card down mid-tap.
+              trailing: _exporting ? const ButtonSpinner() : null,
               onTap: _busy ? null : _export,
             ),
           ),
@@ -131,13 +137,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               ),
               title: Text(l.backupImport),
               subtitle: Text(l.backupImportHint),
+              trailing: _importing ? const ButtonSpinner() : null,
               onTap: _busy ? null : _import,
             ),
           ),
-          if (_busy) ...[
-            const SizedBox(height: AppTheme.space4),
-            const Center(child: CircularProgressIndicator()),
-          ],
         ],
       ),
     );
