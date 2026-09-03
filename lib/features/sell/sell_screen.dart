@@ -13,6 +13,7 @@ import '../license/license_providers.dart';
 import '../license/license_screen.dart';
 import '../license/license_status.dart';
 import '../printing/printing_providers.dart';
+import '../staff/staff_ui.dart';
 import 'barcode_scanner_screen.dart';
 import 'cart.dart';
 import 'checkout_sheet.dart';
@@ -268,6 +269,10 @@ class SellScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text(l.sellTitle),
           actions: [
+            // Persistent cue for who's ringing up sales — previously only
+            // discoverable reactively, via the discount PIN gate interrupting
+            // a staff member mid-sale. Renders nothing for the owner.
+            const StaffBadge(),
             IconButton(
               tooltip: l.scanBarcode,
               icon: const Icon(Icons.qr_code_scanner),
