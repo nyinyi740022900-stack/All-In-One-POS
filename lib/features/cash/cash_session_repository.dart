@@ -237,6 +237,50 @@ class CashSessionRepository {
     });
   }
 
+  /// Undoes a miscounted close — clears `closedAt`/`closingAmount`/
+  /// `expectedCashAtClose` on the most recently closed session so it
+  /// becomes the current open session again, ready for [closeSession] to
+  /// be called on it a second time with the corrected count. Only safe
+  /// when no session is currently open: reopening an old one while a
+  /// newer session is already open would leave two sessions simultaneously
+  /// "current", breaking [watchCurrentSession]'s one-open-session
+  /// assumption — so this refuses in that case rather than corrupting it.
+  Future<void> reopenLastClosedSession() async {
+    await _db.transaction(() async {
+      final open = await (_db.select(_db.cashSessions)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.closedAt.isNull()))
+          .getSingleOrNull();
+      if (open != null) {
+        throw StateError('session_already_open');
+      }
+      final lastClosed = await (_db.select(_db.cashSessions)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.closedAt.isNotNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
+            ..limit(1))
+          .getSingleOrNull();
+      if (lastClosed == null) {
+        throw StateError('no_closed_session');
+      }
+      final now = DateTime.now();
+      await (_db.update(_db.cashSessions)
+            ..where((t) => t.id.equals(lastClosed.id)))
+          .write(CashSessionsCompanion(
+        closedAt: const Value(null),
+        closingAmount: const Value(null),
+        expectedCashAtClose: const Value(null),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ));
+      await _enqueue(lastClosed.id);
+    });
+  }
+
   /// What the drawer should hold right now (or at close, if [session] is
   /// already closed) — fetches this shop's payments/repayments/expenses/
   /// supplier payments within the session's window and hands them to
@@ -447,35 +491,41 @@ class CashSessionRepository {
       final base =
           lastClosed.closingAmount ?? lastClosed.expectedCashAtClose ?? 0;
       final closedAt = lastClosed.closedAt!;
+      // >= (not strictly >): Drift truncates DateTime to whole seconds, so
+      // activity recorded in the same second as the close would otherwise
+      // be silently excluded from this fold — under-counting, exactly the
+      // bug being fixed here. This narrows the tradeoff to the reverse (a
+      // same-second entry double-counted against `base`), a much smaller
+      // and more acceptable window than "invisible until the next close."
       final paymentsAfter = await (_db.select(_db.payments)
             ..where((t) =>
                 t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.createdAt.isBiggerThanValue(closedAt)))
+                t.createdAt.isBiggerOrEqualValue(closedAt)))
           .get();
       final repaymentsAfter = await (_db.select(_db.creditPayments)
             ..where((t) =>
                 t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.createdAt.isBiggerThanValue(closedAt)))
+                t.createdAt.isBiggerOrEqualValue(closedAt)))
           .get();
       final expensesAfter = await (_db.select(_db.expenses)
             ..where((t) =>
                 t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.createdAt.isBiggerThanValue(closedAt)))
+                t.createdAt.isBiggerOrEqualValue(closedAt)))
           .get();
       final supplierPaymentsAfter = await (_db.select(_db.supplierPayments)
             ..where((t) =>
                 t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.createdAt.isBiggerThanValue(closedAt)))
+                t.createdAt.isBiggerOrEqualValue(closedAt)))
           .get();
       final topUpsAfter = await (_db.select(_db.cashTopUps)
             ..where((t) =>
                 t.shopId.equals(_shopId) &
                 t.isDeleted.equals(false) &
-                t.createdAt.isBiggerThanValue(closedAt)))
+                t.createdAt.isBiggerOrEqualValue(closedAt)))
           .get();
       final deltaSinceClose = computeExpectedCash(
         openingAmount: 0,

@@ -723,29 +723,6 @@ const BRANCH_TRIAL_MONTHS = 2;
 // a real key (`link_branch`) or a Support override is the path past that.
 const MAX_ACTIVE_TRIAL_BRANCHES_PER_OWNER = 1;
 
-async function ownerActiveTrialBranchCount(
-  admin: AdminClient,
-  ownerUserId: string,
-): Promise<number> {
-  const { data: links, error: linkErr } = await admin
-    .from("org_branches")
-    .select("shop_id")
-    .eq("owner_user_id", ownerUserId);
-  if (linkErr || !links || links.length === 0) return 0;
-  // deno-lint-ignore no-explicit-any
-  const shopIds = (links as any[]).map((l) => l.shop_id);
-
-  const { data: trialLicenses, error: licErr } = await admin
-    .from("licenses")
-    .select("shop_id")
-    .in("shop_id", shopIds)
-    .eq("plan", "trial")
-    .eq("status", "active")
-    .gt("expires_at", new Date().toISOString());
-  if (licErr || !trialLicenses) return 0;
-  return trialLicenses.length;
-}
-
 async function handleCreateBranch(
   admin: AdminClient,
   user: SupabaseUser,
@@ -756,43 +733,30 @@ async function handleCreateBranch(
   if (roleOf(user) !== "owner") {
     return json({ ok: false, error: "forbidden" }, 403);
   }
-  const activeTrials = await ownerActiveTrialBranchCount(admin, user.id);
-  if (activeTrials >= MAX_ACTIVE_TRIAL_BRANCHES_PER_OWNER) {
-    return json({ ok: false, error: "trial_already_used" }, 200);
-  }
 
   const newShopId = `shop-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
   const key = "BRANCH-" +
     crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
-  const now = new Date();
-  const expires = new Date(now);
-  expires.setMonth(expires.getMonth() + BRANCH_TRIAL_MONTHS);
-  const { data: refCode } = await admin.rpc("gen_referral_code");
 
-  const { data: license, error: licErr } = await admin
-    .from("licenses")
-    .insert({
-      shop_id: newShopId,
-      shop_name: shopName || null,
-      key,
-      plan: "trial",
-      status: "active",
-      expires_at: expires.toISOString(),
-      activated_at: now.toISOString(),
-      referral_code: refCode,
-      tier: "online",
-    })
-    .select("shop_id")
-    .single();
-  if (licErr) return json({ ok: false, error: "server_error" }, 500);
+  // The trial-cap check and the license/branch inserts all happen inside
+  // one Postgres function, serialized per-owner by an advisory lock — see
+  // create_trial_branch's own comment for why: a plain SELECT-then-INSERT
+  // here let two concurrent calls both pass the cap check.
+  const { data, error } = await admin.rpc("create_trial_branch", {
+    p_owner_user_id: user.id,
+    p_shop_id: newShopId,
+    p_shop_name: shopName || null,
+    p_key: key,
+    p_months: BRANCH_TRIAL_MONTHS,
+    p_max_active_trials: MAX_ACTIVE_TRIAL_BRANCHES_PER_OWNER,
+  });
+  if (error) return json({ ok: false, error: "server_error" }, 500);
+  const result = Array.isArray(data) ? data[0] : data;
+  if (result?.blocked) {
+    return json({ ok: false, error: "trial_already_used" }, 200);
+  }
 
-  const { error: linkErr } = await admin.from("org_branches").upsert(
-    { owner_user_id: user.id, shop_id: newShopId, label: shopName || null },
-    { onConflict: "owner_user_id,shop_id" },
-  );
-  if (linkErr) return json({ ok: false, error: "server_error" }, 500);
-
-  return json({ ok: true, shop_id: license.shop_id }, 200);
+  return json({ ok: true, shop_id: result?.shop_id ?? newShopId }, 200);
 }
 
 async function handleLinkBranch(

@@ -671,7 +671,7 @@ abstract class AppLocalizations {
   /// No description provided for @cashCloseWarning.
   ///
   /// In en, this message translates to:
-  /// **'Once closed, this count is final — the session and its variance can\'t be edited afterward.'**
+  /// **'Once closed, this count locks in — if you miscount, you can reopen this exact session from the register screen to fix it, but only until you open the next one.'**
   String get cashCloseWarning;
 
   /// No description provided for @cashAmountRequired.
@@ -745,6 +745,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Register closed'**
   String get cashRegisterClosedMsg;
+
+  /// No description provided for @cashReopenLastSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen last session'**
+  String get cashReopenLastSession;
+
+  /// No description provided for @cashReopenLastSessionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This undoes the closing count you just entered — you\'ll count and close again with the corrected amount. Only the most recently closed session can be reopened, and only while no new session has been opened since.'**
+  String get cashReopenLastSessionConfirm;
+
+  /// No description provided for @cashReopenLastSessionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Session reopened'**
+  String get cashReopenLastSessionDone;
 
   /// No description provided for @cashReportTitle.
   ///

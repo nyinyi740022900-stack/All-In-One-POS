@@ -314,7 +314,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cashCloseWarning =>
-      'Once closed, this count is final — the session and its variance can\'t be edited afterward.';
+      'Once closed, this count locks in — if you miscount, you can reopen this exact session from the register screen to fix it, but only until you open the next one.';
 
   @override
   String get cashAmountRequired => 'Enter an amount first.';
@@ -356,6 +356,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cashRegisterClosedMsg => 'Register closed';
+
+  @override
+  String get cashReopenLastSession => 'Reopen last session';
+
+  @override
+  String get cashReopenLastSessionConfirm =>
+      'This undoes the closing count you just entered — you\'ll count and close again with the corrected amount. Only the most recently closed session can be reopened, and only while no new session has been opened since.';
+
+  @override
+  String get cashReopenLastSessionDone => 'Session reopened';
 
   @override
   String get cashReportTitle => 'Cash Session Report';

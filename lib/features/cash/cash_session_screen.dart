@@ -56,7 +56,12 @@ class CashSessionScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(AppTheme.space4),
         children: [
           if (session == null)
-            _ClosedCard(onOpen: () => _openRegister(context, ref))
+            _ClosedCard(
+              onOpen: () => _openRegister(context, ref),
+              onReopenLast: pastSessions.isEmpty
+                  ? null
+                  : () => _reopenLastSession(context, ref),
+            )
           else
             _OpenCard(
               session: session,
@@ -154,11 +159,45 @@ class CashSessionScreen extends ConsumerWidget {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }
+
+  /// Undoes a miscounted close — see [CashSessionRepository.
+  /// reopenLastClosedSession]'s doc comment. Confirmed first since it
+  /// discards the closing count/variance just recorded.
+  Future<void> _reopenLastSession(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.cashReopenLastSession),
+        content: Text(l.cashReopenLastSessionConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.cashReopenLastSession),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(cashSessionRepositoryProvider).reopenLastClosedSession();
+      messenger
+          .showSnackBar(SnackBar(content: Text(l.cashReopenLastSessionDone)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+    }
+  }
 }
 
 class _ClosedCard extends StatelessWidget {
-  const _ClosedCard({required this.onOpen});
+  const _ClosedCard({required this.onOpen, this.onReopenLast});
   final VoidCallback onOpen;
+  final VoidCallback? onReopenLast;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +224,14 @@ class _ClosedCard extends StatelessWidget {
               icon: const Icon(Icons.lock_open),
               label: Text(l.cashOpenRegister),
             ),
+            if (onReopenLast != null) ...[
+              const SizedBox(height: AppTheme.space2),
+              TextButton.icon(
+                onPressed: onReopenLast,
+                icon: const Icon(Icons.undo),
+                label: Text(l.cashReopenLastSession),
+              ),
+            ],
           ],
         ),
       ),

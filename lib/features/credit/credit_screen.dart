@@ -6,13 +6,13 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/csv_util.dart' show csvField;
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../accounts/payment_account_providers.dart';
+import '../accounting/accounting_csv.dart';
 import '../accounting/accounting_pdf.dart';
 import '../accounting/accounting_providers.dart';
 import '../license/license_providers.dart';
@@ -45,37 +45,21 @@ Future<void> shareAgedReceivablesCsv(
   final currency = ref.read(shopCurrencyProvider);
   final rows = ref.read(agedReceivablesProvider);
   final totals = ref.read(agingTotalsProvider);
-  final csv = [
-    [
-      l.arHeaderCustomer,
-      l.arHeaderPhone,
-      l.arHeaderInvoice,
-      l.stockHistoryHeaderDate,
-      l.arHeaderDays,
-      l.arHeaderBucket,
-      l.arHeaderOutstanding,
-    ].map(csvField).join(','),
-    for (final r in rows)
-      [
-        r.customerName,
-        r.phone ?? '',
-        r.invoiceNo,
-        _agingDay.format(r.finalizedAt),
-        DateTime.now().difference(r.finalizedAt).inDays,
-        _agingBucketLabel(l, r.bucket),
-        formatMinorUnitsPlain(r.outstanding, exponent: currency.exponent),
-      ].map(csvField).join(','),
-    for (var i = 0; i < totals.length; i++)
-      [
-        _agingBucketLabel(l, i),
-        '',
-        '',
-        '',
-        '',
-        '',
-        formatMinorUnitsPlain(totals[i], exponent: currency.exponent),
-      ].map(csvField).join(','),
-  ].join('\r\n');
+  final csv = buildAgedReceivablesCsv(
+    rows,
+    totals,
+    bucketLabels: [
+      for (var i = 0; i < totals.length; i++) _agingBucketLabel(l, i),
+    ],
+    customerHeader: l.arHeaderCustomer,
+    phoneHeader: l.arHeaderPhone,
+    invoiceHeader: l.arHeaderInvoice,
+    dateHeader: l.stockHistoryHeaderDate,
+    daysHeader: l.arHeaderDays,
+    bucketHeader: l.arHeaderBucket,
+    outstandingHeader: l.arHeaderOutstanding,
+    exponent: currency.exponent,
+  );
   try {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/receivables-aging.csv');

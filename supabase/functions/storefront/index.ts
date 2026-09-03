@@ -563,6 +563,11 @@ async function handleReceipt(
   if ((count ?? 0) >= 30) {
     return json({ error: "rate_limited" }, 429);
   }
+  // Was checking this table's count without ever recording its own calls
+  // into it (unlike submit_license_request, which does) — every past
+  // receipt call was invisible to the very limit it was enforcing, so the
+  // 30-per-10-min cap never actually engaged for repeated receipt calls.
+  await admin.from("license_request_attempts").insert({ ip });
 
   const requestId = `${body.request_id ?? ""}`.trim();
   if (!requestId) return json({ error: "bad_request" }, 400);

@@ -315,7 +315,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get cashCloseWarning =>
-      'ပိတ်လိုက်ပြီးရင် ဒီအရေအတွက်က အပြီးအပိုင်ဖြစ်သွားပါမည် — session နှင့် variance ကို နောက်မှ ပြင်လို့မရတော့ပါ။';
+      'ပိတ်လိုက်ပြီးရင် ဒီအရေအတွက်က သေချာသွားပါမယ် — မှားရိုက်မိရင် session အသစ် မဖွင့်ရသေးမချင်း ဒီ session ကို ငွေတိုက်စာမျက်နှာက ပြန်ဖွင့်ပြီး ပြင်နိုင်ပါတယ်။';
 
   @override
   String get cashAmountRequired => 'အရင် ငွေပမာဏ ဖြည့်ပါ။';
@@ -357,6 +357,16 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get cashRegisterClosedMsg => 'ငွေတိုက် ပိတ်ပြီး';
+
+  @override
+  String get cashReopenLastSession => 'မကြာသေးမီ session ကို ပြန်ဖွင့်မည်';
+
+  @override
+  String get cashReopenLastSessionConfirm =>
+      'ဒါက ခုနက ရိုက်ထည့်လိုက်တဲ့ ပိတ်ချိန်အရေအတွက်ကို ပြန်ဖျက်ပေးမှာပါ — မှန်ကန်တဲ့ ပမာဏနဲ့ ပြန်ရေတွက်ပြီး ပြန်ပိတ်ရပါမယ်။ အနီးဆုံးပိတ်ခဲ့တဲ့ session ကိုသာ ပြန်ဖွင့်နိုင်ပြီး၊ session အသစ် မဖွင့်ရသေးမချင်းမှသာ ဒါကို လုပ်လို့ရပါတယ်။';
+
+  @override
+  String get cashReopenLastSessionDone => 'Session ပြန်ဖွင့်ပြီးပါပြီ';
 
   @override
   String get cashReportTitle => 'ငွေတိုက် Session အစီရင်ခံစာ';

@@ -197,6 +197,48 @@ void main() {
       );
     });
 
+    test('reopenLastClosedSession undoes a miscounted close', () async {
+      final id = await repo.openSession(openingAmount: 30000);
+      await repo.closeSession(id, closingAmount: 12345, note: 'fat finger');
+
+      await repo.reopenLastClosedSession();
+
+      final current = await repo.watchCurrentSession().first;
+      expect(current, isNotNull);
+      expect(current!.id, id);
+      expect(current.closedAt, isNull);
+      expect(current.closingAmount, isNull);
+      expect(current.expectedCashAtClose, isNull);
+
+      // The corrected count can now be closed again, same session id.
+      await repo.closeSession(id, closingAmount: 30000);
+      final history = await repo.watchSessions().first;
+      expect(history.single.id, id);
+      expect(history.single.closingAmount, 30000);
+    });
+
+    test('reopenLastClosedSession refuses when a session is already open',
+        () async {
+      final closedId = await repo.openSession(openingAmount: 30000);
+      await repo.closeSession(closedId, closingAmount: 30000);
+      // A new session was opened since the mistaken close — reopening the
+      // old one now would leave two sessions simultaneously "current".
+      await repo.openSession(openingAmount: 5000);
+
+      expect(
+        () => repo.reopenLastClosedSession(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('reopenLastClosedSession refuses when there is no closed session',
+        () async {
+      expect(
+        () => repo.reopenLastClosedSession(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('closed session expected cash is a snapshot, not live-recomputed',
         () async {
       final id = await repo.openSession(openingAmount: 10000);
@@ -257,6 +299,33 @@ void main() {
       final expected = await repo.expectedCash(session!);
       expect(expected, 14000); // 10000 + 4000
       expect(topUpId, isNotEmpty);
+    });
+
+    test(
+        'physicalCashNow folds in cash activity recorded after the last '
+        'close, on top of the closing count', () async {
+      final id = await repo.openSession(openingAmount: 10000);
+      await repo.closeSession(id, closingAmount: 10000);
+      expect(await repo.physicalCashNow(), 10000);
+
+      // No session is open, but an expense can still be recorded — this
+      // used to be invisible to physicalCashNow until the next session was
+      // both opened and closed (audit finding #295-11).
+      await db.into(db.expenses).insert(ExpensesCompanion.insert(
+            id: 'e-after-close',
+            shopId: 'shop-1',
+            category: 'other',
+            amount: 1500,
+            date: DateTime.now(),
+          ));
+      expect(await repo.physicalCashNow(), 8500); // 10000 - 1500
+
+      await db.into(db.cashTopUps).insert(CashTopUpsCompanion.insert(
+            id: 't-after-close',
+            shopId: 'shop-1',
+            amount: 2000,
+          ));
+      expect(await repo.physicalCashNow(), 10500); // 8500 + 2000
     });
 
     group('reportFor', () {
