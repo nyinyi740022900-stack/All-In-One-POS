@@ -482,6 +482,38 @@ Deno.serve(async (req) => {
 
       if (!lic && !shopId) return json({ error: "not_found" }, 404);
 
+      // Guard against a double-click / two-tab race on this manual admin
+      // action — unlike fulfill_request (an atomic pending->processing claim
+      // on a request row), extend_license has no natural row to claim before
+      // minting. An identical extend already logged for this exact key in
+      // the last 10 seconds is almost certainly the same click landing twice
+      // (slow network + impatience, or two open admin tabs), not two
+      // genuinely separate intended extensions. (Scoped to the `lic` branch
+      // only — license_events has no shop_id column, only `key`, so the rare
+      // zero-license-rows mint-fresh branch below has no matching key yet to
+      // guard on.)
+      if (lic) {
+        const recentDupeWindow = new Date(Date.now() - 10_000).toISOString();
+        const { data: recent } = await admin
+          .from("license_events")
+          .select("expires_at")
+          .eq("key", lic.key)
+          .eq("action", "extend")
+          .eq("months", months)
+          .gte("created_at", recentDupeWindow)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (recent) {
+          return json({
+            expires_at: recent.expires_at,
+            key: lic.key,
+            created: false,
+            duplicate: true,
+          });
+        }
+      }
+
       // A resolved shop with a real account but zero license rows (e.g. one
       // removed by a data cleanup while the login was deliberately kept) has
       // nothing to renew — mint fresh instead of failing.

@@ -116,6 +116,19 @@ class CashSessionRepository {
         .watch();
   }
 
+  /// Every non-deleted sale payment for this shop, unfiltered by date —
+  /// mirrors [watchAllExpenses]/[watchAllSupplierPayments]. [expectedCash]
+  /// reads `payments` directly but nothing was watching that table; a sale
+  /// and its payment land in separate sync-pull transactions (see
+  /// sync_mappers.dart's syncTables order), so relying on `salesStreamProvider`
+  /// alone as a proxy could miss a payment that arrives in its own later
+  /// transaction, leaving the drawer's expected-cash figure stale.
+  Stream<List<Payment>> watchAllPayments() {
+    return (_db.select(_db.payments)
+            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+        .watch();
+  }
+
   /// Every non-deleted cash top-up for this shop, unfiltered by date —
   /// mirrors [watchAllExpenses]/[watchAllSupplierPayments], used only to
   /// trigger [expectedCash] recomputation when one is recorded.
@@ -423,9 +436,56 @@ class CashSessionRepository {
           ..limit(1))
         .getSingleOrNull();
     if (lastClosed != null) {
-      return lastClosed.closingAmount ??
-          lastClosed.expectedCashAtClose ??
-          0;
+      // The counted/expected figure at close is only the base — cash
+      // activity can still be recorded with no session open (an expense,
+      // supplier payment, credit repayment, or top-up none of which require
+      // one), and without folding those in here the Balance Sheet's cash
+      // line would stay frozen at last night's closing count until the
+      // next session is both opened AND closed. Fold in everything dated
+      // after the close, same shape as the never-opened-a-session fold
+      // below, added on top of the closing base instead of from zero.
+      final base =
+          lastClosed.closingAmount ?? lastClosed.expectedCashAtClose ?? 0;
+      final closedAt = lastClosed.closedAt!;
+      final paymentsAfter = await (_db.select(_db.payments)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerThanValue(closedAt)))
+          .get();
+      final repaymentsAfter = await (_db.select(_db.creditPayments)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerThanValue(closedAt)))
+          .get();
+      final expensesAfter = await (_db.select(_db.expenses)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerThanValue(closedAt)))
+          .get();
+      final supplierPaymentsAfter = await (_db.select(_db.supplierPayments)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerThanValue(closedAt)))
+          .get();
+      final topUpsAfter = await (_db.select(_db.cashTopUps)
+            ..where((t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.createdAt.isBiggerThanValue(closedAt)))
+          .get();
+      final deltaSinceClose = computeExpectedCash(
+        openingAmount: 0,
+        payments: paymentsAfter,
+        repayments: repaymentsAfter,
+        expenses: expensesAfter,
+        supplierPayments: supplierPaymentsAfter,
+        topUps: topUpsAfter,
+      );
+      return base + deltaSinceClose;
     }
 
     final payments = await (_db.select(_db.payments)

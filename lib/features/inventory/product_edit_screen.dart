@@ -10,6 +10,7 @@ import '../../core/env.dart';
 import '../../core/image_util.dart';
 import '../../core/input/thousands_formatter.dart';
 import '../../core/layout.dart';
+import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/sync/sync_providers.dart';
@@ -42,6 +43,16 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   late final TextEditingController _vipPrice;
   late final TextEditingController _onlineStockLimit;
   late final TextEditingController _quantity;
+  // The quantity field is seeded once from the stock level at the moment
+  // this screen opened. If the owner leaves it untouched while editing
+  // something else (price, sellOnline, ...), the field's text goes stale
+  // against any stock activity (a sale, a restock, another edit) that
+  // happens while the screen is open — submitting it anyway would silently
+  // overwrite the real current stock and fabricate a bogus stock movement.
+  // Comparing against this snapshot at save time lets us tell "genuinely
+  // untouched" apart from "owner typed a new number" and skip the write
+  // only in the former case.
+  late final String _initialQuantityText;
   late final TextEditingController _reorder;
   String? _categoryId;
   String? _imageUrl;
@@ -87,6 +98,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
           : '${e!.product.onlineStockLimit}',
     );
     _quantity = TextEditingController(text: e == null ? '' : '${e.quantity}');
+    _initialQuantityText = _quantity.text;
     _reorder = TextEditingController(
       text: e == null ? '' : '${e.reorderLevel}',
     );
@@ -133,7 +145,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
         Uint8List.fromList(file.bytes!),
         fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
       );
-      final path = 'p-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
+      // Folder-scoped by the caller's own shop_id — the bucket's write
+      // policy requires it, so a shop can only ever create/overwrite
+      // objects under its own folder, never another shop's.
+      final shopId = ref.read(shopIdProvider);
+      final path = '$shopId/p-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
       final storage = Supabase.instance.client.storage.from('product-images');
       await storage.uploadBinary(
         path,
@@ -199,6 +215,13 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     setState(() => _saving = true);
     try {
       final exponent = ref.read(shopCurrencyProvider).exponent;
+      // Only resubmit quantity as a stock-level write when it's a brand-new
+      // product (setting opening stock, no prior state to conflict with) or
+      // the owner actually changed the field — see _initialQuantityText.
+      // Otherwise pass null so upsertProduct leaves the current stock alone,
+      // however it's changed since this screen opened.
+      final quantityTouched = widget.existing == null ||
+          _quantity.text.trim() != _initialQuantityText.trim();
       await ref
           .read(inventoryRepositoryProvider)
           .upsertProduct(
@@ -213,7 +236,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
             vipPrice: _moneyOrNull(_vipPrice, exponent),
             onlineStockLimit: _intOrNull(_onlineStockLimit),
             sellOnline: _sellOnline,
-            quantity: _int(_quantity),
+            quantity: quantityTouched ? _int(_quantity) : null,
             reorderLevel: _int(_reorder),
             imageUrl: _imageUrl,
           );

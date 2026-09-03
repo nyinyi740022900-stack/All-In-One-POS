@@ -29,6 +29,7 @@ Future<void> shareOrderInvoice(
 ) async {
   final l = AppLocalizations.of(context);
   final profile = await ref.read(shopProfileProvider.future);
+  final currency = ref.read(shopCurrencyProvider);
 
   // Best-effort: reuse the shop's published storefront logo, if any. Never
   // blocks the invoice on network/offline — falls back to no logo.
@@ -72,6 +73,8 @@ Future<void> shareOrderInvoice(
     footer: (profile.footer != null && profile.footer!.isNotEmpty)
         ? profile.footer
         : l.receiptThankYou,
+    currencySymbol: currency.symbol,
+    exponent: currency.exponent,
   );
 
   if (!context.mounted) return;

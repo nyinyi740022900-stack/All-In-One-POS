@@ -370,6 +370,41 @@ async function sumOrderedByProduct(
   return ordered;
 }
 
+/// Total quantity ordered for one product across every active storefront
+/// order created at or before [throughCreatedAt] — used by submit_order's
+/// post-insert cap recheck so two orders racing for the last unit resolve
+/// consistently: the earlier order's own recheck only counts orders up to
+/// (and including) itself, while the later one's recheck also counts the
+/// earlier one — so only the later order can ever see itself go over cap.
+async function cumulativeOrderedThrough(
+  admin: Admin,
+  shopId: string,
+  productId: string,
+  throughCreatedAt: string,
+): Promise<number> {
+  const { data: activeOrders } = await admin
+    .from("orders")
+    .select("id")
+    .eq("shop_id", shopId)
+    .eq("channel", "storefront")
+    .eq("is_deleted", false)
+    .neq("status", "cancelled")
+    .neq("status", "delivered")
+    .lte("created_at", throughCreatedAt);
+  const orderIds = (activeOrders ?? []).map((o: { id: string }) => o.id);
+  if (orderIds.length === 0) return 0;
+  const { data: rows } = await admin
+    .from("order_items")
+    .select("qty")
+    .eq("product_id", productId)
+    .in("order_id", orderIds)
+    .eq("is_deleted", false);
+  return (rows ?? []).reduce(
+    (sum: number, r: { qty: number }) => sum + (r.qty as number),
+    0,
+  );
+}
+
 /// The /renew page's submission handler — a shop's own owner requesting a
 /// subscription renewal/extension, identified only by the device_id ("App
 /// Reference ID") they type in, not a slug or session. Restores a live path
@@ -1013,19 +1048,27 @@ Deno.serve(async (req) => {
     // the last unit; whichever commit leaves a product over its cap is
     // rolled back here. (A true SELECT FOR UPDATE would need a Postgres
     // RPC — each REST call is its own transaction.)
+    //
+    // Ranked by created_at (this order's own `now`, set above), not a flat
+    // aggregate: comparing the running total *as of and including this
+    // order* against the cap means only the later of two racing orders for
+    // the last unit sees itself go over — the earlier one's own recheck
+    // stays within cap and survives. Comparing the plain aggregate instead
+    // (the previous approach) made BOTH racing orders see the same
+    // over-cap total and both self-reject, losing the sale entirely even
+    // though exactly one of them should have honored it first-come-first-served.
     if (cappedIds.length > 0) {
-      const orderedAfter = await sumOrderedByProduct(
-        admin,
-        sf.shop_id,
-        cappedIds,
-      );
       let overProductId: string | null = null;
       for (const p of products ?? []) {
         if (p.online_stock_limit == null) continue;
-        if (
-          (orderedAfter.get(p.id as string) ?? 0) >
-            (p.online_stock_limit as number)
-        ) {
+        if (!cappedIds.includes(p.id as string)) continue;
+        const cumulative = await cumulativeOrderedThrough(
+          admin,
+          sf.shop_id,
+          p.id as string,
+          now,
+        );
+        if (cumulative > (p.online_stock_limit as number)) {
           overProductId = p.id as string;
           break;
         }

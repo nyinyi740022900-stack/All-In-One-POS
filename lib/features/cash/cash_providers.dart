@@ -35,6 +35,7 @@ class _CashInputSignal extends StateNotifier<int> {
     ref.listen(_cashExpensesWatchProvider, (_, _) => _bump());
     ref.listen(_cashSupplierPaymentsWatchProvider, (_, _) => _bump());
     ref.listen(_cashTopUpsWatchProvider, (_, _) => _bump());
+    ref.listen(_cashPaymentsWatchProvider, (_, _) => _bump());
   }
 
   Timer? _timer;
@@ -87,4 +88,11 @@ final _cashSupplierPaymentsWatchProvider =
 /// top-up fills the till, so the drawer must recompute when one is recorded.
 final _cashTopUpsWatchProvider = StreamProvider<List<CashTopUp>>((ref) {
   return ref.watch(cashSessionRepositoryProvider).watchAllTopUps();
+});
+
+/// Invalidation-only signal — see [expectedCashProvider] and
+/// [CashSessionRepository.watchAllPayments]'s doc comment for why
+/// `salesStreamProvider` alone isn't a safe proxy for this.
+final _cashPaymentsWatchProvider = StreamProvider<List<Payment>>((ref) {
+  return ref.watch(cashSessionRepositoryProvider).watchAllPayments();
 });

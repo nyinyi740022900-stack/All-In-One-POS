@@ -37,6 +37,13 @@ final accountBalanceProvider =
   ref.watch(repaymentsProvider);
   ref.watch(accountExpensesWatchProvider);
   ref.watch(accountSupplierPaymentsWatchProvider);
+  // `balanceFor` reads `payments` directly (the inflow side of the fold),
+  // but sales and their payments land in separate sync-pull transactions
+  // (see sync_mappers.dart's syncTables order) — watching only
+  // `salesStreamProvider` as a proxy misses a payment that arrives in its
+  // own later transaction, leaving the balance understated until an
+  // unrelated table happens to force a refresh. Watch the real source.
+  ref.watch(accountPaymentsWatchProvider);
   return ref.read(paymentAccountRepositoryProvider).balanceFor(account);
 });
 

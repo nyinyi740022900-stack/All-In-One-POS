@@ -270,8 +270,17 @@ class _OrderEditorSheetState extends ConsumerState<OrderEditorSheet> {
           DropdownButtonFormField<String>(
             initialValue: _channel,
             decoration: InputDecoration(labelText: l.orderChannel),
+            // `orderChannels` is the pickable list for a manually-created
+            // order and deliberately excludes 'storefront' (that channel is
+            // stamped server-side, never hand-picked — see
+            // supabase/functions/storefront/index.ts's submit_order). An
+            // existing order can still carry a channel outside that list
+            // (storefront today, potentially others later), and
+            // DropdownButtonFormField asserts its initialValue must appear
+            // exactly once in items — append it here so opening a
+            // storefront order for editing doesn't crash.
             items: [
-              for (final c in orderChannels)
+              for (final c in {...orderChannels, _channel})
                 DropdownMenuItem(value: c, child: Text(orderChannelLabel(l, c))),
             ],
             onChanged: (v) => setState(() => _channel = v ?? 'facebook'),

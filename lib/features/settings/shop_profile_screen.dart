@@ -129,7 +129,11 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       // logo also gets embedded directly into the printed receipt.
       final c = await compressImage(file.bytes!,
           fallbackExt: (file.extension ?? 'jpg').toLowerCase());
-      final path = 'shop-logo-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
+      // Folder-scoped by the caller's own shop_id — see the matching
+      // comment in product_edit_screen.dart's upload path.
+      final shopId = ref.read(shopIdProvider);
+      final path =
+          '$shopId/shop-logo-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
       final storage = Supabase.instance.client.storage.from('product-images');
       await storage.uploadBinary(path, c.bytes,
           fileOptions: const FileOptions(upsert: true));

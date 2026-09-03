@@ -427,7 +427,13 @@ function shopIdOf(user: SupabaseUser): string | null {
 
 /// JWT claim first; if a reinstall / stale session dropped `shop_id`, recover
 /// it from `org_branches` (owner email logins) and restamp metadata so the
-/// next refresh carries the claim.
+/// next refresh carries the claim. When the owner has more than one branch,
+/// picks the one with the most recent `last_active_at` — i.e. whichever
+/// branch `handleSwitchBranch` last actually scoped a session to — NOT the
+/// branch with the furthest license `expires_at`; a longer-remaining branch
+/// is not necessarily the one the owner was working in, and silently
+/// rebinding to the wrong one means sales get recorded into the wrong
+/// branch's ledger with no indication anything switched.
 async function resolveShopId(
   admin: AdminClient,
   user: SupabaseUser,
@@ -437,31 +443,22 @@ async function resolveShopId(
 
   const { data: branches, error } = await admin
     .from("org_branches")
-    .select("shop_id")
-    .eq("owner_user_id", user.id);
+    .select("shop_id, last_active_at")
+    .eq("owner_user_id", user.id)
+    .order("last_active_at", { ascending: false });
   if (error || !branches?.length) return null;
 
-  const shopIds = [
-    ...new Set(
-      branches
-        .map((b) => b.shop_id as string)
-        .filter((id) => typeof id === "string" && id.length > 0),
-    ),
-  ];
-  if (shopIds.length === 0) return null;
-
-  let shopId = shopIds[0];
-  if (shopIds.length > 1) {
-    const { data: licenses } = await admin
-      .from("licenses")
-      .select("shop_id, expires_at")
-      .in("shop_id", shopIds)
-      .eq("is_deleted", false)
-      .order("expires_at", { ascending: false })
-      .limit(1);
-    const latest = Array.isArray(licenses) ? licenses[0] : licenses;
-    if (latest?.shop_id) shopId = latest.shop_id as string;
+  const seen = new Set<string>();
+  let shopId: string | null = null;
+  for (const b of branches) {
+    const id = b.shop_id as string;
+    if (typeof id === "string" && id.length > 0 && !seen.has(id)) {
+      seen.add(id);
+      shopId = id;
+      break;
+    }
   }
+  if (!shopId) return null;
 
   const prev = (user.app_metadata ?? {}) as Record<string, unknown>;
   await admin.auth.admin.updateUserById(user.id, {
@@ -945,6 +942,14 @@ async function handleSwitchBranch(
   // Already scoped to the target — treat as success (idempotent no-op) so a
   // retry after a successful claim but failed client wipe/sync can continue.
   if (shopId === targetShopId) {
+    // Still worth bumping last_active_at — see resolveShopId's doc comment —
+    // so a device that's simply confirming it's on the right branch doesn't
+    // look stale next to a branch nobody's actually used in longer.
+    await admin
+      .from("org_branches")
+      .update({ last_active_at: new Date().toISOString() })
+      .eq("owner_user_id", user.id)
+      .eq("shop_id", targetShopId);
     const payload = await licensePayloadForShop(admin, targetShopId);
     if (token) {
       await admin.from("branch_switch_attempts").upsert(
@@ -974,6 +979,15 @@ async function handleSwitchBranch(
     app_metadata: { shop_id: targetShopId, role: "owner" },
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
+
+  // See resolveShopId's doc comment: this is what lets a later reinstall
+  // recover the branch the owner was actually using, instead of whichever
+  // branch happens to have the longest-remaining license.
+  await admin
+    .from("org_branches")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("owner_user_id", user.id)
+    .eq("shop_id", targetShopId);
 
   const payload = await licensePayloadForShop(admin, targetShopId);
   if (token) {

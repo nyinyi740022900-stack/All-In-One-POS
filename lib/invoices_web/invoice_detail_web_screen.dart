@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/currency_def.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/invoices/cashier_label.dart';
@@ -164,6 +165,8 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       paymentMethodCode: methodCode,
       paymentMethodCustomName: customName,
       cashier: cashier,
+      currencySymbol: CurrencyDef.byCode(sf?['currency_code'] as String?).symbol,
+      exponent: CurrencyDef.byCode(sf?['currency_code'] as String?).exponent,
     );
   }
 

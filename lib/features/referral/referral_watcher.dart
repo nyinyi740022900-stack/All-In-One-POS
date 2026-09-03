@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/env.dart';
 import '../../core/money.dart';
 import '../../core/notifications.dart';
+import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
@@ -46,12 +47,13 @@ class ReferralWatcher {
       if (_ref.read(licenseControllerProvider).license == null) return;
 
       final settings = _ref.read(settingsRepositoryProvider);
+      final shopId = _ref.read(shopIdProvider);
       final summary = await _ref.read(referralRepositoryProvider).summary();
 
-      final seen = await settings.referralSeenEarned();
+      final seen = await settings.referralSeenEarned(shopId);
       if (seen == null) {
         // First run: baseline silently so we never alert for past earnings.
-        await settings.setReferralSeenEarned(summary.earned);
+        await settings.setReferralSeenEarned(shopId, summary.earned);
         return;
       }
       if (summary.earned > seen) {
@@ -67,7 +69,7 @@ class ReferralWatcher {
           body: l.referralNotifBody(
               Money(delta).withCurrency(currency, code)),
         );
-        await settings.setReferralSeenEarned(summary.earned);
+        await settings.setReferralSeenEarned(shopId, summary.earned);
         // Refresh any open referral screen.
         _ref.invalidate(referralSummaryProvider);
       }

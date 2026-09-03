@@ -1179,6 +1179,8 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
     // default stamped on it (see [invoicePaymentStatusDisplay]).
     paymentStatus: _paymentMethod == 'cod' ? 'cod_pending' : 'transfer_pending',
     footer: l.receiptThankYou,
+    currencySymbol: widget.currency.symbol,
+    exponent: widget.currency.exponent,
   );
 
   Future<void> _saveInvoiceToPhotos(

@@ -96,6 +96,40 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Sibling-event guard — Lemon Squeezy fires BOTH `order_created` and
+  // `subscription_payment_success` for the SAME purchase on every new
+  // subscription (documented: "Initial order is placed: order_created,
+  // subscription_created, subscription_payment_success"). The dedup above
+  // is keyed by event_name:data.id, so it can't catch this — the two
+  // events carry different resource ids for one purchase, and without this
+  // guard a brand-new subscriber's first payment mints/extends TWICE
+  // (confirmed live during #293's own end-to-end test, which exercised
+  // exactly this sequence and mislabeled the second call a correct renewal).
+  // A genuine renewal is always at least a full billing period (a month or
+  // a year) later, so any OTHER already-completed event for this shop
+  // within the last 10 minutes must be this same purchase's sibling
+  // delivery, not a new one — skip the mint and mirror its months onto
+  // this event's own row so a genuine retry of THIS exact delivery still
+  // short-circuits via the check above.
+  const siblingWindow = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: siblingEvent } = await admin
+    .from("lemonsqueezy_events")
+    .select("months")
+    .eq("shop_id", shopId)
+    .neq("id", eventId)
+    .not("months", "is", null)
+    .gte("processed_at", siblingWindow)
+    .order("processed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (siblingEvent?.months != null) {
+    await admin
+      .from("lemonsqueezy_events")
+      .update({ months: siblingEvent.months })
+      .eq("id", eventId);
+    return json({ ok: true, duplicate: true, reason: "sibling_event_recent" });
+  }
+
   // Variant → months. `order_created`'s line item carries the variant
   // directly; a `subscription_payment_success` invoice does not repeat it,
   // so fall back to whatever months this shop's most recent resolved Lemon

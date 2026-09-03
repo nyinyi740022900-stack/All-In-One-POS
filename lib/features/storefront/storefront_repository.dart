@@ -417,11 +417,13 @@ class StorefrontRepository {
   }
 
   /// Uploads a logo image to the shared public product-images bucket and
-  /// returns its public URL.
+  /// returns its public URL. Folder-scoped by this shop's own id — the
+  /// bucket's write policy requires it (the old flat `logo-$_shopId-...`
+  /// naming embedded the shop id in the filename, not an actual storage
+  /// folder segment, so it didn't satisfy a folder-based policy).
   Future<String> uploadLogo(List<int> bytes, String ext) async {
     final c = await compressImage(Uint8List.fromList(bytes), fallbackExt: ext);
-    final path =
-        'logo-$_shopId-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
+    final path = '$_shopId/logo-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
     final storage = _c.storage.from('product-images');
     await storage.uploadBinary(
       path,
