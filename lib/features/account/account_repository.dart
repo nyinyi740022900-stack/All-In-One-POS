@@ -193,6 +193,17 @@ class AccountRepository {
   Future<AccountActionResult> confirmWipeAndClaimDevice() async {
     final clearGuard = await _transition.assertSafeToClear();
     if (clearGuard != null) {
+      // The caller already confirmed the wipe, so this device's session is
+      // now authenticated as the NEW shop while local data/outbox still
+      // belong to the OLD one. Sign back out (same as the decline branch in
+      // the caller's dialog) rather than leaving that mismatch in place —
+      // otherwise the stuck outbox this just blocked on would start getting
+      // rejected by shop_isolation RLS too (JWT says the new shop, the rows
+      // say the old one), making the stuck-outbox problem worse, not just
+      // deferred.
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
       if (clearGuard == 'stuck_outbox') {
         return const AccountActionResult.failure('stuck_outbox');
       }
@@ -255,8 +266,11 @@ class AccountRepository {
     }
     if (pulled.errorCode == 'not_found' ||
         pulled.errorCode == 'not_activated') {
-      final claimed = await _claimDeviceSlot();
-      if (claimed.ok) return claimed;
+      // The fallback's own result (ok or not) is more specific than the
+      // pull's original `not_found`/`not_activated` and must win — otherwise
+      // a shop at its device cap gets told "license not found" instead of
+      // that it needs another slot (`payment_required`).
+      return _claimDeviceSlot();
     }
     return AccountActionResult.failure(
       pulled.errorCode ?? 'server_error',

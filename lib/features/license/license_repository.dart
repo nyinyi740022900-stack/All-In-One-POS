@@ -267,10 +267,19 @@ class LicenseRepository {
     if (user == null || (user.email ?? '').isEmpty) {
       return const ActivationResult.failure('not_activated');
     }
+    // Mirrors signupShop()'s retry strength: a just-created account (e.g.
+    // createShopLogin() immediately followed by this sign-in) can hit the
+    // same shop_id-claim-propagation race a brand-new signup does, and one
+    // flat retry wasn't always enough to clear it before falling through to
+    // the sign-out path with a misleading-sounding failure.
     var result = await _refreshAccountLicenseOnce();
-    if (result.errorCode == 'not_activated' ||
-        result.errorCode == 'not_authenticated') {
+    for (var attempt = 0;
+        attempt < 2 &&
+            (result.errorCode == 'not_activated' ||
+                result.errorCode == 'not_authenticated');
+        attempt++) {
       await refreshSessionBounded();
+      await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
       result = await _refreshAccountLicenseOnce();
     }
     return result;

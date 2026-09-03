@@ -6593,7 +6593,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardAccountBody.
   ///
   /// In en, this message translates to:
-  /// **'Skip if you only use this one phone. An email account is for new shops and for shops you already run on another device.'**
+  /// **'Only needed if you\'ll use this shop on another phone, or add staff logins.'**
   String get onboardAccountBody;
 
   /// No description provided for @onboardAccountBenefits.
@@ -6601,6 +6601,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email'**
   String get onboardAccountBenefits;
+
+  /// No description provided for @onboardAccountWhyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Why add an email?'**
+  String get onboardAccountWhyEmail;
 
   /// No description provided for @onboardAccountSkip.
   ///
@@ -6625,12 +6631,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.'**
   String get onboardStaffBody;
-
-  /// No description provided for @onboardAccountMissingFields.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill in the required fields first.'**
-  String get onboardAccountMissingFields;
 
   /// No description provided for @accountShopLoginTitle.
   ///

@@ -15,6 +15,7 @@ class AuthPasswordField extends StatefulWidget {
     this.autofillHints,
     this.textInputAction,
     this.onSubmitted,
+    this.onChanged,
     this.errorText,
     this.helperText,
     this.autofocus = false,
@@ -25,6 +26,7 @@ class AuthPasswordField extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
   final String? errorText;
   final String? helperText;
   final bool autofocus;
@@ -45,6 +47,7 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
       autofillHints: widget.autofillHints,
       textInputAction: widget.textInputAction,
       onSubmitted: widget.onSubmitted,
+      onChanged: widget.onChanged,
       autofocus: widget.autofocus,
       decoration: InputDecoration(
         labelText: widget.labelText,

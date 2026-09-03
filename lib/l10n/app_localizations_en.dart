@@ -3618,11 +3618,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardAccountBody =>
-      'Skip if you only use this one phone. An email account is for new shops and for shops you already run on another device.';
+      'Only needed if you\'ll use this shop on another phone, or add staff logins.';
 
   @override
   String get onboardAccountBenefits =>
       'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email';
+
+  @override
+  String get onboardAccountWhyEmail => 'Why add an email?';
 
   @override
   String get onboardAccountSkip => 'Skip for now';
@@ -3636,10 +3639,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardStaffBody =>
       'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.';
-
-  @override
-  String get onboardAccountMissingFields =>
-      'Fill in the required fields first.';
 
   @override
   String get accountShopLoginTitle => 'Account';

@@ -348,14 +348,24 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
   // the sync-triggered hydration in `SyncController` lands it) instead of
   // staying stuck on the pre-sign-in placeholder.
   String? _hydratedForShopId;
+  Timer? _saveDebounce;
 
   @override
   void dispose() {
+    _saveDebounce?.cancel();
     _name.dispose();
     _phone.dispose();
     _address.dispose();
     _footer.dispose();
     super.dispose();
+  }
+
+  // Debounced so rapid typing doesn't fire an unordered async DB write per
+  // keystroke — each new keystroke cancels the pending save and reschedules,
+  // so only the latest field state is ever written.
+  void _scheduleSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 400), _save);
   }
 
   Future<void> _save() async {
@@ -371,6 +381,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
         footer: _footer.text.trim().isEmpty ? null : _footer.text.trim(),
       ),
     );
+    if (!mounted) return;
     ref.invalidate(shopProfileProvider);
   }
 
@@ -402,7 +413,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
               labelText: l.shopName,
               prefixIcon: const AuthFieldIcon(Icons.store_outlined),
             ),
-            onChanged: (_) => _save(),
+            onChanged: (_) => _scheduleSave(),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -414,7 +425,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
               labelText: l.shopPhone,
               prefixIcon: const AuthFieldIcon(Icons.phone_outlined),
             ),
-            onChanged: (_) => _save(),
+            onChanged: (_) => _scheduleSave(),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -428,7 +439,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
               labelText: l.shopAddress,
               prefixIcon: const AuthFieldIcon(Icons.location_on_outlined),
             ),
-            onChanged: (_) => _save(),
+            onChanged: (_) => _scheduleSave(),
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -441,7 +452,7 @@ class _ShopProfilePageState extends ConsumerState<_ShopProfilePage> {
               labelText: l.receiptFooter,
               prefixIcon: const AuthFieldIcon(Icons.receipt_long_outlined),
             ),
-            onChanged: (_) => _save(),
+            onChanged: (_) => _scheduleSave(),
           ),
         ],
       ),
@@ -481,7 +492,16 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
   late final SavedLoginBinder _savedLogin;
   bool _busy = false;
   bool _done = false;
-  bool _register = false;
+  // Defaults to Create account: this page is reached during first-run
+  // onboarding, where the overwhelming majority of visitors have never had
+  // an account — Sign in as the default asked a brand-new user to find the
+  // one tab meant for someone else first.
+  bool _register = true;
+  bool _showBenefits = false;
+  // Set on a blocked submit attempt so the offending field(s) show an
+  // inline errorText instead of (or alongside) the generic banner — cleared
+  // whenever the tab is switched so a stale field error doesn't linger.
+  bool _attemptedSubmit = false;
   String? _error;
 
   @override
@@ -492,6 +512,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _savedLogin.load(ref.read(savedLoginStoreProvider));
+      if (!mounted) return;
       final name = ref.read(shopProfileProvider).asData?.value.name.trim();
       if (name != null && name.isNotEmpty && _shopName.text.isEmpty) {
         _shopName.text = name;
@@ -512,10 +533,24 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
   String _errorMessage(AppLocalizations l, String? code) =>
       accountActionErrorMessage(l, code);
 
+  // The field-level errorText below is computed straight from controller
+  // text each build, but a controller changing doesn't itself trigger a
+  // rebuild — this forces one so a field's error clears the moment the user
+  // fixes it, without repainting on every keystroke before there's an error
+  // to clear.
+  void _onFieldChanged() {
+    if (_attemptedSubmit) setState(() {});
+  }
+
   bool get _attachToThisShop =>
       !isReplaceableLocalLicense(ref.read(licenseControllerProvider).license);
 
   Future<void> _submit() async {
+    // `onPressed: _busy ? null : _submit` can't block a second tap landing
+    // in the frame before the first tap's setState(_busy=true) repaints the
+    // disabled button — guard here too so a fast double-tap can't fire two
+    // concurrent sign-in/create-account attempts.
+    if (_busy) return;
     if (_register) {
       await _createAccount();
     } else {
@@ -528,13 +563,20 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     if (_email.text.trim().isEmpty ||
         _password.text.isEmpty ||
         (!_attachToThisShop && _shopName.text.trim().isEmpty)) {
-      // Silent returns here used to read as a dead button — say what's
-      // missing instead of doing nothing.
-      setState(() => _error = l.onboardAccountMissingFields);
+      // Silent returns here used to read as a dead button — the offending
+      // field(s) now show their own errorText below instead of one generic
+      // banner naming nothing specific.
+      setState(() {
+        _attemptedSubmit = true;
+        _error = null;
+      });
       return;
     }
     if (_password.text != _confirmPassword.text) {
-      setState(() => _error = l.accountPasswordMismatch);
+      setState(() {
+        _attemptedSubmit = true;
+        _error = null;
+      });
       return;
     }
     final attach = _attachToThisShop;
@@ -548,6 +590,17 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
           .createShopLogin(_email.text.trim(), _password.text);
       if (!mounted) return;
       if (!created.ok) {
+        if (created.error == 'email_taken') {
+          // The login this call wanted may already exist because an earlier
+          // attempt in this same flow created it and only the immediately-
+          // chained sign-in below failed (a transient error, say) — retry via
+          // sign-in with the same credentials instead of dead-ending on
+          // "already registered": it succeeds silently if this was really
+          // our own earlier attempt, and reports the accurate wrong-password
+          // error if it wasn't.
+          await _signIn();
+          return;
+        }
         setState(() {
           _busy = false;
           _error = _errorMessage(l, created.error);
@@ -559,6 +612,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
             .read(licenseControllerProvider.notifier)
             .applyExternal(created.license!);
       }
+      if (!mounted) return;
       await _signIn();
       return;
     }
@@ -583,8 +637,12 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      // Same as _createAccount: a silent return reads as a dead button.
-      setState(() => _error = l.onboardAccountMissingFields);
+      // Same as _createAccount: the offending field(s) show their own
+      // errorText below instead of one generic banner.
+      setState(() {
+        _attemptedSubmit = true;
+        _error = null;
+      });
       return;
     }
     setState(() {
@@ -679,10 +737,39 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l.onboardAccountBenefits,
-              style: Theme.of(context).textTheme.bodyMedium,
+            InkWell(
+              onTap: () => setState(() => _showBenefits = !_showBenefits),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppTheme.space1,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l.onboardAccountWhyEmail,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    Icon(
+                      _showBenefits
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
             ),
+            if (_showBenefits) ...[
+              const SizedBox(height: AppTheme.space1),
+              Text(
+                l.onboardAccountBenefits,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: AppTheme.space4),
             SegmentedButton<bool>(
               segments: [
@@ -701,6 +788,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                   : (s) => setState(() {
                       _register = s.first;
                       _error = null;
+                      _attemptedSubmit = false;
                     }),
             ),
             const SizedBox(height: AppTheme.space4),
@@ -710,9 +798,13 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                 textCapitalization: TextCapitalization.words,
                 autofillHints: const [AutofillHints.organizationName],
                 textInputAction: TextInputAction.next,
+                onChanged: (_) => _onFieldChanged(),
                 decoration: InputDecoration(
                   labelText: l.shopName,
                   prefixIcon: const AuthFieldIcon(Icons.store_outlined),
+                  errorText: _attemptedSubmit && _shopName.text.trim().isEmpty
+                      ? l.validationRequired
+                      : null,
                 ),
               ),
               const SizedBox(height: AppTheme.space3),
@@ -725,9 +817,13 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                 AutofillHints.email,
               ],
               textInputAction: TextInputAction.next,
+              onChanged: (_) => _onFieldChanged(),
               decoration: InputDecoration(
                 labelText: l.accountEmail,
                 prefixIcon: const AuthFieldIcon(Icons.mail_outline),
+                errorText: _attemptedSubmit && _email.text.trim().isEmpty
+                    ? l.validationRequired
+                    : null,
               ),
             ),
             const SizedBox(height: AppTheme.space3),
@@ -738,12 +834,16 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                   ? const [AutofillHints.newPassword]
                   : const [AutofillHints.password],
               helperText: _register ? null : l.accountPasswordRememberedHint,
+              errorText: _attemptedSubmit && _password.text.isEmpty
+                  ? l.validationRequired
+                  : null,
               textInputAction: _register
                   ? TextInputAction.next
                   : TextInputAction.done,
               onSubmitted: (_) {
                 if (!_busy && !_register) _signIn();
               },
+              onChanged: (_) => _onFieldChanged(),
             ),
             if (_register) ...[
               PasswordStrengthMeter(controller: _password),
@@ -752,10 +852,15 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                 controller: _confirmPassword,
                 labelText: l.accountConfirmPassword,
                 autofillHints: const [AutofillHints.newPassword],
+                errorText:
+                    _attemptedSubmit && _password.text != _confirmPassword.text
+                        ? l.accountPasswordMismatch
+                        : null,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) {
                   if (!_busy) _createAccount();
                 },
+                onChanged: (_) => _onFieldChanged(),
               ),
             ],
             if (!_register)

@@ -3624,11 +3624,14 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardAccountBody =>
-      'ဒီဖုန်းတစ်လုံးပဲ သုံးမယ်ဆိုရင် ကျော်နိုင်ပါတယ်။ Email အကောင့်က ဆိုင်အသစ်ရော၊ ဖုန်းတခြားမှာ သုံးပြီးသားဆိုင်ရော အတွက်ပါ။';
+      'ဒီဆိုင်ကို ဖုန်းတခြားမှာပါ သုံးမယ်၊ ဒါမှမဟုတ် ဝန်ထမ်း login ထည့်မယ်ဆိုမှသာ လိုအပ်ပါတယ်။';
 
   @override
   String get onboardAccountBenefits =>
       'Email နဲ့ သုံးရင်:\n• ဖုန်းတခြားမှာ ဒီဆိုင် ဖွင့်နိုင်\n• အင်တာနက်ရှိရင် cloud backup ရှိ\n• ဝန်ထမ်းကို သူ့ email နဲ့ ဝင်ခိုင်းနိုင်';
+
+  @override
+  String get onboardAccountWhyEmail => 'Email ဘာကြောင့် ထည့်ရမလဲ?';
 
   @override
   String get onboardAccountSkip => 'အခုအတွက် ကျော်မည်';
@@ -3642,10 +3645,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get onboardStaffBody =>
       'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။\nဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။\nStaff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။\nဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
-
-  @override
-  String get onboardAccountMissingFields =>
-      'အရင် လိုအပ်တဲ့အချက်အလက်တွေ ဖြည့်ပါ။';
 
   @override
   String get accountShopLoginTitle => 'အကောင့်';

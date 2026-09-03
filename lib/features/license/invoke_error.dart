@@ -80,7 +80,12 @@ String classifyInvokeError(Object error) {
       return fromBody == 'not_activated' ? 'not_activated' : 'not_authenticated';
     }
     if (error.status == 403) {
-      return fromBody ?? 'not_authenticated';
+      // Every current 403 from `activate` carries its own `error: "forbidden"`
+      // body, so this fallback is defensive only (a bodyless 403 from a
+      // gateway/WAF in front of the function, say) — a permission failure
+      // isn't a session problem, and 'not_authenticated' would tell the user
+      // to just retry something that can never succeed.
+      return fromBody ?? 'forbidden';
     }
     if (fromBody != null) return fromBody;
     return 'server_error';
