@@ -111,6 +111,10 @@ class SuppliersScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final suppliers = ref.watch(suppliersProvider).valueOrNull ?? const [];
     final loading = ref.watch(suppliersProvider).isLoading;
+    final balances = ref.watch(supplierBalancesProvider);
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l.suppliersTitle)),
@@ -137,6 +141,12 @@ class SuppliersScreen extends ConsumerWidget {
                       if ((s.phone ?? '').isNotEmpty) s.phone!,
                       if ((s.address ?? '').isNotEmpty) s.address!,
                     ];
+                    final outstanding = balances
+                            .where((b) =>
+                                b.key == poSupplierKeyFor(s.id, s.name))
+                            .firstOrNull
+                            ?.outstanding ??
+                        0;
                     return ListTile(
                       leading:
                           const IconAvatar(icon: Icons.local_shipping_outlined),
@@ -145,9 +155,25 @@ class SuppliersScreen extends ConsumerWidget {
                           ? null
                           : Text(subtitleParts.join(' · '),
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _confirmDelete(context, ref, s),
+                      // A shopkeeper deciding who to call about a bill used to
+                      // have to leave Suppliers for Accounts Payable just to
+                      // see this — the balance was already computed there,
+                      // just never surfaced here.
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (outstanding > 0) ...[
+                            MoneyText(
+                              Money(outstanding).withCurrency(currency, locale),
+                              color: colors.danger,
+                            ),
+                            const SizedBox(width: AppTheme.space2),
+                          ],
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _confirmDelete(context, ref, s),
+                          ),
+                        ],
                       ),
                       onTap: () => _openEditor(context, ref, s),
                     );
