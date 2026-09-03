@@ -75,6 +75,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _reload() async {
+    // Called from every action handler AFTER an await, so the dashboard can
+    // be gone by now (session expiry flipping the auth gate, a sign-out).
+    // Every other setState here is guarded; this opening one was not.
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;

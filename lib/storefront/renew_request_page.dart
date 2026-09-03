@@ -106,6 +106,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         _priceYearly = int.tryParse(cfg['price.yearly'] ?? '');
       });
       _recalcAmount();
+    }, onError: (_) {
+      // The FutureBuilder below renders its own error state; this second
+      // listener existed only to seed defaults, and without an onError a
+      // config outage escaped to the zone as an uncaught exception.
     });
     // The app's own "Pay online" link passes along what it already knows
     // (LicenseScreen._openRenewPage) so a shop opening this from Settings
@@ -208,6 +212,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         setState(() => _shopName.text = name!);
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _loadingHistory = true);
     try {
       final rows = await _api.fetchMyRequests();
@@ -366,7 +371,34 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     // The receipt IS the confirmation — it says the same "we got it" and
     // then keeps saying something useful every time the shop comes back.
     if (id != null) {
-      return RenewalReceiptView(requestId: id, initialInvoiceNo: _invoiceNo);
+      // `_submitted` is set by submitting AND by tapping a past receipt in
+      // the history list, and nothing ever cleared it — so an owner who
+      // opened last month's receipt could not get back to the form to file
+      // THIS month's renewal without reloading the page. The receipt view
+      // itself offers only Refresh / Copy / Print.
+      return Column(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => setState(() {
+                _submitted = false;
+                _requestId = null;
+                _invoiceNo = null;
+                // A new submission is a new request — never reuse the id,
+                // or the server would replay the old one.
+                _clientRequestId = null;
+              }),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(l.onboardBack),
+            ),
+          ),
+          Expanded(
+            child: RenewalReceiptView(
+                requestId: id, initialInvoiceNo: _invoiceNo),
+          ),
+        ],
+      );
     }
     // Only reachable if the server accepted the request but returned no id
     // (it always returns one today). Never leave the shop staring at a form

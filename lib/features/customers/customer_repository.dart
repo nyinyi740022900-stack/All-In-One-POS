@@ -44,7 +44,11 @@ class CustomerRepository {
             name: Value(name),
             phone: Value(phone),
             address: Value(address),
-            township: Value(township),
+            // `Value.absent()` when omitted, NOT `Value(null)`: this is an
+      // upsert, so passing null actively WROTE null over any township
+      // already on file. Harmless only while nothing populates the
+      // column — a data-loss trap the moment something does.
+      township: township == null ? const Value.absent() : Value(township),
             tier: Value(tier),
             updatedAt: Value(now),
             dirty: const Value(true),

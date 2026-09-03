@@ -235,6 +235,23 @@ class BackupService {
         fileShopId != shopId) {
       throw ShopMismatchException(fileShopId: fileShopId);
     }
+    // The envelope has always written these; nothing read them back, so a
+    // backup taken before a column existed failed deep inside
+    // `Row.fromJson` with a TypeError that the screen classified as a
+    // generic "something went wrong". No data is lost (the transaction
+    // rolls back) but the owner had no way to know the file was simply too
+    // old. A NEWER file is refused for the same reason in reverse.
+    final fileFormat = (decoded['formatVersion'] as num?)?.toInt();
+    final fileSchema = (decoded['schemaVersion'] as num?)?.toInt();
+    if (fileFormat != null && fileFormat > formatVersion) {
+      throw const FormatException(
+          'This backup was made by a newer version of the app.');
+    }
+    if (fileSchema != null && fileSchema > _db.schemaVersion) {
+      throw const FormatException(
+          'This backup was made by a newer version of the app.');
+    }
+
     final blocked = await guard?.assertSafeToClear();
     if (blocked != null) throw UnsyncedDataException(blocked);
     final tables = (decoded['tables'] as Map).cast<String, dynamic>();

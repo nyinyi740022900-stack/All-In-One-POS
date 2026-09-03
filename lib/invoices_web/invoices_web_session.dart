@@ -82,6 +82,14 @@ class InvoicesWebSession {
       }
       final code = errorCodeFromInvokeData(data);
       if (code == 'payment_required') return 'payment_required';
+      // Anything else — `rate_limited` (which this action really does
+      // return), a null body, a 15s timeout — used to fall through to
+      // `null`, i.e. "carry on". The device cap this function exists to
+      // enforce therefore held only on the happy path: retrying past a rate
+      // limit, or signing in while the function was degraded, bound nothing
+      // and was billed for nothing. Surface the code instead so the caller
+      // can tell the user rather than silently granting access.
+      if (code != null && code.isNotEmpty) return code;
       return null;
     } catch (e) {
       if (classifyInvokeError(e) == 'payment_required') {

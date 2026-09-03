@@ -179,6 +179,15 @@ class _StorefrontPageState extends State<StorefrontPage> {
         onOrderPlaced: () {
           if (mounted) setState(() => _cart.clear());
         },
+        onOrderPlacedUnseen: (orderNo) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 10),
+              content: Text('$orderNo ✓'),
+            ),
+          );
+        },
       ),
     );
   }
@@ -641,6 +650,7 @@ class _CheckoutFlowSheet extends StatefulWidget {
     required this.onAdd,
     required this.onSub,
     required this.onOrderPlaced,
+    required this.onOrderPlacedUnseen,
   });
   final String slug;
   final StorefrontApi api;
@@ -658,6 +668,11 @@ class _CheckoutFlowSheet extends StatefulWidget {
   /// Called once, right when an order submission actually succeeds — not
   /// tied to how (or whether) the sheet is later dismissed.
   final VoidCallback onOrderPlaced;
+
+  /// Called instead of showing the confirmation when the sheet was closed
+  /// while the submit was still in flight — the order is real, so the page
+  /// must surface its number rather than silently emptying the cart.
+  final void Function(String orderNo) onOrderPlacedUnseen;
 
   @override
   State<_CheckoutFlowSheet> createState() => _CheckoutFlowSheetState();
@@ -680,6 +695,17 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
   /// confirmed success, so every "it failed, try again" tap in one checkout
   /// carries the same id. See StorefrontApi.submitOrder.
   String? _clientOrderId;
+
+  /// The uploaded proof's storage path, kept so a retry reuses the file
+  /// already uploaded rather than orphaning a new copy per attempt.
+  String? _uploadedProofPath;
+
+  /// When the order was actually placed. `_invoiceData` used to call
+  /// `DateTime.now()`, and it is invoked fresh from both the confirmation's
+  /// build and the save handler — so the date on screen changed on every
+  /// rebuild and the saved PNG carried the moment the customer tapped Save
+  /// rather than when they ordered.
+  DateTime? _placedAt;
   SubmitOrderResult? _submitted;
   bool _downloading = false;
   List<int>? _proofBytes;
@@ -828,14 +854,21 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
       return;
     }
     try {
-      String? proofPath;
-      if (_paymentMethod == 'transfer' && _proofBytes != null) {
-        proofPath = await widget.api.uploadPaymentProof(
+      // Uploaded ONCE per checkout and remembered. It used to sit inside the
+      // retried block, so every failure after a successful upload (including
+      // a timeout) left a ~5 MiB file in the shop's folder that no row
+      // references, and the next attempt uploaded another copy under a fresh
+      // timestamped path.
+      if (_paymentMethod == 'transfer' &&
+          _proofBytes != null &&
+          _uploadedProofPath == null) {
+        _uploadedProofPath = await widget.api.uploadPaymentProof(
           _proofBytes!,
           _proofExt ?? 'jpg',
           folder: widget.info.shopId,
         );
       }
+      final proofPath = _uploadedProofPath;
       _clientOrderId ??= const Uuid().v4();
       final submitted = await widget.api.submitOrder(
         slug: widget.slug,
@@ -856,7 +889,17 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
         lines: _lines,
         hp: _hp.text,
       );
-      if (mounted) setState(() => _submitted = submitted);
+      _placedAt ??= DateTime.now();
+      if (mounted) {
+        setState(() => _submitted = submitted);
+      } else {
+        // The customer swiped the sheet away while this was in flight. The
+        // order is real and has an order number, but this State can no
+        // longer show the confirmation — hand it to the page so they are
+        // not left with an emptied cart, no order number, and every reason
+        // to order again.
+        widget.onOrderPlacedUnseen(submitted.orderNo);
+      }
       widget.onOrderPlaced();
     } catch (e) {
       if (mounted) {
