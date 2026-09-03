@@ -14,6 +14,8 @@ void main() {
     int paid = 0,
   }) =>
       InvoiceData(
+        currencySymbol: 'Ks',
+        exponent: 0,
         shopName: 'Caesar Shop',
         invoiceNo: 'INV-20260817-001',
         date: now,
@@ -46,6 +48,8 @@ void main() {
 
   test('address joins street and township', () {
     final data = InvoiceData(
+      currencySymbol: 'Ks',
+      exponent: 0,
       shopName: 'Caesar Shop',
       invoiceNo: 'INV-1',
       date: now,

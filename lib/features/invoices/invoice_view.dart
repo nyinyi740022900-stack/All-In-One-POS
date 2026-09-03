@@ -47,11 +47,20 @@ class InvoiceData {
   /// Display name when [paymentMethodCode] is a custom payment-account id.
   final String? paymentMethodCustomName;
   final String? cashier;
+  /// Both currency fields are **required**, deliberately.
+  ///
+  /// They used to default to `'Ks'` / `0`, which is a silent, invisible bug
+  /// for any non-MMK shop: three call sites (the order share sheet, the
+  /// storefront confirmation, and the public invoices viewer) shipped
+  /// rendering Ks with no decimal point to THB/USD/JPY shops, because
+  /// omitting an argument produced *plausible* output rather than an error
+  /// (#295-7). Every caller passes them now, so requiring them costs
+  /// nothing today and turns the next omission into a compile error instead
+  /// of a wrong receipt.
   final String currencySymbol;
 
   /// Decimal places for money amounts on this document — see
-  /// [CurrencyDef.exponent]. Defaults to 0 (byte-identical MMK output for
-  /// any caller not yet passing it).
+  /// [CurrencyDef.exponent].
   final int exponent;
   final String? footer;
 
@@ -75,8 +84,8 @@ class InvoiceData {
     this.paymentMethodCode,
     this.paymentMethodCustomName,
     this.cashier,
-    this.currencySymbol = 'Ks',
-    this.exponent = 0,
+    required this.currencySymbol,
+    required this.exponent,
     this.footer,
   });
 

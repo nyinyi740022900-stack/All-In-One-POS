@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/features/accounts/payment_account_providers.dart';
+import 'package:mm_pos/features/cash/cash_providers.dart';
 
 /// Guards the "derived figure goes silently stale" bug class — the one
 /// CLAUDE.md's ripple-effect check step 2 asks for by hand:
@@ -150,4 +151,131 @@ void main() {
           reason: 'accountBalanceProvider is not watching supplier_payments.');
     });
   });
+
+  /// The till figure on Cash Register — the number an owner counts the
+  /// drawer against at close. Same class of risk as the account balance, on
+  /// the screen where a stale figure turns into a real cash variance.
+  ///
+  /// Note these rows use `DateTime.now()`, not a fixed past date:
+  /// `expectedCash` folds only movements at/after `session.openedAt`, so a
+  /// back-dated row would be correctly excluded and the assertion would fail
+  /// for the wrong reason.
+  group('expectedCashProvider recomputes for every table it folds', () {
+    Future<({int before, int after})> tillAround(
+      Future<void> Function() mutate,
+    ) async {
+      await container
+          .read(cashSessionRepositoryProvider)
+          .openSession(openingAmount: 30000);
+      final sub = container.listen(
+        expectedCashProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      // `expectedCash` is null until `currentCashSessionProvider`'s stream
+      // has actually delivered the open session. Reading straight after
+      // openSession() races that first emission and yields null, which would
+      // make the baseline 0 and the assertion fail for a reason that has
+      // nothing to do with the watch graph under test.
+      int? before;
+      for (var i = 0; i < 20 && before == null; i++) {
+        await pumpEventQueue();
+        before = await container.read(expectedCashProvider.future);
+      }
+      expect(before, isNotNull,
+          reason: 'the open cash session never reached expectedCashProvider — '
+              'test setup problem, not a watch-graph failure.');
+
+      // Let the signal SETTLE before taking the baseline. Every one of the
+      // six streams `_CashInputSignal` listens to fires an initial emission
+      // on subscription, and each one starts the debounce timer — so a
+      // recompute is already pending here for reasons that have nothing to
+      // do with the mutation below. Reading the baseline first and waiting
+      // afterwards let that pending recompute pick up the mutation and made
+      // this test pass even with the payments watch deleted (a false
+      // negative that only showed up when the sabotage was checked).
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      before = await container.read(expectedCashProvider.future);
+      await mutate();
+      // The till signal is deliberately DEBOUNCED (`kCashSignalDebounce`,
+      // "audit M7") so a burst of sales coalesces into one recompute — it
+      // runs on a real `Timer`, which `pumpEventQueue()` does not advance.
+      // So this waits actual time; no number of event-loop pumps would ever
+      // fire it, and mistaking that for a missing watch is the trap here.
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      final after = await container.read(expectedCashProvider.future);
+      sub.close();
+      return (before: before!, after: after ?? 0);
+    }
+
+    test('a cash sale payment', () async {
+      final r = await tillAround(() async {
+        await db.into(db.payments).insert(PaymentsCompanion.insert(
+              id: 'till-pay',
+              shopId: shopId,
+              saleId: 'sale-till',
+              method: 'cash',
+              amount: 7000,
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before + 7000,
+          reason: 'expectedCashProvider is not watching payments — the till '
+              'figure would sit stale while cash physically came in.');
+    });
+
+    test('a cash credit repayment', () async {
+      final r = await tillAround(() async {
+        await db.into(db.creditPayments).insert(CreditPaymentsCompanion.insert(
+              id: 'till-repay',
+              shopId: shopId,
+              customerName: 'Aung',
+              method: const Value('cash'),
+              amount: 2500,
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before + 2500,
+          reason: 'expectedCashProvider is not watching credit_payments.');
+    });
+
+    test('a cash expense', () async {
+      final r = await tillAround(() async {
+        await db.into(db.expenses).insert(ExpensesCompanion.insert(
+              id: 'till-exp',
+              shopId: shopId,
+              category: 'other',
+              amount: 1500,
+              date: DateTime.now(),
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before - 1500,
+          reason: 'expectedCashProvider is not watching expenses.');
+    });
+
+    test('a cash supplier payment', () async {
+      final r = await tillAround(() async {
+        await db
+            .into(db.supplierPayments)
+            .insert(SupplierPaymentsCompanion.insert(
+              id: 'till-suppay',
+              shopId: shopId,
+              supplierName: 'Golden Trading',
+              method: const Value('cash'),
+              amount: 900,
+              createdAt: Value(DateTime.now()),
+              updatedAt: Value(DateTime.now()),
+            ));
+      });
+      expect(r.after, r.before - 900,
+          reason: 'expectedCashProvider is not watching supplier_payments.');
+    });
+  });
+
 }
