@@ -55,6 +55,26 @@ Before calling a change done:
    `settings_repository_test.dart` for the pattern (two shop ids, assert
    neither leaks into the other).
 
+**Steps 2 and 3 now have guards** — they fail in CI instead of relying on
+whoever remembered to run this list. Read the failure message; it names the
+missing watch or the misrouted key:
+- `provider_invalidation_test.dart` — writes to each source table **directly**
+  (as a sync pull does) and asserts the derived provider recomputes. Add your
+  provider here when it folds a table.
+- `settings_key_scope_test.dart` — every `SettingsRepository` key must be
+  classified device-global vs per-shop, and the classification is checked
+  against `isDeviceGlobalKey`. A new key fails until you classify it.
+- `order_status_labels_test.dart` — a new status/channel variant must get its
+  own label, so it can't fall through a `switch`'s `default:` (this is how
+  `partial` rendered as "Unpaid"). Register it in the `…All` set.
+- `conventions_test.dart` — bans a bare `functions.invoke` (no timeout → a
+  spinner that never resolves; use `functions.invokeBounded`) and the
+  identity-less `CircleAvatar(child: Icon(…))` disc; ratchets the raw
+  `Center(child: CircularProgressIndicator())` page spinner down toward
+  `AppLoadingView`.
+- CI (`.github/workflows/ci.yml`) runs `flutter analyze`, `flutter test` and
+  `deno check` on every push/PR — previously none of these ran automatically.
+
 ## ⚠️ Adding a synced table (do ALL of these — easy to miss a step)
 1. `lib/data/local/tables.dart` — new table `with SyncColumns`.
 2. `lib/data/local/database.dart` — register in `@DriftDatabase`, bump

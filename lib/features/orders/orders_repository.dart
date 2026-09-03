@@ -27,6 +27,48 @@ const orderChannels = <String>[
   'other',
 ];
 
+// ---------------------------------------------------------------------------
+// Pickable vs possible.
+//
+// The three lists above are what a human can PICK in the order editor. The
+// three sets below are every value that can actually be STORED — which is
+// strictly larger, and confusing the two is this feature's most repeated bug:
+//
+//   * `storefront` is a real channel (a web order places it) that nobody
+//     hand-picks — treating `orderChannels` as complete crashed the editor's
+//     dropdown on any storefront order (#295-2), because Flutter asserts the
+//     current value is present in `items`.
+//   * `partial` is a real payment status (`convertToSale` writes it when the
+//     amount collected is short of the total) that no picker offers —
+//     treating the pickable pair as complete made a part-paid order render
+//     as flatly "Unpaid" (#300-2).
+//   * `cancelled` is a real terminal status reached from an order's actions
+//     rather than the status picker.
+//
+// Anything that LABELS, FILTERS or SWITCHES over one of these fields must
+// drive off the `…All` set. `order_status_labels_test.dart` fails when a
+// value in a set has no distinct label, and when a repository writes a value
+// that is not in its set.
+// ---------------------------------------------------------------------------
+
+/// Every pipeline status an order row can hold.
+const orderStatusesAll = <String>{'new', 'delivered', 'cancelled'};
+
+/// Every channel an order row can hold — the pickable ones plus the shop's
+/// own web storefront.
+const orderChannelsAll = <String>{
+  'facebook',
+  'viber',
+  'tiktok',
+  'phone',
+  'other',
+  'storefront',
+};
+
+/// Every payment status an order row can hold. `partial` is written only by
+/// [OrdersRepository.convertToSale]; nothing offers it as a choice.
+const orderPaymentStatusesAll = <String>{'unpaid', 'paid', 'partial'};
+
 /// A line the caller wants on an order, before it is persisted. A line may
 /// reference a catalog product ([productId]) or be a free-text item.
 class OrderDraftLine {

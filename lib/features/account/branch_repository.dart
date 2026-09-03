@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/net/edge_invoke.dart';
+
 import '../../core/env.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
@@ -314,7 +316,7 @@ class BranchRepository {
   Future<List<Branch>> listBranches() async {
     if (!Env.hasBackend) return const [];
     try {
-      final res = await Supabase.instance.client.functions.invoke(
+      final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
         body: {'action': 'list_branches'},
       );
@@ -343,7 +345,7 @@ class BranchRepository {
   Future<BranchActionResult> createBranch(String shopName) async {
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke(
+      final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
         body: {'action': 'create_branch', 'shop_name': shopName},
       );
@@ -360,7 +362,7 @@ class BranchRepository {
     // (online accounts add branches via [createBranch] only).
     if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
     try {
-      final res = await Supabase.instance.client.functions.invoke(
+      final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
         body: {'action': 'link_branch', 'key': key, 'label': label},
       );
@@ -375,7 +377,7 @@ class BranchRepository {
   Future<bool> unlinkBranch(String shopId) async {
     if (!Env.hasBackend) return false;
     try {
-      final res = await Supabase.instance.client.functions.invoke(
+      final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
         body: {'action': 'unlink_branch', 'shop_id': shopId},
       );
@@ -444,7 +446,7 @@ class BranchRepository {
     try {
       await saveStep(BranchSwitchStep.switchingAccountClaim);
       onStep?.call(BranchSwitchStep.switchingAccountClaim);
-      final res = await Supabase.instance.client.functions.invoke(
+      final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
         body: {
           'action': 'switch_branch',

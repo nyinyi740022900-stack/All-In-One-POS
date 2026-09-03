@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/net/edge_invoke.dart';
+
 import '../local/database.dart';
 import '../repositories/settings_repository.dart';
 import 'force_apply.dart';
@@ -195,7 +197,7 @@ class SupabaseSyncRemote implements SyncRemote {
     String? onConflict,
   }) async {
     try {
-      final res = await _client.functions.invoke(
+      final res = await _client.functions.invokeBounded(
         'sync_force_apply',
         body: {
           'table': table,

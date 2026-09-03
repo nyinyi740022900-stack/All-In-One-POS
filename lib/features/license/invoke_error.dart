@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Bound on a single Edge Function round trip. Without this, a stalled
-/// connection (weak signal, dead Wi-Fi) leaves `functions.invoke` awaiting
-/// forever — the caller's spinner looks frozen rather than failing into a
-/// "no internet" message the user can act on.
-const _invokeTimeout = Duration(seconds: 15);
+import '../../core/net/edge_invoke.dart';
+
+/// The invoke bound now lives with the transport it applies to — see
+/// [kEdgeInvokeTimeout] / `FunctionsClient.invokeBounded`, which every call
+/// site in the app shares.
 const _refreshTimeout = Duration(seconds: 8);
 
 /// Best-effort session refresh, bounded so a stalled connection can't hang a
@@ -105,13 +105,11 @@ Future<FunctionResponse> invokeActivate(Map<String, dynamic> body) async {
     await refreshSessionBounded();
     token = client.auth.currentSession?.accessToken;
   }
-  return client.functions
-      .invoke(
-        'activate',
-        body: body,
-        headers: {
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      )
-      .timeout(_invokeTimeout);
+  return client.functions.invokeBounded(
+    'activate',
+    body: body,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
 }

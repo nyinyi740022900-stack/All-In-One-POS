@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/net/edge_invoke.dart';
+
 class ExtendLicenseResult {
   const ExtendLicenseResult({required this.expiresAt, required this.created});
   final String expiresAt;
@@ -42,7 +44,7 @@ class AdminApi {
   Future<void> signOut() => _c.auth.signOut();
 
   Future<List<Map<String, dynamic>>> _rows(String action) async {
-    final res = await _c.functions.invoke('admin', body: {'action': action});
+    final res = await _c.functions.invokeBounded('admin', body: {'action': action});
     _throwIfError(res);
     return (((res.data as Map)['rows'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
@@ -64,7 +66,7 @@ class AdminApi {
     String? deviceId,
     String? shopId,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'lookup_shop',
@@ -80,7 +82,7 @@ class AdminApi {
   /// Recovery URL the admin copies onto Viber. Never emails the shop —
   /// this product does not rely on SMTP for account recovery.
   Future<String> resetPassword({required String email}) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'reset_password', 'email': email},
     );
@@ -89,7 +91,7 @@ class AdminApi {
   }
 
   Future<void> unlinkAccount({required String userId}) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'unlink_account', 'user_id': userId},
     );
@@ -97,7 +99,7 @@ class AdminApi {
   }
 
   Future<void> restoreAccount({required String userId}) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'restore_account', 'user_id': userId},
     );
@@ -110,7 +112,7 @@ class AdminApi {
   Future<Map<String, dynamic>> applyReferralCredit({
     required String shopId,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'apply_referral_credit', 'shop_id': shopId},
     );
@@ -125,7 +127,7 @@ class AdminApi {
     required int months,
     String? deviceId,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'sign_offline',
@@ -141,7 +143,7 @@ class AdminApi {
   }
 
   Future<int> resetDevice({required String deviceId}) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'reset_device', 'device_id': deviceId},
     );
@@ -161,7 +163,7 @@ class AdminApi {
     String? email,
     required int months,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'extend_license',
@@ -187,7 +189,7 @@ class AdminApi {
       'request_id': requestId,
     };
     if (months != null) body['months'] = months;
-    final res = await _c.functions.invoke('admin', body: body);
+    final res = await _c.functions.invokeBounded('admin', body: body);
     _throwIfError(res);
     return (res.data as Map)['key'] as String;
   }
@@ -196,7 +198,7 @@ class AdminApi {
     required String requestId,
     String? reason,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'reject_request',
@@ -213,7 +215,7 @@ class AdminApi {
   }
 
   Future<void> setConfig(Map<String, String> config) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {'action': 'set_config', 'config': config},
     );
@@ -231,7 +233,7 @@ class AdminApi {
     required String plan,
     required int months,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'create_license',
@@ -257,7 +259,7 @@ class AdminApi {
     required int extraSlots,
     required int months,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'admin',
       body: {
         'action': 'set_device_allowance',

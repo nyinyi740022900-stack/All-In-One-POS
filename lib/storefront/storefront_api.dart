@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/net/edge_invoke.dart';
+
 import '../core/payment_method.dart';
 
 /// A product shown on the public storefront.
@@ -136,7 +138,7 @@ class StorefrontApi {
   SupabaseClient get _c => Supabase.instance.client;
 
   Future<Catalog> fetchCatalog(String slug) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'storefront',
       body: {'action': 'catalog', 'slug': slug},
     );
@@ -234,7 +236,7 @@ class StorefrontApi {
     required List<OrderLine> lines,
     String? hp,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'storefront',
       body: {
         'action': 'submit_order',
@@ -283,7 +285,7 @@ class StorefrontApi {
     String? paymentProofPath,
     String? hp,
   }) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'storefront',
       body: {
         'action': 'submit_license_request',
@@ -317,7 +319,7 @@ class StorefrontApi {
   /// link. The Edge Function decides what is safe to return; this method
   /// deliberately does not ask for anything else.
   Future<RenewalReceipt> fetchReceipt(String requestId) async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'storefront',
       body: {'action': 'receipt', 'request_id': requestId},
     );
@@ -337,7 +339,7 @@ class StorefrontApi {
   /// returning an empty list) when not signed in, so a caller can tell
   /// "no session" apart from "signed in, genuinely no requests yet".
   Future<List<RenewalRequestSummary>> fetchMyRequests() async {
-    final res = await _c.functions.invoke(
+    final res = await _c.functions.invokeBounded(
       'storefront',
       body: {'action': 'my_requests'},
     );

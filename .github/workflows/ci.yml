@@ -1,0 +1,106 @@
+# The gate. Everything else in this repo's quality story assumes these two
+# commands ran — CLAUDE.md's "Before any build: flutter analyze (clean) +
+# flutter test (all pass)" was previously enforced only by whoever
+# remembered to type them, so a change could reach `main` (and a device)
+# having run neither.
+#
+# Deliberately separate from android_apk.yml / windows_desktop.yml: those
+# build artifacts and only run on a subset of paths. This one is the
+# correctness gate and runs on every push and PR that touches code, tests,
+# the Edge Functions, or the migrations the parity tests read.
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'supabase/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'analysis_options.yaml'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'supabase/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'l10n.yaml'
+      - 'analysis_options.yaml'
+      - '.github/workflows/ci.yml'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: analyze + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      # The generated localizations are committed (see lib/l10n/). If an .arb
+      # was edited without re-running gen-l10n, the committed Dart is stale —
+      # `flutter analyze` only catches that when the stale file fails to
+      # compile, not when a translation silently never lands on a device.
+      - name: Localizations are up to date
+        run: |
+          flutter gen-l10n
+          if ! git diff --quiet -- lib/l10n; then
+            echo "::error::lib/l10n is stale — run 'flutter gen-l10n' and commit the result."
+            git --no-pager diff --stat -- lib/l10n
+            exit 1
+          fi
+
+      - name: Analyze
+        run: flutter analyze
+
+      # Includes the convention/parity guards (i18n, sync-table+RLS, plus the
+      # ripple-effect guards) — those are the ones that fail on the bug
+      # classes analyze cannot see.
+      - name: Test
+        run: flutter test
+
+  edge_functions:
+    name: deno check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Type-checks every Edge Function. This was a hand-run step recorded in
+      # the changelog ("the touched Edge Functions also pass deno check") —
+      # which means it only ever ran on the functions someone remembered to
+      # check, on the days they remembered.
+      - name: Type-check Edge Functions
+        run: |
+          set -e
+          for fn in supabase/functions/*/index.ts; do
+            echo "==> $fn"
+            deno check "$fn"
+          done
