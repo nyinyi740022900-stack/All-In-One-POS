@@ -7,7 +7,7 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 
 void main() {
-  test('defaults to Burmese and persists the chosen locale', () async {
+  test('defaults to English and persists the chosen locale', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final container = ProviderContainer(
@@ -15,14 +15,16 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    // Default before any choice.
-    expect(container.read(localeControllerProvider), 'my');
-
-    await container.read(localeControllerProvider.notifier).set('en');
+    // Default before any choice — a never-configured install shouldn't show
+    // Myanmar text to a shop outside Myanmar before they ever touch the
+    // language switcher.
     expect(container.read(localeControllerProvider), 'en');
 
+    await container.read(localeControllerProvider.notifier).set('my');
+    expect(container.read(localeControllerProvider), 'my');
+
     // Persisted to the settings store.
-    expect(await SettingsRepository(db).savedLocale(), 'en');
+    expect(await SettingsRepository(db).savedLocale(), 'my');
   });
 
   test('ignores unsupported locale codes', () async {
@@ -33,6 +35,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    await container.read(localeControllerProvider.notifier).set('my');
     await container.read(localeControllerProvider.notifier).set('fr');
     expect(container.read(localeControllerProvider), 'my'); // unchanged
   });

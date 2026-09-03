@@ -219,7 +219,17 @@ class AccountRepository {
 
   Future<AccountActionResult> _finishSignInAttach() async {
     final result = await _attachAccountLicense();
-    if (!result.ok) {
+    // A transient failure (offline, server hiccup — already retried once
+    // inside refreshAccountLicense) doesn't mean this account/device combo
+    // is unusable, just that the pull didn't land this time. Signing out
+    // here would throw away a password the user already typed correctly,
+    // turning a retry into a full re-login. Only sign out for failures that
+    // mean this session genuinely can't attach on this device (no shop,
+    // device limit, forbidden, etc.) so the app doesn't sit mid-session for
+    // an account it just told the user it couldn't use.
+    if (!result.ok &&
+        result.error != 'network_error' &&
+        result.error != 'server_error') {
       try {
         await Supabase.instance.client.auth.signOut();
       } catch (_) {}
@@ -348,20 +358,50 @@ class AccountRepository {
     if (!Env.hasBackend) return const SignupResult.failure('no_backend');
     final deviceId = await _settings.deviceId();
 
-    Map<String, dynamic> data;
-    try {
-      final res = await invokeActivate({
-        'action': 'signup_shop',
-        'shop_name': shopName,
-        'email': email,
-        'password': password,
-        'device_id': deviceId,
-      });
-      final parsed = parseInvokeData(res.data);
-      if (parsed == null) return const SignupResult.failure('server_error');
-      data = parsed;
-    } catch (e) {
-      return SignupResult.failure(classifyInvokeError(e));
+    // Retry on `not_authenticated`: this call rides the device's anonymous
+    // session (no shop_id claim exists yet — that's what signup_shop itself
+    // mints), and a brand-new install can hit this Edge Function before that
+    // anonymous sign-in has finished propagating server-side. That's a
+    // startup timing race, not a real failure, so it's worth a couple of
+    // refresh-and-retry passes before surfacing an error — this is the exact
+    // failure the owner reported: the shop account WAS being created, but a
+    // single unretried 401 here made a working signup look broken and (via
+    // the shared error-code mapping) claim "signed in" when nothing had
+    // signed in yet. Short, bounded backoff (not the general invokeActivate
+    // path, which only proactively refreshes when there's no token at all).
+    Map<String, dynamic>? data;
+    Object? lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final res = await invokeActivate({
+          'action': 'signup_shop',
+          'shop_name': shopName,
+          'email': email,
+          'password': password,
+          'device_id': deviceId,
+        });
+        final parsed = parseInvokeData(res.data);
+        if (parsed == null) return const SignupResult.failure('server_error');
+        data = parsed;
+        break;
+      } catch (e) {
+        lastError = e;
+        if (classifyInvokeError(e) != 'not_authenticated' || attempt == 2) {
+          return SignupResult.failure(classifyInvokeError(e));
+        }
+        try {
+          await Supabase.instance.client.auth.refreshSession();
+        } catch (_) {}
+        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      }
+    }
+    if (data == null) {
+      final code = lastError == null ? 'server_error' : classifyInvokeError(lastError);
+      // Remap: nothing has signed in yet at this point in signup, so the
+      // shared 'not_authenticated' => "Signed in, but..." copy (accurate for
+      // the post-sign-in attach path elsewhere) would be actively wrong
+      // here. Fall through to the generic retry message instead.
+      return SignupResult.failure(code == 'not_authenticated' ? 'signup_failed' : code);
     }
     if (data['ok'] != true) {
       return SignupResult.failure(data['error'] as String?);

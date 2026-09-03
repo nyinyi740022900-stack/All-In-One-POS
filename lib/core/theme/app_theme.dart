@@ -265,7 +265,7 @@ class AppTheme {
   // Must track `defaultLocaleCode` in `core/locale_controller.dart`. Kept as
   // a literal (not an import) so this framework-only theme file never
   // depends on the Riverpod-based locale controller.
-  static const String _defaultLocaleCode = 'my';
+  static const String _defaultLocaleCode = 'en';
   static const String _fontMyanmar = 'NotoSansMyanmar';
 
   // ---------------------------------------------------------------------
