@@ -6599,7 +6599,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'Offline-first point of sale for Myanmar shops. Let\'s get your shop set up — it only takes a minute.'**
+  /// **'Offline-first point of sale for small shops. Let\'s get your shop set up — it only takes a minute.'**
   String get onboardWelcomeBody;
 
   /// No description provided for @onboardNext.

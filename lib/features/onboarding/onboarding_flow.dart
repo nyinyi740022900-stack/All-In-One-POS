@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/layout.dart';
-import '../../core/locale_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -304,27 +303,24 @@ class _OnboardPage extends ConsumerWidget {
   }
 }
 
-/// The very first screen a new owner sees — brand-green wave header plus
-/// the language toggle, rather than a generic Material icon.
-class _WelcomePage extends ConsumerWidget {
+/// The very first screen a new owner sees — brand-green wave header rather
+/// than a generic Material icon.
+///
+/// It deliberately carries NO language toggle. A "Myanmar | English" control
+/// as the first thing on the first screen reads to an overseas visitor as
+/// "this is a Myanmar-only product", which costs more trust than the toggle
+/// buys convenience — the same reasoning removed "Myanmar shops" from the
+/// body copy. Language is device-global and lives in one place instead:
+/// Settings → Shop profile's app-bar switcher.
+class _WelcomePage extends StatelessWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final locale = ref.watch(localeControllerProvider);
     return _OnboardPage(
       icon: Icons.storefront_rounded,
       preferShopLogo: true,
       title: l.onboardWelcomeTitle,
       body: l.onboardWelcomeBody,
-      extra: SegmentedButton<String>(
-        segments: [
-          ButtonSegment(value: 'my', label: Text(l.languageMyanmar)),
-          ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
-        ],
-        selected: {locale},
-        onSelectionChanged: (s) =>
-            ref.read(localeControllerProvider.notifier).set(s.first),
-      ),
     );
   }
 }

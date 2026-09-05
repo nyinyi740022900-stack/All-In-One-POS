@@ -3634,7 +3634,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardWelcomeBody =>
-      'Offline-first point of sale for Myanmar shops. Let\'s get your shop set up — it only takes a minute.';
+      'Offline-first point of sale for small shops. Let\'s get your shop set up — it only takes a minute.';
 
   @override
   String get onboardNext => 'Next';

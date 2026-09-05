@@ -1672,7 +1672,7 @@
   "storefrontRenewMissingFields": "Please fill in shop name, App Reference ID (or email), months, amount, and the last 6 digits of the transaction number.",
   "storefrontRenewMonthsTooHigh": "Months can't be more than 60 (5 years). Please enter a smaller number.",
   "onboardWelcomeTitle": "Welcome to All In One POS",
-  "onboardWelcomeBody": "Offline-first point of sale for Myanmar shops. Let's get your shop set up — it only takes a minute.",
+  "onboardWelcomeBody": "Offline-first point of sale for small shops. Let's get your shop set up — it only takes a minute.",
   "onboardNext": "Next",
   "onboardBack": "Back",
   "onboardSkip": "Skip",

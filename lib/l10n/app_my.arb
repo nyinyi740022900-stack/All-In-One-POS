@@ -1617,7 +1617,7 @@
   "storefrontRenewMissingFields": "ဆိုင်အမည်၊ App Reference ID (သို့) email၊ လအရေအတွက်၊ ငွေပမာဏနှင့် transaction number ရဲ့ နောက်ဆုံး ၆ လုံးတို့ကို ဖြည့်သွင်းပါ။",
   "storefrontRenewMonthsTooHigh": "လအရေအတွက်သည် ၆၀ လ (၅ နှစ်) ထက် ပိုမနိုင်ပါ။ ကျေးဇူးပြု၍ ပိုနည်းသောနံပါတ်တစ်ခု ထည့်ပါ။",
   "onboardWelcomeTitle": "All In One POS မှ ကြိုဆိုပါတယ်",
-  "onboardWelcomeBody": "မြန်မာဆိုင်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။",
+  "onboardWelcomeBody": "ဆိုင်ငယ်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။",
   "onboardNext": "ရှေ့ဆက်",
   "onboardBack": "နောက်ပြန်",
   "onboardSkip": "ကျော်",

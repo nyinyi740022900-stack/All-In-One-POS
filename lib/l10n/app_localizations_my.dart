@@ -3641,7 +3641,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardWelcomeBody =>
-      'မြန်မာဆိုင်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။';
+      'ဆိုင်ငယ်များအတွက် offline-first POS app ပါ။ ဆိုင်ကို စတင်သတ်မှတ်ကြရအောင် — မိနစ်ပိုင်းပဲ ကြာပါမယ်။';
 
   @override
   String get onboardNext => 'ရှေ့ဆက်';
