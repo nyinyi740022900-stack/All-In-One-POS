@@ -1355,6 +1355,30 @@ class BrandHero extends StatelessWidget {
   }
 }
 
+/// Scales and fades [child] in once on mount — a landed-successfully pop
+/// (account created, sync finished) rather than the thing just appearing.
+/// Plays once; nothing to dispose since [TweenAnimationBuilder] owns its
+/// own ticker for the life of this widget.
+class SuccessPopIn extends StatelessWidget {
+  const SuccessPopIn({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: AppTheme.motionSlow,
+      curve: AppTheme.curveEmphasized,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.scale(scale: t, child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// Full-bleed brand panel with a soft wave into the page below.
 /// **Auth / onboarding / daily-gate only** — never on Sell, Inventory,
 /// Orders, Analytics, or Settings. Light mode paints [ColorScheme.primary]
@@ -1367,6 +1391,7 @@ class BrandHeroPanel extends StatelessWidget {
     this.imageUrl,
     this.height = 120,
     this.waveAmplitude = 20,
+    this.celebrate = false,
   });
 
   final IconData icon;
@@ -1383,6 +1408,11 @@ class BrandHeroPanel extends StatelessWidget {
   /// gate uses 16 so a screen the owner sees every morning is a touch less
   /// ceremonial.
   final double waveAmplitude;
+
+  /// Pops the icon/logo plate in with [SuccessPopIn] instead of showing it
+  /// statically — for a "you're done" moment (e.g. onboarding's signed-in
+  /// page), not the default.
+  final bool celebrate;
 
   @override
   Widget build(BuildContext context) {
@@ -1408,6 +1438,7 @@ class BrandHeroPanel extends StatelessWidget {
         errorBuilder: (_, _, _) => fallback,
       );
     }
+    if (celebrate) mark = SuccessPopIn(child: mark);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(

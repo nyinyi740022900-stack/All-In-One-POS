@@ -570,59 +570,100 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     final localRole = ref.watch(staffRoleProvider).valueOrNull ?? 'owner';
     final showRegister = !signedIn && localRole != 'staff';
 
+    // Signed-in is a profile/settings view (staff list, license, sign-out,
+    // delete account) — left as a plain AppBar page, unrelated to the
+    // sign-in/register redesign below.
+    if (signedIn) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.accountShopLoginTitle)),
+        body: ContentWidth(
+          maxWidth: 480,
+          child: ListView(
+            padding: const EdgeInsets.all(AppTheme.space4),
+            children: [_signedInProfile(l)],
+          ),
+        ),
+      );
+    }
+
+    // Signed-out is the actual login/register form — full-bleed wave header
+    // instead of a bare AppBar, same brand chrome onboarding uses, so this
+    // reads as one continuous "account" moment rather than a generic
+    // settings sub-page. 16, not onboarding's 20: this screen is reached
+    // repeatedly (sign back in after sign-out), not a first impression.
     return Scaffold(
-      appBar: AppBar(title: Text(l.accountShopLoginTitle)),
-      body: ContentWidth(
-        maxWidth: 480,
-        child: ListView(
-          padding: const EdgeInsets.all(AppTheme.space4),
-          children: [
-            if (!signedIn) ...[
-              const Center(child: BrandHero(size: 72)),
-              const SizedBox(height: AppTheme.space4),
-            ],
-            if (!signedIn)
-              Text(
-                l.accountShopLoginHint,
-                style: Theme.of(context).textTheme.bodySmall,
+      body: Column(
+        children: [
+          Stack(
+            children: [
+              const BrandHeroPanel(
+                icon: Icons.storefront_rounded,
+                waveAmplitude: 16,
               ),
-            if (!signedIn) const SizedBox(height: AppTheme.space4),
-            if (signedIn)
-              _signedInProfile(l)
-            else
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.space4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (showRegister)
-                        TabBar(
-                          controller: _tabs,
-                          tabs: [
-                            Tab(text: l.onboardOnlineTabSignIn),
-                            Tab(text: l.onboardOnlineTabRegister),
-                          ],
-                        ),
-                      if (showRegister) const SizedBox(height: AppTheme.space4),
-                      // No `TabBarView` — a fixed-height one clipped
-                      // Myanmar labels that wrap to two lines. AnimatedSize
-                      // lets each tab's body claim exactly the height it
-                      // needs in either language.
-                      AnimatedSize(
-                        duration: AppTheme.motionMedium,
-                        curve: AppTheme.curveStandard,
-                        alignment: Alignment.topCenter,
-                        child: !showRegister || _tabs.index == 0
-                            ? _signInForm(l)
-                            : _registerForm(l),
-                      ),
-                    ],
-                  ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + AppTheme.space2,
+                left: AppTheme.space2,
+                child: _HeroBackButton(
+                  onTap: () => Navigator.of(context).maybePop(),
                 ),
               ),
-          ],
-        ),
+            ],
+          ),
+          Expanded(
+            child: ContentWidth(
+              maxWidth: 480,
+              child: ListView(
+                padding: const EdgeInsets.all(AppTheme.space4),
+                children: [
+                  Text(
+                    l.accountShopLoginTitle,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  Text(
+                    l.accountShopLoginHint,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppTheme.space4),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.space4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (showRegister)
+                            TabBar(
+                              controller: _tabs,
+                              tabs: [
+                                Tab(text: l.onboardOnlineTabSignIn),
+                                Tab(text: l.onboardOnlineTabRegister),
+                              ],
+                            ),
+                          if (showRegister)
+                            const SizedBox(height: AppTheme.space4),
+                          // No `TabBarView` — a fixed-height one clipped
+                          // Myanmar labels that wrap to two lines.
+                          // AnimatedSize lets each tab's body claim exactly
+                          // the height it needs in either language.
+                          AnimatedSize(
+                            duration: AppTheme.motionMedium,
+                            curve: AppTheme.curveStandard,
+                            alignment: Alignment.topCenter,
+                            child: !showRegister || _tabs.index == 0
+                                ? _signInForm(l)
+                                : _registerForm(l),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -646,7 +687,7 @@ class _CreatedBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check_circle, color: colors.success),
+          SuccessPopIn(child: Icon(Icons.check_circle, color: colors.success)),
           const SizedBox(width: AppTheme.space3),
           Expanded(
             child: Column(
@@ -730,6 +771,35 @@ class _DeleteAccountPasswordDialogState
           child: Text(l.accountDeleteAccount),
         ),
       ],
+    );
+  }
+}
+
+/// Back control overlaid on the wave header — the header replaces the
+/// AppBar, so there's no default back arrow left. Same alpha/color logic
+/// [BrandHeroPanel] uses for its own icon plate, so it reads as part of the
+/// same chrome rather than a separately-styled control.
+class _HeroBackButton extends StatelessWidget {
+  const _HeroBackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final onFill = dark ? scheme.onPrimaryContainer : scheme.onPrimary;
+    return Material(
+      color: onFill.withValues(alpha: 0.16),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space2),
+          child: Icon(Icons.arrow_back, color: onFill, size: 20),
+        ),
+      ),
     );
   }
 }

@@ -242,6 +242,7 @@ class _OnboardPage extends ConsumerWidget {
     required this.body,
     this.extra,
     this.preferShopLogo = false,
+    this.celebrate = false,
   });
   final IconData icon;
   final String title;
@@ -253,6 +254,11 @@ class _OnboardPage extends ConsumerWidget {
   /// instead — same plate the daily gate uses.
   final bool preferShopLogo;
 
+  /// Pops the header icon in instead of showing it statically — the
+  /// "you're done" pages (e.g. account created) get this; ordinary
+  /// onboarding steps don't.
+  final bool celebrate;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logoUrl = preferShopLogo
@@ -261,7 +267,7 @@ class _OnboardPage extends ConsumerWidget {
     return SizedBox.expand(
       child: Column(
         children: [
-          BrandHeroPanel(icon: icon, imageUrl: logoUrl),
+          BrandHeroPanel(icon: icon, imageUrl: logoUrl, celebrate: celebrate),
           Expanded(
             child: SizedBox.expand(
               child: ContentWidth(
@@ -723,6 +729,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
         icon: Icons.cloud_done_outlined,
         title: l.onboardAccountSignedInTitle,
         body: l.onboardOnlineSignedIn,
+        celebrate: true,
       );
     }
     return _OnboardPage(
