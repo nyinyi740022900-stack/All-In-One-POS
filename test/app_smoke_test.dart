@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/features/notifications/notification_center_providers.dart';
 import 'package:mm_pos/app.dart';
 import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -54,6 +55,12 @@ void main() {
           // doesn't stay pending. The Invoices sub-tab is NOT built until
           // selected, so `salesStreamProvider` needs no override here.
           ordersStreamProvider.overrideWith((ref) => Stream.value(<Order>[])),
+          // The Sell app bar's notification bell reads this straight from
+          // Drift. Left live, its subscription is cancelled at teardown and
+          // Drift schedules a zero-duration cleanup timer, which trips the
+          // "Timer is still pending" invariant — same reason every other
+          // Drift-backed stream on this screen is overridden here.
+          notificationUnreadCountProvider.overrideWith((ref) => Stream.value(0)),
           // The router's role-based tab filter watches this — single-value
           // so it doesn't leave a pending Drift stream under the fake clock.
           staffRoleProvider.overrideWith((ref) => Stream.value('owner')),

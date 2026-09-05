@@ -16,7 +16,6 @@ class LicenseRequestService {
     required int amount,
     String? refNo,
     required String deviceId,
-    String? referredByCode,
     String? tier,
     String? paymentProofPath,
     String? shopId,
@@ -31,8 +30,6 @@ class LicenseRequestService {
       'amount': amount,
       'ref_no': refNo,
       'device_id': deviceId,
-      if (referredByCode != null && referredByCode.isNotEmpty)
-        'referred_by_code': referredByCode,
       'tier': ?tier,
       'payment_proof_path': ?paymentProofPath,
       'shop_id': ?shopId,

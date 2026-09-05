@@ -2546,108 +2546,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invWebNoResults => 'No invoices match your search.';
 
   @override
-  String get referralTitle => 'Refer & earn';
-
-  @override
-  String get referralSubtitle =>
-      'Share your code. Every month a shop you referred pays, you earn — added straight to your license.';
-
-  @override
-  String get referralMyCode => 'My referral code';
-
-  @override
-  String get referralShare => 'Share code';
-
-  @override
-  String get referralCopied => 'Code copied';
-
-  @override
-  String referralShareText(String code, String shop) {
-    return 'Use All In One POS for your shop! Enter my referral code $code when you subscribe. — $shop';
-  }
-
-  @override
-  String get referralBalance => 'Your earnings';
-
-  @override
-  String get referralEarnedTotal => 'Total earned';
-
-  @override
-  String get referralActiveShops => 'Shops you referred';
-
-  @override
-  String get referralRedeem => 'Redeem for license days';
-
-  @override
-  String referralRedeemDone(int months) {
-    return 'Added $months month(s) to your license!';
-  }
-
-  @override
-  String get referralRedeemNotEnough =>
-      'Not enough balance yet — refer one more shop!';
-
-  @override
-  String referralNextGoal(String amount) {
-    return '$amount more until your next free month';
-  }
-
-  @override
-  String get referralCodeOptional => 'Referral code (optional)';
-
-  @override
-  String get referralCodeHint =>
-      'Got a friend\'s code? Enter it — they earn when your payment is approved.';
-
-  @override
-  String get referralEmpty =>
-      'No referrals yet. Share your code to start earning every month.';
-
-  @override
-  String get referralNotifTitle => '🎉 Commission earned!';
-
-  @override
-  String referralNotifBody(String amount) {
-    return '$amount was added to your referral wallet. Open the app to redeem it for free license days.';
-  }
-
-  @override
-  String get referralHowTitle => 'How Refer & earn works';
-
-  @override
-  String get referralStep1 => 'Share your code with other shop owners.';
-
-  @override
-  String get referralStep2 =>
-      'They type your code when they subscribe and pay.';
-
-  @override
-  String get referralStep3 =>
-      'You earn a commission every month they keep paying.';
-
-  @override
-  String get referralStep4 =>
-      'Turn your balance into free license days anytime.';
-
-  @override
-  String get referralHaveCode => 'Have a referral code?';
-
-  @override
-  String get referralHaveCodeHint =>
-      'A friend gave you one? Enter it below — they earn when your payment is approved. Leave blank if you don\'t have one.';
-
-  @override
-  String get referralRedeemConfirmTitle => 'Redeem now?';
-
-  @override
-  String referralRedeemConfirmBody(int months, String amount) {
-    return 'Add $months month(s) to your license and use $amount from your balance?';
-  }
-
-  @override
-  String get referralRedeemAction => 'Redeem';
-
-  @override
   String get backupTitle => 'Backup & restore';
 
   @override
@@ -3327,6 +3225,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, bank-transfer checkouts must upload a payment proof.';
 
   @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsEmpty => 'No notifications yet.';
+
+  @override
+  String get notificationsEmptyHint =>
+      'New web orders and Premium expiry reminders show up here.';
+
+  @override
+  String get notificationsMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationsClear => 'Clear all';
+
+  @override
+  String get notificationsClearConfirmTitle => 'Clear all notifications?';
+
+  @override
+  String get notificationsClearConfirmBody =>
+      'This only clears the list on this phone. Your orders and licence are not affected.';
+
+  @override
   String get storefrontOrderNotifTitle => 'New web order';
 
   @override
@@ -3771,6 +3692,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountCreateShopLogin => 'Create shop login';
+
+  @override
+  String get accountStepCreatingAccount => 'Creating your account';
+
+  @override
+  String get accountStepAuthenticating => 'Checking your password';
+
+  @override
+  String get accountStepOpeningShop => 'Opening your shop';
+
+  @override
+  String get accountSwitchToSignIn => 'Already have an account? Sign in';
+
+  @override
+  String get accountSwitchToRegister => 'New here? Create an account';
 
   @override
   String get accountSignIn => 'Sign in';

@@ -37,7 +37,7 @@ class PasswordRecoveryWatcher {
 }
 
 /// Kept alive for the app's lifetime (watched in `app.dart`, same pattern as
-/// `referralWatcherProvider`).
+/// `storefrontOrderWatcherProvider`).
 final passwordRecoveryWatcherProvider = Provider<PasswordRecoveryWatcher>((ref) {
   final watcher = PasswordRecoveryWatcher(ref);
   ref.onDispose(watcher.dispose);

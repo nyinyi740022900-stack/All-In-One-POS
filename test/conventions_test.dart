@@ -90,7 +90,6 @@ void main() {
       'lib/features/orders/order_detail_sheet.dart',
       'lib/features/purchasing/purchase_order_detail_screen.dart',
       'lib/features/purchasing/purchase_orders_screen.dart',
-      'lib/features/referral/referral_screen.dart',
       'lib/features/settings/shop_profile_screen.dart',
       'lib/features/staff/staff_members_screen.dart',
       'lib/features/storefront/storefront_screen.dart',

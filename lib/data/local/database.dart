@@ -22,6 +22,7 @@ bool isDuplicateColumnMigrationError(Object error) {
 
 @DriftDatabase(
   tables: [
+    AppNotifications,
     Categories,
     Products,
     StockLevels,
@@ -63,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 41;
+  int get schemaVersion => 42;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -351,6 +352,12 @@ class AppDatabase extends _$AppDatabase {
       // as before this column existed.
       if (from < 41) {
         await _safeAddColumn(m, products, products.sellOnline);
+      }
+      // v42: in-app notification centre. Local-only table — nothing to
+      // backfill, since there is no history to recover: the rows only ever
+      // existed as OS notifications that were already delivered.
+      if (from < 42) {
+        await m.createTable(appNotifications);
       }
     },
   );

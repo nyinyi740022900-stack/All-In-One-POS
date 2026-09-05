@@ -49,7 +49,6 @@ void main() {
       'licenseContactViberHintOnline',
       'licenseAfterPaymentTitle',
       'premiumUpgradeCta',
-      'referralTitle',
       'licenseExpiringSoon',
     ];
 

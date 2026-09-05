@@ -125,7 +125,7 @@ Invoices-only on any computer: Phase 1 web companion
 
 ## ⚠️ `COMMERCE_UI` — get this right or the store build is a 3.1.1 violation
 `lib/core/build_flags.dart`'s `kCommerceUiEnabled` **defaults to false**: no
-prices, no Pay-online button, no Viber-to-buy card, no Refer & earn. That is
+prices, no Pay-online button, no Viber-to-buy card. That is
 what makes an App Store / Play build compliant (guideline 3.1.3(b),
 Multiplatform Services — see `docs/app_store/REVIEW_NOTES.md`).
 

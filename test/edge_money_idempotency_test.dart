@@ -30,9 +30,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   /// What protects each money-moving call from a second delivery.
   ///
-  /// Every entry below was read and verified, not assumed — including
-  /// following `apply_referral_credit_for` into migration `0014` to confirm
-  /// the "locked SQL function" its call-site comment claims.
+  /// Every entry below was read and verified, not assumed — each call site
+  /// was followed into the migration that defines its RPC to confirm the
+  /// guard its comment claims actually exists there.
   const declared = <String, String>{
     // --- admin console ------------------------------------------------------
     'admin/extend_license/renew_license':
@@ -47,10 +47,6 @@ void main() {
         'existence check: refuses with license_already_exists if the shop '
             'already has a live licence row (the FAB path accepts any typed '
             'shop_id, so it cannot rely on the caller having checked)',
-    'admin/apply_referral_credit/apply_referral_credit_for':
-        'SQL advisory lock: transaction-scoped per-shop lock inside the '
-            'function (migration 0014) so it cannot race a self-service '
-            'redeem and double-spend the balance',
     'admin/set_device_allowance/set_shop_device_allowance':
         'naturally idempotent: upserts an ABSOLUTE slot count (not a '
             'delta), so a repeat delivery converges on the same value',
@@ -87,7 +83,6 @@ void main() {
   const moneyRpcs = <String>{
     'renew_license',
     'create_license',
-    'apply_referral_credit_for',
     'set_shop_device_allowance',
     'claim_device_slot',
     'create_trial_branch',

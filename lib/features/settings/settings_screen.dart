@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:intl/intl.dart';
 
-import '../../core/build_flags.dart';
 import '../../core/env.dart';
 import '../../core/layout.dart';
 import '../../core/providers.dart';
@@ -22,7 +21,7 @@ import '../printing/label_printer_settings_screen.dart';
 import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
 import 'barcode_scanner_help_screen.dart';
-import '../referral/referral_screen.dart';
+import '../../core/locale_controller.dart';
 import '../../core/money.dart';
 import '../account/branches_screen.dart';
 import '../account/shop_login_screen.dart';
@@ -83,7 +82,9 @@ class SettingsScreen extends ConsumerWidget {
             AppSectionHeader(l.settingsSectionAccountTeam),
             SettingsGroup(
               children: [
-                if (ref.watch(hasOwnerCapabilityProvider(OwnerCapability.license)))
+                if (ref.watch(
+                  hasOwnerCapabilityProvider(OwnerCapability.license),
+                ))
                   _LicenseTile(),
                 ListTile(
                   leading: const IconAvatar(
@@ -215,7 +216,6 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                 ],
-                _ReferralTile(),
               ],
             ),
 
@@ -223,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
             // (Credit book, Expenses, Payment accounts, Accounts payable,
             // Owner's equity) deliberately live under Finance below instead —
             // they used to be mixed in here while a section literally called
-            // "Finance" held License/Shop Login/Staff/Branches/Referral/Backup
+            // "Finance" held License/Shop Login/Staff/Branches/Backup
             // instead, none of which are money-related. Regrouped after the
             // owner spotted the mismatch directly from a Settings screenshot.
             AppSectionHeader(l.settingsSectionBusiness),
@@ -342,6 +342,7 @@ class SettingsScreen extends ConsumerWidget {
             AppSectionHeader(l.settingsSectionDevice),
             SettingsGroup(
               children: [
+                _LanguageTile(),
                 ListTile(
                   leading: const IconAvatar(icon: Icons.print),
                   title: Text(l.settingsPrinter),
@@ -731,36 +732,6 @@ class _StorefrontTile extends ConsumerWidget {
   }
 }
 
-class _ReferralTile extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final status = ref.watch(licenseControllerProvider).status;
-    // Referral earnings live on the server and key off an activated shop, so
-    // only surface this once there's a backend and a license that has been
-    // activated. Still shown when expired/grace so a lapsed shop can redeem its
-    // balance toward renewal — only hidden when never activated.
-    //
-    // Also commerce end to end — it quotes the monthly price, pays a
-    // commission when a referred shop *pays*, and redeems that balance for
-    // licence days — so a store build (see kCommerceUiEnabled) hides the
-    // entrance outright rather than trying to launder the wording.
-    if (!Env.hasBackend ||
-        !kCommerceUiEnabled ||
-        status.kind == LicenseStatusKind.none) {
-      return const SizedBox.shrink();
-    }
-    return ListTile(
-      leading: const IconAvatar(icon: Icons.card_giftcard),
-      title: Text(l.referralTitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const ReferralScreen())),
-    );
-  }
-}
-
 class _SyncTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -829,6 +800,47 @@ class _SyncTile extends ConsumerWidget {
 /// Lets the owner give *this* device a friendly name (e.g. "Counter A"),
 /// synced so every other device can show it too — see the doc comment on
 /// `DeviceLabels` in tables.dart for why this can't be a local setting.
+/// Language lives here, not in Shop profile's app bar where it used to sit.
+///
+/// It was put there when the owner asked for exactly one home for it, and at
+/// that time the alternative was a second copy of the same control. What
+/// changed is #320: removing the welcome-screen toggle left this app-bar menu
+/// as the *only* way to change language, and a device-global setting buried
+/// inside a per-shop business form is not where anyone would think to look.
+/// One home still — a findable one.
+class _LanguageTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final locale = ref.watch(localeControllerProvider);
+    final myanmar = locale == 'my';
+    return ListTile(
+      leading: const IconAvatar(icon: Icons.language),
+      title: Text(l.settingsLanguage),
+      subtitle: Text(myanmar ? l.languageMyanmar : l.languageEnglish),
+      trailing: PopupMenuButton<String>(
+        initialValue: locale,
+        tooltip: l.settingsLanguage,
+        onSelected: (v) => ref.read(localeControllerProvider.notifier).set(v),
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'my', child: Text('🇲🇲  ${l.languageMyanmar}')),
+          PopupMenuItem(value: 'en', child: Text('🇬🇧  ${l.languageEnglish}')),
+        ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              myanmar ? '🇲🇲' : '🇬🇧',
+              style: const TextStyle(fontSize: 20),
+            ),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DeviceLabelTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {

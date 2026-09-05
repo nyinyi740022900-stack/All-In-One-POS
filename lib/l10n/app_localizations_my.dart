@@ -2560,108 +2560,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invWebNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသော invoice မရှိပါ။';
 
   @override
-  String get referralTitle => 'မိတ်ဆွေမျှ၍ ဝင်ငွေရ';
-
-  @override
-  String get referralSubtitle =>
-      'သင့်ကုဒ်ကို မျှဝေပါ။ သင်စပ်ပေးထားတဲ့ ဆိုင်က လတိုင်း ကြေးပေးတိုင်း သင် commission ရပြီး license သက်တမ်းထဲ တိုက်ရိုက် ပေါင်းသွားပါမယ်။';
-
-  @override
-  String get referralMyCode => 'ကျွန်ုပ်၏ referral ကုဒ်';
-
-  @override
-  String get referralShare => 'ကုဒ် မျှဝေမည်';
-
-  @override
-  String get referralCopied => 'ကုဒ် ကူးယူပြီးပါပြီ';
-
-  @override
-  String referralShareText(String code, String shop) {
-    return 'သင့်ဆိုင်အတွက် All In One POS သုံးပါ! စာရင်းသွင်းတဲ့အခါ ကျွန်ုပ်၏ referral ကုဒ် $code ကို ထည့်ပါ။ — $shop';
-  }
-
-  @override
-  String get referralBalance => 'သင့် ဝင်ငွေ';
-
-  @override
-  String get referralEarnedTotal => 'စုစုပေါင်း ရရှိပြီး';
-
-  @override
-  String get referralActiveShops => 'သင်စပ်ပေးထားသော ဆိုင်များ';
-
-  @override
-  String get referralRedeem => 'License ရက်အဖြစ် လဲယူမည်';
-
-  @override
-  String referralRedeemDone(int months) {
-    return 'သင့် license ကို $months လ ပေါင်းထည့်ပြီးပါပြီ!';
-  }
-
-  @override
-  String get referralRedeemNotEnough =>
-      'လက်ကျန်ငွေ မလုံလောက်သေးပါ — နောက်ထပ် ၁ ဆိုင် စပ်ပေးပါ!';
-
-  @override
-  String referralNextGoal(String amount) {
-    return 'နောက် အခမဲ့ ၁ လ အတွက် $amount လိုပါသေးသည်';
-  }
-
-  @override
-  String get referralCodeOptional => 'Referral ကုဒ် (ရွေးချယ်နိုင်)';
-
-  @override
-  String get referralCodeHint =>
-      'မိတ်ဆွေ့ရဲ့ ကုဒ် ရှိလား? ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်တဲ့အခါ သူ commission ရပါမယ်။';
-
-  @override
-  String get referralEmpty =>
-      'referral မရှိသေးပါ။ ကုဒ်ကို မျှဝေပြီး လတိုင်း ဝင်ငွေ စတင်ရှာပါ။';
-
-  @override
-  String get referralNotifTitle => '🎉 Commission ဝင်ပါပြီ!';
-
-  @override
-  String referralNotifBody(String amount) {
-    return '$amount ကို သင့် referral wallet ထဲ ပေါင်းထည့်လိုက်ပါပြီ။ App ဖွင့်၍ license အခမဲ့ရက်အဖြစ် လဲယူပါ။';
-  }
-
-  @override
-  String get referralHowTitle => 'Refer & earn ဘယ်လို အလုပ်လုပ်လဲ';
-
-  @override
-  String get referralStep1 => 'သင့်ကုဒ်ကို တခြားဆိုင်ရှင်များထံ မျှဝေပါ။';
-
-  @override
-  String get referralStep2 =>
-      'သူတို့ subscribe လုပ်ပြီး ကြေးပေးတဲ့အခါ သင့်ကုဒ်ကို ရိုက်ထည့်ပါတယ်။';
-
-  @override
-  String get referralStep3 =>
-      'သူတို့ လစဉ် ကြေးဆက်ပေးနေသရွေ့ သင် commission ရပါတယ်။';
-
-  @override
-  String get referralStep4 =>
-      'သင့် balance ကို license အခမဲ့ရက်အဖြစ် အချိန်မရွေး လဲယူပါ။';
-
-  @override
-  String get referralHaveCode => 'Referral ကုဒ် ရှိပါသလား?';
-
-  @override
-  String get referralHaveCodeHint =>
-      'မိတ်ဆွေက ကုဒ်ပေးထားလား? အောက်မှာ ရိုက်ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်ရင် သူ commission ရပါမယ်။ မရှိရင် ကွက်လပ်ထားခဲ့ပါ။';
-
-  @override
-  String get referralRedeemConfirmTitle => 'လဲယူမလား?';
-
-  @override
-  String referralRedeemConfirmBody(int months, String amount) {
-    return 'သင့် balance မှ $amount သုံးပြီး license ကို $months လ ပေါင်းထည့်မလား?';
-  }
-
-  @override
-  String get referralRedeemAction => 'လဲယူမည်';
-
-  @override
   String get backupTitle => 'Backup & ပြန်ယူ';
 
   @override
@@ -3333,6 +3231,29 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဖွင့်ထားရင် ဘဏ်လွှဲ checkout မှာ ငွေလွှဲ အထောက်အထား တင်ရမည်။';
 
   @override
+  String get notificationsTitle => 'အသိပေးချက်များ';
+
+  @override
+  String get notificationsEmpty => 'အသိပေးချက် မရှိသေးပါ။';
+
+  @override
+  String get notificationsEmptyHint =>
+      'Web မှာယူမှု အသစ်နဲ့ Premium သက်တမ်း သတိပေးချက်တွေ ဒီမှာ ပေါ်ပါမယ်။';
+
+  @override
+  String get notificationsMarkAllRead => 'အားလုံး ဖတ်ပြီးအဖြစ် မှတ်မည်';
+
+  @override
+  String get notificationsClear => 'အားလုံး ရှင်းမည်';
+
+  @override
+  String get notificationsClearConfirmTitle => 'အသိပေးချက် အားလုံး ရှင်းမလား?';
+
+  @override
+  String get notificationsClearConfirmBody =>
+      'ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ license ကို ထိခိုက်မှု မရှိပါ။';
+
+  @override
   String get storefrontOrderNotifTitle => 'Web မှာယူမှု အသစ်';
 
   @override
@@ -3779,6 +3700,21 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountCreateShopLogin => 'ဆိုင် Login ဖန်တီးမည်';
+
+  @override
+  String get accountStepCreatingAccount => 'အကောင့် ဖန်တီးနေသည်';
+
+  @override
+  String get accountStepAuthenticating => 'စကားဝှက် စစ်ဆေးနေသည်';
+
+  @override
+  String get accountStepOpeningShop => 'သင့်ဆိုင်ကို ဖွင့်နေသည်';
+
+  @override
+  String get accountSwitchToSignIn => 'အကောင့် ရှိပြီးသားလား? ဝင်ရောက်မည်';
+
+  @override
+  String get accountSwitchToRegister => 'အကောင့် မရှိသေးဘူးလား? အသစ်ဖန်တီးမည်';
 
   @override
   String get accountSignIn => 'ဝင်ရောက်မည်';

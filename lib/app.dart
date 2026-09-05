@@ -17,7 +17,6 @@ import 'features/onboarding/daily_gate.dart';
 import 'features/onboarding/full_screen_gate.dart';
 import 'features/onboarding/onboarding_state.dart';
 import 'features/onboarding/operating_mode_providers.dart';
-import 'features/referral/referral_watcher.dart';
 import 'features/storefront/storefront_order_watcher.dart';
 import 'l10n/app_localizations.dart';
 
@@ -37,8 +36,6 @@ class MmPosApp extends ConsumerWidget {
     // starts connectivity-driven syncing at launch.
     ref.watch(licenseControllerProvider);
     ref.watch(syncControllerProvider);
-    // Poll for new referral commissions and fire the "earned" notification.
-    ref.watch(referralWatcherProvider);
     // Alert when storefront orders land via sync.
     ref.watch(storefrontOrderWatcherProvider);
     // Remind the owner before Premium lapses. Nothing can charge a shop

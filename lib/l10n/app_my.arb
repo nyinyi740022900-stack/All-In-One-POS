@@ -1061,75 +1061,6 @@
   "invWebDownloadPdf": "PDF ဒေါင်းလုဒ်",
   "invWebSearchHint": "Invoice နံပါတ်၊ ဝယ်သူအမည်၊ (သို့) ဖုန်းနံပါတ်ဖြင့် ရှာပါ",
   "invWebNoResults": "ရှာဖွေမှုနှင့် ကိုက်ညီသော invoice မရှိပါ။",
-  "referralTitle": "မိတ်ဆွေမျှ၍ ဝင်ငွေရ",
-  "referralSubtitle": "သင့်ကုဒ်ကို မျှဝေပါ။ သင်စပ်ပေးထားတဲ့ ဆိုင်က လတိုင်း ကြေးပေးတိုင်း သင် commission ရပြီး license သက်တမ်းထဲ တိုက်ရိုက် ပေါင်းသွားပါမယ်။",
-  "referralMyCode": "ကျွန်ုပ်၏ referral ကုဒ်",
-  "referralShare": "ကုဒ် မျှဝေမည်",
-  "referralCopied": "ကုဒ် ကူးယူပြီးပါပြီ",
-  "referralShareText": "သင့်ဆိုင်အတွက် All In One POS သုံးပါ! စာရင်းသွင်းတဲ့အခါ ကျွန်ုပ်၏ referral ကုဒ် {code} ကို ထည့်ပါ။ — {shop}",
-  "@referralShareText": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      },
-      "shop": {
-        "type": "String"
-      }
-    }
-  },
-  "referralBalance": "သင့် ဝင်ငွေ",
-  "referralEarnedTotal": "စုစုပေါင်း ရရှိပြီး",
-  "referralActiveShops": "သင်စပ်ပေးထားသော ဆိုင်များ",
-  "referralRedeem": "License ရက်အဖြစ် လဲယူမည်",
-  "referralRedeemDone": "သင့် license ကို {months} လ ပေါင်းထည့်ပြီးပါပြီ!",
-  "@referralRedeemDone": {
-    "placeholders": {
-      "months": {
-        "type": "int"
-      }
-    }
-  },
-  "referralRedeemNotEnough": "လက်ကျန်ငွေ မလုံလောက်သေးပါ — နောက်ထပ် ၁ ဆိုင် စပ်ပေးပါ!",
-  "referralNextGoal": "နောက် အခမဲ့ ၁ လ အတွက် {amount} လိုပါသေးသည်",
-  "@referralNextGoal": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralCodeOptional": "Referral ကုဒ် (ရွေးချယ်နိုင်)",
-  "referralCodeHint": "မိတ်ဆွေ့ရဲ့ ကုဒ် ရှိလား? ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်တဲ့အခါ သူ commission ရပါမယ်။",
-  "referralEmpty": "referral မရှိသေးပါ။ ကုဒ်ကို မျှဝေပြီး လတိုင်း ဝင်ငွေ စတင်ရှာပါ။",
-  "referralNotifTitle": "🎉 Commission ဝင်ပါပြီ!",
-  "referralNotifBody": "{amount} ကို သင့် referral wallet ထဲ ပေါင်းထည့်လိုက်ပါပြီ။ App ဖွင့်၍ license အခမဲ့ရက်အဖြစ် လဲယူပါ။",
-  "@referralNotifBody": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralHowTitle": "Refer & earn ဘယ်လို အလုပ်လုပ်လဲ",
-  "referralStep1": "သင့်ကုဒ်ကို တခြားဆိုင်ရှင်များထံ မျှဝေပါ။",
-  "referralStep2": "သူတို့ subscribe လုပ်ပြီး ကြေးပေးတဲ့အခါ သင့်ကုဒ်ကို ရိုက်ထည့်ပါတယ်။",
-  "referralStep3": "သူတို့ လစဉ် ကြေးဆက်ပေးနေသရွေ့ သင် commission ရပါတယ်။",
-  "referralStep4": "သင့် balance ကို license အခမဲ့ရက်အဖြစ် အချိန်မရွေး လဲယူပါ။",
-  "referralHaveCode": "Referral ကုဒ် ရှိပါသလား?",
-  "referralHaveCodeHint": "မိတ်ဆွေက ကုဒ်ပေးထားလား? အောက်မှာ ရိုက်ထည့်ပါ — သင့်ငွေပေးချေမှု approve ဖြစ်ရင် သူ commission ရပါမယ်။ မရှိရင် ကွက်လပ်ထားခဲ့ပါ။",
-  "referralRedeemConfirmTitle": "လဲယူမလား?",
-  "referralRedeemConfirmBody": "သင့် balance မှ {amount} သုံးပြီး license ကို {months} လ ပေါင်းထည့်မလား?",
-  "@referralRedeemConfirmBody": {
-    "placeholders": {
-      "months": {
-        "type": "int"
-      },
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralRedeemAction": "လဲယူမည်",
   "backupTitle": "Backup & ပြန်ယူ",
   "backupHint": "သင့် data ကို ဒီဖုန်းထဲမှာ သိမ်းထားပါတယ်။ Backup file ထုတ်ပြီး လုံခြုံစွာ သိမ်းပါ (ဥပမာ Viber → My Notes သို့ ပို့ပါ)။",
   "backupExport": "Backup ထုတ်",
@@ -1451,6 +1382,13 @@
   "storefrontHoursClose": "ပိတ်ချိန်",
   "storefrontRequireProof": "လွှဲငွေ screenshot မဖြစ်မနေ လိုအပ်",
   "storefrontRequireProofHint": "ဖွင့်ထားရင် ဘဏ်လွှဲ checkout မှာ ငွေလွှဲ အထောက်အထား တင်ရမည်။",
+  "notificationsTitle": "အသိပေးချက်များ",
+  "notificationsEmpty": "အသိပေးချက် မရှိသေးပါ။",
+  "notificationsEmptyHint": "Web မှာယူမှု အသစ်နဲ့ Premium သက်တမ်း သတိပေးချက်တွေ ဒီမှာ ပေါ်ပါမယ်။",
+  "notificationsMarkAllRead": "အားလုံး ဖတ်ပြီးအဖြစ် မှတ်မည်",
+  "notificationsClear": "အားလုံး ရှင်းမည်",
+  "notificationsClearConfirmTitle": "အသိပေးချက် အားလုံး ရှင်းမလား?",
+  "notificationsClearConfirmBody": "ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ license ကို ထိခိုက်မှု မရှိပါ။",
   "storefrontOrderNotifTitle": "Web မှာယူမှု အသစ်",
   "storefrontOrderNotifBody": "Storefront မှာယူမှု အသစ် {count} ခု — Orders ကို ဖွင့်ကြည့်ပါ။",
   "@storefrontOrderNotifBody": {
@@ -1660,6 +1598,11 @@
   "accountResetPasswordSave": "စကားဝှက်အသစ် သိမ်းမည်",
   "accountResetPasswordSuccess": "စကားဝှက် ပြောင်းပြီးပါပြီ — ဝင်ရောက်ထားပါပြီ။",
   "accountCreateShopLogin": "ဆိုင် Login ဖန်တီးမည်",
+  "accountStepCreatingAccount": "အကောင့် ဖန်တီးနေသည်",
+  "accountStepAuthenticating": "စကားဝှက် စစ်ဆေးနေသည်",
+  "accountStepOpeningShop": "သင့်ဆိုင်ကို ဖွင့်နေသည်",
+  "accountSwitchToSignIn": "အကောင့် ရှိပြီးသားလား? ဝင်ရောက်မည်",
+  "accountSwitchToRegister": "အကောင့် မရှိသေးဘူးလား? အသစ်ဖန်တီးမည်",
   "accountSignIn": "ဝင်ရောက်မည်",
   "accountSignOut": "ထွက်မည်",
   "accountDeleteAccount": "အကောင့် ဖျက်မည်",

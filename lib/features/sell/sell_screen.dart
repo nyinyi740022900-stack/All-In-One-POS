@@ -8,6 +8,7 @@ import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../notifications/notification_center_screen.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
@@ -299,6 +300,11 @@ class SellScreen extends ConsumerWidget {
                 icon: const Icon(Icons.remove_shopping_cart),
                 onPressed: () => _confirmClear(context, ref, l),
               ),
+            // Rightmost, and last in this list on purpose: everything above
+            // acts on the sale in progress, the bell does not. Keeping it at
+            // the edge means it never moves when the cart-dependent actions
+            // above appear and disappear mid-sale.
+            const NotificationBell(),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(56),

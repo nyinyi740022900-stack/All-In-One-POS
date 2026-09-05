@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -420,13 +422,13 @@ class ProductThumb extends StatelessWidget {
       // grid), not from nothing.
       content = LayoutBuilder(
         builder: (context, constraints) {
-          final side = size ??
+          final side =
+              size ??
               (constraints.maxWidth.isFinite && constraints.maxWidth > 0
                   ? constraints.maxWidth
-                  : (constraints.maxHeight.isFinite &&
-                          constraints.maxHeight > 0
-                      ? constraints.maxHeight
-                      : 40.0));
+                  : (constraints.maxHeight.isFinite && constraints.maxHeight > 0
+                        ? constraints.maxHeight
+                        : 40.0));
           final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
           // Disk-cached load (audit H2): photos now survive app restarts
           // instead of re-downloading on every launch, and `memCacheWidth`
@@ -673,9 +675,7 @@ class _CategoryPickerSheetBody extends StatelessWidget {
     final filtered = q.isEmpty
         ? options
         : options
-              .where(
-                (o) => o.id == null || o.label.toLowerCase().contains(q),
-              )
+              .where((o) => o.id == null || o.label.toLowerCase().contains(q))
               .toList();
     return ListView(
       shrinkWrap: true,
@@ -711,17 +711,11 @@ class _CategoryPickerSheetBody extends StatelessWidget {
           ),
         for (final option in filtered)
           ListTile(
-            leading: Icon(
-              option.id == null ? Icons.apps : Icons.label_outline,
-            ),
+            leading: Icon(option.id == null ? Icons.apps : Icons.label_outline),
             title: Text(option.label),
-            trailing: option.id == selectedId
-                ? const Icon(Icons.check)
-                : null,
-            onTap: () => Navigator.pop(
-              context,
-              option.id ?? _kCategoryPickerAll,
-            ),
+            trailing: option.id == selectedId ? const Icon(Icons.check) : null,
+            onTap: () =>
+                Navigator.pop(context, option.id ?? _kCategoryPickerAll),
           ),
         if (filtered.isEmpty)
           Padding(
@@ -1359,6 +1353,213 @@ class BrandHero extends StatelessWidget {
 /// (account created, sync finished) rather than the thing just appearing.
 /// Plays once; nothing to dispose since [TweenAnimationBuilder] owns its
 /// own ticker for the life of this widget.
+/// The brand mark on its plate with pulse rings breathing outward from it,
+/// over a caption naming what is happening and a track showing how far along
+/// it is.
+///
+/// For waits the user cannot shorten and did not choose — signing in, mainly.
+/// A spinner inside a button says only "something is happening"; the anxious
+/// question during a sign-in is *did my password work*, which a caption
+/// answers and a spinner cannot. The rings exist to make the wait feel
+/// tended rather than stalled.
+///
+/// Deliberately calm rather than playful: this is a screen a shop owner
+/// passes through on a bad connection, possibly several times, and a
+/// character animation that charms on the first pass grates by the tenth.
+/// Deliberately drawn rather than shipped as an asset, too — it costs no
+/// bytes, takes the theme's own colours in light and dark, and starts on
+/// the first frame instead of decoding a file while the user waits.
+///
+/// Honours the platform's reduce-motion setting by standing still.
+class BrandPulseProgress extends StatefulWidget {
+  const BrandPulseProgress({
+    super.key,
+    required this.icon,
+    required this.caption,
+    this.stepCount = 0,
+    this.stepIndex = 0,
+  });
+
+  final IconData icon;
+
+  /// What is happening right now. Changing it cross-fades, so the change
+  /// itself reads as progress.
+  final String caption;
+
+  /// Number of segments in the track under the caption. 0 hides it — use it
+  /// only when the phases are real; a track that moves on a timer is a lie.
+  final int stepCount;
+
+  /// Zero-based index of the running segment.
+  final int stepIndex;
+
+  @override
+  State<BrandPulseProgress> createState() => _BrandPulseProgressState();
+}
+
+class _BrandPulseProgressState extends State<BrandPulseProgress>
+    with SingleTickerProviderStateMixin {
+  static const _plate = 88.0;
+
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Started here, not at construction, because whether it should run at
+    // all depends on MediaQuery. A controller left repeating under
+    // reduce-motion burns a ticker for a frame nobody sees — and any
+    // `pumpAndSettle` on a screen holding one never settles.
+    final still = MediaQuery.disableAnimationsOf(context);
+    if (still && _c.isAnimating) {
+      _c.stop();
+    } else if (!still && !_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final still = MediaQuery.disableAnimationsOf(context);
+
+    final plate = Container(
+      width: _plate,
+      height: _plate,
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      ),
+      alignment: Alignment.center,
+      child: Icon(widget.icon, size: 40, color: scheme.onPrimary),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          // Room for the outermost ring at full spread, so the rings are
+          // never clipped by a tight parent.
+          width: _plate * 2.6,
+          height: _plate * 2.6,
+          child: still
+              ? Center(child: plate)
+              : AnimatedBuilder(
+                  animation: _c,
+                  builder: (context, child) => CustomPaint(
+                    painter: _PulseRingPainter(
+                      t: _c.value,
+                      color: scheme.primary,
+                      plate: _plate,
+                    ),
+                    child: Center(
+                      child: Transform.scale(
+                        // A shallow breath on the same clock as the rings,
+                        // so the mark and its rings read as one movement.
+                        scale: 1 + 0.03 * math.sin(_c.value * 2 * math.pi),
+                        child: child,
+                      ),
+                    ),
+                  ),
+                  child: plate,
+                ),
+        ),
+        const SizedBox(height: AppTheme.space4),
+        AnimatedSwitcher(
+          duration: AppTheme.motionMedium,
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.35),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+          child: Text(
+            widget.caption,
+            key: ValueKey(widget.caption),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        if (widget.stepCount > 0) ...[
+          const SizedBox(height: AppTheme.space4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < widget.stepCount; i++) ...[
+                if (i > 0) const SizedBox(width: AppTheme.space2),
+                AnimatedContainer(
+                  duration: AppTheme.motionMedium,
+                  curve: AppTheme.curveStandard,
+                  width: i == widget.stepIndex ? 28 : 16,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: i <= widget.stepIndex
+                        ? scheme.primary
+                        : scheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PulseRingPainter extends CustomPainter {
+  const _PulseRingPainter({
+    required this.t,
+    required this.color,
+    required this.plate,
+  });
+
+  /// Cycle position, 0→1, shared by every ring.
+  final double t;
+  final Color color;
+  final double plate;
+
+  static const _rings = 3;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = Offset(size.width / 2, size.height / 2);
+    final start = plate * 0.62;
+    final end = size.width / 2;
+
+    for (var i = 0; i < _rings; i++) {
+      // Evenly staggered around the cycle, so one ring is always leaving as
+      // another arrives and the movement never has a visible seam.
+      final p = (t + i / _rings) % 1.0;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        // Fades out as it spreads; `1 - p` alone left a hard edge at the
+        // wrap, so it is squared to land softly on zero.
+        ..color = color.withValues(alpha: 0.30 * (1 - p) * (1 - p));
+      canvas.drawCircle(centre, start + (end - start) * p, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PulseRingPainter old) =>
+      old.t != t || old.color != color || old.plate != plate;
+}
+
 class SuccessPopIn extends StatelessWidget {
   const SuccessPopIn({super.key, required this.child});
 
@@ -1432,7 +1633,9 @@ class BrandHeroPanel extends StatelessWidget {
         height: 72,
         fit: BoxFit.cover,
         cacheWidth: ProductThumb.cacheWidthFor(
-            72, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0),
+          72,
+          MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0,
+        ),
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
             wasSynchronouslyLoaded || frame != null ? child : fallback,
         errorBuilder: (_, _, _) => fallback,

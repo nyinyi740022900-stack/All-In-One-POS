@@ -9,6 +9,14 @@ import '../license/license_model.dart';
 import '../license/license_repository.dart';
 import '../license/license_status.dart';
 
+/// The two phases of [AccountRepository.signInAndClaimDevice] worth telling
+/// the user apart: checking the password, then finding and attaching the
+/// shop. Deliberately only two — those are the real network boundaries, and
+/// inventing more would be a progress bar that lies.
+enum SignInStep { authenticating, openingShop }
+
+typedef SignInStepCallback = void Function(SignInStep step);
+
 /// Result of an account action (create shop login / invite staff / sign in),
 /// mirroring the shape of [ActivationResult] in `license_model.dart`. Most
 /// actions never populate [license] — only [AccountRepository.signInAndClaimDevice]
@@ -138,13 +146,20 @@ class AccountRepository {
   ///   account) — reopen that account's shop SQLite file (legacy mode:
   ///   wipe the shared DB) after the same outbox safety check as a
   ///   branch switch, then claim a slot under the new shop.
+  ///
+  /// [onStep] reports the two real phases so the caller can say which one is
+  /// running instead of showing one undifferentiated spinner — same shape as
+  /// [BranchSwitchStepCallback]. The boundary is honest: [SignInStep.openingShop]
+  /// fires only once the password has actually been accepted.
   Future<AccountActionResult> signInAndClaimDevice(
     String email,
-    String password,
-  ) async {
+    String password, {
+    SignInStepCallback? onStep,
+  }) async {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');
     }
+    onStep?.call(SignInStep.authenticating);
     try {
       final authRes = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
@@ -158,6 +173,10 @@ class AccountRepository {
     } catch (_) {
       return const AccountActionResult.failure('network_error');
     }
+
+    // Password accepted from here on — everything below is finding and
+    // attaching the shop, which is a different (and usually longer) wait.
+    onStep?.call(SignInStep.openingShop);
 
     final shopId =
         Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
@@ -272,9 +291,7 @@ class AccountRepository {
       // that it needs another slot (`payment_required`).
       return _claimDeviceSlot();
     }
-    return AccountActionResult.failure(
-      pulled.errorCode ?? 'server_error',
-    );
+    return AccountActionResult.failure(pulled.errorCode ?? 'server_error');
   }
 
   Future<AccountActionResult> _claimDeviceSlot() async {
@@ -408,12 +425,16 @@ class AccountRepository {
       }
     }
     if (data == null) {
-      final code = lastError == null ? 'server_error' : classifyInvokeError(lastError);
+      final code = lastError == null
+          ? 'server_error'
+          : classifyInvokeError(lastError);
       // Remap: nothing has signed in yet at this point in signup, so the
       // shared 'not_authenticated' => "Signed in, but..." copy (accurate for
       // the post-sign-in attach path elsewhere) would be actively wrong
       // here. Fall through to the generic retry message instead.
-      return SignupResult.failure(code == 'not_authenticated' ? 'signup_failed' : code);
+      return SignupResult.failure(
+        code == 'not_authenticated' ? 'signup_failed' : code,
+      );
     }
     if (data['ok'] != true) {
       return SignupResult.failure(data['error'] as String?);

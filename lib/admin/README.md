@@ -24,9 +24,6 @@ mobile build. All privileged work goes through the `admin` Edge Function
   (two separate cards so an email cannot be pasted into a device field).
   Both find a shop and add months to **every** device on it. Reset a
   phone, allow extra devices, mint a key, or send an offline code from **Shops**.
-- **Referrals** — commissions grouped by referrer with **Apply credit**,
-  plus raw referral links. Rate/toggle live under Settings
-  (`referral.rate`, `referral.enabled`).
 - **Settings** — KBZPay/WavePay pay-to, Support Viber, prices.
 
 Confirming a payment calls `fulfill_request`, which extends the shop's

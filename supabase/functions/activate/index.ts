@@ -1231,7 +1231,6 @@ async function handleStartTrial(
   const now = new Date();
   const expires = new Date(now);
   expires.setMonth(expires.getMonth() + SELF_SERVE_TRIAL_MONTHS);
-  const { data: refCode } = await admin.rpc("gen_referral_code");
 
   const { data: license, error: licErr } = await admin
     .from("licenses")
@@ -1244,7 +1243,6 @@ async function handleStartTrial(
       device_id: deviceId,
       expires_at: expires.toISOString(),
       activated_at: now.toISOString(),
-      referral_code: refCode,
       tier: "offline",
     })
     .select("*")
@@ -1308,7 +1306,6 @@ async function handleSignupShop(
   const now = new Date();
   const expires = new Date(now);
   expires.setMonth(expires.getMonth() + SIGNUP_TRIAL_MONTHS);
-  const { data: refCode } = await admin.rpc("gen_referral_code");
 
   const { data: license, error: licErr } = await admin
     .from("licenses")
@@ -1321,7 +1318,6 @@ async function handleSignupShop(
       device_id: deviceId || null,
       expires_at: expires.toISOString(),
       activated_at: now.toISOString(),
-      referral_code: refCode,
       tier: "online",
     })
     .select("*")

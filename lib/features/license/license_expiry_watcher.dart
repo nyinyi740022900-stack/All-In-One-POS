@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/env.dart';
 import '../../core/notifications.dart';
 import '../../l10n/app_localizations.dart';
+import '../notifications/notification_center_providers.dart';
+import '../notifications/notification_center_repository.dart';
 import '../printing/printing_providers.dart';
 import 'license_providers.dart';
 import 'license_status.dart';
@@ -69,7 +71,7 @@ ExpiryReminder? computeExpiryReminder({
 /// does.
 ///
 /// Local notifications only, delivered the next time the app is open, same
-/// as [ReferralWatcher] — true background delivery would need FCM. That is
+/// as [StorefrontOrderWatcher] — true background delivery would need FCM. That is
 /// enough here: a POS is opened every trading day, and the thresholds below
 /// give a week of chances.
 class LicenseExpiryWatcher {
@@ -83,7 +85,7 @@ class LicenseExpiryWatcher {
   bool _checking = false;
 
   void _start() {
-    // Same gate as ReferralWatcher/StorefrontOrderWatcher: a build with no
+    // Same gate as StorefrontOrderWatcher: a build with no
     // backend compiled in has no licensing service behind it, so there is
     // no expiry to remind anyone about — and registering app-lifetime timers
     // in that case would also leave every widget test with a pending timer.
@@ -129,6 +131,11 @@ class LicenseExpiryWatcher {
             ? l.licenseExpiryNotifBodyToday(shopName)
             : l.licenseExpiryNotifBody(daysLeft, shopName),
       );
+      await _ref.read(notificationCenterRepositoryProvider).add(
+        shopId: shopId,
+        kind: NotificationKinds.licenseExpiry,
+        payload: {'daysLeft': daysLeft, 'shopName': shopName},
+      );
       await settings.setLicenseExpiryWarned(shopId, due.stamp);
     } catch (_) {
       // Offline / transient — the next tick tries again.
@@ -173,7 +180,7 @@ class _LifecycleHook with WidgetsBindingObserver {
 }
 
 /// Kept alive for the app's lifetime (watched in `MmPosApp`), same as
-/// [referralWatcherProvider].
+/// [storefrontOrderWatcherProvider].
 final licenseExpiryWatcherProvider = Provider<LicenseExpiryWatcher>((ref) {
   final watcher = LicenseExpiryWatcher(ref);
   ref.onDispose(watcher.dispose);

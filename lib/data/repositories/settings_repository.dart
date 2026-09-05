@@ -62,7 +62,6 @@ class SettingsRepository {
   static const _kShopPaymentMethods = 'shop.payment_methods';
   static const _kReceiptFooter = 'receipt.footer';
   static const _kTrackStock = 'shop.track_stock';
-  static const _kReferralSeenEarned = 'referral.seen_earned';
 
   /// Watermark for the licence-expiry reminder, shop-scoped via [_shopKey].
   ///
@@ -530,26 +529,6 @@ class SettingsRepository {
     await setDailyGateYmd(shopId, ymd);
     await setDailyGateSkippedOpen(shopId, skippedOpen);
   }
-
-  /// Watermark of the referral commission total (Ks) already seen by the
-  /// user, shop-scoped via [_shopKey] — `ReferralRepository.summary()` is
-  /// per-shop, and a device that switches shops (`BranchRepository.
-  /// switchBranch`) must not compare a new shop's earnings against a
-  /// watermark left behind by a different shop. No legacy-key fallback: an
-  /// un-scoped value from before this was made per-shop belonged to
-  /// whichever shop happened to be active on this device at the time, not
-  /// necessarily this one, so it would just reintroduce the same
-  /// cross-shop bleed for a shop that hasn't set its own watermark yet.
-  /// null = never checked, so the first check establishes a baseline silently
-  /// (no notification for commissions earned before this feature shipped).
-  Future<int?> referralSeenEarned(String shopId) async {
-    final v = await _getShopScoped(_kReferralSeenEarned, shopId,
-        fallbackToLegacy: false);
-    return v == null ? null : int.tryParse(v);
-  }
-
-  Future<void> setReferralSeenEarned(String shopId, int value) =>
-      _set(_shopKey(_kReferralSeenEarned, shopId), '$value');
 
   /// Last expiry+threshold this shop was warned about — see
   /// [_kLicenseExpiryWarned] for why it is a compound value, not a flag.

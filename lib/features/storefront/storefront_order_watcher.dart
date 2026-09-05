@@ -6,12 +6,14 @@ import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
+import '../notifications/notification_center_providers.dart';
+import '../notifications/notification_center_repository.dart';
 import '../orders/orders_providers.dart';
 import '../printing/printing_providers.dart';
 
 /// Watches local `orders` (channel == storefront) and fires a local
 /// notification when new rows appear after sync — same "next time you open
-/// the app" delivery model as [ReferralWatcher] (FCM is a later phase).
+/// the app" delivery model as [LicenseExpiryWatcher] (FCM is a later phase).
 class StorefrontOrderWatcher {
   StorefrontOrderWatcher(this._ref) {
     _ref.listen<AsyncValue<List<Order>>>(ordersStreamProvider, (_, next) {
@@ -55,6 +57,15 @@ class StorefrontOrderWatcher {
       await NotificationService.instance.showStorefrontOrder(
         title: l.storefrontOrderNotifTitle,
         body: l.storefrontOrderNotifBody(count),
+      );
+      // Also record it for the in-app bell. Stored as kind + count, not as
+      // the rendered strings above: the tray copy is fixed in the locale of
+      // this moment, but the list is re-read later and follows whatever
+      // language the app is in then.
+      await _ref.read(notificationCenterRepositoryProvider).add(
+        shopId: shopId,
+        kind: NotificationKinds.storefrontOrder,
+        payload: {'count': count},
       );
       await settings.setStorefrontSeenOrderCreatedMs(shopId, maxMs);
     } catch (_) {

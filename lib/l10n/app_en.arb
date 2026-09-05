@@ -1102,75 +1102,6 @@
   "invWebDownloadPdf": "Download PDF",
   "invWebSearchHint": "Search invoice #, customer, or phone",
   "invWebNoResults": "No invoices match your search.",
-  "referralTitle": "Refer & earn",
-  "referralSubtitle": "Share your code. Every month a shop you referred pays, you earn — added straight to your license.",
-  "referralMyCode": "My referral code",
-  "referralShare": "Share code",
-  "referralCopied": "Code copied",
-  "referralShareText": "Use All In One POS for your shop! Enter my referral code {code} when you subscribe. — {shop}",
-  "@referralShareText": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      },
-      "shop": {
-        "type": "String"
-      }
-    }
-  },
-  "referralBalance": "Your earnings",
-  "referralEarnedTotal": "Total earned",
-  "referralActiveShops": "Shops you referred",
-  "referralRedeem": "Redeem for license days",
-  "referralRedeemDone": "Added {months} month(s) to your license!",
-  "@referralRedeemDone": {
-    "placeholders": {
-      "months": {
-        "type": "int"
-      }
-    }
-  },
-  "referralRedeemNotEnough": "Not enough balance yet — refer one more shop!",
-  "referralNextGoal": "{amount} more until your next free month",
-  "@referralNextGoal": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralCodeOptional": "Referral code (optional)",
-  "referralCodeHint": "Got a friend's code? Enter it — they earn when your payment is approved.",
-  "referralEmpty": "No referrals yet. Share your code to start earning every month.",
-  "referralNotifTitle": "🎉 Commission earned!",
-  "referralNotifBody": "{amount} was added to your referral wallet. Open the app to redeem it for free license days.",
-  "@referralNotifBody": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralHowTitle": "How Refer & earn works",
-  "referralStep1": "Share your code with other shop owners.",
-  "referralStep2": "They type your code when they subscribe and pay.",
-  "referralStep3": "You earn a commission every month they keep paying.",
-  "referralStep4": "Turn your balance into free license days anytime.",
-  "referralHaveCode": "Have a referral code?",
-  "referralHaveCodeHint": "A friend gave you one? Enter it below — they earn when your payment is approved. Leave blank if you don't have one.",
-  "referralRedeemConfirmTitle": "Redeem now?",
-  "referralRedeemConfirmBody": "Add {months} month(s) to your license and use {amount} from your balance?",
-  "@referralRedeemConfirmBody": {
-    "placeholders": {
-      "months": {
-        "type": "int"
-      },
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "referralRedeemAction": "Redeem",
   "backupTitle": "Backup & restore",
   "backupHint": "Your data is stored on this device. Export a backup file and keep it safe (e.g. send it to Viber → My Notes).",
   "backupExport": "Export backup",
@@ -1499,6 +1430,13 @@
   "storefrontHoursClose": "Closes",
   "storefrontRequireProof": "Require transfer screenshot",
   "storefrontRequireProofHint": "When on, bank-transfer checkouts must upload a payment proof.",
+  "notificationsTitle": "Notifications",
+  "notificationsEmpty": "No notifications yet.",
+  "notificationsEmptyHint": "New web orders and Premium expiry reminders show up here.",
+  "notificationsMarkAllRead": "Mark all as read",
+  "notificationsClear": "Clear all",
+  "notificationsClearConfirmTitle": "Clear all notifications?",
+  "notificationsClearConfirmBody": "This only clears the list on this phone. Your orders and licence are not affected.",
   "storefrontOrderNotifTitle": "New web order",
   "storefrontOrderNotifBody": "{count} new storefront order(s) — open Orders to review.",
   "@storefrontOrderNotifBody": {
@@ -1715,6 +1653,11 @@
   "accountResetPasswordSave": "Save new password",
   "accountResetPasswordSuccess": "Password updated. You're signed in.",
   "accountCreateShopLogin": "Create shop login",
+  "accountStepCreatingAccount": "Creating your account",
+  "accountStepAuthenticating": "Checking your password",
+  "accountStepOpeningShop": "Opening your shop",
+  "accountSwitchToSignIn": "Already have an account? Sign in",
+  "accountSwitchToRegister": "New here? Create an account",
   "accountSignIn": "Sign in",
   "accountSignOut": "Sign out",
   "accountDeleteAccount": "Delete account",

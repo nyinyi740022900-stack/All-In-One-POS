@@ -145,13 +145,6 @@ class _AdminRail extends StatelessWidget {
               Icons.vpn_key_outlined,
               'Licensing',
             ),
-            _navLabel(context, 'Growth'),
-            _item(
-              context,
-              _AdminSection.referrals,
-              Icons.card_giftcard_outlined,
-              'Referrals',
-            ),
             _navLabel(context, 'System'),
             _item(context, _AdminSection.settings, Icons.tune, 'Settings'),
           ],

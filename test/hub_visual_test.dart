@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mm_pos/features/notifications/notification_center_providers.dart';
 import 'package:mm_pos/core/theme/app_theme.dart';
 import 'package:mm_pos/core/widgets/numeric_keypad.dart';
 import 'package:mm_pos/data/local/database.dart';
@@ -175,6 +176,12 @@ void main() {
           ordersStreamProvider.overrideWith(
             (ref) => Stream.value([_order()]),
           ),
+          // The Sell app bar's notification bell reads this straight from
+          // Drift. Left live, its subscription is cancelled at teardown and
+          // Drift schedules a zero-duration cleanup timer, which trips the
+          // "Timer is still pending" invariant — same reason every other
+          // Drift-backed stream on this screen is overridden here.
+          notificationUnreadCountProvider.overrideWith((ref) => Stream.value(0)),
           salesStreamProvider.overrideWith((ref) => Stream.value(const [])),
         ],
         child: MaterialApp(

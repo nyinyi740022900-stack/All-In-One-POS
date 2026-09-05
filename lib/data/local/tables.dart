@@ -10,10 +10,8 @@ import 'package:drift/drift.dart';
 mixin SyncColumns on Table {
   TextColumn get id => text()();
   TextColumn get shopId => text()();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
 
@@ -64,6 +62,7 @@ class Products extends Table with SyncColumns {
   BoolColumn get sellOnline => boolean().withDefault(const Constant(true))();
   TextColumn get unit => text().withDefault(const Constant('pcs'))();
   TextColumn get imagePath => text().nullable()();
+
   /// Public storage URL of the product photo (shown on the web storefront).
   TextColumn get imageUrl => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
@@ -279,20 +278,19 @@ class ShopProfiles extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get phone => text().nullable()();
   TextColumn get address => text().nullable()();
+
   /// ISO-2 code, defaults `'MM'`. No screen edits this anymore (the License
   /// screen asks Myanmar-vs-International at subscribe time instead) —
   /// dormant, available infrastructure only. Not a POS/billing currency
   /// model — see [currencyCode] for that.
-  TextColumn get country =>
-      text().withDefault(const Constant('MM'))();
+  TextColumn get country => text().withDefault(const Constant('MM'))();
 
   /// ISO 4217 code for what this shop sells in (`CurrencyDef.byCode`).
   /// Default `'MMK'` keeps every existing shop numerically identical
   /// (exponent 0, same integers on disk) — see the multi-country foundation
   /// design doc. Locked once the shop has any finalized sale
   /// (`SettingsRepository.currencyChangeAllowed`).
-  TextColumn get currencyCode =>
-      text().withDefault(const Constant('MMK'))();
+  TextColumn get currencyCode => text().withDefault(const Constant('MMK'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -522,6 +520,7 @@ class StaffMembers extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get pin => text()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
+
   /// Optional — links this local PIN-roster row to an invited-email
   /// `StaffAccount` (Supabase Auth `'staff'` login) sharing the same
   /// address, so a granted `OwnerCapability` follows whichever way that
@@ -551,6 +550,7 @@ class StaffMembers extends Table with SyncColumns {
 /// devices of one shop.
 class StaffPermissions extends Table with SyncColumns {
   TextColumn get staffMemberId => text()();
+
   /// `OwnerCapability.name` (e.g. `'analytics'`, `'inventoryEdit'`) — stored
   /// as text, like every other enum-ish column in this codebase, so
   /// reordering the Dart enum can never corrupt already-synced data.
@@ -583,6 +583,7 @@ class Expenses extends Table with SyncColumns {
   DateTimeColumn get date => dateTime()();
   TextColumn get note => text().nullable()();
   TextColumn get receiptPhotoPath => text().nullable()();
+
   /// Which [PaymentAccounts] row this was paid from — null means cash (the
   /// implicit default every expense had before this column existed; see
   /// `computeExpectedCash`'s own doc comment).
@@ -669,8 +670,7 @@ class RecurringExpenses extends Table with SyncColumns {
   IntColumn get amount => integer()();
   TextColumn get note => text().nullable()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
-  BoolColumn get autoGenerate =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get autoGenerate => boolean().withDefault(const Constant(false))();
   TextColumn get generationTiming =>
       text().withDefault(const Constant('month_start'))();
   TextColumn get lastGeneratedPeriod => text().nullable()();
@@ -703,8 +703,7 @@ class Outbox extends Table {
   /// upsert | delete
   TextColumn get op => text()();
 
-  DateTimeColumn get enqueuedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get enqueuedAt => dateTime().withDefault(currentDateAndTime)();
   IntColumn get attempts => integer().withDefault(const Constant(0))();
 
   /// The exception message from the most recent failed push attempt, if
@@ -716,6 +715,39 @@ class Outbox extends Table {
   /// attempts so they no longer block branch switch / pending counts.
   /// Local entity data is kept; `sync_force_apply` converges them without
   /// asking the owner to Discard or call Support.
-  BoolColumn get quarantined =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get quarantined => boolean().withDefault(const Constant(false))();
+}
+
+/// In-app notification centre rows — the bell in the Sell app bar.
+///
+/// **Local only, deliberately no [SyncColumns].** These are a record of what
+/// this device told this user about; they are not shop data. Syncing them
+/// would replay one phone's alerts onto another phone that was never the one
+/// sitting on the counter, and "read" would mean nothing across devices.
+/// [shopId] still scopes them, so switching branch shows that branch's
+/// history rather than the previous one's.
+///
+/// Stores [kind] plus a JSON [payload] rather than rendered text: the OS
+/// notification is written once in the locale of the moment, but this list is
+/// re-read later and must follow the app's current language. Rendering at
+/// display time is what makes that work — see `notificationText`.
+class AppNotifications extends Table {
+  TextColumn get id => text()();
+  TextColumn get shopId => text()();
+
+  /// `storefront_order` | `license_expiry`. Unknown kinds are skipped by the
+  /// renderer rather than crashing, so an older build can read rows written
+  /// by a newer one.
+  TextColumn get kind => text()();
+
+  /// Kind-specific JSON (`{"count":3}`, `{"daysLeft":7,"shopName":"…"}`).
+  TextColumn get payload => text().withDefault(const Constant('{}'))();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// Null until opened. Drives the unread badge.
+  DateTimeColumn get readAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }

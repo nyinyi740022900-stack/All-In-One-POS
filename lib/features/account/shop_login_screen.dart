@@ -8,14 +8,17 @@ import '../../core/widgets/app_widgets.dart';
 import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../license/license_providers.dart';
+import '../license/license_screen.dart';
 import '../license/license_status.dart';
 import '../onboarding/operating_mode_providers.dart';
 import '../printing/printing_providers.dart';
 import '../settings/device_label_providers.dart';
+import '../settings/shop_profile_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import 'account_action_error.dart';
 import 'account_providers.dart';
+import 'account_repository.dart';
 import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
 import 'password_strength.dart';
@@ -32,13 +35,16 @@ class ShopLoginScreen extends ConsumerStatefulWidget {
   ConsumerState<ShopLoginScreen> createState() => _ShopLoginScreenState();
 }
 
-class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
-    with SingleTickerProviderStateMixin {
-  // Sign in first — staff (and anyone coming back after logout) need that
-  // tab, not Register. Register is the second tab for owners attaching a
-  // login to this already-activated device.
-  late final _tabs = TabController(length: 2, vsync: this)
-    ..addListener(_onTabChanged);
+class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
+  // Sign in first — staff (and anyone coming back after logout) need that,
+  // not Register. Register is for owners attaching a login to this
+  // already-activated device, reached by the link under the form.
+  //
+  // This was a `TabController` + `TabBar`; a tab bar reads as a settings
+  // form, which is exactly what this screen is not. One mode at a time
+  // with a text link underneath is what every consumer app does, and what
+  // the owner asked for.
+  bool _register = false;
   final _createEmail = TextEditingController();
   final _createPassword = TextEditingController();
   final _createConfirm = TextEditingController();
@@ -47,6 +53,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
   late final SavedLoginBinder _signInSaved;
   bool _busy = false;
   bool _justCreated = false;
+
+  /// Which phase of the sign-in is running, so the wait can say so.
+  /// Null whenever no sign-in is in flight.
+  SignInStep? _step;
 
   @override
   void initState() {
@@ -61,14 +71,8 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     });
   }
 
-  void _onTabChanged() {
-    if (mounted) setState(() {});
-  }
-
   @override
   void dispose() {
-    _tabs.removeListener(_onTabChanged);
-    _tabs.dispose();
     _signInSaved.detach();
     _createEmail.dispose();
     _createPassword.dispose();
@@ -140,7 +144,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
     final messenger = ScaffoldMessenger.of(context);
     var result = await ref
         .read(accountRepositoryProvider)
-        .signInAndClaimDevice(email, password);
+        .signInAndClaimDevice(
+          email,
+          password,
+          onStep: (s) {
+            if (mounted) setState(() => _step = s);
+          },
+        );
     if (!mounted) return;
 
     if (result.needsWipeConfirmation) {
@@ -181,7 +191,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
       if (!mounted) return;
     }
 
-    setState(() => _busy = false);
+    setState(() {
+      _busy = false;
+      _step = null;
+    });
     if (result.ok) {
       await _signInSaved.remember(
         ref.read(savedLoginStoreProvider),
@@ -209,10 +222,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
         SnackBar(content: Text(_errorMessage(l, result.error))),
       );
       // Account exists server-side; they should not have to re-type the
-      // email on the other tab to finish signing in.
+      // email in the other mode to finish signing in.
       if (justCreated) {
         _signInEmail.text = email;
-        _tabs.animateTo(0);
+        setState(() => _register = false);
       }
     }
   }
@@ -517,12 +530,24 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
                   const SizedBox(height: AppTheme.space3),
                   const Divider(height: 1),
                 ],
+                // These three used to be dead rows: icon, title, subtitle
+                // and no `onTap`, so the shop name was shown here with no way
+                // to reach the screen that edits it. The two that lead
+                // somewhere now say so with a chevron; the device name has
+                // none because it is genuinely just information here (it is
+                // edited under Settings → Device, where it belongs).
                 if (shopName != null && shopName.isNotEmpty)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.store_outlined),
                     title: Text(l.settingsShop),
                     subtitle: Text(shopName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ShopProfileScreen(),
+                      ),
+                    ),
                   ),
                 if (deviceLabel != null && deviceLabel.isNotEmpty)
                   ListTile(
@@ -537,6 +562,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
                     leading: const Icon(Icons.workspace_premium_outlined),
                     title: Text(l.licensePlanLabel),
                     subtitle: Text(_planLabel(l, license.plan)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LicenseScreen()),
+                    ),
                   ),
                 const SizedBox(height: AppTheme.space2),
                 FilledButton.tonal(
@@ -609,60 +638,116 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen>
               ),
             ],
           ),
-          Expanded(
-            child: ContentWidth(
-              maxWidth: 480,
-              child: ListView(
-                padding: const EdgeInsets.all(AppTheme.space4),
-                children: [
-                  Text(
-                    l.accountShopLoginTitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
+          // The wait replaces the form rather than sitting inside the
+          // button. Sign-in is the one moment on this screen where the user
+          // has nothing to do and no idea how long it will take, so it gets
+          // the whole page and says which half of the work is running.
+          if (_busy)
+            Expanded(
+              child: Center(
+                child: BrandPulseProgress(
+                  icon: Icons.storefront_rounded,
+                  caption: switch (_step) {
+                    SignInStep.authenticating => l.accountStepAuthenticating,
+                    SignInStep.openingShop => l.accountStepOpeningShop,
+                    // No step yet means the register path's own
+                    // create-the-account call, which runs before sign-in
+                    // begins reporting.
+                    null => l.accountStepCreatingAccount,
+                  },
+                  stepCount: _register && showRegister ? 3 : 2,
+                  stepIndex: _register && showRegister
+                      ? switch (_step) {
+                          null => 0,
+                          SignInStep.authenticating => 1,
+                          SignInStep.openingShop => 2,
+                        }
+                      : switch (_step) {
+                          SignInStep.openingShop => 1,
+                          _ => 0,
+                        },
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ContentWidth(
+                maxWidth: 480,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.space5,
+                    AppTheme.space5,
+                    AppTheme.space5,
+                    AppTheme.space4,
                   ),
-                  const SizedBox(height: AppTheme.space2),
-                  Text(
-                    l.accountShopLoginHint,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: AppTheme.space4),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTheme.space4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (showRegister)
-                            TabBar(
-                              controller: _tabs,
-                              tabs: [
-                                Tab(text: l.onboardOnlineTabSignIn),
-                                Tab(text: l.onboardOnlineTabRegister),
-                              ],
-                            ),
-                          if (showRegister)
-                            const SizedBox(height: AppTheme.space4),
-                          // No `TabBarView` — a fixed-height one clipped
-                          // Myanmar labels that wrap to two lines.
-                          // AnimatedSize lets each tab's body claim exactly
-                          // the height it needs in either language.
-                          AnimatedSize(
-                            duration: AppTheme.motionMedium,
-                            curve: AppTheme.curveStandard,
-                            alignment: Alignment.topCenter,
-                            child: !showRegister || _tabs.index == 0
-                                ? _signInForm(l)
-                                : _registerForm(l),
-                          ),
-                        ],
+                  children: [
+                    // Heading names the action, the way every consumer sign-up
+                    // screen does — not the section ("Account"), which is what
+                    // a settings sub-page would say.
+                    Text(
+                      _register && showRegister
+                          ? l.accountCreateShopLogin
+                          : l.onboardOnlineSignInTitle,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: AppTheme.space2),
+                    Text(
+                      _register && showRegister
+                          ? l.onboardAccountBody
+                          : l.onboardOnlineSignInBody,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppTheme.space5),
+                    // Fields sit straight on the page. They were inside a
+                    // `Card`, which framed the form as one more settings row
+                    // instead of the screen's whole point — they carry their
+                    // own fill and border from the input theme, so the card
+                    // was only ever adding a box around a box.
+                    AnimatedSize(
+                      duration: AppTheme.motionMedium,
+                      curve: AppTheme.curveStandard,
+                      alignment: Alignment.topCenter,
+                      child: !showRegister || !_register
+                          ? _signInForm(l)
+                          : _registerForm(l),
+                    ),
+                    if (showRegister) ...[
+                      const SizedBox(height: AppTheme.space3),
+                      Center(
+                        child: TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() => _register = !_register),
+                          child: Text(
+                            _register
+                                ? l.accountSwitchToSignIn
+                                : l.accountSwitchToRegister,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppTheme.space4),
+                    // The reassurance that a license key and the PIN
+                    // quick-switch keep working is worth keeping, but it was
+                    // three lines above the form, which is what made this read
+                    // as a settings page. Demoted to a footnote.
+                    Text(
+                      l.accountShopLoginHint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

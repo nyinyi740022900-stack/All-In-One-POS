@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/currency_def.dart';
 import '../../core/env.dart';
 import '../../core/image_util.dart';
-import '../../core/locale_controller.dart';
 import '../../core/payment_method.dart';
 import '../../core/phone_validator.dart';
 import '../../core/providers.dart';
@@ -110,33 +109,42 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       setState(() => _paymentMethods.removeAt(i).dispose());
 
   List<PaymentMethod> _collectPaymentMethods() => _paymentMethods
-      .map((d) => PaymentMethod(
-            label: d.label.text.trim(),
-            accountName: d.accountName.text.trim(),
-            accountNumber: d.accountNumber.text.trim(),
-          ))
+      .map(
+        (d) => PaymentMethod(
+          label: d.label.text.trim(),
+          accountName: d.accountName.text.trim(),
+          accountNumber: d.accountNumber.text.trim(),
+        ),
+      )
       .where((m) => m.label.isNotEmpty || m.accountNumber.isNotEmpty)
       .toList();
 
   Future<void> _pickLogo() async {
-    final res =
-        await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
     setState(() => _uploadingLogo = true);
     try {
       // Downscale before upload — phone photos are often several MB, and this
       // logo also gets embedded directly into the printed receipt.
-      final c = await compressImage(file.bytes!,
-          fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+      final c = await compressImage(
+        file.bytes!,
+        fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
+      );
       // Folder-scoped by the caller's own shop_id — see the matching
       // comment in product_edit_screen.dart's upload path.
       final shopId = ref.read(shopIdProvider);
       final path =
           '$shopId/shop-logo-${DateTime.now().millisecondsSinceEpoch}.${c.ext}';
       final storage = Supabase.instance.client.storage.from('product-images');
-      await storage.uploadBinary(path, c.bytes,
-          fileOptions: const FileOptions(upsert: true));
+      await storage.uploadBinary(
+        path,
+        c.bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
       final url = storage.getPublicUrl(path);
       // Saved immediately — the logo isn't part of the rest of the form's
       // "Save" step, same as the storefront logo picker.
@@ -148,7 +156,10 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)));
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploadingLogo = false);
@@ -166,7 +177,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     final methods = _collectPaymentMethods();
     try {
       final shopId = ref.read(shopIdProvider);
-      await ref.read(settingsRepositoryProvider).saveShopProfile(
+      await ref
+          .read(settingsRepositoryProvider)
+          .saveShopProfile(
             shopId,
             ShopProfile(
               name: _name.text.trim(),
@@ -199,7 +212,8 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
           // the profile save that already succeeded above.
           if (mounted) setState(() => _currencyCode = _loadedCurrencyCode!);
           messenger.showSnackBar(
-              SnackBar(content: Text(l.shopCurrencyLockedHint)));
+            SnackBar(content: Text(l.shopCurrencyLockedHint)),
+          );
         }
       }
       // Mirrors name/phone/address into the synced ShopProfiles table so
@@ -207,7 +221,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       // best-effort: a sync failure here shouldn't block saving the
       // profile itself, which already succeeded locally above.
       try {
-        await ref.read(shopProfileSyncRepositoryProvider).sync(
+        await ref
+            .read(shopProfileSyncRepositoryProvider)
+            .sync(
               shopId: shopId,
               name: _name.text.trim(),
               phone: orNull(_phone),
@@ -223,7 +239,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       try {
         final storefront = await ref.read(storefrontRepositoryProvider).mine();
         if (storefront != null) {
-          await ref.read(storefrontRepositoryProvider).updateProfile(
+          await ref
+              .read(storefrontRepositoryProvider)
+              .updateProfile(
                 displayName: _name.text.trim(),
                 phone: orNull(_phone) ?? '',
                 address: orNull(_address) ?? '',
@@ -241,7 +259,8 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(
-            SnackBar(content: Text(l.commonUnexpectedError)));
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -254,10 +273,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     final profile = ref.watch(shopProfileProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.settingsShop),
-        actions: [_languageMenu(l)],
-      ),
+      appBar: AppBar(title: Text(l.settingsShop)),
       body: profile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorRetryView(
@@ -271,17 +287,22 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
             child: ListView(
               padding: const EdgeInsets.all(AppTheme.space4),
               children: [
-                Text(l.shopProfileHint,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l.shopProfileHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: AppTheme.space4),
                 if (Env.hasBackend) ...[
                   _logoField(l),
                   const SizedBox(height: AppTheme.space4),
                 ],
-                _field(_name, l.shopName,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? l.validationRequired
-                        : null),
+                _field(
+                  _name,
+                  l.shopName,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l.validationRequired
+                      : null,
+                ),
                 _gap,
                 _field(_phone, l.shopPhone, phone: true),
                 _gap,
@@ -292,8 +313,10 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                 _field(_footer, l.receiptFooter, lines: 2),
                 const Divider(height: AppTheme.space6),
                 SectionHeader(title: l.storefrontPaymentInfoTitle),
-                Text(l.storefrontPaymentInfoHint,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  l.storefrontPaymentInfoHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 _gap,
                 for (var i = 0; i < _paymentMethods.length; i++) ...[
                   _paymentMethodRow(l, i),
@@ -307,7 +330,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                 const SizedBox(height: AppTheme.space5),
                 FilledButton.icon(
                   onPressed: _saving ? null : _save,
-                  icon: _saving ? const ButtonSpinner() : const Icon(Icons.check),
+                  icon: _saving
+                      ? const ButtonSpinner()
+                      : const Icon(Icons.check),
                   label: Text(l.commonSave),
                 ),
               ],
@@ -326,13 +351,18 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       decoration: InputDecoration(
         labelText: l.shopCurrency,
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.space4, vertical: AppTheme.space4),
+          horizontal: AppTheme.space4,
+          vertical: AppTheme.space4,
+        ),
         helperText: allowed ? null : l.shopCurrencyLockedHint,
         helperMaxLines: 2,
       ),
       items: [
         for (final c in CurrencyDef.all)
-          DropdownMenuItem(value: c.code, child: Text('${c.code} (${c.symbol})')),
+          DropdownMenuItem(
+            value: c.code,
+            child: Text('${c.code} (${c.symbol})'),
+          ),
       ],
       onChanged: allowed
           ? (v) => setState(() => _currencyCode = v ?? _currencyCode)
@@ -353,8 +383,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: d.label,
-                    decoration:
-                        InputDecoration(labelText: l.paymentMethodLabel),
+                    decoration: InputDecoration(
+                      labelText: l.paymentMethodLabel,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -367,15 +398,17 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
             _gap,
             TextFormField(
               controller: d.accountName,
-              decoration:
-                  InputDecoration(labelText: l.paymentMethodAccountName),
+              decoration: InputDecoration(
+                labelText: l.paymentMethodAccountName,
+              ),
             ),
             _gap,
             TextFormField(
               controller: d.accountNumber,
               keyboardType: TextInputType.phone,
-              decoration:
-                  InputDecoration(labelText: l.paymentMethodAccountNumber),
+              decoration: InputDecoration(
+                labelText: l.paymentMethodAccountNumber,
+              ),
             ),
           ],
         ),
@@ -398,12 +431,16 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
             alignment: Alignment.center,
             child: (_logoUrl ?? '').isEmpty
                 ? const Icon(Icons.storefront, size: 40)
-                : Image.network(_logoUrl!,
+                : Image.network(
+                    _logoUrl!,
                     fit: BoxFit.cover,
                     cacheWidth: ProductThumb.cacheWidthFor(
-                        96, MediaQuery.devicePixelRatioOf(context)),
+                      96,
+                      MediaQuery.devicePixelRatioOf(context),
+                    ),
                     errorBuilder: (_, _, _) =>
-                        const Icon(Icons.broken_image_outlined)),
+                        const Icon(Icons.broken_image_outlined),
+                  ),
           ),
           const SizedBox(height: AppTheme.space2),
           TextButton.icon(
@@ -418,41 +455,15 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     );
   }
 
-  /// Top-right app bar language switcher — the owner asked for this to be
-  /// the one place the language lives (Settings → Device's copy of the same
-  /// control was removed). Device-global via [localeControllerProvider],
-  /// applied immediately on selection — not part of the form's Save step.
-  Widget _languageMenu(AppLocalizations l) {
-    final locale = ref.watch(localeControllerProvider);
-    final flag = locale == 'my' ? '🇲🇲' : '🇬🇧';
-    final name = locale == 'my' ? l.languageMyanmar : l.languageEnglish;
-    return PopupMenuButton<String>(
-      initialValue: locale,
-      tooltip: l.settingsLanguage,
-      onSelected: (v) => ref.read(localeControllerProvider.notifier).set(v),
-      itemBuilder: (context) => [
-        PopupMenuItem(value: 'my', child: Text('🇲🇲  ${l.languageMyanmar}')),
-        PopupMenuItem(value: 'en', child: Text('🇬🇧  ${l.languageEnglish}')),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(flag, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: AppTheme.space1),
-            Text(name, style: Theme.of(context).textTheme.labelLarge),
-            const Icon(Icons.arrow_drop_down),
-          ],
-        ),
-      ),
-    );
-  }
-
   static const _gap = SizedBox(height: AppTheme.space3);
 
-  Widget _field(TextEditingController c, String label,
-      {int lines = 1, bool phone = false, String? Function(String?)? validator}) {
+  Widget _field(
+    TextEditingController c,
+    String label, {
+    int lines = 1,
+    bool phone = false,
+    String? Function(String?)? validator,
+  }) {
     final l = AppLocalizations.of(context);
     return TextFormField(
       controller: c,
@@ -464,9 +475,12 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
         labelText: label,
         // Extra vertical padding so tall Myanmar stacked glyphs aren't clipped.
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.space4, vertical: AppTheme.space4),
-        helperText:
-            phone && !looksLikeMyanmarPhone(c.text) ? l.phoneFormatHint : null,
+          horizontal: AppTheme.space4,
+          vertical: AppTheme.space4,
+        ),
+        helperText: phone && !looksLikeMyanmarPhone(c.text)
+            ? l.phoneFormatHint
+            : null,
         helperMaxLines: 2,
       ),
       validator: validator,

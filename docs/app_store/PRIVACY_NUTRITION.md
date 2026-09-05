@@ -21,7 +21,7 @@ No advertising identifiers, no third-party ads.
 - Camera (barcodes / QR)
 - Bluetooth (receipt printer)
 - Photo Library (attachments)
-- Notifications (local: referral / storefront orders)
+- Notifications (local: storefront orders / licence expiry)
 
 ## Encryption
 `ITSAppUsesNonExemptEncryption` = **false** in Info.plist (HTTPS + standard crypto only for license verify). Still answer the Connect export-compliance question consistently.

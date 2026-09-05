@@ -27,7 +27,6 @@ enum _AdminSection {
   shops,
   payments,
   licensing,
-  referrals,
   settings,
 }
 
@@ -48,8 +47,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Map<String, dynamic>>? _licenses;
   List<Map<String, dynamic>>? _requests;
   List<Map<String, dynamic>>? _events;
-  List<Map<String, dynamic>>? _referrals;
-  List<Map<String, dynamic>>? _commissions;
   List<Map<String, dynamic>>? _shops;
   Map<String, String>? _config;
   String? _error;
@@ -88,8 +85,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         widget.api.listLicenses(),
         widget.api.listRequests(),
         widget.api.listEvents(),
-        widget.api.listReferrals(),
-        widget.api.listCommissions(),
         widget.api.listShops(),
         widget.api.getConfig(),
       ]);
@@ -100,10 +95,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _licenses = results[0] as List<Map<String, dynamic>>;
         _requests = requests;
         _events = results[2] as List<Map<String, dynamic>>;
-        _referrals = results[3] as List<Map<String, dynamic>>;
-        _commissions = results[4] as List<Map<String, dynamic>>;
-        _shops = results[5] as List<Map<String, dynamic>>;
-        _config = results[6] as Map<String, String>;
+        _shops = results[3] as List<Map<String, dynamic>>;
+        _config = results[4] as Map<String, String>;
         if (!_didPickLanding) {
           _didPickLanding = true;
           if (pending > 0) _section = _AdminSection.inbox;
@@ -182,7 +175,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _AdminSection.shops => 'Shops',
     _AdminSection.payments => 'Payments',
     _AdminSection.licensing => 'Licensing',
-    _AdminSection.referrals => 'Referrals',
     _AdminSection.settings => 'Settings',
   };
 
@@ -241,12 +233,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onExtendEmail: () => _extend(byEmail: true),
           onExtendDevice: () => _extend(byEmail: false),
           onOpenShops: () => _go(_AdminSection.shops),
-        );
-      case _AdminSection.referrals:
-        return _ReferralsTab(
-          commissions: _commissions ?? const [],
-          referrals: _referrals ?? const [],
-          onApplyCredit: _applyCredit,
         );
       case _AdminSection.settings:
         return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);
@@ -550,27 +536,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
-    }
-  }
-
-  Future<void> _applyCredit(String shopId) async {
-    if (_moneyBusy) return;
-    setState(() => _moneyBusy = true);
-    try {
-      final res = await widget.api.applyReferralCredit(shopId: shopId);
-      final months = (res['months'] as num?)?.toInt() ?? 0;
-      if (months <= 0) {
-        final balance = (res['balance'] as num?)?.toInt() ?? 0;
-        _snack('Not enough balance to credit a full month ($balance Ks).');
-      } else {
-        final amount = (res['amount'] as num?)?.toInt() ?? 0;
-        _snack('Credited $months month(s) = $amount Ks to $shopId.');
-      }
-      _reload();
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
-    } finally {
-      if (mounted) setState(() => _moneyBusy = false);
     }
   }
 

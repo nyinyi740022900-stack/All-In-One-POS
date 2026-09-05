@@ -11,7 +11,9 @@ import 'package:mm_pos/data/repositories/settings_repository.dart';
 /// key that doesn't exist yet: `referral.seen_earned` shipped as
 /// device-global, so switching shops on one device compared the new shop's
 /// earnings against a watermark left by a different shop (#295-9). No test
-/// was wrong; no test existed, because nobody was prompted to ask.
+/// was wrong; no test existed, because nobody was prompted to ask. (That key
+/// is gone now — Refer & earn was removed — but the bug shape it taught is
+/// exactly what this guard still exists to catch.)
 ///
 /// So this guard is about completeness, not behaviour. Every key constant in
 /// `SettingsRepository` must appear below with an explicit scope, and that
@@ -68,9 +70,8 @@ void main() {
     'shop.track_stock': _Scope.perShop,
     'receipt.footer': _Scope.perShop,
     // Watermarks: a per-shop figure compared against a per-shop threshold.
-    // `referral.seen_earned` is the one that shipped device-global by
-    // mistake — see this file's header.
-    'referral.seen_earned': _Scope.perShop,
+    // The retired `referral.seen_earned` is the one that shipped
+    // device-global by mistake — see this file's header.
     'license.expiry_warned': _Scope.perShop,
     'storefront.seen_order_ms': _Scope.perShop,
     'daily.gate.ymd': _Scope.perShop,
