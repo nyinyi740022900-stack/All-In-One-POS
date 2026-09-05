@@ -150,6 +150,30 @@ process (app stays installed). If it fails with "Could not run … on iPhone",
 the phone is locked/asleep OR a native plugin failed to compile — check the log
 for `Swift Compiler Error` before assuming it's the device.
 
+⚠️ **"Waiting for iPhone to connect…" that never ends is usually the startup
+lock, not the phone.** `flutter run` prints that line *before* it blocks on
+Flutter's global lock, so a queue behind stale `flutter_tools` processes is
+indistinguishable from an absent device — and a `flutter devices` run to
+"check" just joins the same queue and prints nothing, which reinforces the
+wrong diagnosis (2026-09-04: 17 stale processes, over an hour lost).
+Diagnose the device independently, then clear the lock:
+```bash
+xcrun devicectl list devices          # truth about the phone; ignores Flutter
+pgrep -f flutter_tools.snapshot | wc -l
+pkill -9 -f flutter_tools.snapshot
+```
+
+**If the build succeeds but the wireless install fails**, install directly —
+it works when `flutter run`'s install step does not, and its errors are
+specific rather than "Try launching Xcode". Use the CoreDevice identifier
+from `devicectl list devices` (NOT the `00008150-…` UDID):
+```bash
+xcrun devicectl device install app --device <coredevice-uuid> build/ios/iphoneos/Runner.app
+xcrun devicectl device process launch --device <coredevice-uuid> com.allinonepos.app
+```
+The `Failed to load provisioning paramter list … No provider was found`
+line these print is noise — the install still succeeds under it.
+
 ## 5. App Store / TestFlight (IPA)
 Kit: `docs/app_store/` (listing copy, privacy nutrition, review notes, smoke
 checklist). Privacy Policy (live): https://legal.allinonepos.app  
