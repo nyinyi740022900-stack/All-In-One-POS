@@ -52,7 +52,9 @@ builds and stamps the correct head in one step.
 ./tool/build_web.sh admin
 # stage build/web/ + a vercel.json SPA-fallback, then:
 #   { "routes": [ { "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" } ] }
-cd build/web && vercel deploy --prod --yes --scope nyi-nyi-s-projects1
+cd build/web && vercel link --yes --project allinonepos-admin --scope nyi-nyi-s-projects1
+rm -f .env.local
+vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
 Stable URL: https://admin.allinonepos.app (use this; the per-deployment URL
 is SSO-gated).
@@ -71,11 +73,19 @@ the existing link still matches. After any deploy in this shared directory,
 verify the live page title (or another target-specific marker) before
 trusting the deploy, not just the exit code.
 
+⚠️ **`vercel link` also writes `build/web/.env.local`** — the project's env
+vars, dropped into the very directory being uploaded. `rm -f .env.local`
+after every `link` and before every `deploy` (already in the commands
+below). Vercel's SPA fallback happens to serve `index.html` for that path
+rather than the file, so past deploys did not expose it — but do not rely on
+a rewrite rule to keep secrets off a static host.
+
 ## 3b. Storefront web → Vercel
 Same build/deploy shape as above, different target + project:
 ```bash
 ./tool/build_web.sh shop
 cd build/web && vercel link --yes --project allinonepos-shop --scope nyi-nyi-s-projects1
+rm -f .env.local
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
 Stable URL: https://shop.allinonepos.app.
@@ -86,6 +96,7 @@ of computer/tablet support — see PROJECT_SPEC §12). Same shape again:
 ```bash
 ./tool/build_web.sh invoices
 cd build/web && vercel link --yes --project allinonepos-invoices --scope nyi-nyi-s-projects1
+rm -f .env.local
 vercel deploy --prod --yes --scope nyi-nyi-s-projects1
 ```
 Stable URL: https://invoices.allinonepos.app. No backend changes ship with
