@@ -7,6 +7,8 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/features/accounts/payment_account_providers.dart';
 import 'package:mm_pos/features/accounting/accounting_providers.dart';
 import 'package:mm_pos/features/cash/cash_providers.dart';
+import 'package:mm_pos/features/equity/equity_providers.dart';
+import 'package:mm_pos/features/analytics/pnl_providers.dart';
 
 /// Guards the "derived figure goes silently stale" bug class — the one
 /// CLAUDE.md's ripple-effect check step 2 asks for by hand:
@@ -339,6 +341,155 @@ void main() {
       });
       expect(r.after, r.before - 1100,
           reason: 'the Balance Sheet did not follow an account expense.');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Coverage extension (Play-update ripple audit, step 3).
+  //
+  // This file's own note asks for a provider to be registered here "when it
+  // folds a table" — and the money providers below never were. Reading them
+  // says their watch graphs are correct today; nothing was stopping a future
+  // edit from dropping a watch and going quietly stale again, which is the
+  // whole reason this file exists.
+  //
+  // `sale_items` is the table used to probe them, deliberately: every one of
+  // these folds it for COGS, it is the table a sync pull delivers in a
+  // *separate* transaction from its parent sale, and a missing watch on it is
+  // the exact bug that shipped as #M4 (net profit stayed inflated at COGS 0
+  // until some unrelated table happened to fire).
+  // -------------------------------------------------------------------------
+
+  /// A finalized sale, with NO line item yet.
+  ///
+  /// Split from [insertItemFor] on purpose: a sync pull delivers `sales` and
+  /// `sale_items` in separate transactions (see `syncTables` order), so the
+  /// only way to prove a provider watches `sale_items` is to let the sale
+  /// land and settle FIRST. Insert both together and the `sales` watch alone
+  /// invalidates the provider, the recompute reads the item anyway, and the
+  /// test passes whether or not the `sale_items` watch exists — which is
+  /// exactly how a version of this test initially fooled itself.
+  Future<void> insertSale({required String id, required int total}) async {
+    await db.into(db.sales).insert(SalesCompanion.insert(
+          id: id,
+          shopId: shopId,
+          invoiceNo: 'INV-$id',
+          subtotal: Value(total),
+          total: Value(total),
+          paid: Value(total),
+          paymentMethod: const Value('cash'),
+          finalizedAt: Value(at),
+          updatedAt: Value(at),
+        ));
+  }
+
+  /// The line item for [saleId], arriving on its own — the second half of the
+  /// sync pull, and the write every assertion below actually turns on.
+  Future<void> insertItemFor(String saleId,
+      {required int total, required int cost}) async {
+    await db.into(db.saleItems).insert(SaleItemsCompanion.insert(
+          id: 'item-$saleId',
+          shopId: shopId,
+          saleId: saleId,
+          productId: 'prod-1',
+          nameSnapshot: 'Rice',
+          priceSnapshot: total,
+          qty: 1,
+          lineTotal: total,
+          costSnapshot: Value(cost),
+          updatedAt: Value(at),
+        ));
+  }
+
+  /// Same shape as [balanceAround]: keep the provider listened to across the
+  /// write, so an absent watch shows up as a stale value rather than being
+  /// masked by a fresh recompute on next read.
+  Future<({T before, T after})> around<T>(
+    ProviderListenable<Future<T>> Function() target,
+    Future<void> Function() mutate,
+  ) async {
+    final sub = container.listen(target(), (_, _) {}, fireImmediately: true);
+    final before = await container.read(target());
+    await mutate();
+    await pumpEventQueue();
+    final after = await container.read(target());
+    sub.close();
+    return (before: before, after: after);
+  }
+
+  group('the money providers this guard did not cover', () {
+    /// The P&L defaults to the *current* month, and these fixtures are dated
+    /// [at] — so point its range at them explicitly rather than depending on
+    /// what month the suite happens to run in.
+    void pnlRangeCoversFixtures() {
+      container.read(pnlStartDateProvider.notifier).state =
+          DateTime(at.year, at.month, 1);
+      container.read(pnlEndDateProvider.notifier).state =
+          DateTime(at.year, at.month + 1, 1);
+    }
+
+    test('cumulativeNetProfitProvider — retained earnings picks up COGS from '
+        'a sale_item that arrives on its own', () async {
+      // The sale lands and settles first; net profit is now overstated by the
+      // whole cost, because no item has told it what the goods cost.
+      await insertSale(id: 'sale-np', total: 10000);
+      await pumpEventQueue();
+      final r = await around(
+        () => cumulativeNetProfitProvider.future,
+        () => insertItemFor('sale-np', total: 10000, cost: 6000),
+      );
+      expect(r.after, r.before - 6000,
+          reason: 'a sale_item landed in its own transaction (a sync pull) '
+              'and retained earnings did not drop by its COGS — '
+              'cumulativeNetProfitProvider has stopped watching sale_items, '
+              'so profit stays inflated until some unrelated table fires.');
+    });
+
+    test('equitySummaryProvider — total equity follows it', () async {
+      await insertSale(id: 'sale-eq', total: 8000);
+      await pumpEventQueue();
+      final r = await around(
+        () => equitySummaryProvider.future,
+        () => insertItemFor('sale-eq', total: 8000, cost: 3000),
+      );
+      expect(r.after.retainedEarnings, r.before.retainedEarnings - 3000);
+      expect(r.after.totalEquity, r.before.totalEquity - 3000,
+          reason: 'equitySummaryProvider folds cumulativeNetProfitProvider; '
+              'if it stops awaiting it, the balance sheet silently freezes.');
+    });
+
+    test('pnlStatementProvider — COGS is not left at zero when sale_items '
+        'arrive in their own transaction (the #M4 shape)', () async {
+      pnlRangeCoversFixtures();
+      await insertSale(id: 'sale-pnl', total: 20000);
+      await pumpEventQueue();
+      final r = await around(
+        () => pnlStatementProvider.future,
+        () => insertItemFor('sale-pnl', total: 20000, cost: 12000),
+      );
+      expect(r.before.cogs, 0, reason: 'precondition: no item yet');
+      expect(r.after.cogs, 12000,
+          reason: 'the sale_item landed and COGS stayed at zero — '
+              'pnlStatementProvider is watching sales but not sale_items, so '
+              'gross profit is overstated by the whole cost of the sale.');
+    });
+
+    test('an expense recorded on its own still reaches the P&L', () async {
+      pnlRangeCoversFixtures();
+      final r = await around(
+        () => pnlStatementProvider.future,
+        () async {
+          await db.into(db.expenses).insert(ExpensesCompanion.insert(
+                id: 'exp-pnl',
+                shopId: shopId,
+                category: 'rent',
+                amount: 3000,
+                date: at,
+                updatedAt: Value(at),
+              ));
+        },
+      );
+      expect(r.after.totalExpenses, r.before.totalExpenses + 3000);
     });
   });
 }
