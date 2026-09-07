@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/locale_controller.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme_mode_controller.dart';
 import 'core/widgets/app_widgets.dart';
 import 'data/sync/sync_providers.dart';
 import 'features/accounts/payment_account_providers.dart';
@@ -69,6 +70,12 @@ class MmPosApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(localeCode: localeCode),
       darkTheme: AppTheme.dark(localeCode: localeCode),
+      // Both palettes have always been supplied here, but no `themeMode:`
+      // was — so Flutter fell back to ThemeMode.system and the phone's
+      // setting was the only way to pick one. Now the owner can override it
+      // in Settings; 'system' stays the default, so an existing install
+      // behaves exactly as before until someone changes it.
+      themeMode: themeModeFromCode(ref.watch(themeModeControllerProvider)),
       locale: Locale(localeCode),
       // Force the chosen locale — never fall back to the device/system locale.
       localeResolutionCallback: (_, _) => Locale(localeCode),

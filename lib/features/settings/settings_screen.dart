@@ -22,6 +22,7 @@ import '../printing/printer_settings_screen.dart';
 import '../printing/printing_providers.dart';
 import 'barcode_scanner_help_screen.dart';
 import '../../core/locale_controller.dart';
+import '../../core/theme_mode_controller.dart';
 import '../../core/money.dart';
 import '../account/branches_screen.dart';
 import '../account/shop_login_screen.dart';
@@ -343,6 +344,7 @@ class SettingsScreen extends ConsumerWidget {
             SettingsGroup(
               children: [
                 _LanguageTile(),
+                _ThemeTile(),
                 ListTile(
                   leading: const IconAvatar(icon: Icons.print),
                   title: Text(l.settingsPrinter),
@@ -833,6 +835,59 @@ class _LanguageTile extends ConsumerWidget {
               myanmar ? '🇲🇲' : '🇬🇧',
               style: const TextStyle(fontSize: 20),
             ),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Light / dark / follow-the-phone. Sits beside [_LanguageTile] because it is
+/// the same kind of thing — a device-global display preference, not shop data
+/// — and because someone hunting for one will look where the other is.
+///
+/// Until now the only input was the phone's own setting: `app.dart` supplied
+/// both palettes but no `themeMode:`, so a shopkeeper whose phone lives in
+/// dark mode could not put the POS in light for a sunlit stall.
+class _ThemeTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final mode = ref.watch(themeModeControllerProvider);
+    (IconData, String) faceFor(String code) => switch (code) {
+          'light' => (Icons.light_mode_outlined, l.themeModeLight),
+          'dark' => (Icons.dark_mode_outlined, l.themeModeDark),
+          _ => (Icons.brightness_auto_outlined, l.themeModeSystem),
+        };
+    final (icon, label) = faceFor(mode);
+    return ListTile(
+      leading: const IconAvatar(icon: Icons.contrast),
+      title: Text(l.settingsTheme),
+      subtitle: Text(label),
+      trailing: PopupMenuButton<String>(
+        initialValue: mode,
+        tooltip: l.settingsTheme,
+        onSelected: (v) =>
+            ref.read(themeModeControllerProvider.notifier).set(v),
+        itemBuilder: (context) => [
+          for (final code in supportedThemeModes)
+            PopupMenuItem(
+              value: code,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(faceFor(code).$1, size: 20),
+                  const SizedBox(width: 12),
+                  Text(faceFor(code).$2),
+                ],
+              ),
+            ),
+        ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20),
             const Icon(Icons.arrow_drop_down),
           ],
         ),

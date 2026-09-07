@@ -1269,6 +1269,18 @@ class AppLocalizationsMy extends AppLocalizations {
   String get settingsLanguage => 'ဘာသာစကား';
 
   @override
+  String get settingsTheme => 'အသွင်အပြင်';
+
+  @override
+  String get themeModeSystem => 'ဖုန်းအတိုင်း';
+
+  @override
+  String get themeModeLight => 'အလင်း';
+
+  @override
+  String get themeModeDark => 'အမှောင်';
+
+  @override
   String get settingsPrinter => 'ပရင်တာ';
 
   @override

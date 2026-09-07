@@ -36,6 +36,10 @@ void main() {
     // --- device hardware / this install -----------------------------------
     'device.id': _Scope.deviceGlobal,
     'app.locale': _Scope.deviceGlobal,
+    // Light-or-dark belongs to the SCREEN in the owner's hand — glare on a
+    // market stall, a phone kept permanently dark — not to whichever shop
+    // that device is currently pointed at. A shop switch must not flip it.
+    'app.theme_mode': _Scope.deviceGlobal,
     'onboarding.done': _Scope.deviceGlobal,
     'operating.mode': _Scope.deviceGlobal,
     'operating.mode_confirmed': _Scope.deviceGlobal,

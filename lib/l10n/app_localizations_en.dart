@@ -1274,6 +1274,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLanguage => 'Language';
 
   @override
+  String get settingsTheme => 'Appearance';
+
+  @override
+  String get themeModeSystem => 'Follow phone';
+
+  @override
+  String get themeModeLight => 'Light';
+
+  @override
+  String get themeModeDark => 'Dark';
+
+  @override
   String get settingsPrinter => 'Printer';
 
   @override

@@ -34,6 +34,7 @@ class SettingsRepository {
         key == 'operating.mode' ||
         key == 'operating.mode_confirmed' ||
         key == 'app.locale' ||
+        key == 'app.theme_mode' ||
         key == 'branch.switch.state' ||
         key == 'shop.promote.pending' ||
         key == 'vendor.config.json') {
@@ -291,6 +292,7 @@ class SettingsRepository {
   static const _kLicense = 'license.json';
   static const _kDeviceId = 'device.id';
   static const _kLocale = 'app.locale';
+  static const _kThemeMode = 'app.theme_mode';
 
   /// Shop-scoped (via [_shopKey]) — unlike [_kLicense] itself, which is
   /// device-global, this must travel with a Free-plan shop's data if it's
@@ -302,6 +304,15 @@ class SettingsRepository {
   /// Persisted UI language ('en' | 'my'); null until the user has chosen.
   Future<String?> savedLocale() => _get(_kLocale);
   Future<void> saveLocale(String code) => _set(_kLocale, code);
+
+  /// `system` | `light` | `dark` — see [ThemeModeController].
+  ///
+  /// Device-global, and for the same reason as [_kLocale]: light-or-dark is a
+  /// property of the screen in the owner's hand (glare on a market stall,
+  /// a phone kept permanently in dark mode), not of whichever shop that
+  /// device is currently pointed at. A shop switch must not flip the screen.
+  Future<String?> savedThemeMode() => _get(_kThemeMode);
+  Future<void> saveThemeMode(String mode) => _set(_kThemeMode, mode);
 
   /// Stable per-install device id (used for license binding + App Reference
   /// ID). Kept in the OS secure store (iOS Keychain / Android Keystore) so it
