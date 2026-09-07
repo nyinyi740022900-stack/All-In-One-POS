@@ -579,7 +579,9 @@ class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
               _shopIdError = shop.isEmpty ? 'Shop ID is required.' : null;
               _monthsError = (months == null || months <= 0)
                   ? 'Enter a whole number of months (1 or more).'
-                  : null;
+                  : (months > kMaxLicenceMonths
+                      ? 'At most $kMaxLicenceMonths months.'
+                      : null);
             });
             if (_shopIdError != null || _monthsError != null) return;
             Navigator.pop(
@@ -612,6 +614,104 @@ class _OfflineRequest {
     this.months,
     this.deviceId,
   );
+}
+
+/// Last stop before an offline token is signed.
+///
+/// Shows the term as a date, not a month count — "expires 7 Sep 2036" is the
+/// figure a mistyped `120` actually produces, and it is far harder to skim
+/// past than the digits that produced it. See `_generateOffline` for why this
+/// action, alone among the console's dialogs, cannot be undone.
+class _ConfirmOfflineDialog extends StatelessWidget {
+  const _ConfirmOfflineDialog({required this.request});
+  final _OfflineRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    // Mirrors the server's own `now + months * 30 days` so the date shown is
+    // the date minted, not an approximation of it.
+    final expiry = DateTime.now().add(Duration(days: request.months * 30));
+    final colors = AppColors.of(context);
+    return AlertDialog(
+      title: const Text('Generate offline licence code?'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ConfirmRow('Shop', request.shopName.isEmpty
+                ? request.shopId
+                : '${request.shopName}  (${request.shopId})'),
+            _ConfirmRow('Plan', request.plan),
+            _ConfirmRow('Valid for', '${request.months} month'
+                '${request.months == 1 ? '' : 's'}'),
+            _ConfirmRow('Expires', DateFormat('d MMM yyyy').format(expiry)),
+            _ConfirmRow(
+              'Bound to',
+              request.deviceId.isEmpty
+                  ? 'Any device (not bound)'
+                  : request.deviceId,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              'This code cannot be cancelled once generated — it is checked '
+              'on the device, not against the server. Make sure the term is '
+              'right before continuing.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: colors.danger),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Back'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Generate'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConfirmRow extends StatelessWidget {
+  const _ConfirmRow(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _OfflineCodeDialog extends StatefulWidget {
@@ -710,7 +810,9 @@ class _OfflineCodeDialogState extends State<_OfflineCodeDialog> {
               _shopIdError = shop.isEmpty ? 'Shop ID is required.' : null;
               _monthsError = (months == null || months <= 0)
                   ? 'Enter a whole number of months (1 or more).'
-                  : null;
+                  : (months > kMaxLicenceMonths
+                      ? 'At most $kMaxLicenceMonths months.'
+                      : null);
             });
             if (_shopIdError != null || _monthsError != null) return;
             Navigator.pop(
@@ -1024,20 +1126,10 @@ class _ConfigTab extends StatefulWidget {
 }
 
 class _ConfigTabState extends State<_ConfigTab> {
-  static const _fields = <String, String>{
-    'pay.kbzpay.name': 'KBZPay account name',
-    'pay.kbzpay.number': 'KBZPay number',
-    'pay.wavepay.name': 'WavePay account name',
-    'pay.wavepay.number': 'WavePay number',
-    'support.viber': 'Support Viber number',
-    // No online/offline price split — the app doesn't meaningfully
-    // distinguish those plans anymore (see PROJECT_SPEC #144). This one
-    // rate applies regardless of a shop's `tier`; `price.monthly.online`/
-    // `price.yearly.online` used to exist here but nothing has read them
-    // since Store-compliance billing changes removed the only UI that did.
-    'price.monthly': 'Monthly price (Ks)',
-    'price.yearly': 'Yearly price (Ks)',
-  };
+  // Single source of truth, shared with the Edge Function's own allowlist —
+  // see admin_config_keys.dart for why this list is not just a UI concern.
+  static const _fields = kAdminConfigKeys;
+
   late final Map<String, TextEditingController> _controllers = {
     for (final k in _fields.keys)
       k: TextEditingController(text: widget.initial[k] ?? ''),

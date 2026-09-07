@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/money.dart';
+import 'admin_config_keys.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
@@ -394,6 +395,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
     if (req == null) return;
+    if (!mounted) return;
+    // Confirm before minting. Every other consequential action in this console
+    // already asks — unlink, reset device, extend — and those can all be
+    // undone by editing a row. This one cannot: an offline token is verified
+    // entirely on the device against the Ed25519 public key, so nothing here
+    // can revoke it afterwards short of rotating the signing key and
+    // invalidating every token ever issued. It was the only irreversible
+    // action without a confirmation step.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _ConfirmOfflineDialog(request: req),
+    );
+    if (confirmed != true) return;
     try {
       final token = await widget.api.signOffline(
         shopId: req.shopId,

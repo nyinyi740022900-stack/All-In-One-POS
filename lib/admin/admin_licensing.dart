@@ -209,7 +209,9 @@ class _ExtendIdentifierDialogState extends State<_ExtendIdentifierDialog> {
                   : null;
               _monthsError = (months == null || months <= 0)
                   ? 'Enter a whole number of months (1 or more).'
-                  : null;
+                  : (months > kMaxLicenceMonths
+                      ? 'At most $kMaxLicenceMonths months.'
+                      : null);
             });
             if (_idError != null || _monthsError != null) return;
             Navigator.pop(context, (id, months!));

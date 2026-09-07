@@ -6,19 +6,84 @@
 // the web dashboard only ever holds the anon key + an admin session.
 //
 // Actions (POST body { action, ... }):
-//   list_licenses                         -> licenses (newest first)
-//   list_shops                            -> one row per shop (devices + accounts)
+//   list_licenses / list_shops / list_requests / list_events / get_config
+//                                         -> rows for the dashboard's tabs
 //   lookup_shop { email|device_id|shop_id } -> one shop (fresh, for extend preview)
+//   extend_license { device_id|email, months } -> add months to every row of a shop
+//   create_license { shop_id, plan, months }   -> { key }
+//   fulfill_request { request_id, months? }    -> confirm a paid request
+//   reject_request { request_id, reason }      -> decline one
+//   sign_offline { shop_id, plan, months, device_id? } -> { token } (UNREVOCABLE)
+//   reset_device { device_id }            -> clear a device binding
 //   reset_password { email }              -> { action_link } recovery URL
 //   unlink_account { user_id }            -> clear shop_id on a staff (or extra owner)
 //   restore_account { user_id }           -> lift a revoke_staff ban
-//   create_license { shop_id, plan, months } -> { key }
+//   set_config { config }                 -> write allowlisted app_config keys
 //   set_device_allowance { shop_id, extra_slots, months } -> { extra_slots, extras_expires_at }
+//
+// Every action runs only after the admin-role check below; there is no path
+// to any of them that skips it.
 //
 // Deploy: supabase functions deploy admin
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { signOfflineToken } from "../_shared/offline_token.ts";
+
+/// Longest licence term any single admin action may grant, in months.
+///
+/// Three years is far beyond anything sold (plans are monthly or yearly) and
+/// exists to catch a typed digit, not to express a product limit.
+///
+/// The action that forced this is `sign_offline`. An offline token is
+/// verified purely locally — `OfflineLicense.verify` checks the Ed25519
+/// signature and the `exp` inside the payload, and asks no server anything —
+/// so once minted there is **no way to revoke it**. The only remedy for a
+/// wrong one is rotating the signing key, which kills every offline token
+/// ever issued to every shop. `120` typed where `12` was meant is therefore
+/// permanent, and the dialog that mints it had no upper bound on either
+/// side. The online paths (`extend_license`, `create_license`,
+/// `fulfill_request`) are recoverable by editing the row, but they are
+/// capped too: a typo is a typo, and one rule is easier to trust than four.
+const MAX_LICENCE_MONTHS = 36;
+
+/// The only keys `set_config` may write.
+///
+/// Everything in `app_config` is public by design — migration 0006 gives it
+/// `for select to anon, authenticated using (true)` so a shop that has not
+/// signed in yet can still read the payment instructions. Each key below was
+/// chosen with that in mind; nothing secret belongs here, and this list is
+/// what stops something secret arriving by accident.
+///
+/// Keep in step with `kAdminConfigKeys` in `lib/admin/admin_config_keys.dart`
+/// — `admin_config_keys_test.dart` fails if the two drift, or if the app
+/// starts reading a key the admin cannot set.
+const PUBLIC_CONFIG_KEYS = new Set([
+  "pay.kbzpay.name",
+  "pay.kbzpay.number",
+  "pay.wavepay.name",
+  "pay.wavepay.number",
+  "support.viber",
+  "price.monthly",
+  "price.yearly",
+  "device.free_limit",
+  "device.extra_fee",
+  "pay.lemonsqueezy.store_slug",
+  "pay.lemonsqueezy.variant_monthly",
+  "pay.lemonsqueezy.variant_yearly",
+  "pay.lemonsqueezy.buy_now_url",
+]);
+
+/// Validates a caller-supplied month count, returning it or an error string.
+/// Rejects rather than silently clamping — quietly turning a requested 120
+/// into 36 would leave the admin believing they granted ten years.
+function checkMonths(value: unknown): { months: number } | { error: string } {
+  const months = Number(value);
+  if (!Number.isInteger(months) || months < 1) {
+    return { error: "months_invalid" };
+  }
+  if (months > MAX_LICENCE_MONTHS) return { error: "months_too_large" };
+  return { months };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
@@ -55,8 +120,6 @@ Deno.serve(async (req) => {
     reason?: string;
     user_id?: string;
     id?: string;
-    // deno-lint-ignore no-explicit-any
-    carrier?: any;
     config?: Record<string, string>;
   };
   try {
@@ -440,7 +503,9 @@ Deno.serve(async (req) => {
       // email only a shop.
       const dev = (body.device_id ?? "").trim();
       const email = (body.email ?? "").trim().toLowerCase();
-      const months = body.months ?? 1;
+      const checked = checkMonths(body.months ?? 1);
+      if ("error" in checked) return json({ error: checked.error }, 400);
+      const months = checked.months;
       if (!dev && !email) return json({ error: "bad_request" }, 400);
 
       // deno-lint-ignore no-explicit-any
@@ -575,12 +640,18 @@ Deno.serve(async (req) => {
       // See _shared/offline_token.ts — activate's automatic issuance uses the
       // exact same signing logic, just triggered on every activation instead
       // of only when an admin hand-fulfills a request.
+      // Bounded here above all: an offline token cannot be revoked once it
+      // leaves this function (see MAX_LICENCE_MONTHS).
+      const offlineMonths = checkMonths(body.months ?? 1);
+      if ("error" in offlineMonths) {
+        return json({ error: offlineMonths.error }, 400);
+      }
       try {
         const { token, expiresAt } = await signOfflineToken({
           shopId: body.shop_id ?? "",
           shopName: body.shop_name,
           plan: body.plan,
-          months: body.months,
+          months: offlineMonths.months,
           deviceId: body.device_id,
         });
         return json({ token, expires_at: expiresAt });
@@ -660,6 +731,15 @@ Deno.serve(async (req) => {
       if (reqErr) return json({ error: "server_error" }, 500);
       if (!reqRow) return json({ error: "not_found" }, 404);
 
+      // Bound the term BEFORE the claim below, deliberately: rejecting after
+      // the claim would leave the request stranded at "processing" with
+      // nothing minted, which is the exact state the claim/release dance
+      // exists to prevent.
+      const fulfilMonths = checkMonths(body.months ?? reqRow.months ?? 1);
+      if ("error" in fulfilMonths) {
+        return json({ error: fulfilMonths.error }, 400);
+      }
+
       // Idempotency: atomically claim this request (pending -> processing)
       // BEFORE minting/extending anything. renew_license/create_license are
       // not idempotent — a double "Confirm payment" click, a retried call
@@ -679,7 +759,7 @@ Deno.serve(async (req) => {
       if (claimErr) return json({ error: "server_error" }, 500);
       if (!claimed) return json({ error: "already_fulfilled" }, 409);
 
-      const months = body.months ?? reqRow.months ?? 1;
+      const months = fulfilMonths.months;
       const dev = (reqRow.device_id ?? "").trim();
       const reqShopId = (reqRow.shop_id ?? "").trim();
 
@@ -843,6 +923,23 @@ Deno.serve(async (req) => {
     case "set_config": {
       const entries = Object.entries(body.config ?? {});
       if (entries.length === 0) return json({ error: "bad_request" }, 400);
+      // Allowlisted because `app_config` is world-readable — its RLS policy
+      // is `for select to anon, authenticated using (true)`, deliberately, so
+      // an unregistered shop can see where to send payment before it can log
+      // in. That makes this endpoint a publish button. Without a list, a key
+      // typed or pasted into the admin's config editor under the reasonable
+      // assumption that "admin settings are private" would be readable by
+      // anyone on the internet, and a mistyped key would silently create a
+      // dead row instead of failing.
+      const unknown = entries
+        .map(([k]) => k)
+        .filter((k) => !PUBLIC_CONFIG_KEYS.has(k));
+      if (unknown.length > 0) {
+        return json(
+          { error: "unknown_config_key", detail: unknown.join(", ") },
+          400,
+        );
+      }
       const rows = entries.map(([key, value]) => ({
         key,
         value: `${value}`,
@@ -853,63 +950,12 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    case "list_carriers": {
-      const { data, error } = await admin
-        .from("delivery_carriers")
-        .select("id, carrier, account_id, base_url, enabled, api_key, updated_at")
-        .order("carrier");
-      if (error) return json({ error: "server_error" }, 500);
-      // Never hand the raw API key back to the browser — expose only whether
-      // one is set + its last 4 chars so the admin can recognise it.
-      // deno-lint-ignore no-explicit-any
-      const rows = (data ?? []).map((r: any) => ({
-        id: r.id,
-        carrier: r.carrier,
-        account_id: r.account_id,
-        base_url: r.base_url,
-        enabled: r.enabled,
-        updated_at: r.updated_at,
-        api_key_set: !!(r.api_key && `${r.api_key}`.length > 0),
-        api_key_last4: r.api_key ? `${r.api_key}`.slice(-4) : null,
-      }));
-      return json({ rows });
-    }
-
-    case "set_carrier": {
-      const c = body.carrier ?? {};
-      const name = (c.carrier ?? "").trim();
-      if (!name) return json({ error: "bad_request" }, 400);
-      // deno-lint-ignore no-explicit-any
-      const row: Record<string, any> = {
-        carrier: name,
-        account_id: (c.account_id ?? "").trim() || null,
-        base_url: (c.base_url ?? "").trim() || null,
-        enabled: c.enabled === true,
-        updated_at: new Date().toISOString(),
-      };
-      if (c.id) row.id = c.id;
-      // Only overwrite the stored secret when a new non-empty key is supplied,
-      // so editing other fields never wipes it.
-      if (typeof c.api_key === "string" && c.api_key.trim().length > 0) {
-        row.api_key = c.api_key.trim();
-      }
-      const { error } = await admin.from("delivery_carriers").upsert(row);
-      if (error) return json({ error: "server_error", detail: error.message }, 500);
-      return json({ ok: true });
-    }
-
-    case "delete_carrier": {
-      const id = (body.id ?? "").trim();
-      if (!id) return json({ error: "bad_request" }, 400);
-      const { error } = await admin.from("delivery_carriers").delete().eq("id", id);
-      if (error) return json({ error: "server_error" }, 500);
-      return json({ ok: true });
-    }
-
     case "create_license": {
       const shopId = (body.shop_id ?? "").trim();
       const plan = (body.plan ?? "monthly").trim();
-      const months = body.months ?? 1;
+      const createMonths = checkMonths(body.months ?? 1);
+      if ("error" in createMonths) return json({ error: createMonths.error }, 400);
+      const months = createMonths.months;
       if (!shopId) return json({ error: "bad_request" }, 400);
 
       // create_license has no shop_id uniqueness guard at the DB level (a
@@ -947,6 +993,14 @@ Deno.serve(async (req) => {
       if (!shopId) return json({ error: "bad_request" }, 400);
       if (!Number.isFinite(extraSlots) || extraSlots < 0 || extraSlots !== Math.trunc(extraSlots)) {
         return json({ error: "bad_request" }, 400);
+      }
+      // `months` is only meaningful when slots are actually being granted —
+      // revoking (extraSlots 0) passes a fixed 1 below and ignores it.
+      if (extraSlots > 0) {
+        const allowanceMonths = checkMonths(months);
+        if ("error" in allowanceMonths) {
+          return json({ error: allowanceMonths.error }, 400);
+        }
       }
       const { data, error } = await admin.rpc("set_shop_device_allowance", {
         p_shop_id: shopId,
