@@ -20,10 +20,28 @@
          because the notification centre (#326) still needs it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- android:allowBackup — Android's Auto Backup is ON by default, and it
+         would sweep this app's whole data directory (the Drift database: the
+         shop's sales ledger, its customers' names and phone numbers, the
+         credit book, and the owner PIN hash) up to the phone owner's Google
+         Drive, silently and with no prompt. That is other people's financial
+         and contact data leaving the device on a setting nobody chose.
+
+         Turned off deliberately (Play-update security sweep). A recovery path
+         still exists and is a better one: the app ships an owner-driven
+         Backup & restore (Settings → Backup & restore), so the owner opts in
+         and holds the file. Cloud sync covers any shop that signed in.
+
+         Trade-off accepted knowingly: a shop that loses the phone without
+         ever having taken an in-app backup, and never signed in, loses its
+         local data. `false` also covers Android 12+ device-to-device
+         transfer, which follows this flag when no dataExtractionRules are
+         declared. -->
     <application
         android:label="All In One POS"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
