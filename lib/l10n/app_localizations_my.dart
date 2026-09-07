@@ -187,7 +187,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'စိတ်ကြိုက် အရေအတွက် scan ပါ — scan သမျှ cart ထဲ ထည့်ပေးပါမယ်။ ပြီးရင် ပြီးပြီ ခလုတ် နှိပ်ပါ။';
 
   @override
-  String get scannerSettings => 'Barcode scanner';
+  String get scannerSettings => 'ဘားကုဒ် စကင်နာ';
 
   @override
   String get scannerSettingsIntro =>
@@ -1326,28 +1326,28 @@ class AppLocalizationsMy extends AppLocalizations {
       '၁။ \"ပစ္စည်းအသစ်ထည့်\" ကို tap နှိပ်ပြီး ဖန်တီးပါ — အမည်၊ ဓာတ်ပုံ၊ ရောင်းဈေး၊ အရင်းဈေး၊ ဘားကုဒ်/ကုဒ်နံပါတ်၊ အစပိုင်းလက်ကျန်၊ အနည်းဆုံးလက်ကျန်။\n၂။ Wholesale/VIP ဈေးနှုန်း ရွေးချယ်ထည့်နိုင်ပါတယ် — ကွက်လပ်ထားရင် ရောင်းဈေးကိုပဲ အဲ့ tier တွေအတွက် သုံးပါမယ်။\n၃။ နောက်ပိုင်း ပြင်ဆင်ချင်ရင် ပစ္စည်းကို tap နှိပ်ပါ။\n၄။ Stock icon ကို tap နှိပ်ပြီး Restock/Adjust ဖွင့်ပါ — \"Restock\" က ဝယ်ယူထည့်သွင်းတဲ့ ပစ္စည်းအတွက် (unit cost ရွေးချယ်ထည့်နိုင်)၊ \"Adjust\" က ပျက်စီး/ပျောက်ဆုံး/ရေတွက်မှား စသည့် အကြောင်းရင်းနဲ့ အရေအတွက် ပြင်ဖို့။\n၅။ \"လက်ကျန်မှတ်တမ်း ကြည့်ရန်\" ကို tap နှိပ်ပြီး အဲ့ပစ္စည်းရဲ့ ယခင် movement အားလုံးကို ကြည့်နိုင်ပါတယ်။\n၆။ အနည်းဆုံးလက်ကျန်ထက် နည်းသွားတဲ့ ပစ္စည်းတွေမှာ \"Low stock\" badge အလိုအလျောက် ပေါ်ပါလိမ့်မယ်။\n၇။ Print icon ကို tap နှိပ်ပြီး barcode label ကို receipt printer (သို့) label printer နဲ့ print ထုတ်နိုင်ပါတယ်။';
 
   @override
-  String get helpGuideOrdersTitle => 'Orders';
+  String get helpGuideOrdersTitle => 'အော်ဒါ';
 
   @override
   String get helpGuideOrdersBody =>
       '၁။ Order တွေကို board ပေါ်မှာ card အနေနဲ့ ပြပါတယ် — New, Confirmed, Packed, Shipped, Delivered။\n၂။ \"+\" ကို tap နှိပ်ပြီး ကိုယ်တိုင် ထည့်နိုင်ပါတယ် — ဝယ်သူ၊ channel (Facebook, Web, စသည်)၊ ပစ္စည်းများ၊ ငွေပေးချေမှုနည်းလမ်း (ရောက်မှပေး (သို့) transfer)။\n၃။ Card ကို column အသစ်ဆီ ဆွဲပြောင်းနိုင်ပါတယ်၊ (သို့) \"⋮\" menu နဲ့ status တစ်ခုခုဆီ တိုက်ရိုက် ပြောင်းနိုင်ပါတယ်။\n၄။ Card ကို tap နှိပ်ပြီး အသေးစိတ် ကြည့်ပါ — ပစ္စည်းများ၊ ပို့ဆောင်မှုအချက်အလက်၊ transfer order အတွက် ငွေလွှဲအထောက်အထား ဓာတ်ပုံ။\n၅။ \"Mark as paid\"/\"Mark as unpaid\" ဖြင့် ငွေပေးချေမှုကို ပို့ဆောင်မှုအခြေအနေနဲ့ သီးခြား လိုက်စစ်နိုင်ပါတယ်။\n၆။ Order ပြီးစီးသွားရင် \"Convert to sale\" ကို tap နှိပ်ပြီး sales မှတ်တမ်းနှင့် stock ထဲသို့ ရွှေ့ပါ။\n၇။ Online storefront ကနေ ဝယ်သူချင်း တင်လိုက်တဲ့ order တွေက ဒီမှာ အလိုအလျောက် ပေါ်လာပါမယ် — ကိုယ်တိုင် ရိုက်ထည့်စရာ မလိုပါဘူး။';
 
   @override
-  String get helpGuideInvoicesTitle => 'Invoices';
+  String get helpGuideInvoicesTitle => 'ပြေစာများ';
 
   @override
   String get helpGuideInvoicesBody =>
       '၁။ ပြီးစီးတဲ့ အရောင်းတိုင်း ဒီမှာ invoice အနေနဲ့ ပေါ်ပါတယ်၊ အသစ်ဆုံးကို အရင်ပြပါတယ်။\n၂။ Invoice ကို tap နှိပ်ပြီး အသေးစိတ် ကြည့်ပါ — ပစ္စည်းများ၊ ဝယ်သူ၊ ငွေပေးချေမှုနည်းလမ်း၊ အခြေအနေ။\n၃။ အကြွေးရောင်းချမှုအတွက် invoice အသေးစိတ် screen ကနေတိုက်ရိုက် တစ်စိတ်တစ်ပိုင်း (သို့) အပြည့်အဝ ပြန်ဆပ်ငွေ မှတ်တမ်းတင်နိုင်ပါတယ်။\n၄။ သတ်မှတ်ရက် လွန်နေတဲ့ အကြွေး invoice များကို အထူးပြထားလို့ ဘယ်သူ့ကို ဆက်လိုက်ရမလဲ သိနိုင်ပါတယ်။\n၅။ \"Refund\" ကို tap နှိပ်ပြီး အရောင်းကို ပြန်ပယ်ဖျက်နိုင်ပါတယ် — Stock နှင့် ဝယ်သူရဲ့ အကြွေးလက်ကျန် အလိုအလျောက် ပြန်ပြင်ပေးပါမယ်။\n၆။ Search bar (သို့) scan icon သုံးပြီး invoice နံပါတ်၊ ဝယ်သူအမည်၊ ဖုန်းနံပါတ်နဲ့ ရှာနိုင်ပါတယ်။\n၇။ Invoice တိုင်းမှာ နောက်ပိုင်း လျင်မြန်စွာ ရှာဖွေနိုင်ဖို့ barcode ပါရှိပါတယ်။';
 
   @override
-  String get helpGuideAnalyticsTitle => 'Analytics';
+  String get helpGuideAnalyticsTitle => 'စာရင်းအင်း';
 
   @override
   String get helpGuideAnalyticsBody =>
       'Analytics က Premium feature ဖြစ်ပါတယ် — Free plan ဆိုင်တစ်ခုက ဒီ screen အစား upgrade prompt ကိုသာ တွေ့ရမှာပါ။\n၁။ အပေါ်ဆုံးမှာ ရက်စွဲကာလ ရွေးချယ်ပါ — ယနေ့၊ ဒီအပတ်၊ ဒီလ၊ (သို့) ကိုယ်ပိုင်ရွေးချယ်ခြင်း။\n၂။ အဲ့ကာလအတွက် အရောင်းစုစုပေါင်း၊ အမြတ်၊ ရောင်းချမှု အရေအတွက်ကို ကြည့်နိုင်ပါတယ်။\n၃။ အောက်ကို scroll ဆွဲပြီး အရောင်းရဆုံးပစ္စည်းများကို ဝင်ငွေ (သို့) အရေအတွက်အလိုက် အဆင့်သတ်မှတ်ပြထားတာ ကြည့်နိုင်ပါတယ်။\n၄။ အမြတ်ကိန်းဂဏန်းတွေက အဲ့အရောင်းအတွက် တကယ်မှတ်တမ်းတင်ထားတဲ့ အရင်းဈေးကို သုံးထားတာမို့ (ယနေ့ရဲ့ အရင်းဈေးသက်သက်မဟုတ်ဘဲ) — ပစ္စည်းရဲ့ အရင်းဈေး ပြောင်းလဲသွားပြီးနောက်မှာလည်း ယခင်အရောင်းတွေရဲ့ အမြတ် မှန်ကန်နေဆဲပါ။\n၅။ ကာလနှစ်ခုကို ယှဉ်ကြည့်ပြီး ပြန်မှာရမယ့်ပစ္စည်း (သို့) ဈေးနှုန်းပြင်ရမယ့်အရာကို ဆုံးဖြတ်ဖို့ trend ကို ကြိုတင်သိနိုင်ပါတယ်။';
 
   @override
-  String get helpGuideSettingsTitle => 'Settings';
+  String get helpGuideSettingsTitle => 'ဆက်တင်';
 
   @override
   String get helpGuideSettingsBody =>

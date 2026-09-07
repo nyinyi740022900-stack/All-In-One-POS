@@ -192,17 +192,22 @@ class _ShellScaffold extends ConsumerWidget {
       return Scaffold(
         body: Row(
           children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: go,
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                for (final d in destinations)
-                  NavigationRailDestination(
-                    icon: Icon(d.icon),
-                    label: Text(d.label),
-                  ),
-              ],
+            // Same label cap as the phone nav bar below — the rail is even
+            // narrower than one bottom-bar cell, so it fails the same way.
+            MediaQuery.withClampedTextScaling(
+              maxScaleFactor: _kNavLabelMaxTextScale,
+              child: NavigationRail(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: go,
+                labelType: NavigationRailLabelType.all,
+                destinations: [
+                  for (final d in destinations)
+                    NavigationRailDestination(
+                      icon: Icon(d.icon),
+                      label: Text(d.label),
+                    ),
+                ],
+              ),
             ),
             const VerticalDivider(width: 1),
             Expanded(child: shell),
@@ -213,17 +218,35 @@ class _ShellScaffold extends ConsumerWidget {
 
     return Scaffold(
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: go,
-        destinations: [
-          for (final d in destinations)
-            NavigationDestination(icon: Icon(d.icon), label: d.label),
-        ],
+      // Nav labels stop growing at 1.15x (audit: Play-update UI/UX pass).
+      // Myanmar destination labels are long — "ကုန်ပစ္စည်း", "စာရင်းအင်း" —
+      // and on a 360dp phone (the cheap Android this app is actually sold
+      // for) at the system's "Large" font setting they wrapped MID-SYLLABLE,
+      // orphaning the final "း" on a second line and crowding the five
+      // destinations into each other. Verified on a 360dp Pixel 7: fine at
+      // 1.15, broken at 1.3. Every destination still carries its icon, so
+      // capping the label — rather than the whole bar — keeps the meaning
+      // while the rest of the app scales for the reader as before.
+      bottomNavigationBar: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: _kNavLabelMaxTextScale,
+        child: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: go,
+          destinations: [
+            for (final d in destinations)
+              NavigationDestination(icon: Icon(d.icon), label: d.label),
+          ],
+        ),
       ),
     );
   }
 }
+
+/// Ceiling on how far a navigation destination's label may scale with the
+/// system font size. See the note at the `NavigationBar` above for why the
+/// Myanmar labels need one, and `nav_label_scale_test.dart` for the case
+/// that locks it in.
+const double _kNavLabelMaxTextScale = 1.15;
 
 class _Dest {
   final int branchIndex;
