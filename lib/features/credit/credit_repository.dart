@@ -30,6 +30,11 @@ class CreditCustomer {
     required this.openInvoices,
   });
 
+  /// What the customer still owes. Deliberately **not** floored at zero: an
+  /// overpayment is real store credit the shop owes back, and hiding it at 0
+  /// would lose that (locked in by `credit_test.dart`'s "overpaid customer
+  /// keeps negative outstanding" case). `CreditScreen` reads `<= 0` as
+  /// settled and colours it accordingly.
   int get outstanding => billed - paid;
 }
 
@@ -175,8 +180,9 @@ class CreditRepository {
   /// the customer's currently-known outstanding balance throw [StateError].
   /// The outstanding check is best-effort by design — this is an
   /// offline-first ledger, so a concurrent repayment on another device can
-  /// still land after the check (the derived balance then floors at zero
-  /// rather than corrupting); rejecting here closes the trivial
+  /// still land after the check (the derived balance then goes negative and
+  /// reads as store credit — see [CreditCustomer.outstanding] — rather than
+  /// corrupting anything); rejecting here closes the trivial
   /// modified-client hole while leaving the sync model intact.
   Future<void> recordRepayment({
     required String customerName,

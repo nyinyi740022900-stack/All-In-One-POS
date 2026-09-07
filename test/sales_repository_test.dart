@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/sales_repository.dart';
+import 'package:mm_pos/data/repositories/stock_lots.dart';
 import 'package:mm_pos/features/credit/credit_repository.dart';
 import 'package:mm_pos/features/sell/cart.dart';
 
@@ -792,6 +793,102 @@ void main() {
             ..where((i) => i.saleId.equals(resold.saleId)))
           .getSingle();
       expect(item.costSnapshot, 5 * 1500);
+    });
+  });
+
+  group('Play-update Tier A review fixes', () {
+    test('L1: a refund reopens lots worth EXACTLY the line\'s original COGS, '
+        'even when it is not divisible by the quantity', () async {
+      // Three units bought across lots at 334/334/332 — COGS 1,000, which
+      // 3 does not divide. The old per-unit round() reopened 3 x 333 = 999.
+      final id = await inventory.upsertProduct(
+          name: 'Rice', salePrice: 1000, costPrice: 334, quantity: 0);
+      await inventory.adjustStock(
+          productId: id, delta: 2, type: 'purchase', unitCost: 334);
+      await inventory.adjustStock(
+          productId: id, delta: 1, type: 'purchase', unitCost: 332);
+      final product = (await inventory.watchProducts().first)
+          .firstWhere((p) => p.product.id == id)
+          .product;
+
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 3)]),
+        paymentMethod: 'cash',
+        paid: 3000,
+      );
+      final cogs = (await sales.saleItems(sold.saleId)).single.costSnapshot!;
+      expect(cogs, 1000);
+
+      await sales.refundSale(sold.saleId);
+
+      final lots = await (db.select(db.stockLots)
+            ..where((t) => t.productId.equals(id)))
+          .get();
+      final reopenedValue =
+          lots.fold<int>(0, (s, l) => s + l.remainingQty * l.unitCost);
+      final reopenedQty = lots.fold<int>(0, (s, l) => s + l.remainingQty);
+      expect(reopenedQty, 3);
+      expect(reopenedValue, cogs, reason: 'no kyat may vanish on a refund');
+
+      // ...and it survives a ledger replay, since the split is carried by
+      // the movements themselves, not just the cached lots.
+      await rebuildStockLots(db, id);
+      final replayed = await (db.select(db.stockLots)
+            ..where((t) => t.productId.equals(id)))
+          .get();
+      expect(replayed.fold<int>(0, (s, l) => s + l.remainingQty * l.unitCost),
+          cogs);
+    });
+
+    test('M1: selling a product whose stock_levels row is missing creates it, '
+        'the same way a pulled movement would on another device', () async {
+      final id = await inventory.upsertProduct(
+          name: 'Soap', salePrice: 500, costPrice: 100, quantity: 5);
+      // Simulate a device whose products pull succeeded but whose
+      // stock_levels pull did not.
+      await (db.delete(db.stockLevels)..where((t) => t.productId.equals(id)))
+          .go();
+      final product = await (db.select(db.products)
+            ..where((p) => p.id.equals(id)))
+          .getSingle();
+
+      await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 2)]),
+        paymentMethod: 'cash',
+        paid: 1000,
+      );
+
+      final level = await (db.select(db.stockLevels)
+            ..where((t) => t.productId.equals(id)))
+          .getSingleOrNull();
+      expect(level, isNotNull,
+          reason: 'the seller device must not be the only one without a row');
+      expect(level!.quantity, -2,
+          reason: 'matches what sync_mappers applies for the same movement');
+    });
+
+    test('M1: a refund on a device with no stock_levels row creates it too',
+        () async {
+      final id = await inventory.upsertProduct(
+          name: 'Tea', salePrice: 800, costPrice: 200, quantity: 4);
+      final product = (await inventory.watchProducts().first)
+          .firstWhere((p) => p.product.id == id)
+          .product;
+      final sold = await sales.finalizeSale(
+        cart: CartState(lines: [CartLine(product: product, qty: 1)]),
+        paymentMethod: 'cash',
+        paid: 800,
+      );
+      await (db.delete(db.stockLevels)..where((t) => t.productId.equals(id)))
+          .go();
+
+      await sales.refundSale(sold.saleId);
+
+      final level = await (db.select(db.stockLevels)
+            ..where((t) => t.productId.equals(id)))
+          .getSingleOrNull();
+      expect(level, isNotNull);
+      expect(level!.quantity, 1);
     });
   });
 }

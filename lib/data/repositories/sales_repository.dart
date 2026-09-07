@@ -158,19 +158,24 @@ class SalesRepository {
           // full real cost. Fall back to the product's current cost so the
           // lot reopens at a real figure; skipped when there is no product
           // (free-text line) or the original never deducted stock.
-          int? unitCost;
+          //
+          // The line's WHOLE cost is handed to `_recordStockReturn` (not a
+          // rounded per-unit figure) so an indivisible COGS reopens at
+          // exactly what it cost — see that method's own audit note.
+          int? totalCost;
           if (item.qty != 0) {
             if (item.costSnapshot != null) {
-              unitCost = (item.costSnapshot! / item.qty).round();
+              totalCost = item.costSnapshot!;
             } else {
               final product = await (_db.select(_db.products)
                     ..where((p) => p.id.equals(item.productId)))
                   .getSingleOrNull();
-              unitCost = product?.costPrice;
+              totalCost =
+                  product == null ? null : product.costPrice * item.qty;
             }
           }
           await _recordStockReturn(
-              item.productId, item.qty, refundId, now, unitCost);
+              item.productId, item.qty, refundId, now, totalCost);
         }
       }
 
@@ -437,23 +442,52 @@ class SalesRepository {
         ));
     await _enqueue('stock_movements', moveId);
 
-    // Decrement the denormalized stock level if present. Local cache only —
-    // NO stock_levels outbox enqueue: `quantity` is a counter reconciled from
+    // Decrement the denormalized stock level. Local cache only — NO
+    // stock_levels outbox enqueue: `quantity` is a counter reconciled from
     // the append-only movement ledger above on every device (see
     // sync_mappers.dart's _stockLevels), never an absolute LWW sync value.
+    await _applyStockLevelDelta(productId, -qty, now);
+
+    return cost;
+  }
+
+  /// Applies [delta] to [productId]'s cached `stock_levels.quantity`,
+  /// **creating the row when it is missing** — exactly what
+  /// `sync_mappers.dart`'s `_stockMovements.upsertLocal` does when it lands a
+  /// movement from another device.
+  ///
+  /// Audit (Play-update Tier A review, M1): this used to be an
+  /// `if (level != null)` no-op on both the sale and refund paths, so a
+  /// device whose `stock_levels` pull had failed while `products` succeeded
+  /// would sell the product, push the movement, and record NO local level —
+  /// while every other device pulling that same movement created a row at
+  /// the delta. The two devices then disagreed about the quantity forever,
+  /// since nothing else reconciles `quantity` after the fact. Creating the
+  /// row here makes both sides of the sync do the same thing.
+  ///
+  /// Still no outbox enqueue: `quantity` is a counter and must never sync as
+  /// an absolute last-write-wins value.
+  Future<void> _applyStockLevelDelta(
+      String productId, int delta, DateTime now) async {
     final level = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
         .getSingleOrNull();
     if (level != null) {
       await (_db.update(_db.stockLevels)..where((s) => s.id.equals(level.id)))
           .write(StockLevelsCompanion(
-        quantity: Value(level.quantity - qty),
+        quantity: Value(level.quantity + delta),
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
+      return;
     }
-
-    return cost;
+    await _db.into(_db.stockLevels).insert(StockLevelsCompanion.insert(
+          id: _uuid.v4(),
+          shopId: _shopId,
+          productId: productId,
+          quantity: Value(delta),
+          updatedAt: Value(now),
+        ));
   }
 
   /// Per-shop, per-day sequential invoice number: `INV-yyyyMMdd-NNN`.
@@ -500,15 +534,53 @@ class SalesRepository {
   }
 
   /// Restores stock for a refunded item — the inverse of [_recordStockOut].
-  /// [unitCost] (the original sale's per-unit COGS) reopens a lot at that
-  /// cost so the next sale of this product still costs correctly; null skips
-  /// the lot (nothing to restore it at — a pre-FIFO sale).
+  /// [totalCost] is the line's **whole** original COGS (`SaleItems.costSnapshot`,
+  /// or `qty × the product's cost price` when the sale predates FIFO); null
+  /// skips the lot entirely (nothing to restore it at).
+  ///
+  /// Audit (Play-update Tier A review, L1): this used to reopen one lot at
+  /// `(totalCost / qty).round()`, which silently destroyed value whenever the
+  /// line's COGS was not divisible by its quantity — 3 units bought across
+  /// lots at 334/334/332 (COGS 1,000) reopened as 3 × 333 = 999, and because
+  /// `rebuildStockLots` replays the movement's `unitCost`, the missing kyat
+  /// never came back. The remainder is now carried by its own movement (and
+  /// so its own lot) at `base + 1`, making Σ(reopened) exactly [totalCost]
+  /// both live and on every replay.
   Future<void> _recordStockReturn(String productId, int qty,
-      String refundSaleId, DateTime now, int? unitCost) async {
-    if (unitCost != null) {
-      await pushStockLot(_db, productId: productId, qty: qty, unitCost: unitCost);
+      String refundSaleId, DateTime now, int? totalCost) async {
+    if (totalCost == null || qty <= 0 || totalCost < 0) {
+      // No cost basis (or a nonsensical one) — the units still come back, at
+      // cost zero. The lot is opened anyway (see [_insertReturnMovement]) so
+      // the live path and a ledger replay agree on the lot *quantities*.
+      await _insertReturnMovement(productId, qty, refundSaleId, now, 0);
+    } else {
+      final base = totalCost ~/ qty;
+      final remainder = totalCost % qty; // units that must carry base + 1
+      if (qty - remainder > 0) {
+        await _insertReturnMovement(
+            productId, qty - remainder, refundSaleId, now, base);
+      }
+      if (remainder > 0) {
+        await _insertReturnMovement(
+            productId, remainder, refundSaleId, now, base + 1);
+      }
     }
 
+    await _applyStockLevelDelta(productId, qty, now);
+  }
+
+  /// One `'return'` movement + its reopened lot, enqueued for sync. Split out
+  /// so [_recordStockReturn] can emit the two cost tranches an indivisible
+  /// COGS needs without duplicating the write.
+  ///
+  /// The lot is opened for **every** positive movement, `unitCost` 0
+  /// included — `rebuildStockLots` replays the ledger that way, so skipping
+  /// a zero-cost lot here would leave Σ(lots) permanently short of the
+  /// ledger net and make `_ensureLotsMatchLedger` replay on every sale.
+  Future<void> _insertReturnMovement(String productId, int qty,
+      String refundSaleId, DateTime now, int unitCost) async {
+    await pushStockLot(_db,
+        productId: productId, qty: qty, unitCost: unitCost);
     final moveId = _uuid.v4();
     await _db.into(_db.stockMovements).insert(StockMovementsCompanion.insert(
           id: moveId,
@@ -516,24 +588,12 @@ class SalesRepository {
           productId: productId,
           type: 'return',
           qtyDelta: qty,
-          unitCost: Value(unitCost ?? 0),
+          unitCost: Value(unitCost),
           refId: Value(refundSaleId),
+          createdAt: Value(now),
           updatedAt: Value(now),
         ));
     await _enqueue('stock_movements', moveId);
-
-    final level = await (_db.select(_db.stockLevels)
-          ..where((s) => s.productId.equals(productId)))
-        .getSingleOrNull();
-    if (level != null) {
-      await (_db.update(_db.stockLevels)..where((s) => s.id.equals(level.id)))
-          .write(StockLevelsCompanion(
-        quantity: Value(level.quantity + qty),
-        updatedAt: Value(now),
-        dirty: const Value(true),
-      ));
-      // No stock_levels enqueue — same counter rule as _recordStockOut.
-    }
   }
 
   Future<D> _one<T extends Table, D>(

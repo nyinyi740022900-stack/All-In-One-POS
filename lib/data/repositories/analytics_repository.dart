@@ -43,8 +43,13 @@ class AnalyticsRepository {
     final saleIds = sales.map((s) => s.id).toList();
     final items = saleIds.isEmpty
         ? <SaleItem>[]
+        // `isDeleted` filtered here too (audit: Play-update Tier A review,
+        // L2) — `watchAllSaleItems` already excludes tombstoned rows, and a
+        // soft-deleted item arriving via sync would otherwise still count
+        // toward COGS and top-product revenue on this screen alone.
         : await (_db.select(_db.saleItems)
-              ..where((i) => i.saleId.isIn(saleIds)))
+              ..where((i) =>
+                  i.saleId.isIn(saleIds) & i.isDeleted.equals(false)))
             .get();
     final itemRows = items
         .map((i) => (

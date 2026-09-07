@@ -477,6 +477,11 @@ class OrdersRepository {
         ));
     await _enqueue('stock_movements', moveId, 'upsert');
 
+    // Mirrors SalesRepository._applyStockLevelDelta: the row is CREATED when
+    // missing, exactly as sync_mappers.dart does when it lands this same
+    // movement on another device (audit: Play-update Tier A review, M1).
+    // Still no stock_levels enqueue — quantity is a counter reconciled from
+    // the stock_movements ledger on every device, never an absolute LWW push.
     final level = await (_db.select(_db.stockLevels)
           ..where((s) => s.productId.equals(productId)))
         .getSingleOrNull();
@@ -487,8 +492,14 @@ class OrdersRepository {
         updatedAt: Value(now),
         dirty: const Value(true),
       ));
-      // No stock_levels enqueue — quantity is a counter reconciled from the
-      // stock_movements ledger on every device, never an absolute LWW push.
+    } else {
+      await _db.into(_db.stockLevels).insert(StockLevelsCompanion.insert(
+            id: _uuid.v4(),
+            shopId: _shopId,
+            productId: productId,
+            quantity: Value(-qty),
+            updatedAt: Value(now),
+          ));
     }
 
     return cost;

@@ -156,4 +156,18 @@ void main() {
       expect(CurrencyDef.byCode('XYZ'), CurrencyDef.mmk);
     });
   });
+
+  group('Money.fromString digitless input (Tier A review, L3)', () {
+    test('an empty or digitless string is zero, not the clamp ceiling', () {
+      expect(Money.fromString('').minor, 0);
+      expect(Money.fromString('Ks').minor, 0);
+      expect(Money.fromString('-').minor, 0);
+      expect(Money.fromString('   ').minor, 0);
+    });
+
+    test('the overlong-digit clamp it shares a branch with still applies', () {
+      expect(Money.fromString('9' * 25).minor, maxMoneyInputKyat);
+      expect(Money.fromString('-${'9' * 25}').minor, -maxMoneyInputKyat);
+    });
+  });
 }

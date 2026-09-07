@@ -23,6 +23,11 @@ class Money implements Comparable<Money> {
 
   factory Money.fromString(String raw) {
     final cleaned = raw.replaceAll(RegExp(r'[^0-9-]'), '');
+    // No digits at all ('', 'Ks', a lone '-') is zero, not a fortune. The
+    // clamp below exists for an *overlong digit run*; letting a digitless
+    // string fall into it made `Money.fromString('')` return 9,999,999,999
+    // (audit: Play-update Tier A review, L3).
+    if (!cleaned.contains(RegExp(r'[0-9]'))) return Money.zero;
     final value = int.tryParse(cleaned);
     if (value == null) {
       // Audit QA-L3: an overlong digit run must not collapse to 0 — clamp
