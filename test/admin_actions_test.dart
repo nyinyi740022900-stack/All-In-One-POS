@@ -104,4 +104,26 @@ void main() {
         reason: 'trial must stay archivable — it is most of what needs '
             'cleaning up');
   });
+
+  test('the shop list respects the archived flag past the licence query', () {
+    // The licence query filtering on `archived` is not enough. list_shops
+    // also backfills shops that have an auth account but no licence row, and
+    // that backfill predates archiving — left unconditional it broke BOTH
+    // lists at once: the live one re-added every archived shop as
+    // `no_license` (so archiving looked like it had done nothing), and the
+    // archived one filled up with every account-only shop in the system.
+    // Caught on production, not by a test, which is why this one exists.
+    final src = fnSource();
+    final start = src.indexOf('case "list_shops":');
+    expect(start, isNot(-1));
+    final body = src.substring(start, src.indexOf('case "lookup_shop":'));
+    expect(body, contains('wantArchived'),
+        reason: 'list_shops no longer reads the archived flag at all');
+    expect(body, contains('archivedShopIds'),
+        reason: 'the no_license backfill must exclude archived shops, or an '
+            'archived shop reappears in the live list as if nothing happened');
+    expect(body, contains('if (!wantArchived) {'),
+        reason: 'the backfill must not run at all for the archived view, or '
+            'that view lists every account-only shop in the system');
+  });
 }

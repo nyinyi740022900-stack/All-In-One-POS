@@ -264,16 +264,37 @@ Deno.serve(async (req) => {
       // fully reachable and broken for the owner: nothing to extend, only
       // to create fresh. Surface it with null license fields rather than
       // silently dropping it.
-      for (const [sid] of emailByShop) {
-        if (!shops.has(sid)) {
-          shops.set(sid, {
-            shop_id: sid,
-            shop_name: null,
-            plan: null,
-            status: "no_license",
-            expires_at: null,
-            tier: null,
-          });
+      //
+      // Skipped entirely for the archived view, and filtered by the archived
+      // set for the live one. This backfill predates archiving and knew
+      // nothing about it, which broke both lists the moment archiving
+      // shipped: an archived shop kept its auth account, so the live list
+      // re-added it here as `no_license` (archiving appeared to do nothing),
+      // while the archived list picked up every account-only shop in the
+      // system alongside the one actually archived. "Has an account but no
+      // live licence" and "was deliberately hidden" look identical from
+      // here, so the archived set is what tells them apart.
+      const { data: archivedRows } = await admin
+        .from("licenses")
+        .select("shop_id")
+        .eq("is_deleted", true);
+      const archivedShopIds = new Set(
+        ((archivedRows ?? []) as Array<{ shop_id: string }>).map((r) =>
+          r.shop_id
+        ),
+      );
+      if (!wantArchived) {
+        for (const [sid] of emailByShop) {
+          if (!shops.has(sid) && !archivedShopIds.has(sid)) {
+            shops.set(sid, {
+              shop_id: sid,
+              shop_name: null,
+              plan: null,
+              status: "no_license",
+              expires_at: null,
+              tier: null,
+            });
+          }
         }
       }
 
