@@ -30,11 +30,7 @@ import 'onboarding_state.dart';
 /// leaving it is an ordinary `context.go('/sell')` (the builder-overlay
 /// variant's gate swap silently never painted on one owner device).
 class OnboardingFlow extends ConsumerStatefulWidget {
-  const OnboardingFlow({
-    super.key,
-    this.onDone,
-    this.routed = false,
-  });
+  const OnboardingFlow({super.key, this.onDone, this.routed = false});
 
   /// Optional extra hook (used by tests). The routed flow advances itself.
   final VoidCallback? onDone;
@@ -99,8 +95,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     }
     if (_busyNav) return;
     // Plan page: everyone starts Free. Key activation stays in Settings.
-    if (_page == 2 &&
-        ref.read(licenseControllerProvider).license == null) {
+    if (_page == 2 && ref.read(licenseControllerProvider).license == null) {
       setState(() => _busyNav = true);
       final ok = await ref
           .read(licenseControllerProvider.notifier)
@@ -109,7 +104,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       setState(() => _busyNav = false);
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).commonUnexpectedError)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonUnexpectedError),
+          ),
         );
         return;
       }
@@ -212,8 +209,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                       onPressed: busy
                           ? null
                           : _page == pages.length - 1
-                              ? _finishOnboarding
-                              : () => _next(pages.length),
+                          ? _finishOnboarding
+                          : () => _next(pages.length),
                       child: busy
                           ? const ButtonSpinner()
                           : Text(
@@ -272,32 +269,53 @@ class _OnboardPage extends ConsumerWidget {
             child: SizedBox.expand(
               child: ContentWidth(
                 maxWidth: 480,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppTheme.space5,
-                    AppTheme.space4,
-                    AppTheme.space5,
-                    AppTheme.space3,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.space5,
+                      AppTheme.space4,
+                      AppTheme.space5,
+                      AppTheme.space3,
+                    ),
+                    // A page with no [extra] is a title and a sentence, and the
+                    // Expanded above hands it the whole screen — so it sat
+                    // pinned to the top under a wide band of nothing, most
+                    // visibly on Welcome once its language toggle was removed
+                    // (#320 took the toggle; the hole it left stayed). Centre
+                    // those, and only those: a page WITH [extra] is a form, and
+                    // a form must stay top-aligned or the keyboard pushes the
+                    // field the reader is typing into off the screen.
+                    //
+                    // minHeight keeps it scrollable rather than centred-and-
+                    // clipped when the content is taller than the viewport.
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      const SizedBox(height: AppTheme.space3),
-                      Text(
-                        body,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      child: Column(
+                        mainAxisAlignment: extra == null
+                            ? MainAxisAlignment.center
+                            : MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: AppTheme.space3),
+                          Text(
+                            body,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          if (extra != null) ...[
+                            const SizedBox(height: AppTheme.space5),
+                            extra!,
+                          ],
+                        ],
                       ),
-                      if (extra != null) ...[
-                        const SizedBox(height: AppTheme.space5),
-                        extra!,
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -620,11 +638,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     }
     final result = await ref
         .read(accountRepositoryProvider)
-        .signupShop(
-          _shopName.text.trim(),
-          _email.text.trim(),
-          _password.text,
-        );
+        .signupShop(_shopName.text.trim(), _email.text.trim(), _password.text);
     if (!mounted) return;
     if (result.ok && result.license != null) {
       await _finishWithLicense(result.license!);
@@ -743,9 +757,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
             InkWell(
               onTap: () => setState(() => _showBenefits = !_showBenefits),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppTheme.space1,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -756,9 +768,7 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                       ),
                     ),
                     Icon(
-                      _showBenefits
-                          ? Icons.expand_less
-                          : Icons.expand_more,
+                      _showBenefits ? Icons.expand_less : Icons.expand_more,
                       size: 18,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -857,8 +867,8 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
                 autofillHints: const [AutofillHints.newPassword],
                 errorText:
                     _attemptedSubmit && _password.text != _confirmPassword.text
-                        ? l.accountPasswordMismatch
-                        : null,
+                    ? l.accountPasswordMismatch
+                    : null,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) {
                   if (!_busy) _createAccount();

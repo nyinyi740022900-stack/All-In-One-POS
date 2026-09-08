@@ -1308,7 +1308,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get aboutWebsite => 'ဝဘ်ဆိုက်';
 
   @override
-  String get aboutCommunity => 'Community';
+  String get aboutCommunity => 'အသိုင်းအဝိုင်း';
 
   @override
   String get aboutCheckForUpdates => 'အပ်ဒိတ် စစ်ဆေးရန်';
@@ -2270,7 +2270,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'Online ဆိုင်အတွက် Premium ကို Support က သင့် shop account ပေါ်မှာ ဖွင့်ပေးသည် (license key ရိုက်စရာမလို)။ Viber နံပါတ် ကူးပြီး sign-in သုံးတဲ့ email ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
 
   @override
-  String get licenseSubscribe => 'Subscribe';
+  String get licenseSubscribe => 'အသင်းဝင်မည်';
 
   @override
   String get licenseGetKeyTitle => 'License Key ယူရန်';
@@ -2386,7 +2386,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဒီ device မှာ အခမဲ့ စမ်းသုံးမှု သုံးပြီးသားပါ။';
 
   @override
-  String get licenseRefId => 'App Reference ID';
+  String get licenseRefId => 'အက်ပ် ကိုးကားနံပါတ်';
 
   @override
   String get licenseAccountEmail => 'ဆိုင် account email';
@@ -2520,7 +2520,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get invWebKeySection => 'Offline device key ရှိပါသလား?';
 
   @override
-  String get invWebKeyLabel => 'Device key';
+  String get invWebKeyLabel => 'စက်ပစ္စည်း သော့';
 
   @override
   String get invWebActivateButton => 'Key နဲ့ Activate';
@@ -3421,7 +3421,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String storefrontProofAttached(String name) {
-    return 'Screenshot: $name';
+    return 'ဓာတ်ပုံ: $name';
   }
 
   @override
@@ -3964,7 +3964,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String branchesPreflightNetwork(String status) {
-    return 'Network: $status';
+    return 'ကွန်ရက်: $status';
   }
 
   @override
@@ -4009,7 +4009,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'Sync now နှိပ်ပြီး ပြန်တင်ပါ။ ထိန်းထားသော items က အလိုအလျောက် ပြီးပြီး branch ပြောင်းခြင်းကို မပိတ်ပါ။';
 
   @override
-  String get branchesStuckBannerSyncNow => 'Sync now';
+  String get branchesStuckBannerSyncNow => 'ယခု ချိတ်ဆက်မည်';
 
   @override
   String get branchesStuckBannerReview => 'Sync အခြေအနေ ကြည့်မည်';
@@ -4084,10 +4084,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get branchesVerifyFinishBackground => 'Background မှာ ဆက်လုပ်မည်';
 
   @override
-  String get branchesNetworkOnline => 'Online';
+  String get branchesNetworkOnline => 'အွန်လိုင်း';
 
   @override
-  String get branchesNetworkOffline => 'Offline';
+  String get branchesNetworkOffline => 'အော့ဖ်လိုင်း';
 
   @override
   String get branchesNetworkRetry =>
@@ -4167,14 +4167,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardModeTitle => 'All In One POS ကို ဘယ်လို သုံးမှာလဲ?';
 
   @override
-  String get onboardModeOfflineTitle => 'Offline';
+  String get onboardModeOfflineTitle => 'အော့ဖ်လိုင်း';
 
   @override
   String get onboardModeOfflineBody =>
       'ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုနဲ့ Account မလိုဘဲ အခမဲ့ စတင်နိုင်ပါတယ်။ Premium ဖွင့်ချင်ရင် License key ကို အချိန်မရွေး ထည့်နိုင်ပါတယ်။';
 
   @override
-  String get onboardModeOnlineTitle => 'Online';
+  String get onboardModeOnlineTitle => 'အွန်လိုင်း';
 
   @override
   String get onboardModeOnlineBody =>
@@ -4250,7 +4250,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get dailyGateTitle => 'ဒီနေ့ဆိုင် စသုံးမည်';
 
   @override
-  String get dailyGateAccountStep => 'Account';
+  String get dailyGateAccountStep => 'အကောင့်';
 
   @override
   String get dailyGateRoleStep => 'ဒီစက်ကို ဘယ်သူသုံးမလဲ';
@@ -4299,10 +4299,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseAccountLinked => 'Cloud account ချိတ်ဆက်ထားပြီး';
 
   @override
-  String get operatingModeOnline => 'Online';
+  String get operatingModeOnline => 'အွန်လိုင်း';
 
   @override
-  String get operatingModeOffline => 'Offline';
+  String get operatingModeOffline => 'အော့ဖ်လိုင်း';
 
   @override
   String get currencySymbol => 'ကျပ်';

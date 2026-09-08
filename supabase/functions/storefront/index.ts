@@ -758,9 +758,18 @@ Deno.serve(async (req) => {
   const slug = (body.slug ?? "").trim();
   if (!slug) return json({ error: "bad_request" }, 400);
 
+  // Column-explicit rather than `*`. Nothing leaked today — the reply below
+  // is built field by field, never spread from `sf` — but this is the one
+  // unauthenticated function in the system, and `*` means the next column
+  // added to `storefronts` arrives here automatically and is one careless
+  // `...sf` away from being public. Listing them makes adding a column a
+  // decision instead of a default.
   const { data: sf } = await admin
     .from("storefronts")
-    .select("*")
+    // deno-fmt-ignore — one unbroken literal on purpose: supabase-js infers
+    // the row type by parsing this string, and splitting it across a `+`
+    // degrades every field to GenericStringError.
+    .select("shop_id, display_name, phone, address, logo_url, payment_methods, currency_code, enabled, hours_enabled, open_minute, close_minute, require_transfer_proof")
     .eq("slug", slug)
     .eq("enabled", true)
     .maybeSingle();
