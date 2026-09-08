@@ -714,6 +714,87 @@ class _ConfirmRow extends StatelessWidget {
   }
 }
 
+/// Type-the-name confirmation for archiving a shop. See `_setShopArchived`
+/// for why this one asks more than the console's other confirms.
+class _ArchiveShopDialog extends StatefulWidget {
+  const _ArchiveShopDialog({required this.shopLabel, required this.shopId});
+  final String shopLabel;
+  final String shopId;
+
+  @override
+  State<_ArchiveShopDialog> createState() => _ArchiveShopDialogState();
+}
+
+class _ArchiveShopDialogState extends State<_ArchiveShopDialog> {
+  final _typed = TextEditingController();
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    // Trimmed + case-insensitive: this is a "did you read which row you are
+    // on" check, not a typing test.
+    final matches =
+        _typed.text.trim().toLowerCase() == widget.shopLabel.toLowerCase();
+    return AlertDialog(
+      title: const Text('Archive this shop?'),
+      content: SizedBox(
+        width: 460,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ConfirmRow('Shop', widget.shopLabel),
+            _ConfirmRow('Shop ID', widget.shopId),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              'Their licence is revoked — the app drops to Free at its next '
+              'check. Sales, products and customers are NOT deleted, and you '
+              'can restore the shop from the Archived filter.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              'A shop on an active paid plan cannot be archived — downgrade '
+              'or let it expire first.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.danger),
+            ),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _typed,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Type "${widget.shopLabel}" to confirm',
+                isDense: true,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: matches ? () => Navigator.pop(context, true) : null,
+          style: FilledButton.styleFrom(backgroundColor: colors.danger),
+          child: const Text('Archive'),
+        ),
+      ],
+    );
+  }
+}
+
 class _OfflineCodeDialog extends StatefulWidget {
   const _OfflineCodeDialog({this.initialShopId, this.initialShopName});
   final String? initialShopId;

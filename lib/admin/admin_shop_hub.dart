@@ -14,6 +14,9 @@ class _ShopHubPage extends StatelessWidget {
     required this.onExtendDevice,
     required this.onResetDevice,
     required this.onOffline,
+    required this.onArchive,
+    required this.showingArchived,
+    required this.onShowArchived,
     required this.onGenerateKey,
     required this.onGrantExtraDevice,
     required this.onViber,
@@ -35,6 +38,17 @@ class _ShopHubPage extends StatelessWidget {
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
+
+  /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
+  final void Function(Map<String, dynamic> shop, bool archive) onArchive;
+
+  /// True when the list being shown is the archived one, which flips the
+  /// action from Archive to Restore and hides the licence actions (an
+  /// archived shop has no licence to extend).
+  final bool showingArchived;
+
+  /// Switches which list is fetched — see `AdminApi.listShops`.
+  final ValueChanged<bool> onShowArchived;
   final void Function(String shopId) onGenerateKey;
   final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
@@ -57,6 +71,9 @@ class _ShopHubPage extends StatelessWidget {
       onExtendDevice: onExtendDevice,
       onResetDevice: onResetDevice,
       onOffline: onOffline,
+      onArchive: onArchive,
+      showingArchived: showingArchived,
+      onShowArchived: onShowArchived,
       onGenerateKey: onGenerateKey,
       onGrantExtraDevice: onGrantExtraDevice,
       onViber: onViber,
@@ -81,6 +98,9 @@ class _ShopHubBody extends StatefulWidget {
     required this.onExtendDevice,
     required this.onResetDevice,
     required this.onOffline,
+    required this.onArchive,
+    required this.showingArchived,
+    required this.onShowArchived,
     required this.onGenerateKey,
     required this.onGrantExtraDevice,
     required this.onViber,
@@ -102,6 +122,17 @@ class _ShopHubBody extends StatefulWidget {
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
+
+  /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
+  final void Function(Map<String, dynamic> shop, bool archive) onArchive;
+
+  /// True when the list being shown is the archived one, which flips the
+  /// action from Archive to Restore and hides the licence actions (an
+  /// archived shop has no licence to extend).
+  final bool showingArchived;
+
+  /// Switches which list is fetched — see `AdminApi.listShops`.
+  final ValueChanged<bool> onShowArchived;
   final void Function(String shopId) onGenerateKey;
   final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
@@ -175,17 +206,28 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
           child: Wrap(
             spacing: AppTheme.space1,
             children: [
-              for (final f in AdminShopFilter.values)
-                FilterChip(
-                  label: Text(switch (f) {
-                    AdminShopFilter.all => 'All',
-                    AdminShopFilter.premium => 'Premium',
-                    AdminShopFilter.atRisk => 'At risk',
-                    AdminShopFilter.expiring => 'Expiring',
-                  }),
-                  selected: widget.filter == f,
-                  onSelected: (_) => widget.onFilter(f),
-                ),
+              // The plan filters narrow the list that was fetched; Archived
+              // swaps which list is fetched at all, so it is deliberately
+              // last and visually separated rather than sitting among them
+              // as if it were a fifth plan.
+              if (!widget.showingArchived)
+                for (final f in AdminShopFilter.values)
+                  FilterChip(
+                    label: Text(switch (f) {
+                      AdminShopFilter.all => 'All',
+                      AdminShopFilter.premium => 'Premium',
+                      AdminShopFilter.atRisk => 'At risk',
+                      AdminShopFilter.expiring => 'Expiring',
+                    }),
+                    selected: widget.filter == f,
+                    onSelected: (_) => widget.onFilter(f),
+                  ),
+              FilterChip(
+                avatar: const Icon(Icons.archive_outlined, size: 18),
+                label: const Text('Archived'),
+                selected: widget.showingArchived,
+                onSelected: (v) => widget.onShowArchived(v),
+              ),
             ],
           ),
         ),
@@ -239,6 +281,9 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
           onExtendDevice: widget.onExtendDevice,
           onResetDevice: widget.onResetDevice,
           onOffline: widget.onOffline,
+          onArchive: widget.onArchive,
+          showingArchived: widget.showingArchived,
+          onShowArchived: widget.onShowArchived,
           onGenerateKey: widget.onGenerateKey,
           onGrantExtraDevice: widget.onGrantExtraDevice,
           onViber: widget.onViber,
@@ -272,6 +317,9 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   onExtendDevice: widget.onExtendDevice,
                   onResetDevice: widget.onResetDevice,
                   onOffline: widget.onOffline,
+                  onArchive: widget.onArchive,
+                  showingArchived: widget.showingArchived,
+                  onShowArchived: widget.onShowArchived,
                   onGenerateKey: widget.onGenerateKey,
                   onGrantExtraDevice: widget.onGrantExtraDevice,
                   onViber: widget.onViber,
@@ -296,6 +344,9 @@ class _ShopDetail extends StatelessWidget {
     required this.onExtendDevice,
     required this.onResetDevice,
     required this.onOffline,
+    required this.onArchive,
+    required this.showingArchived,
+    required this.onShowArchived,
     required this.onGenerateKey,
     required this.onGrantExtraDevice,
     required this.onViber,
@@ -314,6 +365,17 @@ class _ShopDetail extends StatelessWidget {
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
   final void Function(Map<String, dynamic> shop) onOffline;
+
+  /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
+  final void Function(Map<String, dynamic> shop, bool archive) onArchive;
+
+  /// True when the list being shown is the archived one, which flips the
+  /// action from Archive to Restore and hides the licence actions (an
+  /// archived shop has no licence to extend).
+  final bool showingArchived;
+
+  /// Switches which list is fetched — see `AdminApi.listShops`.
+  final ValueChanged<bool> onShowArchived;
   final void Function(String shopId) onGenerateKey;
   final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
@@ -394,7 +456,17 @@ class _ShopDetail extends StatelessWidget {
           spacing: AppTheme.space2,
           runSpacing: AppTheme.space2,
           children: [
-            if (hasNoLicense)
+            // An archived shop has no licence left to extend — its rows are
+            // exactly the ones archiving revoked — so offering Extend or
+            // Offline code here would be offering to act on nothing. Restore
+            // is the only move, and it is the only button shown.
+            if (showingArchived)
+              FilledButton.icon(
+                onPressed: () => onArchive(shop, false),
+                icon: const Icon(Icons.unarchive_outlined),
+                label: const Text('Restore shop'),
+              )
+            else if (hasNoLicense)
               FilledButton.icon(
                 onPressed: () => onGenerateKey('${shop['shop_id']}'),
                 icon: const Icon(Icons.add),
@@ -426,16 +498,28 @@ class _ShopDetail extends StatelessWidget {
                 label: const Text('Allow extra devices'),
               ),
             ],
-            OutlinedButton.icon(
-              onPressed: () => onOffline(shop),
-              icon: const Icon(Icons.qr_code),
-              label: const Text('Offline code'),
-            ),
-            if (viberTarget.isNotEmpty)
+            if (!showingArchived)
+              OutlinedButton.icon(
+                onPressed: () => onOffline(shop),
+                icon: const Icon(Icons.qr_code),
+                label: const Text('Offline code'),
+              ),
+            if (viberTarget.isNotEmpty && !showingArchived)
               OutlinedButton.icon(
                 onPressed: () => onViber(viberTarget),
                 icon: const Icon(Icons.chat_outlined),
                 label: const Text('Message on Viber'),
+              ),
+            // Last, and visually quietest of the row: housekeeping, not a
+            // daily action. Danger-coloured because it revokes a licence.
+            if (!showingArchived)
+              OutlinedButton.icon(
+                onPressed: () => onArchive(shop, true),
+                icon: const Icon(Icons.archive_outlined),
+                label: const Text('Archive shop'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.of(context).danger,
+                ),
               ),
           ],
         ),

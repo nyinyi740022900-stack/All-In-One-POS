@@ -49,6 +49,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Map<String, dynamic>>? _requests;
   List<Map<String, dynamic>>? _events;
   List<Map<String, dynamic>>? _shops;
+
+  /// Which shop list is on screen — live, or the archived ones. Changing it
+  /// refetches (`list_shops` returns one or the other, never both).
+  bool _showArchived = false;
   Map<String, String>? _config;
   String? _error;
   bool _loading = false;
@@ -86,7 +90,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         widget.api.listLicenses(),
         widget.api.listRequests(),
         widget.api.listEvents(),
-        widget.api.listShops(),
+        widget.api.listShops(archived: _showArchived),
         widget.api.getConfig(),
       ]);
       if (!mounted) return;
@@ -215,6 +219,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _extend(byEmail: false, initial: deviceId),
           onResetDevice: _resetDevice,
           onOffline: (shop) => _generateOffline(shop: shop),
+          onArchive: _setShopArchived,
+          showingArchived: _showArchived,
+          onShowArchived: (v) {
+            // Clear the selection: the selected shop is by definition not in
+            // the list we are about to fetch.
+            setState(() {
+              _showArchived = v;
+              _selectedShopId = null;
+            });
+            _reload();
+          },
           onGenerateKey: (shopId) => _generateKey(initialShopId: shopId),
           onGrantExtraDevice: _grantExtraDevice,
           onViber: _openViber,
@@ -234,6 +249,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onExtendEmail: () => _extend(byEmail: true),
           onExtendDevice: () => _extend(byEmail: false),
           onOpenShops: () => _go(_AdminSection.shops),
+          onOfflineCode: () => _generateOffline(),
         );
       case _AdminSection.settings:
         return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);
@@ -378,6 +394,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             : 'This shop may use ${saved.extraSlots} paid extra device(s)$until. '
                 'Tell them to sign in on the new phone and tap Check for renewal — no key.',
       );
+      _reload();
+    } catch (e) {
+      _snack(_adminErrorMessage(e));
+    }
+  }
+
+  /// Archives a shop (hiding it and revoking its licence) or restores it.
+  ///
+  /// Archiving asks the admin to type the shop's name back, the way a repo
+  /// host does before a delete. That is heavier than the Unlink confirm next
+  /// door on purpose: unlinking one login is visible and fixable, whereas
+  /// this quietly turns a whole shop's app back to Free, and the shops most
+  /// likely to be archived are the ones whose names look alike ("My Shop"
+  /// appears three times in the live list). A dialog you dismiss by reflex is
+  /// no guard at all when every row reads the same.
+  ///
+  /// Restoring asks nothing — it only gives back what archiving took.
+  Future<void> _setShopArchived(
+    Map<String, dynamic> shop,
+    bool archive,
+  ) async {
+    final shopId = '${shop['shop_id']}';
+    final name = '${shop['shop_name'] ?? shop['name'] ?? ''}'.trim();
+    final label = name.isEmpty ? shopId : name;
+
+    if (archive) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => _ArchiveShopDialog(shopLabel: label, shopId: shopId),
+      );
+      if (ok != true) return;
+    }
+    try {
+      await widget.api.setShopArchived(shopId: shopId, archived: archive);
+      if (!mounted) return;
+      setState(() => _selectedShopId = null);
+      _snack(archive ? 'Archived $label.' : 'Restored $label.');
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));

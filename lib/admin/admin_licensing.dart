@@ -1,18 +1,30 @@
 part of 'admin_dashboard_screen.dart';
 
-/// Viber-paste extend: email or App Reference ID — nothing else.
-/// Reset / offline code / generate key / extra device live on Shops, next to the shop they
-/// apply to.
+/// Viber-paste extend: email or App Reference ID — plus the one action that
+/// genuinely has no shop to hang off yet.
+///
+/// Reset / generate key / extra device still live on Shops, next to the shop
+/// they apply to. An offline code does NOT always have one: `sign_offline`
+/// only requires a non-empty shop id, and the whole point of the offline path
+/// is a customer with no connectivity who may never have opened the app — so
+/// the only way to reach it used to be opening some *unrelated* existing shop
+/// and typing over its Shop ID, which is both obscure and one slip away from
+/// minting an unrevocable token against the wrong shop.
 class _LicensingPage extends StatelessWidget {
   const _LicensingPage({
     required this.onExtendEmail,
     required this.onExtendDevice,
     required this.onOpenShops,
+    required this.onOfflineCode,
   });
 
   final VoidCallback onExtendEmail;
   final VoidCallback onExtendDevice;
   final VoidCallback onOpenShops;
+
+  /// Opens the offline-code dialog with nothing pre-filled, for a shop that
+  /// is not in the list yet.
+  final VoidCallback onOfflineCode;
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +81,18 @@ class _LicensingPage extends StatelessWidget {
           },
         ),
         const SizedBox(height: AppTheme.space5),
+        _LicensingActionCard(
+          icon: Icons.qr_code,
+          title: 'They have no internet',
+          body:
+              'Mint a signed offline code they can type in by hand. Works for '
+              'a shop that is not in your list yet — you supply the Shop ID.',
+          action: 'Offline code for a new shop',
+          onPressed: onOfflineCode,
+        ),
+        const SizedBox(height: AppTheme.space5),
         Text(
-          'Need to reset a phone, allow extra devices, mint a key, or send an offline code?',
+          'Need to reset a phone, allow extra devices, or mint a key?',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted),
         ),
         const SizedBox(height: AppTheme.space2),

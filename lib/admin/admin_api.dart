@@ -66,8 +66,12 @@ class AdminApi {
 
   Future<void> signOut() => _c.auth.signOut();
 
-  Future<List<Map<String, dynamic>>> _rows(String action) async {
-    final res = await _c.functions.invokeBounded('admin', body: {'action': action});
+  Future<List<Map<String, dynamic>>> _rows(
+    String action, [
+    Map<String, dynamic> extra = const {},
+  ]) async {
+    final res = await _c.functions
+        .invokeBounded('admin', body: {'action': action, ...extra});
     _throwIfError(res);
     return (((res.data as Map)['rows'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
@@ -75,7 +79,12 @@ class AdminApi {
   }
 
   Future<List<Map<String, dynamic>>> listLicenses() => _rows('list_licenses');
-  Future<List<Map<String, dynamic>>> listShops() => _rows('list_shops');
+  /// The console's shop list. [archived] swaps it for the shops hidden by
+  /// [setShopArchived] instead of the live ones — either/or, not a merged
+  /// list, because an archived shop's licence is revoked and it must not sit
+  /// next to live shops on a screen where "extend" is one click away.
+  Future<List<Map<String, dynamic>>> listShops({bool archived = false}) =>
+      _rows('list_shops', archived ? const {'archived': true} : const {});
   Future<List<Map<String, dynamic>>> listRequests() => _rows('list_requests');
   Future<List<Map<String, dynamic>>> listEvents() => _rows('list_events');
 
@@ -312,6 +321,31 @@ class AdminApi {
       extraSlots: (data['extra_slots'] as num?)?.toInt() ?? extraSlots,
       extrasExpiresAt: data['extras_expires_at'] as String?,
     );
+  }
+
+  /// Hides a shop from the console, or brings it back.
+  ///
+  /// Not cosmetic: this flips `licenses.is_deleted`, which `activate`'s
+  /// re-verify and resync also filter on — so archiving **revokes the shop's
+  /// licence** and its app drops to Free at the next check. That is the point
+  /// for a test or abandoned shop. The server refuses outright
+  /// (`shop_is_paid`) when the shop still holds an active paid licence, so
+  /// this cannot quietly cut off a paying customer.
+  ///
+  /// Reversible: pass `archived: false` to put every row back.
+  Future<void> setShopArchived({
+    required String shopId,
+    required bool archived,
+  }) async {
+    final res = await _c.functions.invokeBounded(
+      'admin',
+      body: {
+        'action': 'set_shop_archived',
+        'shop_id': shopId,
+        'archived': archived,
+      },
+    );
+    _throwIfError(res);
   }
 
   void _throwIfError(FunctionResponse res) {

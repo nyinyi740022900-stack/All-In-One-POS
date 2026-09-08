@@ -20,6 +20,8 @@
 //   restore_account { user_id }           -> lift a revoke_staff ban
 //   set_config { config }                 -> write allowlisted app_config keys
 //   set_device_allowance { shop_id, extra_slots, months } -> { extra_slots, extras_expires_at }
+//   set_shop_archived { shop_id, archived }   -> hide/restore a shop (revokes
+//                                              its licence; refuses if paid)
 //
 // Every action runs only after the admin-role check below; there is no path
 // to any of them that skips it.
@@ -120,6 +122,7 @@ Deno.serve(async (req) => {
     reason?: string;
     user_id?: string;
     id?: string;
+    archived?: boolean;
     config?: Record<string, string>;
   };
   try {
@@ -149,12 +152,19 @@ Deno.serve(async (req) => {
       // storefront feature), and auth.users (email — lives only in Auth,
       // never in a table; matched via app_metadata.shop_id, the same claim
       // auth_shop_id() reads for RLS).
+      // `archived` (default false) lists the shops hidden by
+      // `set_shop_archived` INSTEAD of the live ones, so the console can offer
+      // a "show archived" view to restore from. Deliberately either/or rather
+      // than a merged list with a flag: an archived shop's licence is revoked,
+      // so mixing the two would put rows that look ordinary next to rows that
+      // are not, in the one screen where "extend this shop" is a click away.
+      const wantArchived = body.archived === true;
       const { data: licRows, error: licErr } = await admin
         .from("licenses")
         .select(
           "key, shop_id, shop_name, plan, status, expires_at, tier, device_id, updated_at",
         )
-        .eq("is_deleted", false)
+        .eq("is_deleted", wantArchived)
         .order("updated_at", { ascending: false })
         .limit(2000);
       if (licErr) return json({ error: "server_error" }, 500);
@@ -1019,6 +1029,10 @@ Deno.serve(async (req) => {
         extras_expires_at?: string | null;
       } | null;
       await logEvent(admin, {
+        // shop_id added in 0092: the History tab has always rendered this
+        // row as `Extra devices granted · N · <shop_id>`, reading a column
+        // that did not exist, so every one of them showed a bare "—".
+        shop_id: shopId,
         device_id: null,
         shop_name: null,
         key: null,
@@ -1029,6 +1043,72 @@ Deno.serve(async (req) => {
         extra_slots: payload?.extra_slots ?? extraSlots,
         extras_expires_at: payload?.extras_expires_at ?? null,
       });
+    }
+
+    // Hide a shop from the console, or bring it back.
+    //
+    // Implemented as `licenses.is_deleted`, which already existed and which
+    // `list_shops` already filtered on — so no new column, and archiving is
+    // exactly reversible by flipping it back.
+    //
+    // Be clear about what this costs, because the flag is not cosmetic: the
+    // same `is_deleted` is filtered by `activate`'s re-verify and resync
+    // lookups, so archiving **revokes the shop's licence** and its app falls
+    // back to Free at the next check. That is the intent for an abandoned or
+    // test shop; it would be a silent, invoice-shaped disaster for a paying
+    // one, which is why an active paid shop is refused below rather than
+    // merely warned about. Downgrade or let it expire first, deliberately.
+    case "set_shop_archived": {
+      const shopId = (body.shop_id ?? "").trim();
+      if (!shopId) return json({ error: "bad_request" }, 400);
+      const archived = body.archived === true;
+
+      // Every row for this shop, in whichever state it is currently in — a
+      // shop has one licence row per device (0025_multi_device_licensing).
+      const { data: rows, error: readErr } = await admin
+        .from("licenses")
+        .select("key, plan, status, shop_name")
+        .eq("shop_id", shopId)
+        .eq("is_deleted", !archived);
+      if (readErr) return json({ error: "server_error" }, 500);
+      if (!rows || rows.length === 0) return json({ error: "not_found" }, 404);
+
+      if (archived) {
+        // Same rule the console's own plan-mix uses (`_planMixBucket` in
+        // admin_stats.dart): paid means an active licence whose plan is
+        // neither free nor trial.
+        // deno-lint-ignore no-explicit-any
+        const paid = rows.filter((r: any) => {
+          const plan = `${r.plan ?? ""}`;
+          return r.status === "active" &&
+            plan !== "" && plan !== "free" && plan !== "trial";
+        });
+        if (paid.length > 0) {
+          return json({
+            error: "shop_is_paid",
+            detail: `${paid.length} active paid licence(s)`,
+          }, 409);
+        }
+      }
+
+      const { error: writeErr } = await admin
+        .from("licenses")
+        .update({ is_deleted: archived, updated_at: new Date().toISOString() })
+        .eq("shop_id", shopId)
+        .eq("is_deleted", !archived);
+      if (writeErr) return json({ error: "server_error" }, 500);
+
+      await logEvent(admin, {
+        shop_id: shopId,
+        // deno-lint-ignore no-explicit-any
+        shop_name: (rows as any[])[0]?.shop_name ?? null,
+        device_id: null,
+        key: null,
+        action: archived ? "archive" : "restore",
+        months: null,
+      });
+
+      return json({ ok: true, rows: rows.length });
     }
 
     default:
