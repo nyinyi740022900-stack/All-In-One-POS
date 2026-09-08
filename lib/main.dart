@@ -34,10 +34,18 @@ Future<void> _bootstrap() async {
 
       // Audit H2 follow-up: product thumbs load via cached_network_image,
       // whose disk store runs on sqflite. sqflite ships no native Windows
-      // implementation — it needs the FFI factory (sqlite3_flutter_libs
-      // already provides the sqlite3 dll for this project). Without this,
-      // every photo on the Windows POS would fail its disk-cache open and
-      // fall back to the initials plate forever.
+      // implementation — it needs the FFI factory below, plus a sqlite3
+      // library for it to open.
+      //
+      // That library used to come from `sqlite3_flutter_libs`, which shipped
+      // prebuilt binaries. That package is now retired upstream ("Not used
+      // anymore, update to version 3.x of package:sqlite3 instead") and is
+      // gone; `sqlite3` 3.x compiles its own via Dart's native build hooks.
+      // Android is verified — `libsqlite3.so` lands in the APK for all three
+      // ABIs and an existing on-device database opened and wrote fine across
+      // the swap. Windows is verified by `windows_desktop.yml`, because this
+      // Mac cannot build it: if that job ever fails to find sqlite3 here,
+      // this is the line that explains why.
       if (!kIsWeb && Platform.isWindows) {
         sqflite_ffi.sqfliteFfiInit();
         sqflite_ffi.databaseFactory = sqflite_ffi.databaseFactoryFfi;
