@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -194,6 +195,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final lowCount = ref.watch(lowStockCountProvider);
     final trackStock = ref.watch(trackStockProvider).valueOrNull ?? true;
     final currency = ref.watch(shopCurrencyProvider);
+    final stockSummary = ref.watch(inventoryStockSummaryProvider);
+    final locale = Localizations.localeOf(context).languageCode;
     // Cashiers can browse inventory but not add/edit products; managers can.
     final canEdit = ref.watch(canEditInventoryProvider);
     ref.listen<String>(inventorySearchProvider, (prev, next) {
@@ -214,7 +217,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         appBar: AppBar(
           toolbarHeight:
               kToolbarHeight +
-              (async.hasValue ? MediaQuery.textScalerOf(context).scale(20) : 0),
+              (async.hasValue
+                  ? MediaQuery.textScalerOf(context).scale(20) *
+                        (trackStock ? 2 : 1)
+                  : 0),
           // The theme's default centerTitle: true optically centers a title
           // between leading and actions — fine for a single-line title, but
           // this screen's 3 trailing icons (vs. a single-width leading back
@@ -230,6 +236,32 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               if (async.hasValue)
                 Text(
                   l.inventoryFilteredCount(products.length),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              // Cost-based stock valuation only means something when the
+              // shop tracks quantities at all — with tracking off there's no
+              // reliable `quantity` to sum, so the line would just show 0.
+              if (async.hasValue && trackStock)
+                Text(
+                  l.inventoryStockSummary(
+                    // Hardcoded 'en_US', not `locale` — matches
+                    // money.dart's `_wholeUnitFmt` convention of keeping
+                    // thousands-grouped numbers in Western digits even in
+                    // Myanmar, where `NumberFormat.decimalPattern('my')`
+                    // would otherwise render Myanmar-script numerals and
+                    // visibly clash with the Money value right next to it.
+                    NumberFormat(
+                      '#,##0',
+                      'en_US',
+                    ).format(stockSummary.totalUnits),
+                    Money(
+                      stockSummary.totalValue,
+                    ).withCurrency(currency, locale),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(

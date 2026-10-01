@@ -93,6 +93,29 @@ final inventoryCategoryCountsProvider = Provider<Map<String?, int>>((ref) {
   return counts;
 });
 
+/// Total remaining stock across the *currently filtered* list — same
+/// products [filteredProductsProvider] shows, so the header summary never
+/// disagrees with what's actually on screen. `totalValue` is cost-based
+/// (quantity × [Product.costPrice]), matching what restocking the shop back
+/// to zero would have cost, not what selling it all out would earn.
+class InventoryStockSummary {
+  const InventoryStockSummary(
+      {required this.totalUnits, required this.totalValue});
+  final int totalUnits;
+  final int totalValue;
+}
+
+final inventoryStockSummaryProvider = Provider<InventoryStockSummary>((ref) {
+  final products = ref.watch(filteredProductsProvider);
+  var units = 0;
+  var value = 0;
+  for (final p in products) {
+    units += p.quantity;
+    value += p.quantity * p.product.costPrice;
+  }
+  return InventoryStockSummary(totalUnits: units, totalValue: value);
+});
+
 final lowStockCountProvider = Provider<int>((ref) {
   final all = ref.watch(productsStreamProvider).valueOrNull ?? const [];
   // Same predicate the low-stock filter itself applies — counting only

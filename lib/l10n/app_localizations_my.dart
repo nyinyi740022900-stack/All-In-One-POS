@@ -1027,6 +1027,11 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String inventoryStockSummary(String units, String value) {
+    return '$units ယူနစ် · $value';
+  }
+
+  @override
   String get inventoryOutOfStock => 'ကုန်ပစ္စည်း ကုန်သွားပါပြီ';
 
   @override
@@ -2389,6 +2394,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseRefId => 'အက်ပ် ကိုးကားနံပါတ်';
 
   @override
+  String get licenseRefIdQrHint =>
+      'Support က ဒီနံပါတ်ကို ပြန်ရိုက်စရာမလိုဘဲ scan ဖတ်နိုင်ပါတယ်။';
+
+  @override
   String get licenseAccountEmail => 'ဆိုင် account email';
 
   @override
@@ -3545,6 +3554,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontRenewSubmit => 'တောင်းဆိုမှု ပို့ပါ';
 
   @override
+  String get storefrontRenewUrgentViber => 'အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ';
+
+  @override
   String get storefrontRenewSubmitted =>
       'တောင်းဆိုမှု ပို့ပြီးပါပြီ! သင့်ငွေပေးချေမှုကို စစ်ဆေးပြီး မကြာမီ သက်တမ်းတိုးပေးပါမည်။';
 
@@ -4327,6 +4339,9 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get receiptStatusFulfilledBody =>
       'Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → လိုင်စင် မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။';
+
+  @override
+  String get receiptUrgentViber => 'အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ';
 
   @override
   String get receiptStatusRejected => 'အတည်မပြုနိုင်ပါ';

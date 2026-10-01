@@ -460,6 +460,17 @@
       }
     }
   },
+  "inventoryStockSummary": "{units} ယူနစ် · {value}",
+  "@inventoryStockSummary": {
+    "placeholders": {
+      "units": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryOutOfStock": "ကုန်ပစ္စည်း ကုန်သွားပါပြီ",
   "inventoryOutOfStockBadge": "ကုန်ပြီ",
   "productName": "ပစ္စည်းအမည်",
@@ -973,6 +984,7 @@
   "licenseTrialStarted": "အခမဲ့ ၂ လ စမ်းသုံးမှု စတင်ပြီး",
   "licenseTrialUsed": "ဒီ device မှာ အခမဲ့ စမ်းသုံးမှု သုံးပြီးသားပါ။",
   "licenseRefId": "အက်ပ် ကိုးကားနံပါတ်",
+  "licenseRefIdQrHint": "Support က ဒီနံပါတ်ကို ပြန်ရိုက်စရာမလိုဘဲ scan ဖတ်နိုင်ပါတယ်။",
   "licenseAccountEmail": "ဆိုင် account email",
   "licenseAccountEmailMissing": "Support က ရှာနိုင်အောင် Settings → အကောင့် မှာ sign in ဝင်ထားပါ။",
   "licenseRequestSent": "တောင်းဆိုမှု ပို့ပြီးပါပြီ။ ငွေစစ်ဆေးပြီး key ပို့ပေးပါမယ်။",
@@ -1552,6 +1564,7 @@
   "storefrontRenewRefNo": "လွှဲပြောင်းမှု ကိုးကားနံပါတ်၏ နောက်ဆုံး ၆ လုံး *",
   "storefrontRenewRefNoHint": "KBZPay/WavePay confirmation ထဲက transaction ID ရဲ့ အဆုံးမှာ ရှာပါ။",
   "storefrontRenewSubmit": "တောင်းဆိုမှု ပို့ပါ",
+  "storefrontRenewUrgentViber": "အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ",
   "storefrontRenewSubmitted": "တောင်းဆိုမှု ပို့ပြီးပါပြီ! သင့်ငွေပေးချေမှုကို စစ်ဆေးပြီး မကြာမီ သက်တမ်းတိုးပေးပါမည်။",
   "storefrontRenewRequestId": "ကိုးကားနံပါတ်: {requestId}",
   "storefrontRenewFailed": "တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်မံကြိုးစားပါ ဒါမှမဟုတ် support ကို ဆက်သွယ်ပါ။",
@@ -1883,6 +1896,7 @@
   "receiptStatusPaidBody": "ငွေ လက်ခံရရှိပါပြီ။ လိုင်စင် ထုတ်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။",
   "receiptStatusFulfilled": "အတည်ပြုပြီး",
   "receiptStatusFulfilledBody": "Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → လိုင်စင် မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။",
+  "receiptUrgentViber": "အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ",
   "receiptStatusRejected": "အတည်မပြုနိုင်ပါ",
   "receiptShop": "ဆိုင်နာမည်",
   "receiptDeviceTail": "App Reference ID နောက်ဆုံး",

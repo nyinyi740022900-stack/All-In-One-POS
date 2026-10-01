@@ -1033,6 +1033,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventoryStockSummary(String units, String value) {
+    return '$units units · $value';
+  }
+
+  @override
   String get inventoryOutOfStock => 'Out of stock';
 
   @override
@@ -2377,6 +2382,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseRefId => 'App Reference ID';
 
   @override
+  String get licenseRefIdQrHint =>
+      'Support can scan this instead of retyping it.';
+
+  @override
   String get licenseAccountEmail => 'Shop account email';
 
   @override
@@ -3538,6 +3547,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontRenewSubmit => 'Submit request';
 
   @override
+  String get storefrontRenewUrgentViber =>
+      'Need this urgently? Message us on Viber';
+
+  @override
   String get storefrontRenewSubmitted =>
       'Request submitted! We\'ll review your payment and extend your subscription soon.';
 
@@ -4323,6 +4336,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get receiptStatusFulfilledBody =>
       'Your Premium is active. Open the app, go to Settings → License and tap Check for renewal.';
+
+  @override
+  String get receiptUrgentViber => 'Need this urgently? Message us on Viber';
 
   @override
   String get receiptStatusRejected => 'Not approved';

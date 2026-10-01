@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
+import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
 import 'renew_print_web.dart';
 import 'storefront_api.dart';
@@ -22,6 +25,7 @@ class RenewalReceiptView extends StatefulWidget {
     super.key,
     required this.requestId,
     this.initialInvoiceNo,
+    this.supportViber,
   });
 
   final String requestId;
@@ -29,6 +33,14 @@ class RenewalReceiptView extends StatefulWidget {
   /// Known immediately after submitting, so the number can be shown while
   /// the first fetch is still in flight.
   final String? initialInvoiceNo;
+
+  /// Shown as an escalation path while the request is still pending — the
+  /// 24h review window from [receiptStatusPendingBody] is fine for most
+  /// shops, but one that's actually locked out of selling right now needs a
+  /// faster way to reach a human than waiting for a poll. Null/empty hides
+  /// the row (no `support.viber` configured, or loaded from an older caller
+  /// that doesn't pass it).
+  final String? supportViber;
 
   @override
   State<RenewalReceiptView> createState() => _RenewalReceiptViewState();
@@ -44,10 +56,31 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
   bool _notFound = false;
   bool _failed = false;
 
+  // The pending/paid-not-fulfilled copy tells the shop "the status updates
+  // here" — that was a lie until this timer existed; the only way to see a
+  // fresher status was the manual Refresh button. Polling stops itself once
+  // the request reaches a terminal state (fulfilled/rejected) or the fetch
+  // starts failing, so a shop that leaves this tab open overnight doesn't
+  // hammer the function forever.
+  Timer? _poll;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  void _schedulePoll() {
+    _poll?.cancel();
+    final r = _receipt;
+    if (r == null || r.isFulfilled || r.isRejected) return;
+    _poll = Timer(const Duration(seconds: 20), _load);
   }
 
   Future<void> _load() async {
@@ -63,6 +96,7 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
         _receipt = r;
         _loading = false;
       });
+      _schedulePoll();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -73,6 +107,8 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
         _notFound = '$e'.contains('not_found');
         _failed = !_notFound;
       });
+      // A dropped connection shouldn't poll silently forever in the
+      // background — the explicit Refresh button covers retry from here.
     }
   }
 
@@ -212,6 +248,21 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
             ],
           ),
         ),
+
+        if (!r.isFulfilled &&
+            !r.isRejected &&
+            (widget.supportViber ?? '').isNotEmpty) ...[
+          const SizedBox(height: AppTheme.space2),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () =>
+                  openSupportViber(context, number: widget.supportViber!),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: Text(l.receiptUrgentViber),
+            ),
+          ),
+        ],
 
         // The key is the payout of the whole flow — give it its own block,
         // selectable, never buried in the detail rows.

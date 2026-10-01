@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,7 +76,8 @@ class LicenseScreen extends ConsumerStatefulWidget {
   ConsumerState<LicenseScreen> createState() => _LicenseScreenState();
 }
 
-class _LicenseScreenState extends ConsumerState<LicenseScreen> {
+class _LicenseScreenState extends ConsumerState<LicenseScreen>
+    with WidgetsBindingObserver {
   final _key = TextEditingController();
   bool _busy = false;
   // Set when the scanned/entered key carried a role (see DeviceProvisioning)
@@ -83,10 +85,41 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
   String? _pendingRole;
   String? _pendingStaffMemberId;
 
+  // Set right before launching the external MM (`/renew`) or International
+  // (Lemon Squeezy) checkout, both of which hand the shop off to a browser
+  // this screen has no way to watch. Either path confirms payment through a
+  // webhook/admin action server-side, not through anything this app call
+  // returns — the shop pays, comes back, and otherwise would only find out
+  // by remembering to tap "Check for renewal" or waiting for the 6-hourly
+  // background reverify (`license_providers.dart`'s `_silentReverify`).
+  // Catching the very next app-resume and re-checking then closes that gap
+  // for the common case (pay, switch straight back to the app) without
+  // polling in the background the rest of the time.
+  bool _awaitingExternalPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _key.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_awaitingExternalPayment) {
+      return;
+    }
+    _awaitingExternalPayment = false;
+    // Best-effort: `_refresh` already reports its own result via a SnackBar,
+    // and silently does nothing useful if the shop backed out without
+    // paying — that's fine, it's the same call "Check for renewal" makes.
+    _refresh();
   }
 
   Future<void> _activate() async {
@@ -304,7 +337,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       if (email != null && email.isNotEmpty) 'email': email,
     });
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
+    if (ok) {
+      _awaitingExternalPayment = true;
+    } else if (mounted) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }
@@ -395,7 +430,9 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen> {
       if (deviceId.isNotEmpty) 'checkout[custom][device_id]': deviceId,
     });
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
+    if (ok) {
+      _awaitingExternalPayment = true;
+    } else if (mounted) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
   }

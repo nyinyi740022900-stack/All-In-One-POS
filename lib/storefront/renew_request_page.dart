@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
+import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
 import 'renewal_receipt_view.dart';
 import 'storefront_api.dart';
@@ -95,6 +96,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   int? _priceMonthly;
   int? _priceYearly;
 
+  // Shown both on the form and on the receipt right after submitting — the
+  // moment a shop is most anxious to hear back is exactly while its request
+  // sits "pending", so that's where an urgent-escalation path matters most,
+  // not buried back in Settings.
+  String? _supportViber;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +111,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       setState(() {
         _priceMonthly = int.tryParse(cfg['price.monthly'] ?? '');
         _priceYearly = int.tryParse(cfg['price.yearly'] ?? '');
+        _supportViber = cfg['support.viber'];
       });
       _recalcAmount();
     }, onError: (_) {
@@ -395,7 +403,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           ),
           Expanded(
             child: RenewalReceiptView(
-                requestId: id, initialInvoiceNo: _invoiceNo),
+              requestId: id,
+              initialInvoiceNo: _invoiceNo,
+              supportViber: _supportViber,
+            ),
           ),
         ],
       );
@@ -716,6 +727,17 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                   : Text(l.storefrontRenewSubmit),
             ),
           ),
+          if ((_supportViber ?? '').isNotEmpty) ...[
+            const SizedBox(height: AppTheme.space3),
+            Center(
+              child: TextButton.icon(
+                onPressed: () =>
+                    openSupportViber(context, number: _supportViber!),
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: Text(l.storefrontRenewUrgentViber),
+              ),
+            ),
+          ],
         ],
       ),
     );

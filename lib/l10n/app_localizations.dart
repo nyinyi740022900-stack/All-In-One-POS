@@ -1958,6 +1958,12 @@ abstract class AppLocalizations {
   /// **'{count} products'**
   String inventoryFilteredCount(int count);
 
+  /// No description provided for @inventoryStockSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{units} units · {value}'**
+  String inventoryStockSummary(String units, String value);
+
   /// No description provided for @inventoryOutOfStock.
   ///
   /// In en, this message translates to:
@@ -4436,6 +4442,12 @@ abstract class AppLocalizations {
   /// **'App Reference ID'**
   String get licenseRefId;
 
+  /// No description provided for @licenseRefIdQrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Support can scan this instead of retyping it.'**
+  String get licenseRefIdQrHint;
+
   /// No description provided for @licenseAccountEmail.
   ///
   /// In en, this message translates to:
@@ -6452,6 +6464,12 @@ abstract class AppLocalizations {
   /// **'Submit request'**
   String get storefrontRenewSubmit;
 
+  /// No description provided for @storefrontRenewUrgentViber.
+  ///
+  /// In en, this message translates to:
+  /// **'Need this urgently? Message us on Viber'**
+  String get storefrontRenewUrgentViber;
+
   /// No description provided for @storefrontRenewSubmitted.
   ///
   /// In en, this message translates to:
@@ -7813,6 +7831,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your Premium is active. Open the app, go to Settings → License and tap Check for renewal.'**
   String get receiptStatusFulfilledBody;
+
+  /// No description provided for @receiptUrgentViber.
+  ///
+  /// In en, this message translates to:
+  /// **'Need this urgently? Message us on Viber'**
+  String get receiptUrgentViber;
 
   /// No description provided for @receiptStatusRejected.
   ///

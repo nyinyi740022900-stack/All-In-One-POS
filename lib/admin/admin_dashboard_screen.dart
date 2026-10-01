@@ -70,10 +70,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   AdminShopFilter _shopFilter = AdminShopFilter.all;
   String? _selectedShopId;
 
+  // The pending-requests badge (admin_shell.dart) used to update only when
+  // the admin manually reloaded or took an action — an admin who leaves the
+  // dashboard open in a background tab had no way to notice a new KBZPay/
+  // WavePay renewal landing, since nothing else alerts them (no push/email).
+  // This polls the requests list quietly in the background so the badge and
+  // inbox count stay live without the admin doing anything.
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
     _reload();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) => _silentlyRefreshRequests(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Background refresh of just the requests list — deliberately skips the
+  /// `_loading` flag `_reload` flips, which would flash the full-dashboard
+  /// spinner every 45s and yank focus away from whatever the admin is doing.
+  /// Also skipped while a money-moving action is mid-flight (`_moneyBusy`)
+  /// so a background fetch can't race a Confirm/Decline tap's own refresh.
+  Future<void> _silentlyRefreshRequests() async {
+    if (!mounted || _moneyBusy) return;
+    try {
+      final requests = await widget.api.listRequests();
+      if (!mounted) return;
+      setState(() => _requests = requests);
+    } catch (_) {
+      // Quiet by design — a transient network blip here shouldn't surface
+      // an error banner over whatever the admin is actively looking at;
+      // the next tick (or a manual reload) will catch up.
+    }
   }
 
   Future<void> _reload() async {

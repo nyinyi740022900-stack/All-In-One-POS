@@ -484,6 +484,17 @@
       }
     }
   },
+  "inventoryStockSummary": "{units} units · {value}",
+  "@inventoryStockSummary": {
+    "placeholders": {
+      "units": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryOutOfStock": "Out of stock",
   "inventoryOutOfStockBadge": "Sold out",
   "@inventoryOutOfStockBadge": {
@@ -1014,6 +1025,7 @@
   "licenseTrialStarted": "Free 2-month trial started",
   "licenseTrialUsed": "Free trial already used on this device.",
   "licenseRefId": "App Reference ID",
+  "licenseRefIdQrHint": "Support can scan this instead of retyping it.",
   "licenseAccountEmail": "Shop account email",
   "licenseAccountEmailMissing": "Sign in under Account so Support can find your account.",
   "licenseRequestSent": "Request sent. We'll review your payment and send your key.",
@@ -1600,6 +1612,7 @@
   "storefrontRenewRefNo": "Last 6 digits of the transaction number *",
   "storefrontRenewRefNoHint": "Find this at the end of the transaction ID in your KBZPay/WavePay confirmation.",
   "storefrontRenewSubmit": "Submit request",
+  "storefrontRenewUrgentViber": "Need this urgently? Message us on Viber",
   "storefrontRenewSubmitted": "Request submitted! We'll review your payment and extend your subscription soon.",
   "storefrontRenewRequestId": "Reference: {requestId}",
   "@storefrontRenewRequestId": {
@@ -1938,6 +1951,7 @@
   "receiptStatusPaidBody": "Payment received. Your licence is being issued — this page will show it shortly.",
   "receiptStatusFulfilled": "Confirmed",
   "receiptStatusFulfilledBody": "Your Premium is active. Open the app, go to Settings → License and tap Check for renewal.",
+  "receiptUrgentViber": "Need this urgently? Message us on Viber",
   "receiptStatusRejected": "Not approved",
   "receiptShop": "Shop",
   "receiptDeviceTail": "App Reference ID ending",

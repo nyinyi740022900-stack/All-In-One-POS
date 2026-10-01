@@ -9,8 +9,64 @@ String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
 
 /// Shows the unique App Reference ID / Shop Code (the admin extends by this).
 /// Offline / device-key model only — Online uses [_AccountEmailTile] instead.
+///
+/// **The leading icon used to be decorative** — `Icons.qr_code_2` next to
+/// plain text that wasn't a QR code at all, implying a scan-ability this row
+/// didn't have. It's the exact 36-character id a shop reads aloud over Viber
+/// or retypes into the /renew form's "App Reference ID" field, which is
+/// precisely the kind of manual transcription that produces the device-id
+/// typos the admin console's `shopNameMismatch` warning
+/// (`admin_dashboard_widgets.dart`) exists to catch after the fact. Tapping
+/// the row now opens an actual scannable QR (the same `barcode_widget` the
+/// admin's own "Offline license code" dialog uses), so a support call can
+/// scan the shop's screen instead of both sides re-typing a UUID.
 class _RefIdTile extends ConsumerWidget {
   const _RefIdTile();
+
+  Future<void> _copy(BuildContext context, AppLocalizations l, String id) async {
+    await Clipboard.setData(ClipboardData(text: id));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.copied)));
+    }
+  }
+
+  void _showQr(BuildContext context, AppLocalizations l, String id) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.licenseRefId),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.licenseRefIdQrHint, textAlign: TextAlign.center),
+            const SizedBox(height: AppTheme.space4),
+            BarcodeWidget(
+              barcode: Barcode.qrCode(),
+              data: id,
+              width: 220,
+              height: 220,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            SelectableText(
+              id,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => _copy(context, l, id),
+            child: Text(l.commonCopy),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,17 +79,11 @@ class _RefIdTile extends ConsumerWidget {
         leading: const Icon(Icons.qr_code_2),
         title: Text(l.licenseRefId),
         subtitle: Text(id, style: const TextStyle(fontFamily: 'monospace')),
+        onTap: () => _showQr(context, l, id),
         trailing: IconButton(
           icon: const Icon(Icons.copy),
           tooltip: l.commonCopy,
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: id));
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(l.copied)));
-            }
-          },
+          onPressed: () => _copy(context, l, id),
         ),
       ),
     );

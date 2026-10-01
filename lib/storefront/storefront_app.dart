@@ -22,11 +22,27 @@ class StorefrontApp extends StatefulWidget {
 }
 
 class _StorefrontAppState extends State<StorefrontApp> {
-  // Myanmar-first, matching the main app's default and this page's audience.
+  // Defaults to the visitor's own browser language when it's one we
+  // support, falling back to Myanmar otherwise — this page's audience is
+  // mostly Myanmar shop owners/customers, but it's also the one surface a
+  // diaspora customer or an international owner (Lemon Squeezy region) can
+  // land on, and greeting them in Myanmar first was the wrong default for
+  // that audience. Read once at construction, not on every build — a
+  // visitor who taps the manual toggle owns the choice from then on, and
+  // re-reading the browser locale on a later rebuild would fight that.
   // Anonymous customers have no account/settings to persist a choice in, so
   // this is plain in-memory state threaded down via a toggle button — see
   // StorefrontLocaleBar.
-  Locale _locale = const Locale('my');
+  late Locale _locale = _initialLocale();
+
+  Locale _initialLocale() {
+    final browser = WidgetsBinding.instance.platformDispatcher.locale;
+    return AppLocalizations.supportedLocales.contains(
+          Locale(browser.languageCode),
+        )
+        ? Locale(browser.languageCode)
+        : const Locale('my');
+  }
 
   bool get _isRenewPath =>
       Uri.base.pathSegments.isNotEmpty && Uri.base.pathSegments.first == 'renew';

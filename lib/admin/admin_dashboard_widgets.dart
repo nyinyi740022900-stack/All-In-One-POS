@@ -150,8 +150,20 @@ class _RequestsTab extends StatelessWidget {
     }
     // Pending requests are the admin's to-do list — surface them above
     // already-settled ones instead of leaving them mixed into one
-    // created_at-ordered feed the admin has to scan past.
-    final pending = rows.where((r) => r['status'] == 'pending').toList();
+    // created_at-ordered feed the admin has to scan past. Oldest-first
+    // within that to-do list, so the shop that has been waiting longest
+    // isn't stuck behind a newer request the admin happened to open first —
+    // whatever order `list_requests` returned in isn't guaranteed to be
+    // chronological once pagination/retries are involved.
+    DateTime? parsedCreatedAt(Map<String, dynamic> r) =>
+        DateTime.tryParse('${r['created_at'] ?? ''}');
+    final pending = rows.where((r) => r['status'] == 'pending').toList()
+      ..sort((a, b) {
+        final da = parsedCreatedAt(a);
+        final db = parsedCreatedAt(b);
+        if (da == null || db == null) return 0;
+        return da.compareTo(db);
+      });
     final settled = rows.where((r) => r['status'] != 'pending').toList();
     final sorted = pendingOnly
         ? pending

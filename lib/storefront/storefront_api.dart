@@ -368,10 +368,11 @@ class StorefrontApi {
         .toList();
   }
 
-  /// Payment-account info (KBZPay/WavePay name+number) to show a shop owner
-  /// on the /renew page — read directly from `app_config`, anon-readable
-  /// (`0006_app_config.sql`), same source `VendorConfigRepository` uses on
-  /// the mobile app. No Edge Function needed for a plain table read.
+  /// Payment-account info (KBZPay/WavePay name+number) plus the support
+  /// Viber number, to show a shop owner on the /renew page — read directly
+  /// from `app_config`, anon-readable (`0006_app_config.sql`), same source
+  /// `VendorConfigRepository` uses on the mobile app. No Edge Function
+  /// needed for a plain table read.
   Future<Map<String, String>> fetchPaymentConfig() async {
     final rows = await _c
         .from('app_config')
@@ -383,6 +384,7 @@ class StorefrontApi {
           'pay.wavepay.number',
           'price.monthly',
           'price.yearly',
+          'support.viber',
         ]);
     return {
       for (final r in (rows as List))
