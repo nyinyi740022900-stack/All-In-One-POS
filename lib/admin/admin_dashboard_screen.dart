@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -254,7 +253,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onExtendDevice: (_, deviceId) =>
               _extend(byEmail: false, initial: deviceId),
           onResetDevice: _resetDevice,
-          onOffline: (shop) => _generateOffline(shop: shop),
           onArchive: _setShopArchived,
           showingArchived: _showArchived,
           onShowArchived: (v) {
@@ -285,7 +283,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onExtendEmail: () => _extend(byEmail: true),
           onExtendDevice: () => _extend(byEmail: false),
           onOpenShops: () => _go(_AdminSection.shops),
-          onOfflineCode: () => _generateOffline(),
         );
       case _AdminSection.settings:
         return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);
@@ -468,86 +465,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       setState(() => _selectedShopId = null);
       _snack(archive ? 'Archived $label.' : 'Restored $label.');
       _reload();
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
-    }
-  }
-
-  Future<void> _generateOffline({Map<String, dynamic>? shop}) async {
-    final req = await showDialog<_OfflineRequest>(
-      context: context,
-      builder: (_) => _OfflineCodeDialog(
-        initialShopId: shop == null ? null : '${shop['shop_id']}',
-        initialShopName: shop == null
-            ? null
-            : '${shop['shop_name'] ?? shop['shop_id']}',
-      ),
-    );
-    if (req == null) return;
-    if (!mounted) return;
-    // Confirm before minting. Every other consequential action in this console
-    // already asks — unlink, reset device, extend — and those can all be
-    // undone by editing a row. This one cannot: an offline token is verified
-    // entirely on the device against the Ed25519 public key, so nothing here
-    // can revoke it afterwards short of rotating the signing key and
-    // invalidating every token ever issued. It was the only irreversible
-    // action without a confirmation step.
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => _ConfirmOfflineDialog(request: req),
-    );
-    if (confirmed != true) return;
-    try {
-      final token = await widget.api.signOffline(
-        shopId: req.shopId,
-        shopName: req.shopName,
-        plan: req.plan,
-        months: req.months,
-        deviceId: req.deviceId,
-      );
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Offline license code'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Scan on the customer\'s phone (License screen > License key '
-                  'field > scan icon) instead of retyping the code below.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: AppTheme.space4),
-                BarcodeWidget(
-                  barcode: Barcode.qrCode(),
-                  data: token,
-                  width: 220,
-                  height: 220,
-                ),
-                const SizedBox(height: AppTheme.space4),
-                SelectableText(
-                  token,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: token));
-                Navigator.pop(context);
-              },
-              child: const Text('Copy & close'),
-            ),
-          ],
-        ),
-      );
     } catch (e) {
       _snack(_adminErrorMessage(e));
     }

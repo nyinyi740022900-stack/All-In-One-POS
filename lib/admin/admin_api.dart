@@ -135,29 +135,6 @@ class AdminApi {
     _throwIfError(res);
   }
 
-
-  Future<String> signOffline({
-    required String shopId,
-    String? shopName,
-    required String plan,
-    required int months,
-    String? deviceId,
-  }) async {
-    final res = await _c.functions.invokeBounded(
-      'admin',
-      body: {
-        'action': 'sign_offline',
-        'shop_id': shopId,
-        if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
-        'plan': plan,
-        'months': months,
-        if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
-      },
-    );
-    _throwIfError(res);
-    return (res.data as Map)['token'] as String;
-  }
-
   Future<int> resetDevice({required String deviceId}) async {
     final res = await _c.functions.invokeBounded(
       'admin',

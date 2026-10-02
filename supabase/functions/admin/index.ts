@@ -13,7 +13,6 @@
 //   create_license { shop_id, plan, months }   -> { key }
 //   fulfill_request { request_id, months? }    -> confirm a paid request
 //   reject_request { request_id, reason }      -> decline one
-//   sign_offline { shop_id, plan, months, device_id? } -> { token } (UNREVOCABLE)
 //   reset_device { device_id }            -> clear a device binding
 //   reset_password { email }              -> { action_link } recovery URL
 //   unlink_account { user_id }            -> clear shop_id on a staff (or extra owner)
@@ -29,23 +28,11 @@
 // Deploy: supabase functions deploy admin
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { signOfflineToken } from "../_shared/offline_token.ts";
 
 /// Longest licence term any single admin action may grant, in months.
 ///
 /// Three years is far beyond anything sold (plans are monthly or yearly) and
 /// exists to catch a typed digit, not to express a product limit.
-///
-/// The action that forced this is `sign_offline`. An offline token is
-/// verified purely locally — `OfflineLicense.verify` checks the Ed25519
-/// signature and the `exp` inside the payload, and asks no server anything —
-/// so once minted there is **no way to revoke it**. The only remedy for a
-/// wrong one is rotating the signing key, which kills every offline token
-/// ever issued to every shop. `120` typed where `12` was meant is therefore
-/// permanent, and the dialog that mints it had no upper bound on either
-/// side. The online paths (`extend_license`, `create_license`,
-/// `fulfill_request`) are recoverable by editing the row, but they are
-/// capped too: a typo is a typo, and one rule is easier to trust than four.
 const MAX_LICENCE_MONTHS = 36;
 
 /// The only keys `set_config` may write.
@@ -663,36 +650,6 @@ Deno.serve(async (req) => {
         expires_at: data,
       });
       return json({ expires_at: data, key: lic.key, created: false });
-    }
-
-    case "sign_offline": {
-      // Mint an offline signed license token the admin can send to a shop with
-      // no connectivity. Signed with the Ed25519 private key held as a secret.
-      // See _shared/offline_token.ts — activate's automatic issuance uses the
-      // exact same signing logic, just triggered on every activation instead
-      // of only when an admin hand-fulfills a request.
-      // Bounded here above all: an offline token cannot be revoked once it
-      // leaves this function (see MAX_LICENCE_MONTHS).
-      const offlineMonths = checkMonths(body.months ?? 1);
-      if ("error" in offlineMonths) {
-        return json({ error: offlineMonths.error }, 400);
-      }
-      try {
-        const { token, expiresAt } = await signOfflineToken({
-          shopId: body.shop_id ?? "",
-          shopName: body.shop_name,
-          plan: body.plan,
-          months: offlineMonths.months,
-          deviceId: body.device_id,
-        });
-        return json({ token, expires_at: expiresAt });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "server_error";
-        if (msg === "signing_key_missing" || msg === "bad_request") {
-          return json({ error: msg }, msg === "bad_request" ? 400 : 500);
-        }
-        return json({ error: "server_error" }, 500);
-      }
     }
 
     case "reset_device": {

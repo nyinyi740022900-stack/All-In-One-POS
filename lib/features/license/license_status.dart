@@ -46,6 +46,12 @@ class LicenseStatus {
   bool get isReadOnly => !canSell;
 }
 
+/// Days a lapsed paid plan stays Premium past its expiry, online or not.
+/// Must match `GRACE_DAYS` in `supabase/functions/activate/index.ts` and the
+/// grace window in `renew_license` (migration 0093), which extends from the
+/// old expiry inside this window so grace is time to pay, not free time.
+const kLicenseGraceDays = 14;
+
 /// Computes the effective status.
 ///
 /// - active:  `now <= expiresAt` (or any Free plan)
@@ -57,7 +63,7 @@ LicenseStatus computeLicenseStatus({
   required DateTime now,
   LicensePlan? plan,
   bool activated = true,
-  int graceDays = 7,
+  int graceDays = kLicenseGraceDays,
 }) {
   if (!activated || expiresAt == null) return LicenseStatus.none;
 

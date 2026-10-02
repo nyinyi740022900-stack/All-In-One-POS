@@ -76,7 +76,7 @@ void main() {
     final client = clientActions();
     expect(server.length, greaterThanOrEqualTo(15));
     expect(client.length, greaterThanOrEqualTo(15));
-    for (final a in const ['list_shops', 'extend_license', 'sign_offline']) {
+    for (final a in const ['list_shops', 'extend_license', 'reset_device']) {
       expect(server, contains(a));
       expect(client, contains(a));
     }

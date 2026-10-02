@@ -107,11 +107,15 @@ missing watch or the misrouted key:
   then `flutter gen-l10n`. `i18n_parity_test.dart` fails on missing keys.
 
 ## Licensing
-- Online: key `activate` (device-bound, one device per key) + subscribe
-  requests + auto re-verify. Offline: **Ed25519 signed tokens** (`MMPOS1.`
-  prefix) verified locally against the public key in `offline_license.dart`
-  (private key is a Supabase secret, NEVER in the repo). Free 2-month trial is
-  server-tracked per device.
+- Online only: key `activate` (device-bound, one device per key) or account
+  sign-in (`refresh_account_license`) + subscribe requests + auto re-verify.
+  Offline license codes (`MMPOS1.` Ed25519 tokens) were removed 2026-10-02
+  (#343) — every purchase/renewal needs internet once anyway, and a token
+  could not be revoked. Free 2-month trial is server-tracked per device.
+- **Grace is 14 days**, in three places that must agree: `kLicenseGraceDays`
+  (`license_status.dart`), `GRACE_DAYS` (`functions/activate`), and the
+  window in `renew_license` (migration 0093 — renewing inside grace extends
+  from the old expiry, so grace is time to pay, not free time).
 
 ## Security — hard rules
 - **NEVER commit** `env.local.json`, private keys (hex seeds), or the Supabase

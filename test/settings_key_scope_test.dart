@@ -82,9 +82,6 @@ void main() {
     'daily.gate.skipped_open': _Scope.perShop,
     'inventory.seed_cleanup_done': _Scope.perShop,
     'accounting.books_closed_through': _Scope.perShop,
-    // The signed offline token carries a shop_id claim, so it must travel
-    // with a promoted shop rather than stay behind on the device.
-    'license.offline_fallback': _Scope.perShop,
     // Staff identity and PIN state are the shop's, not the handset's.
     'staff.role': _Scope.perShop,
     'staff.active_id': _Scope.perShop,

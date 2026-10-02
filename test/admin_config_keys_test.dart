@@ -111,8 +111,8 @@ void main() {
   test('the client month cap matches the server\'s', () {
     final m = RegExp(r'const MAX_LICENCE_MONTHS = (\d+);').firstMatch(fn());
     expect(m, isNotNull,
-        reason: 'MAX_LICENCE_MONTHS is gone — sign_offline would again accept '
-            'an unbounded, unrevocable term.');
+        reason: 'MAX_LICENCE_MONTHS is gone — extend/create/fulfill would '
+            'accept an unbounded term from a typo.');
     expect(int.parse(m!.group(1)!), kMaxLicenceMonths,
         reason: 'the form would reject a value the server allows, or wave '
             'through one it rejects.');

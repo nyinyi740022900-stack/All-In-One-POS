@@ -13,7 +13,6 @@ class _ShopHubPage extends StatelessWidget {
     required this.onExtendEmail,
     required this.onExtendDevice,
     required this.onResetDevice,
-    required this.onOffline,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
@@ -37,7 +36,6 @@ class _ShopHubPage extends StatelessWidget {
   final void Function(Map<String, dynamic> shop, String? deviceId)
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
-  final void Function(Map<String, dynamic> shop) onOffline;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -70,7 +68,6 @@ class _ShopHubPage extends StatelessWidget {
       onExtendEmail: onExtendEmail,
       onExtendDevice: onExtendDevice,
       onResetDevice: onResetDevice,
-      onOffline: onOffline,
       onArchive: onArchive,
       showingArchived: showingArchived,
       onShowArchived: onShowArchived,
@@ -97,7 +94,6 @@ class _ShopHubBody extends StatefulWidget {
     required this.onExtendEmail,
     required this.onExtendDevice,
     required this.onResetDevice,
-    required this.onOffline,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
@@ -121,7 +117,6 @@ class _ShopHubBody extends StatefulWidget {
   final void Function(Map<String, dynamic> shop, String? deviceId)
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
-  final void Function(Map<String, dynamic> shop) onOffline;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -280,7 +275,6 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
           onExtendEmail: widget.onExtendEmail,
           onExtendDevice: widget.onExtendDevice,
           onResetDevice: widget.onResetDevice,
-          onOffline: widget.onOffline,
           onArchive: widget.onArchive,
           showingArchived: widget.showingArchived,
           onShowArchived: widget.onShowArchived,
@@ -316,8 +310,7 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   onExtendEmail: widget.onExtendEmail,
                   onExtendDevice: widget.onExtendDevice,
                   onResetDevice: widget.onResetDevice,
-                  onOffline: widget.onOffline,
-                  onArchive: widget.onArchive,
+                          onArchive: widget.onArchive,
                   showingArchived: widget.showingArchived,
                   onShowArchived: widget.onShowArchived,
                   onGenerateKey: widget.onGenerateKey,
@@ -343,7 +336,6 @@ class _ShopDetail extends StatelessWidget {
     required this.onExtendEmail,
     required this.onExtendDevice,
     required this.onResetDevice,
-    required this.onOffline,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
@@ -364,7 +356,6 @@ class _ShopDetail extends StatelessWidget {
   final void Function(Map<String, dynamic> shop, String? deviceId)
   onExtendDevice;
   final void Function(String deviceId) onResetDevice;
-  final void Function(Map<String, dynamic> shop) onOffline;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -457,8 +448,8 @@ class _ShopDetail extends StatelessWidget {
           runSpacing: AppTheme.space2,
           children: [
             // An archived shop has no licence left to extend — its rows are
-            // exactly the ones archiving revoked — so offering Extend or
-            // Offline code here would be offering to act on nothing. Restore
+            // exactly the ones archiving revoked — so offering Extend here
+            // would be offering to act on nothing. Restore
             // is the only move, and it is the only button shown.
             if (showingArchived)
               FilledButton.icon(
@@ -498,12 +489,6 @@ class _ShopDetail extends StatelessWidget {
                 label: const Text('Allow extra devices'),
               ),
             ],
-            if (!showingArchived)
-              OutlinedButton.icon(
-                onPressed: () => onOffline(shop),
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Offline code'),
-              ),
             if (viberTarget.isNotEmpty && !showingArchived)
               OutlinedButton.icon(
                 onPressed: () => onViber(viberTarget),

@@ -128,9 +128,10 @@
 // Deploy: supabase functions deploy activate
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { signOfflineToken } from "../_shared/offline_token.ts";
 
-const GRACE_DAYS = 7;
+// Keep in step with kLicenseGraceDays (license_status.dart) and the window
+// in renew_license (migration 0093).
+const GRACE_DAYS = 14;
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -357,25 +358,6 @@ Deno.serve(async (req) => {
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
-  // Best-effort offline-verifiable fallback token — every successful
-  // activation gets one now, not just shops an admin hand-fulfills via the
-  // admin console's own "sign_offline" action, so a Premium shop that loses
-  // connectivity has a cryptographic safety net past the 7-day grace window
-  // above rather than being stuck at whatever `status` this call returned.
-  // Never blocks activation itself if signing fails for any reason.
-  let offlineToken: { token: string; expiresAt: string } | undefined;
-  try {
-    offlineToken = await signOfflineToken({
-      shopId: license.shop_id,
-      shopName: license.shop_name,
-      plan: license.plan,
-      deviceId,
-    });
-  } catch (_) {
-    // Signing key not configured, or some other transient issue — the
-    // client just keeps relying on the online grace window as before.
-  }
-
   return json({
     ok: true,
     shop_id: license.shop_id,
@@ -385,8 +367,6 @@ Deno.serve(async (req) => {
     realtime_enabled: license.realtime_enabled === true,
     activated_at: license.activated_at ?? now.toISOString(),
     tier: license.tier ?? "offline",
-    offline_token: offlineToken?.token,
-    offline_token_expires_at: offlineToken?.expiresAt,
   }, 200);
 });
 
@@ -1254,21 +1234,6 @@ async function handleStartTrial(
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
-  // See the default activate action's identical best-effort block — same
-  // reasoning, a self-serve trial also gets a cryptographic offline
-  // fallback from day one.
-  let offlineToken: { token: string; expiresAt: string } | undefined;
-  try {
-    offlineToken = await signOfflineToken({
-      shopId,
-      shopName: shopName || null,
-      plan: "trial",
-      deviceId,
-    });
-  } catch (_) {
-    // Signing key not configured, or some other transient issue.
-  }
-
   return json({
     ok: true,
     shop_id: shopId,
@@ -1276,8 +1241,6 @@ async function handleStartTrial(
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: "offline",
-    offline_token: offlineToken?.token,
-    offline_token_expires_at: offlineToken?.expiresAt,
   }, 200);
 }
 
@@ -1346,21 +1309,6 @@ async function handleSignupShop(
     { onConflict: "owner_user_id,shop_id" },
   );
 
-  // See the default activate action's identical best-effort block above —
-  // same reasoning, so a freshly-signed-up shop also gets a cryptographic
-  // offline fallback from day one, not just key-activated ones.
-  let offlineToken: { token: string; expiresAt: string } | undefined;
-  try {
-    offlineToken = await signOfflineToken({
-      shopId,
-      shopName: shopName || null,
-      plan: "trial",
-      deviceId,
-    });
-  } catch (_) {
-    // Signing key not configured, or some other transient issue.
-  }
-
   return json({
     ok: true,
     shop_id: shopId,
@@ -1368,8 +1316,6 @@ async function handleSignupShop(
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: "online",
-    offline_token: offlineToken?.token,
-    offline_token_expires_at: offlineToken?.expiresAt,
   }, 200);
 }
 

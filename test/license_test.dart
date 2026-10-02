@@ -153,6 +153,17 @@ void main() {
       expect(s.isReadOnly, isFalse);
     });
 
+    test('default grace is 14 days — a 10-day lapse is still Premium', () {
+      expect(kLicenseGraceDays, 14);
+      final inside = computeLicenseStatus(
+          expiresAt: now.subtract(const Duration(days: 10)), now: now);
+      expect(inside.kind, LicenseStatusKind.grace);
+      expect(inside.graceDaysLeft, 4);
+      final past = computeLicenseStatus(
+          expiresAt: now.subtract(const Duration(days: 15)), now: now);
+      expect(past.kind, LicenseStatusKind.expired);
+    });
+
     test('exact expiry moment is still active', () {
       final s = computeLicenseStatus(expiresAt: now, now: now);
       expect(s.kind, LicenseStatusKind.active);
@@ -305,78 +316,6 @@ void main() {
       final state = LicenseState(license: lic, status: status, loading: false);
       expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
-    });
-  });
-
-  group('applyOfflineFallback (refreshOnline\'s network-failure branch)', () {
-    CachedLicense license({
-      required DateTime expiresAt,
-      String key = 'MMPOS-REAL-KEY',
-    }) {
-      final now = DateTime(2026, 8, 16, 12);
-      return CachedLicense(
-        key: key,
-        shopId: 'shop-1',
-        plan: LicensePlan.monthly,
-        expiresAt: expiresAt,
-        activatedAt: now,
-        lastVerifiedAt: now,
-        deviceId: 'dev-1',
-      );
-    }
-
-    test('extends expiresAt to the offline token\'s when that\'s later, '
-        'keeping the license\'s own key/shopId/plan unchanged', () {
-      final now = DateTime(2026, 8, 16, 12);
-      final current = license(expiresAt: now.subtract(const Duration(days: 10)));
-      final verifiedFallback = license(
-        key: 'MMPOS1.token.sig', // offline token's own synthetic identity
-        expiresAt: now.add(const Duration(days: 20)),
-      );
-
-      final result = applyOfflineFallback(
-        current: current,
-        verifiedFallback: verifiedFallback,
-        now: now,
-      );
-
-      expect(result, isNotNull);
-      expect(result!.key, current.key); // NOT replaced by the token
-      expect(result.shopId, current.shopId);
-      expect(result.plan, current.plan);
-      expect(result.expiresAt, verifiedFallback.expiresAt);
-      expect(result.lastVerifiedAt, now);
-    });
-
-    test('never shortens expiresAt if the cached license is already valid '
-        'further out than the fallback token', () {
-      final now = DateTime(2026, 8, 16, 12);
-      final current = license(expiresAt: now.add(const Duration(days: 60)));
-      final verifiedFallback = license(expiresAt: now.add(const Duration(days: 20)));
-
-      final result = applyOfflineFallback(
-        current: current,
-        verifiedFallback: verifiedFallback,
-        now: now,
-      );
-
-      expect(result!.expiresAt, current.expiresAt); // unchanged, still later
-    });
-
-    test('returns null when the fallback token is itself already expired '
-        '— nothing to extend trust with', () {
-      final now = DateTime(2026, 8, 16, 12);
-      final current = license(expiresAt: now.subtract(const Duration(days: 10)));
-      final verifiedFallback =
-          license(expiresAt: now.subtract(const Duration(days: 1)));
-
-      final result = applyOfflineFallback(
-        current: current,
-        verifiedFallback: verifiedFallback,
-        now: now,
-      );
-
-      expect(result, isNull);
     });
   });
 }

@@ -17,9 +17,9 @@ String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
 /// precisely the kind of manual transcription that produces the device-id
 /// typos the admin console's `shopNameMismatch` warning
 /// (`admin_dashboard_widgets.dart`) exists to catch after the fact. Tapping
-/// the row now opens an actual scannable QR (the same `barcode_widget` the
-/// admin's own "Offline license code" dialog uses), so a support call can
-/// scan the shop's screen instead of both sides re-typing a UUID.
+/// the row now opens an actual scannable QR (`barcode_widget`), so a
+/// support call can scan the shop's screen instead of both sides re-typing
+/// a UUID.
 class _RefIdTile extends ConsumerWidget {
   const _RefIdTile();
 

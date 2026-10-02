@@ -8,7 +8,6 @@ import '../../data/repositories/settings_repository.dart';
 import 'invoke_error.dart';
 import 'license_model.dart';
 import 'license_status.dart';
-import 'offline_license.dart';
 
 /// Owns license activation and local caching.
 ///
@@ -67,21 +66,6 @@ class LicenseRepository {
     if (trimmed.isEmpty) return const ActivationResult.failure('empty_key');
     final deviceId = await _settings.deviceId();
 
-    // Offline signed token: verify locally with the embedded public key — works
-    // with no connectivity at all (activation + renewal for offline shops).
-    if (OfflineLicense.looksLikeToken(trimmed)) {
-      try {
-        final lic = await OfflineLicense.verify(trimmed, deviceId);
-        if (!lic.expiresAt.isAfter(DateTime.now())) {
-          return const ActivationResult.failure('invalid_key'); // expired
-        }
-        return ActivationResult.success(await _save(lic));
-      } on OfflineLicenseException catch (e) {
-        return ActivationResult.failure(
-            e.code == 'device_mismatch' ? 'device_mismatch' : 'invalid_key');
-      }
-    }
-
     if (!Env.hasBackend) {
       return ActivationResult.success(await _localTrial(trimmed, deviceId));
     }
@@ -116,16 +100,6 @@ class LicenseRepository {
       // landed — best-effort (reported to Sentry on failure, never blocks
       // activation itself, since the license is already valid server-side).
       await refreshSessionAndVerifyClaim(lic.shopId);
-      // Best-effort: cache the offline-verifiable fallback token the Edge
-      // Function now issues alongside every activation, if present (older
-      // deployments / a missing signing-key secret just omit it).
-      final offlineToken = data['offline_token'] as String?;
-      if (offlineToken != null && offlineToken.isNotEmpty) {
-        await _settings.setLicenseOfflineFallbackToken(
-          lic.shopId,
-          offlineToken,
-        );
-      }
       return ActivationResult.success(await _save(lic));
     } catch (e) {
       return ActivationResult.failure(classifyInvokeError(e));
@@ -190,13 +164,6 @@ class LicenseRepository {
       // whose session never picked up its shop_id claim, closed alongside
       // this change).
       await refreshSessionAndVerifyClaim(lic.shopId);
-      final offlineToken = data['offline_token'] as String?;
-      if (offlineToken != null && offlineToken.isNotEmpty) {
-        await _settings.setLicenseOfflineFallbackToken(
-          lic.shopId,
-          offlineToken,
-        );
-      }
       return ActivationResult.success(await _save(lic));
     } catch (e) {
       return ActivationResult.failure(classifyInvokeError(e));
