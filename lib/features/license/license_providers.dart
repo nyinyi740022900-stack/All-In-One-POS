@@ -7,6 +7,7 @@ import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
 import '../printing/printing_providers.dart';
+import 'entitlement.dart';
 import 'license_model.dart';
 import 'license_repository.dart';
 import 'license_status.dart';
@@ -32,10 +33,16 @@ class LicenseState {
   final CachedLicense? license;
   final LicenseStatus status;
 
+  /// False when the cached paid/trial plan has no server receipt that
+  /// verifies (see `entitlement.dart`) — Premium stays locked, selling does
+  /// not. True for Free and for a verified plan.
+  final bool entitled;
+
   const LicenseState({
     this.loading = true,
     this.license,
     this.status = LicenseStatus.none,
+    this.entitled = true,
   });
 
   bool get canSell => status.canSell;
@@ -46,7 +53,7 @@ class LicenseState {
   /// Premium (`kind == expired`) until it renews or auto-downgrades to Free.
   bool get isPremium {
     final lic = license;
-    if (lic == null || lic.plan == LicensePlan.free) return false;
+    if (lic == null || lic.plan == LicensePlan.free || !entitled) return false;
     return status.kind == LicenseStatusKind.active ||
         status.kind == LicenseStatusKind.grace;
   }
@@ -84,7 +91,7 @@ class LicenseController extends StateNotifier<LicenseState> {
 
   Future<void> _loadBody() async {
     final lic = await _repo.current();
-    _apply(lic);
+    await _apply(lic);
     // Pick up admin extensions/revocations without user action: re-verify once
     // at launch and then periodically (best-effort; offline is a no-op).
     if (Env.hasBackend) {
@@ -121,7 +128,7 @@ class LicenseController extends StateNotifier<LicenseState> {
       if (!promoted) {
         await _reopenShopDbIfNeeded(result.license!.shopId);
       }
-      _apply(result.license);
+      await _apply(result.license);
     }
     return result;
   }
@@ -173,11 +180,11 @@ class LicenseController extends StateNotifier<LicenseState> {
     final current = state.license;
     if (current == null) {
       await _repo.deactivate();
-      _apply(null);
+      await _apply(null);
       return;
     }
     final downgraded = await _repo.downgradeToFree(current);
-    _apply(downgraded);
+    await _apply(downgraded);
   }
 
   /// Enters the Free plan — no key, no account, no network call. See
@@ -210,7 +217,7 @@ class LicenseController extends StateNotifier<LicenseState> {
     }
     final lic = await _repo.startFreePlan();
     await _reopenShopDbIfNeeded(lic.shopId);
-    _apply(lic);
+    await _apply(lic);
     return true;
   }
 
@@ -224,7 +231,7 @@ class LicenseController extends StateNotifier<LicenseState> {
       if (!promoted) {
         await _reopenShopDbIfNeeded(result.license!.shopId);
       }
-      _apply(result.license);
+      await _apply(result.license);
     }
     return result;
   }
@@ -240,7 +247,7 @@ class LicenseController extends StateNotifier<LicenseState> {
     final result = await _repo.repairSession();
     if (result.ok && result.license != null) {
       await _reopenShopDbIfNeeded(result.license!.shopId);
-      _apply(result.license);
+      await _apply(result.license);
     }
     return result;
   }
@@ -304,7 +311,7 @@ class LicenseController extends StateNotifier<LicenseState> {
       return ActivationResult.success(lic);
     }
     final result = await _repo.activate(lic.key);
-    if (result.ok) _apply(result.license);
+    if (result.ok) await _apply(result.license);
     return result;
   }
 
@@ -318,7 +325,7 @@ class LicenseController extends StateNotifier<LicenseState> {
     if (!promoted) {
       await _reopenShopDbIfNeeded(lic.shopId);
     }
-    _apply(lic);
+    await _apply(lic);
   }
 
   Future<void> _reopenShopDbIfNeeded(String shopId) async {
@@ -327,38 +334,100 @@ class LicenseController extends StateNotifier<LicenseState> {
     await session?.reopenForShop(shopId);
   }
 
-  void _apply(CachedLicense? lic) {
-    final status = computeLicenseStatus(
-      expiresAt: lic?.expiresAt,
-      now: DateTime.now(),
-      plan: lic?.plan,
-      activated: lic != null,
-    );
-    // Bind the active shop so all data scopes to it.
-    if (lic != null) {
-      _ref.read(shopIdProvider.notifier).state = lic.shopId;
-    }
-    state = LicenseState(loading: false, license: lic, status: status);
+  /// The license as stored, before its receipt was checked. [state.license]
+  /// holds the *resolved* copy (receipt expiry applied), so staleness guards
+  /// compare against this instead of against what they handed to [_apply].
+  CachedLicense? _rawLicense;
+  int _applySeq = 0;
 
-    // Never leave the shop hard-locked: any lapsed license (an offline key
-    // past its grace period, or an online subscription that wasn't renewed)
-    // auto-downgrades to the Free plan instead — core POS features keep
-    // working, only Premium stays locked until renewal. Fire-and-forget is
-    // safe here: worst case this fires again next time `_apply` runs (e.g.
-    // the next silent re-verify), which just re-persists the same Free
-    // license, a harmless no-op.
+  Future<void> _apply(CachedLicense? lic) async {
+    final seq = ++_applySeq;
+    _rawLicense = lic;
+    final settings = _ref.read(settingsRepositoryProvider);
+
+    // Check the server's receipt before trusting the cached plan/expiry, and
+    // run the clock through a "never goes backwards" filter so winding the
+    // phone's date back can't revive an expired plan. See entitlement.dart.
+    final needsReceipt =
+        lic != null && lic.plan != LicensePlan.free && Env.hasBackend;
+    final receipt = needsReceipt ? await Entitlement.verify(lic.entitlement) : null;
+    final lastSeenMs = await settings.licenseLastSeenMs();
+    final lastIatMs = await settings.licenseLastReceiptIatMs();
+    final time = resolveTrustedTime(
+      deviceNow: DateTime.now(),
+      lastSeen: lastSeenMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastSeenMs, isUtc: true),
+      lastReceiptIssuedAt: lastIatMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastIatMs, isUtc: true),
+      entitlement: receipt,
+    );
+    // A newer apply started while we were awaiting — it owns the state now.
+    if (seq != _applySeq) return;
+    await settings.setLicenseLastSeenMs(time.lastSeen.millisecondsSinceEpoch);
+    final iat = time.lastReceiptIssuedAt;
+    if (iat != null && iat.millisecondsSinceEpoch != lastIatMs) {
+      await settings.setLicenseLastReceiptIatMs(iat.millisecondsSinceEpoch);
+    }
+
+    final resolved = lic == null
+        ? null
+        : resolveEntitlement(
+            cached: lic,
+            entitlement: receipt,
+            enforce: Env.hasBackend,
+          );
+    final effective = resolved?.license;
+    final entitled = resolved?.entitled ?? true;
+
+    final LicenseStatus status;
+    if (effective != null && !entitled) {
+      // No valid receipt: Premium locked, selling still allowed. Shown as
+      // "expired" rather than "none", which would block checkout.
+      status = LicenseStatus(
+        kind: LicenseStatusKind.expired,
+        plan: effective.plan,
+        expiresAt: effective.expiresAt,
+      );
+    } else {
+      status = computeLicenseStatus(
+        expiresAt: effective?.expiresAt,
+        now: time.now,
+        plan: effective?.plan,
+        activated: effective != null,
+      );
+    }
+    // Bind the active shop so all data scopes to it.
+    if (effective != null) {
+      _ref.read(shopIdProvider.notifier).state = effective.shopId;
+    }
+    state = LicenseState(
+      loading: false,
+      license: effective,
+      status: status,
+      entitled: entitled,
+    );
+
+    // Never leave the shop hard-locked: a verified plan that has lapsed past
+    // grace auto-downgrades to the Free plan instead — core POS features keep
+    // working, only Premium stays locked until renewal. Only for a *verified*
+    // lapse: a missing receipt must never persist a downgrade, or one failed
+    // refresh would permanently discard a plan the shop paid for.
+    // Fire-and-forget is safe: worst case this fires again next time `_apply`
+    // runs, which just re-persists the same Free license.
     if (lic != null &&
+        entitled &&
         lic.plan != LicensePlan.free &&
         status.kind == LicenseStatusKind.expired) {
-      _repo.downgradeToFree(lic).then((free) {
+      _repo.downgradeToFree(lic).then((free) async {
         // Staleness guard: if a newer `_apply` (e.g. a manual activation
-        // that raced ahead of this stale reverify) already replaced
-        // `state.license` with something else, applying `free` now would
-        // wrongly stomp it and re-pin `shopIdProvider` back to the shop
-        // this downgrade was computed for.
-        if (!identical(state.license, lic)) return;
+        // that raced ahead of this stale reverify) already replaced the
+        // license with something else, applying `free` now would wrongly
+        // stomp it and re-pin `shopIdProvider` back to this shop.
+        if (!identical(_rawLicense, lic)) return;
         _ref.read(pendingPlanDowngradeNoticeProvider.notifier).state = true;
-        _apply(free);
+        await _apply(free);
       });
     }
   }

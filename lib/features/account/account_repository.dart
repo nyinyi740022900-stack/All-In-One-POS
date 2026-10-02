@@ -464,6 +464,7 @@ class AccountRepository {
       lastVerifiedAt: now,
       deviceId: deviceId,
       tier: data['tier'] as String? ?? 'online',
+      entitlement: data['entitlement'] as String?,
     );
     await _promoteFreeShopIfNeeded(lic.shopId);
     await _licenseRepository.saveExternal(lic);

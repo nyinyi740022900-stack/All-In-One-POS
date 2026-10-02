@@ -48,6 +48,8 @@ void main() {
     // and `branch.switch.state`/`shop.promote.pending` describe a swap in
     // flight, so they cannot live in a DB the swap replaces.
     'license.json': _Scope.deviceGlobal,
+    'license.last_seen_ms': _Scope.deviceGlobal,
+    'license.last_receipt_iat_ms': _Scope.deviceGlobal,
     'license.trial_used': _Scope.deviceGlobal,
     'branch.switch.state': _Scope.deviceGlobal,
     'shop.promote.pending': _Scope.deviceGlobal,

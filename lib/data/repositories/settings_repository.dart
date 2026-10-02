@@ -29,6 +29,8 @@ class SettingsRepository {
   static bool isDeviceGlobalKey(String key) {
     if (key == 'device.id' ||
         key == 'license.json' ||
+        key == 'license.last_seen_ms' ||
+        key == 'license.last_receipt_iat_ms' ||
         key == 'license.trial_used' ||
         key == 'onboarding.done' ||
         key == 'operating.mode' ||
@@ -447,6 +449,20 @@ class SettingsRepository {
 
   Future<String?> licenseJson() => _get(_kLicense);
   Future<void> setLicenseJson(String json) => _set(_kLicense, json);
+
+  // Trusted-clock state for the entitlement check (see `resolveTrustedTime`).
+  // Device-global on purpose: the clock belongs to the handset, not to a shop.
+  static const _kLicenseLastSeen = 'license.last_seen_ms';
+  static const _kLicenseLastReceiptIat = 'license.last_receipt_iat_ms';
+
+  Future<int?> licenseLastSeenMs() async =>
+      int.tryParse(await _get(_kLicenseLastSeen) ?? '');
+  Future<void> setLicenseLastSeenMs(int ms) =>
+      _set(_kLicenseLastSeen, '$ms');
+  Future<int?> licenseLastReceiptIatMs() async =>
+      int.tryParse(await _get(_kLicenseLastReceiptIat) ?? '');
+  Future<void> setLicenseLastReceiptIatMs(int ms) =>
+      _set(_kLicenseLastReceiptIat, '$ms');
 
   // One free trial per install.
   static const _kTrialUsed = 'license.trial_used';

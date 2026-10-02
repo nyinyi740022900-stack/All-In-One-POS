@@ -38,6 +38,11 @@ class CachedLicense {
   /// stays correct regardless of how the shop is currently being used.
   final String tier;
 
+  /// Server-signed receipt (`AIOE1.…`, see `entitlement.dart`) proving this
+  /// plan and expiry. Premium is only honoured while it verifies; the plain
+  /// fields above are editable on a rooted phone, this is not.
+  final String? entitlement;
+
   const CachedLicense({
     required this.key,
     required this.shopId,
@@ -48,6 +53,7 @@ class CachedLicense {
     required this.deviceId,
     this.realtimeEnabled = false,
     this.tier = 'offline',
+    this.entitlement,
   });
 
   Map<String, dynamic> toJson() => {
@@ -60,6 +66,7 @@ class CachedLicense {
         'device_id': deviceId,
         'realtime_enabled': realtimeEnabled,
         'tier': tier,
+        if (entitlement != null) 'entitlement': entitlement,
       };
 
   factory CachedLicense.fromJson(Map<String, dynamic> j) => CachedLicense(
@@ -73,6 +80,7 @@ class CachedLicense {
         deviceId: j['device_id'] as String? ?? '',
         realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
         tier: j['tier'] as String? ?? 'offline',
+        entitlement: j['entitlement'] as String?,
       );
 
   CachedLicense copyWith({
@@ -82,6 +90,7 @@ class CachedLicense {
     String? tier,
     LicensePlan? plan,
     String? key,
+    String? entitlement,
   }) =>
       CachedLicense(
         key: key ?? this.key,
@@ -93,6 +102,7 @@ class CachedLicense {
         deviceId: deviceId,
         realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
         tier: tier ?? this.tier,
+        entitlement: entitlement ?? this.entitlement,
       );
 }
 

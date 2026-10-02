@@ -317,5 +317,18 @@ void main() {
       expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
     });
+
+    test('an in-date paid plan with no verified receipt is not premium, '
+        'but can still sell', () {
+      final lic = license(
+          plan: LicensePlan.monthly,
+          expiresAt: DateTime.now().add(const Duration(days: 30)));
+      final status = computeLicenseStatus(
+          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+      final state = LicenseState(
+          license: lic, status: status, loading: false, entitled: false);
+      expect(state.canSell, isTrue);
+      expect(state.isPremium, isFalse);
+    });
   });
 }

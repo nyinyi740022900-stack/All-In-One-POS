@@ -95,6 +95,7 @@ class LicenseRepository {
         deviceId: deviceId,
         realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
         tier: data['tier'] as String? ?? 'offline',
+        entitlement: data['entitlement'] as String?,
       );
       // Refresh the session and confirm the new shop_id claim actually
       // landed — best-effort (reported to Sentry on failure, never blocks
@@ -157,6 +158,7 @@ class LicenseRepository {
         lastVerifiedAt: now,
         deviceId: deviceId,
         tier: data['tier'] as String? ?? 'offline',
+        entitlement: data['entitlement'] as String?,
       );
       // Refresh the session and confirm the new shop_id claim actually
       // landed — see refreshSessionAndVerifyClaim's own doc comment; this is
@@ -212,6 +214,7 @@ class LicenseRepository {
         expiresAt: DateTime.parse(data['expires_at'] as String),
         lastVerifiedAt: now,
         tier: data['tier'] as String? ?? 'offline',
+        entitlement: data['entitlement'] as String?,
       );
       // The session should carry the claim immediately (it was just
       // restamped, synchronously, before this response came back) — verify
@@ -295,6 +298,7 @@ class LicenseRepository {
       deviceId: deviceId,
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
       tier: data['tier'] as String? ?? current?.tier ?? 'online',
+      entitlement: data['entitlement'] as String?,
     );
     await refreshSessionAndVerifyClaim(lic.shopId);
     return ActivationResult.success(await _save(lic));

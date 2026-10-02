@@ -529,6 +529,7 @@ class BranchRepository {
       deviceId: deviceId,
       realtimeEnabled: data['realtime_enabled'] as bool? ?? false,
       tier: data['tier'] as String? ?? 'offline',
+      entitlement: data['entitlement'] as String?,
     );
     // license.json is device-global (sidecar) — safe after shop DB reopen.
     await _licenseRepository.saveExternal(lic);

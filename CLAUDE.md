@@ -112,6 +112,13 @@ missing watch or the misrouted key:
   Offline license codes (`MMPOS1.` Ed25519 tokens) were removed 2026-10-02
   (#343) — every purchase/renewal needs internet once anyway, and a token
   could not be revoked. Free 2-month trial is server-tracked per device.
+- **Premium needs a server-signed receipt** (`entitlement`, `AIOE1.` Ed25519,
+  `lib/features/license/entitlement.dart`): the cached plan/expiry JSON is
+  editable, so `LicenseController._apply` only honours Premium when the receipt
+  verifies and takes its expiry from it. Private key = Supabase secret
+  `ENTITLEMENT_SIGNING_KEY_HEX` (never in the repo); public key is baked into
+  the app. A new licence-returning path in `activate` must go through
+  `withEntitlement` or that response won't unlock Premium.
 - **Grace is 14 days**, in three places that must agree: `kLicenseGraceDays`
   (`license_status.dart`), `GRACE_DAYS` (`functions/activate`), and the
   window in `renew_license` (migration 0093 — renewing inside grace extends

@@ -128,6 +128,7 @@
 // Deploy: supabase functions deploy activate
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withEntitlement } from "../_shared/entitlement.ts";
 
 // Keep in step with kLicenseGraceDays (license_status.dart) and the window
 // in renew_license (migration 0093).
@@ -358,7 +359,7 @@ Deno.serve(async (req) => {
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
-  return json({
+  return json(await withEntitlement({
     ok: true,
     shop_id: license.shop_id,
     plan: license.plan,
@@ -367,7 +368,7 @@ Deno.serve(async (req) => {
     realtime_enabled: license.realtime_enabled === true,
     activated_at: license.activated_at ?? now.toISOString(),
     tier: license.tier ?? "offline",
-  }, 200);
+  }), 200);
 });
 
 // deno-lint-ignore no-explicit-any
@@ -961,7 +962,7 @@ async function licensePayloadForShop(
     .limit(1)
     .maybeSingle();
 
-  return {
+  return await withEntitlement({
     ok: true,
     shop_id: targetShopId,
     plan: license?.plan ?? "monthly",
@@ -969,7 +970,7 @@ async function licensePayloadForShop(
     realtime_enabled: license?.realtime_enabled === true,
     activated_at: license?.activated_at ?? null,
     tier: license?.tier ?? "offline",
-  };
+  });
 }
 
 const SIGNUP_TRIAL_MONTHS = 2;
@@ -1034,14 +1035,14 @@ async function handleResyncSession(
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
-  return json({
+  return json(await withEntitlement({
     ok: true,
     shop_id: license.shop_id,
     plan: license.plan,
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: license.tier ?? "offline",
-  }, 200);
+  }), 200);
 }
 
 // Settings → Check for renewal for a signed-in shop. The client often has
@@ -1126,7 +1127,7 @@ async function handleRefreshAccountLicense(
   const expiresAt = license.expires_at as string | null;
   if (!expiresAt) return json({ ok: false, error: "server_error" }, 500);
 
-  return json({
+  return json(await withEntitlement({
     ok: true,
     shop_id: shopId,
     plan: license.plan,
@@ -1135,7 +1136,7 @@ async function handleRefreshAccountLicense(
     realtime_enabled: license.realtime_enabled === true,
     tier: license.tier ?? "online",
     key: ownsRow ? license.key : null,
-  }, 200);
+  }), 200);
 }
 
 async function claimAndBindExtraDevice(
@@ -1234,14 +1235,14 @@ async function handleStartTrial(
   });
   if (metaErr) return json({ ok: false, error: "server_error" }, 500);
 
-  return json({
+  return json(await withEntitlement({
     ok: true,
     shop_id: shopId,
     plan: "trial",
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: "offline",
-  }, 200);
+  }), 200);
 }
 
 // The only action that doesn't require a shop to already exist — mints a
@@ -1309,14 +1310,14 @@ async function handleSignupShop(
     { onConflict: "owner_user_id,shop_id" },
   );
 
-  return json({
+  return json(await withEntitlement({
     ok: true,
     shop_id: shopId,
     plan: "trial",
     expires_at: license.expires_at,
     activated_at: license.activated_at,
     tier: "online",
-  }, 200);
+  }), 200);
 }
 
 /// Owner-only account deletion (App Store 5.1.1(v) / Play). Re-checks password,
