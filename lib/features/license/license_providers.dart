@@ -306,6 +306,21 @@ class LicenseController extends StateNotifier<LicenseState> {
       // which reports a real failure to Sentry instead (queryable regardless
       // of build mode) and self-heals with a retry, rather than just logging.
       if (lic.key == LicenseRepository.trialKey) {
+        // A trial has no key to re-activate, but it DOES have a server row
+        // keyed by this device, and that row is where an admin extension and
+        // the signed receipt both live. Re-sync by device id (the same call
+        // "Fix connection issue" makes) so a trial picks up a fresh receipt
+        // and any extension; it also re-stamps the session claim, which is
+        // what this branch used to do on its own. Without this a trial that
+        // predates receipts, or one whose receipt was dropped, stayed locked
+        // forever because nothing here ever asked the server for one.
+        final resynced = await _repo.repairSession();
+        if (resynced.ok && resynced.license != null) {
+          await _apply(resynced.license);
+          return resynced;
+        }
+        // Offline, or the server said no — keep the cached trial and still
+        // give the session claim its own chance to self-heal.
         await _repo.refreshSessionAndVerifyClaim(lic.shopId);
       }
       return ActivationResult.success(lic);
