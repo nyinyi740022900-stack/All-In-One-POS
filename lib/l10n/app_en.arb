@@ -37,6 +37,16 @@
       }
     }
   },
+  "sellStripTodaySales": "Today's sales",
+  "sellStripCustomersOwe": "Customers owe you",
+  "sellStockLeftBadge": "{count} left",
+  "@sellStockLeftBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sellCart": "Cart",
   "sellEmptyCart": "No items yet. Tap a product to add.",
   "ordersSelectHint": "Select an order",

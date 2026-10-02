@@ -9,6 +9,7 @@ import 'package:mm_pos/features/accounting/accounting_providers.dart';
 import 'package:mm_pos/features/cash/cash_providers.dart';
 import 'package:mm_pos/features/equity/equity_providers.dart';
 import 'package:mm_pos/features/analytics/pnl_providers.dart';
+import 'package:mm_pos/features/sell/sales_providers.dart';
 
 /// Guards the "derived figure goes silently stale" bug class — the one
 /// CLAUDE.md's ripple-effect check step 2 asks for by hand:
@@ -490,6 +491,40 @@ void main() {
         },
       );
       expect(r.after.totalExpenses, r.before.totalExpenses + 3000);
+    });
+  });
+
+  group('todaySalesTotalProvider (Sell money strip)', () {
+    test('a sale landing on its own moves today\'s total; yesterday does not',
+        () async {
+      final sub = container.listen(
+        todaySalesTotalProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      await container.read(salesStreamProvider.future);
+      final before = container.read(todaySalesTotalProvider);
+      final now = DateTime.now();
+      await db.into(db.sales).insert(SalesCompanion.insert(
+            id: 'sale-today',
+            shopId: shopId,
+            invoiceNo: 'INV-T',
+            total: const Value(7000),
+            finalizedAt: Value(now),
+          ));
+      await db.into(db.sales).insert(SalesCompanion.insert(
+            id: 'sale-yday',
+            shopId: shopId,
+            invoiceNo: 'INV-Y',
+            total: const Value(9000),
+            finalizedAt: Value(now.subtract(const Duration(days: 1))),
+          ));
+      await pumpEventQueue();
+      expect(container.read(todaySalesTotalProvider), before + 7000,
+          reason: 'a sale arrived by direct write (a sync pull) and the Sell '
+              'strip did not move — todaySalesTotalProvider is not watching '
+              'the sales feed, or counted a prior day.');
+      sub.close();
     });
   });
 }

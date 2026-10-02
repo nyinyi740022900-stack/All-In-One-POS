@@ -156,10 +156,10 @@ class InvoiceView extends StatelessWidget {
   final InvoiceData data;
   final double width;
 
-  /// Same forest green as [AppTheme] light primary (`#0F5C3E`).
-  static const _accent = Color(0xFF0F5C3E);
-  static const _muted = Color(0xFF5C6B64);
-  static const _line = Color(0xFFDCE6E0);
+  /// Same action blue as [AppTheme] light primary (`#1F65D6`).
+  static const _accent = Color(0xFF1F65D6);
+  static const _muted = Color(0xFF56607A);
+  static const _line = Color(0xFFDDE2EA);
   String _amt(int v) =>
       '${formatMinorUnits(v, exponent: data.exponent)} ${data.currencySymbol}';
 
@@ -226,7 +226,7 @@ class InvoiceView extends StatelessWidget {
           height: 48,
           clipBehavior: Clip.antiAlias,
           decoration: const BoxDecoration(
-            color: Color(0xFFEEF5F1),
+            color: Color(0xFFEAF2F9),
             shape: BoxShape.circle,
           ),
           child: (data.shopLogoUrl ?? '').isEmpty
@@ -380,7 +380,7 @@ class InvoiceView extends StatelessWidget {
       },
       children: [
         TableRow(
-          decoration: const BoxDecoration(color: Color(0xFFF3F7F5)),
+          decoration: const BoxDecoration(color: Color(0xFFF3F6FA)),
           children: [
             Padding(
               padding: cellPad,

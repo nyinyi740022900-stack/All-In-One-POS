@@ -94,6 +94,17 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get sellStripTodaySales => 'ယနေ့ ရောင်းရငွေ';
+
+  @override
+  String get sellStripCustomersOwe => 'ဖောက်သည် အကြွေးကျန်ငွေ';
+
+  @override
+  String sellStockLeftBadge(int count) {
+    return '$count ခုကျန်';
+  }
+
+  @override
   String get sellCart => 'ခြင်းတောင်း';
 
   @override

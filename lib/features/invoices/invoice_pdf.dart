@@ -20,9 +20,9 @@ Future<Uint8List> buildInvoicePdf(
   InvoiceData data,
   AppLocalizations l,
 ) async {
-  final accent = PdfColor.fromInt(0xFF0F5C3E);
-  final muted = PdfColor.fromInt(0xFF5C6B64);
-  final line = PdfColor.fromInt(0xFFDCE6E0);
+  final accent = PdfColor.fromInt(0xFF1F65D6);
+  final muted = PdfColor.fromInt(0xFF56607A);
+  final line = PdfColor.fromInt(0xFFDDE2EA);
 
   pw.MemoryImage? logo;
   if ((data.shopLogoUrl ?? '').isNotEmpty) {
@@ -196,7 +196,7 @@ Future<Uint8List> buildInvoicePdf(
               children: [
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(
-                    color: PdfColor.fromInt(0xFFF3F7F5),
+                    color: PdfColor.fromInt(0xFFF3F6FA),
                   ),
                   children: [
                     _cell(l.invoiceColItem, bold: true, color: muted),
@@ -244,7 +244,7 @@ Future<Uint8List> buildInvoicePdf(
                 vertical: 10,
               ),
               decoration: pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFFE8F2EC),
+                color: PdfColor.fromInt(0xFFE6F0F8),
                 borderRadius: pw.BorderRadius.circular(6),
               ),
               child: pw.Row(

@@ -34,6 +34,16 @@
       }
     }
   },
+  "sellStripTodaySales": "ယနေ့ ရောင်းရငွေ",
+  "sellStripCustomersOwe": "ဖောက်သည် အကြွေးကျန်ငွေ",
+  "sellStockLeftBadge": "{count} ခုကျန်",
+  "@sellStockLeftBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sellCart": "ခြင်းတောင်း",
   "sellEmptyCart": "ပစ္စည်းမရှိသေးပါ။ ထည့်ရန် ပစ္စည်းကို နှိပ်ပါ။",
   "ordersSelectHint": "အော်ဒါတစ်ခု ရွေးပါ",

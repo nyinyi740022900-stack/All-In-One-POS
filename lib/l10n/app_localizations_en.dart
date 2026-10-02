@@ -93,6 +93,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sellStripTodaySales => 'Today\'s sales';
+
+  @override
+  String get sellStripCustomersOwe => 'Customers owe you';
+
+  @override
+  String sellStockLeftBadge(int count) {
+    return '$count left';
+  }
+
+  @override
   String get sellCart => 'Cart';
 
   @override

@@ -260,6 +260,24 @@ abstract class AppLocalizations {
   /// **'Only {count} in stock'**
   String sellStockCap(int count);
 
+  /// No description provided for @sellStripTodaySales.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s sales'**
+  String get sellStripTodaySales;
+
+  /// No description provided for @sellStripCustomersOwe.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers owe you'**
+  String get sellStripCustomersOwe;
+
+  /// No description provided for @sellStockLeftBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String sellStockLeftBadge(int count);
+
   /// No description provided for @sellCart.
   ///
   /// In en, this message translates to:

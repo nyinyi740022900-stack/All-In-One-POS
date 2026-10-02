@@ -8,7 +8,9 @@ import 'package:mm_pos/core/providers.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/domain/product_with_stock.dart';
+import 'package:mm_pos/features/credit/credit_providers.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
+import 'package:mm_pos/features/sell/sales_providers.dart';
 import 'package:mm_pos/features/orders/orders_providers.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/onboarding/operating_mode_providers.dart';
@@ -61,6 +63,12 @@ void main() {
           // "Timer is still pending" invariant — same reason every other
           // Drift-backed stream on this screen is overridden here.
           notificationUnreadCountProvider.overrideWith((ref) => Stream.value(0)),
+          // Sell's money strip (owner view) reads these Drift streams; left
+          // live they leave a pending drift cleanup timer at teardown.
+          salesStreamProvider.overrideWith((ref) => Stream.value(<Sale>[])),
+          creditSalesProvider.overrideWith((ref) => Stream.value(<Sale>[])),
+          repaymentsProvider
+              .overrideWith((ref) => Stream.value(<CreditPayment>[])),
           // The router's role-based tab filter watches this — single-value
           // so it doesn't leave a pending Drift stream under the fake clock.
           staffRoleProvider.overrideWith((ref) => Stream.value('owner')),

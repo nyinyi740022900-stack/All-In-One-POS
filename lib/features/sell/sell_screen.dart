@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/build_flags.dart';
 import '../../core/layout.dart';
@@ -9,11 +10,14 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../notifications/notification_center_screen.dart';
+import '../credit/credit_providers.dart';
+import '../credit/credit_screen.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../license/license_screen.dart';
 import '../license/license_status.dart';
 import '../printing/printing_providers.dart';
+import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import 'barcode_scanner_screen.dart';
 import 'cart.dart';
@@ -193,6 +197,7 @@ class SellScreen extends ConsumerWidget {
     final productPane = Column(
       children: [
         banners(),
+        const _MoneyStrip(),
         const _SellCategoryFilterBar(),
         Expanded(
           child: products.when(
@@ -240,6 +245,9 @@ class SellScreen extends ConsumerWidget {
                     price: Money(p.product.salePrice).withCurrency(currency, locale),
                     imageUrl: p.product.imageUrl,
                     outOfStock: trackStock && p.quantity <= 0,
+                    lowStockLeft: trackStock && p.quantity > 0 && p.isLowStock
+                        ? p.quantity
+                        : null,
                     onTap: () {
                       final ok = ref
                           .read(cartProvider.notifier)
@@ -382,7 +390,7 @@ class _CartPanel extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     l.sellCart,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 if (!cart.isEmpty)
@@ -405,68 +413,111 @@ class _CartPanel extends ConsumerWidget {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, i) {
                       final line = cart.lines[i];
-                      return ListTile(
-                        dense: true,
-                        // Same mark as the grid tile the seller just tapped —
-                        // the fastest way to confirm the right thing landed
-                        // in the cart without re-reading the name.
-                        leading: ProductThumb(
-                          name: line.product.name,
-                          imageUrl: line.product.imageUrl,
-                          size: 44,
-                          radius: AppTheme.radiusSm,
+                      final theme = Theme.of(context);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.space3,
+                          vertical: AppTheme.space2,
                         ),
-                        title: Text(line.product.name, maxLines: 2),
-                        subtitle: MoneyText(
-                          cart.lineTotalFor(line).withCurrency(currency, locale),
-                          style: Theme.of(context).textTheme.bodySmall,
-                          textAlign: TextAlign.left,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              icon: const Icon(Icons.remove),
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                ref
-                                    .read(cartProvider.notifier)
-                                    .decrement(line.product.id);
-                              },
+                            // Same mark as the grid tile the seller just
+                            // tapped — the fastest way to confirm the right
+                            // thing landed without re-reading the name.
+                            ProductThumb(
+                              name: line.product.name,
+                              imageUrl: line.product.imageUrl,
+                              size: 44,
+                              radius: AppTheme.radiusSm,
                             ),
-                            SizedBox(
-                              width: 24,
-                              child: Text(
-                                '${line.qty}',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      fontFeatures: AppTheme.tabularFigures,
-                                    ),
+                            const SizedBox(width: AppTheme.space3),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    line.product.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                  MoneyText(
+                                    cart
+                                        .unitPriceFor(line)
+                                        .withCurrency(currency, locale),
+                                    style: theme.textTheme.bodySmall,
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ],
                               ),
                             ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              icon: const Icon(Icons.add),
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                final ok = ref
-                                    .read(cartProvider.notifier)
-                                    .increment(
-                                      line.product.id,
-                                      maxQty: trackStock
-                                          ? stockById[line.product.id]
-                                          : null,
-                                    );
-                                if (!ok) {
-                                  showStockCapSnackBar(
-                                    context,
-                                    l,
-                                    stockById[line.product.id] ?? 0,
-                                  );
-                                }
-                              },
+                            const SizedBox(width: AppTheme.space2),
+                            // Line total on the trailing edge, right-aligned
+                            // and tabular, with the stepper beneath it.
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                MoneyText(
+                                  cart
+                                      .lineTotalFor(line)
+                                      .withCurrency(currency, locale),
+                                  style: theme.textTheme.titleSmall,
+                                  emphasis: true,
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      tooltip: l.sellDecreaseQty,
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.remove),
+                                      onPressed: () {
+                                        HapticFeedback.selectionClick();
+                                        ref
+                                            .read(cartProvider.notifier)
+                                            .decrement(line.product.id);
+                                      },
+                                    ),
+                                    SizedBox(
+                                      width: 24,
+                                      child: Text(
+                                        '${line.qty}',
+                                        textAlign: TextAlign.center,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontFeatures:
+                                                  AppTheme.tabularFigures,
+                                            ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: l.sellIncreaseQty,
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.add),
+                                      onPressed: () {
+                                        HapticFeedback.selectionClick();
+                                        final ok = ref
+                                            .read(cartProvider.notifier)
+                                            .increment(
+                                              line.product.id,
+                                              maxQty: trackStock
+                                                  ? stockById[line.product.id]
+                                                  : null,
+                                            );
+                                        if (!ok) {
+                                          showStockCapSnackBar(
+                                            context,
+                                            l,
+                                            stockById[line.product.id] ?? 0,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -566,6 +617,7 @@ class _ProductCard extends StatefulWidget {
     required this.price,
     required this.imageUrl,
     required this.outOfStock,
+    required this.lowStockLeft,
     required this.onTap,
   });
 
@@ -573,6 +625,10 @@ class _ProductCard extends StatefulWidget {
   final String price;
   final String? imageUrl;
   final bool outOfStock;
+
+  /// Remaining units when the product is at/below its reorder level but still
+  /// sellable; null otherwise. Drives the "N left" cue.
+  final int? lowStockLeft;
   final VoidCallback onTap;
 
   @override
@@ -625,12 +681,14 @@ class _ProductCardState extends State<_ProductCard> {
                       radius: 0,
                       dimmed: widget.outOfStock,
                     ),
-                    if (widget.outOfStock)
+                    if (widget.outOfStock || widget.lowStockLeft != null)
                       Align(
                         alignment: Alignment.topLeft,
                         child: Padding(
                           padding: const EdgeInsets.all(AppTheme.space2),
-                          child: const _OutOfStockBadge(),
+                          child: widget.outOfStock
+                              ? const _StockBadge.out()
+                              : _StockBadge.low(widget.lowStockLeft!),
                         ),
                       ),
                   ],
@@ -677,7 +735,7 @@ class _ProductCardState extends State<_ProductCard> {
                     MoneyText(
                       widget.price,
                       style: theme.textTheme.titleSmall,
-                      color: widget.outOfStock ? colors.muted : scheme.primary,
+                      color: widget.outOfStock ? colors.muted : scheme.onSurface,
                       emphasis: true,
                       textAlign: TextAlign.left,
                     ),
@@ -692,19 +750,27 @@ class _ProductCardState extends State<_ProductCard> {
   }
 }
 
-/// Soft-fill danger pill laid over the product photo. Moved off the old
-/// one-line red caption under the price: on a tile that now carries an image,
-/// a caption competes with the price for the eye, while a badge on the image
-/// is read before either.
-class _OutOfStockBadge extends StatelessWidget {
-  const _OutOfStockBadge();
+/// Stock cue laid over the product photo — stock is the shop's main variable
+/// and the cashier should know *before* the tap whether a tile will sell.
+/// Two tiers on the soft-fill pairs: sold out (danger) and running low with the
+/// remaining count (warning). Healthy stock shows nothing, so the cue stays
+/// rare enough to be noticed. Compact wording on purpose — the long Myanmar
+/// sold-out sentence wrapped to two lines and covered half the photo.
+class _StockBadge extends StatelessWidget {
+  const _StockBadge.out() : left = null;
+  const _StockBadge.low(int this.left);
+
+  final int? left;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l = AppLocalizations.of(context);
+    final out = left == null;
+    final fg = out ? colors.danger : colors.warning;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.dangerSurface,
+        color: out ? colors.dangerSurface : colors.warningSurface,
         borderRadius: BorderRadius.circular(AppTheme.radiusXs),
       ),
       child: Padding(
@@ -713,16 +779,142 @@ class _OutOfStockBadge extends StatelessWidget {
           vertical: 2,
         ),
         child: Text(
-          // The compact wording, not `inventoryOutOfStock`: the full Myanmar
-          // string ("ကုန်ပစ္စည်း ကုန်သွားပါပြီ") is ~2x the English one and wrapped
-          // to two lines, turning a corner badge into a panel covering half
-          // the photo. Truncating it wasn't an option either — this is the
-          // label that explains why the tile won't sell.
-          AppLocalizations.of(context).inventoryOutOfStockBadge,
+          out ? l.inventoryOutOfStockBadge : l.sellStockLeftBadge(left!),
           maxLines: 2,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: colors.danger),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: fg,
+            fontFeatures: AppTheme.tabularFigures,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact money strip at the top of Sell: **Today's sales** and **Customers
+/// owe you**, each a tap target (to Analytics / the Credit book). Cash-first
+/// glance for the owner between customers. Both figures reuse existing
+/// providers ([todaySalesTotalProvider] — sales only —
+/// and [creditOutstandingTotalProvider]). Hidden for anyone without the
+/// analytics capability: a cashier in staff mode shouldn't read the day's
+/// takings off the counter screen.
+class _MoneyStrip extends ConsumerWidget {
+  const _MoneyStrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(hasOwnerCapabilityProvider(OwnerCapability.analytics))) {
+      return const SizedBox.shrink();
+    }
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final currency = ref.watch(shopCurrencyProvider);
+    final locale = Localizations.localeOf(context).languageCode;
+    final today = ref.watch(todaySalesTotalProvider);
+    final owed = ref.watch(creditOutstandingTotalProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space4,
+        AppTheme.space3,
+        AppTheme.space4,
+        0,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _MoneyStripCell(
+                    label: l.sellStripTodaySales,
+                    value: Money(today).withCurrency(currency, locale),
+                    onTap: () => context.go('/analytics'),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: scheme.outlineVariant),
+                Expanded(
+                  child: _MoneyStripCell(
+                    label: l.sellStripCustomersOwe,
+                    value: Money(owed).withCurrency(currency, locale),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CreditScreen()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoneyStripCell extends StatelessWidget {
+  const _MoneyStripCell({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.space3,
+              vertical: AppTheme.space2,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Wraps rather than ellipsizes: the Myanmar label is
+                      // ~1.5x the English one and is the primary label.
+                      Text(label, style: theme.textTheme.bodySmall),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: MoneyText(
+                          value,
+                          // The key number on the counter screen: large and
+                          // bold; the label above it is small regular grey.
+                          style: theme.textTheme.headlineSmall,
+                          emphasis: true,
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -743,11 +935,12 @@ class _CartBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final brightness = Theme.of(context).brightness;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        boxShadow: AppTheme.dockedBarShadow(brightness),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: SafeArea(
         child: Padding(
@@ -761,7 +954,8 @@ class _CartBar extends StatelessWidget {
                 Text(
                   total,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
                     fontFeatures: AppTheme.tabularFigures,
                   ),
                 ),

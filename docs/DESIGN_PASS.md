@@ -28,6 +28,72 @@ See the Phase C section below for implementation status.
 
 ---
 
+## 2026-10-02 — v3b: clear royal blue on pure white (step 1b, owner: "washed out / muddy")
+
+**Trigger:** owner called step 1's colours washed out / muddy and pointed at a
+Xero iPhone screenshot (saturated blue, pure white, huge bold type, hairlines,
+no pastels). Principles taken, nothing copied: our navy ink, our layout/icons.
+- **Palette (light):** `primary #1F65D6` (white on it **5.4:1**), page AND cards
+  pure white, hairline `outlineVariant #E3E7EE`, ink `#0B1530` (**18.0:1**),
+  secondary text `#5B6785` (**5.6:1**), button edge `outline #7C879E` (3.6:1),
+  `primaryContainer #E8F0FD` / `onPrimaryContainer #0E2F6E` (11.3:1) only for
+  selected chip / nav indicator / switch track. Success is a fresh emerald
+  `#0B7F4E` (5.3:1 on white; ~60deg from the blue), `successSurface #E3F6EC`.
+  Warning/danger unchanged. Neutral ladder is grey (no blue cast):
+  `#F8F9FB/#F4F6F8/#EFF2F5/#E9ECF1`.
+- **Palette (dark):** page `#0B1220`, raised card `#111A2E`, hairline `#263350`,
+  text `#EEF2FA` (16.7:1 page / 15.5 card), secondary `#A3AEC6` (8.4 / 7.8),
+  `primary #6EA2FF` (7.4 / 6.8; `onPrimary #06183F` on it 6.8), container
+  `#1B3A7A` + `#DCE8FF` (8.8), success `#4FD69A` (10.2 page / 9.4 card).
+- **Pastel fills removed:** Sell/Inventory/cart product plates (4-colour pastel
+  slabs + big letter) are now white tiles + hairline with a small (12-20sp)
+  muted initial (photo still wins when present); `IconAvatar` neutral = plain
+  grey-navy icon, no tile (toned only when it carries a signal); `StatCard`
+  icon tile -> plain icon; empty-state plate -> white + hairline;
+  `identityFills` collapsed to one neutral. FAB is now solid action blue.
+- **Type:** headings stay 700 and grew (title 20, headline 21-28, display
+  32-44, negative tracking on large sizes); body 400 with 0 tracking;
+  `SectionHeader` is now ink 16/700 (was small grey); money strip values are
+  21/700 with 13/400 grey labels; cart header 20/700. **Inter** (OFL,
+  Regular/SemiBold/Bold static TTF, `assets/fonts`) leads in English and is the
+  fallback in Myanmar; `NotoSansMyanmar` leads in Myanmar so its metrics size
+  Myanmar line boxes. Kept: verified Myanmar + English on the iPad sim, light
+  and dark; Myanmar glyphs, stacked marks and the 1.25 initial line-height are
+  unchanged. Cost: ~1.25 MB raw, ~0.6 MB compressed in the IPA/APK.
+- **Shapes/borders:** buttons and auth CTAs 8px (was 6), app bar gets a hairline
+  bottom (no scrolled-under shadow), checkout bar top hairline instead of a
+  shadow. Chips remain the only stadium shape.
+- **Not verified:** a product with a real photo; low/out-of-stock badges live;
+  Android; text scale 1.3; the checkout sheet and the auth/hero screens were not
+  re-shot after the token change.
+
+---
+
+## 2026-10-02 — v3 identity: navy ink + ONE action colour (step 1, Sell as reference)
+
+**Supersedes the deep-green v2 below.** Owner judged the app generic
+AI-generated design; Xero's site CSS was studied for *principles* only (navy
+text, one action blue, ~5px buttons, heavy headings, flat surfaces).
+- **Palette (ours, not Xero's):** light `primary #0A67A3` (cerulean/cobalt, 6.0:1
+  with white), ink `onSurface #0F1B3A` (15.7:1 on the `#F4F6FA` page), white
+  cards, `#DDE2EA` hairline; dark `primary #62BDEB` on `#0E1628`. Success is now
+  a true green (`#1E7A3A`/`#6FD08C`), ~65deg from the action hue; warning/danger
+  unchanged. Identity tiles: steel / periwinkle / lilac / mist-teal.
+- **Shapes:** radius scale 4/6/8/12 (was 6/10/14/20); stadium buttons and the
+  auth-CTA pill retired (stadium kept for chips/pills only); nav indicator,
+  rail indicator, FAB, segmented control now rounded-rect. `titleLarge` 700.
+- **Sell:** money strip (Today's sales -> Analytics, Customers owe you -> Credit
+  book; owner/analytics-capability only; new `todaySalesTotalProvider` reads only
+  `sales`, guarded in `provider_invalidation_test.dart`), calmer tiles (price in
+  ink, not accent), low-stock "N left" badge beside the sold-out one, tablet cart
+  rows show the right-aligned line total above the stepper.
+- Invoice document accent (`invoice_view.dart`, `invoice_pdf.dart`) moved from
+  forest green to the action blue.
+- Not done: checkout redesign (out of scope); low-stock badge not seen live (demo
+  shop has no product at/under reorder level).
+
+---
+
 ## ⚠️ Direction history — read this before touching color
 
 **v1 (2026-08-10, superseded same day): cream + gold**, matching

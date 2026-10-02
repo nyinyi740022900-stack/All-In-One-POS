@@ -17,6 +17,28 @@ final salesStreamProvider = StreamProvider<List<Sale>>((ref) {
   return ref.watch(salesRepositoryProvider).watchSales();
 });
 
+/// Net sales booked today (local calendar day) — the same figure Analytics'
+/// "Today" range calls revenue: Σ `sales.total` over non-deleted rows with
+/// `finalizedAt` in today, refunds being ordinary negated rows. Feeds the Sell
+/// tab's money strip. Reads ONLY the sales table, and watches
+/// [salesStreamProvider] — the live feed of exactly that table — so a sale
+/// arriving by sync pull recomputes it. (It is not re-evaluated at midnight
+/// until the next sale/stream event; the strip is a glance, Analytics is the
+/// ledger.)
+final todaySalesTotalProvider = Provider<int>((ref) {
+  final sales = ref.watch(salesStreamProvider).valueOrNull ?? const <Sale>[];
+  final now = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day);
+  final end = start.add(const Duration(days: 1));
+  var total = 0;
+  for (final s in sales) {
+    if (!s.finalizedAt.isBefore(start) && s.finalizedAt.isBefore(end)) {
+      total += s.total;
+    }
+  }
+  return total;
+});
+
 typedef SaleDetail = ({Sale sale, List<SaleItem> items});
 
 final saleDetailProvider =

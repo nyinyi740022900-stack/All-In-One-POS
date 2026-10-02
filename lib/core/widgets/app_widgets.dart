@@ -64,7 +64,7 @@ class EmptyStateView extends StatelessWidget {
   }
 }
 
-/// Soft square plate behind an empty/error/loading glyph so those states
+/// Hairline-bordered white plate behind an empty/error/loading glyph so those states
 /// read as designed, not as a bare Material icon floating on the page.
 class _TonalIconPlate extends StatelessWidget {
   const _TonalIconPlate({required this.child});
@@ -78,8 +78,9 @@ class _TonalIconPlate extends StatelessWidget {
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
+        color: scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       alignment: Alignment.center,
       child: child,
@@ -450,10 +451,14 @@ class ProductThumb extends StatelessWidget {
       );
     }
 
+    final scheme = Theme.of(context).colorScheme;
+    // White tile + hairline when it stands alone (fixed [size]); inside the
+    // Sell card (fills its parent) the card already supplies the border.
     final tile = DecoratedBox(
       decoration: BoxDecoration(
-        color: tone.fill,
+        color: scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(radius),
+        border: size == null ? null : Border.all(color: scheme.outlineVariant),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
@@ -495,12 +500,13 @@ class _InitialsPlate extends StatelessWidget {
                 maxLines: 1,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: color,
-                  fontSize: side * 0.42,
+                  // SMALL and capped: a neutral initial, not a big slab.
+                  fontSize: (side * 0.30).clamp(12.0, 20.0),
                   // Not the 1.0-1.1 a Latin monogram would use: Myanmar
                   // stacks a vowel sign under the base letter and a tight
                   // line box clips it.
                   height: 1.25,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -865,15 +871,15 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.space2),
+      padding: const EdgeInsets.only(bottom: AppTheme.space3),
       child: Row(
         children: [
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
+              // Bold ink heading: type-scale contrast carries the hierarchy.
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -888,10 +894,12 @@ class SectionHeader extends StatelessWidget {
 /// tone means "no signal"** — a quiet neutral plate from the surface ramp
 /// rather than a fifth colour. Shared by [StatCard] and [IconAvatar] so an
 /// informational tile and an informational list row look like each other.
+/// Neutral means a **transparent** plate (a plain icon in grey-navy) — the
+/// tonal grey tile behind every icon was a big source of the muddy look.
 ({Color fill, Color on}) _plateColors(BuildContext context, StatusTone? tone) {
   if (tone != null) return tone.colors(AppColors.of(context));
   final scheme = Theme.of(context).colorScheme;
-  return (fill: scheme.surfaceContainerHigh, on: scheme.onSurfaceVariant);
+  return (fill: Colors.transparent, on: scheme.onSurfaceVariant);
 }
 
 /// One tile in a KPI / summary grid — icon plate, label, and a big **tabular**
@@ -954,16 +962,7 @@ class StatCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (icon != null) ...[
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: plate.fill,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(icon, size: 18, color: plate.on),
-                    ),
+                    Icon(icon, size: 20, color: plate.on),
                     const SizedBox(width: AppTheme.space2),
                   ],
                   Expanded(
@@ -1027,16 +1026,24 @@ class IconAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final plate = _plateColors(context, tone);
+    final scheme = Theme.of(context).colorScheme;
+    // Neutral rows get a PLAIN icon (no tonal tile) in grey-navy — blue is
+    // reserved for the action/selection; only a row carrying a signal gets
+    // its soft-fill plate.
+    final toned = tone != null;
+    final fg = toned ? plate.on : scheme.onSurfaceVariant;
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: plate.fill,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      ),
+      decoration: toned
+          ? BoxDecoration(
+              color: plate.fill,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            )
+          : null,
       alignment: Alignment.center,
       child: icon != null
-          ? Icon(icon, size: size * 0.5, color: plate.on)
+          ? Icon(icon, size: size * 0.55, color: fg)
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.space1),
               child: FittedBox(
@@ -1045,7 +1052,7 @@ class IconAvatar extends StatelessWidget {
                   text!,
                   maxLines: 1,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: plate.on,
+                    color: toned ? plate.on : scheme.onSurfaceVariant,
                     fontFeatures: AppTheme.tabularFigures,
                   ),
                 ),
@@ -1583,8 +1590,8 @@ class SuccessPopIn extends StatelessWidget {
 /// Full-bleed brand panel with a soft wave into the page below.
 /// **Auth / onboarding / daily-gate only** — never on Sell, Inventory,
 /// Orders, Analytics, or Settings. Light mode paints [ColorScheme.primary]
-/// (deep forest); dark mode paints [ColorScheme.primaryContainer] so the
-/// panel stays a dark green instead of the jade used for on-page accents.
+/// (action blue); dark mode paints [ColorScheme.primaryContainer] so the
+/// panel stays a deep blue instead of the jade used for on-page accents.
 class BrandHeroPanel extends StatelessWidget {
   const BrandHeroPanel({
     super.key,

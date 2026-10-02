@@ -18,11 +18,10 @@ import 'package:flutter/material.dart';
 ///   `core/widgets/app_widgets.dart` is the component built on it — prefer
 ///   that over reaching for these directly.
 ///
-/// **[success] must stay visually distinct from [ColorScheme.primary]**, which
-/// is now itself green: primary is a *deep, blue-leaning forest* (hue ~157°),
-/// success is a *lighter, yellow-leaning leaf* green (hue ~97-100°). ~60° of
-/// hue separation plus a clear luminance step is what keeps a "paid" badge
-/// from reading as ordinary brand chrome.
+/// **[success] must stay visually distinct from [ColorScheme.primary]**:
+/// primary is a saturated royal blue (hue ~218°), success a fresh emerald/mint
+/// green (hue ~155°). ~60° of hue separation is what keeps a "paid" badge
+/// from reading as ordinary action-colour chrome.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -62,26 +61,16 @@ class AppColors extends ThemeExtension<AppColors> {
   /// theme-independent document surfaces (see [onLightDocument]).
   final Color neutralSurface;
 
-  /// Tonal fills for **identity tiles** — the initial-letter plate shown
-  /// wherever a product has no photo (Sell grid card, checkout/cart rows).
-  /// Most shops here will never photograph most of their stock, so the
-  /// no-photo case is the *normal* case, not an edge case: it has to look
-  /// like a designed element, not a hole where an image failed.
+  /// Neutral plate for **identity tiles** — the small initial shown wherever a
+  /// product (or a person) has no photo.
   ///
-  /// Deliberate constraints on this set:
-  /// * **Cool half of the wheel only** (sage / teal / slate-blue / lilac).
-  ///   Warm hues are spoken for — orange is [warning], red is [danger],
-  ///   yellow-green is [success] — so a product plate can never be misread as
-  ///   a status.
-  /// * **No [ColorScheme.primaryContainer].** That fill means "selected /
-  ///   primary" in this app (nav indicator, selected chip); a grid full of it
-  ///   would compete with the one CTA that matters.
-  /// * Muted and light (dark: deep and desaturated) so a screen full of
-  ///   plates reads as one calm family, while still giving each product a
-  ///   stable color the seller can learn to aim for.
+  /// Was a four-colour pastel family (steel / periwinkle / lilac / mist-teal);
+  /// as big slabs across the Sell grid those read as washed-out and muddy, so
+  /// the family collapsed to ONE neutral grey-navy plate with a muted initial.
+  /// The list shape is kept so [identityTone] callers (Sell, Inventory,
+  /// customers, the signed-in avatar) keep compiling.
   ///
-  /// Paired index-for-index with [identityOnFills]; every pair is ≥8:1. Pick
-  /// one with [identityTone] rather than indexing directly.
+  /// Light 5.0:1 (`#5B6785` on `#F3F5F8`), dark 6.9:1.
   final List<Color> identityFills;
 
   /// Foreground (initials) color for the matching [identityFills] entry.
@@ -124,51 +113,29 @@ class AppColors extends ThemeExtension<AppColors> {
   factory AppColors._forBrightness(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     return AppColors(
-      // Leaf green — deliberately yellower and lighter than the forest-green
-      // brand primary so "success" never reads as plain brand chrome.
-      // 5.6:1 on white / 9.6:1 on the dark surface.
-      success: dark ? const Color(0xFF84CE5E) : const Color(0xFF3B7518),
+      // Fresh emerald (hue ~155°), ~60° away from the royal-blue action
+      // colour (hue ~218°) so a "paid" badge never reads as brand chrome.
+      // 5.3:1 on white / 9.4:1 on the dark card.
+      success: dark ? const Color(0xFF4FD69A) : const Color(0xFF0B7F4E),
       // True orange (hue ~30°), kept clear of the yellow/gold band on
-      // purpose — this palette has no gold in it. 5.9:1 / 8.2:1.
-      warning: dark ? const Color(0xFFF2A65A) : const Color(0xFF9E4E00),
+      // purpose — this palette has no gold in it. 6.3:1 / 8.9:1.
+      warning: dark ? const Color(0xFFF2A65A) : const Color(0xFF9A4A00),
       danger: dark ? const Color(0xFFFFB4AB) : const Color(0xFFB3261E),
-      // Neutral grey with the same faint green cast as the surface ramp, so
-      // de-emphasized text sits in the palette rather than next to it.
-      muted: dark ? const Color(0xFF95A09B) : const Color(0xFF5E6A65),
-      successSurface: dark ? const Color(0xFF1F3312) : const Color(0xFFE3F3D8),
-      warningSurface: dark ? const Color(0xFF3A2410) : const Color(0xFFFDECD9),
+      // Grey-navy secondary text, same cast as the ink. 5.6:1 on white /
+      // 7.8:1 on the dark card.
+      muted: dark ? const Color(0xFFA3AEC6) : const Color(0xFF5B6785),
+      successSurface: dark ? const Color(0xFF12352A) : const Color(0xFFE3F6EC),
+      warningSurface: dark ? const Color(0xFF3A2410) : const Color(0xFFFDEBD6),
       dangerSurface: dark ? const Color(0xFF3A1A17) : const Color(0xFFFBE3E1),
-      // Matches the surface ramp's `surfaceContainerHigh` step in each
-      // brightness, so a "done with" pill reads as a recess in the page
-      // rather than a fifth colour nobody chose.
-      neutralSurface: dark ? const Color(0xFF242C28) : const Color(0xFFE5EAE7),
-      // sage · teal · slate-blue · lilac — see [identityFills].
+      // A neutral grey step (no blue cast) for a "done with" pill.
+      neutralSurface: dark ? const Color(0xFF1D2943) : const Color(0xFFEEF1F5),
+      // One neutral plate, not a pastel family — see [identityFills].
       identityFills: dark
-          ? const [
-              Color(0xFF2C4A3E),
-              Color(0xFF154B55),
-              Color(0xFF1E3450),
-              Color(0xFF322C52),
-            ]
-          : const [
-              Color(0xFFDCE7E1),
-              Color(0xFFCFE8EC),
-              Color(0xFFD8E2F0),
-              Color(0xFFE2DDF0),
-            ],
+          ? const [Color(0xFF18233A)]
+          : const [Color(0xFFF3F5F8)],
       identityOnFills: dark
-          ? const [
-              Color(0xFFC5E8D8),
-              Color(0xFFB0E9F5),
-              Color(0xFFC4D8F2),
-              Color(0xFFDCD5F2),
-            ]
-          : const [
-              Color(0xFF1B2E27),
-              Color(0xFF04333B),
-              Color(0xFF16324F),
-              Color(0xFF2F2A55),
-            ],
+          ? const [Color(0xFFA3AEC6)]
+          : const [Color(0xFF5B6785)],
     );
   }
 
@@ -230,21 +197,20 @@ class AppColors extends ThemeExtension<AppColors> {
 /// just as well as the Sell/Checkout flow. If a value only makes sense for
 /// one screen, it doesn't belong here — style that screen locally instead.
 ///
-/// Brand: **deep forest green on a white / light-neutral surface** — the
-/// palette real point-of-sale and accounting products converge on (clean
-/// white cards on a barely-tinted grey page, a single saturated accent used
-/// only for the one action that matters). Deliberately *not* cream, and
-/// deliberately *not* gold: an earlier pass derived the palette from a
-/// placeholder icon and was rejected. The live mark is the geometric A in
-/// `assets/branding/app_icon_1024.png` (same `#0F5C3E` as [ColorScheme.primary]).
+/// Brand (v3b, 2026-10-02): **navy ink + ONE saturated royal blue on pure
+/// white.** Text is deep navy (`onSurface #0B1530`), never black; the single
+/// colour is a vivid royal blue ([ColorScheme.primary] `#1F65D6`, 5.4:1 with
+/// white) reserved for the one primary action, links and the selected state.
+/// Page and cards are both pure white, separated by crisp `#E3E7EE` hairlines
+/// rather than tinted blocks; no pastel fills. Shapes are tight (6-8px).
+/// Green means exactly one thing: [AppColors.success].
 ///
-/// The accent is reserved, not sprayed: [ColorScheme.primary] (`#0F5C3E`,
-/// 8.0:1 with white) is for the single primary CTA and the focused/selected
-/// state; everything else is neutral. Soft accent surfaces (selected chips,
-/// the nav-bar indicator, tint fills) use [ColorScheme.primaryContainer],
-/// which is a pale green paired with near-black-green text.
+/// Soft accent surfaces (selected chips, the nav-bar indicator) use
+/// [ColorScheme.primaryContainer], a very pale blue with deep-blue text.
 ///
-/// Typography uses a full custom [TextTheme] (see [_textTheme]) with extra
+/// Typography uses a full custom [TextTheme] (see [_textTheme]) in bundled
+/// **Inter** (Latin + numerals, tabular figures via `tnum`) with
+/// `NotoSansMyanmar` for Myanmar script, with extra
 /// line-height baked in everywhere versus stock Material defaults — Myanmar
 /// glyphs (the app's *default* locale, not a fallback case) stack tall
 /// diacritics that clip under the tighter stock M3 heights. `NotoSansMyanmar`
@@ -267,6 +233,7 @@ class AppTheme {
   // depends on the Riverpod-based locale controller.
   static const String _defaultLocaleCode = 'en';
   static const String _fontMyanmar = 'NotoSansMyanmar';
+  static const String _fontLatin = 'Inter';
 
   // ---------------------------------------------------------------------
   // Spacing scale — use these instead of magic numbers for consistency.
@@ -283,18 +250,19 @@ class AppTheme {
   // every component regardless of size/purpose.
   // ---------------------------------------------------------------------
   /// Small inline elements: badges, tag pills, inline icon buttons.
-  static const double radiusXs = 6;
+  static const double radiusXs = 4;
 
   /// Form controls: text fields, small/medium buttons.
-  static const double radiusSm = 10;
+  static const double radiusSm = 6;
 
   /// Default container radius: cards, tiles, product grid cells.
-  static const double radiusMd = 14;
+  static const double radiusMd = 8;
 
   /// Large surfaces: bottom sheets, dialogs, modal pages.
-  static const double radiusLg = 20;
+  static const double radiusLg = 12;
 
-  /// Fully rounded (stadium) shape: chips, segmented controls, FABs.
+  /// Fully rounded (stadium) shape: ONLY chips/pills/badges and avatars —
+  /// never a button.
   static const double radiusFull = 999;
 
   /// Deprecated alias for the pre-retrofit single radius token — kept only
@@ -315,7 +283,7 @@ class AppTheme {
   /// (keeps the brand's crisp white/near-black card color from being washed
   /// out by M3's default tonal-elevation tint).
   static Color shadowColorFor(Brightness brightness) =>
-      brightness == Brightness.dark ? Colors.black : const Color(0xFF0B0F0D);
+      brightness == Brightness.dark ? Colors.black : const Color(0xFF0B1226);
 
   /// Explicit [BoxShadow] list for custom (non-Material-elevation) floating
   /// chrome — e.g. Sell's sticky checkout bar docked above the bottom nav,
@@ -325,9 +293,9 @@ class AppTheme {
     BoxShadow(
       color: shadowColorFor(
         brightness,
-      ).withValues(alpha: brightness == Brightness.dark ? 0.5 : 0.10),
-      blurRadius: 20,
-      offset: const Offset(0, -4),
+      ).withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.06),
+      blurRadius: 12,
+      offset: const Offset(0, -2),
     ),
   ];
 
@@ -367,21 +335,21 @@ class AppTheme {
     );
   }
 
-  /// Pill-shaped filled CTA for **auth / onboarding / daily-gate only**.
-  /// Operational screens (Sell, Inventory, Settings) keep the default
-  /// [radiusSm] so a wall of stadium buttons never appears at the counter.
+  /// Taller (52dp) filled CTA for **auth / onboarding / daily-gate**. Same
+  /// [radiusSm] corner as every other button — the stadium pill was retired
+  /// with the green identity; only the name is kept so call sites stay put.
   static ButtonStyle authFilledButtonStyle({
     Size minimumSize = const Size.fromHeight(52),
   }) => FilledButton.styleFrom(
     minimumSize: minimumSize,
-    shape: const StadiumBorder(),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMd)),
   );
 
-  /// Matching outlined pill — secondary auth actions ("Activate a license
+  /// Matching outlined — secondary auth actions ("Activate a license
   /// key", "Sign up") sitting under a stadium primary.
   static ButtonStyle authOutlinedButtonStyle() => OutlinedButton.styleFrom(
     minimumSize: const Size.fromHeight(52),
-    shape: const StadiumBorder(),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMd)),
   );
 
   // ---------------------------------------------------------------------
@@ -402,12 +370,15 @@ class AppTheme {
   static ThemeData _base(Brightness brightness, String localeCode) {
     final scheme = _colorScheme(brightness);
     final textTheme = _textTheme(scheme).apply(
-      fontFamily: localeCode == 'my' ? _fontMyanmar : null,
+      // Inter leads in English (and for ASCII digits/money in Myanmar via the
+      // fallback); NotoSansMyanmar leads when the UI is Myanmar so its
+      // vertical metrics, not Inter's, size every Myanmar line box.
+      fontFamily: localeCode == 'my' ? _fontMyanmar : _fontLatin,
       // Always keep the *other* script reachable as a fallback so mixed
       // strings (a Myanmar customer name typed while the UI is in English,
       // or vice versa) never render as tofu boxes.
       fontFamilyFallback: localeCode == 'my'
-          ? const ['Roboto']
+          ? const [_fontLatin]
           : const [_fontMyanmar],
     );
 
@@ -442,21 +413,21 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52), // big tap targets
-          shape: shapeSm,
+          shape: shapeMd,
           textStyle: textTheme.labelLarge,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
-          shape: shapeSm,
+          shape: shapeMd,
           side: BorderSide(color: scheme.outline),
           textStyle: textTheme.labelLarge,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          shape: shapeSm,
+          shape: shapeMd,
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -488,9 +459,10 @@ class AppTheme {
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         elevation: 0,
-        scrolledUnderElevation: 2,
-        shadowColor: shadowColor.withValues(alpha: 0.08),
+        // Hairline, not a shadow, when content scrolls under the bar.
+        scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
         centerTitle: true,
         titleTextStyle: textTheme.titleLarge,
       ),
@@ -523,11 +495,30 @@ class AppTheme {
         backgroundColor: scheme.surface,
         indicatorColor: scheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusFull),
+          borderRadius: BorderRadius.circular(radiusMd),
         ),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(shape: WidgetStatePropertyAll(shapeSm)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        // The one primary action: solid action blue, not a pale container.
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 2,
+        highlightElevation: 3,
+        shape: shapeMd,
+        extendedTextStyle: textTheme.labelLarge,
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primaryContainer,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+        ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainerLow,
@@ -586,109 +577,107 @@ class AppTheme {
     );
   }
 
-  /// The brand green. Deep forest with a slight blue lean (hue ~157°) so it
-  /// stays clearly separated from the yellow-leaning semantic
-  /// [AppColors.success] green. 8.0:1 against white, i.e. comfortably AA for
-  /// white button labels with headroom left for a cheap panel in daylight.
-  static const Color _brandGreen = Color(0xFF0F5C3E);
+  /// The single action colour. Saturated royal blue (hue ~218°), 5.4:1
+  /// against white — AA for white button labels — and ~60° of hue away from
+  /// [AppColors.success] green.
+  static const Color _actionBlue = Color(0xFF1F65D6);
 
-  /// A hand-built, contrast-checked [ColorScheme] for **both** brightnesses —
-  /// not an auto-derived one. [ColorScheme.fromSeed] is used only so the
-  /// handful of roles nobody styles directly (scrim, shadow, `*Fixed*`
-  /// variants) land somewhere harmonious; every role that actually appears
-  /// on screen is pinned below.
+  /// Navy ink — body/heading text in light mode. 18.0:1 on white.
+  static const Color _inkNavy = Color(0xFF0B1530);
+
+  /// A hand-built, contrast-checked [ColorScheme] for **both** brightnesses.
+  /// [ColorScheme.fromSeed] is used only so the roles nobody styles directly
+  /// (scrim, shadow, `*Fixed*` variants) land somewhere harmonious; every
+  /// role that appears on screen is pinned below.
   ///
-  /// Verified pairings (WCAG AA needs 4.5:1 for text, 3:1 for UI edges):
-  /// * light `primary #0F5C3E` on white — **8.0:1**
-  /// * light `onPrimaryContainer #06301F` on `primaryContainer #C9E9D8` —
-  ///   **11.1:1**
-  /// * light `onSurfaceVariant #55605B` on `surface #F6F8F7` — **6.1:1**
-  /// * dark `primary #4FC08D` on `surface #101512` — **8.1:1**
-  /// * dark `onPrimary #00301E` on `primary #4FC08D` — **6.4:1**
-  /// * dark `onSurfaceVariant #AEB9B4` on `surface #101512` — **9.1:1**
-  ///
-  /// The neutrals carry ~2% green chroma rather than being pure grey — enough
-  /// that white cards read as *white* against the page, not enough to look
-  /// tinted. This is the "clean white card on a very light neutral page" look
-  /// that dense POS/accounting UIs converge on; it is explicitly not cream.
+  /// Measured pairings (WCAG AA: 4.5:1 text, 3:1 UI edges):
+  /// * light `onSurface #0B1530` on white page/card — **18.0:1**
+  /// * light `onSurfaceVariant #5B6785` on white — **5.6:1**
+  /// * light `onPrimary` white on `primary #1F65D6` — **5.4:1**
+  /// * light `primary` on white — **5.4:1**; on `primaryContainer #E8F0FD` 4.8
+  /// * light `onPrimaryContainer #0E2F6E` on its container — **11.3:1**
+  /// * light `outline #7C879E` on white — **3.6:1** (button edges)
+  /// * dark `onSurface #EEF2FA` on page `#0B1220` — **16.7:1**, on card 15.5
+  /// * dark `onSurfaceVariant #A3AEC6` on page — **8.4:1**, on card 7.8
+  /// * dark `primary #6EA2FF` on page — **7.4:1**, on card 6.8;
+  ///   `onPrimary #06183F` on it 6.8
+  /// * dark `onPrimaryContainer #DCE8FF` on `#1B3A7A` — **8.8:1**
   static ColorScheme _colorScheme(Brightness brightness) {
     final base = ColorScheme.fromSeed(
-      seedColor: _brandGreen,
+      seedColor: _actionBlue,
       brightness: brightness,
     );
 
     if (brightness == Brightness.light) {
       return base.copyWith(
-        primary: _brandGreen,
+        primary: _actionBlue,
         onPrimary: Colors.white,
-        primaryContainer: const Color(0xFFC9E9D8), // pale green accent fill
-        onPrimaryContainer: const Color(0xFF06301F),
-        secondary: const Color(0xFF3D5A4E), // desaturated green-slate
+        primaryContainer: const Color(0xFFE8F0FD),
+        onPrimaryContainer: const Color(0xFF0E2F6E),
+        secondary: const Color(0xFF3B4A6B), // slate navy
         onSecondary: Colors.white,
-        secondaryContainer: const Color(0xFFDCE7E1),
-        onSecondaryContainer: const Color(0xFF1B2E27),
-        tertiary: const Color(0xFF15616D), // deep teal, for rare 3rd accents
+        secondaryContainer: const Color(0xFFEEF1F5),
+        onSecondaryContainer: const Color(0xFF1A2744),
+        tertiary: const Color(0xFF4A4F9E), // indigo, for rare 3rd accents
         onTertiary: Colors.white,
-        tertiaryContainer: const Color(0xFFCFE8EC),
-        onTertiaryContainer: const Color(0xFF04333B),
+        tertiaryContainer: const Color(0xFFE6E8F8),
+        onTertiaryContainer: const Color(0xFF25255A),
         error: const Color(0xFFB3261E),
         onError: Colors.white,
         errorContainer: const Color(0xFFFBE3E1),
         onErrorContainer: const Color(0xFF410E0B),
-        surface: const Color(0xFFF6F8F7), // light neutral page
-        onSurface: const Color(0xFF121815),
-        onSurfaceVariant: const Color(0xFF55605B),
-        outline: const Color(0xFF7C8A84),
-        outlineVariant: const Color(0xFFDCE3DF), // card hairline
+        surface: Colors.white, // pure white page
+        onSurface: _inkNavy,
+        onSurfaceVariant: const Color(0xFF5B6785),
+        outline: const Color(0xFF7C879E),
+        outlineVariant: const Color(0xFFE3E7EE), // crisp hairline
         surfaceContainerLowest: Colors.white, // card fill
-        surfaceContainerLow: const Color(0xFFF1F4F2),
-        surfaceContainer: const Color(0xFFEBEFED),
-        surfaceContainerHigh: const Color(0xFFE5EAE7),
-        surfaceContainerHighest: const Color(0xFFDFE5E2),
+        surfaceContainerLow: const Color(0xFFF8F9FB),
+        surfaceContainer: const Color(0xFFF4F6F8),
+        surfaceContainerHigh: const Color(0xFFEFF2F5),
+        surfaceContainerHighest: const Color(0xFFE9ECF1),
         surfaceBright: Colors.white,
-        surfaceDim: const Color(0xFFDCE3DF),
-        surfaceTint: _brandGreen,
-        inverseSurface: const Color(0xFF2A312E),
-        onInverseSurface: const Color(0xFFEFF3F1),
-        inversePrimary: const Color(0xFF4FC08D),
+        surfaceDim: const Color(0xFFE3E7EE),
+        surfaceTint: _actionBlue,
+        inverseSurface: const Color(0xFF0B1530),
+        onInverseSurface: const Color(0xFFF3F5F8),
+        inversePrimary: const Color(0xFF6EA2FF),
       );
     }
 
     return base.copyWith(
-      // Jade — the same hue family as the light primary, lifted to read on a
-      // near-black page rather than lightened arbitrarily.
-      primary: const Color(0xFF4FC08D),
-      onPrimary: const Color(0xFF00301E),
-      primaryContainer: const Color(0xFF14503A),
-      onPrimaryContainer: const Color(0xFFB9EBD3),
-      secondary: const Color(0xFFA9CCBC),
-      onSecondary: const Color(0xFF16352A),
-      secondaryContainer: const Color(0xFF2C4A3E),
-      onSecondaryContainer: const Color(0xFFC5E8D8),
-      tertiary: const Color(0xFF8ECDD9),
-      onTertiary: const Color(0xFF00363F),
-      tertiaryContainer: const Color(0xFF154B55),
-      onTertiaryContainer: const Color(0xFFB0E9F5),
+      primary: const Color(0xFF6EA2FF),
+      onPrimary: const Color(0xFF06183F),
+      primaryContainer: const Color(0xFF1B3A7A),
+      onPrimaryContainer: const Color(0xFFDCE8FF),
+      secondary: const Color(0xFFB4C0DA),
+      onSecondary: const Color(0xFF1A2744),
+      secondaryContainer: const Color(0xFF1D2943),
+      onSecondaryContainer: const Color(0xFFD5DDEE),
+      tertiary: const Color(0xFFB4B8F2),
+      onTertiary: const Color(0xFF25255A),
+      tertiaryContainer: const Color(0xFF2B2D5C),
+      onTertiaryContainer: const Color(0xFFD2D3F5),
       error: const Color(0xFFFFB4AB),
       onError: const Color(0xFF690005),
       errorContainer: const Color(0xFF93000A),
       onErrorContainer: const Color(0xFFFFDAD6),
-      surface: const Color(0xFF101512),
-      onSurface: const Color(0xFFE3E8E5),
-      onSurfaceVariant: const Color(0xFFAEB9B4),
-      outline: const Color(0xFF78837E),
-      outlineVariant: const Color(0xFF2C3531),
-      surfaceContainerLowest: const Color(0xFF0B0F0D), // recessed card fill
-      surfaceContainerLow: const Color(0xFF171D1A),
-      surfaceContainer: const Color(0xFF1B2320),
-      surfaceContainerHigh: const Color(0xFF242C28),
-      surfaceContainerHighest: const Color(0xFF2E3733),
-      surfaceBright: const Color(0xFF363E3A),
-      surfaceDim: const Color(0xFF0B0F0D),
-      surfaceTint: const Color(0xFF4FC08D),
-      inverseSurface: const Color(0xFFE3E8E5),
-      onInverseSurface: const Color(0xFF1B2320),
-      inversePrimary: _brandGreen,
+      surface: const Color(0xFF0B1220),
+      onSurface: const Color(0xFFEEF2FA),
+      onSurfaceVariant: const Color(0xFFA3AEC6),
+      outline: const Color(0xFF7B87A2),
+      outlineVariant: const Color(0xFF263350), // hairline
+      surfaceContainerLowest: const Color(0xFF111A2E), // raised card fill
+      surfaceContainerLow: const Color(0xFF141E34),
+      surfaceContainer: const Color(0xFF18233C),
+      surfaceContainerHigh: const Color(0xFF1D2943),
+      surfaceContainerHighest: const Color(0xFF243250),
+      surfaceBright: const Color(0xFF2B3A5A),
+      surfaceDim: const Color(0xFF0B1220),
+      surfaceTint: const Color(0xFF6EA2FF),
+      inverseSurface: const Color(0xFFEEF2FA),
+      onInverseSurface: const Color(0xFF18233C),
+      inversePrimary: _actionBlue,
     );
   }
 
@@ -713,28 +702,30 @@ class AppTheme {
       color: color ?? scheme.onSurface,
     );
 
+    // Steeper than step 1: headings 700 and large, body 400 in the calmer
+    // grey-navy [ColorScheme.onSurfaceVariant] where it is secondary text.
+    // Letter-spacing is 0 on body: Inter is already spaced for text sizes.
     return TextTheme(
-      displayLarge: s(40, FontWeight.w700, 1.20, letterSpacing: -0.25),
-      displayMedium: s(34, FontWeight.w700, 1.22, letterSpacing: -0.25),
-      displaySmall: s(28, FontWeight.w700, 1.25),
-      headlineLarge: s(26, FontWeight.w700, 1.28),
-      headlineMedium: s(23, FontWeight.w700, 1.30),
-      headlineSmall: s(20, FontWeight.w700, 1.32),
-      titleLarge: s(19, FontWeight.w600, 1.35),
-      titleMedium: s(16, FontWeight.w600, 1.40, letterSpacing: 0.1),
-      titleSmall: s(14, FontWeight.w600, 1.40, letterSpacing: 0.1),
-      bodyLarge: s(16, FontWeight.w400, 1.55, letterSpacing: 0.15),
-      bodyMedium: s(14, FontWeight.w400, 1.55, letterSpacing: 0.15),
+      displayLarge: s(44, FontWeight.w700, 1.18, letterSpacing: -0.8),
+      displayMedium: s(38, FontWeight.w700, 1.20, letterSpacing: -0.6),
+      displaySmall: s(32, FontWeight.w700, 1.22, letterSpacing: -0.4),
+      headlineLarge: s(28, FontWeight.w700, 1.26, letterSpacing: -0.3),
+      headlineMedium: s(24, FontWeight.w700, 1.28, letterSpacing: -0.2),
+      headlineSmall: s(21, FontWeight.w700, 1.30, letterSpacing: -0.1),
+      titleLarge: s(20, FontWeight.w700, 1.35, letterSpacing: -0.1),
+      titleMedium: s(16, FontWeight.w600, 1.42),
+      titleSmall: s(14, FontWeight.w600, 1.42),
+      bodyLarge: s(16, FontWeight.w400, 1.55),
+      bodyMedium: s(14, FontWeight.w400, 1.55),
       bodySmall: s(
         13,
         FontWeight.w400,
         1.55,
-        letterSpacing: 0.15,
         color: scheme.onSurfaceVariant,
       ),
-      labelLarge: s(14, FontWeight.w600, 1.45, letterSpacing: 0.2),
-      labelMedium: s(12, FontWeight.w600, 1.45, letterSpacing: 0.3),
-      labelSmall: s(11, FontWeight.w600, 1.50, letterSpacing: 0.3),
+      labelLarge: s(14, FontWeight.w600, 1.45, letterSpacing: 0.1),
+      labelMedium: s(12, FontWeight.w600, 1.45, letterSpacing: 0.2),
+      labelSmall: s(11, FontWeight.w600, 1.50, letterSpacing: 0.2),
     );
   }
 }
