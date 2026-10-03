@@ -3056,6 +3056,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffPinHint => '4–6 digits';
 
   @override
+  String get staffPinSetFirstBody =>
+      'You\'ll need this PIN to switch back to Owner mode from Staff mode, so set it first (4–6 digits).';
+
+  @override
   String get staffOwnerPinRequired =>
       'The owner must set a PIN in Settings before staff can switch to Owner.';
 

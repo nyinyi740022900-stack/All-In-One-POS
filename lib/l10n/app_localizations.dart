@@ -5612,6 +5612,12 @@ abstract class AppLocalizations {
   /// **'4–6 digits'**
   String get staffPinHint;
 
+  /// No description provided for @staffPinSetFirstBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need this PIN to switch back to Owner mode from Staff mode, so set it first (4–6 digits).'**
+  String get staffPinSetFirstBody;
+
   /// No description provided for @staffOwnerPinRequired.
   ///
   /// In en, this message translates to:

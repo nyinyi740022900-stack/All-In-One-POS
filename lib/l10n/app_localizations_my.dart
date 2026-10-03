@@ -3063,6 +3063,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get staffPinHint => 'ဂဏန်း ၄–၆ လုံး';
 
   @override
+  String get staffPinSetFirstBody =>
+      'Staff mode ကနေ ပိုင်ရှင်သို့ ပြန်ပြောင်းဖို့ ဒီ PIN လိုအပ်ပါတယ်။ ဦးစွာ သတ်မှတ်ပါ (၄–၆ လုံး)။';
+
+  @override
   String get staffOwnerPinRequired =>
       'ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က Settings မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။';
 

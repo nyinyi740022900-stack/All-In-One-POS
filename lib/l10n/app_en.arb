@@ -1366,6 +1366,7 @@
     }
   },
   "staffPinHint": "4–6 digits",
+  "staffPinSetFirstBody": "You'll need this PIN to switch back to Owner mode from Staff mode, so set it first (4–6 digits).",
   "staffOwnerPinRequired": "The owner must set a PIN in Settings before staff can switch to Owner.",
   "staffPinSaved": "PIN saved",
   "staffOwnerOnly": "Owner only",

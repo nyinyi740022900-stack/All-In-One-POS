@@ -235,6 +235,16 @@ Future<String?> promptOwnerPinForSwitch(
     return pin;
   }
 
+  return _createOwnerPin(context, ref);
+}
+
+/// Enter + confirm + save a brand-new owner PIN. Returns it, or null if the
+/// owner cancelled or entered something invalid. Shared by the owner-PIN
+/// prompt above and by the guard in [switchStaffRole] that stops a device
+/// entering Staff mode with no PIN to come back with.
+Future<String?> _createOwnerPin(BuildContext context, WidgetRef ref) async {
+  final l = AppLocalizations.of(context);
+  final ctrl = ref.read(staffControllerProvider);
   final pin = await promptPin(context, l.staffSetPin);
   if (!context.mounted || pin == null || pin.isEmpty) return null;
   if (!ctrl.isValidOwnerPin(pin)) {
@@ -287,6 +297,39 @@ Future<bool> switchStaffRole(
       return false;
     }
   }
+
+  // Never let a device enter Staff mode with no owner PIN to come back with.
+  // Leaving Staff mode needs the owner PIN, and a staff user is (deliberately)
+  // not allowed to create one — [promptOwnerPinForSwitch] refuses — so an
+  // owner who tapped "Switch to Staff" on a fresh phone used to be locked out
+  // of their own shop with no way back short of reinstalling. Make them set
+  // the PIN first, while they are still the owner. This applies to the named
+  // roster path below too: the roster has its own PINs, but the way back to
+  // Owner is always the owner PIN.
+  if (target == 'staff' && !(await ctrl.hasPin())) {
+    if (!context.mounted) return false;
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.staffSetPin),
+        content: Text(l.staffPinSetFirstBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.commonOk),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !context.mounted) return false;
+    final created = await _createOwnerPin(context, ref);
+    if (created == null || !context.mounted) return false;
+  }
+  if (!context.mounted) return false;
 
   // Switching to Staff with a named roster set up: ask who's using the
   // device (each name has its own PIN) instead of a single shared PIN.

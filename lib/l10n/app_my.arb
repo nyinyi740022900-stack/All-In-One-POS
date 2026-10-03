@@ -1318,6 +1318,7 @@
     }
   },
   "staffPinHint": "ဂဏန်း ၄–၆ လုံး",
+  "staffPinSetFirstBody": "Staff mode ကနေ ပိုင်ရှင်သို့ ပြန်ပြောင်းဖို့ ဒီ PIN လိုအပ်ပါတယ်။ ဦးစွာ သတ်မှတ်ပါ (၄–၆ လုံး)။",
   "staffOwnerPinRequired": "ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က Settings မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။",
   "staffPinSaved": "PIN သိမ်းပြီး",
   "staffOwnerOnly": "ပိုင်ရှင်သာ ကြည့်နိုင်",
