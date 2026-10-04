@@ -25,6 +25,22 @@ export function gatewayTestMode(): boolean {
   return true;
 }
 
+/// Whether this project can offer a card checkout at all: both processor
+/// secrets present, and a mode it is allowed to charge in. Deliberately does
+/// not call the processor — a page asking "can I show the card option?" should
+/// not wait on an external API, and the variant itself is verified when the
+/// owner actually buys.
+export function gatewayAvailable(): boolean {
+  if (!Deno.env.get("LEMONSQUEEZY_API_KEY")) return false;
+  if (!Deno.env.get("LEMONSQUEEZY_STORE_ID")) return false;
+  try {
+    gatewayTestMode();
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 export type GatewayPlan = "monthly" | "yearly";
 
 /// What a verified variant turned out to be worth, in months of Premium.

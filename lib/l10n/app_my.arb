@@ -1549,6 +1549,11 @@
   },
   "storefrontRenewHistoryTitle": "ယခင် တောင်းဆိုမှုများ",
   "storefrontRenewHistoryEmpty": "တောင်းဆိုမှု မရှိသေးပါ။",
+  "storefrontRenewCardTitle": "ကတ်ဖြင့် ပေးချေမည် (နိုင်ငံတကာ)",
+  "storefrontRenewCardBody": "Visa, Mastercard စတဲ့ ကတ်များ — ကျွန်တော်တို့၏ ပေးချေမှု provider မှ လက်ခံပါသည်။ ပေးချေမှု အတည်ပြုပြီးလျှင် Premium ပွင့်ပါမည် — app ကို ပြန်ဖွင့်ပြီး သက်တမ်းစစ်ပါ။",
+  "storefrontRenewCardCta": "ပေးချေမှုသို့ ဆက်သွားမည်",
+  "storefrontRenewCardUnavailable": "ကတ်ဖြင့် ပေးချေမှု ယခု မရနိုင်ပါ။ အောက်ပါ ပြည်တွင်းငွေလွဲကို အသုံးပြုပါ။",
+  "storefrontRenewLocalTransferHint": "သို့မဟုတ် ကျပ်ဖြင့် လွဲပြီး ဘောက်ချာ ပို့ပါ:",
   "storefrontRenewPlan": "အစီအစဉ်",
   "storefrontRenewPricePerMonth": "{price} / လ",
   "@storefrontRenewPricePerMonth": {

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
@@ -38,6 +39,11 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   List<Map<String, dynamic>>? _shops;
   String? _shopId;
+  /// Whether the server can take an international card payment. Stays false
+  /// until it says otherwise, so the card option is never offered on a
+  /// project without a configured processor.
+  bool _cardPayment = false;
+  bool _openingCheckout = false;
   final _phone = TextEditingController();
   final _amount = TextEditingController();
   final _refNo = TextEditingController();
@@ -173,13 +179,15 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     if (!mounted || accountId == null) return;
     setState(() => _loadingHistory = true);
     try {
-      final shops = await _api.fetchBillingShops();
+      final billing = await _api.fetchBillingShops();
+      final shops = billing.shops;
       if (!mounted ||
           Supabase.instance.client.auth.currentUser?.id != accountId) {
         return;
       }
       setState(() {
         _shops = shops;
+        _cardPayment = billing.cardPayment;
         if (!shops.any((s) => s['shop_id'] == _shopId)) {
           _shopId = shops.isEmpty ? null : shops.first['shop_id'] as String;
         }
@@ -202,6 +210,39 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       }
     } finally {
       if (mounted) setState(() => _loadingHistory = false);
+    }
+  }
+
+  /// International card purchase: the server creates the checkout (it picks
+  /// the amount, the term and the mode) and this opens the processor's own
+  /// hosted page. Premium is not granted here — the signed webhook does that,
+  /// and the app picks it up on its next receipt refresh.
+  Future<void> _payByCard() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final shopId = _shopId;
+    if (shopId == null || _openingCheckout) return;
+    setState(() => _openingCheckout = true);
+    try {
+      final url = await _api.createCheckout(shopId: shopId, plan: _plan);
+      if (!await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      )) {
+        throw Exception('launch_failed');
+      }
+    } on CheckoutUnavailable {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewCardUnavailable)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l.storefrontRenewFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _openingCheckout = false);
     }
   }
 
@@ -635,8 +676,49 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             ],
             decoration: InputDecoration(labelText: l.storefrontRenewMonths),
           ),
+          if (_cardPayment) ...[
+            const SizedBox(height: AppTheme.space4),
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l.storefrontRenewCardTitle,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: AppTheme.space1),
+                    Text(
+                      l.storefrontRenewCardBody,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: AppTheme.space3),
+                    FilledButton.icon(
+                      onPressed: _openingCheckout || _submitting
+                          ? null
+                          : _payByCard,
+                      icon: _openingCheckout
+                          ? const ButtonSpinner()
+                          : const Icon(Icons.credit_card),
+                      label: Text(l.storefrontRenewCardCta),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: AppTheme.space4),
           SectionHeader(title: l.storefrontPayment),
+          if (_cardPayment)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space2),
+              child: Text(
+                l.storefrontRenewLocalTransferHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(value: 'kbzpay', label: Text('KBZPay')),

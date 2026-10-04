@@ -3527,6 +3527,24 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontRenewHistoryEmpty => 'တောင်းဆိုမှု မရှိသေးပါ။';
 
   @override
+  String get storefrontRenewCardTitle => 'ကတ်ဖြင့် ပေးချေမည် (နိုင်ငံတကာ)';
+
+  @override
+  String get storefrontRenewCardBody =>
+      'Visa, Mastercard စတဲ့ ကတ်များ — ကျွန်တော်တို့၏ ပေးချေမှု provider မှ လက်ခံပါသည်။ ပေးချေမှု အတည်ပြုပြီးလျှင် Premium ပွင့်ပါမည် — app ကို ပြန်ဖွင့်ပြီး သက်တမ်းစစ်ပါ။';
+
+  @override
+  String get storefrontRenewCardCta => 'ပေးချေမှုသို့ ဆက်သွားမည်';
+
+  @override
+  String get storefrontRenewCardUnavailable =>
+      'ကတ်ဖြင့် ပေးချေမှု ယခု မရနိုင်ပါ။ အောက်ပါ ပြည်တွင်းငွေလွဲကို အသုံးပြုပါ။';
+
+  @override
+  String get storefrontRenewLocalTransferHint =>
+      'သို့မဟုတ် ကျပ်ဖြင့် လွဲပြီး ဘောက်ချာ ပို့ပါ:';
+
+  @override
   String get storefrontRenewPlan => 'အစီအစဉ်';
 
   @override

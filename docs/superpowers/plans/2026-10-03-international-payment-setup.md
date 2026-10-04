@@ -163,8 +163,18 @@ production with a stray flag fulfilling nothing.
 Verification: `flutter analyze` clean, 1019 Flutter tests, 32 Deno handler
 tests, every Edge Function type-checks. No secret, deploy or charge touched.
 
-Still open before money moves: Tasks 1 and 3 (dashboard-side verification of the
-store's live payout, the two recurring variants and the live webhook secret),
-and the app's own purchase entry point — today `create_checkout` is only reached
-from `license_screen.dart`, which store builds hide, so an out-of-app purchase
-page for a signed-in owner does not exist yet.
+Purchase entry point, decided and built the same day: the owner buys on the
+`/renew` web page, not in the app. That page already had owner sign-in, shop
+selection and the plan picker, so it gained a card option beside the kyat
+transfer, and `list_billing_shops` now reports `card_payment` so the option only
+appears when the server holds the secrets and a mode it may charge in. The
+mobile app is untouched and still never names or links to that page — Apple
+3.1.1 bans the link as much as the sale, outside the US storefront.
+
+Still open before money moves: Tasks 1 and 3, which are dashboard work rather
+than code — confirm the store's live payout is enabled, that the monthly and
+yearly products are recurring subscriptions under store 461190, put those two
+variant IDs into admin config, and point a live webhook (with its own signing
+secret, `subscription_payment_success`) at
+`https://gnikispsurwrmkspuisj.supabase.co/functions/v1/lemonsqueezy-webhook`.
+Deploying the two functions is part of the Premium cutover, not separate.

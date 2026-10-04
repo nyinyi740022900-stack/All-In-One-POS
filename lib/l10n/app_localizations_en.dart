@@ -3521,6 +3521,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontRenewHistoryEmpty => 'No requests yet.';
 
   @override
+  String get storefrontRenewCardTitle => 'Pay by card (international)';
+
+  @override
+  String get storefrontRenewCardBody =>
+      'Visa, Mastercard and other cards, handled by our payment provider. Premium opens once the payment is confirmed — reopen the app and tap Check renewal.';
+
+  @override
+  String get storefrontRenewCardCta => 'Continue to payment';
+
+  @override
+  String get storefrontRenewCardUnavailable =>
+      'Card payment is not available right now. Please use a local transfer below.';
+
+  @override
+  String get storefrontRenewLocalTransferHint =>
+      'Or transfer in kyat and send the receipt:';
+
+  @override
   String get storefrontRenewPlan => 'Plan';
 
   @override

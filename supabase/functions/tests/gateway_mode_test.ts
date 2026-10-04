@@ -324,3 +324,68 @@ Deno.test("production with a stray test-mode secret refuses to sell", async () =
     Deno.env.set("SUPABASE_URL", previousUrl);
   }
 });
+
+/// The renewal page's own question: may it offer the card option?
+async function listBillingShops() {
+  const original = globalThis.fetch;
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const url = `${input}`;
+    if (url.includes("/auth/v1/user")) {
+      return Promise.resolve(
+        Response.json({ id: "owner-1", email: "o@example.com", app_metadata: { role: "owner" } }),
+      );
+    }
+    if (url.includes("/shop_subscriptions?")) {
+      return Promise.resolve(Response.json([
+        { shop_id: "shop-a", shop_name: "Shop A", plan: "free", expires_at: "1970-01-01T00:00:00Z" },
+      ]));
+    }
+    return Promise.resolve(Response.json(null));
+  }) as typeof fetch;
+  try {
+    const response = await storefront(
+      new Request("https://staging.supabase.co/functions/v1/storefront", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer owner-token",
+          "x-forwarded-for": "8.8.8.8",
+        },
+        body: JSON.stringify({ action: "list_billing_shops" }),
+      }),
+    );
+    return await response.json();
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+Deno.test("a configured project offers card payment to its owners", async () => {
+  const body = await listBillingShops();
+  assertEquals(body.card_payment, true);
+  assertEquals(body.shops.length, 1);
+});
+
+Deno.test("card payment is not offered without processor secrets", async () => {
+  for (const missing of ["LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_STORE_ID"]) {
+    const previous = Deno.env.get(missing)!;
+    Deno.env.delete(missing);
+    try {
+      assertEquals((await listBillingShops()).card_payment, false, missing);
+    } finally {
+      Deno.env.set(missing, previous);
+    }
+  }
+});
+
+Deno.test("a misconfigured mode hides the option instead of offering a refusal", async () => {
+  const previousUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  Deno.env.set("SUPABASE_URL", PRODUCTION_URL);
+  Deno.env.set("LEMONSQUEEZY_TEST_MODE", "true");
+  try {
+    assertEquals((await listBillingShops()).card_payment, false);
+  } finally {
+    Deno.env.delete("LEMONSQUEEZY_TEST_MODE");
+    Deno.env.set("SUPABASE_URL", previousUrl);
+  }
+});

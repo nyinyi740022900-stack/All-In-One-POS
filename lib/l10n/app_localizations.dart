@@ -6416,6 +6416,36 @@ abstract class AppLocalizations {
   /// **'No requests yet.'**
   String get storefrontRenewHistoryEmpty;
 
+  /// No description provided for @storefrontRenewCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay by card (international)'**
+  String get storefrontRenewCardTitle;
+
+  /// No description provided for @storefrontRenewCardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Visa, Mastercard and other cards, handled by our payment provider. Premium opens once the payment is confirmed — reopen the app and tap Check renewal.'**
+  String get storefrontRenewCardBody;
+
+  /// No description provided for @storefrontRenewCardCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to payment'**
+  String get storefrontRenewCardCta;
+
+  /// No description provided for @storefrontRenewCardUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Card payment is not available right now. Please use a local transfer below.'**
+  String get storefrontRenewCardUnavailable;
+
+  /// No description provided for @storefrontRenewLocalTransferHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Or transfer in kyat and send the receipt:'**
+  String get storefrontRenewLocalTransferHint;
+
   /// No description provided for @storefrontRenewPlan.
   ///
   /// In en, this message translates to:

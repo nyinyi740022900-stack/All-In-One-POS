@@ -348,7 +348,7 @@ class StorefrontApi {
   /// other authenticated call from the mobile app. Throws (rather than
   /// returning an empty list) when not signed in, so a caller can tell
   /// "no session" apart from "signed in, genuinely no requests yet".
-  Future<List<Map<String, dynamic>>> fetchBillingShops() async {
+  Future<BillingShops> fetchBillingShops() async {
     final response = await _c.functions.invokeBounded(
       'storefront',
       body: {'action': 'list_billing_shops'},
@@ -356,9 +356,41 @@ class StorefrontApi {
     if (response.data is! Map || (response.data as Map)['shops'] is! List) {
       throw const FormatException('Missing shops');
     }
-    return ((response.data as Map)['shops'] as List)
-        .map((row) => (row as Map).cast<String, dynamic>())
-        .toList();
+    final data = response.data as Map;
+    return BillingShops(
+      shops: (data['shops'] as List)
+          .map((row) => (row as Map).cast<String, dynamic>())
+          .toList(),
+      // Absent means no: an older function that does not report this must not
+      // make the page offer a card checkout it cannot complete.
+      cardPayment: data['card_payment'] == true,
+    );
+  }
+
+  /// Starts an international card purchase for [shopId] and returns the
+  /// processor's hosted checkout URL.
+  ///
+  /// The server picks the amount, the term and the mode: this call sends only
+  /// which shop and which plan. Throws [CheckoutUnavailable] when the gateway
+  /// is not configured, or configured wrongly — the server refuses to sell
+  /// rather than charge the wrong price for a term.
+  Future<String> createCheckout({
+    required String shopId,
+    required String plan,
+  }) async {
+    final response = await _c.functions.invokeBounded(
+      'storefront',
+      body: {'action': 'create_checkout', 'shop_id': shopId, 'plan': plan},
+    );
+    final data = response.data is Map
+        ? (response.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final url = data['url'] as String?;
+    if (data['error'] == 'checkout_unavailable') throw CheckoutUnavailable();
+    if (url == null || !url.startsWith('https://')) {
+      throw const FormatException('Missing checkout url');
+    }
+    return url;
   }
 
   Future<List<RenewalRequestSummary>> fetchMyRequests(String shopId) async {
@@ -399,6 +431,22 @@ class StorefrontApi {
     };
   }
 }
+
+/// The shops an owner may pay for, and whether card payment is on offer.
+class BillingShops {
+  const BillingShops({required this.shops, required this.cardPayment});
+
+  final List<Map<String, dynamic>> shops;
+
+  /// Whether the server can take an international card payment right now.
+  /// False on a project with no processor secrets — and on one whose test-mode
+  /// configuration is not allowed, so a misconfiguration hides the option
+  /// instead of offering a checkout that refuses itself.
+  final bool cardPayment;
+}
+
+/// The gateway cannot sell right now: not configured, or configured wrongly.
+class CheckoutUnavailable implements Exception {}
 
 /// One renewal request as the public receipt page sees it.
 ///

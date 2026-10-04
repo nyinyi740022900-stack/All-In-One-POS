@@ -15,7 +15,7 @@
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no, items_total, lines[] }
-//   list_billing_shops {} -> { shops[] } (authenticated owner)
+//   list_billing_shops {} -> { shops[], card_payment } (authenticated owner)
 //   submit_license_request { shop_id, client_request_id, plan, method,
 //                    ref_no, phone?, payment_proof_path? } -> request receipt
 //                    Server selects price/duration; owner membership is required.
@@ -40,6 +40,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  gatewayAvailable,
   gatewayTestMode,
   verifyVariantForPlan,
 } from "../_shared/gateway_mode.ts";
@@ -608,12 +609,18 @@ async function handleCheckout(
           // Stated outright, so a key belonging to the other mode fails here
           // rather than after the customer has paid.
           test_mode: testMode,
-          product_options: { enabled_variants: [Number(variantId)] },
+          product_options: {
+            enabled_variants: [Number(verified.variantId)],
+            // Back to the page they started from. Cosmetic only: returning
+            // here grants nothing, the signed webhook does, and the app picks
+            // the new term up on its next receipt refresh.
+            redirect_url: "https://shop.allinonepos.app/renew",
+          },
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         },
         relationships: {
           store: { data: { type: "stores", id: storeId } },
-          variant: { data: { type: "variants", id: variantId } },
+          variant: { data: { type: "variants", id: verified.variantId } },
         },
       },
     }),
@@ -800,7 +807,13 @@ Deno.serve(async (req) => {
   if (action === "list_billing_shops") {
     const owner = await billingOwner(admin, req);
     if (!owner) return json({ error: "not_authenticated" }, 401);
-    return json({ shops: await billingShops(admin, owner) });
+    // `card_payment` tells the renewal page whether to offer the international
+    // card option at all, so it never shows a button that cannot work. The
+    // server owns that answer: the page has no access to the processor secrets.
+    return json({
+      shops: await billingShops(admin, owner),
+      card_payment: gatewayAvailable(),
+    });
   }
   if (action === "create_checkout") return handleCheckout(admin, body, req);
 

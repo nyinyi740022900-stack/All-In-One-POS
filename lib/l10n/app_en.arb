@@ -1597,6 +1597,11 @@
   },
   "storefrontRenewHistoryTitle": "Your past requests",
   "storefrontRenewHistoryEmpty": "No requests yet.",
+  "storefrontRenewCardTitle": "Pay by card (international)",
+  "storefrontRenewCardBody": "Visa, Mastercard and other cards, handled by our payment provider. Premium opens once the payment is confirmed — reopen the app and tap Check renewal.",
+  "storefrontRenewCardCta": "Continue to payment",
+  "storefrontRenewCardUnavailable": "Card payment is not available right now. Please use a local transfer below.",
+  "storefrontRenewLocalTransferHint": "Or transfer in kyat and send the receipt:",
   "storefrontRenewPlan": "Plan",
   "storefrontRenewPricePerMonth": "{price} / month",
   "@storefrontRenewPricePerMonth": {
