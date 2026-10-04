@@ -134,4 +134,9 @@ jobs:
           sudo apt-get install -y postgresql
           echo "$(pg_config --bindir)" >> "$GITHUB_PATH"
       - name: Authority, tenant isolation and payment transactions
-        run: python3 -m unittest supabase.tests.account_premium_test supabase.tests.account_billing_test
+        run: >-
+          python3 -m unittest
+          supabase.tests.account_premium_test
+          supabase.tests.account_billing_test
+          supabase.tests.social_account_test
+          supabase.tests.migration_chain_test

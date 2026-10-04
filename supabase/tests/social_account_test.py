@@ -2,7 +2,7 @@
 import concurrent.futures
 import pathlib
 import unittest
-import account_premium_test as premium
+from supabase.tests import account_premium_test as premium
 
 NEW = '00000000-0000-0000-0000-000000000010'
 STAFF = '00000000-0000-0000-0000-000000000011'
