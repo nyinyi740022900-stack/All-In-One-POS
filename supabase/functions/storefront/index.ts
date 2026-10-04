@@ -39,6 +39,10 @@
 // Deploy: supabase functions deploy storefront
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  gatewayTestMode,
+  verifyVariantForPlan,
+} from "../_shared/gateway_mode.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -548,22 +552,43 @@ async function handleCheckout(
   const apiKey = Deno.env.get("LEMONSQUEEZY_API_KEY");
   const storeId = Deno.env.get("LEMONSQUEEZY_STORE_ID");
   if (!apiKey || !storeId) return json({ error: "checkout_unavailable" }, 503);
+  // The server decides the mode; the client body never does. A test-mode flag
+  // on production throws rather than charging play money for real time.
+  let testMode: boolean;
+  try {
+    testMode = gatewayTestMode();
+  } catch {
+    return json({ error: "checkout_unavailable" }, 503);
+  }
   const configKey = `pay.lemonsqueezy.variant_${body.plan}`;
   const { data: cfg } = await admin.from("app_config").select("value").eq(
     "key",
     configKey,
   ).maybeSingle();
   const variantId = `${cfg?.value ?? ""}`;
-  if (!/^\d+$/.test(variantId)) {
-    return json({ error: "checkout_unavailable" }, 503);
+  // The term comes from the variant the processor will actually charge, not
+  // from the plan the client asked for: a `variant_yearly` row pointing at the
+  // monthly variant would otherwise sell a year for one month's price.
+  const verified = await verifyVariantForPlan(
+    apiKey,
+    storeId,
+    variantId,
+    body.plan,
+    testMode,
+  );
+  if ("error" in verified) {
+    return json(
+      { error: "checkout_unavailable" },
+      verified.error === "processor_unavailable" ? 502 : 503,
+    );
   }
   const id = crypto.randomUUID();
   const { error } = await admin.from("billing_checkouts").insert({
     id,
     shop_id: shopId,
     owner_user_id: owner.id,
-    variant_id: variantId,
-    months: body.plan === "yearly" ? 12 : 1,
+    variant_id: verified.variantId,
+    months: verified.months,
   });
   if (error) return json({ error: "server_error" }, 500);
   const result = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
@@ -580,6 +605,9 @@ async function handleCheckout(
         attributes: {
           checkout_data: { email: owner.email, custom: { billing_id: id } },
           checkout_options: { skip_trial: true },
+          // Stated outright, so a key belonging to the other mode fails here
+          // rather than after the customer has paid.
+          test_mode: testMode,
           product_options: { enabled_variants: [Number(variantId)] },
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         },

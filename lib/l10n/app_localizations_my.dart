@@ -2102,6 +2102,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licensePlanLabel => 'အစီအစဉ်';
 
   @override
+  String get licenseCheckoutUnavailable =>
+      'အွန်လိုင်းပေးချေမှု မပြင်ဆင်ပြီးသေးပါ။ ပြည်တွင်းပေးချေမှုကို အသုံးပြုပါ သို့မဟုတ် ဆက်သွယ်ပါ။';
+
+  @override
   String get licensePlanMonthly => 'လစဉ်';
 
   @override

@@ -2104,6 +2104,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licensePlanLabel => 'Plan';
 
   @override
+  String get licenseCheckoutUnavailable =>
+      'Online payment is not set up yet. Please use the local payment option or contact support.';
+
+  @override
   String get licensePlanMonthly => 'Monthly';
 
   @override

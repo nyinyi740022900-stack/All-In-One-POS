@@ -55,7 +55,7 @@
 **Interface:** `gatewayTestMode(): boolean`။ `LEMONSQUEEZY_TEST_MODE=true` ကို staging မှာသာ အသုံးပြုနိုင်သည်။ Production project မှာ true ဖြစ်နေလျှင် configuration error ဖြင့် ပိတ်ထားရမည်။ ဤ flag သည် staging စမ်းသပ်ရေးအတွက်သာဖြစ်ပြီး live အတွက် မရှိလည်း false ဖြစ်ရမည်။
 
 - [ ] Test များကို ဦးစွာရေးပြီး လက်ရှိ implementation မရှိသဖြင့် fail ဖြစ်ကြောင်း စစ်ရန်။ Cases: default false၊ staging true၊ production true ငြင်းခြင်း၊ expected mode နှင့် invoice/subscription မကိုက်ညီလျှင် payment မဖြည့်ခြင်း။
-- [ ] Shared mode helper ကို အောက်ပါစည်းကမ်းအတိုင်း ထည့်ရန်။
+- [x] Shared mode helper ကို အောက်ပါစည်းကမ်းအတိုင်း ထည့်ရန်။
 
 ```ts
 export function gatewayTestMode(): boolean {
@@ -68,9 +68,9 @@ export function gatewayTestMode(): boolean {
 }
 ```
 
-- [ ] `handleCheckout` တွင် helper ကိုဖတ်၍ checkout `attributes.test_mode` သတ်မှတ်ရန်။ Configuration error ကို checkout unavailable ဖြင့် ပြန်ပေးရန်။ Client body ထဲမှ test mode ကို မယူရ။
-- [ ] Webhook တွင် helper ကိုဖတ်၍ invoice `attrs.test_mode` နှင့် API မှဖတ်ထားသော subscription `test_mode` နှစ်ခုလုံး expected mode နှင့်တူမှသာ လက်ခံရန်။ Signature၊ store၊ variant၊ owner နှင့် invoice-id စစ်ဆေးမှုများကို ဆက်ထားရန်။
-- [ ] Handler regression များတွင် production test-charge ကို ငြင်းကြောင်း၊ staging test-charge ကို staging ဆိုင်မှာသာ သက်တမ်းတိုးကြောင်း စစ်ရန်။ Test key နှင့် live key သည် သက်ဆိုင်ရာ mode မှာသာ အလုပ်လုပ်သည်။ [Lemon Squeezy စမ်းသပ်လမ်းညွှန်](https://docs.lemonsqueezy.com/guides/developer-guide/testing-going-live)။
+- [x] `handleCheckout` တွင် helper ကိုဖတ်၍ checkout `attributes.test_mode` သတ်မှတ်ရန်။ Configuration error ကို checkout unavailable ဖြင့် ပြန်ပေးရန်။ Client body ထဲမှ test mode ကို မယူရ။
+- [x] Webhook တွင် helper ကိုဖတ်၍ invoice `attrs.test_mode` နှင့် API မှဖတ်ထားသော subscription `test_mode` နှစ်ခုလုံး expected mode နှင့်တူမှသာ လက်ခံရန်။ Signature၊ store၊ variant၊ owner နှင့် invoice-id စစ်ဆေးမှုများကို ဆက်ထားရန်။
+- [x] Handler regression များတွင် production test-charge ကို ငြင်းကြောင်း၊ staging test-charge ကို staging ဆိုင်မှာသာ သက်တမ်းတိုးကြောင်း စစ်ရန်။ Test key နှင့် live key သည် သက်ဆိုင်ရာ mode မှာသာ အလုပ်လုပ်သည်။ [Lemon Squeezy စမ်းသပ်လမ်းညွှန်](https://docs.lemonsqueezy.com/guides/developer-guide/testing-going-live)။
 
 **အောင်မြင်မှုစံ:** စမ်းသပ်ငွေဖြင့် live Premium ဖွင့်မရဘဲ staging တွင် အဆုံးထိ စမ်းနိုင်ရမည်။
 
@@ -125,3 +125,46 @@ Plan ရေးပြီးဖြစ်သည်။ MM SHOP/Home ဆိုင်�
 ## 2026-10-04 configuration evidence
 
 Owner explicitly approved creating the live API key and saving it in production Supabase. Created through Chrome for All In One POS, expiry2027-04-04. LEMONSQUEEZY_API_KEY saved on gnikispsurwrmkspuisj; local API-key SHA256 matched the server hash (CLI JSON uses a value field for the64-character hash). Merchant Store ID461190 was read from the Stores UI and saved as LEMONSQUEEZY_STORE_ID. Both set commands succeeded. Temporary0600 key file removed after verification. Extra JSON re-list rejected by automatic approval review; no bypass performed. No secret in repo/chat. This completes only the two live configuration values: staging/test-mode implementation, product/variant validation, signed webhook verification, deleted-trial audit preservation and coordinated Premium rollout are still pending. No real charge or checkout created.
+
+## Code implementation — 2026-10-04 (owner: production-only testing)
+
+Owner chose to set the gateway up in code and test it on production, since the
+purchase path is outside the app and a failure is cheap to fix there.
+
+Implemented: `_shared/gateway_mode.ts` with `gatewayTestMode()` exactly as
+specified (production or an unidentifiable project with the flag set throws
+`test_mode_not_allowed`), consumed by `handleCheckout` (checkout carries an
+explicit `test_mode`; a configuration error returns `checkout_unavailable`, and
+the client body never names a mode) and by the webhook (invoice `test_mode` and
+the API-read subscription `test_mode` must both equal the expected mode;
+signature, store, variant, owner and invoice-id checks unchanged).
+
+Beyond the plan, and the reason this was worth doing before any live charge:
+the term a payment bought came from the **plan the client asked for**, while the
+variant came from `app_config`. A `pay.lemonsqueezy.variant_yearly` row pointing
+at the monthly variant would have sold a year of Premium for one month's price,
+and nothing in the chain would have noticed. `verifyVariantForPlan` now confirms
+with the processor that the variant is published, recurring, of the plan's own
+interval with `interval_count` 1, inside the configured store and in the
+expected mode — and `billing_checkouts.months` is taken from that verified
+interval instead of the request. A wrong mapping makes checkout unavailable
+rather than mis-terming a purchase.
+
+Not done as written: the "write the tests first and watch them fail" step. The
+tests were written alongside the implementation, not before it. They do cover
+every case the task lists: `gateway_mode_test.ts` (10 tests) for default-live,
+staging-only opt-in, production refusal, each variant misconfiguration, wrong
+store/mode, unknown variant, unreachable processor, and the checkout storing the
+processor's term rather than the requested one; `gateway_billing_test.ts` (+4)
+for a live service refusing a test charge, a live invoice on a test-mode
+subscription, a staging project accepting the charge it opted into, and
+production with a stray flag fulfilling nothing.
+
+Verification: `flutter analyze` clean, 1019 Flutter tests, 32 Deno handler
+tests, every Edge Function type-checks. No secret, deploy or charge touched.
+
+Still open before money moves: Tasks 1 and 3 (dashboard-side verification of the
+store's live payout, the two recurring variants and the live webhook secret),
+and the app's own purchase entry point — today `create_checkout` is only reached
+from `license_screen.dart`, which store builds hide, so an out-of-app purchase
+page for a signed-in owner does not exist yet.

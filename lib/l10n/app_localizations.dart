@@ -3950,6 +3950,12 @@ abstract class AppLocalizations {
   /// **'Plan'**
   String get licensePlanLabel;
 
+  /// No description provided for @licenseCheckoutUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Online payment is not set up yet. Please use the local payment option or contact support.'**
+  String get licenseCheckoutUnavailable;
+
   /// No description provided for @licensePlanMonthly.
   ///
   /// In en, this message translates to:

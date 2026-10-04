@@ -95,3 +95,121 @@ Deno.test("paid subscription invoice uses verified checkout and atomic invoice i
     globalThis.fetch = original;
   }
 });
+
+/// A processor whose subscription lookup answers with `subscription`, plus a
+/// verified checkout binding. Records whether fulfilment was reached.
+function stubPaidSubscription(subscription: Record<string, unknown>) {
+  const original = globalThis.fetch;
+  const fulfilled: string[] = [];
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const url = `${input}`;
+    if (url.includes("api.lemonsqueezy.com")) {
+      return Promise.resolve(Response.json({ data: { attributes: subscription } }));
+    }
+    if (url.includes("/billing_checkouts?")) {
+      return Promise.resolve(
+        Response.json({
+          id: "checkout1",
+          shop_id: "shop-a",
+          variant_id: "10",
+          months: 1,
+        }),
+      );
+    }
+    if (url.includes("/rpc/fulfill_gateway_payment")) {
+      fulfilled.push(url);
+      return Promise.resolve(Response.json({ ok: true, expires_at: "2027-01-01" }));
+    }
+    return Promise.resolve(Response.json(null));
+  }) as typeof fetch;
+  return {
+    fulfilled,
+    restore: () => {
+      globalThis.fetch = original;
+    },
+  };
+}
+
+const LIVE_SUBSCRIPTION = { store_id: 1, variant_id: 10, test_mode: false };
+const PAID_INVOICE = {
+  store_id: 1,
+  subscription_id: 99,
+  status: "paid",
+  billing_reason: "renewal",
+};
+
+Deno.test("a live service refuses a processor test charge and grants nothing", async () => {
+  const stub = stubPaidSubscription(LIVE_SUBSCRIPTION);
+  try {
+    const response = await deliver("subscription_payment_success", {
+      ...PAID_INVOICE,
+      test_mode: true,
+    }, { billing_id: "checkout1" });
+    assertEquals(response.status, 400);
+    assertEquals((await response.json()).error, "test_payment_not_live");
+    assertEquals(stub.fulfilled, []);
+  } finally {
+    stub.restore();
+  }
+});
+
+Deno.test("a live invoice on a test-mode subscription is refused too", async () => {
+  // The invoice can claim live while the subscription behind it is test money.
+  const stub = stubPaidSubscription({ ...LIVE_SUBSCRIPTION, test_mode: true });
+  try {
+    const response = await deliver("subscription_payment_success", {
+      ...PAID_INVOICE,
+      test_mode: false,
+    }, { billing_id: "checkout1" });
+    assertEquals(response.status, 409);
+    assertEquals((await response.json()).error, "checkout_variant_mismatch");
+    assertEquals(stub.fulfilled, []);
+  } finally {
+    stub.restore();
+  }
+});
+
+Deno.test("a staging project accepts the test charge it opted into", async () => {
+  Deno.env.set("LEMONSQUEEZY_TEST_MODE", "true"); // SUPABASE_URL here is not production
+  const stub = stubPaidSubscription({ ...LIVE_SUBSCRIPTION, test_mode: true });
+  try {
+    const response = await deliver("subscription_payment_success", {
+      ...PAID_INVOICE,
+      test_mode: true,
+    }, { billing_id: "checkout1" });
+    assertEquals(response.status, 200);
+    assertEquals(stub.fulfilled.length, 1);
+    // ...and the live charge it is no longer expecting is refused.
+    const live = await deliver("subscription_payment_success", {
+      ...PAID_INVOICE,
+      test_mode: false,
+    }, { billing_id: "checkout1" });
+    assertEquals(live.status, 400);
+    assertEquals(stub.fulfilled.length, 1);
+  } finally {
+    stub.restore();
+    Deno.env.delete("LEMONSQUEEZY_TEST_MODE");
+  }
+});
+
+Deno.test("production with a stray test-mode secret fulfils nothing at all", async () => {
+  const previousUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  Deno.env.set("SUPABASE_URL", "https://gnikispsurwrmkspuisj.supabase.co");
+  Deno.env.set("LEMONSQUEEZY_TEST_MODE", "true");
+  const stub = stubPaidSubscription(LIVE_SUBSCRIPTION);
+  try {
+    for (const testMode of [true, false]) {
+      const response = await deliver("subscription_payment_success", {
+        ...PAID_INVOICE,
+        test_mode: testMode,
+      }, { billing_id: "checkout1" });
+      assertEquals(response.status, 503);
+      assertEquals((await response.json()).error, "gateway_not_configured");
+    }
+    assertEquals(stub.fulfilled, []);
+  } finally {
+    stub.restore();
+    Deno.env.delete("LEMONSQUEEZY_TEST_MODE");
+    Deno.env.set("SUPABASE_URL", previousUrl);
+  }
+});

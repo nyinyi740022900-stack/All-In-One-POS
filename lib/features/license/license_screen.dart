@@ -210,7 +210,14 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen>
       final data = res.data as Map<String, dynamic>?;
       final url = data?['url'] as String?;
       if (data?['ok'] == false || data?['error'] != null || url == null) {
-        throw StateError('checkout_failed');
+        // The server refuses to sell rather than mis-term a purchase when the
+        // gateway keys or variant config are wrong — say so instead of
+        // blaming the network.
+        throw StateError(
+          data?['error'] == 'checkout_unavailable'
+              ? 'checkout_unavailable'
+              : 'checkout_failed',
+        );
       }
       final uri = Uri.parse(url);
       if (uri.scheme != 'https' ||
@@ -218,10 +225,18 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen>
         throw StateError('checkout_failed');
       }
       _awaitingExternalPayment = true;
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
+        final unavailable =
+            error is StateError && error.message == 'checkout_unavailable';
         messenger.showSnackBar(
-          SnackBar(content: Text(l.commonUnexpectedError)),
+          SnackBar(
+            content: Text(
+              unavailable
+                  ? l.licenseCheckoutUnavailable
+                  : l.commonUnexpectedError,
+            ),
+          ),
         );
       }
     }

@@ -120,6 +120,7 @@ jobs:
           supabase/functions/activate/account_premium_test.ts
           supabase/functions/tests/account_billing_test.ts
           supabase/functions/tests/gateway_billing_test.ts
+          supabase/functions/tests/gateway_mode_test.ts
           supabase/functions/sync_force_apply/account_gate_test.ts
 
   account_sql:

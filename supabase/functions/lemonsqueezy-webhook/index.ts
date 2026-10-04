@@ -2,6 +2,7 @@
 // order_created is deliberately ignored: a subscription's initial payment also
 // emits an invoice, and granting both would purchase two terms with one charge.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { gatewayTestMode } from "../_shared/gateway_mode.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return cors(new Response(null, { status: 204 }));
@@ -30,8 +31,17 @@ Deno.serve(async (req) => {
     !invoiceId || !/^\d+$/.test(subscriptionId) || attrs.status !== "paid" ||
     attrs.refunded === true
   ) return json({ error: "invalid_payment" }, 400);
-  // Live service must never grant a live subscription for a processor test charge.
-  if (attrs.test_mode !== false) {
+  // The mode is the server's to decide. On production the helper throws if
+  // LEMONSQUEEZY_TEST_MODE was ever set, so a test charge can neither be
+  // accepted nor silently expected: a live service must never grant a real
+  // subscription for play money.
+  let expectedTestMode: boolean;
+  try {
+    expectedTestMode = gatewayTestMode();
+  } catch {
+    return json({ error: "gateway_not_configured" }, 503);
+  }
+  if (attrs.test_mode !== expectedTestMode) {
     return json({ error: "test_payment_not_live" }, 400);
   }
   if (!["initial", "renewal"].includes(attrs.billing_reason)) {
@@ -77,7 +87,7 @@ Deno.serve(async (req) => {
   const subscription = (await response.json())?.data?.attributes;
   if (
     `${subscription?.store_id}` !== storeId ||
-    subscription?.test_mode !== false ||
+    subscription?.test_mode !== expectedTestMode ||
     `${subscription?.variant_id}` !== checkout.variant_id
   ) return json({ error: "checkout_variant_mismatch" }, 409);
   const { data: result, error: fulfillError } = await admin.rpc(

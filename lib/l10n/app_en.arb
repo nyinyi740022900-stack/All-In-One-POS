@@ -929,6 +929,7 @@
   "licenseDeactivate": "Remove license",
   "licenseDeactivateConfirm": "Remove the license from this device? Your expiry date is kept — re-activating the same key later won't lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.",
   "licensePlanLabel": "Plan",
+  "licenseCheckoutUnavailable": "Online payment is not set up yet. Please use the local payment option or contact support.",
   "licensePlanMonthly": "Monthly",
   "licensePlanFree": "Free plan",
   "premiumFeatureTitle": "{featureName} is a Premium feature",
