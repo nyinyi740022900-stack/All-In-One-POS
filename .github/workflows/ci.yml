@@ -140,3 +140,4 @@ jobs:
           supabase.tests.account_billing_test
           supabase.tests.social_account_test
           supabase.tests.migration_chain_test
+          supabase.tests.migration_rollback_test
