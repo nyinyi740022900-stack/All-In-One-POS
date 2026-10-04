@@ -32,6 +32,12 @@ final deviceDatabaseProvider = Provider<AppDatabase>((ref) {
 
 /// The active shop id. Set at license activation (Phase 5). For local-only
 /// development we use a fixed demo shop so rows have a valid scope.
-final shopIdProvider = StateProvider<String>(
-  (ref) => kDebugMode ? 'demo-shop' : '',
-);
+final shopIdProvider = StateProvider<String>((ref) {
+  // DatabaseSession has already opened the persisted shop before runApp.
+  // Scope local work immediately; async receipt/device verification must
+  // not leave release UI reading or writing the empty legacy scope.
+  // Read once: license/branch transitions explicitly own later bindings.
+  final openedShop = ref.read(databaseSessionProvider)?.shopId;
+  if (openedShop != null && openedShop.isNotEmpty) return openedShop;
+  return kDebugMode ? 'demo-shop' : '';
+});

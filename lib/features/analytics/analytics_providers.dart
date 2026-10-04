@@ -11,7 +11,7 @@ import 'analytics_calculator.dart';
 enum AnalyticsRange { today, week, month }
 
 final analyticsRangeProvider =
-    StateProvider<AnalyticsRange>((ref) => AnalyticsRange.week);
+    StateProvider<AnalyticsRange>((ref) => AnalyticsRange.today);
 
 final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
   return AnalyticsRepository(

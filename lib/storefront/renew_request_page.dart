@@ -15,16 +15,10 @@ import 'storefront_api.dart';
 import 'storefront_page.dart' show StorefrontLocaleBar;
 
 final _money = NumberFormat('#,##0', 'en_US');
-String _ks(AppLocalizations l, int v) => '${_money.format(v)} ${l.currencySymbol}';
+String _ks(AppLocalizations l, int v) =>
+    '${_money.format(v)} ${l.currencySymbol}';
 
-/// Subscription-renewal request form at `/renew` — restores a live path
-/// into `license_requests` now that the in-app payment UI is gone (removed
-/// for App Store 5.1.1(v) compliance; a web page isn't subject to that
-/// rule). Owner-facing and shop-agnostic: identified only by the device_id
-/// ("App Reference ID") the owner types in, unlike every other page in
-/// `lib/storefront/`, which is customer-facing and addressed by a shop
-/// slug. Kept in its own file rather than folded into `storefront_page.dart`
-/// for exactly that reason.
+/// Owner-authenticated purchase and renewal for an explicitly selected shop.
 class RenewRequestPage extends StatefulWidget {
   const RenewRequestPage({
     super.key,
@@ -39,18 +33,11 @@ class RenewRequestPage extends StatefulWidget {
 }
 
 class _RenewRequestPageState extends State<RenewRequestPage> {
-  // 5 years — comfortably covers any real renewal request while guarding
-  // against a fat-fingered huge month count silently computing (and
-  // locking in, via [_amountLocked]) an arbitrarily large Amount with no
-  // warning before submit.
-  static const int _maxMonths = 60;
-
   final _api = StorefrontApi();
   late final Future<Map<String, String>> _paymentConfig;
 
-  final _shopName = TextEditingController();
-  final _deviceId = TextEditingController();
-  final _email = TextEditingController();
+  List<Map<String, dynamic>>? _shops;
+  String? _shopId;
   final _phone = TextEditingController();
   final _amount = TextEditingController();
   final _refNo = TextEditingController();
@@ -60,13 +47,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   // input will. Checked server-side.
   final _hp = TextEditingController();
 
-  // Optional sign-in convenience layer (owner ask: "email login, convenience
-  // only — payment approval stays the existing manual KBZPay/WavePay
-  // screenshot + admin-review flow, no automation added"). Plain
-  // Supabase Auth sign-in, not `AccountRepository` — that class's
-  // device-claiming/local-wipe logic is mobile-app-specific and doesn't
-  // apply to a stateless web page; only `signInWithPassword` itself carries
-  // over.
+  // Billing authenticates the owner without claiming a POS device slot.
   final _signInEmail = TextEditingController();
   final _signInPassword = TextEditingController();
   bool _signingIn = false;
@@ -88,13 +69,9 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   String? _proofExt;
   String? _proofName;
 
-  // Admin-configured price.monthly/price.yearly, once loaded — drives both
-  // the per-unit price shown next to the Plan toggle and the auto-filled
-  // Amount below. No online/offline split here (unlike VendorConfig's own
-  // tier-aware priceFor): this app no longer distinguishes an online vs.
-  // offline plan, so a single admin-set rate applies to every request.
-  int? _priceMonthly;
-  int? _priceYearly;
+  // Myanmar prices are fixed and independently enforced by the server.
+  final int _priceMonthly = 20000;
+  final int _priceYearly = 200000;
 
   // Shown both on the form and on the receipt right after submitting — the
   // moment a shop is most anxious to hear back is exactly while its request
@@ -106,19 +83,20 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   void initState() {
     super.initState();
     _paymentConfig = _api.fetchPaymentConfig();
-    _paymentConfig.then((cfg) {
-      if (!mounted) return;
-      setState(() {
-        _priceMonthly = int.tryParse(cfg['price.monthly'] ?? '');
-        _priceYearly = int.tryParse(cfg['price.yearly'] ?? '');
-        _supportViber = cfg['support.viber'];
-      });
-      _recalcAmount();
-    }, onError: (_) {
-      // The FutureBuilder below renders its own error state; this second
-      // listener existed only to seed defaults, and without an onError a
-      // config outage escaped to the zone as an uncaught exception.
-    });
+    _paymentConfig.then(
+      (cfg) {
+        if (!mounted) return;
+        setState(() {
+          _supportViber = cfg['support.viber'];
+        });
+        _recalcAmount();
+      },
+      onError: (_) {
+        // The FutureBuilder below renders its own error state; this second
+        // listener existed only to seed defaults, and without an onError a
+        // config outage escaped to the zone as an uncaught exception.
+      },
+    );
     // The app's own "Pay online" link passes along what it already knows
     // (LicenseScreen._openRenewPage) so a shop opening this from Settings
     // doesn't have to retype its own name/App Reference ID/email. Plain
@@ -133,9 +111,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       _submitted = true;
       _requestId = receipt;
     }
-    _shopName.text = q['name'] ?? '';
-    _deviceId.text = q['device_id'] ?? '';
-    _email.text = q['email'] ?? '';
+    _signInEmail.text = q['email'] ?? '';
+    _recalcAmount();
     _months.addListener(_recalcAmount);
     // A previous visit's session persists across page loads (Supabase Web
     // SDK default) — pick it back up without asking to sign in again.
@@ -150,30 +127,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// count up to the nearest whole year so a mid-year top-up (e.g. 18
   /// months) still charges a sane amount rather than under-charging.
   void _recalcAmount() {
-    final rawMonths = int.tryParse(_months.text.trim()) ?? 0;
-    final months = rawMonths > _maxMonths ? _maxMonths : rawMonths;
-    if (months <= 0) return;
-    final int? total;
-    if (_plan == 'yearly' && _priceYearly != null) {
-      total = _priceYearly! * ((months + 11) ~/ 12);
-    } else if (_plan == 'monthly' && _priceMonthly != null) {
-      total = _priceMonthly! * months;
-    } else {
-      total = null;
-    }
-    if (total != null) {
-      _amount.text = '$total';
-    }
+    _amount.text = '${_plan == 'yearly' ? _priceYearly : _priceMonthly}';
   }
-
-  /// True once the admin-configured price for the selected plan is known —
-  /// at that point Amount is locked (read-only, exact) rather than a plain
-  /// field, since there's a fixed rate to charge against. Falls back to a
-  /// plain editable field if the price genuinely failed to load (a config
-  /// fetch error, or an admin who hasn't set one yet) — better than
-  /// blocking the whole form on a config read that never resolves.
-  bool get _amountLocked =>
-      (_plan == 'yearly' ? _priceYearly : _priceMonthly) != null;
 
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
@@ -198,7 +153,14 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
-    if (mounted) setState(() => _myRequests = null);
+    if (mounted) {
+      setState(() {
+        _myRequests = null;
+        _shops = null;
+        _shopId = null;
+        _clientRequestId = null;
+      });
+    }
   }
 
   /// Runs right after sign-in (and once on page load if a session already
@@ -207,26 +169,37 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// the name — a fetch failure there shouldn't block seeing history, which
   /// is the actual point of signing in.
   Future<void> _loadAccountData() async {
-    final email = Supabase.instance.client.auth.currentUser?.email;
-    if (email != null && _email.text.trim().isEmpty) _email.text = email;
-    try {
-      final row = await Supabase.instance.client
-          .from('shop_profiles')
-          .select('name')
-          .limit(1)
-          .maybeSingle();
-      final name = row?['name'] as String?;
-      if (mounted && (name ?? '').isNotEmpty) {
-        setState(() => _shopName.text = name!);
-      }
-    } catch (_) {}
-    if (!mounted) return;
+    final accountId = Supabase.instance.client.auth.currentUser?.id;
+    if (!mounted || accountId == null) return;
     setState(() => _loadingHistory = true);
     try {
-      final rows = await _api.fetchMyRequests();
-      if (mounted) setState(() => _myRequests = rows);
+      final shops = await _api.fetchBillingShops();
+      if (!mounted ||
+          Supabase.instance.client.auth.currentUser?.id != accountId) {
+        return;
+      }
+      setState(() {
+        _shops = shops;
+        if (!shops.any((s) => s['shop_id'] == _shopId)) {
+          _shopId = shops.isEmpty ? null : shops.first['shop_id'] as String;
+        }
+      });
+      final selected = _shopId;
+      final rows = selected == null
+          ? <RenewalRequestSummary>[]
+          : await _api.fetchMyRequests(selected);
+      if (mounted &&
+          Supabase.instance.client.auth.currentUser?.id == accountId &&
+          _shopId == selected) {
+        setState(() => _myRequests = rows);
+      }
     } catch (_) {
-      if (mounted) setState(() => _myRequests = []);
+      if (mounted) {
+        setState(
+          () =>
+              _signInError = AppLocalizations.of(context).storefrontRenewFailed,
+        );
+      }
     } finally {
       if (mounted) setState(() => _loadingHistory = false);
     }
@@ -242,9 +215,6 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   @override
   void dispose() {
-    _shopName.dispose();
-    _deviceId.dispose();
-    _email.dispose();
     _phone.dispose();
     _amount.dispose();
     _refNo.dispose();
@@ -271,18 +241,24 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     );
     final file = res?.files.firstOrNull;
     if (file == null || file.bytes == null) return;
-    final c = await compressImage(Uint8List.fromList(file.bytes!),
-        fallbackExt: (file.extension ?? 'jpg').toLowerCase());
+    final c = await compressImage(
+      Uint8List.fromList(file.bytes!),
+      fallbackExt: (file.extension ?? 'jpg').toLowerCase(),
+    );
     const uploadable = {'jpg', 'jpeg', 'png', 'webp'};
     const maxProofBytes = 5 * 1024 * 1024;
     if (!uploadable.contains(c.ext) || c.bytes.length > maxProofBytes) {
       if (!mounted) return;
       final l = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(uploadable.contains(c.ext)
-            ? l.storefrontProofTooLarge
-            : l.storefrontProofUnsupported),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            uploadable.contains(c.ext)
+                ? l.storefrontProofTooLarge
+                : l.storefrontProofUnsupported,
+          ),
+        ),
+      );
       return;
     }
     if (!mounted) return;
@@ -295,26 +271,18 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   Future<void> _submit() async {
     final l = AppLocalizations.of(context);
-    final shopName = _shopName.text.trim();
-    final deviceId = _deviceId.text.trim();
-    final email = _email.text.trim();
+    final shopId = _shopId;
     final months = int.tryParse(_months.text.trim()) ?? 0;
     final amount = int.tryParse(_amount.text.trim()) ?? 0;
     final refNo = _refNo.text.trim();
-    if (months > _maxMonths) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.storefrontRenewMonthsTooHigh)),
-      );
-      return;
-    }
-    if (shopName.isEmpty ||
-        (deviceId.isEmpty && email.isEmpty) ||
+    if (shopId == null ||
+        Supabase.instance.client.auth.currentSession == null ||
         months <= 0 ||
         amount <= 0 ||
         refNo.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.storefrontRenewMissingFields)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.storefrontRenewMissingFields)));
       return;
     }
     setState(() => _submitting = true);
@@ -326,14 +294,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         proofPath = await _api.uploadPaymentProof(
           _proofBytes!,
           _proofExt ?? 'jpg',
-          folder: '_admin',
+          folder: '_admin/${Supabase.instance.client.auth.currentUser!.id}',
         );
       }
       final submitted = await _api.submitLicenseRequest(
         clientRequestId: _clientRequestId ??= const Uuid().v4(),
-        shopName: shopName,
-        deviceId: deviceId,
-        email: _email.text.trim(),
+        shopId: shopId,
         phone: _phone.text.trim(),
         plan: _plan,
         months: months,
@@ -356,8 +322,9 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         final message = raw.contains('rate_limited')
             ? l.storefrontRenewRateLimited
             : l.storefrontRenewFailed;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -369,7 +336,9 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: StorefrontLocaleBar(
-          locale: widget.locale, onToggle: widget.onToggleLocale),
+        locale: widget.locale,
+        onToggle: widget.onToggleLocale,
+      ),
       body: _submitted ? _afterSubmit(l) : _form(l),
     );
   }
@@ -424,12 +393,17 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle,
-                color: AppColors.of(context).success, size: 48),
+            Icon(
+              Icons.check_circle,
+              color: AppColors.of(context).success,
+              size: 48,
+            ),
             const SizedBox(height: AppTheme.space3),
-            Text(l.storefrontRenewSubmitted,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l.storefrontRenewSubmitted,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ],
         ),
       ),
@@ -450,8 +424,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(l.storefrontRenewSignInPrompt,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    l.storefrontRenewSignInPrompt,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: AppTheme.space2),
                   TextField(
                     controller: _signInEmail,
@@ -467,11 +443,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                   ),
                   if (_signInError != null) ...[
                     const SizedBox(height: AppTheme.space1),
-                    Text(_signInError!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.of(context).danger)),
+                    Text(
+                      _signInError!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.of(context).danger,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: AppTheme.space2),
                   Align(
@@ -492,8 +469,10 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(l.storefrontRenewSignedInAs(email),
-                            style: Theme.of(context).textTheme.bodyMedium),
+                        child: Text(
+                          l.storefrontRenewSignedInAs(email),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                       TextButton(
                         onPressed: _signOut,
@@ -520,12 +499,16 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l.storefrontRenewHistoryTitle,
-            style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          l.storefrontRenewHistoryTitle,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: AppTheme.space1),
         if (requests.isEmpty)
-          Text(l.storefrontRenewHistoryEmpty,
-              style: Theme.of(context).textTheme.bodySmall)
+          Text(
+            l.storefrontRenewHistoryEmpty,
+            style: Theme.of(context).textTheme.bodySmall,
+          )
         else
           for (final r in requests) _historyRow(l, r),
       ],
@@ -534,10 +517,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   Widget _historyRow(AppLocalizations l, RenewalRequestSummary r) {
     final (Color tone, String statusLabel) = switch (r.status) {
-      'fulfilled' => (
-          AppColors.of(context).success,
-          l.receiptStatusFulfilled,
-        ),
+      'fulfilled' => (AppColors.of(context).success, l.receiptStatusFulfilled),
       'rejected' => (AppColors.of(context).danger, l.receiptStatusRejected),
       _ => (AppColors.of(context).warning, l.receiptStatusPending),
     };
@@ -552,44 +532,66 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   }
 
   Widget _form(AppLocalizations l) {
+    if (Supabase.instance.client.auth.currentSession == null ||
+        _shopId == null) {
+      return ListView(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        children: [
+          Text(
+            l.storefrontRenewTitle,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: AppTheme.space3),
+          _accountSection(l),
+          if (_loadingHistory) const Center(child: ButtonSpinner()),
+          if (_shops?.isEmpty == true) Text(l.billingNoShops),
+          if (_signInError != null) Text(_signInError!),
+          if (Supabase.instance.client.auth.currentSession != null)
+            TextButton(onPressed: _loadAccountData, child: Text(l.commonRetry)),
+        ],
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.space4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l.storefrontRenewTitle,
-              style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            l.storefrontRenewTitle,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: AppTheme.space2),
-          Text(l.storefrontRenewHint,
-              style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            l.storefrontRenewIntro,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: AppTheme.space4),
           _accountSection(l),
           const SizedBox(height: AppTheme.space4),
           // Honeypot — kept out of the visible layout entirely (zero size),
           // so no real user can tab/scroll into it.
           Offstage(child: TextField(controller: _hp, autofocus: false)),
-          TextField(
-            controller: _shopName,
-            decoration: InputDecoration(labelText: l.storefrontRenewShopName),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _deviceId,
-            decoration: InputDecoration(
-              labelText: l.licenseRefId,
-              helperText: l.storefrontRenewDeviceIdHint,
-              helperMaxLines: 2,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: l.storefrontRenewEmail,
-              helperText: l.storefrontRenewEmailHint,
-              helperMaxLines: 2,
-            ),
+          DropdownButtonFormField<String>(
+            initialValue: _shopId,
+            decoration: InputDecoration(labelText: l.billingSelectShop),
+            items: [
+              for (final shop in _shops ?? <Map<String, dynamic>>[])
+                DropdownMenuItem(
+                  value: shop['shop_id'] as String,
+                  child: Text('${shop['name']}'),
+                ),
+            ],
+            onChanged: _submitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _shopId = value;
+                      _clientRequestId = null;
+                      _myRequests = null;
+                    });
+                    _loadAccountData();
+                  },
           ),
           const SizedBox(height: AppTheme.space3),
           TextField(
@@ -601,26 +603,31 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           SectionHeader(title: l.storefrontRenewPlan),
           SegmentedButton<String>(
             segments: [
-              ButtonSegment(value: 'monthly', label: Text(l.licensePlanMonthly)),
+              ButtonSegment(
+                value: 'monthly',
+                label: Text(l.licensePlanMonthly),
+              ),
               ButtonSegment(value: 'yearly', label: Text(l.licensePlanYearly)),
             ],
             selected: {_plan},
             onSelectionChanged: (s) => _onPlanChanged(s.first),
           ),
-          Builder(builder: (context) {
-            final price = _plan == 'yearly' ? _priceYearly : _priceMonthly;
-            if (price == null) return const SizedBox.shrink();
-            final text = _plan == 'yearly'
-                ? l.storefrontRenewPricePerYear(_ks(l, price))
-                : l.storefrontRenewPricePerMonth(_ks(l, price));
-            return Padding(
-              padding: const EdgeInsets.only(top: AppTheme.space1),
-              child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final price = _plan == 'yearly' ? _priceYearly : _priceMonthly;
+              final text = _plan == 'yearly'
+                  ? l.storefrontRenewPricePerYear(_ks(l, price))
+                  : l.storefrontRenewPricePerMonth(_ks(l, price));
+              return Padding(
+                padding: const EdgeInsets.only(top: AppTheme.space1),
+                child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+              );
+            },
+          ),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _months,
+            readOnly: true,
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
@@ -671,8 +678,9 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                         visualDensity: VisualDensity.compact,
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: number!));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(l.storefrontNumberCopied)));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l.storefrontNumberCopied)),
+                          );
                         },
                       ),
                     ],
@@ -684,14 +692,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _amount,
-            readOnly: _amountLocked,
+            readOnly: true,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: l.storefrontRenewAmountPaid,
-              helperText: _amountLocked
-                  ? l.storefrontRenewAmountLockedHint
-                  : null,
+              helperText: l.storefrontRenewAmountLockedHint,
               helperMaxLines: 2,
             ),
           ),
@@ -713,9 +719,11 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           OutlinedButton.icon(
             onPressed: _pickProof,
             icon: const Icon(Icons.upload_file),
-            label: Text(_proofName == null
-                ? l.storefrontAttachProof
-                : l.storefrontProofAttached(_proofName!)),
+            label: Text(
+              _proofName == null
+                  ? l.storefrontAttachProof
+                  : l.storefrontProofAttached(_proofName!),
+            ),
           ),
           const SizedBox(height: AppTheme.space5),
           FilledButton(

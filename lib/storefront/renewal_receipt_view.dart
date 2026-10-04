@@ -126,8 +126,9 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
   Future<void> _copyLink(AppLocalizations l) async {
     await Clipboard.setData(ClipboardData(text: _link));
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l.receiptLinkCopied)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.receiptLinkCopied)));
   }
 
   @override
@@ -178,32 +179,36 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
     // borrows the success colour because the shop's side of the deal is
     // done — nothing is owed and nothing is wrong, it is our work that is
     // still in flight.
-    final (Color tone, IconData icon, String head, String bodyText) =
-        switch (r) {
+    final (
+      Color tone,
+      IconData icon,
+      String head,
+      String bodyText,
+    ) = switch (r) {
       _ when r.isRejected => (
-          colors.danger,
-          Icons.cancel_outlined,
-          l.receiptStatusRejected,
-          r.rejectReason ?? '',
-        ),
+        colors.danger,
+        Icons.cancel_outlined,
+        l.receiptStatusRejected,
+        r.rejectReason ?? '',
+      ),
       _ when r.isFulfilled => (
-          colors.success,
-          Icons.verified,
-          l.receiptStatusFulfilled,
-          l.receiptStatusFulfilledBody,
-        ),
+        colors.success,
+        Icons.verified,
+        l.receiptStatusFulfilled,
+        l.receiptStatusFulfilledBody,
+      ),
       _ when r.isPaidNotFulfilled => (
-          colors.success,
-          Icons.hourglass_top,
-          l.receiptStatusPending,
-          l.receiptStatusPaidBody,
-        ),
+        colors.success,
+        Icons.hourglass_top,
+        l.receiptStatusPending,
+        l.receiptStatusPaidBody,
+      ),
       _ => (
-          colors.warning,
-          Icons.schedule,
-          l.receiptStatusPending,
-          l.receiptStatusPendingBody,
-        ),
+        colors.warning,
+        Icons.schedule,
+        l.receiptStatusPending,
+        l.receiptStatusPendingBody,
+      ),
     };
 
     return Column(
@@ -212,9 +217,12 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
         Text(l.receiptTitle, style: theme.textTheme.titleMedium),
         const SizedBox(height: AppTheme.space1),
         SelectableText(
-          r.invoiceNo.isNotEmpty ? r.invoiceNo : (widget.initialInvoiceNo ?? ''),
-          style: theme.textTheme.headlineSmall
-              ?.copyWith(fontFeatures: AppTheme.tabularFigures),
+          r.invoiceNo.isNotEmpty
+              ? r.invoiceNo
+              : (widget.initialInvoiceNo ?? ''),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontFeatures: AppTheme.tabularFigures,
+          ),
         ),
         const SizedBox(height: AppTheme.space3),
 
@@ -235,9 +243,10 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(head,
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(color: tone)),
+                    Text(
+                      head,
+                      style: theme.textTheme.titleSmall?.copyWith(color: tone),
+                    ),
                     if (bodyText.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(bodyText, style: theme.textTheme.bodySmall),
@@ -264,34 +273,18 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
           ),
         ],
 
-        // The key is the payout of the whole flow — give it its own block,
-        // selectable, never buried in the detail rows.
-        if (r.isFulfilled && (r.issuedKey ?? '').isNotEmpty) ...[
+        if (r.isFulfilled) ...[
           const SizedBox(height: AppTheme.space3),
-          Text(l.receiptYourKey, style: theme.textTheme.titleSmall),
-          const SizedBox(height: AppTheme.space1),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppTheme.space3),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-            child: SelectableText(
-              r.issuedKey!,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontFeatures: AppTheme.tabularFigures),
-            ),
-          ),
+          Text(l.billingSubscriptionRenewed),
         ],
 
         const SizedBox(height: AppTheme.space4),
         const Divider(height: 1),
         _row(l.receiptShop, r.shopName),
-        if ((r.deviceIdTail ?? '').isNotEmpty)
-          _row(l.receiptDeviceTail, '…${r.deviceIdTail}'),
-        _row(l.receiptPlan,
-            '${_planLabel(l, r.plan)} · ${l.receiptMonths(r.months)}'),
+        _row(
+          l.receiptPlan,
+          '${_planLabel(l, r.plan)} · ${l.receiptMonths(r.months)}',
+        ),
         _row(l.receiptAmount, '${_money.format(r.amount)} ${l.currencySymbol}'),
         if ((r.method ?? '').isNotEmpty)
           _row(l.receiptMethod, _methodLabel(r.method!)),
@@ -352,10 +345,10 @@ class _RenewalReceiptViewState extends State<RenewalReceiptView> {
       plan == 'yearly' ? l.licensePlanYearly : l.licensePlanMonthly;
 
   String _methodLabel(String m) => switch (m) {
-        'kbzpay' => 'KBZPay',
-        'wavepay' => 'WavePay',
-        _ => m,
-      };
+    'kbzpay' => 'KBZPay',
+    'wavepay' => 'WavePay',
+    _ => m,
+  };
 }
 
 class _Message extends StatelessWidget {
@@ -371,9 +364,11 @@ class _Message extends StatelessWidget {
         children: [
           Icon(icon, size: 40, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: AppTheme.space2),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ],
       ),
     );

@@ -23,6 +23,8 @@ import 'auth_password_field.dart';
 import 'forgot_password_dialog.dart';
 import 'password_strength.dart';
 import 'saved_login_store.dart';
+import 'social_auth.dart';
+import 'social_auth_widgets.dart';
 
 /// Real email/password login for the shop, additive to the existing
 /// device-key activation (which stays exactly as-is). Lets the owner create
@@ -218,6 +220,11 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         messenger.showSnackBar(SnackBar(content: Text(l.accountSignedIn)));
       }
     } else {
+      if (result.error == 'device_limit_reached' ||
+          result.error == 'free_device_replacement_required') {
+        ref.invalidate(hasRealAccountSessionProvider);
+        ref.invalidate(backendAccountRoleProvider);
+      }
       messenger.showSnackBar(
         SnackBar(content: Text(_errorMessage(l, result.error))),
       );
@@ -230,18 +237,84 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     }
   }
 
+  Future<void> _socialSignIn(SocialAuthProvider provider) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _step = SignInStep.authenticating;
+    });
+    final account = ref.read(accountRepositoryProvider);
+    final result = await runSocialSignIn(
+      context,
+      signIn: () => account.signInWithSocial(provider),
+      completeSignup: account.completeSocialSignup,
+      confirmSwitch: account.confirmWipeAndClaimDevice,
+      canRecoverDevice: () => account.currentAccountRole == 'owner',
+      cancelSession: () async {
+        await Supabase.instance.client.auth.signOut();
+        if (!mounted) return;
+        ref.invalidate(backendAccountRoleProvider);
+        ref.invalidate(hasRealAccountSessionProvider);
+      },
+    );
+    if (!mounted) return;
+    if (result == null) {
+      setState(() {
+        _busy = false;
+        _step = null;
+      });
+      return;
+    }
+    if (result.ok && result.license != null) {
+      await ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(result.license!);
+      ref.read(syncControllerProvider.notifier).sync();
+    }
+    ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(hasRealAccountSessionProvider);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _step = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.ok
+              ? AppLocalizations.of(context).accountSignedIn
+              : _errorMessage(AppLocalizations.of(context), result.error),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _linkSocial(SocialAuthProvider provider) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final result = await ref
+        .read(accountRepositoryProvider)
+        .linkSocialIdentity(provider);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ref.invalidate(hasRealAccountSessionProvider);
+    if (result.error == 'auth_cancelled') return;
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.ok ? l.accountSocialLinked : _errorMessage(l, result.error),
+        ),
+      ),
+    );
+  }
+
   Future<void> _signOut() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    // This device loses Premium on sign-out only when its Premium came from
-    // being an authenticated Online-tier user in the first place — a
-    // key-activated (Offline-tier) device's Premium is independent of any
-    // auth session, so its sign-out keeps the generic wording.
+    // Account Premium ends on signout for every shop. Local data remains.
     final license = ref.read(licenseControllerProvider).license;
-    final losesPremium =
-        license != null &&
-        license.tier == 'online' &&
-        license.plan != LicensePlan.free;
+    final losesPremium = license != null && license.plan != LicensePlan.free;
     final isStaff =
         ref.read(accountRepositoryProvider).currentAccountRole == 'staff';
     final confirmed = await showDialog<bool>(
@@ -314,19 +387,36 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final pwd = await showDialog<String>(
-      context: context,
-      builder: (_) =>
-          _DeleteAccountPasswordDialog(label: l.accountDeletePasswordLabel),
-    );
-    if (pwd == null || pwd.isEmpty || !mounted) return;
-
-    setState(() => _busy = true);
-    final result = await ref.read(accountRepositoryProvider).deleteAccount(pwd);
+    AccountActionResult result;
+    if (account.hasPasswordIdentity) {
+      final pwd = await showDialog<String>(
+        context: context,
+        builder: (_) =>
+            _DeleteAccountPasswordDialog(label: l.accountDeletePasswordLabel),
+      );
+      if (pwd == null || pwd.isEmpty || !mounted) return;
+      setState(() => _busy = true);
+      result = await account.deleteAccount(pwd);
+    } else {
+      final supported = account.linkedSocialProviders.intersection(
+        account.availableSocialProviders,
+      );
+      if (supported.isEmpty) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.accountSocialReauthenticateUnavailable)),
+        );
+        return;
+      }
+      final provider = await chooseSocialReauthentication(context, supported);
+      if (provider == null || !mounted) return;
+      setState(() => _busy = true);
+      result = await account.deleteAccountWithSocial(provider);
+    }
     if (!mounted) return;
 
     if (!result.ok) {
       setState(() => _busy = false);
+      if (result.error == 'auth_cancelled') return;
       messenger.showSnackBar(
         SnackBar(content: Text(_errorMessage(l, result.error))),
       );
@@ -448,6 +538,7 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   }
 
   Widget _signedInProfile(AppLocalizations l) {
+    ref.watch(accountAuthEventsProvider);
     final account = ref.read(accountRepositoryProvider);
     final email = account.currentAccountEmail ?? '';
     final role = account.currentAccountRole ?? '';
@@ -556,18 +647,28 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                     title: Text(l.settingsDeviceName),
                     subtitle: Text(deviceLabel),
                   ),
-                if (license != null)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.workspace_premium_outlined),
-                    title: Text(l.licensePlanLabel),
-                    subtitle: Text(_planLabel(l, license.plan)),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const LicenseScreen()),
-                    ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.workspace_premium_outlined),
+                  title: Text(l.licensePlanLabel),
+                  subtitle: Text(
+                    _planLabel(l, license?.plan ?? LicensePlan.free),
                   ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LicenseScreen()),
+                  ),
+                ),
                 const SizedBox(height: AppTheme.space2),
+                SocialAuthButtons(
+                  providers: account.availableSocialProviders.difference(
+                    account.linkedSocialProviders,
+                  ),
+                  busy: _busy,
+                  onSelected: _linkSocial,
+                  linking: true,
+                  showSeparator: false,
+                ),
                 FilledButton.tonal(
                   onPressed: _busy ? null : _signOut,
                   child: Text(l.accountSignOut),
@@ -708,6 +809,13 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                     // instead of the screen's whole point — they carry their
                     // own fill and border from the input theme, so the card
                     // was only ever adding a box around a box.
+                    SocialAuthButtons(
+                      providers: ref
+                          .read(accountRepositoryProvider)
+                          .availableSocialProviders,
+                      busy: _busy,
+                      onSelected: _socialSignIn,
+                    ),
                     AnimatedSize(
                       duration: AppTheme.motionMedium,
                       curve: AppTheme.curveStandard,
@@ -733,10 +841,6 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                       ),
                     ],
                     const SizedBox(height: AppTheme.space4),
-                    // The reassurance that a license key and the PIN
-                    // quick-switch keep working is worth keeping, but it was
-                    // three lines above the form, which is what made this read
-                    // as a settings page. Demoted to a footnote.
                     Text(
                       l.accountShopLoginHint,
                       textAlign: TextAlign.center,

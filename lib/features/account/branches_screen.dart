@@ -8,7 +8,6 @@ import '../../data/sync/sync_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/sync_issues_screen.dart';
 import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import '../staff/staff_ui.dart';
 import 'branch_providers.dart';
 import 'branch_repository.dart';
@@ -23,17 +22,6 @@ class BranchesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading ||
-        !ref.watch(isPremiumProvider)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.branchesTitle)),
-        body: PremiumGate(
-          featureName: l.branchesTitle,
-          benefits: [l.branchesBenefit1, l.branchesBenefit2],
-          child: const SizedBox.shrink(),
-        ),
-      );
-    }
     return Scaffold(
       appBar: AppBar(title: Text(l.branchesTitle)),
       body: OwnerOnlyGate(

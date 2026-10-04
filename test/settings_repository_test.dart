@@ -25,6 +25,24 @@ void main() {
 
   tearDown(() async => db.close());
 
+  group('Premium receipt scope', () {
+    test('clock watermarks do not leak across shops', () async {
+      await repo.setLicenseLastSeenMs(1000, shopId: 'shop-a');
+      await repo.setLicenseLastReceiptIatMs(900, shopId: 'shop-a');
+      await repo.setLicenseLastSeenMs(2000, shopId: 'shop-b');
+      expect(await repo.licenseLastSeenMs(shopId: 'shop-a'), 1000);
+      expect(await repo.licenseLastSeenMs(shopId: 'shop-b'), 2000);
+      expect(await repo.licenseLastReceiptIatMs(shopId: 'shop-b'), isNull);
+    });
+    test('receipt revision is isolated by shop and device and cannot regress', () async {
+      await repo.setLicenseHighestRevision('shop-a', 'phone', 3);
+      await repo.setLicenseHighestRevision('shop-a', 'phone', 2);
+      expect(await repo.licenseHighestRevision('shop-a', 'phone'), 3);
+      expect(await repo.licenseHighestRevision('shop-b', 'phone'), isNull);
+      expect(await repo.licenseHighestRevision('shop-a', 'tablet'), isNull);
+    });
+  });
+
   group('licenseExpiryWarned (per-shop isolation)', () {
     // A device can switch shops (BranchRepository.switchBranch) without
     // wipeSyncedData() touching AppSettings, so a device-global watermark

@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAnalytics => 'Analytics';
 
   @override
-  String get navSettings => 'Settings';
+  String get navShop => 'Shop';
 
   @override
   String get commonUnexpectedError => 'Something went wrong. Please try again.';
@@ -1039,6 +1039,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryNoResults => 'No products match your search.';
 
   @override
+  String get inventoryNoFilterResults => 'No products match your filters.';
+
+  @override
   String inventoryFilteredCount(int count) {
     return '$count products';
   }
@@ -1119,19 +1122,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockAdjustTitle => 'Update stock';
 
   @override
-  String get stockAdjustModeRestock => 'Restock';
-
-  @override
-  String get stockAdjustModeAdjust => 'Adjust';
-
-  @override
   String get stockAdjustQuantity => 'Quantity';
 
   @override
   String get stockAdjustQuantityHintRestock => 'Units received';
-
-  @override
-  String get stockAdjustQuantityHintAdjust => '+ to increase, − to decrease';
 
   @override
   String get stockAdjustUnitCost => 'Unit cost (optional)';
@@ -1179,9 +1173,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stockReasonLost => 'Lost / stolen';
-
-  @override
-  String get stockReasonCount => 'Stock count correction';
 
   @override
   String get stockReasonOther => 'Other';
@@ -1267,6 +1258,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSectionDaily => 'Daily';
+
+  @override
+  String get settingsSectionSetup => 'Setup';
 
   @override
   String get settingsSectionBusiness => 'Business';
@@ -1874,9 +1871,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productCategory => 'Category';
 
   @override
-  String get analyticsRevenue => 'Revenue';
-
-  @override
   String analyticsTrendVsPrevious(String sign, int percent) {
     return '$sign$percent% vs previous period';
   }
@@ -1889,9 +1883,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsNetProfit => 'Net profit';
-
-  @override
-  String get analyticsSalesCount => 'Sales';
 
   @override
   String get analyticsStockValue => 'Stock value';
@@ -1948,9 +1939,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsCollected => 'Collected';
-
-  @override
-  String get analyticsCreditOutstanding => 'Credit outstanding';
 
   @override
   String get expensesTitle => 'Expenses';
@@ -2128,13 +2116,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumFeatureBody =>
-      'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Premium subscription or license key.';
+      'Core sales, inventory, cash register, expenses, suppliers and customer credit remain available on Free. This feature requires Premium on your shop account.';
 
   @override
   String get premiumUpgradeCta => 'Upgrade';
 
   @override
-  String get premiumManageLicenseCta => 'Manage license';
+  String get premiumManageLicenseCta => 'Manage Premium';
 
   @override
   String get analyticsBenefit1 => 'See your best-selling products at a glance';
@@ -2225,7 +2213,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountSignOutPremiumConfirmBody =>
-      'You\'ll lose Premium features on this device and it will drop to the Free plan (Sell and Inventory keep working). You\'ll need your email and password again to sign back in and restore Premium.';
+      'Signing out removes Premium access on this device. Local shop data and core sales remain available. Sign in again with your email and password to restore Premium.';
 
   @override
   String get licenseDowngradedToFreeNotice =>
@@ -2301,7 +2289,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licensePayOnlineHint =>
-      'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.';
+      'Sign in on our website and select your shop to purchase or renew Premium. An owner account is required.';
 
   @override
   String get licenseChooseRegionTitle => 'Where is your shop?';
@@ -2335,7 +2323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseManagedElsewhereBody =>
-      'Premium is arranged with your All In One POS provider outside this app. Once it is active on this device or on your shop account, Premium features unlock here automatically.';
+      'Sign in to your shop account to access its available Premium features. Check again to update your account status. Free features remain available.';
 
   @override
   String get licenseAlreadyLicensedTitle => 'Already have Premium?';
@@ -2365,11 +2353,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseTrialStartConfirm =>
-      'Start your 2-month Premium trial on this device now? Every Premium feature unlocks immediately, no payment needed. One trial per device — needs an internet connection to start.';
+      'Start your two-month Premium trial for this shop? One trial per owner account.';
 
   @override
   String get licenseTrialSelfServeHint =>
-      '2 months, every Premium feature, no payment — one trial per device.';
+      'Two months of Premium, once per owner account. Signup stays Free until you start the trial.';
 
   @override
   String get licenseTrialContactHint =>
@@ -2387,7 +2375,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseTrialStarted => 'Free 2-month trial started';
 
   @override
-  String get licenseTrialUsed => 'Free trial already used on this device.';
+  String get licenseTrialUsed =>
+      'This owner account has already used its trial.';
 
   @override
   String get licenseRefId => 'App Reference ID';
@@ -2420,11 +2409,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseRenewHint =>
-      'After Support extends your license, tap Check for renewal (or activate a new key).';
+      'After your shop subscription is renewed, tap Check for renewal.';
 
   @override
   String get licenseRenewHintOnline =>
-      'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).';
+      'After your shop subscription is renewed, tap Check for renewal. Premium applies to the selected shop account.';
 
   @override
   String get licenseRenewNotFound =>
@@ -2440,7 +2429,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumFeatureBodyOnline =>
-      'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Online Premium subscription on your shop account.';
+      'Core sales, inventory, cash register, expenses, suppliers and customer credit remain available on Free. This feature requires Premium on your shop account.';
 
   @override
   String deviceCount(int used, int free) {
@@ -2518,11 +2507,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invWebActivateHint =>
-      'Sign in with the shop email you already use on the phone. This computer counts as one extra device. Free plan with no account: use the Windows POS app and tap Continue Free — no key.';
+      'Sign in with your shop account to view cloud invoices. Premium is required; this browser counts as one of the shop’s three devices.';
 
   @override
   String get invWebFreeHint =>
-      'Free plan does not need activation. Sell on this computer with the Windows POS app (Continue Free). This page only shows invoices after you sign in to a shop account.';
+      'Cloud invoice access requires Premium. Your local invoices in the mobile app remain available on Free.';
 
   @override
   String get invWebKeySection => 'Have an Offline device key?';
@@ -2555,7 +2544,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invWebErrorActivationFailed =>
-      'Couldn\'t activate — check the key and try again';
+      'Could not verify this shop. Check your account and try again.';
 
   @override
   String get invWebErrorNetwork =>
@@ -2563,7 +2552,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invWebErrorRefreshPending =>
-      'Activated — reload this page to continue';
+      'Signed in — reload this page to continue.';
 
   @override
   String get invWebSignOut => 'Sign out this computer';
@@ -3510,7 +3499,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontRenewSignInPrompt =>
-      'Have an account? Sign in to skip typing your details and see your past requests.';
+      'Sign in with the owner account to choose a shop and purchase Premium.';
 
   @override
   String get storefrontRenewSignInFailed =>
@@ -3630,11 +3619,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardAccountBody =>
-      'Only needed if you\'ll use this shop on another phone, or add staff logins.';
+      'Create or sign in to your shop account. Your shop starts on Free; Premium and its trial are optional.';
 
   @override
   String get onboardAccountBenefits =>
-      'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email';
+      'Keep your account when you change devices. Premium adds cloud sync, staff accounts and detailed reports for your shop.';
 
   @override
   String get onboardAccountWhyEmail => 'Why add an email?';
@@ -3657,7 +3646,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountShopLoginHint =>
-      'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.';
+      'An account connects this shop for Premium and billing. Local owner PIN and staff mode remain available.';
 
   @override
   String get accountProfileSubtitleSignedOut =>
@@ -3793,7 +3782,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountSignOutConfirmBody =>
-      'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.';
+      'Signing out removes Premium access on this device. Local shop data is kept. Sign in again with your email and password to restore access.';
 
   @override
   String get accountSignOutConfirmBodyStaff =>
@@ -3815,7 +3804,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountTrialAlreadyUsed =>
-      'This device or account has already used its free trial. Contact support to continue.';
+      'This owner account has already used its Premium trial.';
 
   @override
   String get accountNotActivated => 'Activate this device first.';
@@ -4250,7 +4239,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOnlineTabSignIn => 'Sign in';
 
   @override
-  String get onboardOnlineSignedIn => 'Signed in. You can continue.';
+  String get onboardOnlineSignedIn =>
+      'Your shop account is connected on Free. Start your Premium trial in Settings → Premium when you are ready.';
 
   @override
   String get modeMigrateTitle => 'Confirm how this shop works';
@@ -4424,4 +4414,168 @@ class AppLocalizationsEn extends AppLocalizations {
   String licenseExpiryNotifBodyToday(String shop) {
     return 'Today is the last day of Premium for $shop.';
   }
+
+  @override
+  String get stockAdjustModeCount => 'Count is now';
+
+  @override
+  String get stockAdjustModeReceived => '+ Received';
+
+  @override
+  String get stockReasonRecount => 'Recount';
+
+  @override
+  String stockAdjustChange(String delta) {
+    return 'Change: $delta';
+  }
+
+  @override
+  String get productMoreDetails => 'More details';
+
+  @override
+  String get productMoreDetailsSubtitle =>
+      'Category, cost, wholesale and VIP prices, barcode, online';
+
+  @override
+  String get analyticsSalesHeadline => 'Sales';
+
+  @override
+  String get analyticsOwed => 'Owed';
+
+  @override
+  String get analyticsProfitSection => 'Profit';
+
+  @override
+  String get analyticsProfitSectionSubtitle =>
+      'Gross and net profit, expenses, stock value';
+
+  @override
+  String analyticsSalesCountChip(int count) {
+    return '$count sales';
+  }
+
+  @override
+  String get licenseVerificationRequired => 'Connect to verify Premium';
+
+  @override
+  String get licenseVerificationRequiredBody =>
+      'Your subscription could not be verified. Connect and check again; selling remains available.';
+
+  @override
+  String get licenseAccountRequired => 'Sign in to use Premium';
+
+  @override
+  String get licenseDeviceLimitReached =>
+      'This shop already has three devices. Release a device to add this one.';
+
+  @override
+  String licenseDevicesCount(int count) {
+    return '$count of 3 devices';
+  }
+
+  @override
+  String get licenseDevicesHint =>
+      'Sign in on another device to add it. Release a device here to free a slot.';
+
+  @override
+  String get syncPremiumPaused => 'Premium paused — local data is saved';
+
+  @override
+  String get storefrontRenewIntro =>
+      'Premium for one shop, including three devices. 20,000 MMK monthly or 200,000 MMK yearly.';
+
+  @override
+  String get billingSelectShop => 'Select your shop';
+
+  @override
+  String get billingNoShops =>
+      'No owner shops available. Create a shop in the app first.';
+
+  @override
+  String get billingSubscriptionRenewed =>
+      'Premium renewed for this shop. Sign in to the app to refresh access.';
+
+  @override
+  String get licenseFreeDeviceReplacement =>
+      'For a Free shop, back up the old device and release it from Premium settings before signing in on this device. Restore your local backup here; Free does not restore shop data from the cloud.';
+
+  @override
+  String get accountContinueGoogle => 'Continue with Google';
+
+  @override
+  String get accountContinueApple => 'Continue with Apple';
+
+  @override
+  String get accountLinkGoogle => 'Link Google account';
+
+  @override
+  String get accountLinkApple => 'Link Apple account';
+
+  @override
+  String get accountOrEmail => 'Or use email';
+
+  @override
+  String get accountSocialShopTitle => 'Name your shop';
+
+  @override
+  String get accountSocialShopBody =>
+      'Create your Free shop to start selling. You can choose Premium later.';
+
+  @override
+  String get accountSocialCreateShop => 'Create shop';
+
+  @override
+  String get accountSocialLinked => 'Account linked.';
+
+  @override
+  String get accountSocialReauthenticateTitle => 'Verify your account';
+
+  @override
+  String get accountSocialReauthenticateBody =>
+      'Continue with your linked account to confirm deletion.';
+
+  @override
+  String get accountSocialReauthenticateUnavailable =>
+      'Account verification is unavailable on this device. Use a device where you can sign in with your linked account.';
+
+  @override
+  String get accountSocialAuthFailed =>
+      'Could not sign in with this account. Please try again.';
+
+  @override
+  String get accountSocialAuthUnavailable =>
+      'This sign-in option is unavailable on this device. Choose another way to sign in.';
+
+  @override
+  String get accountSocialReauthFailed =>
+      'Account verification failed. Sign in with the same linked account and try again.';
+
+  @override
+  String get adminOwnerRequired =>
+      'Verify and link an owner account before renewing this shop.';
+
+  @override
+  String get adminPublicConfigHint =>
+      'These settings are public payment instructions. API keys and webhook secrets belong in server secrets, never here.';
+
+  @override
+  String get adminKbzName => 'KBZPay account name';
+
+  @override
+  String get adminKbzNumber => 'KBZPay number';
+
+  @override
+  String get adminWaveName => 'WavePay account name';
+
+  @override
+  String get adminWaveNumber => 'WavePay number';
+
+  @override
+  String get adminSupportViber => 'Support Viber number';
+
+  @override
+  String get adminGatewayMonthlyVariant => 'Lemon Squeezy monthly variant ID';
+
+  @override
+  String get adminGatewayYearlyVariant => 'Lemon Squeezy yearly variant ID';
 }

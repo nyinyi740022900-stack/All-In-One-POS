@@ -1,18 +1,18 @@
 import 'license_status.dart';
 
 LicensePlan _planFrom(String s) => switch (s) {
-      'yearly' => LicensePlan.yearly,
-      'monthly' => LicensePlan.monthly,
-      'free' => LicensePlan.free,
-      _ => LicensePlan.trial,
-    };
+  'yearly' => LicensePlan.yearly,
+  'monthly' => LicensePlan.monthly,
+  'free' => LicensePlan.free,
+  _ => LicensePlan.trial,
+};
 
 String planName(LicensePlan p) => switch (p) {
-      LicensePlan.yearly => 'yearly',
-      LicensePlan.monthly => 'monthly',
-      LicensePlan.trial => 'trial',
-      LicensePlan.free => 'free',
-    };
+  LicensePlan.yearly => 'yearly',
+  LicensePlan.monthly => 'monthly',
+  LicensePlan.trial => 'trial',
+  LicensePlan.free => 'free',
+};
 
 /// Locally cached license, refreshed from the server on activation/verify.
 class CachedLicense {
@@ -24,18 +24,10 @@ class CachedLicense {
   final DateTime lastVerifiedAt;
   final String deviceId;
 
-  /// Admin-granted premium flag (no automated billing gateway exists, same
-  /// precedent as the multi-device fee) — when true, `RealtimeSyncController`
-  /// subscribes to Supabase Realtime so other devices under the shop see a
-  /// change within seconds instead of waiting for the 5-minute poll.
+  /// Compatibility transport hint; signed Premium state gates all sync.
   final bool realtimeEnabled;
 
-  /// Fixed at shop-creation time — 'online' for a shop minted by the
-  /// self-serve signup/create-branch actions, 'offline' for everything else
-  /// (key activate, device trial, admin-issued key). Never re-derived from
-  /// whichever session type happens to be active later (a real login can be
-  /// added to an offline shop too), so pricing (`VendorConfig.priceFor`)
-  /// stays correct regardless of how the shop is currently being used.
+  /// Legacy migration metadata; never used to choose benefits or prices.
   final String tier;
 
   /// Server-signed receipt (`AIOE1.…`, see `entitlement.dart`) proving this
@@ -57,31 +49,32 @@ class CachedLicense {
   });
 
   Map<String, dynamic> toJson() => {
-        'key': key,
-        'shop_id': shopId,
-        'plan': planName(plan),
-        'expires_at': expiresAt.toIso8601String(),
-        'activated_at': activatedAt.toIso8601String(),
-        'last_verified_at': lastVerifiedAt.toIso8601String(),
-        'device_id': deviceId,
-        'realtime_enabled': realtimeEnabled,
-        'tier': tier,
-        if (entitlement != null) 'entitlement': entitlement,
-      };
+    'key': key,
+    'shop_id': shopId,
+    'plan': planName(plan),
+    'expires_at': expiresAt.toIso8601String(),
+    'activated_at': activatedAt.toIso8601String(),
+    'last_verified_at': lastVerifiedAt.toIso8601String(),
+    'device_id': deviceId,
+    'realtime_enabled': realtimeEnabled,
+    'tier': tier,
+    if (entitlement != null) 'entitlement': entitlement,
+  };
 
   factory CachedLicense.fromJson(Map<String, dynamic> j) => CachedLicense(
-        key: j['key'] as String,
-        shopId: j['shop_id'] as String,
-        plan: _planFrom(j['plan'] as String? ?? 'trial'),
-        expiresAt: DateTime.parse(j['expires_at'] as String),
-        activatedAt: DateTime.parse(j['activated_at'] as String),
-        lastVerifiedAt: DateTime.parse(
-            (j['last_verified_at'] ?? j['activated_at']) as String),
-        deviceId: j['device_id'] as String? ?? '',
-        realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
-        tier: j['tier'] as String? ?? 'offline',
-        entitlement: j['entitlement'] as String?,
-      );
+    key: j['key'] as String? ?? 'ACCOUNT',
+    shopId: j['shop_id'] as String,
+    plan: _planFrom(j['plan'] as String? ?? 'trial'),
+    expiresAt: DateTime.parse(j['expires_at'] as String),
+    activatedAt: DateTime.parse(j['activated_at'] as String),
+    lastVerifiedAt: DateTime.parse(
+      (j['last_verified_at'] ?? j['activated_at']) as String,
+    ),
+    deviceId: j['device_id'] as String? ?? '',
+    realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
+    tier: j['tier'] as String? ?? 'offline',
+    entitlement: j['entitlement'] as String?,
+  );
 
   CachedLicense copyWith({
     DateTime? lastVerifiedAt,
@@ -91,19 +84,18 @@ class CachedLicense {
     LicensePlan? plan,
     String? key,
     String? entitlement,
-  }) =>
-      CachedLicense(
-        key: key ?? this.key,
-        shopId: shopId,
-        plan: plan ?? this.plan,
-        expiresAt: expiresAt ?? this.expiresAt,
-        activatedAt: activatedAt,
-        lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
-        deviceId: deviceId,
-        realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
-        tier: tier ?? this.tier,
-        entitlement: entitlement ?? this.entitlement,
-      );
+  }) => CachedLicense(
+    key: key ?? this.key,
+    shopId: shopId,
+    plan: plan ?? this.plan,
+    expiresAt: expiresAt ?? this.expiresAt,
+    activatedAt: activatedAt,
+    lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
+    deviceId: deviceId,
+    realtimeEnabled: realtimeEnabled ?? this.realtimeEnabled,
+    tier: tier ?? this.tier,
+    entitlement: entitlement ?? this.entitlement,
+  );
 }
 
 /// Local-only Free plan from onboarding ("Continue Free"), not a real
@@ -125,11 +117,8 @@ class ActivationResult {
   const ActivationResult.failure(this.errorCode) : ok = false, license = null;
 }
 
-/// One device slot under the shop's license (a row in `licenses`). [deviceId]
-/// is null for a released/unclaimed slot waiting to be picked up by a new
-/// device. [realtimeEnabled]/[createdAt] are used to rank this shop's
-/// devices for the Realtime connection-pool cap — see
-/// `sync_providers.dart`'s `realtimePriorityRank`.
+/// One active or released device in shop_devices. [key] remains a harmless
+/// compatibility field; customer-facing UI only uses the device identity.
 class ShopDevice {
   final String key;
   final String? deviceId;
@@ -147,20 +136,25 @@ class ShopDevice {
     this.realtimeEnabled = false,
   });
 
-  bool get isBound => deviceId != null && deviceId!.isNotEmpty;
+  bool get isBound =>
+      status != 'released' && deviceId != null && deviceId!.isNotEmpty;
 
   factory ShopDevice.fromJson(Map<String, dynamic> j) => ShopDevice(
-        key: j['key'] as String,
-        deviceId: j['device_id'] as String?,
-        status: j['status'] as String? ?? 'active',
-        lastVerifiedAt: j['last_verified_at'] == null
-            ? null
-            : DateTime.parse(j['last_verified_at'] as String),
-        realtimeEnabled: j['realtime_enabled'] as bool? ?? false,
-        createdAt: j['created_at'] == null
-            ? DateTime.fromMillisecondsSinceEpoch(0)
-            : DateTime.parse(j['created_at'] as String),
-      );
+    key: j['key'] as String? ?? 'ACCOUNT',
+    deviceId: j['device_id'] as String?,
+    status: j['released_at'] != null
+        ? 'released'
+        : (j['status'] as String? ?? 'active'),
+    lastVerifiedAt: (j['last_activity_at'] ?? j['last_verified_at']) == null
+        ? null
+        : DateTime.parse(
+            (j['last_activity_at'] ?? j['last_verified_at']) as String,
+          ),
+    realtimeEnabled: j['realtime_enabled'] as bool? ?? true,
+    createdAt: j['created_at'] == null
+        ? DateTime.fromMillisecondsSinceEpoch(0)
+        : DateTime.parse(j['created_at'] as String),
+  );
 }
 
 /// Bound license rows minus the shop's main phone. The first slot is
@@ -178,10 +172,7 @@ class ShopDeviceAllowance {
   final int extraSlots;
   final DateTime? extrasExpiresAt;
 
-  const ShopDeviceAllowance({
-    this.extraSlots = 0,
-    this.extrasExpiresAt,
-  });
+  const ShopDeviceAllowance({this.extraSlots = 0, this.extrasExpiresAt});
 
   static const none = ShopDeviceAllowance();
 
@@ -201,9 +192,15 @@ class DeviceSlotResult {
   final String? errorCode;
 
   const DeviceSlotResult.granted(this.key)
-      : ok = true, fee = null, errorCode = null;
+    : ok = true,
+      fee = null,
+      errorCode = null;
   const DeviceSlotResult.paymentRequired(this.fee)
-      : ok = false, key = null, errorCode = 'payment_required';
+    : ok = false,
+      key = null,
+      errorCode = 'payment_required';
   const DeviceSlotResult.failure(this.errorCode)
-      : ok = false, key = null, fee = null;
+    : ok = false,
+      key = null,
+      fee = null;
 }

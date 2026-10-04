@@ -28,6 +28,83 @@ See the Phase C section below for implementation status.
 
 ---
 
+## 2026-10-03 — UX audit follow-up
+
+Continues the existing royal-blue/white direction; no palette redesign.
+- Inventory: no-match filters have an explicit Clear filters action; toolbar
+  export/category actions are grouped, summary wraps below search, and tablet
+  grid reserves space for Add.
+- Sell: columns adapt to the actual pane and text scale, price and stock badge
+  have separate lines, cart CTA wraps, and tap animation respects reduced motion.
+- Checkout: required customer name gets inline validation and focus; the cart
+  summary wraps its total; dismissal safely restores the cart's pricing tier.
+- Color review: light success badge was 4.486:1 on its fill; darkened the green
+  by one channel step (`#0B7E4E`) to pass 4.5:1. Other tested foreground/fill
+  pairs pass in both themes. Actual widget renders reviewed with fixture data,
+  Inter/Noto Sans Myanmar and the Material icon font; not a live-sale exercise.
+- 22 targeted checks passed; full `flutter analyze` clean and **862/862 tests pass**.
+  Independent review found no important regressions. Signed iPhone release build
+  succeeded (42.7 MB). CoreDevice installed the app after the phone was unlocked.
+  Automatic launch is blocked by iOS Security; the local signature is valid and
+  the device-specific profile expires 2026-10-09. Awaiting on-device trust or
+  verification feedback. Flutter's wireless Xcode destination lookup timed out.
+
+---
+
+## 2026-10-02 — step 2a: UX-flow fixes from the five-daily-tasks walk
+
+Scope: flow, not look. Tab structure, Settings layout, License, auth and
+`supabase/` untouched. Verified on the iPad (A16) simulator, English and
+Myanmar. Not committed.
+- **Orders hub:** Invoices is now the FIRST sub-tab and the default
+  (`OrdersInvoicesHubScreen.invoicesTab = 0`); "Social Orders" is the second,
+  labelled in full. App-bar title is constant ("Orders"). `/invoices` is the
+  branch's first route (so the bottom-nav lands on it); `/orders` and
+  `/invoices` deep links still open their own sub-tab (tests added). Invoice
+  rows now show invoice no + customer name (if any) + payment method + time,
+  with a Paid / Credit / Refunded chip beside the method and time (it wraps below on narrow widths).
+- **Sale-complete panel:** Done stays the one filled button; Print and Share
+  invoice sit under it. Print = thermal printer if one is configured
+  (`printSaleReceipt`) else the system print dialog with the invoice PDF;
+  Share = the invoice PNG share sheet. Both moved into
+  `lib/features/invoices/invoice_actions.dart` and are shared with the invoice
+  detail screen (which previously held a private copy). Share now passes
+  `sharePositionOrigin`: on iPad the sheet is a popover and the old call
+  failed silently without an anchor (a latent bug on the detail screen too).
+  Taps to print/share after a sale: ~4+ -> 1.
+- **Stock adjust:** modes are "Count is now" (default, pre-filled with current
+  stock, reason "Recount", shows the signed change) and "+ Received" (units +
+  optional unit cost). Reason list: Recount / Damaged / Lost / Other. Replaces
+  the signed-delta field that defaulted to Restock and to Damaged.
+- **Add product:** up front only photo (online builds), name, price, quantity.
+  Category, cost, wholesale, VIP, reorder level, online toggle + limit,
+  barcode, SKU and stock history sit under a "More details" fold (open when
+  editing, closed when adding). The tier-price hint now sits directly under
+  the Wholesale/VIP fields it describes, not under Cost.
+- **Sell tiles:** 48dp photo-or-initial + name + price + stock cue in a ~72dp
+  horizontal tile (was a ~175dp portrait card); 2 columns on a phone, 3 in the
+  tablet split. Hold, Saved sales and Clear icons are always present
+  (disabled when there is nothing to act on) so the toolbar never shifts.
+- **Analytics:** default range is Today. Leads with Sales / Collected / Owed;
+  a "{n} sales" chip and a Low-stock chip appear only when non-zero; Gross
+  profit, Net profit, Expenses and Stock value live in a collapsed "Profit"
+  fold, and zero Expenses / Stock value tiles are left out. The glance figure
+  is sized to its cell with a bounded TextPainter (FittedBox + MoneyText's
+  hard ellipsis clipped "Ks"/"ကျပ်").
+- **Strings:** added `stockAdjustModeCount/Received`, `stockReasonRecount`,
+  `stockAdjustChange`, `productMoreDetails(+Subtitle)`,
+  `analyticsSalesHeadline/Owed/ProfitSection(+Subtitle)/SalesCountChip`;
+  removed the now-unused `stockAdjustModeRestock/Adjust`,
+  `stockAdjustQuantityHintAdjust`, `stockReasonCount`, `analyticsRevenue`,
+  `analyticsSalesCount`, `analyticsCreditOutstanding`.
+- **Not verified:** a product with a real photo in the new tile; low/out
+  stock badge in the new tile; a credit sale's Credit chip and a named
+  customer's row live; phone width; text scale 1.3; dark mode; Android; the
+  thermal-print and PDF-print branches of Print (needs a printer / AirPrint
+  sheet).
+
+---
+
 ## 2026-10-02 — v3b: clear royal blue on pure white (step 1b, owner: "washed out / muddy")
 
 **Trigger:** owner called step 1's colours washed out / muddy and pointed at a
@@ -922,3 +999,35 @@ Tap coordinates for this tool are in **device points** as reported by `attach` (
 - **Recommendation for next session:** either (a) ask the user to grant Accessibility permission to the terminal/agent process so `osascript`/System Events can inject taps, (b) ask the user to manually tap through Sell → Checkout and Onboarding while screenshots are taken between steps, or (c) fix the widget-test harness per the note above. Do not claim Sell/Checkout/en-locale visual verification happened without one of these.
 
 | 2026-08-16 | E (follow-up) | **`printer_settings_screen.dart` — owner reviewed a screenshot of PROJECT_SPEC.md #123's per-printer paper-size feature and asked for a focused visual/UX pass, no behavior changes.** Full detail in PROJECT_SPEC.md §12 #124. Short version: the "pick a different printer" list's bare `Icons.bluetooth` `ListTile`s became a new `_PairedDeviceTile` using `IconAvatar`, wrapped in one `Card` with hairline `Divider`s to harmonize with the active-printer `Card` already above it (that one already used `IconAvatar`/`StatusPill` from the original Phase E pass — this closes the gap on the list below it, which Phase E's original pass left as plain `ListTile`s); the selected row gets `selectedTileColor: colorScheme.secondaryContainer` (reusing `invoices_screen.dart`'s established selected-row pattern) plus a positive-toned `IconAvatar` and a trailing check icon; the three inline `titleMedium` section headers became `SectionHeader` (the established sub-section pattern, see `storefront_screen.dart`); the new paper-size-choice dialog's `MaterialLocalizations...okButtonLabel` ("OK", the only such call site in the app) became `l.commonSave` and gained the `l.commonCancel` button every other choice-dialog in the app has (`stock_adjust_dialog.dart` etc.) — no icon-framed dialog convention exists anywhere in the codebase (grepped all `AlertDialog(` call sites), so none was invented here. No new i18n keys — reused `commonSave`/`commonCancel`. `flutter analyze` clean, 399/399 tests pass unchanged. | **Coordinate-calibration note confirmed again this session** (see the note above): a stale, non-rebuilt app on the simulator can look deceptively similar to a fresh build when the diff is subtle styling (titleMedium bold-black vs. SectionHeader's titleSmall+onSurfaceVariant look similar at a glance) — did a real `flutter run --dart-define-from-file=env.local.json` rebuild specifically to be sure the installed binary reflected the change, rather than trusting a `simctl launch` of a possibly-stale install. **Verified live** on iPhone 17 Pro, `en`+`my` × light+dark, no-printer-paired state: section headers and the Myanmar "ချိတ်ဆက်ထားသော စက်များ" header + trailing button don't collide, no overflow in any of the four combinations. **Not reachable live** (no real Bluetooth peripherals in the Simulator, same limitation every prior Phase E entry already hit on this exact screen): the active-printer `Card`, the paired-list's populated/selected-row state, and the new dialog — all code-reviewed only. |
+
+## Step 2b — Settings tab becomes the "Shop" tab (2026-10-02)
+- Tab label `Settings` -> `Shop` / `လုပ်ငန်း` (l10n key `navSettings` renamed `navShop`; also the screen's app-bar title), icon `Icons.settings` -> `Icons.storefront`. Route stays `/settings`. Myanmar: လုပ်ငန်း is 6 glyphs (fits the nav cell) and covers non-retail SMEs, while ဆိုင် is already the vocabulary of the "Shop profile" row.
+- Screen re-grouped, rows/locks/visibility rules untouched: **Daily** (Customers, Credit book + owed subtitle, Cash register, Suppliers, Purchase orders, Expenses, Payment accounts, Accounts payable, Owner's equity) then **Setup** in three cards (Shop profile, Track stock, Account, License, Staff accounts, Branches, Web storefront | Printer, Barcode scanner, Label printer, Device name, Cloud sync, Backup | Language, Appearance), then Help, Owner Tools. Old Business/Finance/Account & Team/Device headers removed.
+- `AppSectionHeader` now ink (onSurface) 700 instead of primary blue; `SettingsGroup` draws hairline dividers between rows.
+- Tests: `nav_label_scale_test.dart`, `role_based_tabs_test.dart` updated for new key/icon.
+
+
+## 2026-10-03 — Color/state follow-up plan
+
+Reviewed the owner’s five iPhone screenshots and shared light/dark widget states. Selected/pressed/focused segment contrast and busy disabled-button spinner contrast pass; stock edit icon contrast also passes. The grey date-range selection and tablet order selection should use the existing blue selection pair; selected switches must respect disabled first; negative YTD profit should use the existing danger foreground while keeping its sign. Social Orders needs final-row FAB clearance verification and spacing correction. Plain report icons and neutral empty-state plates serve distinct roles and do not require matching blue backgrounds. The owner’s screenshots confirm the previously installed app opens.
+
+Four targeted audit checks passed; application code was not changed in this planning pass. Implementation and physical-phone acceptance checks remain pending. See [implementation plan](superpowers/plans/2026-10-03-ui-color-state-followup.md).
+
+
+## 2026-10-03 — Color/state implementation
+
+Owner approved near-black main text: light onSurface is now charcoal `#111827`, with royal blue still reserved for actions/selection and semantic green/amber/red retained. State-aware segment/chip/navigation/rail selection uses the primaryContainer pairing. Disabled switches fall back to Material defaults, and disabled chip text avoids double opacity. The ripple review also aligned tablet Invoice and printer selected tiles while retaining the neutral payment-method chip. Negative YTD profit alone uses danger foreground; zero, positive, loading, cash-flow and net-worth subtitles keep their existing presentation.
+
+Social Orders final-row padding is 96dp. A selected payment dot/label gets its own semantic fill because light green text on the blue selection was 4.457:1. EN/my real-font phone/tablet tests at 1×/2× verify last-row clearance and detail actionability; the revealed Myanmar tracking field/action overflow is fixed with a stacked layout. Read-only review found no remaining production defect. Physical-phone hover/focus/held-press checks remain outside the automated evidence. Final `flutter analyze` is clean and **902/902 tests pass**; signed release build succeeded (42.7 MB), and CoreDevice installed and successfully launched the updated app on the paired iPhone. Physical visual acceptance remains for the owner.
+
+
+## 2026-10-03 — Sell toolbar hierarchy
+
+The owner’s phone screenshot showed title, staff badge and five equally weighted action icons. The previous always-visible disabled Hold/Saved/Clear decision was superseded: the phone/tablet app bar now uses a left title with compact staff subtitle, Scan, notification, and More. Hold, held-sales count and Clear are labelled menu entries; Clear stays separated and confirmed. Held carts keep a visible badge on More and resuming still parks an already-active cart. Staff names are bounded with a full-name tooltip; owner mode has no subtitle. Header/search sizing respects text scale. Money strip and product content are retained; collapsing that summary is deferred until transaction visibility is evaluated separately.
+
+Thirty focused real-font tests pass (EN/my × light/dark × 320/430/1024dp × 1×/2×, long Myanmar staff names, owner mode, empty/active carts and Hold/resume/Clear). Original narrow toolbar produced a 232dp overflow before the change. Read-only review found no new production defect. Combined toolbar/prior UI checks: **58/58 pass**; `flutter analyze` clean. Full workspace run: 936 pass, 3 fail in Premium vendor pricing/app_config assertions. The separate Premium implementation continues in this shared checkout; device delivery is pending those failures and coordinated release. No new phone build was installed. Toolbar-only patch: `/tmp/pos-toolbar-only.patch`.
+
+
+### 2026-10-04 — Authorized delivery coordination
+
+The owner explicitly authorized messaging the “Review premium changes” chat. Sent the completed Sell-toolbar scope, 30 focused/58 combined UI test evidence and the previous full-workspace failures; requested preservation of the UI changes and one coordinated final verification/iPhone deployment after Premium backend/client compatibility is ready. The production Premium cutover remains pending; no duplicate or mixed in-progress phone deployment was attempted by the UI task.

@@ -17,7 +17,9 @@ const _refreshTimeout = Duration(seconds: 8);
 /// returns.
 Future<void> refreshSessionBounded() async {
   try {
-    await Supabase.instance.client.auth.refreshSession().timeout(_refreshTimeout);
+    await Supabase.instance.client.auth.refreshSession().timeout(
+      _refreshTimeout,
+    );
   } catch (_) {}
 }
 
@@ -77,7 +79,9 @@ String classifyInvokeError(Object error) {
     // 401 with a prose body ("Invalid JWT") used to become an unmapped
     // code and show "Something went wrong" after a successful password.
     if (error.status == 401) {
-      return fromBody == 'not_activated' ? 'not_activated' : 'not_authenticated';
+      return fromBody == 'not_activated'
+          ? 'not_activated'
+          : 'not_authenticated';
     }
     if (error.status == 403) {
       // Every current 403 from `activate` carries its own `error: "forbidden"`
@@ -108,8 +112,6 @@ Future<FunctionResponse> invokeActivate(Map<String, dynamic> body) async {
   return client.functions.invokeBounded(
     'activate',
     body: body,
-    headers: {
-      if (token != null) 'Authorization': 'Bearer $token',
-    },
+    headers: {if (token != null) 'Authorization': 'Bearer $token'},
   );
 }

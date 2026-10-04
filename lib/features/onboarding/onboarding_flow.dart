@@ -18,6 +18,8 @@ import '../account/auth_password_field.dart';
 import '../account/forgot_password_dialog.dart';
 import '../account/password_strength.dart';
 import '../account/saved_login_store.dart';
+import '../account/social_auth.dart';
+import '../account/social_auth_widgets.dart';
 import '../license/license_model.dart';
 import '../license/license_providers.dart';
 import '../printing/printing_providers.dart';
@@ -650,6 +652,46 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     }
   }
 
+  Future<void> _socialSignIn(SocialAuthProvider provider) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final account = ref.read(accountRepositoryProvider);
+    final result = await runSocialSignIn(
+      context,
+      signIn: () => account.signInWithSocial(provider),
+      completeSignup: account.completeSocialSignup,
+      confirmSwitch: account.confirmWipeAndClaimDevice,
+      canRecoverDevice: () => account.currentAccountRole == 'owner',
+      cancelSession: () async {
+        await Supabase.instance.client.auth.signOut();
+        if (!mounted) return;
+        ref.invalidate(backendAccountRoleProvider);
+        ref.invalidate(hasRealAccountSessionProvider);
+      },
+    );
+    if (!mounted) return;
+    ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(hasRealAccountSessionProvider);
+    if (result == null) {
+      setState(() => _busy = false);
+      return;
+    }
+    if (result.ok && result.license != null) {
+      await _finishWithLicense(result.license!, rememberPassword: false);
+    } else {
+      setState(() {
+        _busy = false;
+        _error = accountActionErrorMessage(
+          AppLocalizations.of(context),
+          result.error,
+        );
+      });
+    }
+  }
+
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
@@ -711,12 +753,17 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
     }
   }
 
-  Future<void> _finishWithLicense(CachedLicense license) async {
-    await _savedLogin.remember(
-      ref.read(savedLoginStoreProvider),
-      email: _email.text.trim(),
-      password: _password.text,
-    );
+  Future<void> _finishWithLicense(
+    CachedLicense license, {
+    bool rememberPassword = true,
+  }) async {
+    if (rememberPassword) {
+      await _savedLogin.remember(
+        ref.read(savedLoginStoreProvider),
+        email: _email.text.trim(),
+        password: _password.text,
+      );
+    }
     if (!mounted) return;
     await ref.read(licenseControllerProvider.notifier).applyExternal(license);
     ref.invalidate(hasRealAccountSessionProvider);
@@ -784,6 +831,13 @@ class _AccountPageState extends ConsumerState<_AccountPage> {
               ),
             ],
             const SizedBox(height: AppTheme.space4),
+            SocialAuthButtons(
+              providers: ref
+                  .read(accountRepositoryProvider)
+                  .availableSocialProviders,
+              busy: _busy,
+              onSelected: _socialSignIn,
+            ),
             SegmentedButton<bool>(
               segments: [
                 ButtonSegment(

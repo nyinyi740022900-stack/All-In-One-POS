@@ -34,26 +34,34 @@ void main() {
     expect(const VendorConfig().deviceFreeLimit, 3);
   });
 
-  test('priceFor: online price defaults to the offline price when unset',
-      () {
+  test('priceFor: online price defaults to the offline price when unset', () {
     final cfg = VendorConfig.fromMap({
       'price.monthly': '15000',
       'price.yearly': '150000',
     });
-    expect(cfg.priceFor('monthly', tier: 'online'), 15000);
-    expect(cfg.priceFor('yearly', tier: 'online'), 150000);
+    expect(cfg.priceFor('monthly', tier: 'online'), 20000);
+    expect(cfg.priceFor('yearly', tier: 'online'), 200000);
   });
 
-  test('priceFor: an explicitly-set online price overrides the default', () {
+  test('priceFor: legacy online price cannot create a second pricing tier', () {
     final cfg = VendorConfig.fromMap({
       'price.monthly': '15000',
       'price.yearly': '150000',
       'price.monthly.online': '25000',
       'price.yearly.online': '250000',
     });
-    expect(cfg.priceFor('monthly'), 15000);
-    expect(cfg.priceFor('monthly', tier: 'online'), 25000);
-    expect(cfg.priceFor('yearly', tier: 'online'), 250000);
+    expect(cfg.priceFor('monthly'), 20000);
+    expect(cfg.priceFor('monthly', tier: 'online'), 20000);
+    expect(cfg.priceFor('yearly', tier: 'online'), 200000);
+  });
+
+  test('authenticated checkout is available from configured variants without a public Buy Now URL', () {
+    final cfg = VendorConfig.fromMap({
+      'pay.lemonsqueezy.store_slug': 'shop',
+      'pay.lemonsqueezy.variant_monthly': '123',
+      'pay.lemonsqueezy.variant_yearly': '456',
+    });
+    expect(cfg.hasLemonSqueezy, isTrue);
   });
 
   test('load() falls back to the cached config when offline', () async {
@@ -61,10 +69,11 @@ void main() {
     addTearDown(db.close);
     final settings = SettingsRepository(db);
     // Seed a cached config (as an online refresh would have written).
-    await settings.setVendorConfigJson(jsonEncode(const VendorConfig(
-      kbzNumber: '09777',
-      supportViber: '09888',
-    ).toMap()));
+    await settings.setVendorConfigJson(
+      jsonEncode(
+        const VendorConfig(kbzNumber: '09777', supportViber: '09888').toMap(),
+      ),
+    );
 
     // No backend configured in tests → load() reads the cache.
     final cfg = await VendorConfigRepository(settings).load();

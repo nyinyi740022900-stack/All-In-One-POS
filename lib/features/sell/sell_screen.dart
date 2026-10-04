@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,14 +146,29 @@ class SellScreen extends ConsumerWidget {
         daysLeft <= 5;
     final daysLeftShown = daysLeft == null ? 0 : (daysLeft < 0 ? 0 : daysLeft);
     final heldCount = ref.watch(heldSalesProvider).length;
+    final showStaff = !ref.watch(isEffectiveOwnerProvider);
+    final theme = Theme.of(context);
+    double lineHeight(TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: l.sellTitle, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    final toolbarHeight = math.max(
+      kToolbarHeight,
+      lineHeight(theme.textTheme.titleLarge!) +
+          (showStaff
+              ? lineHeight(theme.textTheme.labelSmall!) + AppTheme.space1
+              : 0) +
+          AppTheme.space2,
+    );
     final split = isMediumPlus(context);
-    // Sized so a phone keeps **three** columns now that each tile carries a
-    // photo band: `SliverGridDelegateWithMaxCrossAxisExtent` counts the
-    // cross-axis spacing into the extent, so the old 180 gave only two
-    // 183pt-wide tiles on a 402pt phone — a shop-window layout, not a
-    // counter one. 132 lands on three ~118pt tiles (still 2 on a small
-    // 320pt phone), 168 on four in the tablet split view.
-    final tileExtent = split ? 168.0 : 132.0;
     final trailFlex = widthClassOf(context) == AppWidthClass.expanded ? 38 : 42;
     final leadFlex = 100 - trailFlex;
 
@@ -218,50 +235,71 @@ class SellScreen extends ConsumerWidget {
                   title: searching ? l.inventoryNoResults : l.inventoryEmpty,
                 );
               }
-              return GridView.builder(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: tileExtent,
-                  mainAxisSpacing: AppTheme.space3,
-                  crossAxisSpacing: AppTheme.space3,
-                  // Portrait, not the old near-square 1.1. The tile now
-                  // carries a photo band *plus* two lines of name plus a
-                  // price; at 1.1 the image band collapsed to a sliver.
-                  // 0.68 leaves the photo band a near-square top half at
-                  // default text scale (the two-line name + price block below
-                  // it is a fixed height) while keeping three columns on a
-                  // phone — density the counter can't afford to lose.
-                  childAspectRatio: 0.68,
-                ),
-                itemCount: filtered.length,
-                itemBuilder: (context, i) {
-                  final p = filtered[i];
-                  // Stateful card (tap-bump animation): a stable key stops a
-                  // mid-scroll insertion from attaching one row's pressed
-                  // state to another product (audit Low).
-                  return _ProductCard(
-                    key: ValueKey('sell-${p.product.id}'),
-                    name: p.product.name,
-                    price: Money(p.product.salePrice).withCurrency(currency, locale),
-                    imageUrl: p.product.imageUrl,
-                    outOfStock: trackStock && p.quantity <= 0,
-                    lowStockLeft: trackStock && p.quantity > 0 && p.isLowStock
-                        ? p.quantity
-                        : null,
-                    onTap: () {
-                      final ok = ref
-                          .read(cartProvider.notifier)
-                          .addProduct(
-                            p.product,
-                            maxQty: trackStock ? p.quantity : null,
-                          );
-                      if (ok) {
-                        // A noisy shop confirms the add by touch — the bump
-                        // animation below can be out of the eye line.
-                        HapticFeedback.selectionClick();
-                      } else {
-                        showStockCapSnackBar(context, l, p.quantity);
-                      }
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  // Size from the product pane, not the display: on a tablet
+                  // the cart and navigation rail have already taken their share.
+                  final scaler = MediaQuery.textScalerOf(context);
+                  final minTileWidth =
+                      220.0 * math.max(1.0, scaler.scale(14) / 14);
+                  final columns = math.max(
+                    1,
+                    ((constraints.maxWidth -
+                                AppTheme.space3 * 2 +
+                                AppTheme.space3) /
+                            (minTileWidth + AppTheme.space3))
+                        .floor(),
+                  );
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(AppTheme.space3),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: AppTheme.space3,
+                      crossAxisSpacing: AppTheme.space3,
+                      mainAxisExtent: _productTileHeight(
+                        context,
+                        stockCue:
+                            trackStock &&
+                            filtered.any(
+                              (p) =>
+                                  p.quantity <= 0 ||
+                                  (p.reorderLevel > 0 &&
+                                      p.quantity <= p.reorderLevel),
+                            ),
+                      ),
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) {
+                      final p = filtered[i];
+                      // Stateful card (tap-bump animation): a stable key stops a
+                      // mid-scroll insertion from attaching one row's pressed
+                      // state to another product (audit Low).
+                      return _ProductCard(
+                        key: ValueKey('sell-${p.product.id}'),
+                        name: p.product.name,
+                        price: Money(
+                          p.product.salePrice,
+                        ).withCurrency(currency, locale),
+                        imageUrl: p.product.imageUrl,
+                        outOfStock: trackStock && p.quantity <= 0,
+                        lowStockLeft:
+                            trackStock && p.quantity > 0 && p.isLowStock
+                            ? p.quantity
+                            : null,
+                        onTap: () {
+                          final ok = ref
+                              .read(cartProvider.notifier)
+                              .addProduct(
+                                p.product,
+                                maxQty: trackStock ? p.quantity : null,
+                              );
+                          if (ok) {
+                            HapticFeedback.selectionClick();
+                          } else {
+                            showStockCapSnackBar(context, l, p.quantity);
+                          }
+                        },
+                      );
                     },
                   );
                 },
@@ -276,46 +314,99 @@ class SellScreen extends ConsumerWidget {
       onScan: (code) => applyScannedSellCode(context, ref, l, code),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(l.sellTitle),
+          centerTitle: false,
+          toolbarHeight: toolbarHeight,
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.sellTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (showStaff) ...[
+                const SizedBox(height: AppTheme.space1),
+                const StaffBadge(),
+              ],
+            ],
+          ),
           actions: [
-            // Persistent cue for who's ringing up sales — previously only
-            // discoverable reactively, via the discount PIN gate interrupting
-            // a staff member mid-sale. Renders nothing for the owner.
-            const StaffBadge(),
             IconButton(
               tooltip: l.scanBarcode,
               icon: const Icon(Icons.qr_code_scanner),
               onPressed: () => _scanAndAdd(context, ref, l),
             ),
-            if (!cart.isEmpty)
-              IconButton(
-                tooltip: l.sellHoldSale,
-                icon: const Icon(Icons.pause_circle_outline),
-                onPressed: () => _holdCart(context, ref, l),
-              ),
-            if (heldCount > 0)
-              Badge.count(
-                count: heldCount,
-                child: IconButton(
-                  tooltip: l.sellHeldTitle,
-                  icon: const Icon(Icons.bookmark_border),
-                  onPressed: () => _openHeldSales(context, ref, l),
-                ),
-              ),
-            if (!cart.isEmpty)
-              IconButton(
-                tooltip: l.sellClear,
-                icon: const Icon(Icons.remove_shopping_cart),
-                onPressed: () => _confirmClear(context, ref, l),
-              ),
-            // Rightmost, and last in this list on purpose: everything above
-            // acts on the sale in progress, the bell does not. Keeping it at
-            // the edge means it never moves when the cart-dependent actions
-            // above appear and disappear mid-sale.
             const NotificationBell(),
+            Badge.count(
+              count: heldCount,
+              isLabelVisible: heldCount > 0,
+              child: PopupMenuButton<String>(
+                tooltip: l.commonMore,
+                onSelected: (action) {
+                  switch (action) {
+                    case 'hold':
+                      _holdCart(context, ref, l);
+                    case 'held':
+                      _openHeldSales(context, ref, l);
+                    case 'clear':
+                      _confirmClear(context, ref, l);
+                  }
+                },
+                itemBuilder: (menuContext) => [
+                  PopupMenuItem(
+                    value: 'hold',
+                    enabled: !cart.isEmpty,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      enabled: !cart.isEmpty,
+                      leading: const Icon(Icons.pause_circle_outline),
+                      title: Text(l.sellHoldSale),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'held',
+                    enabled: heldCount > 0,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      enabled: heldCount > 0,
+                      leading: const Icon(Icons.bookmark_border),
+                      title: Text(l.sellHeldTitle),
+                      trailing: Text(
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatDecimal(heldCount),
+                      ),
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'clear',
+                    enabled: !cart.isEmpty,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      enabled: !cart.isEmpty,
+                      leading: Icon(
+                        Icons.remove_shopping_cart,
+                        color: cart.isEmpty
+                            ? null
+                            : AppColors.of(context).danger,
+                      ),
+                      title: Text(
+                        l.sellClear,
+                        style: cart.isEmpty
+                            ? null
+                            : TextStyle(color: AppColors.of(context).danger),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
+            preferredSize: Size.fromHeight(
+              math.max(
+                56,
+                MediaQuery.textScalerOf(context).scale(16) * 1.5 + 32,
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppTheme.space4,
@@ -643,7 +734,7 @@ class _ProductCardState extends State<_ProductCard> {
     // caller answers with the "only N left" snackbar. Swallowing the tap here
     // (as this used to) left a card that ripples under your finger and then
     // does nothing at all — the worst possible answer at a counter.
-    if (!widget.outOfStock) {
+    if (!widget.outOfStock && !MediaQuery.disableAnimationsOf(context)) {
       setState(() => _pressed = true);
       Future.delayed(AppTheme.motionFast, () {
         if (mounted) setState(() => _pressed = false);
@@ -659,68 +750,34 @@ class _ProductCardState extends State<_ProductCard> {
     final colors = AppColors.of(context);
     return AnimatedScale(
       scale: _pressed ? 0.96 : 1.0,
-      duration: AppTheme.motionFast,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : AppTheme.motionFast,
       curve: AppTheme.curveEmphasized,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: _bump,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // The photo band takes whatever the text block leaves, rather
-              // than a fixed fraction — so a long Myanmar name or a 1.3x text
-              // scale shrinks the image instead of overflowing the tile.
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ProductThumb(
-                      name: widget.name,
-                      imageUrl: widget.imageUrl,
-                      radius: 0,
-                      dimmed: widget.outOfStock,
-                    ),
-                    if (widget.outOfStock || widget.lowStockLeft != null)
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppTheme.space2),
-                          child: widget.outOfStock
-                              ? const _StockBadge.out()
-                              : _StockBadge.low(widget.lowStockLeft!),
-                        ),
-                      ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space2),
+            child: Row(
+              children: [
+                // Photo when there is one, otherwise a small muted initial —
+                // never a tall empty box.
+                ProductThumb(
+                  name: widget.name,
+                  imageUrl: widget.imageUrl,
+                  size: _kProductThumbSize,
+                  radius: AppTheme.radiusSm,
+                  dimmed: widget.outOfStock,
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.space3,
-                  AppTheme.space2,
-                  AppTheme.space3,
-                  AppTheme.space3,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Always exactly two lines tall, even for a one-word
-                    // name. Without this the text block's height varied per
-                    // tile, so the photo band above it did too and the names
-                    // in a row started at three different heights — the same
-                    // class of raggedness as a price column that doesn't line
-                    // up. Reserved from the *scaled* font size, so it grows
-                    // with the user's text-size setting instead of clipping
-                    // a longer Myanmar name at 1.3x.
-                    SizedBox(
-                      height:
-                          MediaQuery.textScalerOf(
-                            context,
-                          ).scale(theme.textTheme.titleSmall?.fontSize ?? 14) *
-                          (theme.textTheme.titleSmall?.height ?? 1.4) *
-                          2,
-                      child: Text(
+                const SizedBox(width: AppTheme.space3),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         widget.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -730,19 +787,27 @@ class _ProductCardState extends State<_ProductCard> {
                               : scheme.onSurface,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppTheme.space1),
-                    MoneyText(
-                      widget.price,
-                      style: theme.textTheme.titleSmall,
-                      color: widget.outOfStock ? colors.muted : scheme.onSurface,
-                      emphasis: true,
-                      textAlign: TextAlign.left,
-                    ),
-                  ],
+                      MoneyText(
+                        widget.price,
+                        style: theme.textTheme.titleSmall,
+                        color: widget.outOfStock
+                            ? colors.muted
+                            : scheme.onSurface,
+                        emphasis: true,
+                        textAlign: TextAlign.left,
+                      ),
+                      if (widget.outOfStock || widget.lowStockLeft != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppTheme.space1),
+                          child: widget.outOfStock
+                              ? const _StockBadge.out()
+                              : _StockBadge.low(widget.lowStockLeft!),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -750,7 +815,26 @@ class _ProductCardState extends State<_ProductCard> {
   }
 }
 
-/// Stock cue laid over the product photo — stock is the shop's main variable
+const double _kProductThumbSize = 48;
+
+/// Height of one compact product tile, from the scaled text metrics.
+double _productTileHeight(BuildContext context, {bool stockCue = false}) {
+  final style = Theme.of(context).textTheme.titleSmall;
+  final line =
+      MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 14) *
+      (style?.height ?? 1.4);
+  return math.max(
+    _kProductThumbSize + AppTheme.space2 * 2,
+    line * 3 +
+        AppTheme.space2 * 2 +
+        2 +
+        (stockCue
+            ? MediaQuery.textScalerOf(context).scale(11) * 1.5 * 2 + 8
+            : 0),
+  );
+}
+
+/// Stock cue shown beside the price — stock is the shop's main variable
 /// and the cashier should know *before* the tap whether a tile will sell.
 /// Two tiers on the soft-fill pairs: sold out (danger) and running low with the
 /// remaining count (warning). Healthy stock shows nothing, so the cue stays
@@ -947,8 +1031,11 @@ class _CartBar extends StatelessWidget {
           padding: const EdgeInsets.all(AppTheme.space3),
           child: FilledButton(
             onPressed: onCheckout,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppTheme.space2,
+              runSpacing: AppTheme.space1,
               children: [
                 Text('${l.sellCheckout}  ($itemCount)'),
                 Text(
@@ -1027,8 +1114,9 @@ class _SellSearchFieldState extends ConsumerState<_SellSearchField> {
                   label: l.categoryAll,
                   count: counts[null] ?? 0,
                 ),
-                for (final c in (ref.read(categoriesStreamProvider).valueOrNull ??
-                    const []))
+                for (final c
+                    in (ref.read(categoriesStreamProvider).valueOrNull ??
+                        const []))
                   CategoryFilterOption(
                     id: c.id,
                     label: c.name,

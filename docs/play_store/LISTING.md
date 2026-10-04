@@ -20,7 +20,7 @@ All In One POS is an offline-first point of sale for Myanmar SMEs — grocery, m
 • Free plan to sell forever; Premium unlocks advanced tools  
 • English and Myanmar throughout  
 
-Licensing: activate with a key from Support, or sign in online. Premium is not sold via Google Play Billing — it unlocks business POS features for your physical shop.
+Free POS features work without an account. Sign in to your shop account to access its available Premium features.
 
 ## Full description (MY)
 All In One POS သည် မြန်မာ SME ဆိုင်များအတွက် offline-first POS ဖြစ်သည်။
@@ -33,7 +33,7 @@ All In One POS သည် မြန်မာ SME ဆိုင်များအ�
 • Free plan ဖြင့် အမြဲရောင်းနိုင်; Premium ဖြင့် အဆင့်မြင့် လုပ်ဆောင်ချက်များ  
 • အင်္ဂလိပ် + မြန်မာ  
 
-လိုင်စင်: Support မှ key သို့မဟုတ် Online login။ Google Play Billing IAP မဟုတ်ပါ။
+Free POS လုပ်ဆောင်ချက်များကို account မလိုဘဲ သုံးနိုင်ပါသည်။ သင့်ဆိုင် account တွင် အသုံးပြုခွင့်ရှိသော Premium လုပ်ဆောင်ချက်များကို သုံးရန် ဝင်ရောက်ပါ။
 
 ## Graphics
 | Asset | Size |

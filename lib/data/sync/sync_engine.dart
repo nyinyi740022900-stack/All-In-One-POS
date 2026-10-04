@@ -169,7 +169,9 @@ class SupabaseSyncRemote implements SyncRemote {
       final merged = <String, ({String updatedAt, String? hlc})>{};
       for (var i = 0; i < idList.length; i += chunkSize) {
         final chunk = idList.sublist(
-            i, i + chunkSize > idList.length ? idList.length : i + chunkSize);
+          i,
+          i + chunkSize > idList.length ? idList.length : i + chunkSize,
+        );
         final rows = await _client
             .from(table)
             .select('id,updated_at,hlc')
@@ -238,6 +240,8 @@ class SyncResult {
 /// Drains the outbox to the backend, then pulls remote changes and merges them
 /// with last-write-wins. Failures auto-heal (remote-exists / FK pull /
 /// force-apply) so owners never Discard or call Support for sync.
+class SyncAccessPaused implements Exception {}
+
 class SyncEngine {
   SyncEngine({
     required this.db,
@@ -245,8 +249,15 @@ class SyncEngine {
     required this.settings,
     required this.shopId,
     List<SyncTableDef>? tables,
+    this.canContinue,
   }) : tables = tables ?? syncTables {
     _byName = {for (final t in this.tables) t.name: t};
+  }
+
+  final bool Function()? canContinue;
+
+  void _checkAccess() {
+    if (canContinue?.call() == false) throw SyncAccessPaused();
   }
 
   final AppDatabase db;
@@ -266,6 +277,7 @@ class SyncEngine {
   }
 
   Future<SyncResult> syncNow() async {
+    _checkAccess();
     _didFkPullThisSync = false;
     _didSessionRefreshThisSync = false;
     await _resetHealableRlsFailures();
@@ -289,6 +301,7 @@ class SyncEngine {
             ))
             .get();
     for (final item in items) {
+      _checkAccess();
       if (!isRlsOutboxError(item.lastError)) continue;
       await (db.update(db.outbox)..where((o) => o.seq.equals(item.seq))).write(
         const OutboxCompanion(
@@ -308,6 +321,7 @@ class SyncEngine {
     Set<String> ids,
   ) async {
     if (shopId.isEmpty) return null;
+    _checkAccess();
     return remote.fetchRowStampsByIds(table, shopId, ids);
   }
 
@@ -353,10 +367,12 @@ class SyncEngine {
 
     final byTable = <String, List<OutboxData>>{};
     for (final item in items) {
+      _checkAccess();
       (byTable[item.entityTable] ??= []).add(item);
     }
 
     for (final entry in byTable.entries) {
+      _checkAccess();
       final def = _byName[entry.key];
       if (def == null) continue;
       // Only probe the pending ids themselves (audit M2) — a full-table
@@ -421,8 +437,12 @@ class SyncEngine {
     if (_didFkPullThisSync || shopId.isEmpty) return;
     _didFkPullThisSync = true;
     for (final def in tables) {
+      _checkAccess();
       try {
+        _checkAccess();
+        _checkAccess();
         final changes = await remote.fetchChanges(def.name, shopId, null);
+        _checkAccess();
         // One transaction per table (see _pull for why) — the FK heal used
         // to invalidate every watching stream once PER ROW across EVERY
         // table, right when pushes are already failing.
@@ -437,6 +457,8 @@ class SyncEngine {
             }
           }
         });
+      } on SyncAccessPaused {
+        rethrow;
       } catch (_) {
         // Best-effort parent heal.
       }
@@ -462,6 +484,7 @@ class SyncEngine {
             .get();
 
     for (final item in items) {
+      _checkAccess();
       final def = _byName[item.entityTable];
       if (def == null) {
         await _removeOutbox(item.seq);
@@ -473,6 +496,7 @@ class SyncEngine {
         await _removeOutbox(item.seq);
         count++;
       } catch (e) {
+        if (e is SyncAccessPaused) rethrow;
         final err = e.toString();
         if (item.op == 'delete' && isNotFoundOutboxError(err)) {
           await _removeOutbox(item.seq);
@@ -494,6 +518,8 @@ class SyncEngine {
               await _dropOutboxAsAlreadyRemote(item);
               continue;
             }
+          } on SyncAccessPaused {
+            rethrow;
           } catch (_) {}
         }
 
@@ -506,6 +532,7 @@ class SyncEngine {
             count++;
             continue;
           } catch (e2) {
+            if (e2 is SyncAccessPaused) rethrow;
             await _recordPushFailure(
               item,
               e2.toString(),
@@ -533,6 +560,7 @@ class SyncEngine {
             count++;
             continue;
           } catch (e2) {
+            if (e2 is SyncAccessPaused) rethrow;
             await _recordPushFailure(
               item,
               e2.toString(),
@@ -557,6 +585,7 @@ class SyncEngine {
       final existing = await def.toRemote(db, item.rowId);
       final existingTs = existing?['updated_at'];
       if (existingTs is String) stamp = DateTime.parse(existingTs);
+      _checkAccess();
       await remote.markDeleted(
         item.entityTable,
         item.rowId,
@@ -587,6 +616,7 @@ class SyncEngine {
     // bring us the winner. The server therefore advances monotonically per
     // row and every device converges on the same value.
     if (shopId.isNotEmpty) {
+      _checkAccess();
       final stamps = await remote.fetchRowStampsByIds(
         item.entityTable,
         shopId,
@@ -603,6 +633,7 @@ class SyncEngine {
       item.rowId,
     ]);
     row['hlc'] = hlc;
+    _checkAccess();
     await remote.upsert(item.entityTable, row, onConflict: def.onConflict);
   }
 
@@ -636,6 +667,7 @@ class SyncEngine {
             ))
             .get();
     for (final item in items) {
+      _checkAccess();
       final def = _byName[item.entityTable];
       if (def == null) {
         await _removeOutbox(item.seq);
@@ -652,6 +684,7 @@ class SyncEngine {
         row['shop_id'] = shopId;
       }
 
+      _checkAccess();
       final result = await remote.forceApply(
         table: item.entityTable,
         op: item.op,
@@ -734,15 +767,18 @@ class SyncEngine {
   Future<int> _pull() async {
     var count = 0;
     for (final def in tables) {
+      _checkAccess();
       final since = await settings.syncReceivedCursor(def.name);
       // Rewind the watermark by the overlap window; the mappers dedupe.
       final effectiveSince = since?.subtract(_pullOverlap);
+      _checkAccess();
       final changes = await remote.fetchChanges(
         def.name,
         shopId,
         effectiveSince,
       );
 
+      _checkAccess();
       DateTime? maxSeen = since;
       String? strongest;
       // ONE transaction per table: Drift accumulates stream invalidations

@@ -3,8 +3,8 @@
 // Authenticated shop-scoped heal for outbox rows that PostgREST+RLS keeps
 // rejecting. The client never asks the owner to Discard or call Support —
 // after N failures it sends the live row here; we verify JWT shop_id matches
-// the payload, allowlist the table, then upsert/soft-delete with the service
-// role.
+// the payload and current subscription/session authority, then repair through
+// the authenticated client so row policies recheck entitlement at mutation time.
 //
 // POST body:
 //   { table, op: 'upsert'|'delete', id, row?, on_conflict? }
@@ -46,27 +46,46 @@ const ALLOWED_TABLES = new Set([
   "purchase_order_items",
 ]);
 
-Deno.serve(async (req) => {
+// deno-lint-ignore no-explicit-any
+export async function handleForceApply(
+  req: Request,
+  asUser: any,
+): Promise<Response> {
   if (req.method !== "POST") {
-    return json({ ok: false, status: "transient", detail: "method_not_allowed" }, 405);
+    return json({
+      ok: false,
+      status: "transient",
+      detail: "method_not_allowed",
+    }, 405);
   }
 
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-  const asUser = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
   const { data: userData, error: userErr } = await asUser.auth.getUser();
   if (userErr || !userData?.user) {
-    return json({ ok: false, status: "transient", detail: "not_authenticated" }, 401);
+    return json(
+      { ok: false, status: "transient", detail: "not_authenticated" },
+      401,
+    );
   }
 
   const claimShopId = userData.user.app_metadata?.shop_id as string | undefined;
   if (!claimShopId || typeof claimShopId !== "string") {
-    return json({ ok: false, status: "rejected_invalid", detail: "no_shop_claim" }, 403);
+    return json({
+      ok: false,
+      status: "rejected_invalid",
+      detail: "no_shop_claim",
+    }, 403);
+  }
+
+  const { data: authorizedShop, error: gateError } = await asUser.rpc(
+    "auth_shop_id",
+  );
+  if (gateError || authorizedShop !== claimShopId) {
+    // Entitlement or transport failure must never quarantine a valid local row.
+    return json({
+      ok: false,
+      status: "transient",
+      detail: gateError ? "verification_required" : "sync_paused",
+    });
   }
 
   let body: {
@@ -79,23 +98,38 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return json({ ok: false, status: "rejected_invalid", detail: "bad_json" }, 400);
+    return json(
+      { ok: false, status: "rejected_invalid", detail: "bad_json" },
+      400,
+    );
   }
 
   const table = body.table ?? "";
   const op = body.op ?? "";
   const id = body.id ?? "";
   if (!ALLOWED_TABLES.has(table)) {
-    return json({ ok: false, status: "rejected_invalid", detail: "table_not_allowed" }, 400);
+    return json({
+      ok: false,
+      status: "rejected_invalid",
+      detail: "table_not_allowed",
+    }, 400);
   }
   if (op !== "upsert" && op !== "delete") {
-    return json({ ok: false, status: "rejected_invalid", detail: "bad_op" }, 400);
+    return json(
+      { ok: false, status: "rejected_invalid", detail: "bad_op" },
+      400,
+    );
   }
   if (!id || typeof id !== "string") {
-    return json({ ok: false, status: "rejected_invalid", detail: "bad_id" }, 400);
+    return json(
+      { ok: false, status: "rejected_invalid", detail: "bad_id" },
+      400,
+    );
   }
 
-  const admin = createClient(supabaseUrl, serviceKey);
+  // Retaining RLS at the actual mutation also prevents a cross-shop primary-key
+  // collision from turning this repair path into a service-role overwrite.
+  const admin = asUser;
 
   try {
     if (op === "delete") {
@@ -121,16 +155,32 @@ Deno.serve(async (req) => {
 
     const row = body.row;
     if (!row || typeof row !== "object") {
-      return json({ ok: false, status: "rejected_invalid", detail: "missing_row" }, 400);
+      return json({
+        ok: false,
+        status: "rejected_invalid",
+        detail: "missing_row",
+      }, 400);
     }
     if (row["id"] !== id) {
-      return json({ ok: false, status: "rejected_invalid", detail: "id_mismatch" }, 400);
+      return json({
+        ok: false,
+        status: "rejected_invalid",
+        detail: "id_mismatch",
+      }, 400);
     }
     if (row["shop_id"] !== claimShopId) {
-      return json({ ok: false, status: "rejected_invalid", detail: "shop_mismatch" }, 403);
+      return json({
+        ok: false,
+        status: "rejected_invalid",
+        detail: "shop_mismatch",
+      }, 403);
     }
     if (typeof row["updated_at"] !== "string") {
-      return json({ ok: false, status: "rejected_invalid", detail: "bad_updated_at" }, 400);
+      return json({
+        ok: false,
+        status: "rejected_invalid",
+        detail: "bad_updated_at",
+      }, 400);
     }
 
     // Already present?
@@ -141,15 +191,21 @@ Deno.serve(async (req) => {
       .eq("id", id)
       .maybeSingle();
     if (selErr && !isMissing(selErr)) {
-      return json({ ok: false, status: "transient", detail: selErr.message }, 200);
+      return json(
+        { ok: false, status: "transient", detail: selErr.message },
+        200,
+      );
     }
     if (existing) {
-      // Still upsert to refresh LWW fields when client is newer — service role.
+      // Retry through the same authenticated row policies as ordinary sync.
       const { error: upErr } = await admin.from(table).upsert(row, {
         onConflict: body.on_conflict ?? "id",
       });
       if (upErr) {
-        return json({ ok: false, status: "transient", detail: upErr.message }, 200);
+        return json(
+          { ok: false, status: "transient", detail: upErr.message },
+          200,
+        );
       }
       return json({ ok: true, status: "already_there" });
     }
@@ -166,7 +222,10 @@ Deno.serve(async (req) => {
           detail: insErr.message,
         }, 200);
       }
-      return json({ ok: false, status: "transient", detail: insErr.message }, 200);
+      return json(
+        { ok: false, status: "transient", detail: insErr.message },
+        200,
+      );
     }
     return json({ ok: true, status: "applied" });
   } catch (e) {
@@ -176,12 +235,30 @@ Deno.serve(async (req) => {
       detail: e instanceof Error ? e.message : "unknown",
     }, 200);
   }
-});
+}
+
+if (import.meta.main) {
+  Deno.serve((req) =>
+    handleForceApply(
+      req,
+      createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        {
+          global: {
+            headers: { Authorization: req.headers.get("Authorization") ?? "" },
+          },
+        },
+      ),
+    )
+  );
+}
 
 function isMissing(error: { code?: string; message?: string }): boolean {
   const code = (error.code ?? "").toString();
   const msg = (error.message ?? "").toLowerCase();
-  return code === "PGRST116" || msg.includes("0 rows") || msg.includes("not found");
+  return code === "PGRST116" || msg.includes("0 rows") ||
+    msg.includes("not found");
 }
 
 function isConstraint(error: { code?: string; message?: string }): boolean {

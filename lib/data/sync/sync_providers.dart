@@ -9,7 +9,6 @@ import '../../core/env.dart';
 import '../../core/providers.dart';
 import '../../features/license/license_model.dart';
 import '../../features/license/license_providers.dart';
-import '../../features/license/license_status.dart';
 import '../../features/printing/printing_providers.dart';
 import '../local/database.dart';
 import 'outbox_constants.dart';
@@ -35,9 +34,11 @@ int? realtimePriorityRank(List<ShopDevice> devices, String thisDeviceId) {
 final stuckOutboxProvider = StreamProvider<List<OutboxData>>((ref) {
   final db = ref.watch(databaseProvider);
   return (db.select(db.outbox)
-        ..where((o) =>
-            o.quarantined.equals(false) &
-            o.attempts.isBiggerOrEqualValue(kOutboxStuckThreshold))
+        ..where(
+          (o) =>
+              o.quarantined.equals(false) &
+              o.attempts.isBiggerOrEqualValue(kOutboxStuckThreshold),
+        )
         ..orderBy([(o) => OrderingTerm(expression: o.seq)]))
       .watch();
 });
@@ -60,7 +61,7 @@ final quarantinedOutboxProvider = StreamProvider<List<OutboxData>>((ref) {
       .watch();
 });
 
-enum SyncPhase { disabled, idle, syncing, offline, error }
+enum SyncPhase { disabled, premiumRequired, idle, syncing, offline, error }
 
 class SyncState {
   final SyncPhase phase;
@@ -98,23 +99,29 @@ class SyncState {
   );
 }
 
-/// The sync engine, available only when backend credentials are configured
-/// AND the current license actually has a real server-side shop behind it.
-/// The Free plan's `shopId` (`free-<deviceId>`) is synthesized purely
-/// locally — no `licenses` row, no JWT `shop_id` claim — so every push would
-/// be rejected by RLS forever, permanently filling the outbox and retrying
-/// on every periodic sync for no reason. Free-plan data is local-only by
-/// design; skip the sync engine entirely rather than let it grind on a shop
-/// that doesn't exist server-side.
+/// Billing/account traffic remains available on Free; business-data sync
+/// requires a verified entitlement for a real, selected shop.
+bool canSyncShop(LicenseState state) {
+  final shopId = state.license?.shopId ?? '';
+  return !state.loading &&
+      state.isPremium &&
+      shopId.isNotEmpty &&
+      !shopId.startsWith('free-');
+}
+
 final syncEngineProvider = Provider<SyncEngine?>((ref) {
-  if (!Env.hasBackend) return null;
-  final license = ref.watch(licenseControllerProvider).license;
-  if (license != null && license.plan == LicensePlan.free) return null;
+  if (!Env.hasBackend || !canSyncShop(ref.watch(licenseControllerProvider))) {
+    return null;
+  }
+  var active = true;
+  ref.onDispose(() => active = false);
   return SyncEngine(
     db: ref.watch(databaseProvider),
     remote: SupabaseSyncRemote(Supabase.instance.client),
     settings: ref.watch(settingsRepositoryProvider),
     shopId: ref.watch(shopIdProvider),
+    canContinue: () =>
+        active && canSyncShop(ref.read(licenseControllerProvider)),
   );
 });
 
@@ -135,8 +142,10 @@ class SyncController extends StateNotifier<SyncState> {
   final Ref _ref;
   StreamSubscription? _connSub;
   Timer? _periodic;
+
   /// In-flight sync future — callers [sync] join this instead of early-return.
   Future<void>? _inFlight;
+
   /// When true, background triggers (connectivity / periodic / realtime) no-op;
   /// branch switch uses [sync] with [force] to drain while paused.
   bool _paused = false;
@@ -161,6 +170,7 @@ class SyncController extends StateNotifier<SyncState> {
     // Establish an auth session. Anonymous for now; Phase 5 replaces this with
     // a license-bound session carrying the shop_id claim.
     await _ensureSession();
+    if (!mounted) return;
 
     _connSub = Connectivity().onConnectivityChanged.listen((results) {
       final online = results.any((r) => r != ConnectivityResult.none);
@@ -169,21 +179,33 @@ class SyncController extends StateNotifier<SyncState> {
     // Safety-net periodic sync every 5 minutes — always runs, realtime or not.
     _periodic = Timer.periodic(const Duration(minutes: 5), (_) => sync());
 
-    _ref.listen<LicenseState>(
-      licenseControllerProvider,
-      (_, next) => _updateRealtimeSubscription(next.license),
-      fireImmediately: true,
-    );
+    _ref.listen<LicenseState>(licenseControllerProvider, (previous, next) {
+      _updateRealtimeSubscription(next);
+      if (canSyncShop(next) &&
+          (previous == null ||
+              !canSyncShop(previous) ||
+              previous.license?.shopId != next.license?.shopId)) {
+        unawaited(sync());
+      } else if (!canSyncShop(next)) {
+        unawaited(sync()); // Refresh queued-write counts without draining.
+      }
+    }, fireImmediately: true);
 
     unawaited(sync());
   }
 
-  void _updateRealtimeSubscription(CachedLicense? license) {
-    unawaited(_updateRealtimeSubscriptionAsync(license));
+  int _realtimeSeq = 0;
+  void _updateRealtimeSubscription(LicenseState licenseState) {
+    unawaited(_updateRealtimeSubscriptionAsync(licenseState, ++_realtimeSeq));
   }
 
-  Future<void> _updateRealtimeSubscriptionAsync(CachedLicense? license) async {
-    final shopId = license?.realtimeEnabled == true ? license?.shopId : null;
+  Future<void> _updateRealtimeSubscriptionAsync(
+    LicenseState licenseState,
+    int sequence,
+  ) async {
+    final shopId = canSyncShop(licenseState)
+        ? licenseState.license?.shopId
+        : null;
     if (shopId == _realtimeShopId) return; // no change
     if (shopId == null) {
       _teardownRealtime();
@@ -194,8 +216,21 @@ class SyncController extends StateNotifier<SyncState> {
     // _kMaxRealtimeDevices realtime-enabled devices (earliest-bound first)
     // actually get a live connection — everyone else degrades gracefully to
     // the unconditional 5-minute poll below, never a sync loss.
-    final devices = await _ref.read(licenseRepositoryProvider).listDevices();
-    final deviceId = await _ref.read(deviceIdProvider.future);
+    List<ShopDevice> devices;
+    String deviceId;
+    try {
+      devices = await _ref.read(licenseRepositoryProvider).listDevices();
+      deviceId = await _ref.read(deviceIdProvider.future);
+    } catch (_) {
+      // Offline/authorization failures use the periodic sync fallback.
+      if (mounted && sequence == _realtimeSeq) _teardownRealtime();
+      return;
+    }
+    if (!mounted ||
+        sequence != _realtimeSeq ||
+        !canSyncShop(_ref.read(licenseControllerProvider))) {
+      return;
+    }
     final rank = realtimePriorityRank(devices, deviceId);
     if (rank == null || rank > _kMaxRealtimeDevices) {
       _teardownRealtime();
@@ -268,6 +303,9 @@ class SyncController extends StateNotifier<SyncState> {
 
     final engine = _ref.read(syncEngineProvider);
     if (engine == null) {
+      if (mounted && Env.hasBackend) {
+        state = state.copyWith(phase: SyncPhase.premiumRequired);
+      }
       await _refreshOutboxTruth();
       return;
     }
@@ -304,6 +342,12 @@ class SyncController extends StateNotifier<SyncState> {
         await _ensureSession();
       }
       await engine.syncNow();
+      if (!mounted) return;
+      if (!canSyncShop(_ref.read(licenseControllerProvider))) {
+        state = state.copyWith(phase: SyncPhase.premiumRequired);
+        await _refreshOutboxTruth();
+        return;
+      }
       // A new device signing into an already-provisioned shop pulls that
       // shop's `shop_profiles` row down inside `syncNow()`, but nothing
       // previously copied it into the `AppSettings` KV entries the
@@ -318,6 +362,7 @@ class SyncController extends StateNotifier<SyncState> {
             .hydrateShopProfileFromSyncIfNeeded(shopId);
       }
       final truth = await _outboxCounts();
+      if (!mounted) return;
       state = state.copyWith(
         phase: SyncPhase.idle,
         lastSyncedAt: DateTime.now(),
@@ -325,8 +370,14 @@ class SyncController extends StateNotifier<SyncState> {
         pendingOutboxCount: truth.pending,
         stuckOutboxCount: truth.stuck,
       );
+    } on SyncAccessPaused {
+      if (!mounted) return;
+      state = state.copyWith(phase: SyncPhase.premiumRequired);
+      await _refreshOutboxTruth();
     } catch (e) {
+      if (!mounted) return;
       final truth = await _outboxCounts();
+      if (!mounted) return;
       state = state.copyWith(
         phase: SyncPhase.error,
         error: e.toString(),
@@ -338,16 +389,16 @@ class SyncController extends StateNotifier<SyncState> {
 
   Future<({int pending, int stuck})> _outboxCounts() async {
     final db = _ref.read(databaseProvider);
-    final rows = await (db.select(db.outbox)
-          ..where((o) => o.quarantined.equals(false)))
-        .get();
-    final stuck =
-        rows.where((r) => r.attempts >= kOutboxStuckThreshold).length;
+    final rows = await (db.select(
+      db.outbox,
+    )..where((o) => o.quarantined.equals(false))).get();
+    final stuck = rows.where((r) => r.attempts >= kOutboxStuckThreshold).length;
     return (pending: rows.length, stuck: stuck);
   }
 
   Future<void> _refreshOutboxTruth() async {
     final truth = await _outboxCounts();
+    if (!mounted) return;
     state = state.copyWith(
       pendingOutboxCount: truth.pending,
       stuckOutboxCount: truth.stuck,
@@ -356,6 +407,7 @@ class SyncController extends StateNotifier<SyncState> {
 
   @override
   void dispose() {
+    ++_realtimeSeq;
     _connSub?.cancel();
     _periodic?.cancel();
     _teardownRealtime();

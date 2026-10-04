@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/theme/app_theme.dart';
+import '../core/widgets/app_widgets.dart';
 import '../l10n/app_localizations.dart';
 import 'activate_screen.dart';
 import 'invoice_list_screen.dart';
@@ -10,7 +12,7 @@ import 'invoices_web_session.dart';
 /// Root of the Invoices Web companion — a read-only, print-focused view of
 /// a shop's own invoices for a desktop or tablet browser. Online shops
 /// sign in with the same email as the phone; this browser counts as one
-/// extra device. Offline shops can paste a device key. Free plan without
+/// provisioned device. Free plan without
 /// an account uses the Windows POS app's Continue Free instead — this
 /// page has no local DB.
 ///
@@ -28,11 +30,34 @@ class InvoicesWebApp extends StatefulWidget {
 
 class _InvoicesWebAppState extends State<InvoicesWebApp> {
   Locale _locale = const Locale('my');
+  bool _checking = true;
+  Timer? _timer;
+  @override
+  void initState() {
+    super.initState();
+    _verifySession();
+    _timer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _verifySession(),
+    );
+  }
+
+  Future<void> _verifySession() async {
+    await InvoicesWebSession.resume();
+    if (mounted) setState(() => _checking = false);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   void _toggleLocale() => setState(() {
-        _locale =
-            _locale.languageCode == 'my' ? const Locale('en') : const Locale('my');
-      });
+    _locale = _locale.languageCode == 'my'
+        ? const Locale('en')
+        : const Locale('my');
+  });
 
   void _refresh() => setState(() {});
 
@@ -53,7 +78,9 @@ class _InvoicesWebAppState extends State<InvoicesWebApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: activated
+      home: _checking
+          ? const Scaffold(body: AppLoadingView())
+          : activated
           ? InvoiceListScreen(
               locale: _locale,
               onToggleLocale: _toggleLocale,

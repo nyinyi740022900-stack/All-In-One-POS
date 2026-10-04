@@ -206,8 +206,7 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
       // `try/finally` with no `catch` meant a PDF layout error or a failed
       // JS-interop download left the button spinning, un-spinning, and
       // saying NOTHING — for the one action this page exists to perform.
-      messenger.showSnackBar(
-          SnackBar(content: Text(l.commonUnexpectedError)));
+      messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     } finally {
       if (mounted) setState(() => _downloading = false);
     }

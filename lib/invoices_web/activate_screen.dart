@@ -34,10 +34,7 @@ class _LocaleBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Gate for the invoices companion. Online shops sign in with the same
-/// email as the phone (this computer counts as one extra device). Offline
-/// shops can still paste a key. Free plan without an account is the Windows
-/// POS app's Continue Free — this page cannot see local phone data.
+/// Account-only Premium browser gate; the provisioned browser uses one slot.
 class ActivateScreen extends StatefulWidget {
   const ActivateScreen({
     super.key,
@@ -56,7 +53,6 @@ class ActivateScreen extends StatefulWidget {
 class _ActivateScreenState extends State<ActivateScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _key = TextEditingController();
   bool _busy = false;
   String? _error;
 
@@ -64,7 +60,6 @@ class _ActivateScreenState extends State<ActivateScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
-    _key.dispose();
     super.dispose();
   }
 
@@ -75,7 +70,10 @@ class _ActivateScreenState extends State<ActivateScreen> {
     'not_a_shop' => l.invWebErrorNotAShop,
     'invalid_key' => l.invWebErrorInvalidKey,
     'device_mismatch' => l.invWebErrorDeviceMismatch,
-    'payment_required' => l.invWebErrorPaymentRequired,
+    'device_limit_reached' => l.licenseDeviceLimitReached,
+    'free_device_replacement_required' => l.licenseFreeDeviceReplacement,
+    'premium_required' => l.licenseAccountRequired,
+    'verification_required' => l.licenseVerificationRequired,
     'network_error' => l.invWebErrorNetwork,
     'activated_refresh_pending' => l.invWebErrorRefreshPending,
     _ => l.invWebErrorActivationFailed,
@@ -105,24 +103,17 @@ class _ActivateScreenState extends State<ActivateScreen> {
       _busy = true;
       _error = null;
     });
-    await _finish(
-      await InvoicesWebSession.signIn(_email.text, _password.text),
-    );
-  }
-
-  Future<void> _activateKey() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    await _finish(await InvoicesWebSession.activate(_key.text));
+    await _finish(await InvoicesWebSession.signIn(_email.text, _password.text));
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: _LocaleBar(locale: widget.locale, onToggle: widget.onToggleLocale),
+      appBar: _LocaleBar(
+        locale: widget.locale,
+        onToggle: widget.onToggleLocale,
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -176,29 +167,7 @@ class _ActivateScreenState extends State<ActivateScreen> {
                 const SizedBox(height: AppTheme.space4),
                 FilledButton(
                   onPressed: _busy ? null : _signIn,
-                  child: _busy
-                      ? const ButtonSpinner()
-                      : Text(l.accountSignIn),
-                ),
-                const SizedBox(height: AppTheme.space4),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: Text(l.invWebKeySection),
-                  children: [
-                    TextField(
-                      controller: _key,
-                      decoration: InputDecoration(labelText: l.invWebKeyLabel),
-                      onSubmitted: (_) => _busy ? null : _activateKey(),
-                    ),
-                    const SizedBox(height: AppTheme.space3),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: _busy ? null : _activateKey,
-                        child: Text(l.invWebActivateButton),
-                      ),
-                    ),
-                  ],
+                  child: _busy ? const ButtonSpinner() : Text(l.accountSignIn),
                 ),
               ],
             ),

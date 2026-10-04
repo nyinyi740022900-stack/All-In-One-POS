@@ -7,89 +7,6 @@ String _planName(AppLocalizations l, LicensePlan plan) => switch (plan) {
   LicensePlan.free => l.licensePlanFree,
 };
 
-/// Shows the unique App Reference ID / Shop Code (the admin extends by this).
-/// Offline / device-key model only — Online uses [_AccountEmailTile] instead.
-///
-/// **The leading icon used to be decorative** — `Icons.qr_code_2` next to
-/// plain text that wasn't a QR code at all, implying a scan-ability this row
-/// didn't have. It's the exact 36-character id a shop reads aloud over Viber
-/// or retypes into the /renew form's "App Reference ID" field, which is
-/// precisely the kind of manual transcription that produces the device-id
-/// typos the admin console's `shopNameMismatch` warning
-/// (`admin_dashboard_widgets.dart`) exists to catch after the fact. Tapping
-/// the row now opens an actual scannable QR (`barcode_widget`), so a
-/// support call can scan the shop's screen instead of both sides re-typing
-/// a UUID.
-class _RefIdTile extends ConsumerWidget {
-  const _RefIdTile();
-
-  Future<void> _copy(BuildContext context, AppLocalizations l, String id) async {
-    await Clipboard.setData(ClipboardData(text: id));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.copied)));
-    }
-  }
-
-  void _showQr(BuildContext context, AppLocalizations l, String id) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.licenseRefId),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l.licenseRefIdQrHint, textAlign: TextAlign.center),
-            const SizedBox(height: AppTheme.space4),
-            BarcodeWidget(
-              barcode: Barcode.qrCode(),
-              data: id,
-              width: 220,
-              height: 220,
-            ),
-            const SizedBox(height: AppTheme.space4),
-            SelectableText(
-              id,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: 'monospace'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => _copy(context, l, id),
-            child: Text(l.commonCopy),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final id = ref.watch(deviceIdProvider).valueOrNull;
-    if (id == null) return const SizedBox.shrink();
-    return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: ListTile(
-        leading: const Icon(Icons.qr_code_2),
-        title: Text(l.licenseRefId),
-        subtitle: Text(id, style: const TextStyle(fontFamily: 'monospace')),
-        onTap: () => _showQr(context, l, id),
-        trailing: IconButton(
-          icon: const Icon(Icons.copy),
-          tooltip: l.commonCopy,
-          onPressed: () => _copy(context, l, id),
-        ),
-      ),
-    );
-  }
-}
-
 /// Online Support identity — shop account email, not a device license key.
 class _AccountEmailTile extends ConsumerWidget {
   const _AccountEmailTile();
@@ -136,7 +53,6 @@ class _AccountEmailTile extends ConsumerWidget {
 class _DevicesSection extends ConsumerWidget {
   const _DevicesSection();
 
-
   Future<void> _confirmRelease(
     BuildContext context,
     WidgetRef ref,
@@ -168,7 +84,9 @@ class _DevicesSection extends ConsumerWidget {
         .releaseDevice(d.deviceId!);
     if (released) {
       ref.invalidate(shopDevicesProvider);
-      ref.invalidate(shopDeviceAllowanceProvider);
+      if (d.deviceId == ref.read(licenseControllerProvider).license?.deviceId) {
+        await ref.read(licenseControllerProvider.notifier).deactivate();
+      }
       messenger.showSnackBar(SnackBar(content: Text(l.deviceReleased)));
     } else {
       messenger.showSnackBar(SnackBar(content: Text(l.deviceRequestFailed)));
@@ -179,14 +97,7 @@ class _DevicesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final devices = ref.watch(shopDevicesProvider);
-    final allowance = ref.watch(shopDeviceAllowanceProvider).valueOrNull ??
-        ShopDeviceAllowance.none;
-    final cfg = ref.watch(vendorConfigProvider).valueOrNull;
     final myDeviceId = ref.watch(deviceIdProvider).valueOrNull;
-    final freeLimit = cfg?.deviceFreeLimit ?? 3;
-    final extraQuota = extraDeviceQuota(freeLimit) +
-        allowance.activeExtraSlots(DateTime.now());
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -203,12 +114,11 @@ class _DevicesSection extends ConsumerWidget {
           error: (e, _) => Text(l.commonUnexpectedError),
           data: (list) {
             final bound = list.where((d) => d.isBound).length;
-            final used = extraDevicesUsed(bound);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l.deviceCount(used, extraQuota),
+                  l.licenseDevicesCount(bound),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: AppTheme.space2),
@@ -220,7 +130,7 @@ class _DevicesSection extends ConsumerWidget {
                       title: Text(
                         d.deviceId == myDeviceId
                             ? l.deviceThisDevice
-                            : '${d.deviceId!.substring(0, 8)}…',
+                            : '${d.deviceId!.substring(0, d.deviceId!.length < 8 ? d.deviceId!.length : 8)}…',
                         style: const TextStyle(fontFamily: 'monospace'),
                       ),
                       subtitle: Text(
@@ -241,7 +151,7 @@ class _DevicesSection extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: AppTheme.space2),
                   child: Text(
-                    l.deviceAddOnlineHint(extraQuota),
+                    l.licenseDevicesHint,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -280,6 +190,11 @@ class _StatusCard extends StatelessWidget {
         l.licenseStatusExpired,
         colors.danger,
         Icons.error,
+      ),
+      LicenseStatusKind.verificationRequired => (
+        l.licenseVerificationRequired,
+        colors.warning,
+        Icons.cloud_off_outlined,
       ),
       LicenseStatusKind.none => (
         l.licenseStatusNone,
@@ -344,8 +259,8 @@ class _StatusCard extends StatelessWidget {
 /// only the neutral "already licensed → re-check" half survives. Guideline
 /// 3.1.1 bans calls to action pointing at an outside purchasing mechanism,
 /// and both the Pay-online button and the Viber card are exactly that: their
-/// own copy says "ask to buy or renew Premium". What replaces them states
-/// where licensing happens without naming a price, a channel, or a link.
+/// own copy says "ask to buy or renew Premium". The replacement describes
+/// account access without steering to a price, provider, or purchase link.
 class _PurchasePaths extends ConsumerWidget {
   const _PurchasePaths({
     required this.busy,
@@ -386,8 +301,8 @@ class _PurchasePaths extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           // Re-checking a licence you already hold is not commerce, so it
-          // stays in every build — it is the whole point of 3.1.3(b)
-          // Multiplatform Services (access what you already purchased). Its
+          // stays in every build. Store exception eligibility is assessed
+          // separately; this UI guard is not an IAP exemption. Its
           // heading changes only because the commerce build's version asks
           // "Already paid or asked Support?".
           if (showCheckRenewal) ...[

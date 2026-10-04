@@ -5,45 +5,9 @@ import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/license/license_model.dart';
 import 'package:mm_pos/features/license/license_providers.dart';
 import 'package:mm_pos/features/license/license_repository.dart';
-import 'package:mm_pos/features/license/license_screen.dart';
 import 'package:mm_pos/features/license/license_status.dart';
 
 void main() {
-  group('DeviceProvisioning', () {
-    test('an owner-role device encodes as a plain key (backward compatible '
-        'with manual entry / older scanners)', () {
-      const p = DeviceProvisioning(key: 'MMPOS-AAAA-BBBB-CCCC');
-      expect(p.encode(), 'MMPOS-AAAA-BBBB-CCCC');
-    });
-
-    test('a staff-role device round-trips key + role + staffMemberId '
-        'through a QR-safe JSON encoding', () {
-      const p = DeviceProvisioning(
-        key: 'MMPOS-AAAA-BBBB-CCCC',
-        role: 'staff',
-        staffMemberId: 'staff-1',
-      );
-      final decoded = DeviceProvisioning.decode(p.encode());
-      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
-      expect(decoded.role, 'staff');
-      expect(decoded.staffMemberId, 'staff-1');
-    });
-
-    test('decoding a plain (non-JSON) key falls back to owner role', () {
-      final decoded = DeviceProvisioning.decode('MMPOS-AAAA-BBBB-CCCC');
-      expect(decoded.key, 'MMPOS-AAAA-BBBB-CCCC');
-      expect(decoded.role, 'owner');
-      expect(decoded.staffMemberId, isNull);
-    });
-
-    test('decoding garbage JSON with no key field falls back to treating '
-        'the whole input as the key', () {
-      final decoded = DeviceProvisioning.decode('{"foo":"bar"}');
-      expect(decoded.key, '{"foo":"bar"}');
-      expect(decoded.role, 'owner');
-    });
-  });
-
   group('extra device quota (main phone does not count)', () {
     test('zero bound devices shows 0 extras used', () {
       expect(extraDevicesUsed(0), 0);
@@ -64,12 +28,12 @@ void main() {
     });
 
     test('a paid extra grant raises the extra quota while it is valid', () {
-      const grant = ShopDeviceAllowance(
-        extraSlots: 1,
-        extrasExpiresAt: null,
-      );
+      const grant = ShopDeviceAllowance(extraSlots: 1, extrasExpiresAt: null);
       expect(grant.activeExtraSlots(DateTime(2026, 8, 21)), 1);
-      expect(extraDeviceQuota(3) + grant.activeExtraSlots(DateTime(2026, 8, 21)), 3);
+      expect(
+        extraDeviceQuota(3) + grant.activeExtraSlots(DateTime(2026, 8, 21)),
+        3,
+      );
     });
 
     test('an expired extra grant does not raise the quota', () {
@@ -114,20 +78,25 @@ void main() {
     final now = DateTime(2026, 7, 10, 12);
 
     test('none when not activated / no expiry', () {
-      expect(computeLicenseStatus(expiresAt: null, now: now).kind,
-          LicenseStatusKind.none);
       expect(
-          computeLicenseStatus(
-                  expiresAt: now.add(const Duration(days: 5)),
-                  now: now,
-                  activated: false)
-              .kind,
-          LicenseStatusKind.none);
+        computeLicenseStatus(expiresAt: null, now: now).kind,
+        LicenseStatusKind.none,
+      );
+      expect(
+        computeLicenseStatus(
+          expiresAt: now.add(const Duration(days: 5)),
+          now: now,
+          activated: false,
+        ).kind,
+        LicenseStatusKind.none,
+      );
     });
 
     test('active before expiry', () {
       final s = computeLicenseStatus(
-          expiresAt: now.add(const Duration(days: 3)), now: now);
+        expiresAt: now.add(const Duration(days: 3)),
+        now: now,
+      );
       expect(s.kind, LicenseStatusKind.active);
       expect(s.canSell, isTrue);
       expect(s.isReadOnly, isFalse);
@@ -135,32 +104,41 @@ void main() {
 
     test('grace within the window, still sellable', () {
       final s = computeLicenseStatus(
-          expiresAt: now.subtract(const Duration(days: 2)),
-          now: now,
-          graceDays: 7);
+        expiresAt: now.subtract(const Duration(days: 2)),
+        now: now,
+        graceDays: 7,
+      );
       expect(s.kind, LicenseStatusKind.grace);
       expect(s.canSell, isTrue);
       expect(s.graceDaysLeft, 5);
     });
 
-    test('expired past grace still sells — Premium is locked, not the till', () {
-      final s = computeLicenseStatus(
+    test(
+      'expired past grace still sells — Premium is locked, not the till',
+      () {
+        final s = computeLicenseStatus(
           expiresAt: now.subtract(const Duration(days: 10)),
           now: now,
-          graceDays: 7);
-      expect(s.kind, LicenseStatusKind.expired);
-      expect(s.canSell, isTrue);
-      expect(s.isReadOnly, isFalse);
-    });
+          graceDays: 7,
+        );
+        expect(s.kind, LicenseStatusKind.expired);
+        expect(s.canSell, isTrue);
+        expect(s.isReadOnly, isFalse);
+      },
+    );
 
     test('default grace is 14 days — a 10-day lapse is still Premium', () {
       expect(kLicenseGraceDays, 14);
       final inside = computeLicenseStatus(
-          expiresAt: now.subtract(const Duration(days: 10)), now: now);
+        expiresAt: now.subtract(const Duration(days: 10)),
+        now: now,
+      );
       expect(inside.kind, LicenseStatusKind.grace);
       expect(inside.graceDaysLeft, 4);
       final past = computeLicenseStatus(
-          expiresAt: now.subtract(const Duration(days: 15)), now: now);
+        expiresAt: now.subtract(const Duration(days: 15)),
+        now: now,
+      );
       expect(past.kind, LicenseStatusKind.expired);
     });
 
@@ -195,26 +173,15 @@ void main() {
 
     tearDown(() async => db.close());
 
-    test('activate falls back to a 14-day trial with no backend', () async {
+    test('activation keys are retired even without a backend', () async {
       final result = await repo.activate('ANY-KEY');
-      expect(result.ok, isTrue);
-      expect(result.license, isNotNull);
-      expect(result.license!.plan, LicensePlan.trial);
-      expect(result.license!.expiresAt.isAfter(DateTime.now()), isTrue);
-
-      // Persisted and re-readable.
-      final cached = await repo.current();
-      expect(cached?.key, 'ANY-KEY');
-    });
-
-    test('empty key is rejected', () async {
-      final result = await repo.activate('   ');
       expect(result.ok, isFalse);
-      expect(result.errorCode, 'empty_key');
+      expect(result.errorCode, 'retired_path');
+      expect(await repo.current(), isNull);
     });
 
     test('deactivate clears the cached license', () async {
-      await repo.activate('K');
+      await repo.startFreePlan();
       await repo.deactivate();
       expect(await repo.current(), isNull);
     });
@@ -233,24 +200,30 @@ void main() {
       expect(a, isNotEmpty);
     });
 
-    test('startFreePlan grants an always-active Free license with no key',
-        () async {
-      final lic = await repo.startFreePlan();
-      expect(lic.plan, LicensePlan.free);
-      expect(lic.key, 'FREE');
-      expect(lic.shopId, isNotEmpty);
+    test(
+      'startFreePlan grants an always-active Free license with no key',
+      () async {
+        final lic = await repo.startFreePlan();
+        expect(lic.plan, LicensePlan.free);
+        expect(lic.key, 'FREE');
+        expect(lic.shopId, isNotEmpty);
 
-      final cached = await repo.current();
-      expect(cached?.plan, LicensePlan.free);
-    });
+        final cached = await repo.current();
+        expect(cached?.plan, LicensePlan.free);
+      },
+    );
 
     test('downgradeToFree preserves shopId/deviceId/tier of the original '
         'license', () async {
-      final result = await repo.activate('SOME-KEY');
-      final original = result.license!;
+      final freeStart = await repo.startFreePlan();
+      final original = freeStart.copyWith(
+        key: 'legacy-evidence',
+        plan: LicensePlan.monthly,
+      );
 
       final free = await repo.downgradeToFree(original);
       expect(free.plan, LicensePlan.free);
+      expect(free.key, original.key);
       expect(free.shopId, original.shopId);
       expect(free.deviceId, original.deviceId);
       expect(free.tier, original.tier);
@@ -266,7 +239,10 @@ void main() {
   });
 
   group('LicenseState.isPremium', () {
-    CachedLicense license({required LicensePlan plan, required DateTime expiresAt}) {
+    CachedLicense license({
+      required LicensePlan plan,
+      required DateTime expiresAt,
+    }) {
       final now = DateTime.now();
       return CachedLicense(
         key: 'K',
@@ -288,20 +264,28 @@ void main() {
 
     test('an active paid plan is premium', () {
       final lic = license(
-          plan: LicensePlan.monthly,
-          expiresAt: DateTime.now().add(const Duration(days: 10)));
+        plan: LicensePlan.monthly,
+        expiresAt: DateTime.now().add(const Duration(days: 10)),
+      );
       final status = computeLicenseStatus(
-          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+        expiresAt: lic.expiresAt,
+        now: DateTime.now(),
+        plan: lic.plan,
+      );
       final state = LicenseState(license: lic, status: status, loading: false);
       expect(state.isPremium, isTrue);
     });
 
     test('the Free plan is never premium, even though it can still sell', () {
       final lic = license(
-          plan: LicensePlan.free,
-          expiresAt: DateTime.now().subtract(const Duration(days: 3650)));
+        plan: LicensePlan.free,
+        expiresAt: DateTime.now().subtract(const Duration(days: 3650)),
+      );
       final status = computeLicenseStatus(
-          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+        expiresAt: lic.expiresAt,
+        now: DateTime.now(),
+        plan: lic.plan,
+      );
       final state = LicenseState(license: lic, status: status, loading: false);
       expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
@@ -309,10 +293,14 @@ void main() {
 
     test('an expired paid plan is not premium', () {
       final lic = license(
-          plan: LicensePlan.monthly,
-          expiresAt: DateTime.now().subtract(const Duration(days: 30)));
+        plan: LicensePlan.monthly,
+        expiresAt: DateTime.now().subtract(const Duration(days: 30)),
+      );
       final status = computeLicenseStatus(
-          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+        expiresAt: lic.expiresAt,
+        now: DateTime.now(),
+        plan: lic.plan,
+      );
       final state = LicenseState(license: lic, status: status, loading: false);
       expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
@@ -321,12 +309,20 @@ void main() {
     test('an in-date paid plan with no verified receipt is not premium, '
         'but can still sell', () {
       final lic = license(
-          plan: LicensePlan.monthly,
-          expiresAt: DateTime.now().add(const Duration(days: 30)));
+        plan: LicensePlan.monthly,
+        expiresAt: DateTime.now().add(const Duration(days: 30)),
+      );
       final status = computeLicenseStatus(
-          expiresAt: lic.expiresAt, now: DateTime.now(), plan: lic.plan);
+        expiresAt: lic.expiresAt,
+        now: DateTime.now(),
+        plan: lic.plan,
+      );
       final state = LicenseState(
-          license: lic, status: status, loading: false, entitled: false);
+        license: lic,
+        status: status,
+        loading: false,
+        entitled: false,
+      );
       expect(state.canSell, isTrue);
       expect(state.isPremium, isFalse);
     });

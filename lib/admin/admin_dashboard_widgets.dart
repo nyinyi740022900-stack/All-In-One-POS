@@ -81,16 +81,16 @@ class _HistoryTab extends StatelessWidget {
             isDecline
                 ? 'Declined  ·  ${r['shop_name'] ?? '—'}'
                 : isAllowance
-                    ? 'Extra devices granted  ·  ${r['months']}  ·  ${r['shop_id'] ?? '—'}'
-                    : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}',
+                ? 'Extra devices granted  ·  ${r['months']}  ·  ${r['shop_id'] ?? '—'}'
+                : '${isExtend ? 'Extended' : 'Confirmed'}  ·  ${r['months']} mo  ·  ${r['shop_name'] ?? '—'}',
           ),
           subtitle: Text(
             isDecline
-                ? 'Device: ${r['device_id'] ?? '—'}  ·  ${_date(r['created_at'])}'
+                ? _date(r['created_at'])
                 : isAllowance
-                    ? 'Device-slot allowance  ·  ${_date(r['created_at'])}'
-                    : 'Key: ${r['key']}  ·  Device: ${r['device_id'] ?? '—'}\n'
-                        'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}',
+                ? 'Device-slot allowance  ·  ${_date(r['created_at'])}'
+                : 'Shop: ${r['shop_id'] ?? '—'}\n'
+                      'New expiry: ${_date(r['expires_at'])}  ·  ${_date(r['created_at'])}',
           ),
           isThreeLine: !isDecline && !isAllowance,
         );
@@ -190,7 +190,8 @@ class _RequestsTab extends StatelessWidget {
         // cross-reference an opaque shop_id.
         final resolvedShopName = (r['resolved_shop_name'] as String?)?.trim();
         final submittedShopName = '${r['shop_name'] ?? ''}'.trim();
-        final shopNameMismatch = shopId != null &&
+        final shopNameMismatch =
+            shopId != null &&
             shopId.isNotEmpty &&
             resolvedShopName != null &&
             resolvedShopName.isNotEmpty &&
@@ -232,7 +233,7 @@ class _RequestsTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${r['method']}  ·  ${r['months']} mo  ·  ${r['tier'] ?? 'offline'}'
+                '${r['method']}  ·  ${r['months']} mo'
                 '  ·  ${_date(r['created_at'])}',
                 style: textTheme.bodySmall,
               ),
@@ -245,12 +246,8 @@ class _RequestsTab extends StatelessWidget {
                     _CopyField('Invoice', '${r['invoice_no']}'),
                   _CopyField('Txn', '${r['ref_no'] ?? ''}'),
                   _CopyField('Phone', '${r['phone'] ?? ''}'),
-                  if (fulfilled && '${r['issued_key']}'.isNotEmpty)
-                    _CopyField('Key', '${r['issued_key']}'),
                 ],
               ),
-              Text('Device: ${r['device_id'] ?? '—'}',
-                  style: textTheme.bodySmall),
               if (rejected && rejectReason != null && rejectReason.isNotEmpty)
                 Text('Reason: $rejectReason', style: textTheme.bodySmall),
               // Renewal (an existing shop) vs a brand-new one — see
@@ -258,7 +255,7 @@ class _RequestsTab extends StatelessWidget {
               Text(
                 shopId != null && shopId.isNotEmpty
                     ? 'Renewal for shop: $shopId'
-                    : '(No shop_id — treated as a new shop)',
+                    : '(Legacy payment — owner verification required)',
                 style: textTheme.bodySmall,
               ),
               if (shopId != null && shopId.isNotEmpty)
@@ -294,7 +291,9 @@ class _RequestsTab extends StatelessWidget {
               // the shop has paid and is waiting.
               : r['payment_status'] == 'paid'
               ? const StatusPill(
-                  label: 'Paid · needs key', tone: StatusTone.attention)
+                  label: 'Paid · awaiting approval',
+                  tone: StatusTone.attention,
+                )
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -377,7 +376,7 @@ class _DeclineReasonDialogState extends State<_DeclineReasonDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('The shop will not be charged or issued a key.'),
+          const Text('The request will be declined.'),
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _reason,
@@ -404,215 +403,6 @@ class _DeclineReasonDialogState extends State<_DeclineReasonDialog> {
   }
 }
 
-class _DeviceAllowanceDialog extends StatefulWidget {
-  const _DeviceAllowanceDialog({required this.initialExtraSlots});
-  final int initialExtraSlots;
-  @override
-  State<_DeviceAllowanceDialog> createState() => _DeviceAllowanceDialogState();
-}
-
-class _DeviceAllowanceDialogState extends State<_DeviceAllowanceDialog> {
-  late final _extra = TextEditingController(
-    text: '${widget.initialExtraSlots}',
-  );
-  final _months = TextEditingController(text: '12');
-  String? _extraError;
-  String? _monthsError;
-
-  @override
-  void dispose() {
-    _extra.dispose();
-    _months.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Allow extra devices'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Free is always the main phone plus 2 extras. This number is paid '
-            'extras on top of that. Do not send a key — they sign in on the '
-            'new phone or computer and tap Check for renewal.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.of(context).muted,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _extra,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'Paid extra devices',
-              errorText: _extraError,
-            ),
-            onChanged: (_) {
-              if (_extraError != null) setState(() => _extraError = null);
-            },
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _months,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'Valid for (months)',
-              errorText: _monthsError,
-            ),
-            onChanged: (_) {
-              if (_monthsError != null) setState(() => _monthsError = null);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final extra = int.tryParse(_extra.text.trim());
-            final months = int.tryParse(_months.text.trim());
-            var ok = true;
-            if (extra == null) {
-              setState(() => _extraError = 'Enter 0 or more');
-              ok = false;
-            }
-            if (extra != null && extra > 0 && (months == null || months < 1)) {
-              setState(() => _monthsError = 'Enter at least 1 month');
-              ok = false;
-            }
-            if (!ok) return;
-            Navigator.pop(context, (
-              extraSlots: extra!,
-              months: extra == 0 ? 1 : months!,
-            ));
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    );
-  }
-}
-
-class _GenerateKeyDialog extends StatefulWidget {
-  const _GenerateKeyDialog({this.initialShopId});
-  final String? initialShopId;
-  @override
-  State<_GenerateKeyDialog> createState() => _GenerateKeyDialogState();
-}
-
-class _GenerateKeyDialogState extends State<_GenerateKeyDialog> {
-  late final _shopId = TextEditingController(text: widget.initialShopId);
-  final _shopName = TextEditingController();
-  final _months = TextEditingController(text: '1');
-  String _plan = 'monthly';
-  String? _shopIdError;
-  String? _monthsError;
-
-  @override
-  void dispose() {
-    _shopId.dispose();
-    _shopName.dispose();
-    _months.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Generate license key'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Creates an Offline-tier key (device-key activation, no online '
-            'account).',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.of(context).muted),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _shopId,
-            decoration: InputDecoration(
-              labelText: 'Shop ID (any stable identifier)',
-              errorText: _shopIdError,
-            ),
-            onChanged: (_) {
-              if (_shopIdError != null) setState(() => _shopIdError = null);
-            },
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _shopName,
-            decoration: const InputDecoration(labelText: 'Shop name (display)'),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          DropdownButtonFormField<String>(
-            initialValue: _plan,
-            decoration: const InputDecoration(labelText: 'Plan'),
-            items: const [
-              DropdownMenuItem(value: 'monthly', child: Text('monthly')),
-              DropdownMenuItem(value: 'yearly', child: Text('yearly')),
-            ],
-            onChanged: (v) => setState(() => _plan = v ?? 'monthly'),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _months,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'Duration (months)',
-              errorText: _monthsError,
-            ),
-            onChanged: (_) {
-              if (_monthsError != null) setState(() => _monthsError = null);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final shop = _shopId.text.trim();
-            final months = int.tryParse(_months.text.trim());
-            setState(() {
-              _shopIdError = shop.isEmpty ? 'Shop ID is required.' : null;
-              _monthsError = (months == null || months <= 0)
-                  ? 'Enter a whole number of months (1 or more).'
-                  : (months > kMaxLicenceMonths
-                      ? 'At most $kMaxLicenceMonths months.'
-                      : null);
-            });
-            if (_shopIdError != null || _monthsError != null) return;
-            Navigator.pop(
-              context,
-              _KeyRequest(
-                shopId: shop,
-                shopName: _shopName.text.trim(),
-                plan: _plan,
-                months: months!,
-              ),
-            );
-          },
-          child: const Text('Generate'),
-        ),
-      ],
-    );
-  }
-}
-
 class _ConfirmRow extends StatelessWidget {
   const _ConfirmRow(this.label, this.value);
   final String label;
@@ -627,18 +417,14 @@ class _ConfirmRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 96,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -733,20 +519,16 @@ class _CodePromptDialog extends StatefulWidget {
     required this.title,
     required this.label,
     required this.action,
-    this.warning,
-    this.initial,
   });
   final String title;
   final String label;
   final String action;
-  final String? warning;
-  final String? initial;
   @override
   State<_CodePromptDialog> createState() => _CodePromptDialogState();
 }
 
 class _CodePromptDialogState extends State<_CodePromptDialog> {
-  late final _code = TextEditingController(text: widget.initial ?? '');
+  final _code = TextEditingController();
   @override
   void dispose() {
     _code.dispose();
@@ -767,15 +549,6 @@ class _CodePromptDialogState extends State<_CodePromptDialog> {
             onSubmitted: (v) => Navigator.pop(context, v.trim()),
             decoration: InputDecoration(labelText: widget.label),
           ),
-          if (widget.warning != null) ...[
-            const SizedBox(height: AppTheme.space2),
-            Text(
-              widget.warning!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.of(context).muted,
-              ),
-            ),
-          ],
         ],
       ),
       actions: [
@@ -851,7 +624,8 @@ bool _nameMismatch(Map<String, dynamic> r) {
   final resolved = _resolvedName(r);
   final shopId = '${r['shop_id'] ?? ''}'.trim();
   if (resolved == null || shopId.isEmpty) return false;
-  return resolved.toLowerCase() != '${r['shop_name'] ?? ''}'.trim().toLowerCase();
+  return resolved.toLowerCase() !=
+      '${r['shop_name'] ?? ''}'.trim().toLowerCase();
 }
 
 class _ConfirmPaymentDialog extends StatelessWidget {
@@ -875,8 +649,10 @@ class _ConfirmPaymentDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${r['shop_name'] ?? '—'}',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '${r['shop_name'] ?? '—'}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               // The name above is what the REQUESTER TYPED — it proves
               // nothing. `fulfill_request` credits `shop_id`, so the account
               // this actually pays is the resolved one below, and the two
@@ -891,35 +667,30 @@ class _ConfirmPaymentDialog extends StatelessWidget {
                 Text(
                   'Account on file: ${_resolvedName(r)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: _nameMismatch(r)
-                            ? AppColors.of(context).danger
-                            : null,
-                        fontWeight:
-                            _nameMismatch(r) ? FontWeight.bold : null,
-                      ),
+                    color: _nameMismatch(r)
+                        ? AppColors.of(context).danger
+                        : null,
+                    fontWeight: _nameMismatch(r) ? FontWeight.bold : null,
+                  ),
                 ),
                 if (_nameMismatch(r))
                   Text(
                     'This does NOT match the name on the request — check '
                     'you are paying the right shop.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.of(context).danger,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: AppColors.of(context).danger,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
               ],
               if ('${r['shop_id'] ?? ''}'.trim().isNotEmpty)
-                Text('Shop: ${r['shop_id']}',
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  'Shop: ${r['shop_id']}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               const SizedBox(height: AppTheme.space2),
-              SummaryRow(
-                'Amount',
-                _ks(amount),
-                emphasis: true,
-              ),
-              SummaryRow('Plan',
-                  '${r['months']} months · ${r['tier'] ?? 'offline'}',
-                  isMoney: false),
+              SummaryRow('Amount', _ks(amount), emphasis: true),
+              SummaryRow('Plan', '${r['months']} months', isMoney: false),
               Wrap(
                 spacing: AppTheme.space3,
                 children: [
@@ -929,15 +700,9 @@ class _ConfirmPaymentDialog extends StatelessWidget {
                   _CopyField('Phone', '${r['phone'] ?? ''}'),
                 ],
               ),
-              if ((r['device_id'] ?? '').toString().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppTheme.space1),
-                  child: Text('Device: ${r['device_id']}',
-                      style: Theme.of(context).textTheme.bodySmall),
-                ),
               const SizedBox(height: AppTheme.space3),
               Text(
-                'This issues/extends the license and marks the request '
+                'This renews the shop subscription and marks the request '
                 'fulfilled — it cannot be undone.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.of(context).danger,
@@ -997,20 +762,6 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _KeyRequest {
-  final String shopId;
-  final String shopName;
-  final String plan;
-  final int months;
-  const _KeyRequest({
-    required this.shopId,
-    required this.shopName,
-    required this.plan,
-    required this.months,
-  });
-}
-
-/// Editable vendor config (payment accounts, support, renewal prices).
 class _ConfigTab extends StatefulWidget {
   const _ConfigTab({required this.initial, required this.onSave});
   final Map<String, String> initial;
@@ -1050,9 +801,22 @@ class _ConfigTabState extends State<_ConfigTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    String configLabel(String key) => switch (key) {
+      'pay.kbzpay.name' => l.adminKbzName,
+      'pay.kbzpay.number' => l.adminKbzNumber,
+      'pay.wavepay.name' => l.adminWaveName,
+      'pay.wavepay.number' => l.adminWaveNumber,
+      'support.viber' => l.adminSupportViber,
+      'pay.lemonsqueezy.variant_monthly' => l.adminGatewayMonthlyVariant,
+      'pay.lemonsqueezy.variant_yearly' => l.adminGatewayYearlyVariant,
+      _ => _fields[key] ?? key,
+    };
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Text(l.adminPublicConfigHint),
+        const SizedBox(height: AppTheme.space3),
         for (final e in _fields.entries)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -1062,7 +826,7 @@ class _ConfigTabState extends State<_ConfigTab> {
                   ? TextInputType.number
                   : TextInputType.text,
               decoration: InputDecoration(
-                labelText: e.value,
+                labelText: configLabel(e.key),
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -1077,7 +841,7 @@ class _ConfigTabState extends State<_ConfigTab> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.save),
-          label: const Text('Save config'),
+          label: Text(l.commonSave),
         ),
       ],
     );
@@ -1149,7 +913,9 @@ class _RequestProofImageState extends State<_RequestProofImage> {
           // resolution (capped) so pinch-zoom stays legible.
           cacheWidth: size != null
               ? ProductThumb.cacheWidthFor(
-                  size, MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0)
+                  size,
+                  MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0,
+                )
               : 1536,
         );
         if (size == null) return image;

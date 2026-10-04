@@ -13,6 +13,8 @@ import '../account/account_providers.dart';
 import '../account/account_action_error.dart';
 import '../account/auth_password_field.dart';
 import '../account/saved_login_store.dart';
+import '../account/social_auth.dart';
+import '../account/social_auth_widgets.dart';
 import '../account/branch_providers.dart';
 import '../account/branch_repository.dart';
 import '../account/password_strength.dart';
@@ -97,16 +99,39 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   }
 
   Future<void> _finish({required bool skippedOpen}) async {
+    if (_busy) return;
+    final l = AppLocalizations.of(context);
     final shopId = ref.read(shopIdProvider);
-    await ref
-        .read(settingsRepositoryProvider)
-        .markDailyGateComplete(
-          shopId,
-          ymd: localCalendarYmd(),
-          skippedOpen: skippedOpen,
-        );
-    ref.invalidate(dailyGateNeededProvider);
-    widget.onDone();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      // Do not record entry under an unbound shop; that cannot satisfy the
+      // shop-scoped gate and would make Continue appear to do nothing.
+      if (shopId.isEmpty) throw StateError('daily_entry_shop_not_ready');
+      await ref
+          .read(settingsRepositoryProvider)
+          .markDailyGateComplete(
+            shopId,
+            ymd: localCalendarYmd(),
+            skippedOpen: skippedOpen,
+          );
+      if (!mounted) return;
+      ref.invalidate(dailyGateNeededProvider);
+      final needed = await ref.read(dailyGateNeededProvider.future);
+      if (!mounted) return; // Router refresh may already have left this page.
+      if (needed) throw StateError('daily_entry_not_saved');
+      setState(() => _busy = false);
+      widget.onDone();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = l.commonUnexpectedError;
+        });
+      }
+    }
   }
 
   /// Local, fully-offline identity confirm — reuses the same PIN machinery
@@ -164,6 +189,50 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       _justRegistered = justRegistered;
       if (justRegistered || rosterEmpty) _step = 1;
     });
+  }
+
+  Future<void> _socialSignIn(SocialAuthProvider provider) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final account = ref.read(accountRepositoryProvider);
+    final result = await runSocialSignIn(
+      context,
+      signIn: () => account.signInWithSocial(provider),
+      completeSignup: account.completeSocialSignup,
+      confirmSwitch: account.confirmWipeAndClaimDevice,
+      canRecoverDevice: () => account.currentAccountRole == 'owner',
+      cancelSession: () async {
+        await Supabase.instance.client.auth.signOut();
+        if (!mounted) return;
+        ref.invalidate(backendAccountRoleProvider);
+        ref.invalidate(hasRealAccountSessionProvider);
+      },
+    );
+    if (!mounted) return;
+    ref.invalidate(backendAccountRoleProvider);
+    ref.invalidate(hasRealAccountSessionProvider);
+    if (result == null) {
+      setState(() => _busy = false);
+      return;
+    }
+    if (result.ok && result.license != null) {
+      await ref
+          .read(licenseControllerProvider.notifier)
+          .applyExternal(result.license!);
+      ref.read(syncControllerProvider.notifier).sync();
+      _afterAccountAuth();
+    } else {
+      setState(() {
+        _busy = false;
+        _error = accountActionErrorMessage(
+          AppLocalizations.of(context),
+          result.error,
+        );
+      });
+    }
   }
 
   Future<void> _auth() async {
@@ -518,6 +587,13 @@ class _DailyGateState extends ConsumerState<DailyGate> {
                       ),
                       const SizedBox(height: 16),
                     ],
+                    SocialAuthButtons(
+                      providers: ref
+                          .read(accountRepositoryProvider)
+                          .availableSocialProviders,
+                      busy: _busy,
+                      onSelected: _socialSignIn,
+                    ),
                     if (registering) ...[
                       TextField(
                         controller: _shopName,

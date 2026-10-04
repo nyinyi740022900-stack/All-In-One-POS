@@ -450,19 +450,41 @@ class SettingsRepository {
   Future<String?> licenseJson() => _get(_kLicense);
   Future<void> setLicenseJson(String json) => _set(_kLicense, json);
 
-  // Trusted-clock state for the entitlement check (see `resolveTrustedTime`).
-  // Device-global on purpose: the clock belongs to the handset, not to a shop.
+  // Legacy device clock markers remain readable for older local callers.
+  // Account receipt clocks are shop-scoped: a receipt for one shop must not
+  // reset another shop's trusted-time floor during branch switching.
   static const _kLicenseLastSeen = 'license.last_seen_ms';
   static const _kLicenseLastReceiptIat = 'license.last_receipt_iat_ms';
+  static const _kLicenseShopLastSeen = 'license.shop_last_seen_ms';
+  static const _kLicenseShopLastReceiptIat = 'license.shop_last_receipt_iat_ms';
+  static const _kLicenseHighestRevision = 'license.highest_revision';
 
-  Future<int?> licenseLastSeenMs() async =>
-      int.tryParse(await _get(_kLicenseLastSeen) ?? '');
-  Future<void> setLicenseLastSeenMs(int ms) =>
-      _set(_kLicenseLastSeen, '$ms');
-  Future<int?> licenseLastReceiptIatMs() async =>
-      int.tryParse(await _get(_kLicenseLastReceiptIat) ?? '');
-  Future<void> setLicenseLastReceiptIatMs(int ms) =>
-      _set(_kLicenseLastReceiptIat, '$ms');
+  Future<int?> licenseLastSeenMs({String? shopId}) async => int.tryParse(
+    await _get(shopId == null ? _kLicenseLastSeen : _shopKey(_kLicenseShopLastSeen, shopId)) ?? '',
+  );
+  Future<void> setLicenseLastSeenMs(int ms, {String? shopId}) => _set(
+    shopId == null ? _kLicenseLastSeen : _shopKey(_kLicenseShopLastSeen, shopId), '$ms',
+  );
+  Future<int?> licenseLastReceiptIatMs({String? shopId}) async => int.tryParse(
+    await _get(shopId == null ? _kLicenseLastReceiptIat : _shopKey(_kLicenseShopLastReceiptIat, shopId)) ?? '',
+  );
+  Future<void> setLicenseLastReceiptIatMs(int ms, {String? shopId}) => _set(
+    shopId == null ? _kLicenseLastReceiptIat : _shopKey(_kLicenseShopLastReceiptIat, shopId), '$ms',
+  );
+
+  String _revisionKey(String shopId, String deviceId) =>
+      '${_shopKey(_kLicenseHighestRevision, shopId)}.$deviceId';
+
+  Future<int?> licenseHighestRevision(String shopId, String deviceId) async =>
+      int.tryParse(await _get(_revisionKey(shopId, deviceId)) ?? '');
+
+  Future<void> setLicenseHighestRevision(String shopId, String deviceId, int revision) =>
+      _db.transaction(() async {
+        final prior = await licenseHighestRevision(shopId, deviceId);
+        if (prior == null || revision > prior) {
+          await _set(_revisionKey(shopId, deviceId), '$revision');
+        }
+      });
 
   // One free trial per install.
   static const _kTrialUsed = 'license.trial_used';

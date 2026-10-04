@@ -10,6 +10,7 @@ import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/domain/product_with_stock.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
+import 'package:mm_pos/features/accounts/payment_account_providers.dart';
 import 'package:mm_pos/features/credit/credit_providers.dart';
 import 'package:mm_pos/features/inventory/inventory_providers.dart';
 import 'package:mm_pos/features/invoices/invoices_screen.dart';
@@ -65,6 +66,8 @@ void main() {
           creditSalesProvider.overrideWith((ref) => Stream.value(<Sale>[])),
           repaymentsProvider
               .overrideWith((ref) => Stream.value(<CreditPayment>[])),
+          paymentAccountsProvider
+              .overrideWith((ref) => Stream.value(<PaymentAccount>[])),
           staffRoleProvider.overrideWith((ref) => Stream.value('owner')),
           activeStaffIdProvider.overrideWith((ref) => Stream.value(null)),
           branchSwitchRecoveryProvider.overrideWith(
@@ -103,40 +106,63 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
   }
 
-  testWidgets('hub shows both sub-tabs under one nav destination',
+  testWidgets('hub opens on Invoices; Social Orders is the second sub-tab',
       (tester) async {
     await pump(tester);
     await openHub(tester);
 
     expect(find.byType(TabBar), findsOneWidget);
     expect(find.byType(Tab), findsNWidgets(2));
-    // Orders is the default sub-tab; Invoices is not built until selected.
-    expect(find.byType(OrdersScreen), findsOneWidget);
+    // Invoices is the default sub-tab; Social Orders sits one tap away.
+    expect(find.byType(InvoicesScreen), findsOneWidget);
+    expect(find.byType(OrdersScreen), findsNothing);
+    final labels = tester
+        .widgetList<Tab>(find.byType(Tab))
+        .map((t) => (t.child as Text).data)
+        .toList();
+    expect(labels, ['Invoices', 'Social Orders']);
+    // The title no longer flips between the two lists.
+    expect(find.text('Orders'), findsWidgets);
     await closeApp(tester);
   });
 
-  testWidgets('chrome follows the selected sub-tab: FAB on Orders, '
-      'sales-report action on Invoices', (tester) async {
+  testWidgets('chrome follows the selected sub-tab: sales-report action on '
+      'Invoices, FAB on Social Orders', (tester) async {
     await pump(tester);
     await openHub(tester);
 
-    // Orders: "new order" FAB, no sales-report action.
-    expect(find.byType(FloatingActionButton), findsOneWidget);
-    expect(find.byIcon(Icons.summarize_outlined), findsNothing);
+    // Invoices (default): sales-report action, no FAB.
+    expect(find.byIcon(Icons.summarize_outlined), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing);
 
     await tester.tap(find.byType(Tab).last);
     await tester.pumpAndSettle();
 
-    // Invoices: sales-report action, no FAB.
-    expect(find.byType(InvoicesScreen), findsOneWidget);
-    expect(find.byIcon(Icons.summarize_outlined), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsNothing);
+    // Social Orders: "new order" FAB, no sales-report action.
+    expect(find.byType(OrdersScreen), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byIcon(Icons.summarize_outlined), findsNothing);
 
     // ...and back again, so the swap isn't one-way.
     await tester.tap(find.byType(Tab).first);
     await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.byIcon(Icons.summarize_outlined), findsOneWidget);
+    await closeApp(tester);
+  });
+
+  // `appRouter` state is per-container now, but keep the deep-link cases last.
+  testWidgets('/orders deep link opens the Social Orders sub-tab directly',
+      (tester) async {
+    await pump(tester);
+
+    container.read(appRouterProvider).go('/orders');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OrdersScreen), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.byIcon(Icons.summarize_outlined), findsNothing);
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
     await closeApp(tester);
   });
 

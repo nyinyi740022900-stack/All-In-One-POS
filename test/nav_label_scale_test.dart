@@ -54,7 +54,7 @@ Widget _harness({
                 NavigationDestination(
                     icon: const Icon(Icons.bar_chart), label: l.navAnalytics),
                 NavigationDestination(
-                    icon: const Icon(Icons.settings), label: l.navSettings),
+                    icon: const Icon(Icons.storefront), label: l.navShop),
               ],
             );
           }),

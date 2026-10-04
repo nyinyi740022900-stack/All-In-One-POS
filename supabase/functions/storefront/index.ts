@@ -15,19 +15,12 @@
 //   submit_order  { slug, customer_name, phone, address, township, note,
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no, items_total, lines[] }
-//   submit_license_request { shop_name, device_id, email?, phone?, plan,
-//                    months, method?, amount, ref_no (6-digit transaction
-//                    suffix), payment_proof_path?, hp } -> { ok } — the
-//                    /renew page's subscription-renewal
-//                    request form. No slug/shop lookup (the shop isn't
-//                    resolved yet, just a device_id the owner typed in, or
-//                    optionally an account email that resolves to shop_id
-//                    for an online-tier shop); writes a pending row to
-//                    license_requests for the admin dashboard's Requests
-//                    tab to pick up.
-//   my_requests {} (Authorization: Bearer <user JWT>) -> { requests[] } —
-//                    the /renew page's optional sign-in convenience layer;
-//                    the signed-in shop's own last 20 renewal requests.
+//   list_billing_shops {} -> { shops[] } (authenticated owner)
+//   submit_license_request { shop_id, client_request_id, plan, method,
+//                    ref_no, phone?, payment_proof_path? } -> request receipt
+//                    Server selects price/duration; owner membership is required.
+//   my_requests { shop_id } -> { requests[] } (authenticated owner)
+//   create_checkout { shop_id, plan } -> { url } (authenticated owner)
 //   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
@@ -405,168 +398,209 @@ async function cumulativeOrderedThrough(
   );
 }
 
-/// The /renew page's submission handler — a shop's own owner requesting a
-/// subscription renewal/extension, identified only by the device_id ("App
-/// Reference ID") they type in, not a slug or session. Restores a live path
-/// into license_requests now that the in-app payment UI is gone (removed for
-/// App Store 5.1.1(v) compliance, see the file header) — a web page isn't
-/// subject to that rule. Mirrors submit_order's honeypot + rate-limit shape.
+// Billing always authenticates the real owner before resolving a shop.
+async function billingOwner(admin: Admin, req: Request) {
+  const token = (req.headers.get("authorization") ?? "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user || data.user.is_anonymous) return null;
+  if (data.user.app_metadata?.role !== "owner") return null;
+  return data.user;
+}
+
+async function billingShops(
+  admin: Admin,
+  user: { id: string },
+): Promise<
+  Array<{ shop_id: string; name?: string; plan: string; expires_at: string }>
+> {
+  const { data, error } = await admin.from("shop_subscriptions")
+    .select("shop_id, shop_name, plan, expires_at").eq("owner_user_id", user.id)
+    .eq("is_archived", false);
+  if (error) throw error;
+  return (data ?? []).map((
+    s: {
+      shop_id: string;
+      shop_name?: string;
+      plan: string;
+      expires_at: string;
+    },
+  ) => ({ ...s, name: s.shop_name || s.shop_id }));
+}
+
 async function handleSubmitLicenseRequest(
   admin: Admin,
-  // deno-lint-ignore no-explicit-any
-  body: any,
+  body: Record<string, unknown>,
   req: Request,
 ): Promise<Response> {
-  // Honeypot: pretend success, write nothing — same convention as
-  // submit_order, so a bot gets no signal it was caught.
-  if (`${body.hp ?? ""}`.trim().length > 0) {
-    return json({ ok: true });
-  }
-
-  // Rate limit: 5 per IP per 10 minutes. No shop_id to key on here (the
-  // whole point of this entry point is that the shop isn't resolved yet) —
-  // mirrors activate_attempts' IP-only shape, not submit_order's (shop_id,
-  // ip) shape.
-  const ip = clientIp(req);
-  if (!ip) return json({ error: "rate_limited" }, 429);
-  const windowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const { count } = await admin
-    .from("license_request_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
-    .gte("created_at", windowStart);
-  if ((count ?? 0) >= 5) {
-    return json({ error: "rate_limited" }, 429);
-  }
-  await admin.from("license_request_attempts").insert({ ip });
-
-  const shopName = `${body.shop_name ?? ""}`.trim();
-  const deviceId = `${body.device_id ?? ""}`.trim();
-  const emailPresent = `${body.email ?? ""}`.trim().length > 0;
-  const months = Number(body.months);
-  const amount = Number(body.amount);
-  // Last 6 digits of the transaction number — required (not just optional
-  // reference text) so a submitted request can actually be matched against
-  // the vendor's own KBZPay/WavePay transaction history.
-  const refNo = `${body.ref_no ?? ""}`.trim();
+  const owner = await billingOwner(admin, req);
+  if (!owner) return json({ error: "not_authenticated" }, 401);
+  const shopId = `${body.shop_id ?? ""}`.trim();
+  const shops = await billingShops(admin, owner);
+  const shop = shops.find((s) => s.shop_id === shopId);
+  if (!shop) return json({ error: "forbidden" }, 403);
+  const requestId = `${body.client_request_id ?? ""}`;
   if (
-    !shopName || (!deviceId && !emailPresent) ||
-    !Number.isInteger(months) || months <= 0 ||
-    !Number.isInteger(amount) || amount <= 0 ||
-    !/^\d{6}$/.test(refNo)
-  ) {
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(requestId)
+  ) return json({ error: "request_id_required" }, 400);
+  const plan = body.plan;
+  if (plan !== "monthly" && plan !== "yearly") {
+    return json({ error: "bad_plan" }, 400);
+  }
+  const months = plan === "yearly" ? 12 : 1;
+  const amount = plan === "yearly" ? 200000 : 20000;
+  const method = body.method;
+  const refNo = `${body.ref_no ?? ""}`.trim();
+  if (!/^\d{6}$/.test(refNo) || (method !== "kbzpay" && method !== "wavepay")) {
     return json({ error: "bad_request" }, 400);
   }
-
-  const rawPlan = `${body.plan ?? ""}`.trim();
-  const plan = rawPlan === "yearly" ? "yearly" : "monthly";
-  const rawMethod = `${body.method ?? ""}`.trim();
-  const method = rawMethod === "kbzpay" || rawMethod === "wavepay"
-    ? rawMethod
-    : null;
-  const phone = `${body.phone ?? ""}`.trim() || null;
   const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
-  // Renew-page proofs always live under `_admin/` (0066's folder scoping —
-  // only the platform admin reads these). Reject any other prefix.
-  if (proofPath && !proofPath.startsWith("_admin/")) {
+  if (proofPath && !proofPath.startsWith(`_admin/${owner.id}/`)) {
     return json({ error: "bad_proof_path" }, 400);
   }
-
-  // Optional: an online-tier shop (has a Supabase Auth account) can give
-  // its account email instead of hunting for its device_id — resolves to
-  // the exact shop via app_metadata.shop_id, so fulfill_request's existing
-  // shop_id-first lookup renews precisely that shop (an account can have
-  // multiple devices, unlike a device_id match, which only ever matches
-  // one). Same page-and-match approach as list_shops — the Admin Auth API
-  // has no filter-by-email call — and a bad/unmatched email just leaves
-  // shopId null, silently falling back to the device_id path below.
-  const email = `${body.email ?? ""}`.trim().toLowerCase();
-  let shopId: string | null = null;
-  if (email) {
-    const { data: userPage } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 2000,
-    });
-    // deno-lint-ignore no-explicit-any
-    const match = ((userPage?.users ?? []) as any[]).find(
-      (u) => `${u.email ?? ""}`.toLowerCase() === email,
-    );
-    const meta = match?.app_metadata as Record<string, unknown> | undefined;
-    shopId = (meta?.shop_id as string | undefined) ?? null;
-  }
-
-  const now = new Date().toISOString();
-
-  // Idempotency, same shape as submit_order: the browser generates the
-  // request id so a retry after a lost response resolves to the request it
-  // already created. The stake here is higher than an order — a duplicate
-  // means two pending renewals for one transfer, and an admin confirming
-  // both mints two licences (create_license has no shop_id uniqueness
-  // guard). A caller that sends nothing keeps the old behaviour.
-  const clientRequestId = `${body.client_request_id ?? ""}`.trim();
-  if (clientRequestId) {
-    const { data: existing } = await admin
-      .from("license_requests")
-      .select("id, invoice_no")
-      .eq("id", clientRequestId)
-      .maybeSingle();
-    if (existing) {
-      return json({
-        ok: true,
-        duplicate: true,
-        request_id: existing.id,
-        invoice_no: existing.invoice_no,
-      });
+  const { data: existing, error: readError } = await admin.from(
+    "license_requests",
+  )
+    .select("id, invoice_no, owner_user_id, shop_id").eq("id", requestId)
+    .maybeSingle();
+  if (readError) return json({ error: "server_error" }, 500);
+  if (existing) {
+    if (existing.owner_user_id !== owner.id || existing.shop_id !== shopId) {
+      return json({ error: "request_id_conflict" }, 409);
     }
+    return json({
+      ok: true,
+      duplicate: true,
+      request_id: existing.id,
+      invoice_no: existing.invoice_no,
+    });
   }
-  const requestId = clientRequestId || crypto.randomUUID();
-  // Human-quotable receipt number, derived from the id so it is unique
-  // without a sequence and stable forever — the same trick submit_order uses
-  // for `order_no`. This is also what we will hand MyanMyanPay as its
-  // `orderId` when the gateway lands, so one number reconciles the shop's
-  // Viber message, this row, and MMPay's dashboard.
+  const ip = clientIp(req);
+  if (!ip) return json({ error: "rate_limited" }, 429);
+  const { count, error: countError } = await admin.from(
+    "license_request_attempts",
+  ).select("id", { count: "exact", head: true })
+    .eq("ip", ip).gte(
+      "created_at",
+      new Date(Date.now() - 600000).toISOString(),
+    );
+  if (countError) return json({ error: "server_error" }, 500);
+  if ((count ?? 0) >= 5) return json({ error: "rate_limited" }, 429);
+  await admin.from("license_request_attempts").insert({ ip });
   const invoiceNo = "INV-" +
     requestId.replace(/-/g, "").slice(0, 8).toUpperCase();
   const { error } = await admin.from("license_requests").insert({
     id: requestId,
     invoice_no: invoiceNo,
-    shop_name: shopName,
     shop_id: shopId,
-    device_id: deviceId,
-    phone,
+    owner_user_id: owner.id,
+    shop_name: shop.name,
+    device_id: "",
+    tier: "online",
     plan,
     months,
-    method,
     amount,
+    method,
     ref_no: refNo,
+    phone: `${body.phone ?? ""}`.trim() || null,
     payment_proof_path: proofPath,
-    // This entry point never has a Supabase Auth session — the resulting
-    // key is always a device-key (offline-tier) activation, same as the
-    // admin's own "Generate license key" default.
-    tier: "offline",
     status: "pending",
-    created_at: now,
-    updated_at: now,
   });
-  if (error) {
-    return json({ error: "server_error", detail: error.message }, 500);
+  if (error?.code === "23505") {
+    const { data: raced } = await admin.from("license_requests").select(
+      "id, invoice_no, owner_user_id, shop_id",
+    )
+      .eq("id", requestId).maybeSingle();
+    if (raced?.owner_user_id === owner.id && raced?.shop_id === shopId) {
+      return json({
+        ok: true,
+        duplicate: true,
+        request_id: raced.id,
+        invoice_no: raced.invoice_no,
+      });
+    }
+    return json({ error: "request_id_conflict" }, 409);
   }
-  // Both are known before the insert — return them so the page can render
-  // the receipt immediately and hand the owner a link to come back to.
+  if (error) return json({ error: "server_error" }, 500);
   return json({ ok: true, request_id: requestId, invoice_no: invoiceNo });
 }
 
-/// Public receipt for one renewal request, keyed by the request id the
-/// submitting browser was handed.
-///
-/// Why a bare id is enough of a credential: it is a server-generated UUIDv4
-/// returned only to that browser, so it cannot be guessed — the same model
-/// every order-tracking link uses. And the one sensitive thing it can
-/// return, `issued_key`, is device-bound at activation (one device per key),
-/// so a leaked link does not hand a stranger a usable licence. What it must
-/// never return is the rest of the row: `payment_proof_path` is a photo of
-/// somebody's bank app, and phone/email belong to the shop, not to whoever
-/// holds the link.
+// The checkout binding is created only after ownership verification. A webhook
+// cannot grant time using customer-editable shop/device custom fields.
+async function handleCheckout(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+) {
+  const owner = await billingOwner(admin, req);
+  if (!owner) return json({ error: "not_authenticated" }, 401);
+  const shops = await billingShops(admin, owner);
+  const shopId = `${body.shop_id ?? ""}`;
+  if (!shops.some((s) => s.shop_id === shopId)) {
+    return json({ error: "forbidden" }, 403);
+  }
+  if (body.plan !== "monthly" && body.plan !== "yearly") {
+    return json({ error: "bad_plan" }, 400);
+  }
+  const apiKey = Deno.env.get("LEMONSQUEEZY_API_KEY");
+  const storeId = Deno.env.get("LEMONSQUEEZY_STORE_ID");
+  if (!apiKey || !storeId) return json({ error: "checkout_unavailable" }, 503);
+  const configKey = `pay.lemonsqueezy.variant_${body.plan}`;
+  const { data: cfg } = await admin.from("app_config").select("value").eq(
+    "key",
+    configKey,
+  ).maybeSingle();
+  const variantId = `${cfg?.value ?? ""}`;
+  if (!/^\d+$/.test(variantId)) {
+    return json({ error: "checkout_unavailable" }, 503);
+  }
+  const id = crypto.randomUUID();
+  const { error } = await admin.from("billing_checkouts").insert({
+    id,
+    shop_id: shopId,
+    owner_user_id: owner.id,
+    variant_id: variantId,
+    months: body.plan === "yearly" ? 12 : 1,
+  });
+  if (error) return json({ error: "server_error" }, 500);
+  const result = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+    },
+    signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({
+      data: {
+        type: "checkouts",
+        attributes: {
+          checkout_data: { email: owner.email, custom: { billing_id: id } },
+          checkout_options: { skip_trial: true },
+          product_options: { enabled_variants: [Number(variantId)] },
+          expires_at: new Date(Date.now() + 3600000).toISOString(),
+        },
+        relationships: {
+          store: { data: { type: "stores", id: storeId } },
+          variant: { data: { type: "variants", id: variantId } },
+        },
+      },
+    }),
+  });
+  if (!result.ok) return json({ error: "checkout_unavailable" }, 502);
+  const resultBody = await result.json();
+  const url = resultBody?.data?.attributes?.url;
+  if (typeof url !== "string" || !url.startsWith("https://")) {
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  return json({ url });
+}
+
+/// Opaque request-id receipt. Never returns keys, payment proof paths or
+/// account contact details. Billing history remains owner authenticated.
 async function handleReceipt(
   admin: Admin,
   // deno-lint-ignore no-explicit-any
@@ -598,8 +632,8 @@ async function handleReceipt(
   const { data: row } = await admin
     .from("license_requests")
     .select(
-      "id, invoice_no, shop_name, device_id, plan, months, amount, method, " +
-        "ref_no, status, payment_status, issued_key, reject_reason, " +
+      "id, invoice_no, shop_name, plan, months, amount, method, " +
+        "ref_no, status, payment_status, fulfilled_expires_at, reject_reason, " +
         "mmpay_expires_at, paid_at, created_at, updated_at",
     )
     .eq("id", requestId)
@@ -608,14 +642,13 @@ async function handleReceipt(
 
   // The key is the payout of this whole flow — hand it over only once the
   // request is actually fulfilled, never while it is pending or rejected.
-  const issuedKey = row.status === "fulfilled" ? row.issued_key : null;
 
   return json({
     receipt: {
       invoice_no: row.invoice_no,
       shop_name: row.shop_name,
       // Enough to recognise your own device without printing the whole id.
-      device_id_tail: `${row.device_id ?? ""}`.slice(-6) || null,
+
       plan: row.plan,
       months: row.months,
       amount: row.amount,
@@ -623,7 +656,7 @@ async function handleReceipt(
       ref_no: row.ref_no,
       status: row.status,
       payment_status: row.payment_status,
-      issued_key: issuedKey,
+      expires_at: row.fulfilled_expires_at,
       reject_reason: row.status === "rejected" ? row.reject_reason : null,
       mmpay_expires_at: row.mmpay_expires_at,
       paid_at: row.paid_at,
@@ -640,34 +673,25 @@ async function handleReceipt(
 /// (see 0069's "don't open this table to anon" note — this handler never
 /// grants anon or cross-shop access, only "the shop I already am").
 async function handleMyRequests(
-  url: string,
-  anonKey: string,
   admin: Admin,
   req: Request,
+  body: Record<string, unknown>,
 ): Promise<Response> {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const asUser = createClient(url, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await asUser.auth.getUser();
-  if (userErr || !userData?.user) {
-    return json({ error: "not_authenticated" }, 401);
+  const owner = await billingOwner(admin, req);
+  if (!owner) return json({ error: "not_authenticated" }, 401);
+  const shops = await billingShops(admin, owner);
+  const shopId = `${body.shop_id ?? ""}`;
+  if (!shops.some((s) => s.shop_id === shopId)) {
+    return json({ error: "forbidden" }, 403);
   }
-  const shopId =
-    (userData.user.app_metadata as Record<string, unknown> | null)
-      ?.shop_id as string | undefined;
-  if (!shopId) return json({ requests: [] });
-
-  const { data, error } = await admin
-    .from("license_requests")
+  const { data, error } = await admin.from("license_requests")
     .select(
       "id, invoice_no, plan, months, amount, method, status, payment_status, created_at",
     )
-    .eq("shop_id", shopId)
-    .order("created_at", { ascending: false })
-    .limit(20);
-  if (error) return json({ error: "server_error", detail: error.message }, 500);
-  return json({ requests: data ?? [] });
+    .eq("shop_id", shopId).order("created_at", { ascending: false }).limit(20);
+  return error
+    ? json({ error: "server_error" }, 500)
+    : json({ requests: data ?? [] });
 }
 
 Deno.serve(async (req) => {
@@ -675,7 +699,6 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const admin = createClient(url, serviceKey);
   const shopWebBase = "https://shop.allinonepos.app";
 
@@ -732,9 +755,6 @@ Deno.serve(async (req) => {
   }
   const action = body.action as string;
 
-  // Dispatched before the slug lookup below: a subscription-renewal request
-  // has no shop slug at all (the shop identifies itself only by the
-  // device_id it types in) — see handleSubmitLicenseRequest.
   if (action === "submit_license_request") {
     return handleSubmitLicenseRequest(admin, body, req);
   }
@@ -745,15 +765,16 @@ Deno.serve(async (req) => {
     return handleReceipt(admin, body, req);
   }
 
-  // The /renew page's optional sign-in convenience layer: a shop with a
-  // Supabase Auth account (created in-app via "Create shop login") can see
-  // its own past renewal requests instead of only ever seeing the one it
-  // just submitted. Requires a real session — the caller's own access token
-  // travels in the Authorization header exactly like any authenticated
-  // Postgrest/Function call from the mobile app.
   if (action === "my_requests") {
-    return handleMyRequests(url, anonKey, admin, req);
+    return handleMyRequests(admin, req, body);
   }
+
+  if (action === "list_billing_shops") {
+    const owner = await billingOwner(admin, req);
+    if (!owner) return json({ error: "not_authenticated" }, 401);
+    return json({ shops: await billingShops(admin, owner) });
+  }
+  if (action === "create_checkout") return handleCheckout(admin, body, req);
 
   const slug = (body.slug ?? "").trim();
   if (!slug) return json({ error: "bad_request" }, 400);
@@ -769,13 +790,21 @@ Deno.serve(async (req) => {
     // deno-fmt-ignore — one unbroken literal on purpose: supabase-js infers
     // the row type by parsing this string, and splitting it across a `+`
     // degrades every field to GenericStringError.
-    .select("shop_id, display_name, phone, address, logo_url, payment_methods, currency_code, enabled, hours_enabled, open_minute, close_minute, require_transfer_proof")
+    .select(
+      "shop_id, display_name, phone, address, logo_url, payment_methods, currency_code, enabled, hours_enabled, open_minute, close_minute, require_transfer_proof",
+    )
     .eq("slug", slug)
     .eq("enabled", true)
     .maybeSingle();
   if (!sf) return json({ error: "not_found" }, 404);
 
-  const acceptingOrders = isWithinHours(
+  const { data: subscription } = await admin.from("shop_subscriptions")
+    .select("plan, expires_at, is_archived").eq("shop_id", sf.shop_id)
+    .maybeSingle();
+  const premium = subscription && !subscription.is_archived &&
+    ["trial", "monthly", "yearly", "premium"].includes(subscription.plan) &&
+    Date.parse(subscription.expires_at) + 14 * 86400000 > Date.now();
+  const acceptingOrders = !!premium && isWithinHours(
     sf.hours_enabled === true,
     sf.open_minute as number | null,
     sf.close_minute as number | null,
@@ -855,6 +884,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === "submit_order") {
+    if (!premium) return json({ error: "subscription_lapsed" }, 403);
     if (!acceptingOrders) {
       return json({ error: "closed" }, 403);
     }
@@ -912,8 +942,9 @@ Deno.serve(async (req) => {
     // 'transfer' (KPay/Wave, usually with a screenshot) or 'cod' (cash on
     // delivery) — anything else collapses to null (unspecified).
     const rawMethod = `${body.payment_method ?? ""}`.trim();
-    const paymentMethod =
-      rawMethod === "transfer" || rawMethod === "cod" ? rawMethod : null;
+    const paymentMethod = rawMethod === "transfer" || rawMethod === "cod"
+      ? rawMethod
+      : null;
 
     const proofPath = `${body.payment_proof_path ?? ""}`.trim() || null;
     const requireProof = sf.require_transfer_proof !== false;
@@ -1024,7 +1055,10 @@ Deno.serve(async (req) => {
       });
     }
     if (outOfStockProductId) {
-      return json({ error: "out_of_stock", product_id: outOfStockProductId }, 409);
+      return json(
+        { error: "out_of_stock", product_id: outOfStockProductId },
+        409,
+      );
     }
 
     const itemsTotal = validLines.reduce((s, l) => s + l.price * l.qty, 0);
@@ -1075,7 +1109,8 @@ Deno.serve(async (req) => {
     // millisecond timestamp — two orders submitted in the same millisecond
     // (well within the 5-per-10-min rate limit across multiple concurrent
     // shops) previously could have collided on order_no.
-    const orderNo = "WEB-" + orderId.replace(/-/g, "").slice(0, 8).toUpperCase();
+    const orderNo = "WEB-" +
+      orderId.replace(/-/g, "").slice(0, 8).toUpperCase();
 
     const { error: oErr } = await admin.from("orders").insert({
       id: orderId,

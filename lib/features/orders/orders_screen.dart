@@ -85,7 +85,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                         AppTheme.space3,
                         AppTheme.space1,
                         AppTheme.space3,
-                        AppTheme.space3,
+                        // Both the standalone page and the hub own a 56dp
+                        // FAB: leave its 16dp margin plus 24dp of clear space.
+                        96,
                       ),
                       itemCount: filtered.length,
                       // Stable per-order keys (audit Low): when the list
@@ -319,7 +321,7 @@ class _OrderCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppTheme.space2),
       child: Card(
         margin: EdgeInsets.zero,
-        color: selected ? scheme.secondaryContainer : null,
+        color: selected ? scheme.primaryContainer : null,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radius),
           onTap: onTap,
@@ -374,7 +376,10 @@ class _OrderCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    _PayDot(status: order.paymentStatus),
+                    _PayDot(
+                      status: order.paymentStatus,
+                      onSelectedSurface: selected,
+                    ),
                   ],
                 ),
                 if ((order.deliveryCarrier ?? '').isNotEmpty) ...[
@@ -413,14 +418,16 @@ class _OrderCard extends StatelessWidget {
 /// the same tone, so a card that is both `new` and `unpaid` reads as one
 /// signal with a footnote rather than two competing pastel plates.
 class _PayDot extends StatelessWidget {
-  const _PayDot({required this.status});
+  const _PayDot({required this.status, this.onSelectedSurface = false});
   final String status;
+  final bool onSelectedSurface;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final color = orderPaymentTone(status).colors(AppColors.of(context)).on;
-    return Row(
+    final tone = orderPaymentTone(status).colors(AppColors.of(context));
+    final color = tone.on;
+    final label = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.circle, size: AppTheme.space2, color: color),
@@ -430,6 +437,19 @@ class _PayDot extends StatelessWidget {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
         ),
       ],
+    );
+    // The semantic foreground is paired with its own soft fill on a blue
+    // selection: green Paid text alone falls below 4.5:1 in light mode.
+    if (!onSelectedSurface) return label;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: tone.fill,
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space1),
+        child: label,
+      ),
     );
   }
 }

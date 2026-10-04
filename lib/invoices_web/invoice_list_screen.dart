@@ -10,8 +10,11 @@ import 'invoice_detail_web_screen.dart';
 import 'invoices_web_session.dart';
 
 class _LocaleBar extends StatelessWidget implements PreferredSizeWidget {
-  const _LocaleBar(
-      {required this.locale, required this.onToggle, required this.onSignOut});
+  const _LocaleBar({
+    required this.locale,
+    required this.onToggle,
+    required this.onSignOut,
+  });
   final Locale locale;
   final VoidCallback onToggle;
   final VoidCallback onSignOut;
@@ -29,7 +32,8 @@ class _LocaleBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onToggle,
           icon: const Icon(Icons.language, size: 16),
           label: Text(
-              locale.languageCode == 'my' ? l.languageEnglish : l.languageMyanmar),
+            locale.languageCode == 'my' ? l.languageEnglish : l.languageMyanmar,
+          ),
         ),
         IconButton(
           tooltip: l.invWebSignOut,
@@ -66,16 +70,16 @@ class InvoiceRow {
   });
 
   factory InvoiceRow.fromRow(Map<String, dynamic> m) => InvoiceRow(
-        id: m['id'] as String,
-        invoiceNo: m['invoice_no'] as String,
-        customerName: (m['customer_name'] as String?) ?? '',
-        customerPhone: m['customer_phone'] as String?,
-        paymentMethod: (m['payment_method'] as String?) ?? 'cash',
-        total: (m['total'] as num?)?.toInt() ?? 0,
-        // Stored UTC — see invoice_detail_web_screen.
-        finalizedAt: DateTime.parse(m['finalized_at'] as String).toLocal(),
-        isRefund: m['refund_of_sale_id'] != null,
-      );
+    id: m['id'] as String,
+    invoiceNo: m['invoice_no'] as String,
+    customerName: (m['customer_name'] as String?) ?? '',
+    customerPhone: m['customer_phone'] as String?,
+    paymentMethod: (m['payment_method'] as String?) ?? 'cash',
+    total: (m['total'] as num?)?.toInt() ?? 0,
+    // Stored UTC — see invoice_detail_web_screen.
+    finalizedAt: DateTime.parse(m['finalized_at'] as String).toLocal(),
+    isRefund: m['refund_of_sale_id'] != null,
+  );
 }
 
 /// Classifies a raw Supabase-fetch failure into a real sentence — this
@@ -136,12 +140,14 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   }
 
   Future<List<InvoiceRow>> _load() async {
-    final rows = await Supabase.instance.client
-        .from('sales')
-        .select()
-        .eq('is_deleted', false)
-        .order('finalized_at', ascending: false)
-        .limit(300) as List;
+    final rows =
+        await Supabase.instance.client
+                .from('sales')
+                .select()
+                .eq('is_deleted', false)
+                .order('finalized_at', ascending: false)
+                .limit(300)
+            as List;
     return rows
         .map((e) => InvoiceRow.fromRow((e as Map).cast<String, dynamic>()))
         .toList();
@@ -171,9 +177,10 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: _LocaleBar(
-          locale: widget.locale,
-          onToggle: widget.onToggleLocale,
-          onSignOut: _signOut),
+        locale: widget.locale,
+        onToggle: widget.onToggleLocale,
+        onSignOut: _signOut,
+      ),
       body: FutureBuilder<List<InvoiceRow>>(
         future: _future,
         builder: (context, snap) {
@@ -193,11 +200,13 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
           final rows = q.isEmpty
               ? all
               : all
-                  .where((r) =>
-                      r.invoiceNo.toLowerCase().contains(q) ||
-                      r.customerName.toLowerCase().contains(q) ||
-                      (r.customerPhone ?? '').toLowerCase().contains(q))
-                  .toList();
+                    .where(
+                      (r) =>
+                          r.invoiceNo.toLowerCase().contains(q) ||
+                          r.customerName.toLowerCase().contains(q) ||
+                          (r.customerPhone ?? '').toLowerCase().contains(q),
+                    )
+                    .toList();
           return Column(
             children: [
               Padding(
@@ -218,49 +227,58 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                         title: l.invoicesEmpty,
                       )
                     : rows.isEmpty
-                        ? EmptyStateView(
-                            icon: Icons.search_off,
-                            title: l.invWebNoResults,
-                          )
-                        : ListView.separated(
-                            itemCount: rows.length,
-                            separatorBuilder: (_, _) => const Divider(height: 1),
-                            itemBuilder: (context, i) {
-                              final r = rows[i];
-                              return ListTile(
-                                leading: Icon(r.isRefund
-                                    ? Icons.undo
-                                    : Icons.receipt_long),
-                                title: Text(r.invoiceNo),
-                                subtitle: Text([
-                                  if (r.customerName.isNotEmpty) r.customerName,
-                                  if ((r.customerPhone ?? '').isNotEmpty)
-                                    r.customerPhone!,
-                                ].join(' · ')),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    MoneyText(Money(r.total).withCurrency(
-                                        _currency, widget.locale.languageCode)),
-                                    if (r.isRefund)
-                                      Text(l.invoiceRefunded,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                  color: AppColors.of(context)
-                                                      .danger)),
-                                  ],
-                                ),
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => InvoiceDetailWebScreen(saleId: r.id),
+                    ? EmptyStateView(
+                        icon: Icons.search_off,
+                        title: l.invWebNoResults,
+                      )
+                    : ListView.separated(
+                        itemCount: rows.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, i) {
+                          final r = rows[i];
+                          return ListTile(
+                            leading: Icon(
+                              r.isRefund ? Icons.undo : Icons.receipt_long,
+                            ),
+                            title: Text(r.invoiceNo),
+                            subtitle: Text(
+                              [
+                                if (r.customerName.isNotEmpty) r.customerName,
+                                if ((r.customerPhone ?? '').isNotEmpty)
+                                  r.customerPhone!,
+                              ].join(' · '),
+                            ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                MoneyText(
+                                  Money(r.total).withCurrency(
+                                    _currency,
+                                    widget.locale.languageCode,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
+                                if (r.isRefund)
+                                  Text(
+                                    l.invoiceRefunded,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: AppColors.of(context).danger,
+                                        ),
+                                  ),
+                              ],
+                            ),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    InvoiceDetailWebScreen(saleId: r.id),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           );

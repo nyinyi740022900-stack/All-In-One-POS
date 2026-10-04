@@ -8,6 +8,9 @@ enum LicenseStatusKind {
   /// No license activated yet.
   none,
 
+  /// A subscription identity exists but its proof needs an online recheck.
+  verificationRequired,
+
   /// Active and paid.
   active,
 
@@ -48,7 +51,7 @@ class LicenseStatus {
 
 /// Days a lapsed paid plan stays Premium past its expiry, online or not.
 /// Must match `GRACE_DAYS` in `supabase/functions/activate/index.ts` and the
-/// grace window in `renew_license` (migration 0093), which extends from the
+/// grace window in `renew_shop_subscription` (migration 0094), which extends from the
 /// old expiry inside this window so grace is time to pay, not free time.
 const kLicenseGraceDays = 14;
 

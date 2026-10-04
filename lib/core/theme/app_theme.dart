@@ -116,7 +116,7 @@ class AppColors extends ThemeExtension<AppColors> {
       // Fresh emerald (hue ~155°), ~60° away from the royal-blue action
       // colour (hue ~218°) so a "paid" badge never reads as brand chrome.
       // 5.3:1 on white / 9.4:1 on the dark card.
-      success: dark ? const Color(0xFF4FD69A) : const Color(0xFF0B7F4E),
+      success: dark ? const Color(0xFF4FD69A) : const Color(0xFF0B7E4E),
       // True orange (hue ~30°), kept clear of the yellow/gold band on
       // purpose — this palette has no gold in it. 6.3:1 / 8.9:1.
       warning: dark ? const Color(0xFFF2A65A) : const Color(0xFF9A4A00),
@@ -197,8 +197,8 @@ class AppColors extends ThemeExtension<AppColors> {
 /// just as well as the Sell/Checkout flow. If a value only makes sense for
 /// one screen, it doesn't belong here — style that screen locally instead.
 ///
-/// Brand (v3b, 2026-10-02): **navy ink + ONE saturated royal blue on pure
-/// white.** Text is deep navy (`onSurface #0B1530`), never black; the single
+/// Brand (v3c, 2026-10-03): **charcoal ink + ONE saturated royal blue on pure
+/// white.** Text is near-black charcoal (`onSurface #111827`); the single
 /// colour is a vivid royal blue ([ColorScheme.primary] `#1F65D6`, 5.4:1 with
 /// white) reserved for the one primary action, links and the selected state.
 /// Page and cards are both pure white, separated by crisp `#E3E7EE` hairlines
@@ -342,14 +342,18 @@ class AppTheme {
     Size minimumSize = const Size.fromHeight(52),
   }) => FilledButton.styleFrom(
     minimumSize: minimumSize,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMd)),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(radiusMd),
+    ),
   );
 
   /// Matching outlined — secondary auth actions ("Activate a license
   /// key", "Sign up") sitting under a stadium primary.
   static ButtonStyle authOutlinedButtonStyle() => OutlinedButton.styleFrom(
     minimumSize: const Size.fromHeight(52),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMd)),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(radiusMd),
+    ),
   );
 
   // ---------------------------------------------------------------------
@@ -500,9 +504,51 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => textTheme.labelMedium?.copyWith(
+            color: states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
+        ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
-        style: ButtonStyle(shape: WidgetStatePropertyAll(shapeSm)),
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(shapeSm),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return null;
+            return states.contains(WidgetState.selected)
+                ? scheme.primaryContainer
+                : null;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return null;
+            return states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : null;
+          }),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return null;
+            final foreground = states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurface;
+            if (states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.focused)) {
+              return foreground.withValues(alpha: 0.1);
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return foreground.withValues(alpha: 0.08);
+            }
+            return null;
+          }),
+        ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         // The one primary action: solid action blue, not a pale container.
@@ -515,6 +561,14 @@ class AppTheme {
       ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: scheme.surface,
+        selectedIconTheme: IconThemeData(color: scheme.onPrimaryContainer),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onPrimaryContainer,
+        ),
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
         indicatorColor: scheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
@@ -523,9 +577,21 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainerLow,
         selectedColor: scheme.primaryContainer,
-        labelStyle: textTheme.labelLarge?.copyWith(color: scheme.onSurface),
+        labelStyle: textTheme.labelLarge?.copyWith(
+          color: WidgetStateColor.resolveWith((states) {
+            // RawChip applies its own disabled opacity when painting the label.
+            if (states.contains(WidgetState.disabled)) return scheme.onSurface;
+            return states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurface;
+          }),
+        ),
         secondaryLabelStyle: textTheme.labelLarge?.copyWith(
-          color: scheme.onPrimaryContainer,
+          color: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? scheme.onSurface
+                : scheme.onPrimaryContainer,
+          ),
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusFull),
@@ -547,6 +613,8 @@ class AppTheme {
         ),
       ),
       listTileTheme: ListTileThemeData(
+        selectedColor: scheme.onPrimaryContainer,
+        selectedTileColor: scheme.primaryContainer,
         titleTextStyle: textTheme.titleMedium,
         subtitleTextStyle: textTheme.bodySmall,
         iconColor: scheme.onSurfaceVariant,
@@ -560,11 +628,16 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.selected) ? scheme.primary : null,
+          (states) => states.contains(WidgetState.disabled)
+              ? null
+              : states.contains(WidgetState.selected)
+              ? scheme.primary
+              : null,
         ),
         trackColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
+          (states) => states.contains(WidgetState.disabled)
+              ? null
+              : states.contains(WidgetState.selected)
               ? scheme.primaryContainer
               : null,
         ),
@@ -582,8 +655,8 @@ class AppTheme {
   /// [AppColors.success] green.
   static const Color _actionBlue = Color(0xFF1F65D6);
 
-  /// Navy ink — body/heading text in light mode. 18.0:1 on white.
-  static const Color _inkNavy = Color(0xFF0B1530);
+  /// Charcoal ink — body/heading text in light mode. 17.7:1 on white.
+  static const Color _inkCharcoal = Color(0xFF111827);
 
   /// A hand-built, contrast-checked [ColorScheme] for **both** brightnesses.
   /// [ColorScheme.fromSeed] is used only so the roles nobody styles directly
@@ -591,7 +664,7 @@ class AppTheme {
   /// role that appears on screen is pinned below.
   ///
   /// Measured pairings (WCAG AA: 4.5:1 text, 3:1 UI edges):
-  /// * light `onSurface #0B1530` on white page/card — **18.0:1**
+  /// * light `onSurface #111827` on white page/card — **17.7:1**
   /// * light `onSurfaceVariant #5B6785` on white — **5.6:1**
   /// * light `onPrimary` white on `primary #1F65D6` — **5.4:1**
   /// * light `primary` on white — **5.4:1**; on `primaryContainer #E8F0FD` 4.8
@@ -627,7 +700,7 @@ class AppTheme {
         errorContainer: const Color(0xFFFBE3E1),
         onErrorContainer: const Color(0xFF410E0B),
         surface: Colors.white, // pure white page
-        onSurface: _inkNavy,
+        onSurface: _inkCharcoal,
         onSurfaceVariant: const Color(0xFF5B6785),
         outline: const Color(0xFF7C879E),
         outlineVariant: const Color(0xFFE3E7EE), // crisp hairline
@@ -639,7 +712,7 @@ class AppTheme {
         surfaceBright: Colors.white,
         surfaceDim: const Color(0xFFE3E7EE),
         surfaceTint: _actionBlue,
-        inverseSurface: const Color(0xFF0B1530),
+        inverseSurface: _inkCharcoal,
         onInverseSurface: const Color(0xFFF3F5F8),
         inversePrimary: const Color(0xFF6EA2FF),
       );
@@ -717,12 +790,7 @@ class AppTheme {
       titleSmall: s(14, FontWeight.w600, 1.42),
       bodyLarge: s(16, FontWeight.w400, 1.55),
       bodyMedium: s(14, FontWeight.w400, 1.55),
-      bodySmall: s(
-        13,
-        FontWeight.w400,
-        1.55,
-        color: scheme.onSurfaceVariant,
-      ),
+      bodySmall: s(13, FontWeight.w400, 1.55, color: scheme.onSurfaceVariant),
       labelLarge: s(14, FontWeight.w600, 1.45, letterSpacing: 0.1),
       labelMedium: s(12, FontWeight.w600, 1.45, letterSpacing: 0.2),
       labelSmall: s(11, FontWeight.w600, 1.50, letterSpacing: 0.2),

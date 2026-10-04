@@ -484,7 +484,7 @@ class _PairedDeviceTile extends StatelessWidget {
       title: Text(title),
       subtitle: Text(subtitle),
       selected: isSelected,
-      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+      selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
       trailing: isSelected
           ? Icon(Icons.check_circle, color: AppColors.of(context).success)
           : null,

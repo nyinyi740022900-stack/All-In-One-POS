@@ -73,15 +73,22 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
       lastDate: now,
       initialDateRange: start != null && end != null
           ? DateTimeRange(
-              start: start, end: end.subtract(const Duration(days: 1)))
+              start: start,
+              end: end.subtract(const Duration(days: 1)),
+            )
           : null,
     );
     if (picked == null) return;
-    ref.read(movementStartDateProvider.notifier).state =
-        DateTime(picked.start.year, picked.start.month, picked.start.day);
+    ref.read(movementStartDateProvider.notifier).state = DateTime(
+      picked.start.year,
+      picked.start.month,
+      picked.start.day,
+    );
     ref.read(movementEndDateProvider.notifier).state = DateTime(
-            picked.end.year, picked.end.month, picked.end.day)
-        .add(const Duration(days: 1));
+      picked.end.year,
+      picked.end.month,
+      picked.end.day,
+    ).add(const Duration(days: 1));
   }
 
   String _rangeLabel(DateTime start, DateTime endExclusive) {
@@ -91,18 +98,9 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
   }
 
   /// Shares the CURRENTLY FILTERED ledger as CSV — the file can never
-  /// disagree with what the screen is showing. Premium-gated like the
-  /// inventory CSV export.
+  /// disagree with what the screen is showing. Available on Free for data portability.
   Future<void> _exportCsv(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    if (!ref.read(isPremiumProvider)) {
-      await showPremiumRequiredDialog(
-        context,
-        l.stockHistoryExportCsv,
-        benefit: l.stockHistoryCsvBenefit,
-      );
-      return;
-    }
     final messenger = ScaffoldMessenger.of(context);
     final movements = ref.read(filteredMovementsProvider);
     final currency = ref.read(shopCurrencyProvider);
@@ -215,7 +213,8 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
     // Any filter that could be hiding rows — a date range, a product-name
     // fragment, or a type set that isn't "everything" (which includes the
     // default).
-    final narrowed = start != null ||
+    final narrowed =
+        start != null ||
         end != null ||
         productQuery.isNotEmpty ||
         !_allMovementTypes.every(types.contains);
@@ -253,14 +252,20 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppTheme.space4,
-                AppTheme.space3, AppTheme.space4, AppTheme.space2),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space4,
+              AppTheme.space3,
+              AppTheme.space4,
+              AppTheme.space2,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (start != null && end != null) ...[
-                  Text(_rangeLabel(start, end),
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    _rangeLabel(start, end),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: AppTheme.space2),
                 ],
                 TextField(
@@ -273,14 +278,19 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
                         ? null
                         : IconButton(
                             icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () => ref
-                                .read(movementProductSearchProvider.notifier)
-                                .state = '',
+                            onPressed: () =>
+                                ref
+                                        .read(
+                                          movementProductSearchProvider
+                                              .notifier,
+                                        )
+                                        .state =
+                                    '',
                           ),
                   ),
-                  onChanged: (v) => ref
-                      .read(movementProductSearchProvider.notifier)
-                      .state = v,
+                  onChanged: (v) =>
+                      ref.read(movementProductSearchProvider.notifier).state =
+                          v,
                 ),
                 const SizedBox(height: AppTheme.space2),
                 Wrap(
@@ -316,21 +326,28 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
                 // with no way out of the dead end. Say which, and offer the
                 // way out.
                 ? EmptyStateView(
-                    icon: narrowed ? Icons.filter_alt_off_outlined : Icons.history,
+                    icon: narrowed
+                        ? Icons.filter_alt_off_outlined
+                        : Icons.history,
                     title: l.stockHistoryEmpty,
                     message: narrowed ? l.stockHistoryEmptyFiltered : null,
                     actionLabel: narrowed ? l.stockHistoryShowAll : null,
                     onAction: narrowed
                         ? () {
-                            ref.read(movementTypeFilterProvider.notifier).state =
-                                _allMovementTypes.toSet();
+                            ref
+                                .read(movementTypeFilterProvider.notifier)
+                                .state = _allMovementTypes
+                                .toSet();
                             ref.read(movementStartDateProvider.notifier).state =
                                 null;
                             ref.read(movementEndDateProvider.notifier).state =
                                 null;
                             ref
-                                .read(movementProductSearchProvider.notifier)
-                                .state = '';
+                                    .read(
+                                      movementProductSearchProvider.notifier,
+                                    )
+                                    .state =
+                                '';
                           }
                         : null,
                   )
@@ -346,8 +363,11 @@ class _StockMovementsScreenState extends ConsumerState<StockMovementsScreen> {
                           : Theme.of(context).colorScheme.error;
                       return ListTile(
                         leading: Icon(stockMovementTypeIcon(m.type)),
-                        title: Text(mp.productName,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        title: Text(
+                          mp.productName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         subtitle: Text(
                           [
                             stockMovementTypeLabel(l, m.type),

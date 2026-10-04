@@ -113,3 +113,25 @@ jobs:
             echo "==> $fn"
             deno check "$fn"
           done
+
+      - name: Account authority and billing handler tests
+        run: >-
+          deno test --allow-env --allow-net
+          supabase/functions/activate/account_premium_test.ts
+          supabase/functions/tests/account_billing_test.ts
+          supabase/functions/tests/gateway_billing_test.ts
+          supabase/functions/sync_force_apply/account_gate_test.ts
+
+  account_sql:
+    name: account migration transactions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install disposable database tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql
+          echo "$(pg_config --bindir)" >> "$GITHUB_PATH"
+      - name: Authority, tenant isolation and payment transactions
+        run: python3 -m unittest supabase.tests.account_premium_test supabase.tests.account_billing_test

@@ -11,13 +11,10 @@ class _ShopHubPage extends StatelessWidget {
     required this.onFilter,
     required this.onSelectShop,
     required this.onExtendEmail,
-    required this.onExtendDevice,
     required this.onResetDevice,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
-    required this.onGenerateKey,
-    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -33,9 +30,7 @@ class _ShopHubPage extends StatelessWidget {
   final ValueChanged<AdminShopFilter> onFilter;
   final ValueChanged<String?> onSelectShop;
   final void Function(Map<String, dynamic> shop) onExtendEmail;
-  final void Function(Map<String, dynamic> shop, String? deviceId)
-  onExtendDevice;
-  final void Function(String deviceId) onResetDevice;
+  final void Function(String shopId, String deviceId) onResetDevice;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -47,8 +42,6 @@ class _ShopHubPage extends StatelessWidget {
 
   /// Switches which list is fetched — see `AdminApi.listShops`.
   final ValueChanged<bool> onShowArchived;
-  final void Function(String shopId) onGenerateKey;
-  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -66,13 +59,10 @@ class _ShopHubPage extends StatelessWidget {
       onFilter: onFilter,
       onSelectShop: onSelectShop,
       onExtendEmail: onExtendEmail,
-      onExtendDevice: onExtendDevice,
       onResetDevice: onResetDevice,
       onArchive: onArchive,
       showingArchived: showingArchived,
       onShowArchived: onShowArchived,
-      onGenerateKey: onGenerateKey,
-      onGrantExtraDevice: onGrantExtraDevice,
       onViber: onViber,
       onResetPassword: onResetPassword,
       onUnlink: onUnlink,
@@ -92,13 +82,10 @@ class _ShopHubBody extends StatefulWidget {
     required this.onFilter,
     required this.onSelectShop,
     required this.onExtendEmail,
-    required this.onExtendDevice,
     required this.onResetDevice,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
-    required this.onGenerateKey,
-    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -114,9 +101,7 @@ class _ShopHubBody extends StatefulWidget {
   final ValueChanged<AdminShopFilter> onFilter;
   final ValueChanged<String?> onSelectShop;
   final void Function(Map<String, dynamic> shop) onExtendEmail;
-  final void Function(Map<String, dynamic> shop, String? deviceId)
-  onExtendDevice;
-  final void Function(String deviceId) onResetDevice;
+  final void Function(String shopId, String deviceId) onResetDevice;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -128,8 +113,6 @@ class _ShopHubBody extends StatefulWidget {
 
   /// Switches which list is fetched — see `AdminApi.listShops`.
   final ValueChanged<bool> onShowArchived;
-  final void Function(String shopId) onGenerateKey;
-  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -273,13 +256,10 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
           supportViber: widget.supportViber,
           onBack: () => widget.onSelectShop(null),
           onExtendEmail: widget.onExtendEmail,
-          onExtendDevice: widget.onExtendDevice,
           onResetDevice: widget.onResetDevice,
           onArchive: widget.onArchive,
           showingArchived: widget.showingArchived,
           onShowArchived: widget.onShowArchived,
-          onGenerateKey: widget.onGenerateKey,
-          onGrantExtraDevice: widget.onGrantExtraDevice,
           onViber: widget.onViber,
           onResetPassword: widget.onResetPassword,
           onUnlink: widget.onUnlink,
@@ -300,7 +280,7 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   title: 'Select a shop.',
                   message:
                       'Search by name, email, phone, or device, then '
-                      'open it to extend, add a device, or fix a login.',
+                      'open it to renew Premium or fix a login.',
                 )
               : _ShopDetail(
                   shop: selected,
@@ -308,13 +288,10 @@ class _ShopHubBodyState extends State<_ShopHubBody> {
                   requests: widget.requests,
                   supportViber: widget.supportViber,
                   onExtendEmail: widget.onExtendEmail,
-                  onExtendDevice: widget.onExtendDevice,
                   onResetDevice: widget.onResetDevice,
-                          onArchive: widget.onArchive,
+                  onArchive: widget.onArchive,
                   showingArchived: widget.showingArchived,
                   onShowArchived: widget.onShowArchived,
-                  onGenerateKey: widget.onGenerateKey,
-                  onGrantExtraDevice: widget.onGrantExtraDevice,
                   onViber: widget.onViber,
                   onResetPassword: widget.onResetPassword,
                   onUnlink: widget.onUnlink,
@@ -334,13 +311,10 @@ class _ShopDetail extends StatelessWidget {
     required this.supportViber,
     this.onBack,
     required this.onExtendEmail,
-    required this.onExtendDevice,
     required this.onResetDevice,
     required this.onArchive,
     required this.showingArchived,
     required this.onShowArchived,
-    required this.onGenerateKey,
-    required this.onGrantExtraDevice,
     required this.onViber,
     required this.onResetPassword,
     required this.onUnlink,
@@ -353,9 +327,7 @@ class _ShopDetail extends StatelessWidget {
   final String supportViber;
   final VoidCallback? onBack;
   final void Function(Map<String, dynamic> shop) onExtendEmail;
-  final void Function(Map<String, dynamic> shop, String? deviceId)
-  onExtendDevice;
-  final void Function(String deviceId) onResetDevice;
+  final void Function(String shopId, String deviceId) onResetDevice;
 
   /// Hide this shop, or bring it back — see `AdminApi.setShopArchived`.
   final void Function(Map<String, dynamic> shop, bool archive) onArchive;
@@ -367,8 +339,6 @@ class _ShopDetail extends StatelessWidget {
 
   /// Switches which list is fetched — see `AdminApi.listShops`.
   final ValueChanged<bool> onShowArchived;
-  final void Function(String shopId) onGenerateKey;
-  final void Function(Map<String, dynamic> shop) onGrantExtraDevice;
   final Future<void> Function(String number) onViber;
   final void Function(String email) onResetPassword;
   final void Function(String userId, String email) onUnlink;
@@ -377,7 +347,7 @@ class _ShopDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = '${shop['status']}';
-    final hasNoLicense = status == 'no_license';
+    final hasOwner = '${shop['owner_user_id'] ?? ''}'.trim().isNotEmpty;
     final devices = shopDevices(shop, licenses);
     final accounts = shopAccounts(shop);
     final payments = requestsForShop(shop, requests, licenses);
@@ -429,19 +399,9 @@ class _ShopDetail extends StatelessWidget {
         ),
         const SizedBox(height: AppTheme.space2),
         Text(
-          hasNoLicense
-              ? 'Has an account, but no license — nothing to extend, only to create.'
-              : '${shop['plan'] ?? '—'}  ·  ${shop['tier'] ?? 'offline'}  ·  '
-                    'Expires ${_date(shop['expires_at'])}',
-          style: textTheme.bodyMedium,
+          '${shop['plan'] ?? '—'}  ·  ${_date(shop['expires_at'])}',
+          style: textTheme.bodyMedium?.copyWith(color: muted),
         ),
-        if (!hasNoLicense) ...[
-          const SizedBox(height: AppTheme.space1),
-          Text(
-            _deviceAllowanceLabel(shop),
-            style: textTheme.bodySmall?.copyWith(color: muted),
-          ),
-        ],
         const SizedBox(height: AppTheme.space4),
         Wrap(
           spacing: AppTheme.space2,
@@ -457,38 +417,12 @@ class _ShopDetail extends StatelessWidget {
                 icon: const Icon(Icons.unarchive_outlined),
                 label: const Text('Restore shop'),
               )
-            else if (hasNoLicense)
+            else
               FilledButton.icon(
-                onPressed: () => onGenerateKey('${shop['shop_id']}'),
-                icon: const Icon(Icons.add),
-                label: const Text('Generate key'),
-              )
-            else ...[
-              FilledButton.icon(
-                onPressed: () => onExtendEmail(shop),
-                icon: const Icon(Icons.mail_outline),
-                label: const Text('Extend by email'),
+                onPressed: hasOwner ? () => onExtendEmail(shop) : null,
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: Text(AppLocalizations.of(context).licenseRenew),
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  String? deviceId;
-                  for (final d in devices) {
-                    if (deviceIsBound(d)) {
-                      deviceId = '${d['device_id']}'.trim();
-                      break;
-                    }
-                  }
-                  onExtendDevice(shop, deviceId);
-                },
-                icon: const Icon(Icons.phonelink),
-                label: const Text('Extend by device'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => onGrantExtraDevice(shop),
-                icon: const Icon(Icons.phonelink_setup),
-                label: const Text('Allow extra devices'),
-              ),
-            ],
             if (viberTarget.isNotEmpty && !showingArchived)
               OutlinedButton.icon(
                 onPressed: () => onViber(viberTarget),
@@ -508,6 +442,11 @@ class _ShopDetail extends StatelessWidget {
               ),
           ],
         ),
+        if (!hasOwner && !showingArchived)
+          Padding(
+            padding: const EdgeInsets.only(top: AppTheme.space2),
+            child: Text(AppLocalizations.of(context).adminOwnerRequired),
+          ),
         const SizedBox(height: AppTheme.space5),
         const SectionHeader(title: 'Devices'),
         if (devices.isEmpty)
@@ -529,10 +468,13 @@ class _ShopDetail extends StatelessWidget {
                     ? '${d['device_id']}'
                     : 'Waiting for new phone / computer',
               ),
-              subtitle: Text('Expires ${_date(d['expires_at'])}'),
+              subtitle: Text('${d['user_id'] ?? ''}'),
               trailing: deviceIsBound(d)
                   ? TextButton(
-                      onPressed: () => onResetDevice('${d['device_id']}'),
+                      onPressed: () => onResetDevice(
+                        '${shop['shop_id']}',
+                        '${d['device_id']}',
+                      ),
                       child: const Text('Reset'),
                     )
                   : null,
@@ -583,7 +525,7 @@ class _ShopDetail extends StatelessWidget {
                             value: 'restore',
                             child: Text('Restore access'),
                           )
-                        else if (a['id'] != null)
+                        else if (a['id'] != null && a['role'] != 'owner')
                           const PopupMenuItem(
                             value: 'unlink',
                             child: Text('Unlink'),
@@ -612,16 +554,4 @@ class _ShopDetail extends StatelessWidget {
       ],
     );
   }
-}
-
-String _deviceAllowanceLabel(Map<String, dynamic> shop) {
-  final extra = (shop['extra_slots'] as num?)?.toInt() ?? 0;
-  if (extra <= 0) {
-    return 'Free cap: this phone + 2 extras. After they pay, allow more — they sign in on the new device and tap Check for renewal (no key).';
-  }
-  final until = shop['extras_expires_at'];
-  final untilText = until == null || '$until'.trim().isEmpty
-      ? 'no end date'
-      : _date(until);
-  return 'Paid extras: $extra (until $untilText). New phone: sign in + Check for renewal — do not send a key.';
 }

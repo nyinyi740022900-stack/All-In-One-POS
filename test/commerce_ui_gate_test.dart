@@ -9,8 +9,9 @@ import 'package:mm_pos/l10n/app_localizations.dart';
 /// App Store guideline 3.1.1 bans buttons/links steering to a purchasing
 /// mechanism outside in-app purchase, and that ban is lifted only on the US
 /// storefront — never in Myanmar. The store build therefore ships with
-/// [kCommerceUiEnabled] off and leans on 3.1.3(b) Multiplatform Services
-/// instead. These tests pin the two things that would quietly undo that: the
+/// [kCommerceUiEnabled] off. Eligibility for a no-IAP exception needs a
+/// separate review; 3.1.3(b) alone does not provide one. These tests pin the
+/// two things that would quietly undo the UI guard: the
 /// default flipping to true, and a commerce label leaking into the default
 /// build.
 ///

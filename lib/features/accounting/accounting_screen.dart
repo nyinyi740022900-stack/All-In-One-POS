@@ -58,57 +58,77 @@ class AccountingScreen extends ConsumerWidget {
         ? DateTime(now.year + 1, 1, 1)
         : DateTime(now.year, now.month + 1, 1);
     final yearStart = DateTime(now.year, 1, 1);
-    final todayExclusiveEnd =
-        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final todayExclusiveEnd = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
 
     final balanceSheet = ref.watch(balanceSheetProvider).valueOrNull;
     final netWorthSubtitle = balanceSheet == null
         ? l.accountingBalanceSheetSubtitle
         : l.accountingNetWorthFigure(
-            Money(balanceSheet.assets - balanceSheet.liabilities)
-                .withCurrency(currency, locale));
+            Money(
+              balanceSheet.assets - balanceSheet.liabilities,
+            ).withCurrency(currency, locale),
+          );
 
     final cashFlows = ref
         .watch(cashFlowProvider((start: monthStart, endExclusive: monthEnd)))
         .valueOrNull;
     final cashFlowSubtitle = cashFlows == null
         ? l.accountingCashFlowSubtitle
-        : l.accountingCashFlowFigure(Money(cashFlows.fold<int>(
-                0, (sum, f) => sum + f.inflow - f.outflow))
-            .withCurrency(currency, locale));
+        : l.accountingCashFlowFigure(
+            Money(
+              cashFlows.fold<int>(0, (sum, f) => sum + f.inflow - f.outflow),
+            ).withCurrency(currency, locale),
+          );
 
     final taxStatement = ref
-        .watch(taxStatementProvider(
-            (start: yearStart, endExclusive: todayExclusiveEnd)))
+        .watch(
+          taxStatementProvider((
+            start: yearStart,
+            endExclusive: todayExclusiveEnd,
+          )),
+        )
         .valueOrNull;
     final taxSubtitle = taxStatement == null
         ? l.accountingTaxSummarySubtitle
         : l.accountingTaxFigure(
-            Money(taxStatement.netProfit).withCurrency(currency, locale));
+            Money(taxStatement.netProfit).withCurrency(currency, locale),
+          );
+    final negativeProfitColor =
+        taxStatement != null && taxStatement.netProfit < 0
+        ? AppColors.of(context).danger
+        : null;
 
     final tiles = [
       (
         Icons.account_balance_outlined,
         l.accountingBalanceSheet,
         netWorthSubtitle,
+        null,
         const BalanceSheetScreen(),
       ),
       (
         Icons.swap_vert_outlined,
         l.accountingCashFlow,
         cashFlowSubtitle,
+        null,
         const CashFlowScreen(),
       ),
       (
         Icons.request_quote_outlined,
         l.accountingTaxSummary,
         taxSubtitle,
+        negativeProfitColor,
         const TaxReportScreen(),
       ),
       (
         Icons.lock_outline,
         l.accountingYearEndClose,
         l.accountingYearEndCloseSubtitle,
+        null,
         const YearEndCloseScreen(),
       ),
     ];
@@ -116,7 +136,7 @@ class AccountingScreen extends ConsumerWidget {
     final body = ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
       children: [
-        for (final (icon, title, subtitle, screen) in tiles)
+        for (final (icon, title, subtitle, subtitleColor, screen) in tiles)
           Card(
             margin: const EdgeInsets.only(bottom: AppTheme.space2),
             child: ListTile(
@@ -124,13 +144,18 @@ class AccountingScreen extends ConsumerWidget {
               title: Text(title),
               subtitle: Text(
                 subtitle,
+                style: subtitleColor == null
+                    ? null
+                    : Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: subtitleColor),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => screen),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => screen)),
             ),
           ),
       ],

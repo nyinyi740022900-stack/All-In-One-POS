@@ -12,9 +12,10 @@ library;
 /// than in-app purchase". That ban is lifted only on the United States
 /// storefront (2025 Epic injunction) — never in Myanmar, our actual
 /// market — so the store build has to carry no commerce UI whatsoever and
-/// lean on guideline 3.1.3(b) *Multiplatform Services* instead: the
-/// service exists on Android and on the web, the user signs in / redeems a
-/// license they already hold, and nothing is sold inside the iOS app.
+/// use account sign-in for access to an existing entitlement. This guard
+/// does not establish an IAP exemption: 3.1.3(b) requires equivalent IAP.
+/// A no-IAP submission must separately qualify, for example under 3.1.3(f)
+/// as a free companion to a paid web tool. Review notes track that gate.
 ///
 /// Only the direct-install APK (and dev runs) turn it on, explicitly:
 ///
@@ -29,7 +30,7 @@ library;
 ///
 /// What this gates is listed in PROJECT_SPEC §12 (2026-08-25 entry); the
 /// short version is: anything that names a price, or that tells the owner
-/// where to go to pay. License-key entry, "Check for renewal", and the
-/// free trial are NOT commerce — they stay in every build.
+/// where to go to pay. Account sign-in and checking an existing entitlement
+/// remain available; customer key entry is retired.
 const bool kCommerceUiEnabled =
     bool.fromEnvironment('COMMERCE_UI', defaultValue: false);

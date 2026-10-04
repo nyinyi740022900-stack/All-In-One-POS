@@ -31,7 +31,10 @@ Future<void> saveImageToPhotos(Uint8List bytes, String filename) async {
     }
   }
 
-  final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: 'image/png'));
+  final blob = web.Blob(
+    [bytes.toJS].toJS,
+    web.BlobPropertyBag(type: 'image/png'),
+  );
   final url = web.URL.createObjectURL(blob);
   web.window.open(url, '_blank');
 }

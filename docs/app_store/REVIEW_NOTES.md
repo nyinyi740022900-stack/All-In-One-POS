@@ -1,58 +1,78 @@
-# App Review notes (paste into Connect → App Review Information)
+# App Review preparation — account Premium
 
-## Demo access
-All In One POS is a B2B offline POS for small retailers. Reviewers can:
+Updated 2026-10-04. This is preparation evidence, not a claim of approval.
+Do not submit until the readiness gates below are complete.
 
-1. Install the build and complete onboarding (choose Myanmar or English).
-2. Use **Free plan** immediately to sell — no account, no key, no purchase.
-3. For Premium features (Analytics, Staff accounts, Sync, web storefront),
-   paste the review licence key below into **Settings → License → Activate**.
+## Business model and policy assessment
 
-⚠️ **A working Premium key is mandatory for every submission.** The app sells
-nothing in-app (see *Business model* below), so a reviewer with no key can
-only see the Free tier and cannot exercise the Premium features the listing
-describes — that fails guideline 2.1 on its own, independently of anything
-else in these notes. Mint a fresh review key in the admin console (Requests →
-Generate license key, 3 months) and paste it here before submitting.
+All In One POS is a free offline retail POS with account-based optional
+Premium tools and a web service. Free selling requires no purchase or account.
+The App Store/Google Play binaries use COMMERCE_UI=false: no Premium pricing,
+buy/pay buttons, payment proofs, external checkout links or contact-to-buy
+cards. An existing Premium owner signs into the shop account and checks its
+status. Customer license keys/QR activation are retired.
 
-**Sign-in required:** No (Free plan works offline; the review key needs no
-account either).  
-**Demo account:** _(only if submitting an Online-tier review path)_  
-**Premium review key:** _(fill before submit — `MMPOS1.…`)_  
+Apple §3.1.3(b) is **not** an exemption from IAP: it explicitly requires the
+same items to be available as IAP. Assess whether the actual product meets
+§3.1.3(f), a free companion to a paid web-based tool, with no purchase or
+external purchase CTA inside the app. Do not describe individual shop-owner
+sales as enterprise-only sales under §3.1.3(c). If the product does not qualify
+for an applicable exception, implement Apple IAP before offering its paid
+functionality on the App Store. No approval is guaranteed by this document.
 
-## Hardware
-- Bluetooth thermal printer is **optional**. The app works without a printer; printing can be skipped.
-- Camera is used for barcode / license QR scan; Simulator may skip.
+Google Play permits consumption-only apps: users may sign in to access a
+service acquired elsewhere, with no in-app alternative payment steering.
+If selling Premium inside a Play-distributed app, use Play Billing unless an
+applicable exception/program explicitly permits the chosen flow.
 
-## Business model / IAP — guideline 3.1.3(b), Multiplatform Services
+The directly installed owner development build uses COMMERCE_UI=true to
+exercise external purchase UI. **Never upload that binary to either store.**
+Do not place COMMERCE_UI in the shared env.local.json.
 
-All In One POS is a business (B2B) point-of-sale service for small retailers,
-available on **Android** and on the **web** (admin console, shop storefront,
-invoice viewer). Subscriptions are sold only to businesses, outside the app.
+## Reviewer access
 
-This binary contains **no commerce of any kind**: no IAP products, no prices,
-no "Buy"/"Upgrade"/"Pay" call to action, no link or phone number pointing at a
-way to pay, and no collection of payment details or payment proofs. A business
-that already holds a licence redeems it here — by typing its licence key, or by
-signing in to the shop account it already has — which is exactly the access to
-previously-purchased content that 3.1.3(b) provides for. The app unlocks tools
-for operating a **physical retail shop**.
+Before submission, provide a dedicated, working owner account with Premium
+active for a review-only shop. Use the store's private review-information
+fields for login credentials; do not put credentials in this repository.
+Never add a hidden review bypass. Reviewers and customers use the same code.
 
-This is enforced at build time, not by convention: `lib/core/build_flags.dart`
-defines `kCommerceUiEnabled`, which **defaults to false**, and the App Store
-build never passes the `COMMERCE_UI` define. `test/commerce_ui_gate_test.dart`
-fails the build if that default is flipped or if any purchase/pricing string
-reappears in a file that does not consult the flag. See PROJECT_SPEC §12 entry
-245 for the full list of what the flag removes.
+Reviewer instructions after backend rollout:
 
-A free 2-month trial is available in-app. It costs nothing, requires no
-payment method, and is limited to one per device.
+1. Open the app; choose English or Myanmar and complete onboarding.
+2. Free POS features are immediately available without an account.
+3. For Premium, open Settings → shop account and sign in with the supplied
+   reviewer credentials. Check the account's Premium status in Settings.
+4. Exercise Sell, Inventory, Orders/Invoices, Analytics and Settings. Supply
+   an owner PIN and staff instructions in private reviewer notes if needed.
+5. Bluetooth printing is optional; no external hardware is required to review.
 
-## Account deletion
-Signed-in shop **owners** can delete their online account in Settings → Shop Login → Delete account (password confirm). This removes Auth users for owned shops and associated cloud shop data; the device returns to Free plan.
+## Submission readiness gates
 
-## Locale
-Default UI language is Myanmar; toggle to English in Settings.
+- Confirm applicability of Apple's no-IAP exception to the actual web/app
+  service and describe it accurately. Otherwise complete StoreKit billing.
+- Rehearse and deploy account Premium backend; current phone-only delivery
+  does not establish server readiness.
+- Provision and manually verify the dedicated Premium reviewer account,
+  owner PIN, staff entry/exit and successful daily opening.
+- Build a fresh store binary with COMMERCE_UI=false, and inspect Free,
+  active Premium, grace/expired, offline and sign-in states in both languages.
+- Inspect support contact destinations for purchasing prompts; support must
+  remain support, with no app-linked Premium checkout funnel.
+- Verify account deletion in-app and the public deletion link required by
+  Google Play; complete privacy/data-safety declarations against actual SDKs.
+- Remove stale key/trial/per-device claims from listing and submission text.
+- Verify store screenshots and metadata match this exact submitted binary.
 
-## Contact
-Use the App Store Connect team contact email; Support also via in-app Viber.
+## Evidence and limitations
+
+Rendered store-screen regression checks cover signed-in Free, active, grace and expired accounts in English and
+Myanmar, including hiding checkout, contact-to-buy, vendor phone and trial
+purchase CTA. The default commerce flag, neutral gate CTA and localization
+parity are checked separately. This is not the full physical submission
+matrix or a review decision. Local Premium code is not yet live server code.
+
+## Official sources
+
+- https://developer.apple.com/app-store/review/guidelines/#other-purchase-methods
+- https://support.google.com/googleplay/android-developer/answer/10281818
+- https://support.google.com/googleplay/android-developer/answer/9858738

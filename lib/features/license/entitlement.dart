@@ -22,9 +22,15 @@ class Entitlement {
     required this.plan,
     required this.expiresAt,
     required this.issuedAt,
+    this.userId = '',
+    this.deviceId = '',
+    this.revision = 0,
   });
 
   final String shopId;
+  final String userId;
+  final String deviceId;
+  final int revision;
   final LicensePlan plan;
   final DateTime expiresAt;
 
@@ -65,6 +71,19 @@ class Entitlement {
           jsonDecode(utf8.decode(base64Url.decode(_pad(parts[1]))))
               as Map<String, dynamic>;
       final shopId = payload['shop_id'] as String?;
+      final userId = payload['user_id'];
+      final deviceId = payload['device_id'];
+      final revision = payload['revision'];
+      if (payload['v'] != 2 ||
+          userId is! String ||
+          userId.isEmpty ||
+          deviceId is! String ||
+          deviceId.isEmpty ||
+          revision is! int ||
+          revision < 0 ||
+          !const ['monthly', 'yearly', 'trial'].contains(payload['plan'])) {
+        return null;
+      }
       final exp = payload['exp'];
       final iat = payload['iat'];
       if (shopId == null || shopId.isEmpty || exp is! int || iat is! int) {
@@ -72,6 +91,9 @@ class Entitlement {
       }
       return Entitlement(
         shopId: shopId,
+        userId: userId,
+        deviceId: deviceId,
+        revision: revision,
         plan: _plan(payload['plan'] as String?),
         expiresAt: DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true),
         issuedAt: DateTime.fromMillisecondsSinceEpoch(iat * 1000, isUtc: true),
@@ -82,18 +104,18 @@ class Entitlement {
   }
 
   static LicensePlan _plan(String? s) => switch (s) {
-        'yearly' => LicensePlan.yearly,
-        'monthly' => LicensePlan.monthly,
-        'free' => LicensePlan.free,
-        _ => LicensePlan.trial,
-      };
+    'yearly' => LicensePlan.yearly,
+    'monthly' => LicensePlan.monthly,
+    'free' => LicensePlan.free,
+    _ => LicensePlan.trial,
+  };
 
   static String _pad(String s) => s + '=' * ((4 - s.length % 4) % 4);
 
   static List<int> _hex(String h) => [
-        for (var i = 0; i < h.length; i += 2)
-          int.parse(h.substring(i, i + 2), radix: 16),
-      ];
+    for (var i = 0; i < h.length; i += 2)
+      int.parse(h.substring(i, i + 2), radix: 16),
+  ];
 }
 
 /// What the app should believe about a cached license once its receipt has
@@ -121,11 +143,23 @@ ResolvedEntitlement resolveEntitlement({
   required CachedLicense cached,
   required Entitlement? entitlement,
   required bool enforce,
+  String? userId,
+  String? deviceId,
+  int highestRevision = 0,
 }) {
   if (cached.plan == LicensePlan.free || !enforce) {
     return ResolvedEntitlement(license: cached, entitled: true);
   }
-  if (entitlement == null || entitlement.shopId != cached.shopId) {
+  if (entitlement == null ||
+      entitlement.shopId != cached.shopId ||
+      userId == null ||
+      userId.isEmpty ||
+      entitlement.userId != userId ||
+      deviceId == null ||
+      deviceId.isEmpty ||
+      cached.deviceId != deviceId ||
+      entitlement.deviceId != deviceId ||
+      entitlement.revision < highestRevision) {
     return ResolvedEntitlement(license: cached, entitled: false);
   }
   return ResolvedEntitlement(
@@ -166,7 +200,8 @@ TrustedTime resolveTrustedTime({
   required DateTime? lastReceiptIssuedAt,
   required Entitlement? entitlement,
 }) {
-  final fresh = entitlement != null &&
+  final fresh =
+      entitlement != null &&
       (lastReceiptIssuedAt == null ||
           entitlement.issuedAt.isAfter(lastReceiptIssuedAt));
   if (fresh) {

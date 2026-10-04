@@ -34,49 +34,12 @@ void main() {
   /// was followed into the migration that defines its RPC to confirm the
   /// guard its comment claims actually exists there.
   const declared = <String, String>{
-    // --- admin console ------------------------------------------------------
-    'admin/extend_license/renew_license':
-        'time-window dedup: an identical extend logged in license_events '
-            'within 10s is treated as the same click landing twice',
-    'admin/fulfill_request/renew_license':
-        'row claim: license_requests pending->processing is claimed '
-            'atomically BEFORE minting; losers get already_fulfilled (409)',
-    'admin/fulfill_request/create_license':
-        'row claim: same pending->processing claim covers the mint branch',
-    'admin/create_license/create_license':
-        'existence check: refuses with license_already_exists if the shop '
-            'already has a live licence row (the FAB path accepts any typed '
-            'shop_id, so it cannot rely on the caller having checked)',
-    'admin/set_device_allowance/set_shop_device_allowance':
-        'naturally idempotent: upserts an ABSOLUTE slot count (not a '
-            'delta), so a repeat delivery converges on the same value',
-
-    // --- Lemon Squeezy webhook ---------------------------------------------
-    'lemonsqueezy-webhook/renew_license':
-        'event-id insert (unique violation = already handled) PLUS a '
-            '10-minute sibling-event window, because one purchase legitimately '
-            'fires two different event names',
-    'lemonsqueezy-webhook/create_license':
-        'event-id insert + sibling-event window (same guard as the renew '
-            'branch above)',
-
-    // --- activate (device/app-facing) --------------------------------------
-    'activate/request_device_slot/claim_device_slot':
-        'idempotent by design: claim_device_slot returns an EXISTING unbound '
-            'key when one exists and counts only bound rows toward the cap '
-            '(migration 0063), so an interrupted claim never burns a slot',
-    'activate/claim_and_bind_extra_device/claim_device_slot':
-        'idempotent per device, but the guard is NON-LOCAL: the caller '
-            '(handleRefreshAccountLicense) first looks up a licence row '
-            'already bound to this device_id and takes the harmless '
-            '"touch last_verified_at" branch when it finds one, so this '
-            'helper is never reached twice for the same device. Reorder those '
-            'branches and the same device starts consuming a second slot — '
-            'nothing in the helper or the RPC would stop it.',
-    'activate/create_branch/create_trial_branch':
-        'SQL advisory lock: pg_advisory_xact_lock per owner makes the '
-            'trial-cap count-check and the insert one atomic step '
-            '(migration 0089)',
+    'admin/extend_license/renew_shop_subscription':
+        'persisted operation UUID; unique payment_id plus transaction lock in 0094',
+    'admin/fulfill_request/fulfill_account_payment':
+        '0095 locks request; renewal and fulfilled receipt commit together; retry returns stored expiry',
+    'lemonsqueezy-webhook/fulfill_gateway_payment':
+        '0095 locks verified checkout; unique processor invoice payment_id; order_created never grants time',
   };
 
   /// RPCs that mint a licence, extend one, or move money.
@@ -86,20 +49,24 @@ void main() {
     'set_shop_device_allowance',
     'claim_device_slot',
     'create_trial_branch',
+    'renew_shop_subscription',
+    'fulfill_account_payment',
+    'fulfill_gateway_payment',
   };
 
   test('every money-moving RPC call declares what stops a double fire', () {
     final found = <String>{};
 
-    for (final file in Directory('supabase/functions')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('index.ts'))) {
+    for (final file
+        in Directory('supabase/functions')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('index.ts'))) {
       final fn = file.parent.path.split(Platform.pathSeparator).last;
       final source = file.readAsStringSync();
 
       for (final rpc in moneyRpcs) {
-        for (final m in RegExp('\\.rpc\\("$rpc"').allMatches(source)) {
+        for (final m in RegExp('\\.rpc\\(\\s*"$rpc"').allMatches(source)) {
           // Attribute the call to its enclosing handler. The three functions
           // are structured differently — `admin` dispatches with
           // `case "…":` inside one big handler, `activate` with
@@ -113,8 +80,9 @@ void main() {
           // shared helper (`claimAndBindExtraDevice`) must be attributed to
           // that helper, not silently credited to whichever handler happened
           // to be declared above it.
-          final lastFn =
-              RegExp(r'function ([A-Za-z]+)\s*\(').allMatches(before);
+          final lastFn = RegExp(
+            r'function ([A-Za-z]+)\s*\(',
+          ).allMatches(before);
           final caseAt = lastCase.isEmpty ? -1 : lastCase.last.start;
           final fnAt = lastFn.isEmpty ? -1 : lastFn.last.start;
 
@@ -140,15 +108,20 @@ void main() {
       }
     }
 
-    expect(found, isNotEmpty,
-        reason: 'no money-moving RPC calls found at all — the Edge Functions '
-            'were restructured and this guard is now blind.');
+    expect(
+      found,
+      isNotEmpty,
+      reason:
+          'no money-moving RPC calls found at all — the Edge Functions '
+          'were restructured and this guard is now blind.',
+    );
 
     final undeclared = found.difference(declared.keys.toSet());
     expect(
       undeclared,
       isEmpty,
-      reason: 'Undeclared money-moving call site(s):\n'
+      reason:
+          'Undeclared money-moving call site(s):\n'
           '  ${undeclared.join('\n  ')}\n\n'
           'This RPC mints a licence, extends one, or moves money. Before '
           'adding it below, answer: what happens if this runs TWICE for one '
@@ -161,9 +134,13 @@ void main() {
     );
 
     final stale = declared.keys.toSet().difference(found);
-    expect(stale, isEmpty,
-        reason: 'declared here but no longer present in the Edge Functions:\n'
-            '  ${stale.join('\n  ')}\n'
-            'Drop the stale entries.');
+    expect(
+      stale,
+      isEmpty,
+      reason:
+          'declared here but no longer present in the Edge Functions:\n'
+          '  ${stale.join('\n  ')}\n'
+          'Drop the stale entries.',
+    );
   });
 }

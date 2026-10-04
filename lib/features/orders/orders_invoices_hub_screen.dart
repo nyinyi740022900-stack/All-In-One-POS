@@ -29,13 +29,16 @@ import 'orders_screen.dart';
 /// [initialTab], so every existing deep link (notably Analytics'
 /// `context.go('/invoices')`) still resolves to the list it always did.
 class OrdersInvoicesHubScreen extends StatefulWidget {
-  const OrdersInvoicesHubScreen({super.key, this.initialTab = ordersTab});
+  const OrdersInvoicesHubScreen({super.key, this.initialTab = invoicesTab});
 
   /// Sub-tab shown on first build. Use the named constants, not literals.
   final int initialTab;
 
-  static const int ordersTab = 0;
-  static const int invoicesTab = 1;
+  /// Invoices (the completed-sale ledger) is the FIRST sub-tab and the
+  /// default: it is what a shopkeeper opens this destination for. Social
+  /// Orders are pre-sale and usually empty, so they sit one tap away.
+  static const int invoicesTab = 0;
+  static const int ordersTab = 1;
 
   @override
   State<OrdersInvoicesHubScreen> createState() =>
@@ -46,8 +49,8 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   late int _index = widget.initialTab.clamp(
-    OrdersInvoicesHubScreen.ordersTab,
     OrdersInvoicesHubScreen.invoicesTab,
+    OrdersInvoicesHubScreen.ordersTab,
   );
 
   @override
@@ -75,8 +78,8 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
     // user off a tab they picked by hand.
     if (widget.initialTab != oldWidget.initialTab) {
       _tabs.index = widget.initialTab.clamp(
-        OrdersInvoicesHubScreen.ordersTab,
         OrdersInvoicesHubScreen.invoicesTab,
+        OrdersInvoicesHubScreen.ordersTab,
       );
     }
   }
@@ -96,9 +99,9 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
 
     return Scaffold(
       appBar: AppBar(
-        // "Social Orders" is more specific than the tab's "Orders" label, so
-        // the title still earns its row rather than echoing the tab.
-        title: Text(onOrders ? l.ordersTitle : l.navInvoices),
+        // One constant title (it used to flip between "Social Orders" and
+        // "Invoices"); the sub-tabs below say which list this is.
+        title: Text(l.navOrders),
         actions: [
           // A peer-level entry point into Credit — credit sales originate
           // right here (the Invoices "credit" filter chip), but the credit
@@ -124,8 +127,8 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
         bottom: TabBar(
           controller: _tabs,
           tabs: [
-            _subTab(l.navOrders, tabHeight),
             _subTab(l.navInvoices, tabHeight),
+            _subTab(l.ordersTitle, tabHeight),
           ],
         ),
       ),
@@ -139,7 +142,6 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          const OrdersScreen(embedded: true),
           Consumer(
             builder: (context, ref, _) => HardwareScannerListener(
               enabled: !onOrders,
@@ -148,6 +150,7 @@ class _OrdersInvoicesHubScreenState extends State<OrdersInvoicesHubScreen>
               child: const InvoicesScreen(embedded: true),
             ),
           ),
+          const OrdersScreen(embedded: true),
         ],
       ),
     );

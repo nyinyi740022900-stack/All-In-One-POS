@@ -20,6 +20,7 @@ import '../customers/customer_providers.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
 import '../../data/repositories/sales_repository.dart' show PaymentEntry;
+import '../invoices/invoice_actions.dart';
 import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
@@ -40,6 +41,7 @@ class CheckoutSheet extends ConsumerStatefulWidget {
 
 class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   String _method = 'cash';
+  late final CartNotifier _cartNotifier;
   // Set once the split-payment dialog is confirmed; null means either
   // "not split" or "split chip picked but the dialog was dismissed without
   // completing" — the latter is treated as invalid (Confirm blocked) rather
@@ -49,6 +51,8 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   final _paidFieldKey = GlobalKey();
   final _customer = TextEditingController();
   final _customerFocus = FocusNode();
+  final _customerFieldKey = GlobalKey();
+  bool _customerNameError = false;
   final _phone = TextEditingController();
   final _phoneFocus = FocusNode();
   final _address = TextEditingController();
@@ -104,6 +108,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
   @override
   void initState() {
     super.initState();
+    _cartNotifier = ref.read(cartProvider.notifier);
     // Any customer field taking focus summons the OS keyboard, so the
     // amount pad must get out of the way — otherwise BOTH keyboards stack
     // and the field being typed into is buried between them (owner report:
@@ -122,7 +127,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // Cancelled/dismissed without confirming — don't leave a picked
     // customer's tier pricing applied to the cart for whatever happens next.
     if (!_confirmed) {
-      ref.read(cartProvider.notifier).setCustomerTier(null);
+      // Let Riverpod unsubscribe the departing widgets before notifying the
+      // surviving cart. The notifier can also be gone on whole-app teardown.
+      Future.microtask(() {
+        if (_cartNotifier.mounted) _cartNotifier.setCustomerTier(null);
+      });
     }
     _paid.dispose();
     _customer.dispose();
@@ -428,9 +437,26 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
     // never reaches this branch once configured.
     final forced = owed > 0 || _method == 'credit';
     if (forced && name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.creditCustomerRequired)));
+      setState(() {
+        _customerNameError = true;
+        _customerSectionLatched = true;
+        _addCustomer = true;
+        _padVisible = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _customerFocus.requestFocus();
+        final fieldContext = _customerFieldKey.currentContext;
+        if (fieldContext != null) {
+          Scrollable.ensureVisible(
+            fieldContext,
+            alignment: 0.1,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : AppTheme.motionFast,
+          );
+        }
+      });
       return;
     }
 
@@ -488,15 +514,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
       // before closing, leaving the till spinning on a slow printer for a
       // sale that had already committed.
       Sale? printSale;
+      var autoPrint = false;
       List<SaleItem>? printItems;
       try {
         final config = await ref
             .read(settingsRepositoryProvider)
             .printerConfig();
-        if (config.hasPrinter && mounted) {
-          printSale = await salesRepo.getSale(result.saleId);
-          printItems = await salesRepo.saleItems(result.saleId);
-        }
+        // Always fetched now: the success panel's Print / Share actions need
+        // the committed sale too, not only the auto-print.
+        printSale = await salesRepo.getSale(result.saleId);
+        printItems = await salesRepo.saleItems(result.saleId);
+        autoPrint = config.hasPrinter;
       } catch (_) {}
 
       _confirmed = true;
@@ -511,9 +539,11 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
           change: paid > total ? paid - total : 0,
           owed: total - paid > 0 ? total - paid : 0,
           isCredit: _method == 'credit',
+          sale: printSale,
+          items: printItems,
         );
       });
-      if (printSale != null && printItems != null) {
+      if (autoPrint && printSale != null && printItems != null) {
         unawaited(
           printSaleReceipt(context, ref, sale: printSale, items: printItems),
         );
@@ -577,6 +607,28 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         success: success,
         currency: currency,
         onDone: () => Navigator.of(context).pop(),
+        onPrint: success.sale == null
+            ? null
+            : () => printFinalizedSale(
+                context,
+                ref,
+                sale: success.sale!,
+                items: success.items ?? const [],
+              ),
+        onShare: success.sale == null
+            ? null
+            : () async {
+                final l = AppLocalizations.of(context);
+                final invoice = await invoiceDataForFinalizedSale(
+                  ref,
+                  l,
+                  success.sale!,
+                  success.items ?? const [],
+                  Localizations.localeOf(context).languageCode,
+                );
+                if (!context.mounted) return;
+                await shareInvoiceImage(context, l, invoice);
+              },
       );
     }
 
@@ -674,50 +726,63 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                           _customerCard(context, l, cart, forced),
                         const SizedBox(height: AppTheme.space2),
 
-                        // Cart lines collapse to a one-row summary so a simple
-                        // cash sale reads top-to-bottom without scrolling; tap
-                        // to expand and adjust quantities.
-                        InkWell(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                          onTap: () =>
-                              setState(() => _linesExpanded = !_linesExpanded),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppTheme.space2,
-                            ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  l.checkoutItemsCount(cart.itemCount),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                            // Cart lines collapse to a one-row summary so a simple
+                            // cash sale reads top-to-bottom without scrolling; tap
+                            // to expand and adjust quantities.
+                            InkWell(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusSm,
+                              ),
+                              onTap: () => setState(
+                                () => _linesExpanded = !_linesExpanded,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppTheme.space2,
+                                ),
+                                child: Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: AppTheme.space2,
+                                  runSpacing: AppTheme.space1,
+                                  children: [
+                                    Text(
+                                      l.checkoutItemsCount(cart.itemCount),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(child: Text(
+                                          cart.total.withCurrency(currency, locale),
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontFeatures: AppTheme.tabularFigures,
+                                          ),
+                                        )),
+                                    AnimatedRotation(
+                                      turns: _linesExpanded ? 0.5 : 0,
+                                      duration: AppTheme.motionFast,
+                                      child: Icon(
+                                        Icons.expand_more,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
+                                    ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                                const Spacer(),
-                                MoneyText(
-                                  cart.total.withCurrency(currency, locale),
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                  emphasis: true,
-                                ),
-                                AnimatedRotation(
-                                  turns: _linesExpanded ? 0.5 : 0,
-                                  duration: AppTheme.motionFast,
-                                  child: Icon(
-                                    Icons.expand_more,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
                         AnimatedCrossFade(
                           duration: AppTheme.motionMedium,
                           sizeCurve: AppTheme.curveStandard,
@@ -1110,12 +1175,17 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             CustomerAutocomplete(
+              key: _customerFieldKey,
               controller: _customer,
               focusNode: _customerFocus,
               labelText: forced
                   ? '${l.creditCustomerName} *'
                   : l.creditCustomerName,
               helperText: forced ? l.creditCustomerRequired : null,
+              errorText:
+                  forced && _customerNameError && _customer.text.trim().isEmpty
+                  ? l.creditCustomerRequired
+                  : null,
               onChanged: () => setState(() {}),
               onSelected: (c) => setState(() {
                 _selectedCustomerId = c.id;
@@ -1649,8 +1719,13 @@ class _SaleSuccess {
     required this.change,
     required this.owed,
     required this.isCredit,
+    this.sale,
+    this.items,
   });
 
+  /// The committed sale + lines, for the Print / Share actions.
+  final Sale? sale;
+  final List<SaleItem>? items;
   final int total;
   final int paid;
   final int change;
@@ -1666,11 +1741,15 @@ class _SuccessBody extends StatelessWidget {
     required this.success,
     required this.currency,
     required this.onDone,
+    this.onPrint,
+    this.onShare,
   });
 
   final _SaleSuccess success;
   final CurrencyDef currency;
   final VoidCallback onDone;
+  final VoidCallback? onPrint;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -1751,6 +1830,30 @@ class _SuccessBody extends StatelessWidget {
             onPressed: onDone,
             child: Text(l.checkoutDone),
           ),
+          // Secondary: the two things a customer asks for at the counter.
+          // Done stays the one filled action.
+          if (onPrint != null || onShare != null) ...[
+            const SizedBox(height: AppTheme.space2),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onPrint,
+                    icon: const Icon(Icons.print_outlined),
+                    label: Text(l.documentPrint),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onShare,
+                    icon: const Icon(Icons.share_outlined),
+                    label: Text(l.invoiceShare),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,14 +83,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _exportCsv() async {
     final l = AppLocalizations.of(context);
-    if (!ref.read(isPremiumProvider)) {
-      await showPremiumRequiredDialog(
-        context,
-        l.inventoryExportCsv,
-        benefit: l.inventoryCsvBenefit,
-      );
-      return;
-    }
     final messenger = ScaffoldMessenger.of(context);
     final products = ref.read(filteredProductsProvider);
     final categories =
@@ -215,72 +208,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight:
-              kToolbarHeight +
-              (async.hasValue
-                  ? MediaQuery.textScalerOf(context).scale(20) *
-                        (trackStock ? 2 : 1)
-                  : 0),
-          // The theme's default centerTitle: true optically centers a title
-          // between leading and actions — fine for a single-line title, but
-          // this screen's 3 trailing icons (vs. a single-width leading back
-          // button) unbalance that math and visibly push the two-line
-          // title+subtitle block left of the icon row's true center. A
-          // left-aligned title has no such asymmetry to fight.
           centerTitle: false,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(l.inventoryTitle),
-              if (async.hasValue)
-                Text(
-                  l.inventoryFilteredCount(products.length),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              // Cost-based stock valuation only means something when the
-              // shop tracks quantities at all — with tracking off there's no
-              // reliable `quantity` to sum, so the line would just show 0.
-              if (async.hasValue && trackStock)
-                Text(
-                  l.inventoryStockSummary(
-                    // Hardcoded 'en_US', not `locale` — matches
-                    // money.dart's `_wholeUnitFmt` convention of keeping
-                    // thousands-grouped numbers in Western digits even in
-                    // Myanmar, where `NumberFormat.decimalPattern('my')`
-                    // would otherwise render Myanmar-script numerals and
-                    // visibly clash with the Money value right next to it.
-                    NumberFormat(
-                      '#,##0',
-                      'en_US',
-                    ).format(stockSummary.totalUnits),
-                    Money(
-                      stockSummary.totalValue,
-                    ).withCurrency(currency, locale),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
+          title: Text(l.inventoryTitle),
           actions: [
-            IconButton(
-              tooltip: l.salesReportExportPdf,
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              onPressed: _exportPdf,
-            ),
-            IconButton(
-              tooltip: l.inventoryExportCsv,
-              icon: const Icon(Icons.table_chart_outlined),
-              onPressed: _exportCsv,
-            ),
             IconButton(
               tooltip: l.stockHistoryTitle,
               icon: const Icon(Icons.history),
@@ -288,16 +218,58 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 MaterialPageRoute(builder: (_) => const StockMovementsScreen()),
               ),
             ),
-            IconButton(
-              tooltip: l.manageCategories,
-              icon: const Icon(Icons.label),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CategoriesScreen()),
-              ),
+            PopupMenuButton<String>(
+              tooltip: l.commonMore,
+              onSelected: (action) {
+                switch (action) {
+                  case 'pdf':
+                    _exportPdf();
+                  case 'csv':
+                    _exportCsv();
+                  case 'categories':
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CategoriesScreen(),
+                      ),
+                    );
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'pdf',
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf_outlined),
+                    title: Text(l.salesReportExportPdf),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'csv',
+                  child: ListTile(
+                    leading: const Icon(Icons.table_chart_outlined),
+                    title: Text(l.inventoryExportCsv),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'categories',
+                  child: ListTile(
+                    leading: const Icon(Icons.label_outline),
+                    title: Text(l.manageCategories),
+                  ),
+                ),
+              ],
             ),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
+            preferredSize: Size.fromHeight(
+              math.max(
+                56,
+                MediaQuery.textScalerOf(context).scale(
+                          Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16,
+                        ) *
+                        (Theme.of(context).textTheme.bodyLarge?.height ?? 1.5) +
+                    32,
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppTheme.space4,
@@ -325,18 +297,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           bottomContext,
                           selectedId: ref.read(inventoryCategoryProvider),
                           title: l.filterByCategory,
-                          onSelected: (id) => ref
-                              .read(inventoryCategoryProvider.notifier)
-                              .state = id,
+                          onSelected: (id) =>
+                              ref
+                                      .read(inventoryCategoryProvider.notifier)
+                                      .state =
+                                  id,
                           options: [
                             CategoryFilterOption(
                               id: null,
                               label: l.categoryAll,
                               count: counts[null] ?? 0,
                             ),
-                            for (final c in (ref.read(categoriesStreamProvider)
-                                    .valueOrNull ??
-                                const []))
+                            for (final c
+                                in (ref
+                                        .read(categoriesStreamProvider)
+                                        .valueOrNull ??
+                                    const []))
                               CategoryFilterOption(
                                 id: c.id,
                                 label: c.name,
@@ -364,6 +340,37 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             : null,
         body: Column(
           children: [
+            if (async.hasValue)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.space4,
+                  AppTheme.space2,
+                  AppTheme.space4,
+                  0,
+                ),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Wrap(
+                    spacing: AppTheme.space3,
+                    runSpacing: AppTheme.space1,
+                    children: [
+                      Text(l.inventoryFilteredCount(products.length)),
+                      if (trackStock)
+                        Text(
+                          l.inventoryStockSummary(
+                            NumberFormat(
+                              '#,##0',
+                              'en_US',
+                            ).format(stockSummary.totalUnits),
+                            Money(
+                              stockSummary.totalValue,
+                            ).withCurrency(currency, locale),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             const _CategoryFilterBar(),
             if (trackStock) const _StockFilterBar(),
             Expanded(
@@ -375,17 +382,36 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 ),
                 data: (_) {
                   if (products.isEmpty) {
-                    final searching = ref
-                        .read(inventorySearchProvider)
-                        .trim()
-                        .isNotEmpty;
+                    final hasFilters =
+                        ref.read(inventorySearchProvider).trim().isNotEmpty ||
+                        ref.read(inventoryCategoryProvider) != null ||
+                        (trackStock && ref.read(inventoryLowStockOnlyProvider));
+                    final hasProducts = async.valueOrNull?.isNotEmpty ?? false;
                     return EmptyStateView(
-                      icon: searching
+                      icon: hasFilters && hasProducts
                           ? Icons.search_off
                           : Icons.inventory_2_outlined,
-                      title: searching
-                          ? l.inventoryNoResults
+                      title: hasFilters && hasProducts
+                          ? l.inventoryNoFilterResults
                           : l.inventoryEmpty,
+                      actionLabel: hasFilters ? l.ordersClearFilters : null,
+                      onAction: hasFilters
+                          ? () {
+                              _search.clear();
+                              ref.read(inventorySearchProvider.notifier).state =
+                                  '';
+                              ref
+                                      .read(inventoryCategoryProvider.notifier)
+                                      .state =
+                                  null;
+                              ref
+                                      .read(
+                                        inventoryLowStockOnlyProvider.notifier,
+                                      )
+                                      .state =
+                                  false;
+                            }
+                          : null,
                     );
                   }
                   return Column(
@@ -395,7 +421,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       Expanded(
                         child: isMediumPlus(context)
                             ? GridView.builder(
-                                padding: const EdgeInsets.all(AppTheme.space3),
+                                padding: EdgeInsets.fromLTRB(
+                                  AppTheme.space3,
+                                  AppTheme.space3,
+                                  AppTheme.space3,
+                                  canEdit ? 96 : AppTheme.space3,
+                                ),
                                 gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                                   // **Not** the old 300. `maxCrossAxisExtent` is a
                                   // ceiling, not a target: the delegate takes
@@ -584,8 +615,9 @@ class _ProductTile extends ConsumerWidget {
     ref,
     data: LabelData(
       name: p.product.name,
-      priceText: Money(p.product.salePrice)
-          .withSymbol(_labelPriceSymbol, exponent: currency.exponent),
+      priceText: Money(
+        p.product.salePrice,
+      ).withSymbol(_labelPriceSymbol, exponent: currency.exponent),
       barcode: labelBarcodeFor(p.product),
     ),
   );
@@ -838,8 +870,8 @@ class _StockFilterBar extends ConsumerWidget {
           // items all sold out must stay switchable off, or the list
           // wedges on empty with a greyed-out (looks dead) chip.
           onSelected: (lowCount > 0 || lowOnly)
-              ? (v) => ref.read(inventoryLowStockOnlyProvider.notifier).state =
-                    v
+              ? (v) =>
+                    ref.read(inventoryLowStockOnlyProvider.notifier).state = v
               : null,
         ),
       ),

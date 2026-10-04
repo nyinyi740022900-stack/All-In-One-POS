@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'social_auth.dart';
+
 import '../../core/env.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
@@ -27,15 +29,18 @@ class AccountActionResult {
   final String? userId;
   final CachedLicense? license;
   final bool needsWipeConfirmation;
+  final bool needsShopName;
   const AccountActionResult.success(this.userId, {this.license})
     : ok = true,
       error = null,
-      needsWipeConfirmation = false;
+      needsWipeConfirmation = false,
+      needsShopName = false;
   const AccountActionResult.failure(this.error)
     : ok = false,
       userId = null,
       license = null,
-      needsWipeConfirmation = false;
+      needsWipeConfirmation = false,
+      needsShopName = false;
   // Signed in successfully, but this device was previously scoped to a
   // DIFFERENT shop — proceeding would wipe local data. The caller must show
   // an explicit confirmation and, if accepted, call
@@ -47,7 +52,15 @@ class AccountActionResult {
       error = null,
       userId = null,
       license = null,
-      needsWipeConfirmation = true;
+      needsWipeConfirmation = true,
+      needsShopName = false;
+  const AccountActionResult.needsShopName()
+    : ok = false,
+      error = null,
+      userId = null,
+      license = null,
+      needsWipeConfirmation = false,
+      needsShopName = true;
 }
 
 /// Outcome of [AccountRepository.signupShop] — carries the freshly-minted
@@ -74,17 +87,7 @@ class StaffAccount {
   });
 }
 
-/// Real email/password login for a shop's owner and staff — additive to the
-/// existing device-key activation + local PIN roster (`staff_repository.dart`),
-/// which are completely unaffected by this. See `activate` Edge Function's
-/// `create_shop_login`/`invite_staff`/`revoke_staff` actions for the
-/// server-side half of this.
-///
-/// A device that signs in with a real account still needs its own device
-/// slot the same way a key-activated device does — [signInAndClaimDevice]
-/// chains the existing [LicenseRepository.requestDeviceSlot]/`activate` calls
-/// after a successful password sign-in, reusing that machinery as-is rather
-/// than duplicating it.
+/// Account authentication, explicit device provisioning and safe shop attachment.
 class AccountRepository {
   AccountRepository(
     this._licenseRepository,
@@ -92,7 +95,41 @@ class AccountRepository {
     this._db, {
     this.onShopDbSwap,
     this.onShopPromoted,
-  });
+    // Keep the public injection name independent of private lazy storage.
+    SocialAuthService? socialAuth,
+    // ignore: prefer_initializing_formals
+  }) : _socialAuth = socialAuth;
+
+  SocialAuthService? _socialAuth;
+  SocialAuthService get socialAuth => _socialAuth ??= SocialAuthService();
+
+  User? get currentAuthUser {
+    try {
+      return Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Set<SocialAuthProvider> get availableSocialProviders =>
+      socialAuth.availableProviders;
+  Set<SocialAuthProvider> get linkedSocialProviders => {
+    for (final identity in currentAuthUser?.identities ?? <UserIdentity>[])
+      for (final provider in SocialAuthProvider.values)
+        if (identity.provider == provider.name) provider,
+  };
+  bool get hasPasswordIdentity =>
+      isSignedInWithRealAccount &&
+      ((currentAuthUser?.identities ?? <UserIdentity>[]).any(
+            (i) => i.provider == 'email',
+          ) ||
+          ((currentAuthUser?.identities ?? <UserIdentity>[]).isEmpty &&
+              linkedSocialProviders.isEmpty));
+
+  Future<Map<String, dynamic>?> invokeSocialAction(
+    Map<String, dynamic> body,
+  ) async => parseInvokeData((await invokeActivate(body)).data);
+  Future<void> refreshAuthenticatedSession() => refreshSessionBounded();
 
   final LicenseRepository _licenseRepository;
   final SettingsRepository _settings;
@@ -112,17 +149,16 @@ class AccountRepository {
   onShopPromoted;
 
   bool get isSignedInWithRealAccount {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = currentAuthUser;
     // An anonymous session's user also exists but has no email — that's the
     // device-key path, not a real account.
-    return user != null && (user.email ?? '').isNotEmpty;
+    return user != null && !user.isAnonymous && (user.email ?? '').isNotEmpty;
   }
 
-  String? get currentAccountEmail =>
-      Supabase.instance.client.auth.currentUser?.email;
+  String? get currentAccountEmail => currentAuthUser?.email;
 
   String? get currentAccountRole {
-    final meta = Supabase.instance.client.auth.currentUser?.appMetadata;
+    final meta = currentAuthUser?.appMetadata;
     final role = meta?['role'];
     return role is String && role.isNotEmpty ? role : null;
   }
@@ -159,6 +195,7 @@ class AccountRepository {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');
     }
+    _licenseRepository.cancelPendingRequests();
     onStep?.call(SignInStep.authenticating);
     try {
       final authRes = await Supabase.instance.client.auth.signInWithPassword(
@@ -178,9 +215,11 @@ class AccountRepository {
     // attaching the shop, which is a different (and usually longer) wait.
     onStep?.call(SignInStep.openingShop);
 
-    final shopId =
-        Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
-            as String?;
+    return _completeAuthenticatedSignIn();
+  }
+
+  Future<AccountActionResult> _completeAuthenticatedSignIn() async {
+    final shopId = currentAuthUser?.appMetadata['shop_id'] as String?;
     final currentLic = await _licenseRepository.current();
 
     // Same cloud shop already on this device — pull the current plan so a
@@ -189,19 +228,150 @@ class AccountRepository {
         currentLic != null &&
         currentLic.shopId == shopId &&
         !isReplaceableLocalLicense(currentLic)) {
-      return _attachAccountLicense(fallback: currentLic);
+      return attachAccountLicense(fallback: currentLic);
     }
 
     // A real *other* shop is on this device. Onboarding's local Free
     // identity (`free-…`) is not a real shop — skip the wipe dialog.
-    if (!isReplaceableLocalLicense(currentLic) &&
+    if (currentLic != null &&
+        !isReplaceableLocalLicense(currentLic) &&
         shopId != null &&
-        currentLic!.shopId != shopId) {
+        currentLic.shopId != shopId) {
       return const AccountActionResult.needsWipeConfirmation();
     }
 
     return _finishSignInAttach();
   }
+
+  Future<AccountActionResult> signInWithSocial(
+    SocialAuthProvider provider,
+  ) async {
+    if (!availableSocialProviders.contains(provider)) {
+      return const AccountActionResult.failure('social_auth_unavailable');
+    }
+    _licenseRepository.cancelPendingRequests();
+    try {
+      final response = await socialAuth.signIn(provider);
+      if (response.session == null || !isSignedInWithRealAccount) {
+        return const AccountActionResult.failure('not_authenticated');
+      }
+      final data = await invokeSocialAction({
+        'action': 'prepare_social_account',
+      });
+      if (data?['ok'] != true) {
+        return AccountActionResult.failure(
+          data?['error'] as String? ?? 'server_error',
+        );
+      }
+      if (data?['needs_shop_name'] == true) {
+        return const AccountActionResult.needsShopName();
+      }
+      return await _finishSocialAccount(data!);
+    } catch (e) {
+      return _socialFailure(e);
+    }
+  }
+
+  Future<AccountActionResult> completeSocialSignup(String shopName) async {
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    if (currentAccountRole == 'staff') {
+      return const AccountActionResult.failure('forbidden');
+    }
+    if (shopName.trim().isEmpty) {
+      return const AccountActionResult.failure('invalid_shop_name');
+    }
+    try {
+      final data = await invokeSocialAction({
+        'action': 'signup_social_shop',
+        'shop_name': shopName.trim(),
+        'device_id': await _settings.deviceId(),
+      });
+      if (data?['ok'] != true) {
+        return AccountActionResult.failure(
+          data?['error'] as String? ?? 'server_error',
+        );
+      }
+      return await _finishSocialAccount(data!);
+    } catch (e) {
+      return _socialFailure(e);
+    }
+  }
+
+  Future<AccountActionResult> _finishSocialAccount(
+    Map<String, dynamic> data,
+  ) async {
+    await refreshAuthenticatedSession();
+    final shop = data['shop_id'];
+    if (shop is! String ||
+        shop.isEmpty ||
+        currentAuthUser?.appMetadata['shop_id'] != shop ||
+        !const ['owner', 'staff'].contains(currentAccountRole)) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    return _completeAuthenticatedSignIn();
+  }
+
+  Future<AccountActionResult> linkSocialIdentity(
+    SocialAuthProvider provider,
+  ) async {
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    final userId = currentAuthUser!.id;
+    try {
+      final response = await socialAuth.link(provider);
+      if (response.user?.id != userId || currentAuthUser?.id != userId) {
+        return const AccountActionResult.failure('not_authenticated');
+      }
+      return AccountActionResult.success(userId);
+    } catch (e) {
+      return _socialFailure(e);
+    }
+  }
+
+  Future<AccountActionResult> deleteAccountWithSocial(
+    SocialAuthProvider provider,
+  ) async {
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    if (currentAccountRole != 'owner') {
+      return const AccountActionResult.failure('forbidden');
+    }
+    if (!linkedSocialProviders.contains(provider) ||
+        !availableSocialProviders.contains(provider)) {
+      return const AccountActionResult.failure('social_auth_unavailable');
+    }
+    try {
+      final proof = await socialAuth.reauthenticate(provider);
+      final data = await invokeSocialAction({
+        'action': 'delete_account',
+        ...proof.toRequest(),
+      });
+      if (data?['ok'] != true) {
+        return AccountActionResult.failure(
+          data?['error'] as String? ?? 'server_error',
+        );
+      }
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+      return const AccountActionResult.success(null);
+    } catch (e) {
+      return _socialFailure(e);
+    }
+  }
+
+  AccountActionResult _socialFailure(Object error) =>
+      AccountActionResult.failure(
+        error is SocialAuthFailure
+            ? error.code
+            : error is AuthException
+            ? _authFailureCode(error)
+            : classifyInvokeError(error),
+      );
 
   /// Call only after the caller has shown the wipe-confirmation dialog
   /// prompted by [signInAndClaimDevice] returning
@@ -229,26 +399,28 @@ class AccountRepository {
       return const AccountActionResult.failure('pending_sync');
     }
     final currentLic = await _licenseRepository.current();
-    final targetShopId =
-        Supabase.instance.client.auth.currentUser?.appMetadata['shop_id']
-            as String? ??
-        '';
-    if (targetShopId.isEmpty) {
-      // JWT may not have shop_id yet; attaching will recover it.
-      return _finishSignInAttach();
-    }
+    // Provision first; a device-limit or network failure must not reopen/wipe
+    // another shop's database or replace this device's cached identity.
+    final result = await attachAccountLicense(persist: false);
+    if (!result.ok || result.license == null) return result;
+    final targetShopId = result.license!.shopId;
+    final renewedGuard = await _transition.assertSafeToClear();
+    if (renewedGuard != null) return AccountActionResult.failure(renewedGuard);
     final prep = await _transition.prepareShopSwitch(
       fromShopId: currentLic?.shopId ?? '',
       toShopId: targetShopId,
     );
-    if (!prep.usedWipeFallback && targetShopId.isNotEmpty) {
-      await onShopDbSwap?.call(targetShopId);
-    }
-    return _finishSignInAttach();
+    if (!prep.usedWipeFallback) await onShopDbSwap?.call(targetShopId);
+    await _licenseRepository.saveExternal(result.license!);
+    return result;
   }
 
   Future<AccountActionResult> _finishSignInAttach() async {
-    final result = await _attachAccountLicense();
+    final result = await attachAccountLicense(persist: false);
+    if (result.ok && result.license != null) {
+      await _promoteFreeShopIfNeeded(result.license!.shopId);
+      await _licenseRepository.saveExternal(result.license!);
+    }
     // A transient failure (offline, server hiccup — already retried once
     // inside refreshAccountLicense) doesn't mean this account/device combo
     // is unusable, just that the pull didn't land this time. Signing out
@@ -259,7 +431,12 @@ class AccountRepository {
     // an account it just told the user it couldn't use.
     if (!result.ok &&
         result.error != 'network_error' &&
-        result.error != 'server_error') {
+        result.error != 'server_error' &&
+        !(const [
+              'device_limit_reached',
+              'free_device_replacement_required',
+            ].contains(result.error) &&
+            currentAccountRole == 'owner')) {
       try {
         await Supabase.instance.client.auth.signOut();
       } catch (_) {}
@@ -267,41 +444,35 @@ class AccountRepository {
     return result;
   }
 
-  /// Online Premium is account-tied: pull plan/expiry first. Claiming an
-  /// extra device slot is only the fallback when this shop has no license
-  /// row at all (so Check for renewal and a new-phone sign-in no longer
-  /// fail just because every slot is already bound).
-  Future<AccountActionResult> _attachAccountLicense({
+  /// Attach a verified authenticated membership through device authority.
+  Future<AccountActionResult> attachAccountLicense({
     CachedLicense? fallback,
+    bool persist = true,
   }) async {
-    final pulled = await _licenseRepository.refreshAccountLicense();
+    final pulled = await _licenseRepository.refreshAccountLicense(
+      reclaimDevice: true,
+      persist: persist,
+    );
     if (pulled.ok && pulled.license != null) {
+      await _rememberLocalRole(pulled.license!.shopId);
       return AccountActionResult.success(null, license: pulled.license);
     }
     if (fallback != null &&
         (pulled.errorCode == 'network_error' ||
             pulled.errorCode == 'server_error')) {
+      await _rememberLocalRole(fallback.shopId);
       return AccountActionResult.success(null, license: fallback);
-    }
-    if (pulled.errorCode == 'not_found' ||
-        pulled.errorCode == 'not_activated') {
-      // The fallback's own result (ok or not) is more specific than the
-      // pull's original `not_found`/`not_activated` and must win — otherwise
-      // a shop at its device cap gets told "license not found" instead of
-      // that it needs another slot (`payment_required`).
-      return _claimDeviceSlot();
     }
     return AccountActionResult.failure(pulled.errorCode ?? 'server_error');
   }
 
-  Future<AccountActionResult> _claimDeviceSlot() async {
-    final slot = await _licenseRepository.requestDeviceSlot();
-    if (!slot.ok || slot.key == null) {
-      return AccountActionResult.failure(slot.errorCode ?? 'server_error');
+  Future<void> _rememberLocalRole(String shopId) async {
+    // Only the authenticated app_metadata role is used, never user_metadata.
+    // Keeping staff's floor per shop prevents auth loss becoming local Owner.
+    final role = currentAccountRole;
+    if (role == 'staff' || role == 'owner') {
+      await _settings.setStaffRole(shopId, role!);
     }
-    final result = await _licenseRepository.activate(slot.key!);
-    if (!result.ok) return AccountActionResult.failure(result.errorCode);
-    return AccountActionResult.success(null, license: result.license);
   }
 
   static String _authFailureCode(AuthException e) {
@@ -316,16 +487,8 @@ class AccountRepository {
     return 'auth_failed';
   }
 
-  /// Signs out of the real-login session. On an Online-tier shop, Premium is
-  /// tied to being an authenticated, paying, signed-in user — not to the
-  /// device having once claimed a slot — so signing out also releases this
-  /// device's slot and downgrades it to the Free plan (Sell/Inventory keep
-  /// working, Premium features lock until signing back in). This does NOT
-  /// apply when `tier == 'offline'`: that device's Premium comes from its own
-  /// key, independent of any auth session (e.g. an owner's permanent
-  /// register that also has a real-login layered on top) — signing out of
-  /// the account there is unaffected, exactly as the sign-out confirmation
-  /// dialog already tells the owner.
+  /// Remove Premium and release this device while retaining local records
+  /// and the shop-scoped staff role floor.
   Future<AccountActionResult> signOut() async {
     // Capture before the session is cleared — after sign-out,
     // currentAccountRole is null and Settings would otherwise treat this
@@ -334,9 +497,7 @@ class AccountRepository {
     final current = await _licenseRepository.current();
     final shopId = current?.shopId;
     CachedLicense? downgraded;
-    if (current != null &&
-        current.tier == 'online' &&
-        current.plan != LicensePlan.free) {
+    if (current != null) {
       await _licenseRepository.releaseDevice(current.deviceId); // best-effort
       downgraded = await _licenseRepository.downgradeToFree(current);
     }
@@ -347,45 +508,28 @@ class AccountRepository {
     return AccountActionResult.success(null, license: downgraded);
   }
 
-  /// Self-service switches the shop's pricing tier ('offline'/'online') —
-  /// affects only the *suggested* price on the next renewal request, never
-  /// `shopId`/session/local data, so no wipe/resync is needed. The caller
-  /// applies the returned [AccountActionResult.license] via
-  /// `LicenseController.applyExternal`.
-  Future<AccountActionResult> setPricingTier(String tier) async {
-    if (!Env.hasBackend) return const AccountActionResult.failure('no_backend');
-    Map<String, dynamic> data;
-    try {
-      final res = await invokeActivate({'action': 'set_tier', 'tier': tier});
-      data = res.data as Map<String, dynamic>;
-    } catch (_) {
-      return const AccountActionResult.failure('network_error');
-    }
-    if (data['ok'] != true) {
-      return AccountActionResult.failure(data['error'] as String?);
-    }
-    final current = await _licenseRepository.current();
-    if (current == null) {
-      return const AccountActionResult.failure('not_activated');
-    }
-    final updated = current.copyWith(tier: tier);
-    await _licenseRepository.saveExternal(updated);
-    return AccountActionResult.success(null, license: updated);
-  }
+  /// Compatibility rejection for retired Online/Offline pricing.
+  Future<AccountActionResult> setPricingTier(String tier) async =>
+      const AccountActionResult.failure('retired_path');
 
-  /// Mints a brand new shop from nothing (no prior device-key activation
-  /// needed) — the entry point for the "Online" onboarding path: a shop
-  /// name + email + password gets a fresh shop_id, a 2-month trial license
-  /// bound to this device, and a real owner login, all in one call
-  /// (`signup_shop`). Signs in with the new credentials directly afterward
-  /// (no `refreshSession()` dance — a fresh sign-in already carries the
-  /// right claims) and builds the resulting [CachedLicense] for the caller
-  /// to apply via `LicenseController.applyExternal`.
+  /// Create a Free account shop; trial is a separate explicit owner action.
+  /// Existing local Free data is promoted through the recovery marker.
   Future<SignupResult> signupShop(
     String shopName,
     String email,
     String password,
   ) async {
+    // Authenticated retries must use authoritative first-shop setup and normal
+    // attachment, rather than synthesizing a Free cache over an existing plan.
+    if (isSignedInWithRealAccount) {
+      final result = await completeSocialSignup(shopName);
+      if (result.ok) return SignupResult.success(result.license);
+      return SignupResult.failure(
+        result.needsWipeConfirmation
+            ? 'shop_transition_required'
+            : result.error,
+      );
+    }
     if (!Env.hasBackend) return const SignupResult.failure('no_backend');
     final deviceId = await _settings.deviceId();
 
@@ -457,7 +601,7 @@ class AccountRepository {
     final lic = CachedLicense(
       key: 'SIGNUP',
       shopId: data['shop_id'] as String,
-      plan: LicensePlan.trial,
+      plan: LicensePlan.free,
       expiresAt: DateTime.parse(expiresAtRaw),
       activatedAt:
           DateTime.tryParse(data['activated_at'] as String? ?? '') ?? now,
@@ -466,6 +610,7 @@ class AccountRepository {
       tier: data['tier'] as String? ?? 'online',
       entitlement: data['entitlement'] as String?,
     );
+    await _rememberLocalRole(lic.shopId);
     await _promoteFreeShopIfNeeded(lic.shopId);
     await _licenseRepository.saveExternal(lic);
     return SignupResult.success(lic);
@@ -483,7 +628,7 @@ class AccountRepository {
   Future<void> _promoteFreeShopIfNeeded(String toShopId) async {
     final current = await _licenseRepository.current();
     if (current == null ||
-        current.plan != LicensePlan.free ||
+        !current.shopId.startsWith('free-') ||
         current.shopId == toShopId ||
         !AppDatabase.usePerShopDbFiles) {
       return;
@@ -519,23 +664,7 @@ class AccountRepository {
         return const AccountActionResult.failure('server_error');
       }
       if (data['ok'] == true) {
-        // A real email/password login is the definition of "Online" — the
-        // License screen's Renew/Upgrade dialog picks Offline vs Online by
-        // tier, so a shop that just gained a login but stayed tier 'offline'
-        // would confusingly still see the key-based dialog. Auto-switch;
-        // best-effort (a failure here doesn't fail the login itself, which
-        // already succeeded server-side, and the owner can still switch
-        // manually via Settings → Pricing tier).
-        final current = await _licenseRepository.current();
-        CachedLicense? updated;
-        if (current != null && current.tier != 'online') {
-          final tierResult = await setPricingTier('online');
-          if (tierResult.ok) updated = tierResult.license;
-        }
-        return AccountActionResult.success(
-          data['user_id'] as String?,
-          license: updated,
-        );
+        return AccountActionResult.success(data['user_id'] as String?);
       }
       return AccountActionResult.failure(data['error'] as String?);
     } catch (e) {

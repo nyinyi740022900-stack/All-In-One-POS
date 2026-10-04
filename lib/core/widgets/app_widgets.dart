@@ -153,7 +153,7 @@ class AppSectionHeader extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -175,7 +175,14 @@ class SettingsGroup extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        child: Column(children: children),
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const Divider(height: 1, thickness: 1),
+              children[i],
+            ],
+          ],
+        ),
       ),
     );
   }

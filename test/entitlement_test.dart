@@ -14,13 +14,31 @@ Future<({String token, String pubHex})> _sign({
   String plan = 'monthly',
   int exp = 2000000000,
   int iat = 1700000000,
+  int version = 2,
+  String userId = 'u',
+  String deviceId = 'd',
+  int revision = 3,
 }) async {
   final kp = await Ed25519().newKeyPair();
   final pub = (await kp.extractPublicKey()).bytes;
-  final payload = _b64(utf8.encode(jsonEncode(
-      {'v': 1, 'shop_id': shopId, 'plan': plan, 'exp': exp, 'iat': iat})));
-  final sig = await Ed25519()
-      .sign(utf8.encode('${Entitlement.prefix}$payload'), keyPair: kp);
+  final payload = _b64(
+    utf8.encode(
+      jsonEncode({
+        'v': version,
+        'shop_id': shopId,
+        'user_id': userId,
+        'device_id': deviceId,
+        'revision': revision,
+        'plan': plan,
+        'exp': exp,
+        'iat': iat,
+      }),
+    ),
+  );
+  final sig = await Ed25519().sign(
+    utf8.encode('${Entitlement.prefix}$payload'),
+    keyPair: kp,
+  );
   return (
     token: '${Entitlement.prefix}$payload.${_b64(sig.bytes)}',
     pubHex: pub.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
@@ -43,6 +61,22 @@ CachedLicense _cached({
 
 void main() {
   group('Entitlement.verify', () {
+    test('rejects legacy, unsupported and unbound signed receipts', () async {
+      for (final args in [
+        await _sign(version: 1),
+        await _sign(version: 3),
+        await _sign(userId: ''),
+        await _sign(deviceId: ''),
+        await _sign(plan: 'unknown'),
+        await _sign(revision: -1),
+      ]) {
+        expect(
+          await Entitlement.verify(args.token, publicKeyHex: args.pubHex),
+          isNull,
+        );
+      }
+    });
+
     test('accepts a receipt signed by the matching key', () async {
       final s = await _sign();
       final e = await Entitlement.verify(s.token, publicKeyHex: s.pubHex);
@@ -56,28 +90,48 @@ void main() {
     test('rejects a receipt signed by a different key', () async {
       final s = await _sign();
       final other = await _sign();
-      expect(await Entitlement.verify(s.token, publicKeyHex: other.pubHex),
-          isNull);
+      expect(
+        await Entitlement.verify(s.token, publicKeyHex: other.pubHex),
+        isNull,
+      );
     });
 
     test('rejects a payload edited after signing (extended expiry)', () async {
       final s = await _sign(exp: 1800000000);
       final parts = s.token.split('.');
-      final forged = _b64(utf8.encode(jsonEncode({
-        'v': 1, 'shop_id': 'shop-1', 'plan': 'monthly',
-        'exp': 9999999999, 'iat': 1700000000,
-      })));
+      final forged = _b64(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'shop_id': 'shop-1',
+            'plan': 'monthly',
+            'exp': 9999999999,
+            'iat': 1700000000,
+          }),
+        ),
+      );
       final tampered = '${parts[0]}.$forged.${parts[2]}';
-      expect(await Entitlement.verify(tampered, publicKeyHex: s.pubHex),
-          isNull);
+      expect(
+        await Entitlement.verify(tampered, publicKeyHex: s.pubHex),
+        isNull,
+      );
     });
 
-    test('rejects null, empty, wrong prefix and garbage without throwing',
-        () async {
-      for (final t in [null, '', 'MMPOS1.a.b', 'AIOE1.', 'AIOE1.x.y', 'nope']) {
-        expect(await Entitlement.verify(t), isNull, reason: '$t');
-      }
-    });
+    test(
+      'rejects null, empty, wrong prefix and garbage without throwing',
+      () async {
+        for (final t in [
+          null,
+          '',
+          'MMPOS1.a.b',
+          'AIOE1.',
+          'AIOE1.x.y',
+          'nope',
+        ]) {
+          expect(await Entitlement.verify(t), isNull, reason: '$t');
+        }
+      },
+    );
 
     test('the shipped key does not verify a receipt from a test key', () async {
       expect((await _sign()).token.isNotEmpty, isTrue);
@@ -88,6 +142,9 @@ void main() {
   group('resolveEntitlement', () {
     final ent = Entitlement(
       shopId: 'shop-1',
+      userId: 'u',
+      deviceId: 'd',
+      revision: 3,
       plan: LicensePlan.yearly,
       expiresAt: DateTime.utc(2027),
       issuedAt: DateTime.utc(2026, 10),
@@ -98,45 +155,86 @@ void main() {
         cached: _cached(expiresAt: DateTime.utc(2099)), // edited far out
         entitlement: ent,
         enforce: true,
+        userId: 'u',
+        deviceId: 'd',
       );
       expect(r.entitled, isTrue);
       expect(r.license.expiresAt, DateTime.utc(2027));
       expect(r.license.plan, LicensePlan.yearly);
     });
 
+    test('wrong user/device and older revision do not unlock Premium', () {
+      for (final binding in [
+        (user: 'other', device: 'd', revision: 0),
+        (user: 'u', device: 'other', revision: 0),
+        (user: 'u', device: 'd', revision: 4),
+      ]) {
+        expect(
+          resolveEntitlement(
+            cached: _cached(),
+            entitlement: ent,
+            enforce: true,
+            userId: binding.user,
+            deviceId: binding.device,
+            highestRevision: binding.revision,
+          ).entitled,
+          isFalse,
+        );
+      }
+    });
     test('no receipt on a paid plan is not entitled', () {
       final r = resolveEntitlement(
-          cached: _cached(), entitlement: null, enforce: true);
+        cached: _cached(),
+        entitlement: null,
+        enforce: true,
+        userId: 'u',
+        deviceId: 'd',
+      );
       expect(r.entitled, isFalse);
     });
 
     test("another shop's receipt is not accepted", () {
       final r = resolveEntitlement(
-          cached: _cached(shopId: 'shop-2'), entitlement: ent, enforce: true);
+        cached: _cached(shopId: 'shop-2'),
+        entitlement: ent,
+        enforce: true,
+        userId: 'u',
+        deviceId: 'd',
+      );
       expect(r.entitled, isFalse);
     });
 
-    test('Free needs no receipt, and a build with no backend skips the check',
-        () {
-      expect(
+    test(
+      'Free needs no receipt, and a build with no backend skips the check',
+      () {
+        expect(
           resolveEntitlement(
-                  cached: _cached(plan: LicensePlan.free),
-                  entitlement: null,
-                  enforce: true)
-              .entitled,
-          isTrue);
-      expect(
+            cached: _cached(plan: LicensePlan.free),
+            entitlement: null,
+            enforce: true,
+            userId: 'u',
+            deviceId: 'd',
+          ).entitled,
+          isTrue,
+        );
+        expect(
           resolveEntitlement(
-                  cached: _cached(), entitlement: null, enforce: false)
-              .entitled,
-          isTrue);
-    });
+            cached: _cached(),
+            entitlement: null,
+            enforce: false,
+          ).entitled,
+          isTrue,
+        );
+      },
+    );
   });
 
   group('resolveTrustedTime', () {
     Entitlement receipt(DateTime iat) => Entitlement(
-      shopId: 's', plan: LicensePlan.monthly,
-      expiresAt: DateTime.utc(2030), issuedAt: iat,
+      shopId: 's',
+      plan: LicensePlan.monthly,
+      expiresAt: DateTime.utc(2030),
+      issuedAt: iat,
     );
 
     test('winding the clock back does not move time back', () {

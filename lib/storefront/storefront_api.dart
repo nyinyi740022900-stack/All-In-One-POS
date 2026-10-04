@@ -286,9 +286,7 @@ class StorefrontApi {
   /// confirming both mints two licences.
   Future<SubmittedLicenseRequest> submitLicenseRequest({
     required String clientRequestId,
-    required String shopName,
-    required String deviceId,
-    String? email,
+    required String shopId,
     String? phone,
     required String plan,
     required int months,
@@ -303,9 +301,7 @@ class StorefrontApi {
       body: {
         'action': 'submit_license_request',
         'client_request_id': clientRequestId,
-        'shop_name': shopName,
-        'device_id': deviceId,
-        'email': email,
+        'shop_id': shopId,
         'phone': phone,
         'plan': plan,
         'months': months,
@@ -352,10 +348,23 @@ class StorefrontApi {
   /// other authenticated call from the mobile app. Throws (rather than
   /// returning an empty list) when not signed in, so a caller can tell
   /// "no session" apart from "signed in, genuinely no requests yet".
-  Future<List<RenewalRequestSummary>> fetchMyRequests() async {
+  Future<List<Map<String, dynamic>>> fetchBillingShops() async {
+    final response = await _c.functions.invokeBounded(
+      'storefront',
+      body: {'action': 'list_billing_shops'},
+    );
+    if (response.data is! Map || (response.data as Map)['shops'] is! List) {
+      throw const FormatException('Missing shops');
+    }
+    return ((response.data as Map)['shops'] as List)
+        .map((row) => (row as Map).cast<String, dynamic>())
+        .toList();
+  }
+
+  Future<List<RenewalRequestSummary>> fetchMyRequests(String shopId) async {
     final res = await _c.functions.invokeBounded(
       'storefront',
-      body: {'action': 'my_requests'},
+      body: {'action': 'my_requests', 'shop_id': shopId},
     );
     if (res.status != 200 || res.data is! Map) {
       throw Exception(res.data is Map ? res.data['error'] : 'error');
@@ -382,8 +391,6 @@ class StorefrontApi {
           'pay.kbzpay.number',
           'pay.wavepay.name',
           'pay.wavepay.number',
-          'price.monthly',
-          'price.yearly',
           'support.viber',
         ]);
     return {
@@ -410,10 +417,8 @@ class RenewalReceipt {
     required this.status,
     required this.paymentStatus,
     required this.createdAt,
-    this.deviceIdTail,
     this.method,
     this.refNo,
-    this.issuedKey,
     this.rejectReason,
     this.paidAt,
   });
@@ -431,12 +436,9 @@ class RenewalReceipt {
   final String paymentStatus;
 
   final DateTime? createdAt;
-  final String? deviceIdTail;
   final String? method;
   final String? refNo;
 
-  /// Only ever non-null once [status] is 'fulfilled'.
-  final String? issuedKey;
   final String? rejectReason;
   final DateTime? paidAt;
 
@@ -460,10 +462,8 @@ class RenewalReceipt {
     status: (m['status'] as String?) ?? 'pending',
     paymentStatus: (m['payment_status'] as String?) ?? 'manual',
     createdAt: _date(m['created_at']),
-    deviceIdTail: m['device_id_tail'] as String?,
     method: m['method'] as String?,
     refNo: m['ref_no'] as String?,
-    issuedKey: m['issued_key'] as String?,
     rejectReason: m['reject_reason'] as String?,
     paidAt: _date(m['paid_at']),
   );

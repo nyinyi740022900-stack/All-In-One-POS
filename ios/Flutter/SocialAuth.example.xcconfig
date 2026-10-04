@@ -1,0 +1,9 @@
+// Optional native capability configuration. This file is NEVER included by
+// default. After Apple Developer App ID/profile setup, copy to
+// SocialAuth.local.xcconfig (gitignored), then uncomment the setting below.
+// Leave disabled for provisioning profiles without Sign in with Apple.
+// CODE_SIGN_ENTITLEMENTS = Runner/SocialAuth.entitlements
+//
+// Google client IDs are supplied via Dart defines. The Google iOS callback
+// URL scheme must also be added to Info.plist after obtaining the real client
+// ID; see docs/social_login_setup.md. Never paste an OAuth client secret here.

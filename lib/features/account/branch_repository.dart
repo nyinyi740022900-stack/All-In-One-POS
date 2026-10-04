@@ -260,9 +260,9 @@ class BranchRepository {
       productQueryOk = rows.every((r) => r.shopId == targetShopId);
     } catch (_) {}
 
-    final pendingOutbox = await (_db.select(_db.outbox)
-          ..where((o) => o.quarantined.equals(false)))
-        .get();
+    final pendingOutbox = await (_db.select(
+      _db.outbox,
+    )..where((o) => o.quarantined.equals(false))).get();
     final outboxClear = pendingOutbox.isEmpty;
 
     // Empty local catalog is only OK when the server also has no catalog for
@@ -357,22 +357,8 @@ class BranchRepository {
     }
   }
 
-  Future<BranchActionResult> linkBranch(String key, String label) async {
-    // Kept for Support/legacy tooling; not exposed in the Branches UI
-    // (online accounts add branches via [createBranch] only).
-    if (!Env.hasBackend) return const BranchActionResult.failure('no_backend');
-    try {
-      final res = await Supabase.instance.client.functions.invokeBounded(
-        'activate',
-        body: {'action': 'link_branch', 'key': key, 'label': label},
-      );
-      final data = res.data as Map<String, dynamic>;
-      if (data['ok'] == true) return const BranchActionResult.success();
-      return BranchActionResult.failure(data['error'] as String?);
-    } catch (_) {
-      return const BranchActionResult.failure('network_error');
-    }
-  }
+  Future<BranchActionResult> linkBranch(String key, String label) async =>
+      const BranchActionResult.failure('retired_path');
 
   Future<bool> unlinkBranch(String shopId) async {
     if (!Env.hasBackend) return false;
@@ -444,6 +430,7 @@ class BranchRepository {
 
     Map<String, dynamic> data;
     try {
+      _licenseRepository.cancelPendingRequests();
       await saveStep(BranchSwitchStep.switchingAccountClaim);
       onStep?.call(BranchSwitchStep.switchingAccountClaim);
       final res = await Supabase.instance.client.functions.invokeBounded(
@@ -451,6 +438,8 @@ class BranchRepository {
         body: {
           'action': 'switch_branch',
           'shop_id': shopId,
+          'device_id': await _settings.deviceId(),
+          'reclaim_device': true,
           'switch_token': token,
         },
       );

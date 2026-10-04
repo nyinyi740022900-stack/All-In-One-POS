@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/providers.dart';
@@ -18,14 +20,9 @@ final licenseRepositoryProvider = Provider<LicenseRepository>((ref) {
 
 /// The shop's device slots. Re-fetch with `ref.invalidate` after adding or
 /// releasing a device (no realtime/stream backing this — it's a plain
-/// on-demand read of the `licenses` table).
+/// on-demand read of authenticated device authority).
 final shopDevicesProvider = FutureProvider.autoDispose<List<ShopDevice>>((ref) {
   return ref.watch(licenseRepositoryProvider).listDevices();
-});
-
-final shopDeviceAllowanceProvider =
-    FutureProvider.autoDispose<ShopDeviceAllowance>((ref) {
-  return ref.watch(licenseRepositoryProvider).deviceAllowance();
 });
 
 class LicenseState {
@@ -76,22 +73,69 @@ final licenseControllerProvider =
       return LicenseController(ref)..load();
     });
 
-class LicenseController extends StateNotifier<LicenseState> {
+class LicenseController extends StateNotifier<LicenseState>
+    with WidgetsBindingObserver {
   LicenseController(this._ref) : super(const LicenseState());
+
+  void _startLifecycleWatch() {
+    WidgetsBinding.instance.addObserver(this);
+    _expiryTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => recomputeExpiry(),
+    );
+    if (Env.hasBackend) {
+      _authSubscription = Supabase.instance.client.auth.onAuthStateChange
+          .listen((_) {
+            if (mounted) recomputeExpiry();
+          });
+    }
+  }
+
+  /// Device clock plus monotonic elapsed time for an already-running session.
+  DateTime get currentTime => DateTime.now();
+  final Stopwatch _elapsedClock = Stopwatch()..start();
+  DateTime? _timeAnchor;
+  String? _timeAnchorShop;
+  DateTime _effectiveDeviceTime(String? shopId) {
+    final deviceNow = currentTime;
+    if (_timeAnchor == null || shopId != _timeAnchorShop) return deviceNow;
+    final elapsedNow = _timeAnchor!.add(_elapsedClock.elapsed);
+    return elapsedNow.isAfter(deviceNow) ? elapsedNow : deviceNow;
+  }
+
+  Timer? _expiryTimer;
+  StreamSubscription<AuthState>? _authSubscription;
+  Future<void> recomputeExpiry() async {
+    if (mounted) await _apply(_rawLicense);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      recomputeExpiry();
+      _silentReverify();
+    }
+  }
 
   final Ref _ref;
   Timer? _reverifyTimer;
   Future<void>? _loadFuture;
 
-  LicenseRepository get _repo => _ref.read(licenseRepositoryProvider);
+  LicenseRepository? _cachedRepo;
+  LicenseRepository get _repo =>
+      (_cachedRepo ??= _ref.read(licenseRepositoryProvider))!;
 
   /// Shared with checkout so a sale cannot race `loading: true` /
   /// `canSell == false` (status defaults to [LicenseStatus.none]).
   Future<void> load() => _loadFuture ??= _loadBody();
 
   Future<void> _loadBody() async {
+    _startLifecycleWatch();
+    final loadSeq = _applySeq;
     final lic = await _repo.current();
+    if (!mounted || loadSeq != _applySeq) return;
     await _apply(lic);
+    if (!mounted) return;
     // Pick up admin extensions/revocations without user action: re-verify once
     // at launch and then periodically (best-effort; offline is a no-op).
     if (Env.hasBackend) {
@@ -117,6 +161,12 @@ class LicenseController extends StateNotifier<LicenseState> {
 
   @override
   void dispose() {
+    ++_applySeq;
+    _cachedRepo?.cancelPendingRequests();
+    _elapsedClock.stop();
+    _expiryTimer?.cancel();
+    _authSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _reverifyTimer?.cancel();
     super.dispose();
   }
@@ -145,7 +195,7 @@ class LicenseController extends StateNotifier<LicenseState> {
   Future<bool> _promoteFreeShopIfNeeded(String toShopId) async {
     final current = state.license;
     if (current == null ||
-        current.plan != LicensePlan.free ||
+        !current.shopId.startsWith('free-') ||
         current.shopId == toShopId ||
         !AppDatabase.usePerShopDbFiles) {
       return false;
@@ -257,77 +307,39 @@ class LicenseController extends StateNotifier<LicenseState> {
   /// Key-activated devices reuse `activate`. No-op offline / with no license
   /// and no account session.
   Future<ActivationResult> refreshOnline() async {
-    final user = _repo.hasEmailSession;
-    if (user) {
-      final pulled = await _repo.refreshAccountLicense();
-      if (pulled.ok && pulled.license != null) {
-        await applyExternal(pulled.license!);
-        return pulled;
-      }
-      final lic = state.license;
-      final placeholder = lic != null &&
-          (lic.key == LicenseRepository.trialKey ||
-              lic.key == LicenseRepository.freeKey ||
-              lic.key == LicenseRepository.signupKey);
-      if (lic == null || placeholder) {
-        return pulled;
-      }
-      // Real device key still on disk — fall through to activate(key),
-      // including when the account pull failed (old Edge Function, etc.).
+    if (!_repo.hasEmailSession) {
+      return const ActivationResult.failure('account_required');
     }
-    final lic = state.license;
-    if (lic == null) {
-      return const ActivationResult.failure('not_activated');
+    final seq = _applySeq;
+    final shopId = state.license?.shopId;
+    final userId = _repo.currentUserId;
+    final pulled = await _repo.refreshAccountLicense(persist: false);
+    if (!mounted ||
+        seq != _applySeq ||
+        userId != _repo.currentUserId ||
+        shopId != state.license?.shopId) {
+      return const ActivationResult.failure('stale_response');
     }
-    // A self-serve trial or the Free plan has
-    // nothing to re-verify online — there's no real key to look up (a
-    // self-serve trial's cached [LicenseRepository.trialKey] is a local
-    // placeholder, `LicenseRepository.startFreeTrial`'s own doc comment says
-    // so explicitly — calling `activate(LicenseRepository.trialKey)` would
-    // just fail server-side every time, as literally no license row has that
-    // key). This used to check for a re-typed `'FREE-TRIAL'` literal, a
-    // string nothing ever actually sets — dead code that silently defeated
-    // the exemption and made every periodic reverify a guaranteed-failing
-    // `activate('TRIAL')` call instead. Now both sides share the same
-    // constants (defined once on `LicenseRepository`) instead of each file
-    // re-typing the literal, so a typo like that can't recur.
-    // Since this is also the app's only periodic "is the session still
-    // good" heartbeat (`load()` on every launch + every 6h), a trial session
-    // still gets a real benefit here: proactively refresh so a JWT that
-    // never picked up its `shop_id` claim (e.g. the one-shot refresh right
-    // after minting the trial silently failed) has another chance to
-    // self-heal, instead of only doing so reactively when some RLS-scoped
-    // write already fails.
-    if (lic.key == LicenseRepository.trialKey ||
-        lic.key == LicenseRepository.freeKey) {
-      // `flutter run --release`'s device stdout isn't relayed to the host
-      // terminal on this project's target device, so a temporary debugPrint
-      // here was unobservable — replaced with `refreshSessionAndVerifyClaim`,
-      // which reports a real failure to Sentry instead (queryable regardless
-      // of build mode) and self-heals with a retry, rather than just logging.
-      if (lic.key == LicenseRepository.trialKey) {
-        // A trial has no key to re-activate, but it DOES have a server row
-        // keyed by this device, and that row is where an admin extension and
-        // the signed receipt both live. Re-sync by device id (the same call
-        // "Fix connection issue" makes) so a trial picks up a fresh receipt
-        // and any extension; it also re-stamps the session claim, which is
-        // what this branch used to do on its own. Without this a trial that
-        // predates receipts, or one whose receipt was dropped, stayed locked
-        // forever because nothing here ever asked the server for one.
-        final resynced = await _repo.repairSession();
-        if (resynced.ok && resynced.license != null) {
-          await _apply(resynced.license);
-          return resynced;
-        }
-        // Offline, or the server said no — keep the cached trial and still
-        // give the session claim its own chance to self-heal.
-        await _repo.refreshSessionAndVerifyClaim(lic.shopId);
+    if (pulled.ok &&
+        pulled.license != null &&
+        shopId != null &&
+        pulled.license!.shopId != shopId) {
+      return const ActivationResult.failure('shop_transition_required');
+    }
+    if (pulled.ok && pulled.license != null) {
+      await _repo.saveExternal(pulled.license!);
+      await applyExternal(pulled.license!);
+    } else if (const [
+      'device_released',
+      'shop_archived',
+      'membership_revoked',
+    ].contains(pulled.errorCode)) {
+      final current = state.license;
+      if (current != null) {
+        await _apply(await _repo.downgradeToFree(current));
       }
-      return ActivationResult.success(lic);
     }
-    final result = await _repo.activate(lic.key);
-    if (result.ok) await _apply(result.license);
-    return result;
+    return pulled;
   }
 
   /// Applies a [CachedLicense] that was already persisted elsewhere (e.g. by
@@ -336,11 +348,9 @@ class LicenseController extends StateNotifier<LicenseState> {
   /// Callers that switch shops must reopen the shop DB *before* this when
   /// [AppDatabase.usePerShopDbFiles] is on (branch/account repos do).
   Future<void> applyExternal(CachedLicense lic) async {
-    final promoted = await _promoteFreeShopIfNeeded(lic.shopId);
-    if (!promoted) {
-      await _reopenShopDbIfNeeded(lic.shopId);
-    }
-    await _apply(lic);
+    if (!mounted) return;
+    await _reopenShopDbIfNeeded(lic.shopId);
+    if (mounted) await _apply(lic);
   }
 
   Future<void> _reopenShopDbIfNeeded(String shopId) async {
@@ -356,6 +366,8 @@ class LicenseController extends StateNotifier<LicenseState> {
   int _applySeq = 0;
 
   Future<void> _apply(CachedLicense? lic) async {
+    if (!mounted) return;
+    final repo = _repo;
     final seq = ++_applySeq;
     _rawLicense = lic;
     final settings = _ref.read(settingsRepositoryProvider);
@@ -365,43 +377,71 @@ class LicenseController extends StateNotifier<LicenseState> {
     // phone's date back can't revive an expired plan. See entitlement.dart.
     final needsReceipt =
         lic != null && lic.plan != LicensePlan.free && Env.hasBackend;
-    final receipt = needsReceipt ? await Entitlement.verify(lic.entitlement) : null;
-    final lastSeenMs = await settings.licenseLastSeenMs();
-    final lastIatMs = await settings.licenseLastReceiptIatMs();
-    final time = resolveTrustedTime(
-      deviceNow: DateTime.now(),
-      lastSeen: lastSeenMs == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(lastSeenMs, isUtc: true),
-      lastReceiptIssuedAt: lastIatMs == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(lastIatMs, isUtc: true),
-      entitlement: receipt,
-    );
-    // A newer apply started while we were awaiting — it owns the state now.
-    if (seq != _applySeq) return;
-    await settings.setLicenseLastSeenMs(time.lastSeen.millisecondsSinceEpoch);
-    final iat = time.lastReceiptIssuedAt;
-    if (iat != null && iat.millisecondsSinceEpoch != lastIatMs) {
-      await settings.setLicenseLastReceiptIatMs(iat.millisecondsSinceEpoch);
-    }
-
+    final receipt = needsReceipt
+        ? await Entitlement.verify(lic.entitlement)
+        : null;
+    final highestRevision = lic == null
+        ? 0
+        : await settings.licenseHighestRevision(lic.shopId, lic.deviceId) ?? 0;
+    final deviceId = await settings.deviceId();
+    if (!mounted || seq != _applySeq) return;
+    final userId = repo.currentUserId;
     final resolved = lic == null
         ? null
         : resolveEntitlement(
             cached: lic,
             entitlement: receipt,
             enforce: Env.hasBackend,
+            userId: userId,
+            deviceId: deviceId,
+            highestRevision: highestRevision,
           );
+    // Identity/revision must pass before a signed issued-at changes trusted time.
+    final acceptedReceipt = resolved?.entitled == true ? receipt : null;
+    final lastSeenMs = await settings.licenseLastSeenMs(shopId: lic?.shopId);
+    final lastIatMs = await settings.licenseLastReceiptIatMs(
+      shopId: lic?.shopId,
+    );
+    final time = resolveTrustedTime(
+      deviceNow: _effectiveDeviceTime(lic?.shopId),
+      lastSeen: lastSeenMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastSeenMs, isUtc: true),
+      lastReceiptIssuedAt: lastIatMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastIatMs, isUtc: true),
+      entitlement: acceptedReceipt,
+    );
+    if (!mounted || seq != _applySeq || userId != repo.currentUserId) return;
+    if (lic != null) {
+      await settings.setLicenseLastSeenMs(
+        time.lastSeen.millisecondsSinceEpoch,
+        shopId: lic.shopId,
+      );
+      if (acceptedReceipt != null) {
+        await settings.setLicenseHighestRevision(
+          lic.shopId,
+          lic.deviceId,
+          acceptedReceipt.revision,
+        );
+        await settings.setLicenseLastReceiptIatMs(
+          acceptedReceipt.issuedAt.millisecondsSinceEpoch,
+          shopId: lic.shopId,
+        );
+      }
+    }
+    if (!mounted || seq != _applySeq || userId != repo.currentUserId) return;
+    _timeAnchor = time.now;
+    _timeAnchorShop = lic?.shopId;
+    _elapsedClock.reset();
     final effective = resolved?.license;
     final entitled = resolved?.entitled ?? true;
 
     final LicenseStatus status;
     if (effective != null && !entitled) {
-      // No valid receipt: Premium locked, selling still allowed. Shown as
-      // "expired" rather than "none", which would block checkout.
+      // Missing proof needs verification; it is not evidence of expiry.
       status = LicenseStatus(
-        kind: LicenseStatusKind.expired,
+        kind: LicenseStatusKind.verificationRequired,
         plan: effective.plan,
         expiresAt: effective.expiresAt,
       );
@@ -412,6 +452,16 @@ class LicenseController extends StateNotifier<LicenseState> {
         plan: effective?.plan,
         activated: effective != null,
       );
+    }
+    // Use the repository for the reopened shop, so staff's local floor lives
+    // in the target database even on first provisioning of a new device.
+    final role = repo.currentAccountRole;
+    if (effective != null &&
+        userId != null &&
+        repo.currentSessionShopId == effective.shopId &&
+        (role == 'staff' || role == 'owner')) {
+      await settings.setStaffRole(effective.shopId, role!);
+      if (!mounted || seq != _applySeq || userId != repo.currentUserId) return;
     }
     // Bind the active shop so all data scopes to it.
     if (effective != null) {
@@ -424,26 +474,16 @@ class LicenseController extends StateNotifier<LicenseState> {
       entitled: entitled,
     );
 
-    // Never leave the shop hard-locked: a verified plan that has lapsed past
-    // grace auto-downgrades to the Free plan instead — core POS features keep
-    // working, only Premium stays locked until renewal. Only for a *verified*
-    // lapse: a missing receipt must never persist a downgrade, or one failed
-    // refresh would permanently discard a plan the shop paid for.
-    // Fire-and-forget is safe: worst case this fires again next time `_apply`
-    // runs, which just re-persists the same Free license.
     if (lic != null &&
         entitled &&
         lic.plan != LicensePlan.free &&
         status.kind == LicenseStatusKind.expired) {
-      _repo.downgradeToFree(lic).then((free) async {
-        // Staleness guard: if a newer `_apply` (e.g. a manual activation
-        // that raced ahead of this stale reverify) already replaced the
-        // license with something else, applying `free` now would wrongly
-        // stomp it and re-pin `shopIdProvider` back to this shop.
-        if (!identical(_rawLicense, lic)) return;
+      if (_lastLapseIdentity != '${lic.shopId}:${lic.expiresAt}') {
+        _lastLapseIdentity = '${lic.shopId}:${lic.expiresAt}';
         _ref.read(pendingPlanDowngradeNoticeProvider.notifier).state = true;
-        await _apply(free);
-      });
+      }
     }
   }
+
+  String? _lastLapseIdentity;
 }

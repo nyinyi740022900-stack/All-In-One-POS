@@ -128,11 +128,11 @@ abstract class AppLocalizations {
   /// **'Analytics'**
   String get navAnalytics;
 
-  /// No description provided for @navSettings.
+  /// No description provided for @navShop.
   ///
   /// In en, this message translates to:
-  /// **'Settings'**
-  String get navSettings;
+  /// **'Shop'**
+  String get navShop;
 
   /// No description provided for @commonUnexpectedError.
   ///
@@ -1970,6 +1970,12 @@ abstract class AppLocalizations {
   /// **'No products match your search.'**
   String get inventoryNoResults;
 
+  /// No description provided for @inventoryNoFilterResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No products match your filters.'**
+  String get inventoryNoFilterResults;
+
   /// No description provided for @inventoryFilteredCount.
   ///
   /// In en, this message translates to:
@@ -2114,18 +2120,6 @@ abstract class AppLocalizations {
   /// **'Update stock'**
   String get stockAdjustTitle;
 
-  /// No description provided for @stockAdjustModeRestock.
-  ///
-  /// In en, this message translates to:
-  /// **'Restock'**
-  String get stockAdjustModeRestock;
-
-  /// No description provided for @stockAdjustModeAdjust.
-  ///
-  /// In en, this message translates to:
-  /// **'Adjust'**
-  String get stockAdjustModeAdjust;
-
   /// No description provided for @stockAdjustQuantity.
   ///
   /// In en, this message translates to:
@@ -2137,12 +2131,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Units received'**
   String get stockAdjustQuantityHintRestock;
-
-  /// No description provided for @stockAdjustQuantityHintAdjust.
-  ///
-  /// In en, this message translates to:
-  /// **'+ to increase, − to decrease'**
-  String get stockAdjustQuantityHintAdjust;
 
   /// No description provided for @stockAdjustUnitCost.
   ///
@@ -2221,12 +2209,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lost / stolen'**
   String get stockReasonLost;
-
-  /// No description provided for @stockReasonCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Stock count correction'**
-  String get stockReasonCount;
 
   /// No description provided for @stockReasonOther.
   ///
@@ -2389,6 +2371,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settingsTitle;
+
+  /// No description provided for @settingsSectionDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get settingsSectionDaily;
+
+  /// No description provided for @settingsSectionSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup'**
+  String get settingsSectionSetup;
 
   /// No description provided for @settingsSectionBusiness.
   ///
@@ -3524,12 +3518,6 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get productCategory;
 
-  /// No description provided for @analyticsRevenue.
-  ///
-  /// In en, this message translates to:
-  /// **'Revenue'**
-  String get analyticsRevenue;
-
   /// No description provided for @analyticsTrendVsPrevious.
   ///
   /// In en, this message translates to:
@@ -3553,12 +3541,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Net profit'**
   String get analyticsNetProfit;
-
-  /// No description provided for @analyticsSalesCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Sales'**
-  String get analyticsSalesCount;
 
   /// No description provided for @analyticsStockValue.
   ///
@@ -3667,12 +3649,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collected'**
   String get analyticsCollected;
-
-  /// No description provided for @analyticsCreditOutstanding.
-  ///
-  /// In en, this message translates to:
-  /// **'Credit outstanding'**
-  String get analyticsCreditOutstanding;
 
   /// No description provided for @expensesTitle.
   ///
@@ -3995,7 +3971,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatureBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Premium subscription or license key.'**
+  /// **'Core sales, inventory, cash register, expenses, suppliers and customer credit remain available on Free. This feature requires Premium on your shop account.'**
   String get premiumFeatureBody;
 
   /// No description provided for @premiumUpgradeCta.
@@ -4007,7 +3983,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumManageLicenseCta.
   ///
   /// In en, this message translates to:
-  /// **'Manage license'**
+  /// **'Manage Premium'**
   String get premiumManageLicenseCta;
 
   /// No description provided for @analyticsBenefit1.
@@ -4169,7 +4145,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountSignOutPremiumConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'ll lose Premium features on this device and it will drop to the Free plan (Sell and Inventory keep working). You\'ll need your email and password again to sign back in and restore Premium.'**
+  /// **'Signing out removes Premium access on this device. Local shop data and core sales remain available. Sign in again with your email and password to restore Premium.'**
   String get accountSignOutPremiumConfirmBody;
 
   /// No description provided for @licenseDowngradedToFreeNotice.
@@ -4307,7 +4283,7 @@ abstract class AppLocalizations {
   /// No description provided for @licensePayOnlineHint.
   ///
   /// In en, this message translates to:
-  /// **'Send a payment request on our website. Works for a new Premium purchase and for renewal — no account needed.'**
+  /// **'Sign in on our website and select your shop to purchase or renew Premium. An owner account is required.'**
   String get licensePayOnlineHint;
 
   /// No description provided for @licenseChooseRegionTitle.
@@ -4367,7 +4343,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseManagedElsewhereBody.
   ///
   /// In en, this message translates to:
-  /// **'Premium is arranged with your All In One POS provider outside this app. Once it is active on this device or on your shop account, Premium features unlock here automatically.'**
+  /// **'Sign in to your shop account to access its available Premium features. Check again to update your account status. Free features remain available.'**
   String get licenseManagedElsewhereBody;
 
   /// No description provided for @licenseAlreadyLicensedTitle.
@@ -4415,13 +4391,13 @@ abstract class AppLocalizations {
   /// No description provided for @licenseTrialStartConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Start your 2-month Premium trial on this device now? Every Premium feature unlocks immediately, no payment needed. One trial per device — needs an internet connection to start.'**
+  /// **'Start your two-month Premium trial for this shop? One trial per owner account.'**
   String get licenseTrialStartConfirm;
 
   /// No description provided for @licenseTrialSelfServeHint.
   ///
   /// In en, this message translates to:
-  /// **'2 months, every Premium feature, no payment — one trial per device.'**
+  /// **'Two months of Premium, once per owner account. Signup stays Free until you start the trial.'**
   String get licenseTrialSelfServeHint;
 
   /// No description provided for @licenseTrialContactHint.
@@ -4451,7 +4427,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseTrialUsed.
   ///
   /// In en, this message translates to:
-  /// **'Free trial already used on this device.'**
+  /// **'This owner account has already used its trial.'**
   String get licenseTrialUsed;
 
   /// No description provided for @licenseRefId.
@@ -4505,13 +4481,13 @@ abstract class AppLocalizations {
   /// No description provided for @licenseRenewHint.
   ///
   /// In en, this message translates to:
-  /// **'After Support extends your license, tap Check for renewal (or activate a new key).'**
+  /// **'After your shop subscription is renewed, tap Check for renewal.'**
   String get licenseRenewHint;
 
   /// No description provided for @licenseRenewHintOnline.
   ///
   /// In en, this message translates to:
-  /// **'After Support extends your Online subscription, tap Check for renewal — Premium applies to your account automatically (no key).'**
+  /// **'After your shop subscription is renewed, tap Check for renewal. Premium applies to the selected shop account.'**
   String get licenseRenewHintOnline;
 
   /// No description provided for @licenseRenewNotFound.
@@ -4535,7 +4511,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatureBodyOnline.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on the Free plan — Sell, Inventory, Cash Register, Expenses, Suppliers, and Credit book keep working, but this feature needs an active Online Premium subscription on your shop account.'**
+  /// **'Core sales, inventory, cash register, expenses, suppliers and customer credit remain available on Free. This feature requires Premium on your shop account.'**
   String get premiumFeatureBodyOnline;
 
   /// No description provided for @deviceCount.
@@ -4667,13 +4643,13 @@ abstract class AppLocalizations {
   /// No description provided for @invWebActivateHint.
   ///
   /// In en, this message translates to:
-  /// **'Sign in with the shop email you already use on the phone. This computer counts as one extra device. Free plan with no account: use the Windows POS app and tap Continue Free — no key.'**
+  /// **'Sign in with your shop account to view cloud invoices. Premium is required; this browser counts as one of the shop’s three devices.'**
   String get invWebActivateHint;
 
   /// No description provided for @invWebFreeHint.
   ///
   /// In en, this message translates to:
-  /// **'Free plan does not need activation. Sell on this computer with the Windows POS app (Continue Free). This page only shows invoices after you sign in to a shop account.'**
+  /// **'Cloud invoice access requires Premium. Your local invoices in the mobile app remain available on Free.'**
   String get invWebFreeHint;
 
   /// No description provided for @invWebKeySection.
@@ -4733,7 +4709,7 @@ abstract class AppLocalizations {
   /// No description provided for @invWebErrorActivationFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t activate — check the key and try again'**
+  /// **'Could not verify this shop. Check your account and try again.'**
   String get invWebErrorActivationFailed;
 
   /// No description provided for @invWebErrorNetwork.
@@ -4745,7 +4721,7 @@ abstract class AppLocalizations {
   /// No description provided for @invWebErrorRefreshPending.
   ///
   /// In en, this message translates to:
-  /// **'Activated — reload this page to continue'**
+  /// **'Signed in — reload this page to continue.'**
   String get invWebErrorRefreshPending;
 
   /// No description provided for @invWebSignOut.
@@ -6407,7 +6383,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontRenewSignInPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Have an account? Sign in to skip typing your details and see your past requests.'**
+  /// **'Sign in with the owner account to choose a shop and purchase Premium.'**
   String get storefrontRenewSignInPrompt;
 
   /// No description provided for @storefrontRenewSignInFailed.
@@ -6605,13 +6581,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardAccountBody.
   ///
   /// In en, this message translates to:
-  /// **'Only needed if you\'ll use this shop on another phone, or add staff logins.'**
+  /// **'Create or sign in to your shop account. Your shop starts on Free; Premium and its trial are optional.'**
   String get onboardAccountBody;
 
   /// No description provided for @onboardAccountBenefits.
   ///
   /// In en, this message translates to:
-  /// **'With email you can:\n• Open this shop on another phone\n• Keep a cloud backup when the internet is on\n• Add staff who sign in with their own email'**
+  /// **'Keep your account when you change devices. Premium adds cloud sync, staff accounts and detailed reports for your shop.'**
   String get onboardAccountBenefits;
 
   /// No description provided for @onboardAccountWhyEmail.
@@ -6653,7 +6629,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountShopLoginHint.
   ///
   /// In en, this message translates to:
-  /// **'Optional: sign in with an email and password to reach this shop from another device. Your existing license key and PIN quick-switch keep working as before.'**
+  /// **'An account connects this shop for Premium and billing. Local owner PIN and staff mode remain available.'**
   String get accountShopLoginHint;
 
   /// No description provided for @accountProfileSubtitleSignedOut.
@@ -6905,7 +6881,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountSignOutConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'ll need your email and password again to sign back in. Device-key activation and the local PIN quick-switch are unaffected.'**
+  /// **'Signing out removes Premium access on this device. Local shop data is kept. Sign in again with your email and password to restore access.'**
   String get accountSignOutConfirmBody;
 
   /// No description provided for @accountSignOutConfirmBodyStaff.
@@ -6941,7 +6917,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountTrialAlreadyUsed.
   ///
   /// In en, this message translates to:
-  /// **'This device or account has already used its free trial. Contact support to continue.'**
+  /// **'This owner account has already used its Premium trial.'**
   String get accountTrialAlreadyUsed;
 
   /// No description provided for @accountNotActivated.
@@ -7667,7 +7643,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardOnlineSignedIn.
   ///
   /// In en, this message translates to:
-  /// **'Signed in. You can continue.'**
+  /// **'Your shop account is connected on Free. Start your Premium trial in Settings → Premium when you are ready.'**
   String get onboardOnlineSignedIn;
 
   /// No description provided for @modeMigrateTitle.
@@ -7987,6 +7963,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Today is the last day of Premium for {shop}.'**
   String licenseExpiryNotifBodyToday(String shop);
+
+  /// No description provided for @stockAdjustModeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count is now'**
+  String get stockAdjustModeCount;
+
+  /// No description provided for @stockAdjustModeReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'+ Received'**
+  String get stockAdjustModeReceived;
+
+  /// No description provided for @stockReasonRecount.
+  ///
+  /// In en, this message translates to:
+  /// **'Recount'**
+  String get stockReasonRecount;
+
+  /// No description provided for @stockAdjustChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change: {delta}'**
+  String stockAdjustChange(String delta);
+
+  /// No description provided for @productMoreDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'More details'**
+  String get productMoreDetails;
+
+  /// No description provided for @productMoreDetailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Category, cost, wholesale and VIP prices, barcode, online'**
+  String get productMoreDetailsSubtitle;
+
+  /// No description provided for @analyticsSalesHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get analyticsSalesHeadline;
+
+  /// No description provided for @analyticsOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'Owed'**
+  String get analyticsOwed;
+
+  /// No description provided for @analyticsProfitSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Profit'**
+  String get analyticsProfitSection;
+
+  /// No description provided for @analyticsProfitSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross and net profit, expenses, stock value'**
+  String get analyticsProfitSectionSubtitle;
+
+  /// No description provided for @analyticsSalesCountChip.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sales'**
+  String analyticsSalesCountChip(int count);
+
+  /// No description provided for @licenseVerificationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to verify Premium'**
+  String get licenseVerificationRequired;
+
+  /// No description provided for @licenseVerificationRequiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription could not be verified. Connect and check again; selling remains available.'**
+  String get licenseVerificationRequiredBody;
+
+  /// No description provided for @licenseAccountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to use Premium'**
+  String get licenseAccountRequired;
+
+  /// No description provided for @licenseDeviceLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop already has three devices. Release a device to add this one.'**
+  String get licenseDeviceLimitReached;
+
+  /// No description provided for @licenseDevicesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 3 devices'**
+  String licenseDevicesCount(int count);
+
+  /// No description provided for @licenseDevicesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in on another device to add it. Release a device here to free a slot.'**
+  String get licenseDevicesHint;
+
+  /// No description provided for @syncPremiumPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium paused — local data is saved'**
+  String get syncPremiumPaused;
+
+  /// No description provided for @storefrontRenewIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium for one shop, including three devices. 20,000 MMK monthly or 200,000 MMK yearly.'**
+  String get storefrontRenewIntro;
+
+  /// No description provided for @billingSelectShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your shop'**
+  String get billingSelectShop;
+
+  /// No description provided for @billingNoShops.
+  ///
+  /// In en, this message translates to:
+  /// **'No owner shops available. Create a shop in the app first.'**
+  String get billingNoShops;
+
+  /// No description provided for @billingSubscriptionRenewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium renewed for this shop. Sign in to the app to refresh access.'**
+  String get billingSubscriptionRenewed;
+
+  /// No description provided for @licenseFreeDeviceReplacement.
+  ///
+  /// In en, this message translates to:
+  /// **'For a Free shop, back up the old device and release it from Premium settings before signing in on this device. Restore your local backup here; Free does not restore shop data from the cloud.'**
+  String get licenseFreeDeviceReplacement;
+
+  /// No description provided for @accountContinueGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get accountContinueGoogle;
+
+  /// No description provided for @accountContinueApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get accountContinueApple;
+
+  /// No description provided for @accountLinkGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Google account'**
+  String get accountLinkGoogle;
+
+  /// No description provided for @accountLinkApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Apple account'**
+  String get accountLinkApple;
+
+  /// No description provided for @accountOrEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Or use email'**
+  String get accountOrEmail;
+
+  /// No description provided for @accountSocialShopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name your shop'**
+  String get accountSocialShopTitle;
+
+  /// No description provided for @accountSocialShopBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your Free shop to start selling. You can choose Premium later.'**
+  String get accountSocialShopBody;
+
+  /// No description provided for @accountSocialCreateShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Create shop'**
+  String get accountSocialCreateShop;
+
+  /// No description provided for @accountSocialLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Account linked.'**
+  String get accountSocialLinked;
+
+  /// No description provided for @accountSocialReauthenticateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your account'**
+  String get accountSocialReauthenticateTitle;
+
+  /// No description provided for @accountSocialReauthenticateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with your linked account to confirm deletion.'**
+  String get accountSocialReauthenticateBody;
+
+  /// No description provided for @accountSocialReauthenticateUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Account verification is unavailable on this device. Use a device where you can sign in with your linked account.'**
+  String get accountSocialReauthenticateUnavailable;
+
+  /// No description provided for @accountSocialAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not sign in with this account. Please try again.'**
+  String get accountSocialAuthFailed;
+
+  /// No description provided for @accountSocialAuthUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This sign-in option is unavailable on this device. Choose another way to sign in.'**
+  String get accountSocialAuthUnavailable;
+
+  /// No description provided for @accountSocialReauthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Account verification failed. Sign in with the same linked account and try again.'**
+  String get accountSocialReauthFailed;
+
+  /// No description provided for @adminOwnerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify and link an owner account before renewing this shop.'**
+  String get adminOwnerRequired;
+
+  /// No description provided for @adminPublicConfigHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These settings are public payment instructions. API keys and webhook secrets belong in server secrets, never here.'**
+  String get adminPublicConfigHint;
+
+  /// No description provided for @adminKbzName.
+  ///
+  /// In en, this message translates to:
+  /// **'KBZPay account name'**
+  String get adminKbzName;
+
+  /// No description provided for @adminKbzNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'KBZPay number'**
+  String get adminKbzNumber;
+
+  /// No description provided for @adminWaveName.
+  ///
+  /// In en, this message translates to:
+  /// **'WavePay account name'**
+  String get adminWaveName;
+
+  /// No description provided for @adminWaveNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'WavePay number'**
+  String get adminWaveNumber;
+
+  /// No description provided for @adminSupportViber.
+  ///
+  /// In en, this message translates to:
+  /// **'Support Viber number'**
+  String get adminSupportViber;
+
+  /// No description provided for @adminGatewayMonthlyVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'Lemon Squeezy monthly variant ID'**
+  String get adminGatewayMonthlyVariant;
+
+  /// No description provided for @adminGatewayYearlyVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'Lemon Squeezy yearly variant ID'**
+  String get adminGatewayYearlyVariant;
 }
 
 class _AppLocalizationsDelegate

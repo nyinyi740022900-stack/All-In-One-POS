@@ -71,25 +71,21 @@ class StaffBadge extends ConsumerWidget {
     // reserves for "just informational" states rather than a raw Material
     // scheme colour with no meaning in this app's own palette.
     final colors = AppColors.of(context);
-    return Container(
-      margin: const EdgeInsets.only(right: AppTheme.space3),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.space2,
-        vertical: AppTheme.space1,
-      ),
-      decoration: BoxDecoration(
-        color: colors.neutralSurface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-      ),
+    final label = name ?? l.staffBadge;
+    return Tooltip(
+      message: label,
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.badge_outlined, size: 14, color: colors.muted),
           const SizedBox(width: AppTheme.space1),
-          Text(
-            name ?? l.staffBadge,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: colors.muted,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: colors.muted),
             ),
           ),
         ],
@@ -223,9 +219,9 @@ Future<String?> promptOwnerPinForSwitch(
   if (!pinSet) {
     final role = ref.read(effectiveRoleProvider);
     if (role == 'staff') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.staffOwnerPinRequired)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.staffOwnerPinRequired)));
       return null;
     }
   }

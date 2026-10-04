@@ -71,12 +71,17 @@ class _PremiumPaywall extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.workspace_premium_outlined,
-                size: 56, color: Theme.of(context).colorScheme.outlineVariant),
+            Icon(
+              Icons.workspace_premium_outlined,
+              size: 56,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             const SizedBox(height: AppTheme.space3),
-            Text(l.premiumFeatureTitle(featureName),
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center),
+            Text(
+              l.premiumFeatureTitle(featureName),
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppTheme.space2),
             Text(
               hasAccount ? l.premiumFeatureBodyOnline : l.premiumFeatureBody,
@@ -92,15 +97,16 @@ class _PremiumPaywall extends StatelessWidget {
                   children: [
                     for (final b in benefits!)
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.check_circle,
-                                size: 16,
-                                color: AppColors.of(context).success),
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: AppColors.of(context).success,
+                            ),
                             const SizedBox(width: AppTheme.space2),
                             Flexible(child: Text(b)),
                           ],
@@ -112,9 +118,9 @@ class _PremiumPaywall extends StatelessWidget {
             ],
             const SizedBox(height: AppTheme.space4),
             FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const LicenseScreen(),
-              )),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const LicenseScreen())),
               icon: const Icon(Icons.workspace_premium_outlined),
               label: Text(upgradeCtaLabel(l)),
             ),
@@ -129,7 +135,10 @@ class _PremiumPaywall extends StatelessWidget {
 /// screen (e.g. Inventory's CSV export button) rather than a whole screen
 /// body — same copy/CTA as [PremiumGate], as a dialog instead.
 Future<void> showPremiumRequiredDialog(
-    BuildContext context, String featureName, {String? benefit}) {
+  BuildContext context,
+  String featureName, {
+  String? benefit,
+}) {
   final l = AppLocalizations.of(context);
   final hasAccount = ProviderScope.containerOf(
     context,
@@ -148,8 +157,11 @@ Future<void> showPremiumRequiredDialog(
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.check_circle,
-                    size: 16, color: AppColors.of(ctx).success),
+                Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: AppColors.of(ctx).success,
+                ),
                 const SizedBox(width: AppTheme.space2),
                 Flexible(child: Text(benefit)),
               ],
@@ -159,13 +171,15 @@ Future<void> showPremiumRequiredDialog(
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(ctx), child: Text(l.commonCancel)),
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(l.commonCancel),
+        ),
         FilledButton(
           onPressed: () {
             Navigator.pop(ctx);
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const LicenseScreen(),
-            ));
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LicenseScreen()));
           },
           child: Text(upgradeCtaLabel(l)),
         ),

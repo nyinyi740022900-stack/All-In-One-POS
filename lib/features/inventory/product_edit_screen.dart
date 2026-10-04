@@ -293,6 +293,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 // paragraphs floated between fields with nothing to attach
                 // themselves to. Each card is now one idea, and each hint sits
                 // inside the card it explains.
+                // Up front: only what a sale cannot happen without — name,
+                // price, starting quantity. Everything else is a fold so a
+                // new product is three fields, not a dozen.
                 _group([
                   if (Env.hasBackend) _photoField(l),
                   _field(
@@ -302,40 +305,13 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                         ? l.validationRequired
                         : null,
                   ),
-                  _categoryDropdown(l),
-                ]),
-                _group([
                   _field(
                     _salePrice,
                     l.productPrice,
                     money: true,
                     moneyExponent: currencyExponent,
                   ),
-                  _field(
-                    _costPrice,
-                    l.productCost,
-                    money: true,
-                    moneyExponent: currencyExponent,
-                  ),
-                  Text(
-                    l.productTierPricesHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  _field(
-                    _wholesalePrice,
-                    l.productWholesalePrice,
-                    money: true,
-                    moneyExponent: currencyExponent,
-                  ),
-                  _field(
-                    _vipPrice,
-                    l.productVipPrice,
-                    money: true,
-                    moneyExponent: currencyExponent,
-                  ),
-                ]),
-                _group([
-                  if (trackStock) ...[
+                  if (trackStock)
                     _field(
                       _quantity,
                       l.productQuantity,
@@ -346,55 +322,118 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                       // it with no audit trail, unlike Adjust Stock.
                       helperText: isEdit ? l.productQuantityEditHint : null,
                     ),
-                    _field(_reorder, l.productReorderLevel, number: true),
-                  ],
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l.productSellOnline),
-                    subtitle: Text(l.productSellOnlineHint),
-                    value: _sellOnline,
-                    onChanged: (v) => setState(() => _sellOnline = v),
-                  ),
-                  Text(
-                    l.productOnlineStockLimitHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  _field(
-                    _onlineStockLimit,
-                    l.productOnlineStockLimit,
-                    number: true,
-                  ),
-                  if (trackStock && isEdit)
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => StockHistoryScreen(
-                            productId: widget.existing!.product.id,
-                            productName: widget.existing!.product.name,
-                          ),
+                ]),
+                Card(
+                  margin: const EdgeInsets.only(bottom: AppTheme.space3),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    // Editing opens it (you came to change something); adding
+                    // keeps it folded.
+                    initiallyExpanded: isEdit,
+                    expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                    expandedAlignment: Alignment.centerLeft,
+                    shape: const Border(),
+                    collapsedShape: const Border(),
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.space4,
+                      vertical: AppTheme.space1,
+                    ),
+                    childrenPadding: const EdgeInsets.fromLTRB(
+                      AppTheme.space4,
+                      0,
+                      AppTheme.space4,
+                      AppTheme.space4,
+                    ),
+                    title: Text(l.productMoreDetails),
+                    subtitle: Text(l.productMoreDetailsSubtitle),
+                    children: [
+                      _categoryDropdown(l),
+                      _gap,
+                      _field(
+                        _costPrice,
+                        l.productCost,
+                        money: true,
+                        moneyExponent: currencyExponent,
+                      ),
+                      _gap,
+                      _field(
+                        _wholesalePrice,
+                        l.productWholesalePrice,
+                        money: true,
+                        moneyExponent: currencyExponent,
+                      ),
+                      _gap,
+                      _field(
+                        _vipPrice,
+                        l.productVipPrice,
+                        money: true,
+                        moneyExponent: currencyExponent,
+                      ),
+                      // Sits directly under the two tier fields it explains
+                      // (it used to sit under Cost, which it does not apply
+                      // to).
+                      const SizedBox(height: AppTheme.space1),
+                      Text(
+                        l.productTierPricesHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (trackStock) ...[
+                        _gap,
+                        _field(_reorder, l.productReorderLevel, number: true),
+                      ],
+                      _gap,
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l.productSellOnline),
+                        subtitle: Text(l.productSellOnlineHint),
+                        value: _sellOnline,
+                        onChanged: (v) => setState(() => _sellOnline = v),
+                      ),
+                      Text(
+                        l.productOnlineStockLimitHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      _gap,
+                      _field(
+                        _onlineStockLimit,
+                        l.productOnlineStockLimit,
+                        number: true,
+                      ),
+                      _gap,
+                      _field(
+                        _barcode,
+                        l.productBarcode,
+                        number: true,
+                        // A real EAN-13 barcode is 13 digits; the shared
+                        // 9-digit cap exists for *money* fields and was
+                        // silently truncating anything typed by hand here.
+                        maxLength: 20,
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          tooltip: l.scanBarcode,
+                          onPressed: _scanBarcode,
                         ),
                       ),
-                      icon: const Icon(Icons.history),
-                      label: Text(l.productViewStockHistory),
-                    ),
-                ]),
-                _group([
-                  _field(
-                    _barcode,
-                    l.productBarcode,
-                    number: true,
-                    // A real EAN-13 barcode is 13 digits; the shared 9-digit
-                    // cap below exists for *money* fields and was silently
-                    // truncating anything typed in by hand here.
-                    maxLength: 20,
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.qr_code_scanner),
-                      tooltip: l.scanBarcode,
-                      onPressed: _scanBarcode,
-                    ),
+                      _gap,
+                      _field(_sku, l.productSku),
+                      if (trackStock && isEdit) ...[
+                        _gap,
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => StockHistoryScreen(
+                                productId: widget.existing!.product.id,
+                                productName: widget.existing!.product.name,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.history),
+                          label: Text(l.productViewStockHistory),
+                        ),
+                      ],
+                    ],
                   ),
-                  _field(_sku, l.productSku),
-                ]),
+                ),
               ],
             ),
           ),

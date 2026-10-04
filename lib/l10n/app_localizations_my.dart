@@ -24,7 +24,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get navAnalytics => 'စာရင်းအင်း';
 
   @override
-  String get navSettings => 'ဆက်တင်';
+  String get navShop => 'လုပ်ငန်း';
 
   @override
   String get commonUnexpectedError =>
@@ -1033,6 +1033,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get inventoryNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။';
 
   @override
+  String get inventoryNoFilterResults =>
+      'ရွေးထားသော စစ်ထုတ်ချက်များနှင့် ကိုက်ညီသည့် ပစ္စည်း မရှိပါ။';
+
+  @override
   String inventoryFilteredCount(int count) {
     return 'ပစ္စည်း $count ခု';
   }
@@ -1113,20 +1117,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get stockAdjustTitle => 'လက်ကျန် ပြင်ဆင်ရန်';
 
   @override
-  String get stockAdjustModeRestock => 'ပစ္စည်းအသစ်ထည့်';
-
-  @override
-  String get stockAdjustModeAdjust => 'ချိန်ညှိရန်';
-
-  @override
   String get stockAdjustQuantity => 'အရေအတွက်';
 
   @override
   String get stockAdjustQuantityHintRestock => 'ရရှိလိုက်တဲ့ အရေအတွက်';
-
-  @override
-  String get stockAdjustQuantityHintAdjust =>
-      'တိုးရန် + ၊ လျှော့ရန် − ရိုက်ထည့်ပါ';
 
   @override
   String get stockAdjustUnitCost => 'ယူနစ်တစ်ခုချင်း အရင်းဈေး (မဖြည့်လည်းရ)';
@@ -1174,9 +1168,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get stockReasonLost => 'ပျောက်ဆုံး/ခိုးမှု';
-
-  @override
-  String get stockReasonCount => 'ရေတွက်မှား ပြင်ဆင်ခြင်း';
 
   @override
   String get stockReasonOther => 'အခြား';
@@ -1262,6 +1253,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get settingsTitle => 'ဆက်တင်';
+
+  @override
+  String get settingsSectionDaily => 'နေ့စဉ်သုံး';
+
+  @override
+  String get settingsSectionSetup => 'ပြင်ဆင်သတ်မှတ်ရန်';
 
   @override
   String get settingsSectionBusiness => 'ရောင်းဝယ်ရေး';
@@ -1872,9 +1869,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get productCategory => 'အမျိုးအစား';
 
   @override
-  String get analyticsRevenue => 'ရောင်းရငွေ';
-
-  @override
   String analyticsTrendVsPrevious(String sign, int percent) {
     return 'ရှေ့ကာလထက် $sign$percent%';
   }
@@ -1887,9 +1881,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsNetProfit => 'အသားတင်အမြတ်';
-
-  @override
-  String get analyticsSalesCount => 'အရောင်း';
 
   @override
   String get analyticsStockValue => 'လက်ကျန်တန်ဖိုး';
@@ -1946,9 +1937,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get analyticsCollected => 'လက်ခံရရှိငွေ';
-
-  @override
-  String get analyticsCreditOutstanding => 'အကြွေးကျန်';
 
   @override
   String get expensesTitle => 'ကုန်ကျစရိတ်များ';
@@ -2126,13 +2114,13 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get premiumFeatureBody =>
-      'အခု Free plan ကို သုံးနေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ကတော့ ဆက်အလုပ်လုပ်ပါမယ်၊ ဒီ feature ကိုတော့ Premium subscription ဒါမှမဟုတ် license key active ရှိမှ သုံးလို့ရပါမယ်။';
+      'Free တွင် အခြေခံအရောင်း၊ ကုန်ပစ္စည်း၊ ငွေစာရင်း၊ အသုံးစရိတ်၊ ပေးသွင်းသူနှင့် ဖောက်သည်အကြွေးကို ဆက်အသုံးပြုနိုင်ပါသည်။ ဤလုပ်ဆောင်ချက်အတွက် ဆိုင်အကောင့်တွင် Premium လိုအပ်ပါသည်။';
 
   @override
   String get premiumUpgradeCta => 'Upgrade လုပ်မည်';
 
   @override
-  String get premiumManageLicenseCta => 'လိုင်စင် စီမံရန်';
+  String get premiumManageLicenseCta => 'Premium စီမံရန်';
 
   @override
   String get analyticsBenefit1 =>
@@ -2234,7 +2222,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountSignOutPremiumConfirmBody =>
-      'ဒီ device ပေါ်က Premium feature တွေ ရပ်သွားပြီး Free plan ကို ကျသွားပါလိမ့်မယ် (Sell နဲ့ Inventory ကတော့ ဆက်အလုပ်လုပ်ပါမယ်)။ ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပြီး Premium ကို ပြန်ရမှာပါ။';
+      'အကောင့်ထွက်လျှင် ဤစက်တွင် Premium အသုံးပြုခွင့် ရပ်သွားမည်။ စက်တွင်း ဆိုင်ဒေတာနှင့် အခြေခံအရောင်းကို ဆက်အသုံးပြုနိုင်မည်။ Premium ပြန်အသုံးပြုရန် email နှင့် password ဖြင့် ပြန်ဝင်ပါ။';
 
   @override
   String get licenseDowngradedToFreeNotice =>
@@ -2311,7 +2299,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licensePayOnlineHint =>
-      'ကျွန်ုပ်တို့ website ပေါ်မှာ ငွေပေးချေမှု တောင်းဆိုမှု ပို့ပါ။ Premium အသစ်ဝယ်တာရော သက်တမ်းတိုးတာရော ရပါတယ် — app ထဲ account မလိုပါ။';
+      'Premium ဝယ်ယူရန် သို့မဟုတ် သက်တမ်းတိုးရန် ဝက်ဘ်ဆိုက်တွင် အကောင့်ဝင်ပြီး ဆိုင်ကို ရွေးပါ။ ဆိုင်ရှင်အကောင့် မဖြစ်မနေလိုအပ်ပါသည်။';
 
   @override
   String get licenseChooseRegionTitle => 'သင့်ဆိုင် ဘယ်နေရာမှာလဲ';
@@ -2346,7 +2334,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseManagedElsewhereBody =>
-      'Premium ကို ဤ app ပြင်ပတွင် သင့် All In One POS ဝန်ဆောင်မှုပေးသူနှင့် စီစဉ်ရပါသည်။ ဤစက် (သို့) ဆိုင် account ပေါ်တွင် active ဖြစ်သည်နှင့် Premium features များ အလိုအလျောက် ပွင့်ပါမည်။';
+      'သင့်ဆိုင် account တွင် အသုံးပြုခွင့်ရှိသော Premium လုပ်ဆောင်ချက်များကို သုံးရန် ဝင်ရောက်ပါ။ Account အခြေအနေကို အပ်ဒိတ်လုပ်ရန် ပြန်စစ်နိုင်ပါသည်။ Free လုပ်ဆောင်ချက်များကို ဆက်သုံးနိုင်ပါသည်။';
 
   @override
   String get licenseAlreadyLicensedTitle => 'Premium ရှိပြီးသားလား?';
@@ -2376,11 +2364,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseTrialStartConfirm =>
-      'ဒီ device မှာ Premium ၂ လ စမ်းသုံးမှုကို အခုပဲ စတင်မလား? Premium feature အကုန် ချက်ချင်း ဖွင့်ပေးပါမယ်၊ ငွေပေးစရာ မလိုပါ။ Device တစ်ခုကို တစ်ကြိမ်ပဲ — စတင်ဖို့ အင်တာနက် လိုအပ်ပါတယ်။';
+      'ဤဆိုင်အတွက် ၂ လ Premium အစမ်းကာလကို စတင်မလား။ ဆိုင်ရှင်အကောင့်တစ်ခုလျှင် တစ်ကြိမ်သာ ရနိုင်ပါသည်။';
 
   @override
   String get licenseTrialSelfServeHint =>
-      '၂ လ၊ Premium feature အကုန်၊ ငွေပေးစရာ မလို — device တစ်ခုကို တစ်ကြိမ်ပဲ။';
+      'ဆိုင်ရှင်အကောင့်တစ်ခုလျှင် Premium အစမ်း ၂ လ တစ်ကြိမ် ရနိုင်ပါသည်။ အစမ်းကာလ မစမချင်း အကောင့်အသစ်သည် Free ဖြစ်ပါသည်။';
 
   @override
   String get licenseTrialContactHint =>
@@ -2399,7 +2387,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseTrialUsed =>
-      'ဒီ device မှာ အခမဲ့ စမ်းသုံးမှု သုံးပြီးသားပါ။';
+      'ဤဆိုင်ရှင်အကောင့်သည် အစမ်းကာလကို အသုံးပြုပြီးပါပြီ။';
 
   @override
   String get licenseRefId => 'အက်ပ် ကိုးကားနံပါတ်';
@@ -2432,11 +2420,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseRenewHint =>
-      'Support က သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ (သို့မဟုတ် key အသစ် activate လုပ်ပါ)။';
+      'ဆိုင်၏ Premium သက်တမ်းတိုးပြီးနောက် သက်တမ်းတိုးမှု စစ်ဆေးရန်ကို နှိပ်ပါ။';
 
   @override
   String get licenseRenewHintOnline =>
-      'Support က Online subscription သက်တမ်းတိုးပေးပြီးရင် \'သက်တမ်းတိုး စစ်ဆေး\' ကို နှိပ်ပါ — Premium က account ပေါ် အလိုအလျောက် သက်ရောက်ပါတယ် (key မလို)။';
+      'ဆိုင်၏ Premium သက်တမ်းတိုးပြီးနောက် သက်တမ်းတိုးမှု စစ်ဆေးရန်ကို နှိပ်ပါ။ Premium သည် ရွေးထားသော ဆိုင်အကောင့်တွင် အသက်ဝင်ပါမည်။';
 
   @override
   String get licenseRenewNotFound =>
@@ -2452,7 +2440,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get premiumFeatureBodyOnline =>
-      'Free plan ဖြစ်နေပါတယ် — ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း တို့ ဆက်သုံးနိုင်ပြီး ဤ feature အတွက် Online Premium subscription လိုအပ်ပါတယ်။';
+      'Free တွင် အခြေခံအရောင်း၊ ကုန်ပစ္စည်း၊ ငွေစာရင်း၊ အသုံးစရိတ်၊ ပေးသွင်းသူနှင့် ဖောက်သည်အကြွေးကို ဆက်အသုံးပြုနိုင်ပါသည်။ ဤလုပ်ဆောင်ချက်အတွက် ဆိုင်အကောင့်တွင် Premium လိုအပ်ပါသည်။';
 
   @override
   String deviceCount(int used, int free) {
@@ -2530,11 +2518,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invWebActivateHint =>
-      'ဖုန်းမှာ သုံးနေတဲ့ ဆိုင် email နဲ့ sign in ဝင်ပါ။ ဒီ computer က extra device တစ်လုံးအဖြစ် ရေပါတယ်။ Account မရှိတဲ့ Free plan: Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ — key မလိုပါ။';
+      'Cloud ပြေစာများ ကြည့်ရန် ဆိုင်အကောင့်ဖြင့် ဝင်ပါ။ Premium လိုအပ်ပြီး ဤ browser သည် ဆိုင်၏ စက် ၃ လုံးအနက် တစ်လုံးအဖြစ် တွက်ပါသည်။';
 
   @override
   String get invWebFreeHint =>
-      'Free plan က activate မလိုပါ။ ဒီ computer မှာ ရောင်းချင်ရင် Windows POS app ဖွင့်ပြီး Continue Free နှိပ်ပါ။ ဒီစာမျက်နှာက ဆိုင် account နဲ့ sign in ဝင်မှ invoice ပြပါတယ်။';
+      'Cloud ပြေစာများ အသုံးပြုရန် Premium လိုအပ်ပါသည်။ ဖုန်းအက်ပ်ထဲရှိ ပြေစာများကို Free ဖြင့် ဆက်ကြည့်နိုင်ပါသည်။';
 
   @override
   String get invWebKeySection => 'Offline device key ရှိပါသလား?';
@@ -2568,7 +2556,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invWebErrorActivationFailed =>
-      'Activate မလုပ်နိုင်ပါ — key ကို ပြန်စစ်ပြီး ထပ်ကြိုးစားပါ';
+      'ဤဆိုင်ကို အတည်မပြုနိုင်ပါ။ အကောင့်ကို စစ်ပြီး ထပ်ကြိုးစားပါ။';
 
   @override
   String get invWebErrorNetwork =>
@@ -2576,7 +2564,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get invWebErrorRefreshPending =>
-      'Activate ဖြစ်သွားပါပြီ — ဆက်လုပ်ရန် ဒီစာမျက်နှာကို reload လုပ်ပါ';
+      'အကောင့်ဝင်ပြီးပါပြီ — ဆက်သုံးရန် ဤစာမျက်နှာကို ပြန်ဖွင့်ပါ။';
 
   @override
   String get invWebSignOut => 'ဒီ computer ကို sign out လုပ်မည်';
@@ -3517,7 +3505,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontRenewSignInPrompt =>
-      'Account ရှိပြီးသားလား။ အချက်အလက် ထပ်မရိုက်ရအောင်နဲ့ ယခင် တောင်းဆိုမှုများ ကြည့်ရအောင် Sign in ဝင်ပါ။';
+      'ဆိုင်ရွေးချယ်ပြီး Premium ဝယ်ယူရန် ပိုင်ရှင်အကောင့်ဖြင့် ဝင်ပါ။';
 
   @override
   String get storefrontRenewSignInFailed =>
@@ -3636,11 +3624,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardAccountBody =>
-      'ဒီဆိုင်ကို ဖုန်းတခြားမှာပါ သုံးမယ်၊ ဒါမှမဟုတ် ဝန်ထမ်း login ထည့်မယ်ဆိုမှသာ လိုအပ်ပါတယ်။';
+      'ဆိုင်အကောင့် ဖန်တီးပါ သို့မဟုတ် ဝင်ပါ။ သင့်ဆိုင်သည် Free ဖြင့် စတင်ပြီး Premium သို့မဟုတ် အစမ်းကာလကို နောက်မှ ရွေးချယ်နိုင်ပါသည်။';
 
   @override
   String get onboardAccountBenefits =>
-      'Email နဲ့ သုံးရင်:\n• ဖုန်းတခြားမှာ ဒီဆိုင် ဖွင့်နိုင်\n• အင်တာနက်ရှိရင် cloud backup ရှိ\n• ဝန်ထမ်းကို သူ့ email နဲ့ ဝင်ခိုင်းနိုင်';
+      'စက်ပြောင်းလဲသော်လည်း သင့်အကောင့်ကို ဆက်သုံးနိုင်ပါသည်။ Premium တွင် ဆိုင်ဒေတာ cloud sync၊ ဝန်ထမ်းအကောင့်များနှင့် အသေးစိတ်အစီရင်ခံစာများ ပါဝင်သည်။';
 
   @override
   String get onboardAccountWhyEmail => 'Email ဘာကြောင့် ထည့်ရမလဲ?';
@@ -3663,7 +3651,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountShopLoginHint =>
-      'ချန်လှပ်ထားနိုင်ပါတယ်— အခြားစက်တစ်လုံးက ဆိုင်ကို ဝင်ရောက်ဖို့ Email + Password နဲ့ Login ဖန်တီးနိုင်ပါတယ်။ Licenseကီးနဲ့ PIN quick-switch အတိုင်း ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
+      'အကောင့်သည် ဤဆိုင်ကို Premium နှင့် ငွေပေးချေမှုအတွက် ချိတ်ဆက်ပေးသည်။ စက်တွင်း ဆိုင်ရှင် PIN နှင့် ဝန်ထမ်းမုဒ်ကို ဆက်အသုံးပြုနိုင်ပါသည်။';
 
   @override
   String get accountProfileSubtitleSignedOut =>
@@ -3799,7 +3787,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountSignOutConfirmBody =>
-      'ပြန်ဝင်ဖို့ email နဲ့ password ထပ်လိုအပ်ပါလိမ့်မယ်။ Device-key activation နဲ့ local PIN quick-switch ကို ဒါက မထိခိုက်ပါ။';
+      'အကောင့်ထွက်လျှင် ဤစက်တွင် Premium အသုံးပြုခွင့် ရပ်သွားမည်။ စက်တွင်း ဆိုင်ဒေတာကို ဆက်သိမ်းထားမည်။ ပြန်အသုံးပြုရန် email နှင့် password ဖြင့် ပြန်ဝင်ပါ။';
 
   @override
   String get accountSignOutConfirmBodyStaff =>
@@ -3821,7 +3809,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get accountTrialAlreadyUsed =>
-      'ဒီစက် (သို့) အကောင့်က အခမဲ့စမ်းသုံးခွင့် သုံးပြီးသားဖြစ်ပါတယ်။ ဆက်လက်သုံးရန် support ကို ဆက်သွယ်ပါ။';
+      'ဤဆိုင်ရှင်အကောင့်သည် Premium အစမ်းသုံးခွင့်ကို အသုံးပြုပြီးဖြစ်ပါသည်။';
 
   @override
   String get accountNotActivated => 'ဒီစက်ကို အရင် Activate လုပ်ပါ။';
@@ -4253,7 +4241,8 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardOnlineTabSignIn => 'ဝင်မည်';
 
   @override
-  String get onboardOnlineSignedIn => 'ဝင်ရောက်ပြီးပါပြီ။ ဆက်လုပ်နိုင်ပါတယ်။';
+  String get onboardOnlineSignedIn =>
+      'သင့်ဆိုင်အကောင့်ကို Free ဖြင့် ချိတ်ဆက်ပြီးပါပြီ။ အဆင်သင့်ဖြစ်ချိန်တွင် Settings → Premium မှ အစမ်းကာလ စတင်နိုင်ပါသည်။';
 
   @override
   String get modeMigrateTitle => 'ဆိုင်အလုပ်လုပ်ပုံကို အတည်ပြုပါ';
@@ -4428,4 +4417,172 @@ class AppLocalizationsMy extends AppLocalizations {
   String licenseExpiryNotifBodyToday(String shop) {
     return '$shop ရဲ့ Premium သက်တမ်းက ဒီနေ့ နောက်ဆုံးရက် ဖြစ်ပါတယ်။';
   }
+
+  @override
+  String get stockAdjustModeCount => 'အခု အရေအတွက်';
+
+  @override
+  String get stockAdjustModeReceived => '+ ဝင်လာတာ';
+
+  @override
+  String get stockReasonRecount => 'ပြန်ရေတွက်ခြင်း';
+
+  @override
+  String stockAdjustChange(String delta) {
+    return 'ပြောင်းလဲမှု: $delta';
+  }
+
+  @override
+  String get productMoreDetails => 'အသေးစိတ် ထပ်ထည့်ရန်';
+
+  @override
+  String get productMoreDetailsSubtitle =>
+      'အမျိုးအစား၊ အရင်းဈေး၊ လက်ကားနှင့် VIP ဈေး၊ ဘားကုဒ်၊ အွန်လိုင်း';
+
+  @override
+  String get analyticsSalesHeadline => 'ရောင်းရငွေ';
+
+  @override
+  String get analyticsOwed => 'ရရန်ကျန်';
+
+  @override
+  String get analyticsProfitSection => 'အမြတ်';
+
+  @override
+  String get analyticsProfitSectionSubtitle =>
+      'စုစုပေါင်းအမြတ်၊ အသားတင်အမြတ်၊ ကုန်ကျစရိတ်၊ လက်ကျန်တန်ဖိုး';
+
+  @override
+  String analyticsSalesCountChip(int count) {
+    return 'ရောင်းချမှု $count ကြိမ်';
+  }
+
+  @override
+  String get licenseVerificationRequired =>
+      'Premium ကို စစ်ဆေးရန် အင်တာနက်ချိတ်ဆက်ပါ';
+
+  @override
+  String get licenseVerificationRequiredBody =>
+      'သင်၏ စာရင်းသွင်းမှုကို အတည်မပြုနိုင်သေးပါ။ အင်တာနက်ချိတ်ပြီး ပြန်စစ်ပါ။ အရောင်း ဆက်လုပ်နိုင်ပါသည်။';
+
+  @override
+  String get licenseAccountRequired => 'Premium အသုံးပြုရန် အကောင့်ဝင်ပါ';
+
+  @override
+  String get licenseDeviceLimitReached =>
+      'ဤဆိုင်တွင် စက် ၃ လုံး အသုံးပြုပြီးပါပြီ။ ဤစက်ကို ထည့်ရန် စက်တစ်လုံးကို ဖယ်ရှားပါ။';
+
+  @override
+  String licenseDevicesCount(int count) {
+    return 'စက် ၃ လုံးအနက် $count လုံး';
+  }
+
+  @override
+  String get licenseDevicesHint =>
+      'စက်အသစ် ထည့်ရန် ထိုစက်တွင် အကောင့်ဝင်ပါ။ နေရာလွတ်ရန် ဤနေရာတွင် စက်တစ်လုံးကို ဖယ်ရှားပါ။';
+
+  @override
+  String get syncPremiumPaused =>
+      'Premium ရပ်နားထားသည် — စက်ထဲရှိ ဒေတာကို သိမ်းထားသည်';
+
+  @override
+  String get storefrontRenewIntro =>
+      'ဆိုင်တစ်ဆိုင်အတွက် Premium တွင် စက် ၃ လုံး ပါဝင်သည်။ တစ်လ ၂၀,၀၀၀ ကျပ် သို့မဟုတ် တစ်နှစ် ၂၀၀,၀၀၀ ကျပ်။';
+
+  @override
+  String get billingSelectShop => 'သင့်ဆိုင်ကို ရွေးပါ';
+
+  @override
+  String get billingNoShops =>
+      'ပိုင်ရှင်ဆိုင် မရှိသေးပါ။ အက်ပ်တွင် ဆိုင်တစ်ဆိုင် အရင်ဖန်တီးပါ။';
+
+  @override
+  String get billingSubscriptionRenewed =>
+      'ဤဆိုင်အတွက် Premium သက်တမ်းတိုးပြီးပါပြီ။ အသုံးပြုခွင့် ပြန်စစ်ရန် အက်ပ်သို့ ဝင်ပါ။';
+
+  @override
+  String get licenseFreeDeviceReplacement =>
+      'Free ဆိုင်အတွက် စက်ဟောင်းမှ ဒေတာကို အရန်သိမ်းပြီး Premium ဆက်တင်တွင် စက်ဟောင်းကို ဖြုတ်ပါ။ ထို့နောက် ဤစက်တွင် အကောင့်ဝင်ကာ အရန်ဒေတာကို ပြန်ထည့်ပါ။ Free တွင် ဆိုင်ဒေတာကို cloud မှ ပြန်မယူနိုင်ပါ။';
+
+  @override
+  String get accountContinueGoogle => 'Google ဖြင့် ဆက်လုပ်မည်';
+
+  @override
+  String get accountContinueApple => 'Apple ဖြင့် ဆက်လုပ်မည်';
+
+  @override
+  String get accountLinkGoogle => 'Google အကောင့် ချိတ်ဆက်မည်';
+
+  @override
+  String get accountLinkApple => 'Apple အကောင့် ချိတ်ဆက်မည်';
+
+  @override
+  String get accountOrEmail => 'သို့မဟုတ် အီးမေးလ် သုံးမည်';
+
+  @override
+  String get accountSocialShopTitle => 'ဆိုင်အမည် ပေးပါ';
+
+  @override
+  String get accountSocialShopBody =>
+      'စတင်ရောင်းချရန် အခမဲ့ဆိုင် ဖန်တီးပါ။ Premium ကို နောက်မှ ရွေးချယ်နိုင်ပါသည်။';
+
+  @override
+  String get accountSocialCreateShop => 'ဆိုင် ဖန်တီးမည်';
+
+  @override
+  String get accountSocialLinked => 'အကောင့် ချိတ်ဆက်ပြီးပါပြီ။';
+
+  @override
+  String get accountSocialReauthenticateTitle => 'အကောင့် အတည်ပြုပါ';
+
+  @override
+  String get accountSocialReauthenticateBody =>
+      'ဖျက်ရန် အတည်ပြုဖို့ ချိတ်ဆက်ထားသော အကောင့်ဖြင့် ဆက်လုပ်ပါ။';
+
+  @override
+  String get accountSocialReauthenticateUnavailable =>
+      'ဤစက်တွင် အကောင့် အတည်ပြု၍ မရပါ။ ချိတ်ဆက်ထားသော အကောင့်ဖြင့် ဝင်နိုင်သည့်စက်ကို သုံးပါ။';
+
+  @override
+  String get accountSocialAuthFailed =>
+      'ဤအကောင့်ဖြင့် ဝင်၍ မရပါ။ ထပ်မံကြိုးစားပါ။';
+
+  @override
+  String get accountSocialAuthUnavailable =>
+      'ဤစက်တွင် ဤနည်းလမ်းဖြင့် ဝင်၍ မရပါ။ အခြားနည်းလမ်းကို ရွေးပါ။';
+
+  @override
+  String get accountSocialReauthFailed =>
+      'အကောင့် အတည်ပြုမှု မအောင်မြင်ပါ။ ချိတ်ဆက်ထားသော မူလအကောင့်ဖြင့် ဝင်ပြီး ထပ်ကြိုးစားပါ။';
+
+  @override
+  String get adminOwnerRequired =>
+      'ဤဆိုင်ကို သက်တမ်းမတိုးမီ owner account ကို အတည်ပြုပြီး ချိတ်ဆက်ပါ။';
+
+  @override
+  String get adminPublicConfigHint =>
+      'ဤဆက်တင်များသည် အများမြင်နိုင်သော ငွေပေးချေမှုအချက်အလက်များ ဖြစ်ပါသည်။ API key နှင့် webhook secret များကို ဤနေရာတွင် မထည့်ဘဲ server secret တွင်သာ သိမ်းပါ။';
+
+  @override
+  String get adminKbzName => 'KBZPay အကောင့်အမည်';
+
+  @override
+  String get adminKbzNumber => 'KBZPay ဖုန်းနံပါတ်';
+
+  @override
+  String get adminWaveName => 'WavePay အကောင့်အမည်';
+
+  @override
+  String get adminWaveNumber => 'WavePay ဖုန်းနံပါတ်';
+
+  @override
+  String get adminSupportViber => 'အကူအညီပေးရန် Viber နံပါတ်';
+
+  @override
+  String get adminGatewayMonthlyVariant =>
+      'Lemon Squeezy လစဉ်အစီအစဉ် variant ID';
+
+  @override
+  String get adminGatewayYearlyVariant =>
+      'Lemon Squeezy နှစ်စဉ်အစီအစဉ် variant ID';
 }

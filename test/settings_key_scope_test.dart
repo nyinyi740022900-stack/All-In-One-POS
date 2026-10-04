@@ -78,6 +78,9 @@ void main() {
     // Watermarks: a per-shop figure compared against a per-shop threshold.
     // The retired `referral.seen_earned` is the one that shipped
     // device-global by mistake — see this file's header.
+    'license.shop_last_seen_ms': _Scope.perShop,
+    'license.shop_last_receipt_iat_ms': _Scope.perShop,
+    'license.highest_revision': _Scope.perShop,
     'license.expiry_warned': _Scope.perShop,
     'storefront.seen_order_ms': _Scope.perShop,
     'daily.gate.ymd': _Scope.perShop,

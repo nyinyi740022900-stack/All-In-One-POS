@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/env.dart';
 
 import '../../core/providers.dart';
 import '../license/license_providers.dart';
@@ -36,9 +38,21 @@ final accountRepositoryProvider = Provider<AccountRepository>((ref) {
   );
 });
 
+/// Auth changes invalidate role, email and session gates even when a token
+/// expires or is cleared without using the account screen's signout action.
+final accountAuthEventsProvider = StreamProvider<AuthState>((ref) {
+  if (!Env.hasBackend) return const Stream<AuthState>.empty();
+  try {
+    return Supabase.instance.client.auth.onAuthStateChange;
+  } catch (_) {
+    return const Stream<AuthState>.empty();
+  }
+});
+
 /// Current backend account role from Supabase auth metadata, if signed in via
 /// a real login. Null when signed out / anonymous.
 final backendAccountRoleProvider = Provider<String?>((ref) {
+  ref.watch(accountAuthEventsProvider);
   try {
     return ref.watch(accountRepositoryProvider).currentAccountRole;
   } catch (_) {
@@ -52,6 +66,7 @@ final backendAccountRoleProvider = Provider<String?>((ref) {
 /// StaffAccount session back to a local roster member sharing the same
 /// address (`StaffMembers.email`). Null when signed out / anonymous.
 final currentAccountEmailProvider = Provider<String?>((ref) {
+  ref.watch(accountAuthEventsProvider);
   try {
     return ref.watch(accountRepositoryProvider).currentAccountEmail;
   } catch (_) {
@@ -69,6 +84,7 @@ final currentAccountEmailProvider = Provider<String?>((ref) {
 /// [backendAccountRoleProvider] — see `shop_login_screen.dart` and
 /// `daily_gate.dart` for the existing invalidation sites.
 final hasRealAccountSessionProvider = Provider<bool>((ref) {
+  ref.watch(accountAuthEventsProvider);
   try {
     return ref.watch(accountRepositoryProvider).isSignedInWithRealAccount;
   } catch (_) {

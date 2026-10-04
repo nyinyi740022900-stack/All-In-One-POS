@@ -38,7 +38,7 @@ case "$target" in
   invoices)
     entry="lib/invoices_web/invoices_web_main.dart"
     title="All In One POS Invoices"
-    desc="View your shop's invoices in the browser. Licence key required."
+    desc="View your shop's invoices in the browser. Account sign-in and shop Premium required."
     og_title="All In One POS Invoices"
     og_desc="View your shop's invoices in the browser."
     robots="noindex, nofollow"

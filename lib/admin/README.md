@@ -1,76 +1,51 @@
-# All In One POS — Admin dashboard (Flutter Web)
+# All In One POS — account Premium admin
 
-**Live:** https://admin.allinonepos.app
+Live URL: https://admin.allinonepos.app. The local account-Premium console
+requires migrations0094/0095 and matching functions; deploy only after staging
+rehearsal. The current local code must not be deployed ahead of its backend.
 
-Vendor console for licenses, payments, and shop support. Separate from the
-POS app: its own entry point (`admin_main.dart`), tree-shaken out of the
-mobile build. All privileged work goes through the `admin` Edge Function
-(service role stays server-side).
+The console is a separate Flutter Web entry point. Privileged actions require
+an authenticated admin and run in the admin Edge Function. Service-role/API
+keys remain server-side.
 
-## Modules (sidebar)
+## Keep these modules
 
-- **Dashboard** — shop / Premium / at-risk counts, pending inbox, paid
-  revenue this month, expiring-in-7-days. Monthly revenue bar (fulfilled
-  `license_requests` only — complimentary admin extends are not counted as
-  income) and a plan mix (paid / trial / free / expired).
-- **Inbox** — pending KBZPay/WavePay requests with screenshot; Confirm /
-  Decline. Lands here automatically when anything is waiting.
-- **Shops** — search by name, email, phone, or App Reference ID, then a
-  360° panel: extend by email vs device, allow extra devices (no key), reset a phone, offline code,
-  Viber, generate key, password-reset link, unlink staff, restore a banned
-  login.
-- **Payments** — settled requests + license activity history.
-- **Licensing** — Viber-paste extend only: email or App Reference ID
-  (two separate cards so an email cannot be pasted into a device field).
-  Both find a shop and add months to **every** device on it. Reset a
-  phone, allow extra devices, mint a key, or send an offline code from **Shops**.
-- **Settings** — KBZPay/WavePay pay-to, Support Viber, prices.
+- Dashboard: shop counts, Premium/at-risk status, pending payments and manual
+  Myanmar revenue. Gateway currencies are not added to kyat revenue.
+- Inbox: account-owned KBZPay/WavePay requests, proof inspection, atomic
+  Confirm/Decline. Duplicate confirmation cannot add a second term.
+- Shops: search and inspect shop authority, account status, subscription and
+  up to three active devices. Renew monthly/yearly only by exact shop ID.
+  Release a device, recover account access, manage staff bans and archive or
+  restore an abandoned shop. A verified owner account is required for renewal.
+- Payments: settled requests and subscription-renewal records. A manual admin
+  extension is not proof of money received and is excluded from revenue.
+- Settings: public KBZPay/WavePay instructions, support contact and monthly/
+  yearly Lemon Squeezy variant IDs. Variant IDs must be positive integers.
+  API/webhook secrets are never entered in this public table/editor.
 
-Confirming a payment calls `fulfill_request`, which extends the shop's
-existing license when the request carries a `shop_id` (or matches by
-`device_id` for older requests with none), or mints a brand-new one
-otherwise.
+## Retired controls
 
-## One-time setup
+No customer key creation, offline codes, Online/Offline tiers, purchased extra
+slots, standalone Licensing menu or unbound Buy Now URL/store-slug editor.
+Renewals belong to a shop with an owner account, not a public device reference.
+Legacy data remains audit evidence; removing an editor is not deleting rows.
 
-1. **Deploy the backend function**
-   ```bash
-   supabase functions deploy admin
-   ```
-   (Also apply migrations first if not done: `supabase db push`.)
+## Development and delivery
 
-2. **Create an admin user** (Supabase Dashboard → Authentication → Add user,
-   or SQL), then grant the admin role in SQL Editor:
-   ```sql
-   update auth.users
-   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
-                           || '{"role":"admin"}'::jsonb
-   where email = 'admin@yourcompany.com';
-   ```
-   The `admin` function rejects anyone without `app_metadata.role = 'admin'`.
+Run with lib/admin/admin_main.dart and the shared env.local.json. Never expose
+its contents or commit it. Use tool/build_web.sh admin to create the correct
+admin page metadata. Follow .agents/skills/deploy/SKILL.md for coordinated
+backend/Vercel deployment and project relinking, rather than a raw web build.
 
-## Run locally
-```bash
-flutter run -d chrome -t lib/admin/admin_main.dart \
-  --dart-define-from-file=env.local.json
-```
+## Remaining rollout checks
 
-## Deploy the dashboard (Vercel)
-Hosted at **https://admin.allinonepos.app** (Vercel project `allinonepos-admin`,
-scope `nyi-nyi-s-projects1`). To ship a new build:
-```bash
-flutter build web -t lib/admin/admin_main.dart \
-  --dart-define-from-file=env.local.json --no-web-resources-cdn
-cd build/web
-# SPA fallback so deep links resolve to index.html:
-cat > vercel.json <<'JSON'
-{ "routes": [ { "handle": "filesystem" }, { "src": "/.*", "dest": "/index.html" } ] }
-JSON
-vercel deploy --prod --yes --scope nyi-nyi-s-projects1
-```
-Only the anon key ships in the web bundle (safe — the `admin` function enforces
-the admin check). Never put the service-role key in this app.
+Identify a POS staging project, rehearse0094/0095 and session RLS, verify the
+trusted deleted-shop trial backfill, then test account signup, explicit trial,
+manual renewal, duplicate payment, ownerless renewal refusal, fourth-device
+refusal, staff permissions and archive/restore. Coordinate with the current
+social-auth work before freezing the shared checkout or deploying0096.
 
-Password-reset links are generated server-side (`auth.admin.generateLink`) and
-copied onto Viber — this console does not send recovery email (same reason
-shop signup is `email_confirm: true`: SMTP would strand a shop).
+Verify monthly/yearly provider variants and signed webhook delivery separately.
+Saving API/store secrets alone does not make checkout operational. No live
+charge is authorized by this README.

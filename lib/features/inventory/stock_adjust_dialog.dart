@@ -8,19 +8,21 @@ import '../../l10n/app_localizations.dart';
 import '../printing/printing_providers.dart';
 import 'inventory_providers.dart';
 
-enum _Mode { restock, adjust }
+enum _Mode { count, received }
 
-enum _Reason { damaged, lost, count, other }
+enum _Reason { recount, damaged, lost, other }
 
 String _reasonLabel(AppLocalizations l, _Reason r) => switch (r) {
       _Reason.damaged => l.stockReasonDamaged,
       _Reason.lost => l.stockReasonLost,
-      _Reason.count => l.stockReasonCount,
+      _Reason.recount => l.stockReasonRecount,
       _Reason.other => l.stockReasonOther,
     };
 
-/// Opens a dialog to restock (always increases) or adjust (signed
-/// correction with a reason) one product's stock. Writes a proper ledger
+/// Opens a dialog to set one product's stock. The default mode is "Count is
+/// now ___" (pre-filled with the current stock, reason "Recount") because a
+/// shopkeeper at the shelf knows what they counted, not a +/- delta; "+
+/// Received" is the explicit way to add incoming units. Writes a proper ledger
 /// entry via [InventoryRepository.adjustStock] — unlike the product editor's
 /// quantity field, which silently sets an absolute value with no reason.
 Future<void> showStockAdjustDialog(
@@ -57,9 +59,11 @@ class _StockAdjustDialog extends ConsumerStatefulWidget {
 }
 
 class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
-  _Mode _mode = _Mode.restock;
-  _Reason _reason = _Reason.damaged;
-  final _qtyController = TextEditingController();
+  _Mode _mode = _Mode.count;
+  _Reason _reason = _Reason.recount;
+  late final _qtyController = TextEditingController(
+    text: widget.currentQuantity.toString(),
+  );
   final _unitCostController = TextEditingController();
   final _noteController = TextEditingController();
   String? _error;
@@ -80,28 +84,39 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
   // back as an error on save.
   void _stepQty(int delta) {
     final current = int.tryParse(_qtyController.text.trim()) ?? 0;
-    var next = current + delta;
-    if (_mode == _Mode.restock) {
-      if (next < 1) next = 1;
-    } else {
-      final floor = -widget.currentQuantity;
-      if (next < floor) next = floor;
-    }
+    final floor = _mode == _Mode.received ? 1 : 0;
+    final next = (current + delta) < floor ? floor : current + delta;
     setState(() {
       _qtyController.text = next.toString();
       _error = null;
     });
   }
 
+  /// Signed change this entry would write, or null when the field is not a
+  /// valid whole number.
+  int? get _delta {
+    final entered = int.tryParse(_qtyController.text.trim());
+    if (entered == null || entered < 0) return null;
+    return _mode == _Mode.received
+        ? entered
+        : entered - widget.currentQuantity;
+  }
+
+  void _setMode(_Mode m) => setState(() {
+    _mode = m;
+    _error = null;
+    _qtyController.text = m == _Mode.count
+        ? widget.currentQuantity.toString()
+        : '';
+  });
+
   Future<void> _submit() async {
     final l = AppLocalizations.of(context);
-    final raw = _qtyController.text.trim();
-    final entered = int.tryParse(raw);
-    if (entered == null || entered == 0) {
+    final delta = _delta;
+    if (delta == null || delta == 0) {
       setState(() => _error = l.stockAdjustInvalid);
       return;
     }
-    final delta = _mode == _Mode.restock ? entered.abs() : entered;
     final after = widget.currentQuantity + delta;
     if (after < 0) {
       setState(() => _error = l.stockAdjustBelowZero(widget.currentQuantity));
@@ -132,14 +147,14 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
     });
 
     final note = switch (_mode) {
-      _Mode.restock =>
+      _Mode.received =>
         _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-      _Mode.adjust => _noteController.text.trim().isEmpty
+      _Mode.count => _noteController.text.trim().isEmpty
           ? _reasonLabel(l, _reason)
           : '${_reasonLabel(l, _reason)} — ${_noteController.text.trim()}',
     };
 
-    final unitCost = _mode == _Mode.restock &&
+    final unitCost = _mode == _Mode.received &&
             _unitCostController.text.trim().isNotEmpty
         ? parseDecimalMinorUnits(_unitCostController.text.trim(),
             exponent: ref.read(shopCurrencyProvider).exponent)
@@ -150,7 +165,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
       await ref.read(inventoryRepositoryProvider).adjustStock(
             productId: widget.productId,
             delta: delta,
-            type: _mode == _Mode.restock ? 'purchase' : 'adjustment',
+            type: _mode == _Mode.received ? 'purchase' : 'adjustment',
             note: note,
             unitCost: unitCost,
           );
@@ -197,13 +212,13 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
               ),
               segments: [
                 ButtonSegment(
-                    value: _Mode.restock,
-                    label: Text(l.stockAdjustModeRestock)),
+                    value: _Mode.count, label: Text(l.stockAdjustModeCount)),
                 ButtonSegment(
-                    value: _Mode.adjust, label: Text(l.stockAdjustModeAdjust)),
+                    value: _Mode.received,
+                    label: Text(l.stockAdjustModeReceived)),
               ],
               selected: {_mode},
-              onSelectionChanged: (s) => setState(() => _mode = s.first),
+              onSelectionChanged: (s) => _setMode(s.first),
             ),
             const SizedBox(height: AppTheme.space3),
             Row(
@@ -222,14 +237,19 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
                   child: TextField(
                     controller: _qtyController,
                     textAlign: TextAlign.center,
-                    keyboardType: TextInputType.numberWithOptions(
-                        signed: _mode == _Mode.adjust),
-                    inputFormatters: [LengthLimitingTextInputFormatter(10)],
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    onChanged: (_) => setState(() => _error = null),
                     decoration: InputDecoration(
-                      labelText: l.stockAdjustQuantity,
-                      hintText: _mode == _Mode.restock
+                      labelText: _mode == _Mode.count
+                          ? l.stockAdjustModeCount
+                          : l.stockAdjustQuantity,
+                      hintText: _mode == _Mode.received
                           ? l.stockAdjustQuantityHintRestock
-                          : l.stockAdjustQuantityHintAdjust,
+                          : null,
                       errorText: _error,
                     ),
                   ),
@@ -242,7 +262,16 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
                 ),
               ],
             ),
-            if (_mode == _Mode.restock) ...[
+            if (_mode == _Mode.count && (_delta ?? 0) != 0) ...[
+              const SizedBox(height: AppTheme.space2),
+              Text(
+                l.stockAdjustChange(
+                  _delta! > 0 ? '+$_delta' : '−${_delta!.abs()}',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (_mode == _Mode.received) ...[
               const SizedBox(height: AppTheme.space3),
               TextField(
                 controller: _unitCostController,
@@ -258,7 +287,7 @@ class _StockAdjustDialogState extends ConsumerState<_StockAdjustDialog> {
                 ),
               ),
             ],
-            if (_mode == _Mode.adjust) ...[
+            if (_mode == _Mode.count) ...[
               const SizedBox(height: AppTheme.space3),
               DropdownButtonFormField<_Reason>(
                 initialValue: _reason,

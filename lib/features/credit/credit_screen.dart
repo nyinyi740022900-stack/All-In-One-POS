@@ -26,11 +26,11 @@ import 'repayment_dialog.dart';
 final _agingDay = DateFormat('yyyy-MM-dd');
 
 String _agingBucketLabel(AppLocalizations l, int bucket) => switch (bucket) {
-      0 => l.agingBucket0,
-      1 => l.agingBucket1,
-      2 => l.agingBucket2,
-      _ => l.agingBucket3,
-    };
+  0 => l.agingBucket0,
+  1 => l.agingBucket1,
+  2 => l.agingBucket2,
+  _ => l.agingBucket3,
+};
 
 /// Shares the aged receivables ledger as CSV: one row per still-owed sale
 /// with its age bucket, then a per-bucket totals block — the file an
@@ -135,9 +135,7 @@ Future<void> shareAgedReceivablesPdf(
             Money(totals[i]).withCurrency(currency, locale),
           ],
       ],
-      boldRowIndices: {
-        for (var i = 0; i < totals.length; i++) rows.length + i,
-      },
+      boldRowIndices: {for (var i = 0; i < totals.length; i++) rows.length + i},
       emptyLabel: l.creditEmpty,
       pageFormat: printerConfig.pdfPaperSize,
     );
@@ -193,14 +191,6 @@ class CreditScreen extends ConsumerWidget {
             tooltip: l.arExportCsv,
             icon: const Icon(Icons.table_chart_outlined),
             onPressed: () {
-              if (!ref.read(isPremiumProvider)) {
-                showPremiumRequiredDialog(
-                  context,
-                  l.arExportCsv,
-                  benefit: l.arExportBenefit,
-                );
-                return;
-              }
               shareAgedReceivablesCsv(context, ref);
             },
           ),
@@ -215,8 +205,10 @@ class CreditScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l.creditTotalOutstanding,
-                    style: Theme.of(context).textTheme.labelMedium),
+                Text(
+                  l.creditTotalOutstanding,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
                 const SizedBox(height: AppTheme.space1),
                 MoneyText(
                   Money(total).withCurrency(currency, locale),
@@ -231,21 +223,27 @@ class CreditScreen extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppTheme.space4, AppTheme.space2, AppTheme.space4, 0),
+              AppTheme.space4,
+              AppTheme.space2,
+              AppTheme.space4,
+              0,
+            ),
             child: Row(
               children: [
                 ChoiceChip(
                   label: Text(l.creditFilterOutstanding),
                   selected: filter == CreditFilter.outstanding,
-                  onSelected: (_) => ref.read(creditFilterProvider.notifier).state =
-                      CreditFilter.outstanding,
+                  onSelected: (_) =>
+                      ref.read(creditFilterProvider.notifier).state =
+                          CreditFilter.outstanding,
                 ),
                 const SizedBox(width: AppTheme.space2),
                 ChoiceChip(
                   label: Text(l.creditFilterAll),
                   selected: filter == CreditFilter.all,
-                  onSelected: (_) => ref.read(creditFilterProvider.notifier).state =
-                      CreditFilter.all,
+                  onSelected: (_) =>
+                      ref.read(creditFilterProvider.notifier).state =
+                          CreditFilter.all,
                 ),
               ],
             ),
@@ -282,14 +280,18 @@ class CreditScreen extends ConsumerWidget {
                                 icon: Icons.check_circle,
                               )
                             : MoneyText(
-                                Money(c.outstanding).withCurrency(currency, locale),
+                                Money(
+                                  c.outstanding,
+                                ).withCurrency(currency, locale),
                                 emphasis: true,
                                 color: colors.danger,
                               ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => CreditCustomerScreen(
-                                customerKey: c.key, customerName: c.name),
+                              customerKey: c.key,
+                              customerName: c.name,
+                            ),
                           ),
                         ),
                       );
@@ -305,8 +307,11 @@ class CreditScreen extends ConsumerWidget {
 /// One customer's credit detail: outstanding, their credit invoices, and a
 /// button to record a repayment.
 class CreditCustomerScreen extends ConsumerWidget {
-  const CreditCustomerScreen(
-      {super.key, required this.customerKey, required this.customerName});
+  const CreditCustomerScreen({
+    super.key,
+    required this.customerKey,
+    required this.customerName,
+  });
 
   /// The stable grouping key (see [creditKeyFor]) — used to match sales and
   /// repayments so a directory customer's rename doesn't orphan their
@@ -319,26 +324,33 @@ class CreditCustomerScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
-    final customer = ref.watch(creditCustomersProvider).firstWhere(
+    final customer = ref
+        .watch(creditCustomersProvider)
+        .firstWhere(
           (c) => c.key == customerKey,
           orElse: () => CreditCustomer(
-              key: customerKey,
-              name: customerName,
-              billed: 0,
-              paid: 0,
-              openInvoices: 0),
+            key: customerKey,
+            name: customerName,
+            billed: 0,
+            paid: 0,
+            openInvoices: 0,
+          ),
         );
     final owedBySale = ref.watch(creditOwedBySaleProvider);
     final sales = (ref.watch(creditSalesProvider).valueOrNull ?? const <Sale>[])
-        .where((s) =>
-            creditKeyFor(s.customerId, (s.customerName ?? '').trim()) ==
-            customerKey)
+        .where(
+          (s) =>
+              creditKeyFor(s.customerId, (s.customerName ?? '').trim()) ==
+              customerKey,
+        )
         .toList();
     final repayments =
         (ref.watch(repaymentsProvider).valueOrNull ?? const <CreditPayment>[])
-            .where((p) =>
-                creditKeyFor(p.customerId, p.customerName.trim()) ==
-                customerKey)
+            .where(
+              (p) =>
+                  creditKeyFor(p.customerId, p.customerName.trim()) ==
+                  customerKey,
+            )
             .toList();
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final accounts = ref.watch(paymentAccountsProvider).valueOrNull ?? const [];
@@ -361,13 +373,17 @@ class CreditCustomerScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(l.creditOutstanding,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l.creditOutstanding,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               MoneyText(
                 Money(customer.outstanding).withCurrency(currency, locale),
                 style: Theme.of(context).textTheme.titleLarge,
                 emphasis: true,
-                color: customer.outstanding > 0 ? colors.danger : colors.success,
+                color: customer.outstanding > 0
+                    ? colors.danger
+                    : colors.success,
               ),
             ],
           ),
@@ -388,7 +404,10 @@ class CreditCustomerScreen extends ConsumerWidget {
                     Money(owed).withCurrency(currency, locale),
                     color: colors.danger,
                   )
-                : Text(l.creditSettled, style: TextStyle(color: colors.success)),
+                : Text(
+                    l.creditSettled,
+                    style: TextStyle(color: colors.success),
+                  ),
           ),
       ],
       if (repayments.isNotEmpty) ...[
@@ -402,7 +421,8 @@ class CreditCustomerScreen extends ConsumerWidget {
             leading: Icon(Icons.check_circle, color: colors.success),
             title: Text('+${Money(p.amount).withCurrency(currency, locale)}'),
             subtitle: Text(
-                '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}'),
+              '${paymentLabel(l, p.method, accounts: accounts)} · ${df.format(p.createdAt)}',
+            ),
           ),
       ],
     ];
@@ -425,7 +445,10 @@ class CreditCustomerScreen extends ConsumerWidget {
   }
 
   Future<void> _recordRepayment(
-      BuildContext context, WidgetRef ref, CreditCustomer customer) async {
+    BuildContext context,
+    WidgetRef ref,
+    CreditCustomer customer,
+  ) async {
     await showRepaymentDialog(context, customer);
   }
 }

@@ -14,7 +14,6 @@ import 'features/license/license_expiry_watcher.dart';
 import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
-import 'features/onboarding/daily_gate.dart';
 import 'features/onboarding/full_screen_gate.dart';
 import 'features/onboarding/onboarding_state.dart';
 import 'features/onboarding/operating_mode_providers.dart';
@@ -57,13 +56,12 @@ class MmPosApp extends ConsumerWidget {
     final dailyGateAsync = ref.watch(dailyGateNeededProvider);
     // Onboarding is a router route now; while it's up, neither the hold
     // screen nor the daily gate may paint over it.
-    final onboardingNeeded = !forcedDone &&
+    final onboardingNeeded =
+        !forcedDone &&
         ref.watch(onboardingCompleteProvider).valueOrNull == false;
     // Every install must not flash the Sell shell while we resolve whether
     // today's entry gate is still needed.
     final holdForDailyCheck = !onboardingNeeded && !dailyGateAsync.hasValue;
-    final showDailyGate =
-        !onboardingNeeded && (dailyGateAsync.valueOrNull == true);
 
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
@@ -116,13 +114,6 @@ class MmPosApp extends ConsumerWidget {
           final l = AppLocalizations.of(context);
           return Scaffold(
             body: AppLoadingView(message: l.dailyGateCheckingShop),
-          );
-        }
-        if (showDailyGate) {
-          return gated(
-            DailyGate(
-              onDone: () => ref.invalidate(dailyGateNeededProvider),
-            ),
           );
         }
         return child!;

@@ -15,7 +15,6 @@ import '../credit/credit_screen.dart';
 import '../expenses/expense_screen.dart';
 import '../inventory/inventory_providers.dart';
 import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
@@ -42,7 +41,9 @@ class AnalyticsScreen extends ConsumerWidget {
     // CLOSED while the role stream is still resolving, so a cold-start deep
     // link can't render them in Staff mode (audit QA-M5; the router also
     // bounces /analytics on the same check).
-    if (!ref.watch(hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics))) {
+    if (!ref.watch(
+      hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics),
+    )) {
       const gate = OwnerOnlyGate(
         capability: OwnerCapability.analytics,
         child: SizedBox.shrink(),
@@ -53,19 +54,9 @@ class AnalyticsScreen extends ConsumerWidget {
         body: gate,
       );
     }
-    if (ref.watch(licenseControllerProvider).loading ||
-        !ref.watch(isPremiumProvider)) {
-      final gate = PremiumGate(
-        featureName: l.navAnalytics,
-        benefits: [l.analyticsBenefit1, l.analyticsBenefit2, l.analyticsBenefit3],
-        child: const SizedBox.shrink(),
-      );
-      if (embedded) return gate;
-      return Scaffold(
-        appBar: AppBar(title: Text(l.navAnalytics)),
-        body: gate,
-      );
-    }
+    // Every owner can read the core sales totals. Premium gates only the
+    // advanced sections, so a lapse never hides the day's takings.
+    final premium = ref.watch(isPremiumProvider);
 
     final range = ref.watch(analyticsRangeProvider);
     final summary = ref.watch(analyticsSummaryProvider);
@@ -125,7 +116,7 @@ class AnalyticsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l.navAnalytics),
         actions: [
-          IconButton(
+          if (premium) IconButton(
             icon: const Icon(Icons.summarize_outlined),
             tooltip: l.pnlTitle,
             onPressed: () => Navigator.of(
@@ -171,208 +162,209 @@ class _Dashboard extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
-    final previousSummary =
-        ref.watch(analyticsPreviousSummaryProvider).valueOrNull;
+    final premium = ref.watch(isPremiumProvider);
+    final previousSummary = premium
+        ? ref.watch(analyticsPreviousSummaryProvider).valueOrNull
+        : null;
     final revenueChangePercent = previousSummary == null
         ? null
         : periodOverPeriodChange(summary.revenue, previousSummary.revenue);
 
+    final profitTiles = <Widget>[
+      StatCard(
+        label: l.analyticsProfit,
+        value: Money(summary.profit).withCurrency(currency, locale),
+        icon: Icons.trending_up,
+      ),
+      StatCard(
+        label: l.analyticsNetProfit,
+        value: Money(summary.netProfit).withCurrency(currency, locale),
+        icon: Icons.savings_outlined,
+        // Losing money is the one thing worth shouting about; breaking even
+        // or better is not a badge, so it stays quiet rather than green.
+        tone: summary.netProfit < 0 ? StatusTone.critical : null,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+      ),
+      // Zero expenses / zero stock value is "nothing to report" — the tile is
+      // left out rather than shown as a row of zeros.
+      if (summary.expenses != 0)
+        StatCard(
+          label: l.analyticsExpenses,
+          value: Money(summary.expenses).withCurrency(currency, locale),
+          icon: Icons.receipt_long,
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
+        ),
+      if (trackStock && summary.stockValue != 0)
+        StatCard(
+          label: l.analyticsStockValue,
+          value: Money(summary.stockValue).withCurrency(currency, locale),
+          icon: Icons.inventory_2,
+          onTap: () => context.go('/inventory'),
+        ),
+    ];
+
     return ListView(
       padding: const EdgeInsets.all(AppTheme.space3),
       children: [
+        // Colour here is a SIGNAL, not a category label: the only accents are
+        // an amber Owed (money to chase) and a red net loss inside Profit.
         _GlanceStrip(
-          revenue: Money(summary.revenue).withCurrency(currency, locale),
-          revenueChangePercent: revenueChangePercent,
-          salesCount: '${summary.salesCount}',
-          lowStockCount: lowStockCount,
-          trackStock: trackStock,
+          sales: Money(summary.revenue).withCurrency(currency, locale),
+          salesChangePercent: revenueChangePercent,
+          collected: Money(summary.collected).withCurrency(currency, locale),
+          owed: Money(summary.creditOutstanding).withCurrency(currency, locale),
+          owedIsZero: summary.creditOutstanding <= 0,
         ),
-        const SizedBox(height: AppTheme.space3),
-        GridView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppTheme.space3,
-            crossAxisSpacing: AppTheme.space3,
-            mainAxisExtent: _kpiTileExtent(context),
-          ),
-          children: [
-            // ---------------------------------------------------------------
-            // Colour in this grid is a SIGNAL, not a category label.
-            //
-            // These eight tiles used to carry six raw Material hues
-            // (teal/green/deepOrange/indigo/orange/blueGrey) as decorative
-            // per-category coding, alongside two tiles that used
-            // `AppColors.success`/`danger` to mean the figure is actually
-            // good or bad. Rendered in the same channel, at the same size,
-            // the meaningful red on "credit outstanding" was just the
-            // seventh colour in a rainbow — the one thing on the screen that
-            // needs to be unmissable was the easiest thing to miss.
-            //
-            // Four of those six also failed the 3:1 non-text contrast
-            // minimum in at least one brightness against this palette
-            // (measured, not assumed): `Colors.green` 2.6:1 and
-            // `Colors.orange` 2.0:1 and `Colors.deepOrange` 2.9:1 on the
-            // light page `#F6F8F7`; `Colors.indigo` 2.7:1 on the dark page
-            // `#101512`. And `Colors.green` specifically sat next to the
-            // brand green, so one arbitrary category read as "selected".
-            //
-            // Rebuilding them as a proper categorical token set would have
-            // meant inventing and contrast-checking twelve new colours (six
-            // per brightness) that all had to stay clear of `primary`,
-            // `success`, `warning`, `danger` *and* the four `identityFills`
-            // — to re-encode information the icon and the label already
-            // carry. So: informational tiles are neutral (`tone: null`), and
-            // the accent is spent only where the *sign* of the number is the
-            // news. Net profit and credit outstanding are now the only
-            // coloured things in the grid. Revenue and sales-count moved up
-            // into [_GlanceStrip] so they are not duplicated here.
-            // ---------------------------------------------------------------
-            StatCard(
-              label: l.analyticsProfit,
-              value: Money(summary.profit).withCurrency(currency, locale),
-              icon: Icons.trending_up,
-            ),
-            StatCard(
-              label: l.analyticsExpenses,
-              value: Money(summary.expenses).withCurrency(currency, locale),
-              icon: Icons.receipt_long,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
-            ),
-            StatCard(
-              label: l.analyticsNetProfit,
-              value: Money(summary.netProfit).withCurrency(currency, locale),
-              icon: Icons.savings_outlined,
-              // Losing money is the one thing on this screen worth shouting
-              // about; breaking even or better is not a badge, so it stays
-              // quiet rather than turning green.
-              tone: summary.netProfit < 0 ? StatusTone.critical : null,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const ExpenseScreen())),
-            ),
-            if (trackStock)
-              StatCard(
-                label: l.analyticsStockValue,
-                value: Money(summary.stockValue).withCurrency(currency, locale),
-                icon: Icons.inventory_2,
-                onTap: () => context.go('/inventory'),
-              ),
-            StatCard(
-              label: l.analyticsCollected,
-              value: Money(summary.collected).withCurrency(currency, locale),
-              icon: Icons.account_balance,
-              onTap: () => context.go('/invoices'),
-            ),
-            StatCard(
-              label: l.analyticsCreditOutstanding,
-              value: Money(summary.creditOutstanding).withCurrency(currency, locale),
-              icon: Icons.account_balance_wallet,
-              // Money owed to the shop is a to-do, not an emergency — amber,
-              // the same tone the Orders list gives an order still waiting on
-              // someone. Zero owed needs no colour at all.
-              tone: summary.creditOutstanding > 0
-                  ? StatusTone.attention
-                  : null,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const CreditScreen())),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTheme.space3),
-        _RevenueChartCard(daily: summary.daily),
-        const SizedBox(height: AppTheme.space3),
-        _TopProductsCard(top: summary.topProducts),
-        const SizedBox(height: AppTheme.space3),
-        _SalesByEmployeeCard(rows: summary.salesByStaff),
-      ],
-    );
-  }
-}
-
-/// Three equally-weighted glance cells: range revenue, range sales count,
-/// and live low-stock (not ranged — stock is "now"). Number on top, label
-/// underneath, no icon — a 3-up row on a phone cannot spare StatCard's
-/// 32pt plate. Accent is spent only on a non-zero low-stock count.
-class _GlanceStrip extends ConsumerWidget {
-  const _GlanceStrip({
-    required this.revenue,
-    this.revenueChangePercent,
-    required this.salesCount,
-    required this.lowStockCount,
-    required this.trackStock,
-  });
-
-  final String revenue;
-  final double? revenueChangePercent;
-  final String salesCount;
-  final int lowStockCount;
-  final bool trackStock;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: _GlanceCell(
-                value: revenue,
-                changePercent: revenueChangePercent,
-                label: l.analyticsRevenue,
-                onTap: () => context.go('/invoices'),
-              ),
-            ),
-            VerticalDivider(width: 1, color: scheme.outlineVariant),
-            Expanded(
-              child: _GlanceCell(
-                value: salesCount,
-                label: l.analyticsSalesCount,
-                onTap: () => context.go('/invoices'),
-              ),
-            ),
-            if (trackStock) ...[
-              VerticalDivider(width: 1, color: scheme.outlineVariant),
-              Expanded(
-                child: _GlanceCell(
-                  value: '$lowStockCount',
-                  label: l.inventoryLowStock,
-                  tone: lowStockCount > 0 ? StatusTone.attention : null,
-                  // Two jobs: arm Inventory's low-stock filter so the list
-                  // opens ALREADY narrowed to the problem rows, and reset
-                  // the Inventory branch to its ROOT — a bare go() could
-                  // otherwise surface whatever screen was last pushed on
-                  // that branch's navigator (the owner landed on Stock
-                  // Movements this way), and initialLocation guarantees
-                  // the product list.
-                  onTap: () {
-                    // Arm the filter only when there IS something to show —
-                    // tapping "0" should just open Inventory, not an empty
-                    // filtered list.
-                    if (lowStockCount > 0) {
-                      ref
-                          .read(inventoryLowStockOnlyProvider.notifier)
-                          .state = true;
-                    }
+        if (summary.salesCount > 0 || (trackStock && lowStockCount > 0)) ...[
+          const SizedBox(height: AppTheme.space2),
+          Wrap(
+            spacing: AppTheme.space2,
+            runSpacing: AppTheme.space2,
+            children: [
+              if (summary.salesCount > 0)
+                ActionChip(
+                  avatar: const Icon(Icons.receipt_long_outlined, size: 18),
+                  label: Text(l.analyticsSalesCountChip(summary.salesCount)),
+                  onPressed: () => context.go('/invoices'),
+                ),
+              if (trackStock && lowStockCount > 0)
+                ActionChip(
+                  avatar: const Icon(Icons.warning_amber_rounded, size: 18),
+                  label: Text('${l.inventoryLowStock}: $lowStockCount'),
+                  // Arm Inventory's low-stock filter and reset that branch to
+                  // its ROOT so the list opens already narrowed to the
+                  // problem rows (a bare go() could surface whatever screen
+                  // was last pushed on that branch).
+                  onPressed: () {
+                    ref.read(inventoryLowStockOnlyProvider.notifier).state =
+                        true;
                     StatefulNavigationShell.of(
                       context,
                     ).goBranch(1, initialLocation: true);
                   },
                 ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppTheme.space3),
+        // Profit lives behind its own labelled fold: it is the owner's
+        // end-of-week question, not the every-visit one.
+        if (premium) Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            shape: const Border(),
+            collapsedShape: const Border(),
+            leading: const Icon(Icons.trending_up),
+            title: Text(l.analyticsProfitSection),
+            subtitle: Text(l.analyticsProfitSectionSubtitle),
+            childrenPadding: const EdgeInsets.fromLTRB(
+              AppTheme.space3,
+              0,
+              AppTheme.space3,
+              AppTheme.space3,
+            ),
+            children: [
+              GridView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: AppTheme.space3,
+                  crossAxisSpacing: AppTheme.space3,
+                  mainAxisExtent: _kpiTileExtent(context),
+                ),
+                children: profitTiles,
               ),
             ],
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: AppTheme.space3),
+        if (premium) _RevenueChartCard(daily: summary.daily),
+        const SizedBox(height: AppTheme.space3),
+        if (premium) _TopProductsCard(top: summary.topProducts),
+        const SizedBox(height: AppTheme.space3),
+        if (premium) _SalesByEmployeeCard(rows: summary.salesByStaff),
+      ],
+    );
+  }
+}
+
+/// The three numbers the owner opens this screen for: **Sales** (billed in
+/// the range), **Collected** (cash actually in) and **Owed** (still to chase).
+/// Number on top, label underneath, no icon. Owed gets the amber accent only
+/// when it is non-zero.
+class _GlanceStrip extends StatelessWidget {
+  const _GlanceStrip({
+    required this.sales,
+    this.salesChangePercent,
+    required this.collected,
+    required this.owed,
+    required this.owedIsZero,
+  });
+
+  final String sales;
+  final double? salesChangePercent;
+  final String collected;
+  final String owed;
+  final bool owedIsZero;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    // The cell width is measured HERE (outside the IntrinsicHeight, which
+    // cannot host a LayoutBuilder) and handed down, so each figure can be
+    // sized to fit a known, bounded width — see [_GlanceCell].
+    return LayoutBuilder(
+      builder: (context, box) {
+        final cellWidth = (box.maxWidth - 2) / 3;
+        return Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _GlanceCell(
+                    value: sales,
+                    cellWidth: cellWidth,
+                    changePercent: salesChangePercent,
+                    label: l.analyticsSalesHeadline,
+                    onTap: () => context.go('/invoices'),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: scheme.outlineVariant),
+                Expanded(
+                  child: _GlanceCell(
+                    value: collected,
+                    cellWidth: cellWidth,
+                    label: l.analyticsCollected,
+                    onTap: () => context.go('/invoices'),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: scheme.outlineVariant),
+                Expanded(
+                  child: _GlanceCell(
+                    value: owed,
+                    cellWidth: cellWidth,
+                    label: l.analyticsOwed,
+                    tone: owedIsZero ? null : StatusTone.attention,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CreditScreen()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -382,11 +374,15 @@ class _GlanceCell extends StatelessWidget {
     required this.value,
     required this.label,
     required this.onTap,
+    required this.cellWidth,
     this.tone,
     this.changePercent,
   });
 
   final String value;
+
+  /// Width the strip gave this cell; the figure is sized to fit inside it.
+  final double cellWidth;
   final String label;
   final VoidCallback onTap;
   final StatusTone? tone;
@@ -416,15 +412,43 @@ class _GlanceCell extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: MoneyText(
-                value,
-                textAlign: TextAlign.center,
-                emphasis: true,
-                color: color,
-                style: theme.textTheme.titleLarge,
-              ),
+            // The figure shrinks to fit its cell instead of truncating (a money
+            // figure must never show an ellipsis). Measured with a
+            // TextPainter against a BOUNDED width: a FittedBox here laid the
+            // text out unbounded, and on iOS that mis-measured the Myanmar
+            // currency suffix so it was clipped / ellipsised.
+            Builder(
+              builder: (context) {
+                final base = theme.textTheme.titleLarge!.copyWith(
+                  fontFeatures: AppTheme.tabularFigures,
+                  fontWeight: FontWeight.w700,
+                  color: color ?? theme.textTheme.titleLarge?.color,
+                );
+                final avail = cellWidth - AppTheme.space2 * 2;
+                final painter = TextPainter(
+                  text: TextSpan(text: value, style: base),
+                  textDirection: Directionality.of(context),
+                  textScaler: MediaQuery.textScalerOf(context),
+                  maxLines: 1,
+                )..layout();
+                final scale = painter.width > avail
+                    ? (avail / painter.width).clamp(0.5, 1.0)
+                    : 1.0;
+                painter.dispose();
+                return SizedBox(
+                  width: avail,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: base.copyWith(
+                      fontSize: (base.fontSize ?? 19) * scale,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppTheme.space1),
             Text(
@@ -442,15 +466,15 @@ class _GlanceCell extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    change >= 0
-                        ? Icons.arrow_upward
-                        : Icons.arrow_downward,
+                    change >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
                     size: 12,
                     color: change >= 0 ? colors.success : colors.warning,
                   ),
                   Text(
                     l.analyticsTrendVsPrevious(
-                        change >= 0 ? '+' : '-', change.round().abs()),
+                      change >= 0 ? '+' : '-',
+                      change.round().abs(),
+                    ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: change >= 0 ? colors.success : colors.warning,
                     ),
@@ -477,7 +501,7 @@ class _DashboardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final glanceCells = trackStock ? 3 : 2;
+    const glanceCells = 3;
     Widget block(double width, double height) => Container(
       width: width,
       height: height,
@@ -527,37 +551,13 @@ class _DashboardSkeleton extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppTheme.space3),
-            GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: AppTheme.space3,
-                crossAxisSpacing: AppTheme.space3,
-                mainAxisExtent: _kpiTileExtent(context),
+            // The collapsed Profit fold.
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space4),
+                child: block(120, 16),
               ),
-              children: [
-                for (var i = 0; i < 6; i++)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTheme.space3),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              block(32, 32),
-                              const SizedBox(width: AppTheme.space2),
-                              Expanded(child: block(double.infinity, 10)),
-                            ],
-                          ),
-                          block(96, 18),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
             ),
             const SizedBox(height: AppTheme.space3),
             Card(
@@ -875,7 +875,9 @@ class _SalesByEmployeeCard extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  trailing: MoneyText(Money(e.revenue).withCurrency(currency, locale)),
+                  trailing: MoneyText(
+                    Money(e.revenue).withCurrency(currency, locale),
+                  ),
                 ),
               ),
           ],
@@ -927,7 +929,9 @@ class _TopProductsCard extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  trailing: MoneyText(Money(e.value.revenue).withCurrency(currency, locale)),
+                  trailing: MoneyText(
+                    Money(e.value.revenue).withCurrency(currency, locale),
+                  ),
                 ),
               ),
           ],

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../features/analytics/analytics_accounting_hub_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/onboarding/onboarding_flow.dart';
+import '../features/onboarding/daily_gate.dart';
+import '../features/onboarding/operating_mode_providers.dart';
 import '../features/onboarding/onboarding_state.dart';
 import '../features/orders/orders_invoices_hub_screen.dart';
 import '../features/sell/sell_screen.dart';
@@ -18,82 +20,100 @@ import 'layout.dart';
 /// widget tests that need the real shell/chrome without the onboarding
 /// redirect.
 List<RouteBase> buildAppRoutes() => [
-
-        // Outside the shell — no bottom nav while onboarding.
-        GoRoute(
-        path: '/onboarding',
-        builder: (_, _) => const Scaffold(
-          body: SafeArea(child: OnboardingFlow(routed: true)),
-        ),
+  // Outside the shell — no bottom nav while onboarding.
+  GoRoute(
+    path: '/onboarding',
+    builder: (_, _) =>
+        const Scaffold(body: SafeArea(child: OnboardingFlow(routed: true))),
+  ),
+  GoRoute(
+    path: '/daily-entry',
+    builder: (context, state) =>
+        DailyGate(onDone: () => context.go(_dailyEntryDestination(state.uri))),
+  ),
+  StatefulShellRoute.indexedStack(
+    builder: (context, state, shell) => _ShellScaffold(shell: shell),
+    branches: [
+      StatefulShellBranch(
+        routes: [GoRoute(path: '/sell', builder: (_, _) => const SellScreen())],
       ),
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => _ShellScaffold(shell: shell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(path: '/sell', builder: (_, _) => const SellScreen()),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/inventory',
-              builder: (_, _) => const InventoryScreen(),
+      StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/inventory',
+            builder: (_, _) => const InventoryScreen(),
+          ),
+        ],
+      ),
+      // Orders + Invoices share ONE bottom-nav destination (sub-tabs inside
+      // the hub), so they share ONE branch — but keep both URLs, so existing
+      // deep links (analytics_screen.dart's `context.go('/invoices')`) still
+      // land on the Invoices sub-tab specifically. The first route is the
+      // branch's initial location.
+      StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/invoices',
+            builder: (_, _) => const OrdersInvoicesHubScreen(
+              initialTab: OrdersInvoicesHubScreen.invoicesTab,
             ),
-          ],
-        ),
-        // Orders + Invoices share ONE bottom-nav destination (sub-tabs inside
-        // the hub), so they share ONE branch — but keep both URLs, so existing
-        // deep links (analytics_screen.dart's `context.go('/invoices')`) still
-        // land on the Invoices sub-tab specifically. The first route is the
-        // branch's initial location.
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/orders',
-              builder: (_, _) => const OrdersInvoicesHubScreen(
-                initialTab: OrdersInvoicesHubScreen.ordersTab,
-              ),
+          ),
+          GoRoute(
+            path: '/orders',
+            builder: (_, _) => const OrdersInvoicesHubScreen(
+              initialTab: OrdersInvoicesHubScreen.ordersTab,
             ),
-            GoRoute(
-              path: '/invoices',
-              builder: (_, _) => const OrdersInvoicesHubScreen(
-                initialTab: OrdersInvoicesHubScreen.invoicesTab,
-              ),
+          ),
+        ],
+      ),
+      // Analytics + Accounting share ONE bottom-nav destination (sub-tabs
+      // inside the hub), so they share ONE branch — but keep both URLs,
+      // mirroring the Orders/Invoices hub above. The first route is the
+      // branch's initial location.
+      StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/analytics',
+            builder: (_, _) => const AnalyticsAccountingHubScreen(
+              initialTab: AnalyticsAccountingHubScreen.analyticsTab,
             ),
-          ],
-        ),
-        // Analytics + Accounting share ONE bottom-nav destination (sub-tabs
-        // inside the hub), so they share ONE branch — but keep both URLs,
-        // mirroring the Orders/Invoices hub above. The first route is the
-        // branch's initial location.
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/analytics',
-              builder: (_, _) => const AnalyticsAccountingHubScreen(
-                initialTab: AnalyticsAccountingHubScreen.analyticsTab,
-              ),
+          ),
+          GoRoute(
+            path: '/accounting',
+            builder: (_, _) => const AnalyticsAccountingHubScreen(
+              initialTab: AnalyticsAccountingHubScreen.accountingTab,
             ),
-            GoRoute(
-              path: '/accounting',
-              builder: (_, _) => const AnalyticsAccountingHubScreen(
-                initialTab: AnalyticsAccountingHubScreen.accountingTab,
-              ),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/settings',
-              builder: (_, _) => const SettingsScreen(),
-            ),
-          ],
-        ),
-      ],
-    ),
-  ];
+          ),
+        ],
+      ),
+      StatefulShellBranch(
+        routes: [
+          GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+        ],
+      ),
+    ],
+  ),
+];
+
+// Only local destinations may be restored after daily entry.
+String _dailyEntryDestination(Uri uri) {
+  final next = Uri.tryParse(uri.queryParameters['next'] ?? '/sell');
+  if (next == null ||
+      next.hasScheme ||
+      next.hasAuthority ||
+      !const {
+        '/sell',
+        '/inventory',
+        '/orders',
+        '/invoices',
+        '/analytics',
+        '/accounting',
+        '/settings',
+      }.contains(next.path)) {
+    return '/sell';
+  }
+  return next.toString();
+}
 
 /// Built inside a [Provider] so the redirect guard can read the onboarding
 /// state; `app.dart` watches this provider for its `routerConfig`.
@@ -108,6 +128,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (needed && state.matchedLocation != '/onboarding') {
         return '/onboarding';
       }
+      // Daily entry is a real route: no nested overlay Navigator can leave
+      // an enabled-looking button outside the active route's hit testing.
+      if (!needed) {
+        final gate = ref.read(dailyGateNeededProvider);
+        if (gate.valueOrNull == true &&
+            state.matchedLocation != '/daily-entry') {
+          return Uri(
+            path: '/daily-entry',
+            queryParameters: {'next': state.uri.toString()},
+          ).toString();
+        }
+        if (gate.valueOrNull == false &&
+            state.matchedLocation == '/daily-entry') {
+          return _dailyEntryDestination(state.uri);
+        }
+      }
       // Analytics (and Accounting, its peer tab in the same hub — Accounting
       // was previously only reachable by pushing off the already-gated
       // Analytics screen and must stay exactly as protected now that it's a
@@ -119,7 +155,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // resolved.
       if ((state.matchedLocation.startsWith('/analytics') ||
               state.matchedLocation.startsWith('/accounting')) &&
-          !ref.read(hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics))) {
+          !ref.read(
+            hasResolvedOwnerCapabilityProvider(OwnerCapability.analytics),
+          )) {
         return '/sell';
       }
       return null;
@@ -128,6 +166,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
   // Test containers dispose providers eagerly; a live GoRouter keeps
   // internal observers/scheduled work alive past the tree's teardown.
+  ref.listen(dailyGateNeededProvider, (_, _) => router.refresh());
+  ref.listen(onboardingStillNeededProvider, (_, _) => router.refresh());
   ref.onDispose(router.dispose);
   return router;
 });
@@ -144,8 +184,9 @@ class _ShellScaffold extends ConsumerWidget {
     // the actual route is separately fail-closed-gated by
     // `hasResolvedOwnerCapabilityProvider` above. Owner OR a staff member
     // granted the `analytics` capability sees the tab.
-    final canSeeAnalytics =
-        ref.watch(hasOwnerCapabilityProvider(OwnerCapability.analytics));
+    final canSeeAnalytics = ref.watch(
+      hasOwnerCapabilityProvider(OwnerCapability.analytics),
+    );
     // Tablet (medium+) → rail; phone → bottom bar.
     final wide = isMediumPlus(context);
 
@@ -154,14 +195,14 @@ class _ShellScaffold extends ConsumerWidget {
     // Five destinations: Orders is the umbrella for the Orders/Invoices hub
     // (sub-tabs inside), which is why `receipt_long` — "a record of a
     // transaction" — covers both halves better than either list's own icon.
-    // Analytics is business-sensitive and owner-only; Settings always stays
+    // Analytics is business-sensitive and owner-only; Shop (/settings) always stays
     // visible even in Staff mode — it's the only way back to Owner (PIN).
     final allDestinations = <_Dest>[
       _Dest(0, Icons.point_of_sale, l.navSell),
       _Dest(1, Icons.inventory_2, l.navInventory),
       _Dest(2, Icons.receipt_long, l.navOrders),
       _Dest(3, Icons.bar_chart, l.navAnalytics, ownerOnly: true),
-      _Dest(4, Icons.settings, l.navSettings),
+      _Dest(4, Icons.storefront, l.navShop),
     ];
     final destinations = allDestinations
         .where((d) => !d.ownerOnly || canSeeAnalytics)

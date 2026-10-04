@@ -5,35 +5,21 @@
 // requested action with the service role. Keeps the service key server-side —
 // the web dashboard only ever holds the anon key + an admin session.
 //
-// Actions (POST body { action, ... }):
-//   list_licenses / list_shops / list_requests / list_events / get_config
-//                                         -> rows for the dashboard's tabs
-//   lookup_shop { email|device_id|shop_id } -> one shop (fresh, for extend preview)
-//   extend_license { device_id|email, months } -> add months to every row of a shop
-//   create_license { shop_id, plan, months }   -> { key }
-//   fulfill_request { request_id, months? }    -> confirm a paid request
-//   reject_request { request_id, reason }      -> decline one
-//   reset_device { device_id }            -> clear a device binding
-//   reset_password { email }              -> { action_link } recovery URL
-//   unlink_account { user_id }            -> clear shop_id on a staff (or extra owner)
-//   restore_account { user_id }           -> lift a revoke_staff ban
-//   set_config { config }                 -> write allowlisted app_config keys
-//   set_device_allowance { shop_id, extra_slots, months } -> { extra_slots, extras_expires_at }
-//   set_shop_archived { shop_id, archived }   -> hide/restore a shop (revokes
-//                                              its licence; refuses if paid)
-//
-// Every action runs only after the admin-role check below; there is no path
-// to any of them that skips it.
-//
-// Deploy: supabase functions deploy admin
+// Subscriptions and devices are authoritative; manual payment and admin
+// renewals use transactional RPCs with stable payment identities.
+// Legacy issuance and extra-device actions return retired_path.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createClient,
+  type User,
+} from "https://esm.sh/@supabase/supabase-js@2";
+import { subscriptionStatus } from "../_shared/account_premium.ts";
 
 /// Longest licence term any single admin action may grant, in months.
 ///
 /// Three years is far beyond anything sold (plans are monthly or yearly) and
 /// exists to catch a typed digit, not to express a product limit.
-const MAX_LICENCE_MONTHS = 36;
+const MAX_LICENCE_MONTHS = 12;
 
 /// The only keys `set_config` may write.
 ///
@@ -52,14 +38,8 @@ const PUBLIC_CONFIG_KEYS = new Set([
   "pay.wavepay.name",
   "pay.wavepay.number",
   "support.viber",
-  "price.monthly",
-  "price.yearly",
-  "device.free_limit",
-  "device.extra_fee",
-  "pay.lemonsqueezy.store_slug",
   "pay.lemonsqueezy.variant_monthly",
   "pay.lemonsqueezy.variant_yearly",
-  "pay.lemonsqueezy.buy_now_url",
 ]);
 
 /// Validates a caller-supplied month count, returning it or an error string.
@@ -71,11 +51,14 @@ function checkMonths(value: unknown): { months: number } | { error: string } {
     return { error: "months_invalid" };
   }
   if (months > MAX_LICENCE_MONTHS) return { error: "months_too_large" };
+  if (months !== 1 && months !== 12) return { error: "months_invalid" };
   return { months };
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
+  if (req.method === "OPTIONS") {
+    return cors(new Response(null, { status: 204 }));
+  }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -120,318 +103,82 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
+  if (["create_license", "set_device_allowance"].includes(body.action ?? "")) {
+    return json({ error: "retired_path" }, 410);
+  }
+
   switch (body.action) {
     case "list_licenses": {
-      const { data, error } = await admin
-        .from("licenses")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(500);
-      if (error) return json({ error: "server_error" }, 500);
-      return json({ rows: data });
-    }
-
-    case "list_shops": {
-      // One row per shop, merged from three sources that only overlap on
-      // shop_id: licenses (name/plan/status — the common case, but NOT
-      // guaranteed: an auth.users row can outlive its license, see below),
-      // storefronts (phone/address — only shops that opted into the public
-      // storefront feature), and auth.users (email — lives only in Auth,
-      // never in a table; matched via app_metadata.shop_id, the same claim
-      // auth_shop_id() reads for RLS).
-      // `archived` (default false) lists the shops hidden by
-      // `set_shop_archived` INSTEAD of the live ones, so the console can offer
-      // a "show archived" view to restore from. Deliberately either/or rather
-      // than a merged list with a flag: an archived shop's licence is revoked,
-      // so mixing the two would put rows that look ordinary next to rows that
-      // are not, in the one screen where "extend this shop" is a click away.
-      const wantArchived = body.archived === true;
-      const { data: licRows, error: licErr } = await admin
-        .from("licenses")
-        .select(
-          "key, shop_id, shop_name, plan, status, expires_at, tier, device_id, updated_at",
-        )
-        .eq("is_deleted", wantArchived)
-        .order("updated_at", { ascending: false })
-        .limit(2000);
-      if (licErr) return json({ error: "server_error" }, 500);
-
-      // A shop can have multiple device rows (0025_multi_device_licensing.sql)
-      // — keep the most recently updated one per shop_id for the shop-level
-      // status/plan/expiry, and retain every row under `devices` so the
-      // admin 360 view can reset a specific phone.
-      // deno-lint-ignore no-explicit-any
-      const shops = new Map<string, any>();
-      // deno-lint-ignore no-explicit-any
-      const devicesByShop = new Map<string, any[]>();
-      for (const r of (licRows ?? [])) {
-        if (!shops.has(r.shop_id)) shops.set(r.shop_id, { ...r });
-        const list = devicesByShop.get(r.shop_id) ?? [];
-        list.push({
-          key: r.key,
-          device_id: r.device_id ?? null,
-          status: r.status,
-          expires_at: r.expires_at,
-          plan: r.plan,
-        });
-        devicesByShop.set(r.shop_id, list);
-      }
-
-      const { data: storeRows } = await admin
-        .from("storefronts")
-        .select("shop_id, phone, address");
-      const storeByShop = new Map<string, { phone: string | null; address: string | null }>();
-      for (const s of (storeRows ?? [])) {
-        storeByShop.set(s.shop_id, { phone: s.phone, address: s.address });
-      }
-
-      // shop_profiles mirrors ShopProfileScreen's contact fields for every
-      // shop, not just ones that opted into a public Storefront — the
-      // fallback source for phone/address/name. Storefront wins when both
-      // exist: it's the customer-facing, deliberately-published version,
-      // which can differ from what's saved on the receipt-header profile.
-      const { data: profileRows } = await admin
-        .from("shop_profiles")
-        .select("shop_id, name, phone, address")
-        .eq("is_deleted", false);
-      const profileByShop = new Map<
-        string,
-        { name: string | null; phone: string | null; address: string | null }
-      >();
-      for (const p of (profileRows ?? [])) {
-        profileByShop.set(p.shop_id, {
-          name: p.name,
-          phone: p.phone,
-          address: p.address,
-        });
-      }
-
-      // No query-by-metadata filter on the Admin Auth API — a single page is
-      // enough at this app's SME scale (same precedent as list_licenses's
-      // own limit(2000) / handleListStaff's limit(1000) in activate/index.ts,
-      // not built to paginate an unbounded user base).
-      const emailByShop = new Map<string, { email: string; role: string | null }>();
-      // deno-lint-ignore no-explicit-any
-      const accountsByShop = new Map<string, any[]>();
-      const { data: userPage } = await admin.auth.admin.listUsers({
-        page: 1,
-        perPage: 2000,
-      });
-      // deno-lint-ignore no-explicit-any
-      for (const u of ((userPage?.users ?? []) as any[])) {
-        const meta = u.app_metadata as Record<string, unknown> | null;
-        const sid = meta?.shop_id as string | undefined;
-        if (!sid) continue;
-        const role = (meta?.role as string | undefined) ?? null;
-        if (role === "admin") continue;
-        const bannedUntil = u.banned_until as string | null | undefined;
-        const banned = !!bannedUntil && new Date(bannedUntil) > new Date();
-        const account = {
-          id: u.id,
-          email: u.email ?? "",
-          role,
-          last_sign_in_at: u.last_sign_in_at ?? null,
-          banned,
-        };
-        const list = accountsByShop.get(sid) ?? [];
-        list.push(account);
-        accountsByShop.set(sid, list);
-        const existing = emailByShop.get(sid);
-        // Prefer the owner's email when a shop has multiple linked users
-        // (owner + invited staff).
-        if (!existing || role === "owner") {
-          emailByShop.set(sid, { email: u.email ?? "", role });
-        }
-      }
-
-      // A real login account can outlive its license (e.g. a shop whose
-      // license row was removed — a data wipe, a manual cleanup — while its
-      // auth.users row and app_metadata.shop_id claim were deliberately
-      // kept). Without this, such a shop is invisible here even though it's
-      // fully reachable and broken for the owner: nothing to extend, only
-      // to create fresh. Surface it with null license fields rather than
-      // silently dropping it.
-      //
-      // Skipped entirely for the archived view, and filtered by the archived
-      // set for the live one. This backfill predates archiving and knew
-      // nothing about it, which broke both lists the moment archiving
-      // shipped: an archived shop kept its auth account, so the live list
-      // re-added it here as `no_license` (archiving appeared to do nothing),
-      // while the archived list picked up every account-only shop in the
-      // system alongside the one actually archived. "Has an account but no
-      // live licence" and "was deliberately hidden" look identical from
-      // here, so the archived set is what tells them apart.
-      const { data: archivedRows } = await admin
-        .from("licenses")
-        .select("shop_id")
-        .eq("is_deleted", true);
-      const archivedShopIds = new Set(
-        ((archivedRows ?? []) as Array<{ shop_id: string }>).map((r) =>
-          r.shop_id
-        ),
+      const { data, error } = await admin.from("shop_devices").select(
+        "shop_id, device_id, user_id, released_at, last_active_at",
       );
-      if (!wantArchived) {
-        for (const [sid] of emailByShop) {
-          if (!shops.has(sid) && !archivedShopIds.has(sid)) {
-            shops.set(sid, {
-              shop_id: sid,
-              shop_name: null,
-              plan: null,
-              status: "no_license",
-              expires_at: null,
-              tier: null,
-            });
-          }
-        }
+      if (error) return json({ error: "server_error" }, 500);
+      return json({ rows: (data ?? []).filter((d) => !d.released_at) });
+    }
+    case "list_shops":
+    case "lookup_shop": {
+      const { data: subscriptions, error } = await admin.from(
+        "shop_subscriptions",
+      ).select("*")
+        .eq("is_archived", body.archived === true);
+      if (error) return json({ error: "server_error" }, 500);
+      const { data: profiles, error: profileError } = await admin.from(
+        "shop_profiles",
+      ).select("shop_id, name, phone, address");
+      const { data: devices, error: deviceError } = await admin.from(
+        "shop_devices",
+      ).select("*").is("released_at", null);
+      if (profileError || deviceError) {
+        return json({ error: "server_error" }, 500);
       }
-
-      const { data: allowRows } = await admin
-        .from("shop_device_allowance")
-        .select("shop_id, extra_slots, extras_expires_at");
-      const allowByShop = new Map<
-        string,
-        { extra_slots: number; extras_expires_at: string | null }
-      >();
-      for (const a of (allowRows ?? []) as Array<{
-        shop_id: string;
-        extra_slots: number;
-        extras_expires_at: string | null;
-      }>) {
-        allowByShop.set(a.shop_id, {
-          extra_slots: a.extra_slots,
-          extras_expires_at: a.extras_expires_at,
+      const users: User[] = [];
+      for (let page = 1;; page++) {
+        const { data, error: userError } = await admin.auth.admin.listUsers({
+          page,
+          perPage: 1000,
         });
+        if (userError) return json({ error: "server_error" }, 500);
+        users.push(...data.users);
+        if (data.users.length < 1000) break;
       }
-
-      const rows = Array.from(shops.values()).map((r) => {
-        const store = storeByShop.get(r.shop_id);
-        const profile = profileByShop.get(r.shop_id);
-        const em = emailByShop.get(r.shop_id);
-        const accounts = accountsByShop.get(r.shop_id) ?? [];
+      const rows = (subscriptions ?? []).map((sub) => {
+        const profile = (profiles ?? []).find((p) => p.shop_id === sub.shop_id);
+        const accounts = users.filter((u) =>
+          u.id === sub.owner_user_id || u.app_metadata?.shop_id === sub.shop_id
+        ).map((u) => ({
+          id: u.id,
+          user_id: u.id,
+          email: u.email,
+          role: u.app_metadata?.role,
+          banned_until: u.banned_until,
+          banned: !!u.banned_until && Date.parse(u.banned_until) > Date.now(),
+        }));
+        const bound = (devices ?? []).filter((d) => d.shop_id === sub.shop_id);
         return {
-          shop_id: r.shop_id,
-          shop_name: r.shop_name ?? profile?.name ?? null,
-          plan: r.plan,
-          status: r.status,
-          expires_at: r.expires_at,
-          tier: r.tier,
-          phone: store?.phone ?? profile?.phone ?? null,
-          address: store?.address ?? profile?.address ?? null,
-          email: em?.email ?? null,
+          ...sub,
+          shop_name: profile?.name || sub.shop_name || sub.shop_id,
+          phone: profile?.phone,
+          address: profile?.address,
+          status: subscriptionStatus(sub),
+          email: accounts.find((a) => a.role === "owner")?.email,
           accounts,
-          account_count: accounts.length,
-          devices: devicesByShop.get(r.shop_id) ?? [],
-          extra_slots: allowByShop.get(r.shop_id)?.extra_slots ?? 0,
-          extras_expires_at: allowByShop.get(r.shop_id)?.extras_expires_at ??
-            null,
+          devices: bound,
+          device_ids: bound.map((d) => d.device_id),
+          device_count: bound.length,
         };
       });
-      return json({ rows });
-    }
-
-    case "lookup_shop": {
-      const dev = (body.device_id ?? "").trim();
-      const email = (body.email ?? "").trim().toLowerCase();
-      const sidArg = (body.shop_id ?? "").trim();
-      if (!dev && !email && !sidArg) return json({ error: "bad_request" }, 400);
-
-      let shopId = sidArg || null;
-      if (!shopId && dev) {
-        const { data, error } = await admin
-          .from("licenses")
-          .select("shop_id")
-          .eq("device_id", dev)
-          .maybeSingle();
-        if (error) return json({ error: "server_error" }, 500);
-        shopId = data?.shop_id ?? null;
-      }
-      if (!shopId && email) {
-        const { data: userPage } = await admin.auth.admin.listUsers({
-          page: 1,
-          perPage: 2000,
-        });
-        // deno-lint-ignore no-explicit-any
-        const match = ((userPage?.users ?? []) as any[]).find(
-          (u) => `${u.email ?? ""}`.toLowerCase() === email,
-        );
-        const meta = match?.app_metadata as Record<string, unknown> | undefined;
-        shopId = (meta?.shop_id as string | undefined) ?? null;
-      }
-      if (!shopId) return json({ error: "not_found" }, 404);
-
-      const { data: licRows, error: licErr } = await admin
-        .from("licenses")
-        .select(
-          "key, shop_id, shop_name, plan, status, expires_at, tier, device_id, updated_at",
-        )
-        .eq("shop_id", shopId)
-        .eq("is_deleted", false)
-        .order("updated_at", { ascending: false });
-      if (licErr) return json({ error: "server_error" }, 500);
-      const primary = (licRows ?? [])[0] ?? null;
-
-      const { data: store } = await admin
-        .from("storefronts")
-        .select("phone, address")
-        .eq("shop_id", shopId)
-        .maybeSingle();
-      const { data: profile } = await admin
-        .from("shop_profiles")
-        .select("name, phone, address")
-        .eq("shop_id", shopId)
-        .eq("is_deleted", false)
-        .maybeSingle();
-
-      const { data: userPage } = await admin.auth.admin.listUsers({
-        page: 1,
-        perPage: 2000,
-      });
-      // deno-lint-ignore no-explicit-any
-      const accounts = ((userPage?.users ?? []) as any[])
-        .filter((u) => {
-          const meta = u.app_metadata as Record<string, unknown> | null;
-          return (meta?.shop_id as string | undefined) === shopId &&
-            meta?.role !== "admin";
-        })
-        .map((u) => {
-          const meta = u.app_metadata as Record<string, unknown> | null;
-          const bannedUntil = u.banned_until as string | null | undefined;
-          return {
-            id: u.id,
-            email: u.email ?? "",
-            role: (meta?.role as string | undefined) ?? null,
-            last_sign_in_at: u.last_sign_in_at ?? null,
-            banned: !!bannedUntil && new Date(bannedUntil) > new Date(),
-          };
-        });
-      const owner = accounts.find((a) => a.role === "owner") ?? accounts[0];
-
-      if (!primary && accounts.length === 0) {
-        return json({ error: "not_found" }, 404);
-      }
-
-      return json({
-        shop: {
-          shop_id: shopId,
-          shop_name: primary?.shop_name ?? profile?.name ?? null,
-          plan: primary?.plan ?? null,
-          status: primary?.status ?? "no_license",
-          expires_at: primary?.expires_at ?? null,
-          tier: primary?.tier ?? null,
-          phone: store?.phone ?? profile?.phone ?? null,
-          address: store?.address ?? profile?.address ?? null,
-          email: owner?.email ?? null,
-          accounts,
-          account_count: accounts.length,
-          devices: (licRows ?? []).map((r) => ({
-            key: r.key,
-            device_id: r.device_id ?? null,
-            status: r.status,
-            expires_at: r.expires_at,
-            plan: r.plan,
-          })),
-        },
-      });
+      if (body.action === "list_shops") return json({ rows });
+      const shop = rows.find((r) =>
+        body.shop_id
+          ? r.shop_id === body.shop_id
+          : body.email
+          ? r.accounts.some((a: { role: string; email?: string }) =>
+            a.role === "owner" &&
+            a.email?.toLowerCase() === body.email?.toLowerCase()
+          )
+          : r.device_ids.includes(body.device_id)
+      );
+      return shop ? json({ shop }) : json({ error: "not_found" }, 404);
     }
 
     case "reset_password": {
@@ -446,8 +193,10 @@ Deno.serve(async (req) => {
       });
       if (error) {
         const msg = error.message ?? "";
-        if (msg.toLowerCase().includes("not found") ||
-          msg.toLowerCase().includes("unable to find")) {
+        if (
+          msg.toLowerCase().includes("not found") ||
+          msg.toLowerCase().includes("unable to find")
+        ) {
           return json({ error: "not_found" }, 404);
         }
         return json({ error: "server_error", detail: msg }, 500);
@@ -472,20 +221,12 @@ Deno.serve(async (req) => {
       if (role === "admin") return json({ error: "cannot_unlink_admin" }, 403);
       if (!shopId) return json({ error: "not_found" }, 404);
 
-      if (role === "owner") {
-        const { data: userPage } = await admin.auth.admin.listUsers({
-          page: 1,
-          perPage: 2000,
-        });
-        // deno-lint-ignore no-explicit-any
-        const owners = ((userPage?.users ?? []) as any[]).filter((u) => {
-          const m = u.app_metadata as Record<string, unknown> | null;
-          return (m?.shop_id as string | undefined) === shopId &&
-            m?.role === "owner" &&
-            u.id !== userId;
-        });
-        if (owners.length === 0) return json({ error: "last_owner" }, 400);
-      }
+      const { data: owned, error: ownerError } = await admin.from(
+        "shop_subscriptions",
+      )
+        .select("shop_id").eq("owner_user_id", userId).limit(1);
+      if (ownerError) return json({ error: "server_error" }, 500);
+      if (owned?.length) return json({ error: "last_owner" }, 400);
 
       const { error } = await admin.auth.admin.updateUserById(userId, {
         app_metadata: { ...meta, shop_id: "", role: "" },
@@ -513,397 +254,90 @@ Deno.serve(async (req) => {
     }
 
     case "extend_license": {
-      // Extend whatever license matches an App Reference ID (device_id —
-      // a specific device) or an email (the shop's account — matches any
-      // of its devices, resolved via app_metadata.shop_id same as
-      // list_shops/storefront's own email lookup). At least one required;
-      // device_id is tried first since it names an exact license row,
-      // email only a shop.
-      const dev = (body.device_id ?? "").trim();
-      const email = (body.email ?? "").trim().toLowerCase();
-      const checked = checkMonths(body.months ?? 1);
+      const checked = checkMonths(body.months);
       if ("error" in checked) return json({ error: checked.error }, 400);
-      const months = checked.months;
-      if (!dev && !email) return json({ error: "bad_request" }, 400);
-
-      // deno-lint-ignore no-explicit-any
-      let lic: any = null;
-      if (dev) {
-        const { data, error: findErr } = await admin
-          .from("licenses")
-          .select("key, shop_id, shop_name")
-          .eq("device_id", dev)
-          .maybeSingle();
-        if (findErr) return json({ error: "server_error" }, 500);
-        lic = data;
+      if (!body.shop_id || !body.id) {
+        return json({ error: "shop_and_operation_id_required" }, 400);
       }
-
-      let shopId: string | null = lic?.shop_id ?? null;
-      if (!lic && email) {
-        const { data: userPage } = await admin.auth.admin.listUsers({
-          page: 1,
-          perPage: 2000,
-        });
-        // deno-lint-ignore no-explicit-any
-        const match = ((userPage?.users ?? []) as any[]).find(
-          (u) => `${u.email ?? ""}`.toLowerCase() === email,
-        );
-        const meta = match?.app_metadata as Record<string, unknown> | undefined;
-        shopId = (meta?.shop_id as string | undefined) ?? null;
-        if (!shopId) return json({ error: "not_found" }, 404);
-
-        const { data, error: findErr } = await admin
-          .from("licenses")
-          .select("key, shop_id, shop_name")
-          .eq("shop_id", shopId)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (findErr) return json({ error: "server_error" }, 500);
-        lic = data;
-      }
-
-      if (!lic && !shopId) return json({ error: "not_found" }, 404);
-
-      // Guard against a double-click / two-tab race on this manual admin
-      // action — unlike fulfill_request (an atomic pending->processing claim
-      // on a request row), extend_license has no natural row to claim before
-      // minting. An identical extend already logged for this exact key
-      // within the window below is almost certainly the same click landing
-      // twice (slow network + impatience, or two open admin tabs), not two
-      // genuinely separate intended extensions. (Scoped to the `lic` branch
-      // only — license_events has no shop_id column, only `key`, so the rare
-      // zero-license-rows mint-fresh branch below has no matching key yet to
-      // guard on.)
-      //
-      // The window MUST stay comfortably longer than the client's own invoke
-      // timeout (`kEdgeInvokeTimeout`, 15s — see lib/core/net/edge_invoke.dart).
-      // It was 10s, i.e. SHORTER: a slow extend that actually committed at
-      // t=8s still timed out on the client at t=15s, and the admin — shown a
-      // failure — clicked again at t≈20s with the window already closed, so
-      // 12 paid months became 24 granted. 90s also covers the human "did that
-      // work? let me try once more" interval, which 15s alone would not.
-      if (lic) {
-        const recentDupeWindow = new Date(Date.now() - 90_000).toISOString();
-        const { data: recent } = await admin
-          .from("license_events")
-          .select("expires_at")
-          .eq("key", lic.key)
-          .eq("action", "extend")
-          .eq("months", months)
-          .gte("created_at", recentDupeWindow)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (recent) {
-          return json({
-            expires_at: recent.expires_at,
-            key: lic.key,
-            created: false,
-            duplicate: true,
-          });
-        }
-      }
-
-      // A resolved shop with a real account but zero license rows (e.g. one
-      // removed by a data cleanup while the login was deliberately kept) has
-      // nothing to renew — mint fresh instead of failing.
-      if (!lic) {
-        const { data: newKey, error: createErr } = await admin.rpc(
-          "create_license",
-          { p_shop_id: shopId, p_plan: "monthly", p_months: months },
-        );
-        if (createErr) {
-          return json({ error: "server_error", detail: createErr.message }, 500);
-        }
-        const { data: created } = await admin
-          .from("licenses")
-          .select("expires_at")
-          .eq("key", newKey)
-          .maybeSingle();
-        await logEvent(admin, {
-          device_id: dev || null,
-          shop_name: null,
-          key: newKey,
-          action: "extend",
-          months,
-          expires_at: created?.expires_at,
-        });
-        return json({
-          expires_at: created?.expires_at,
-          key: newKey,
-          created: true,
-        });
-      }
-
-      const { data, error } = await admin.rpc("renew_license", {
-        p_key: lic.key,
-        p_months: months,
+      const { data, error } = await admin.rpc("renew_shop_subscription", {
+        p_shop_id: body.shop_id,
+        p_months: checked.months,
+        p_payment_id: `admin:${body.id}`,
       });
-      if (error) return json({ error: "server_error", detail: error.message }, 500);
-      await logEvent(admin, {
-        device_id: dev || null,
-        shop_name: lic.shop_name,
-        key: lic.key,
-        action: "extend",
-        months,
-        expires_at: data,
-      });
-      return json({ expires_at: data, key: lic.key, created: false });
+      if (error) {
+        return json({ error: "server_error", detail: error.message }, 500);
+      }
+      return json({ ...data, ok: true, rows: 1 });
     }
-
     case "reset_device": {
-      // Clear the device binding so a reinstalled user can re-activate.
-      const dev = (body.device_id ?? "").trim();
-      if (!dev) return json({ error: "bad_request" }, 400);
-      const { data, error } = await admin
-        .from("licenses")
-        .update({ device_id: null, updated_at: new Date().toISOString() })
-        .eq("device_id", dev)
-        .select("key");
-      if (error) return json({ error: "server_error" }, 500);
-      return json({ ok: true, cleared: (data ?? []).length });
-    }
-
-    case "list_requests": {
-      const { data, error } = await admin
-        .from("license_requests")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) return json({ error: "server_error" }, 500);
-
-      // Resolve each request's matched shop_id (stamped by the public
-      // /renew form's unverified email->account lookup, or by an
-      // already-signed-in app) to that shop's ACTUAL registered name, so
-      // the admin can spot a request typed under one shop_name that
-      // actually resolved to a DIFFERENT shop (email typo, or someone
-      // else's account email) before hitting "Confirm payment" — the email
-      // field has no ownership proof, so this resolved name is the
-      // reviewer's only real cross-check.
-      const shopIds = Array.from(
-        new Set(
-          (data ?? [])
-            .map((r) => `${r.shop_id ?? ""}`.trim())
-            .filter((id) => id.length > 0),
-        ),
-      );
-      const resolvedNames = new Map<string, string>();
-      if (shopIds.length > 0) {
-        const { data: licRows } = await admin
-          .from("licenses")
-          .select("shop_id, shop_name")
-          .in("shop_id", shopIds);
-        for (const r of licRows ?? []) {
-          if (r.shop_name && !resolvedNames.has(r.shop_id)) {
-            resolvedNames.set(r.shop_id, r.shop_name as string);
-          }
-        }
+      if (!body.shop_id || !body.device_id) {
+        return json({ error: "bad_request" }, 400);
       }
-      const rows = (data ?? []).map((r) => ({
-        ...r,
-        resolved_shop_name: resolvedNames.get(`${r.shop_id ?? ""}`.trim()) ??
-          null,
-      }));
-      return json({ rows });
-    }
-
-    case "fulfill_request": {
-      const reqId = (body.request_id ?? "").trim();
-      if (!reqId) return json({ error: "bad_request" }, 400);
-      const { data: reqRow, error: reqErr } = await admin
-        .from("license_requests")
-        .select("*")
-        .eq("id", reqId)
-        .maybeSingle();
-      if (reqErr) return json({ error: "server_error" }, 500);
-      if (!reqRow) return json({ error: "not_found" }, 404);
-
-      // Bound the term BEFORE the claim below, deliberately: rejecting after
-      // the claim would leave the request stranded at "processing" with
-      // nothing minted, which is the exact state the claim/release dance
-      // exists to prevent.
-      const fulfilMonths = checkMonths(body.months ?? reqRow.months ?? 1);
-      if ("error" in fulfilMonths) {
-        return json({ error: fulfilMonths.error }, 400);
+      const { data: subscription } = await admin.from("shop_subscriptions")
+        .select("owner_user_id").eq("shop_id", body.shop_id).maybeSingle();
+      if (!subscription?.owner_user_id) {
+        return json({ error: "not_found" }, 404);
       }
-
-      // Idempotency: atomically claim this request (pending -> processing)
-      // BEFORE minting/extending anything. renew_license/create_license are
-      // not idempotent — a double "Confirm payment" click, a retried call
-      // after a perceived timeout, or two admin tabs open on the same
-      // request must not both mint/extend for one payment. Only the caller
-      // that wins this conditional update proceeds; every other caller sees
-      // `already_fulfilled` immediately. If the mint below fails, the claim
-      // is released back to "pending" so the request can be retried instead
-      // of getting stuck at "processing" forever.
-      const { data: claimed, error: claimErr } = await admin
-        .from("license_requests")
-        .update({ status: "processing", updated_at: new Date().toISOString() })
-        .eq("id", reqId)
-        .eq("status", "pending")
-        .select("id")
-        .maybeSingle();
-      if (claimErr) return json({ error: "server_error" }, 500);
-      if (!claimed) return json({ error: "already_fulfilled" }, 409);
-
-      const months = fulfilMonths.months;
-      const dev = (reqRow.device_id ?? "").trim();
-      const reqShopId = (reqRow.shop_id ?? "").trim();
-
-      // If this shop already has a license, this is a RENEWAL → extend it.
-      // Prefer shop_id (the app sends its own shopId whenever it already has
-      // one) over device_id: a shop can have multiple devices/rows
-      // (0025_multi_device_licensing.sql) with only one device_id stamped on
-      // any given row, so a device_id-only lookup can miss and wrongly fall
-      // through to "issue new" for a shop that's already paying. shop_id
-      // matches ANY of the shop's rows — good enough, since renew_license
-      // already extends every row sharing that shop_id. device_id stays as
-      // the fallback for requests submitted before this column existed, or a
-      // genuinely brand-new offline customer with no shop_id yet.
-      let existing: { key: string; shop_id: string } | null = null;
-      if (reqShopId) {
-        const { data } = await admin
-          .from("licenses")
-          .select("key, shop_id")
-          .eq("shop_id", reqShopId)
-          .eq("is_deleted", false)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        existing = data;
-      } else if (dev) {
-        const { data } = await admin
-          .from("licenses")
-          .select("key, shop_id")
-          .eq("device_id", dev)
-          .maybeSingle();
-        existing = data;
-      }
-
-      // Releases this request's claim back to "pending" so a failed mint can
-      // be retried through the normal admin flow instead of getting stuck at
-      // "processing" forever with no license actually extended.
-      const releaseClaim = () =>
-        admin
-          .from("license_requests")
-          .update({ status: "pending" })
-          .eq("id", reqId);
-
-      let key: string;
-      let expiresAt: string | null = null;
-      let action: string;
-      if (existing?.key) {
-        const { data, error } = await admin.rpc("renew_license", {
-          p_key: existing.key,
-          p_months: months,
-        });
-        if (error) {
-          await releaseClaim();
-          return json({ error: "server_error", detail: error.message }, 500);
-        }
-        key = existing.key;
-        expiresAt = data as string;
-        action = "extend";
-      } else {
-        const shopId = `shop-${reqId.replace(/-/g, "").slice(0, 10)}`;
-        const { data: newKey, error: mkErr } = await admin.rpc("create_license", {
-          p_shop_id: shopId,
-          p_plan: reqRow.plan ?? "monthly",
-          p_months: months,
-          p_shop_name: reqRow.shop_name ?? null,
-        });
-        if (mkErr) {
-          await releaseClaim();
-          return json({ error: "server_error", detail: mkErr.message }, 500);
-        }
-        key = newKey as string;
-        action = "issue";
-      }
-
-      // The license is already minted at this point (create_license/
-      // renew_license above committed) — this status flip is bookkeeping on
-      // top of that. If it silently fails, the request row stays "pending"
-      // and a second "Confirm payment" click would mint/extend AGAIN for the
-      // same shop (create_license has no shop_id uniqueness guard), so the
-      // caller must be told this didn't fully succeed rather than getting a
-      // response indistinguishable from a clean fulfill.
-      const { error: markErr } = await admin
-        .from("license_requests")
-        .update({
-          status: "fulfilled",
-          issued_key: key,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", reqId);
-      await logEvent(admin, {
-        device_id: dev || null,
-        shop_name: reqRow.shop_name ?? null,
-        key,
-        action,
-        months,
-        expires_at: expiresAt,
+      const { error } = await admin.rpc("release_shop_device", {
+        p_user_id: subscription.owner_user_id,
+        p_shop_id: body.shop_id,
+        p_device_id: body.device_id,
       });
-
-      if (markErr) {
-        return json({
-          key,
-          action,
-          request_marked_fulfilled: false,
-          detail: markErr.message,
-        });
+      return error
+        ? json({ error: "server_error" }, 500)
+        : json({ ok: true, rows: 1 });
+    }
+    case "list_requests": {
+      const { data, error } = await admin.from("license_requests")
+        .select(
+          "id, shop_id, shop_name, owner_user_id, plan, months, amount, method, ref_no, phone, payment_proof_path, payment_status, status, created_at, invoice_no, fulfilled_expires_at",
+        )
+        .order("created_at", { ascending: false }).limit(500);
+      return error
+        ? json({ error: "server_error" }, 500)
+        : json({ rows: data });
+    }
+    case "fulfill_request": {
+      if (!body.request_id) return json({ error: "bad_request" }, 400);
+      const { data, error } = await admin.rpc("fulfill_account_payment", {
+        p_request_id: body.request_id,
+      });
+      if (error) {
+        return json(
+          { error: "payment_not_fulfilled", detail: error.message },
+          409,
+        );
       }
-      return json({ key, action, request_marked_fulfilled: true });
+      return json({ ...data, request_marked_fulfilled: true });
     }
 
     case "reject_request": {
-      const reqId = (body.request_id ?? "").trim();
-      if (!reqId) return json({ error: "bad_request" }, 400);
-      const reason = (body.reason ?? "").trim();
-      const { data: reqRow, error: reqErr } = await admin
-        .from("license_requests")
-        .select("*")
-        .eq("id", reqId)
-        .maybeSingle();
-      if (reqErr) return json({ error: "server_error" }, 500);
-      if (!reqRow) return json({ error: "not_found" }, 404);
-
-      // Nothing irreversible has happened yet (no license minted for a
-      // rejection), unlike fulfill_request above — so unlike there, it's
-      // safe to hard-fail here on an update error rather than reporting a
-      // partial success; the admin is told to retry instead of believing
-      // the request was declined when the row is actually still pending.
-      const { error: updateErr } = await admin
-        .from("license_requests")
-        .update({
-          status: "rejected",
-          reject_reason: reason || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", reqId);
-      if (updateErr) {
-        return json({ error: "server_error", detail: updateErr.message }, 500);
-      }
-      await logEvent(admin, {
-        device_id: (reqRow.device_id ?? "").trim() || null,
-        shop_name: reqRow.shop_name ?? null,
-        action: "reject",
+      if (!body.request_id) return json({ error: "bad_request" }, 400);
+      const { data, error } = await admin.rpc("reject_account_payment", {
+        p_request_id: body.request_id,
+        p_reason: body.reason ?? "",
       });
-      return json({ ok: true });
+      return error ? json({ error: "request_not_pending" }, 409) : json(data);
     }
 
     case "list_events": {
-      const { data, error } = await admin
-        .from("license_events")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
+      const { data, error } = await admin.from("shop_subscription_payments")
+        .select("payment_id, shop_id, months, expires_at, created_at")
+        .order("created_at", { ascending: false }).limit(500);
       if (error) return json({ error: "server_error" }, 500);
-      return json({ rows: data });
+      return json({
+        rows: (data ?? []).map((row) => ({
+          ...row,
+          shop_name: row.shop_id,
+          action: "extend",
+        })),
+      });
     }
 
     case "get_config": {
-      const { data, error } = await admin.from("app_config").select("key, value");
+      const { data, error } = await admin.from("app_config").select(
+        "key, value",
+      ).in("key", [...PUBLIC_CONFIG_KEYS]);
       if (error) return json({ error: "server_error" }, 500);
       return json({ rows: data });
     }
@@ -928,180 +362,46 @@ Deno.serve(async (req) => {
           400,
         );
       }
+      if (
+        entries.some(([key, value]) =>
+          typeof value !== "string" ||
+          (key.startsWith("pay.lemonsqueezy.variant_") && value.trim() !== "" &&
+            (!/^[1-9]\d*$/.test(value.trim()) ||
+              !Number.isSafeInteger(Number(value))))
+        )
+      ) return json({ error: "invalid_config_value" }, 400);
       const rows = entries.map(([key, value]) => ({
         key,
-        value: `${value}`,
+        value: value.trim(),
         updated_at: new Date().toISOString(),
       }));
       const { error } = await admin.from("app_config").upsert(rows);
-      if (error) return json({ error: "server_error", detail: error.message }, 500);
+      if (error) {
+        return json({ error: "server_error", detail: error.message }, 500);
+      }
       return json({ ok: true });
     }
 
-    case "create_license": {
-      const shopId = (body.shop_id ?? "").trim();
-      const plan = (body.plan ?? "monthly").trim();
-      const createMonths = checkMonths(body.months ?? 1);
-      if ("error" in createMonths) return json({ error: createMonths.error }, 400);
-      const months = createMonths.months;
-      if (!shopId) return json({ error: "bad_request" }, 400);
-
-      // create_license has no shop_id uniqueness guard at the DB level (a
-      // plain insert) — this is the FAB "Generate key" path, reachable for
-      // ANY shop_id an admin types in, unlike the Shops-tab button which is
-      // only ever shown for rows already known to have status: 'no_license'.
-      // Guard here so typing in a shop_id that already has an active
-      // license can't silently mint a second live license row for it.
-      const { data: existingLic, error: existErr } = await admin
-        .from("licenses")
-        .select("key")
-        .eq("shop_id", shopId)
-        .eq("is_deleted", false)
-        .limit(1)
-        .maybeSingle();
-      if (existErr) return json({ error: "server_error" }, 500);
-      if (existingLic) return json({ error: "license_already_exists" }, 400);
-
-      const { data, error } = await admin.rpc("create_license", {
-        p_shop_id: shopId,
-        p_plan: plan,
-        p_months: months,
-        p_shop_name: (body.shop_name ?? "").trim() || null,
-      });
-      if (error) return json({ error: "server_error", detail: error.message }, 500);
-      return json({ key: data });
-    }
-
-    case "set_device_allowance": {
-      // Paid extras on top of the free 3 (main phone + 2). No key — the
-      // extra phone signs in and taps Check for renewal.
-      const shopId = (body.shop_id ?? "").trim();
-      const extraSlots = Number(body.extra_slots ?? 0);
-      const months = Number(body.months ?? 0);
-      if (!shopId) return json({ error: "bad_request" }, 400);
-      if (!Number.isFinite(extraSlots) || extraSlots < 0 || extraSlots !== Math.trunc(extraSlots)) {
-        return json({ error: "bad_request" }, 400);
-      }
-      // `months` is only meaningful when slots are actually being granted —
-      // revoking (extraSlots 0) passes a fixed 1 below and ignores it.
-      if (extraSlots > 0) {
-        const allowanceMonths = checkMonths(months);
-        if ("error" in allowanceMonths) {
-          return json({ error: allowanceMonths.error }, 400);
-        }
-      }
-      const { data, error } = await admin.rpc("set_shop_device_allowance", {
-        p_shop_id: shopId,
-        p_extra_slots: extraSlots,
-        p_months: extraSlots === 0 ? 1 : months,
+    case "set_shop_archived": {
+      if (!body.shop_id) return json({ error: "bad_request" }, 400);
+      const { data, error } = await admin.rpc("archive_shop_subscription", {
+        p_shop_id: body.shop_id,
+        p_archived: body.archived === true,
       });
       if (error) {
-        const detail = error.message ?? "";
-        if (detail.includes("must be")) {
-          return json({ error: "bad_request", detail }, 400);
-        }
-        return json({ error: "server_error", detail }, 500);
+        return json({
+          error: error.message.includes("shop_is_paid")
+            ? "shop_is_paid"
+            : "server_error",
+        }, 409);
       }
-      const payload = (typeof data === "string" ? JSON.parse(data) : data) as {
-        extra_slots?: number;
-        extras_expires_at?: string | null;
-      } | null;
-      await logEvent(admin, {
-        // shop_id added in 0092: the History tab has always rendered this
-        // row as `Extra devices granted · N · <shop_id>`, reading a column
-        // that did not exist, so every one of them showed a bare "—".
-        shop_id: shopId,
-        device_id: null,
-        shop_name: null,
-        key: null,
-        action: "device_allowance",
-        months: extraSlots === 0 ? 0 : months,
-      });
-      return json({
-        extra_slots: payload?.extra_slots ?? extraSlots,
-        extras_expires_at: payload?.extras_expires_at ?? null,
-      });
-    }
-
-    // Hide a shop from the console, or bring it back.
-    //
-    // Implemented as `licenses.is_deleted`, which already existed and which
-    // `list_shops` already filtered on — so no new column, and archiving is
-    // exactly reversible by flipping it back.
-    //
-    // Be clear about what this costs, because the flag is not cosmetic: the
-    // same `is_deleted` is filtered by `activate`'s re-verify and resync
-    // lookups, so archiving **revokes the shop's licence** and its app falls
-    // back to Free at the next check. That is the intent for an abandoned or
-    // test shop; it would be a silent, invoice-shaped disaster for a paying
-    // one, which is why an active paid shop is refused below rather than
-    // merely warned about. Downgrade or let it expire first, deliberately.
-    case "set_shop_archived": {
-      const shopId = (body.shop_id ?? "").trim();
-      if (!shopId) return json({ error: "bad_request" }, 400);
-      const archived = body.archived === true;
-
-      // Every row for this shop, in whichever state it is currently in — a
-      // shop has one licence row per device (0025_multi_device_licensing).
-      const { data: rows, error: readErr } = await admin
-        .from("licenses")
-        .select("key, plan, status, shop_name")
-        .eq("shop_id", shopId)
-        .eq("is_deleted", !archived);
-      if (readErr) return json({ error: "server_error" }, 500);
-      if (!rows || rows.length === 0) return json({ error: "not_found" }, 404);
-
-      if (archived) {
-        // Same rule the console's own plan-mix uses (`_planMixBucket` in
-        // admin_stats.dart): paid means an active licence whose plan is
-        // neither free nor trial.
-        // deno-lint-ignore no-explicit-any
-        const paid = rows.filter((r: any) => {
-          const plan = `${r.plan ?? ""}`;
-          return r.status === "active" &&
-            plan !== "" && plan !== "free" && plan !== "trial";
-        });
-        if (paid.length > 0) {
-          return json({
-            error: "shop_is_paid",
-            detail: `${paid.length} active paid licence(s)`,
-          }, 409);
-        }
-      }
-
-      const { error: writeErr } = await admin
-        .from("licenses")
-        .update({ is_deleted: archived, updated_at: new Date().toISOString() })
-        .eq("shop_id", shopId)
-        .eq("is_deleted", !archived);
-      if (writeErr) return json({ error: "server_error" }, 500);
-
-      await logEvent(admin, {
-        shop_id: shopId,
-        // deno-lint-ignore no-explicit-any
-        shop_name: (rows as any[])[0]?.shop_name ?? null,
-        device_id: null,
-        key: null,
-        action: archived ? "archive" : "restore",
-        months: null,
-      });
-
-      return json({ ok: true, rows: rows.length });
+      return json(data);
     }
 
     default:
       return json({ error: "unknown_action" }, 400);
   }
 });
-
-// deno-lint-ignore no-explicit-any
-async function logEvent(admin: any, event: Record<string, unknown>) {
-  try {
-    await admin.from("license_events").insert(event);
-  } catch (_) {
-    // audit log is best-effort; never fail the main action over it
-  }
-}
 
 function cors(res: Response): Response {
   res.headers.set("Access-Control-Allow-Origin", "*");

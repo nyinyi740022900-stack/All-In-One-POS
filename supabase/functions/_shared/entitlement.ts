@@ -1,29 +1,4 @@
-// Server-signed entitlement receipt — the proof the app checks before it
-// unlocks Premium.
-//
-// Why this exists: the app caches the shop's plan and expiry on the phone, and
-// a plain JSON cache can be edited (a rooted device, a restored backup) to
-// push the expiry out. The server now signs {shop, plan, expiry, issued-at}
-// with an Ed25519 key it alone holds; the app verifies that signature with the
-// public key baked into `lib/features/license/entitlement.dart` and ignores
-// any cached expiry that doesn't match one.
-//
-// This is NOT an offline licence code. Nobody types or sends it, it can't be
-// minted for a shop that has no licence row, and it carries the licence's REAL
-// expiry (the removed offline token was valid 30 days from issue regardless).
-// Buying or renewing still needs the internet once, exactly as before.
-//
-// Bound to the shop, not the device: a receipt copied between phones only
-// grants the same shop's own Premium, and binding to a device would force every
-// branch-switch / resync payload to carry a device id it doesn't have today.
-//
-// Token: "AIOE1.<base64url(payload)>.<base64url(signature)>", the signature
-// being over the ASCII string "AIOE1." + base64url(payload).
-//
-// Secret: ENTITLEMENT_SIGNING_KEY_HEX (32-byte Ed25519 seed, hex). If it isn't
-// set the field is simply omitted and the app treats the plan as Free — it
-// fails closed, never open.
-
+// Version 2 server-signed account/shop/device Premium receipt.
 import * as ed from "https://esm.sh/@noble/ed25519@2.1.0";
 
 const PREFIX = "AIOE1.";
@@ -45,6 +20,9 @@ function hexToBytes(hex: string): Uint8Array {
 export interface EntitlementInput {
   shopId: string;
   plan: string;
+  userId: string;
+  deviceId: string;
+  revision: number;
   /** The licence's own expiry, ISO 8601. */
   expiresAt: string;
 }
@@ -56,18 +34,28 @@ export async function signEntitlement(
 ): Promise<string | undefined> {
   try {
     const keyHex = Deno.env.get("ENTITLEMENT_SIGNING_KEY_HEX");
-    if (!keyHex) return undefined;
+    if (!keyHex || !/^[0-9a-fA-F]{64}$/.test(keyHex)) return undefined;
     const shopId = (input.shopId ?? "").trim();
     const expMs = Date.parse(input.expiresAt);
-    if (!shopId || Number.isNaN(expMs)) return undefined;
+    if (
+      !shopId || !input.userId?.trim() || !input.deviceId?.trim() ||
+      !Number.isSafeInteger(input.revision) || input.revision < 1 ||
+      !["monthly", "yearly", "trial"].includes(input.plan) ||
+      Number.isNaN(expMs)
+    ) return undefined;
     const payload = {
-      v: 1,
+      v: 2,
+      user_id: input.userId,
+      device_id: input.deviceId,
+      revision: input.revision,
       shop_id: shopId,
       plan: input.plan,
       exp: Math.floor(expMs / 1000),
       iat: Math.floor(Date.now() / 1000),
     };
-    const payloadB64 = b64url(new TextEncoder().encode(JSON.stringify(payload)));
+    const payloadB64 = b64url(
+      new TextEncoder().encode(JSON.stringify(payload)),
+    );
     const message = new TextEncoder().encode(PREFIX + payloadB64);
     const sig = await ed.signAsync(message, hexToBytes(keyHex));
     return PREFIX + payloadB64 + "." + b64url(sig);
@@ -87,7 +75,10 @@ export async function withEntitlement(
   if (!shopId || !expiresAt) return body;
   const entitlement = await signEntitlement({
     shopId,
-    plan: String(body.plan ?? "monthly"),
+    plan: String(body.plan ?? "free"),
+    userId: String(body.user_id ?? ""),
+    deviceId: String(body.device_id ?? ""),
+    revision: Number(body.revision),
     expiresAt,
   });
   return {

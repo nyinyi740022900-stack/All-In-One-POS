@@ -11,12 +11,13 @@ Two languages everywhere: English + Myanmar.
 
 ## Stack & conventions
 - **State:** Riverpod. **Routing:** go_router (`StatefulShellRoute`, **5 tabs**:
-  Sell, Inventory, Orders, Analytics, Settings). The **Orders** destination is a
+  Sell, Inventory, Orders, Analytics, Shop — route `/settings`; the Shop tab
+  leads with Daily rows (Customers, Credit book, Cash register…) above Setup). The **Orders** destination is a
   hub with two sub-tabs — Orders (pre-sale social orders) and Invoices (the
   completed-sale ledger) — served by ONE `StatefulShellBranch` carrying two
   routes, `/orders` and `/invoices`, so both URLs and their deep links still
   resolve to the right sub-tab. Analytics is `ownerOnly` (hidden in Staff mode,
-  giving 4 tabs); Settings always stays visible as the PIN escape hatch.
+  giving 4 tabs); Shop (/settings) always stays visible as the PIN escape hatch.
 - **Local DB:** Drift (SQLite) — offline source of truth. **Cloud:** Supabase.
 - **Structure:** feature-first under `lib/features/<name>/` (screen + providers +
   repository). Shared: `lib/core`, `lib/data` (local db, repositories, sync),
@@ -98,7 +99,7 @@ missing watch or the misrouted key:
 - **Sales are append-only** (immutable ledger) — never update a sale.
 - Every row has a client-generated UUID (idempotent retries).
 - **Multi-tenant:** RLS `shop_isolation` on every synced table; users get the
-  `shop_id` JWT claim via `activate` (keys) or `start_trial` (trials). Applying
+  `shop_id` JWT claim via authenticated account provisioning. Applying
   a migration that only drops `dev_open` without (re)creating `shop_isolation`
   will make tables default-deny and break the app — always recreate it.
 
@@ -107,22 +108,27 @@ missing watch or the misrouted key:
   then `flutter gen-l10n`. `i18n_parity_test.dart` fails on missing keys.
 
 ## Licensing
-- Online only: key `activate` (device-bound, one device per key) or account
-  sign-in (`refresh_account_license`) + subscribe requests + auto re-verify.
-  Offline license codes (`MMPOS1.` Ed25519 tokens) were removed 2026-10-02
-  (#343) — every purchase/renewal needs internet once anyway, and a token
-  could not be revoked. Free 2-month trial is server-tracked per device.
-- **Premium needs a server-signed receipt** (`entitlement`, `AIOE1.` Ed25519,
-  `lib/features/license/entitlement.dart`): the cached plan/expiry JSON is
-  editable, so `LicenseController._apply` only honours Premium when the receipt
-  verifies and takes its expiry from it. Private key = Supabase secret
-  `ENTITLEMENT_SIGNING_KEY_HEX` (never in the repo); public key is baked into
-  the app. A new licence-returning path in `activate` must go through
-  `withEntitlement` or that response won't unlock Premium.
-- **Grace is 14 days**, in three places that must agree: `kLicenseGraceDays`
-  (`license_status.dart`), `GRACE_DAYS` (`functions/activate`), and the
-  window in `renew_license` (migration 0093 — renewing inside grace extends
-  from the old expiry, so grace is time to pay, not free time).
+- Premium requires an authenticated owner account. Customer keys, offline codes,
+  paid device extras and Online/Offline tiers are retired. Free local work
+  remains available without an account or network.
+- Authority: `shop_subscriptions` holds per-shop plan/expiry/revision;
+  `shop_devices` holds at most three active devices (owner/staff/browser
+  included). Signup creates Free; explicit two-calendar-month trial is claimed
+  once per owner through `account_trial_claims` and never auto-granted to branches.
+- Premium receipts use Ed25519 `AIOE1.` v2, bound to shop/user/device/revision.
+  Private key is the Supabase secret `ENTITLEMENT_SIGNING_KEY_HEX`, never in
+  the repo. Verified expiry and shop-scoped monotonic clocks control offline
+  access. A missing/bad receipt requires online verification while sales remain usable.
+- Grace is 14 days. `renew_shop_subscription` renews from old expiry inside
+  grace, otherwise from now; payments are idempotent. Myanmar price is
+  20,000 MMK/month or 200,000 MMK/year per shop.
+- Free/lapse keeps local records/outbox/core sales/basic summaries/backup/raw
+  export and existing debt repayment. Premium gates cloud sync, detailed
+  accounting/reports, new purchase orders, staff administration and storefront.
+- Cloud `auth_shop_id()` requires current subscription, trusted membership and
+  a provisioned active device matching the verified JWT session. Billing and
+  account recovery stay available on Free. Migration 0094 aborts on ambiguous
+  ownership/capacity; verify owners before production cutover.
 
 ## Security — hard rules
 - **NEVER commit** `env.local.json`, private keys (hex seeds), or the Supabase

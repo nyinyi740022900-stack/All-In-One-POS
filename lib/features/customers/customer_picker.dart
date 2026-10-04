@@ -23,6 +23,7 @@ class CustomerAutocomplete extends ConsumerWidget {
     required this.onSelected,
     required this.onEditedByHand,
     this.helperText,
+    this.errorText,
   });
 
   final TextEditingController controller;
@@ -35,22 +36,26 @@ class CustomerAutocomplete extends ConsumerWidget {
   final FocusNode focusNode;
   final String labelText;
   final String? helperText;
+  final String? errorText;
   final VoidCallback onChanged;
   final ValueChanged<Customer> onSelected;
   final VoidCallback onEditedByHand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final customers = ref.watch(customersStreamProvider).valueOrNull ?? const [];
+    final customers =
+        ref.watch(customersStreamProvider).valueOrNull ?? const [];
     return RawAutocomplete<Customer>(
       textEditingController: controller,
       focusNode: focusNode,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
         if (q.isEmpty) return const Iterable<Customer>.empty();
-        return customers.where((c) =>
-            c.name.toLowerCase().contains(q) ||
-            (c.phone?.contains(q) ?? false));
+        return customers.where(
+          (c) =>
+              c.name.toLowerCase().contains(q) ||
+              (c.phone?.contains(q) ?? false),
+        );
       },
       displayStringForOption: (c) => c.name,
       onSelected: onSelected,
@@ -63,6 +68,7 @@ class CustomerAutocomplete extends ConsumerWidget {
           decoration: InputDecoration(
             labelText: labelText,
             helperText: helperText,
+            errorText: errorText,
             suffixIcon: IconButton(
               icon: const Icon(Icons.contacts_outlined),
               tooltip: l.checkoutPickCustomer,
@@ -134,13 +140,18 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final q = _search.text.trim().toLowerCase();
-    final filtered = widget.customers
-        .where((c) =>
-            q.isEmpty ||
-            c.name.toLowerCase().contains(q) ||
-            (c.phone?.contains(q) ?? false))
-        .toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final filtered =
+        widget.customers
+            .where(
+              (c) =>
+                  q.isEmpty ||
+                  c.name.toLowerCase().contains(q) ||
+                  (c.phone?.contains(q) ?? false),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -149,11 +160,18 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
       expand: false,
       builder: (context, scrollController) => Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppTheme.space4, AppTheme.space4, AppTheme.space4, 0),
+          AppTheme.space4,
+          AppTheme.space4,
+          AppTheme.space4,
+          0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l.customersTitle, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l.customersTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: AppTheme.space3),
             TextField(
               controller: _search,
@@ -180,8 +198,9 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                             radius: AppTheme.radiusFull,
                           ),
                           title: Text(c.name),
-                          subtitle:
-                              (c.phone ?? '').isEmpty ? null : Text(c.phone!),
+                          subtitle: (c.phone ?? '').isEmpty
+                              ? null
+                              : Text(c.phone!),
                           onTap: () => Navigator.of(context).pop(c),
                         );
                       },

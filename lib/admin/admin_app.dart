@@ -2,29 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/env.dart';
+import '../l10n/app_localizations.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import 'admin_api.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_login_screen.dart';
 
-/// The vendor's own internal tool (license/key management for shops running
-/// All In One POS), not customer-facing storefront chrome — so unlike the
-/// storefront-web design question, there's no reason for this to diverge
-/// visually from the rest of the product. It shares [AppTheme]/[AppColors]
-/// wholesale rather than growing its own palette: before this it ran a raw
-/// `ColorScheme.fromSeed(seedColor: Color(0xFF00695C))` (a teal with no
-/// relationship to the app's actual `#0F5C3E` brand green) and no
-/// `textTheme` at all — the exact "beginner tell #1" from the design-pass
-/// rubric. `AppTheme`/`AppColors` are pure `package:flutter/material.dart` +
-/// internal l10n, so nothing here breaks the Flutter Web build.
-///
-/// This console is deliberately **English-only** (every string in
-/// `admin/*` is a literal, there is no `AppLocalizations` import anywhere in
-/// this directory) — `localeCode: 'en'` is passed explicitly so Myanmar is
-/// only ever a font *fallback* here, never the primary family, and no
-/// `localizationsDelegates`/`supportedLocales` are added (that would pull in
-/// a translation pipeline this screen was never part of).
+/// Vendor administration for shop subscriptions, payments and accounts.
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
 
@@ -32,6 +17,8 @@ class AdminApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'All In One POS Admin',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(localeCode: 'en'),
       darkTheme: AppTheme.dark(localeCode: 'en'),

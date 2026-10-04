@@ -262,6 +262,19 @@ Map<String, dynamic> remoteProduct(
   };
 }
 
+class PausingRemote extends FakeSyncRemote {
+  bool active = true;
+  @override
+  Future<void> upsert(
+    String table,
+    Map<String, dynamic> row, {
+    String? onConflict,
+  }) async {
+    await super.upsert(table, row, onConflict: onConflict);
+    active = false;
+  }
+}
+
 void main() {
   late AppDatabase db;
   late InventoryRepository inventory;
@@ -283,6 +296,37 @@ void main() {
   });
 
   tearDown(() async => db.close());
+
+  test(
+    'lapse during sync keeps remaining outbox rows without failed attempts',
+    () async {
+      await inventory.upsertProduct(name: 'Rice', salePrice: 1000, quantity: 2);
+      final pausedRemote = PausingRemote();
+      final pausingEngine = SyncEngine(
+        db: db,
+        remote: pausedRemote,
+        settings: settings,
+        shopId: 'shop-1',
+        canContinue: () => pausedRemote.active,
+      );
+      await expectLater(
+        pausingEngine.syncNow(),
+        throwsA(isA<SyncAccessPaused>()),
+      );
+      final pending = await db.select(db.outbox).get();
+      expect(pending, isNotEmpty);
+      expect(
+        pending.every((row) => row.attempts == 0 && !row.quarantined),
+        isTrue,
+      );
+      expect(pausedRemote.store['products']?.length, 1);
+      expect(pausedRemote.store['stock_levels'], isNull);
+      expect(
+        (await inventory.watchProducts().first).single.product.name,
+        'Rice',
+      );
+    },
+  );
 
   test('push drains outbox and uploads product + stock rows', () async {
     await inventory.upsertProduct(name: 'Coke', salePrice: 700, quantity: 10);

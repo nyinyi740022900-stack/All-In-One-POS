@@ -309,12 +309,13 @@ class _StorefrontPageState extends State<StorefrontPage> {
                 SliverPadding(
                   padding: const EdgeInsets.all(AppTheme.space3),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 220,
-                      mainAxisSpacing: AppTheme.space3,
-                      crossAxisSpacing: AppTheme.space3,
-                      childAspectRatio: 0.72,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
+                          mainAxisSpacing: AppTheme.space3,
+                          crossAxisSpacing: AppTheme.space3,
+                          childAspectRatio: 0.72,
+                        ),
                     delegate: SliverChildBuilderDelegate((context, i) {
                       final p = visible[i];
                       return _ProductCard(
@@ -572,7 +573,12 @@ class _ProductCard extends StatelessWidget {
                       )
                     else
                       IntrinsicWidth(
-                        child: _QtyStepper(qty: qty, onAdd: onAdd, onSub: onSub, atCap: atCap),
+                        child: _QtyStepper(
+                          qty: qty,
+                          onAdd: onAdd,
+                          onSub: onSub,
+                          atCap: atCap,
+                        ),
                       ),
                   ],
                 ),
@@ -615,9 +621,9 @@ class _QtyStepper extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.space2),
           child: Text(
             '$qty',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontFeatures: AppTheme.tabularFigures),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontFeatures: AppTheme.tabularFigures,
+            ),
           ),
         ),
         IconButton.filledTonal(
@@ -723,7 +729,12 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
   List<OrderLine> get _lines => [
     for (final e in widget.cart.entries)
       if (e.value > 0)
-        OrderLine(e.key, widget.byId[e.key]!.name, widget.byId[e.key]!.price, e.value),
+        OrderLine(
+          e.key,
+          widget.byId[e.key]!.name,
+          widget.byId[e.key]!.price,
+          e.value,
+        ),
   ];
   int get _total => _lines.fold(0, (s, l) => s + l.price * l.qty);
 
@@ -767,11 +778,15 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
     if (!uploadable.contains(c.ext) || c.bytes.length > maxProofBytes) {
       if (!mounted) return;
       final l = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(uploadable.contains(c.ext)
-            ? l.storefrontProofTooLarge
-            : l.storefrontProofUnsupported),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            uploadable.contains(c.ext)
+                ? l.storefrontProofTooLarge
+                : l.storefrontProofUnsupported,
+          ),
+        ),
+      );
       return;
     }
     if (!mounted) return;
@@ -846,8 +861,7 @@ class _CheckoutFlowSheetState extends State<_CheckoutFlowSheet> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(AppLocalizations.of(context).storefrontPricesChanged),
+            content: Text(AppLocalizations.of(context).storefrontPricesChanged),
           ),
         );
       }
@@ -1418,7 +1432,12 @@ class _CartLineRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _QtyStepper(qty: line.qty, onAdd: onAdd, onSub: onSub, atCap: atCap),
+              _QtyStepper(
+                qty: line.qty,
+                onAdd: onAdd,
+                onSub: onSub,
+                atCap: atCap,
+              ),
               const SizedBox(height: AppTheme.space1),
               MoneyText(
                 _ks(currency, locale, line.price * line.qty),

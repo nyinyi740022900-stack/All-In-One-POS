@@ -9,8 +9,8 @@ void main() {
     expect(await InvoicesWebSession.signIn('  ', 'x'), 'empty_signin');
   });
 
-  test('activate with a blank key is rejected locally', () async {
-    expect(await InvoicesWebSession.activate(''), 'empty_key');
-    expect(await InvoicesWebSession.activate('   '), 'empty_key');
+  test('legacy browser key activation is retired', () async {
+    expect(await InvoicesWebSession.activate(''), 'retired_path');
+    expect(await InvoicesWebSession.activate('SOME-KEY'), 'retired_path');
   });
 }

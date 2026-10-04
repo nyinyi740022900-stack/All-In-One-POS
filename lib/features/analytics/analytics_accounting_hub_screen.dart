@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../license/license_providers.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -29,7 +31,7 @@ import 'pnl_screen.dart';
 /// (`core/router.dart`), since Accounting was previously only reachable
 /// from inside the already-gated Analytics screen and must stay exactly as
 /// protected now that it's a peer tab instead of a nested push.
-class AnalyticsAccountingHubScreen extends StatefulWidget {
+class AnalyticsAccountingHubScreen extends ConsumerStatefulWidget {
   const AnalyticsAccountingHubScreen({super.key, this.initialTab = analyticsTab});
 
   /// Sub-tab shown on first build. Use the named constants, not literals.
@@ -39,12 +41,12 @@ class AnalyticsAccountingHubScreen extends StatefulWidget {
   static const int accountingTab = 1;
 
   @override
-  State<AnalyticsAccountingHubScreen> createState() =>
+  ConsumerState<AnalyticsAccountingHubScreen> createState() =>
       _AnalyticsAccountingHubScreenState();
 }
 
 class _AnalyticsAccountingHubScreenState
-    extends State<AnalyticsAccountingHubScreen>
+    extends ConsumerState<AnalyticsAccountingHubScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   late int _index = widget.initialTab.clamp(
@@ -101,7 +103,7 @@ class _AnalyticsAccountingHubScreenState
       appBar: AppBar(
         title: Text(onAnalytics ? l.navAnalytics : l.accountingTitle),
         actions: [
-          if (onAnalytics)
+          if (onAnalytics && ref.watch(isPremiumProvider))
             IconButton(
               icon: const Icon(Icons.summarize_outlined),
               tooltip: l.pnlTitle,

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/money.dart';
+import '../l10n/app_localizations.dart';
 import 'admin_config_keys.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
@@ -21,14 +22,7 @@ part 'admin_overview.dart';
 part 'admin_shop_hub.dart';
 part 'admin_licensing.dart';
 
-enum _AdminSection {
-  dashboard,
-  inbox,
-  shops,
-  payments,
-  licensing,
-  settings,
-}
+enum _AdminSection { dashboard, inbox, shops, payments, settings }
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({
@@ -214,7 +208,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _AdminSection.inbox => pending == 0 ? 'Inbox' : 'Inbox ($pending)',
     _AdminSection.shops => 'Shops',
     _AdminSection.payments => 'Payments',
-    _AdminSection.licensing => 'Licensing',
     _AdminSection.settings => 'Settings',
   };
 
@@ -248,10 +241,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           supportViber: _config?['support.viber'] ?? '',
           onFilter: (f) => setState(() => _shopFilter = f),
           onSelectShop: (id) => setState(() => _selectedShopId = id),
-          onExtendEmail: (shop) =>
-              _extend(byEmail: true, initial: '${shop['email'] ?? ''}'),
-          onExtendDevice: (_, deviceId) =>
-              _extend(byEmail: false, initial: deviceId),
+          onExtendEmail: _extendShop,
           onResetDevice: _resetDevice,
           onArchive: _setShopArchived,
           showingArchived: _showArchived,
@@ -264,8 +254,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             });
             _reload();
           },
-          onGenerateKey: (shopId) => _generateKey(initialShopId: shopId),
-          onGrantExtraDevice: _grantExtraDevice,
           onViber: _openViber,
           onResetPassword: _resetPassword,
           onUnlink: _unlinkAccount,
@@ -277,12 +265,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           events: _events ?? const [],
           onConfirm: _confirmPayment,
           onDecline: _declineRequest,
-        );
-      case _AdminSection.licensing:
-        return _LicensingPage(
-          onExtendEmail: () => _extend(byEmail: true),
-          onExtendDevice: () => _extend(byEmail: false),
-          onOpenShops: () => _go(_AdminSection.shops),
         );
       case _AdminSection.settings:
         return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);
@@ -305,131 +287,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _snack("Viber isn't installed — number copied.");
   }
 
-  Future<void> _extend({required bool byEmail, String? initial}) async {
-    final result = await showDialog<(String, int)>(
+  Future<void> _extendShop(Map<String, dynamic> shop) async {
+    final months = await showDialog<int>(
       context: context,
-      builder: (_) =>
-          _ExtendIdentifierDialog(byEmail: byEmail, initial: initial),
+      builder: (_) => _SubscriptionDialog(shop: shop),
     );
-    if (result == null) return;
-    final identifier = result.$1;
-    final months = result.$2;
-    Map<String, dynamic>? shop = byEmail
-        ? findShopByEmail(_shops ?? const [], identifier)
-        : findShopByDevice(
-            _shops ?? const [],
-            _licenses ?? const [],
-            identifier,
-          );
-    try {
-      shop ??= await widget.api.lookupShop(
-        email: byEmail ? identifier : null,
-        deviceId: byEmail ? null : identifier,
-      );
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
-      return;
-    }
-    final preview = Map<String, dynamic>.from(shop);
-    if (preview['devices'] is! List) {
-      preview['devices'] = shopDevices(shop, _licenses ?? const []);
-    }
-    if (!mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => _ExtendPreviewDialog(
-        shop: preview,
-        months: months,
-        byEmail: byEmail,
-        identifier: identifier,
-      ),
-    );
-    if (ok != true) return;
-    if (_moneyBusy) return;
+    if (months == null || _moneyBusy || !mounted) return;
     setState(() => _moneyBusy = true);
     try {
-      final outcome = await widget.api.extendLicense(
-        email: byEmail ? identifier : null,
-        deviceId: byEmail ? null : identifier,
+      await widget.api.extendSubscription(
+        shopId: '${shop['shop_id']}',
         months: months,
       );
-      _snack(
-        outcome.duplicate
-            // The server granted NOTHING — it recognised this as a repeat of
-            // a recent identical extend. Saying "Extended to <date>" here
-            // would be a lie in the one case where the admin most needs the
-            // truth: two separate top-ups bought in quick succession look
-            // identical to a double-click, and the shop would be a month
-            // short with everyone believing it was applied.
-            ? 'Ignored as a repeat of a recent identical extend — nothing '
-                'was added. Still expires ${outcome.expiresAt}. If this was '
-                'a second, separate payment, wait a minute and try again.'
-            : outcome.created
-                ? 'No license existed — created one, expires ${outcome.expiresAt}'
-                : 'Extended to ${outcome.expiresAt}',
-      );
+      if (mounted) {
+        _snack(AppLocalizations.of(context).billingSubscriptionRenewed);
+      }
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
     } finally {
       if (mounted) setState(() => _moneyBusy = false);
-    }
-  }
-
-  Future<void> _generateKey({String? initialShopId}) async {
-    final result = await showDialog<_KeyRequest>(
-      context: context,
-      builder: (_) => _GenerateKeyDialog(initialShopId: initialShopId),
-    );
-    if (result == null) return;
-    try {
-      final key = await widget.api.createLicense(
-        shopId: result.shopId,
-        shopName: result.shopName,
-        plan: result.plan,
-        months: result.months,
-      );
-      if (!mounted) return;
-      await _showCopyDialog('License key created', key);
-      _reload();
-    } on LicenseAlreadyExistsException {
-      _snack(
-        'This shop already has a license — use Extend instead of '
-        'Generate key.',
-      );
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
-    }
-  }
-
-  Future<void> _grantExtraDevice(Map<String, dynamic> shop) async {
-    final current = (shop['extra_slots'] as num?)?.toInt() ?? 0;
-    final result = await showDialog<({int extraSlots, int months})>(
-      context: context,
-      builder: (_) => _DeviceAllowanceDialog(
-        initialExtraSlots: current <= 0 ? 1 : current,
-      ),
-    );
-    if (result == null) return;
-    try {
-      final saved = await widget.api.setDeviceAllowance(
-        shopId: '${shop['shop_id']}',
-        extraSlots: result.extraSlots,
-        months: result.months,
-      );
-      if (!mounted) return;
-      final until = saved.extrasExpiresAt == null
-          ? ''
-          : ' until ${_date(saved.extrasExpiresAt)}';
-      _snack(
-        saved.extraSlots == 0
-            ? 'Paid extra devices cleared. Free cap (this phone + 2) still applies.'
-            : 'This shop may use ${saved.extraSlots} paid extra device(s)$until. '
-                'Tell them to sign in on the new phone and tap Check for renewal — no key.',
-      );
-      _reload();
-    } catch (e) {
-      _snack(_adminErrorMessage(e));
     }
   }
 
@@ -444,10 +321,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   /// no guard at all when every row reads the same.
   ///
   /// Restoring asks nothing — it only gives back what archiving took.
-  Future<void> _setShopArchived(
-    Map<String, dynamic> shop,
-    bool archive,
-  ) async {
+  Future<void> _setShopArchived(Map<String, dynamic> shop, bool archive) async {
     final shopId = '${shop['shop_id']}';
     final name = '${shop['shop_name'] ?? shop['name'] ?? ''}'.trim();
     final label = name.isEmpty ? shopId : name;
@@ -470,28 +344,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _resetDevice([String? initial]) async {
-    final code = await showDialog<String>(
-      context: context,
-      builder: (_) => _CodePromptDialog(
-        title: 'Reset device binding',
-        label: 'App Reference ID / Shop Code',
-        action: 'Reset',
-        initial: initial,
-        warning:
-            'This clears the device bound to this license — any '
-            'device can then re-activate it. Use this when a shop lost or '
-            'replaced their phone; it does not affect their expiry date.',
-      ),
-    );
-    if (code == null || code.isEmpty) return;
+  Future<void> _resetDevice(String shopId, String deviceId) async {
     try {
-      final cleared = await widget.api.resetDevice(deviceId: code);
-      _snack(
-        cleared > 0
-            ? 'Device binding cleared — user can re-activate.'
-            : 'No license bound to that code.',
-      );
+      await widget.api.resetDevice(shopId: shopId, deviceId: deviceId);
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
@@ -511,28 +366,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (_moneyBusy) return;
     setState(() => _moneyBusy = true);
     try {
-      final key = await widget.api.confirmPayment(
-        requestId: '${request['id']}',
-        months: request['months'] is int ? request['months'] as int : null,
-      );
-      if (!mounted) return;
-      await _showCopyDialog('Payment confirmed', key);
-      _reload();
-    } on RequestNotClosedException catch (e) {
-      // The licence IS issued — this is not a failure to retry. Clicking
-      // Confirm again would mint a second one for the same payment, so say
-      // so in a dialog (not a snackbar that scrolls away) and hand over the
-      // key that was already created.
-      if (!mounted) return;
-      await _showCopyDialog(
-        'Licence issued — but the request is still open',
-        e.key,
-      );
-      if (!mounted) return;
-      _snack(
-        'Do NOT confirm this request again — the licence above was already '
-        'issued. Close the request by hand instead.',
-      );
+      await widget.api.confirmPayment(requestId: '${request['id']}');
+      if (mounted) {
+        _snack(AppLocalizations.of(context).billingSubscriptionRenewed);
+      }
       _reload();
     } catch (e) {
       _snack(_adminErrorMessage(e));
@@ -652,31 +489,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } catch (e) {
       _snack(_adminErrorMessage(e));
     }
-  }
-
-  Future<void> _showCopyDialog(String title, String value) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: SelectableText(
-          value,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: value));
-              Navigator.pop(context);
-            },
-            child: const Text('Copy & close'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _snack(String msg) {

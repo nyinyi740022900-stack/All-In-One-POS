@@ -82,12 +82,12 @@ void main() {
   });
 
   testWidgets(
-      'staff sees 4 tabs — Analytics hidden, Settings still visible (PIN escape hatch)',
+      'staff sees 4 tabs — Analytics hidden, Shop (/settings) still visible (PIN escape hatch)',
       (tester) async {
     await pump(tester, 'staff');
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(find.byIcon(Icons.bar_chart), findsNothing);
-    expect(find.byIcon(Icons.settings), findsOneWidget);
+    expect(find.byIcon(Icons.storefront), findsOneWidget);
   });
 
   testWidgets(

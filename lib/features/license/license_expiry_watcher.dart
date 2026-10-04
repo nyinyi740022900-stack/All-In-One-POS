@@ -131,11 +131,13 @@ class LicenseExpiryWatcher {
             ? l.licenseExpiryNotifBodyToday(shopName)
             : l.licenseExpiryNotifBody(daysLeft, shopName),
       );
-      await _ref.read(notificationCenterRepositoryProvider).add(
-        shopId: shopId,
-        kind: NotificationKinds.licenseExpiry,
-        payload: {'daysLeft': daysLeft, 'shopName': shopName},
-      );
+      await _ref
+          .read(notificationCenterRepositoryProvider)
+          .add(
+            shopId: shopId,
+            kind: NotificationKinds.licenseExpiry,
+            payload: {'daysLeft': daysLeft, 'shopName': shopName},
+          );
       await settings.setLicenseExpiryWarned(shopId, due.stamp);
     } catch (_) {
       // Offline / transient — the next tick tries again.

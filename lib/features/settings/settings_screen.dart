@@ -72,21 +72,97 @@ class SettingsScreen extends ConsumerWidget {
       hasOwnerCapabilityProvider(OwnerCapability.storefront),
     );
     return Scaffold(
-      appBar: AppBar(title: Text(l.settingsTitle)),
+      appBar: AppBar(title: Text(l.navShop)),
       body: ContentWidth(
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppTheme.space5),
           children: [
-            // Account & Team: subscription, sign-in, and who has access —
-            // moved to the top since it's the section owners reach for most
-            // (checking who's signed in, license status, staff/branches).
-            AppSectionHeader(l.settingsSectionAccountTeam),
+            // Daily: what the shopkeeper opens every day. The Shop tab (route
+            // /settings) leads with these; configuration lives under Setup.
+            AppSectionHeader(l.settingsSectionDaily),
             SettingsGroup(
               children: [
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.people_outline),
+                  title: Text(l.customersTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                  ),
+                ),
+                _CreditTile(),
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.point_of_sale_outlined),
+                  title: Text(l.cashRegisterTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const CashSessionScreen(),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const IconAvatar(
+                    icon: Icons.local_shipping_outlined,
+                  ),
+                  title: Text(l.suppliersTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SuppliersScreen()),
+                  ),
+                ),
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.shopping_cart_outlined),
+                  title: Text(l.purchaseOrdersTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PurchaseOrdersScreen(),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.receipt_long_outlined),
+                  title: Text(l.expensesTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ExpenseScreen()),
+                  ),
+                ),
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.credit_card_outlined),
+                  title: Text(l.paymentAccountsTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PaymentAccountsScreen(),
+                    ),
+                  ),
+                ),
+                _AccountsPayableTile(),
+                _EquityTile(),
+              ],
+            ),
+
+            // Setup: configuration, account and device. Row visibility and
+            // premium locks are unchanged from the old Settings list.
+            AppSectionHeader(l.settingsSectionSetup),
+            SettingsGroup(
+              children: [
+                ListTile(
+                  leading: const IconAvatar(icon: Icons.store),
+                  title: Text(l.settingsShop),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ShopProfileScreen(),
+                    ),
+                  ),
+                ),
                 if (ref.watch(
-                  hasOwnerCapabilityProvider(OwnerCapability.license),
+                  hasOwnerCapabilityProvider(OwnerCapability.settingsSensitive),
                 ))
-                  _LicenseTile(),
+                  _TrackStockTile(),
                 ListTile(
                   leading: const IconAvatar(
                     icon: Icons.account_circle_outlined,
@@ -102,6 +178,10 @@ class SettingsScreen extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const ShopLoginScreen()),
                   ),
                 ),
+                if (ref.watch(
+                  hasOwnerCapabilityProvider(OwnerCapability.license),
+                ))
+                  _LicenseTile(),
                 // Hidden only for invited email staff. Local PIN staff still
                 // see the tiles (locked) so Switch-to-Staff cannot make
                 // Branches/Staff accounts vanish from Account & Team.
@@ -217,71 +297,6 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                 ],
-              ],
-            ),
-
-            // Business: day-to-day shop operations. Money/accounting tiles
-            // (Credit book, Expenses, Payment accounts, Accounts payable,
-            // Owner's equity) deliberately live under Finance below instead —
-            // they used to be mixed in here while a section literally called
-            // "Finance" held License/Shop Login/Staff/Branches/Backup
-            // instead, none of which are money-related. Regrouped after the
-            // owner spotted the mismatch directly from a Settings screenshot.
-            AppSectionHeader(l.settingsSectionBusiness),
-            SettingsGroup(
-              children: [
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.store),
-                  title: Text(l.settingsShop),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ShopProfileScreen(),
-                    ),
-                  ),
-                ),
-                if (ref.watch(
-                  hasOwnerCapabilityProvider(OwnerCapability.settingsSensitive),
-                ))
-                  _TrackStockTile(),
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.point_of_sale_outlined),
-                  title: Text(l.cashRegisterTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const CashSessionScreen(),
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.people_outline),
-                  title: Text(l.customersTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CustomersScreen()),
-                  ),
-                ),
-                ListTile(
-                  leading: const IconAvatar(
-                    icon: Icons.local_shipping_outlined,
-                  ),
-                  title: Text(l.suppliersTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SuppliersScreen()),
-                  ),
-                ),
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.shopping_cart_outlined),
-                  title: Text(l.purchaseOrdersTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PurchaseOrdersScreen(),
-                    ),
-                  ),
-                ),
                 if (Env.hasBackend && showOwnerCloudTiles)
                   hasStorefront && premium
                       ? _StorefrontTile()
@@ -308,43 +323,9 @@ class SettingsScreen extends ConsumerWidget {
                         ),
               ],
             ),
-
-            // Finance: money/accounting only.
-            AppSectionHeader(l.settingsSectionFinance),
+            const SizedBox(height: AppTheme.space3),
             SettingsGroup(
               children: [
-                _CreditTile(),
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.receipt_long_outlined),
-                  title: Text(l.expensesTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ExpenseScreen()),
-                  ),
-                ),
-                ListTile(
-                  leading: const IconAvatar(icon: Icons.credit_card_outlined),
-                  title: Text(l.paymentAccountsTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PaymentAccountsScreen(),
-                    ),
-                  ),
-                ),
-                _AccountsPayableTile(),
-                _EquityTile(),
-              ],
-            ),
-
-            // Device: local device settings + data, no longer "& Staff" —
-            // Staff Accounts moved to Account & Team above; Backup moved here,
-            // it's device/data, not account.
-            AppSectionHeader(l.settingsSectionDevice),
-            SettingsGroup(
-              children: [
-                _LanguageTile(),
-                _ThemeTile(),
                 ListTile(
                   leading: const IconAvatar(icon: Icons.print),
                   title: Text(l.settingsPrinter),
@@ -407,6 +388,8 @@ class SettingsScreen extends ConsumerWidget {
                   ),
               ],
             ),
+            const SizedBox(height: AppTheme.space3),
+            SettingsGroup(children: [_LanguageTile(), _ThemeTile()]),
 
             AppSectionHeader(l.settingsSectionHelp),
             SettingsGroup(
@@ -641,6 +624,10 @@ class _LicenseTileState extends ConsumerState<_LicenseTile> {
               l.licenseStatusExpired,
               colors.danger,
             ),
+            LicenseStatusKind.verificationRequired => (
+              l.licenseVerificationRequired,
+              colors.warning,
+            ),
             LicenseStatusKind.none => (
               l.licenseStatusNone,
               Theme.of(context).colorScheme.outline,
@@ -748,6 +735,7 @@ class _SyncTile extends ConsumerWidget {
 
     final (String status, IconData icon) = switch (sync.phase) {
       SyncPhase.disabled => (l.syncDisabled, Icons.cloud_off),
+      SyncPhase.premiumRequired => (l.syncPremiumPaused, Icons.cloud_off),
       SyncPhase.syncing => (l.syncSyncing, Icons.cloud_sync),
       SyncPhase.offline => (l.syncOffline, Icons.cloud_off),
       SyncPhase.error => (sync.error ?? l.syncError, Icons.error_outline),
@@ -762,8 +750,7 @@ class _SyncTile extends ConsumerWidget {
     final lastSynced = sync.lastSyncedAt != null
         ? l.syncLastSynced(DateFormat('HH:mm').format(sync.lastSyncedAt!))
         : (sync.phase == SyncPhase.disabled ? '' : l.syncNever);
-    final realtimeOn =
-        ref.watch(licenseControllerProvider).license?.realtimeEnabled ?? false;
+    final realtimeOn = ref.watch(isPremiumProvider);
     final subtitle = [
       if (lastSynced.isNotEmpty) lastSynced,
       if (realtimeOn) l.syncRealtimeOn,
@@ -775,7 +762,7 @@ class _SyncTile extends ConsumerWidget {
           leading: IconAvatar(icon: icon),
           title: Text('${l.settingsSync} — $status'),
           subtitle: subtitle.isEmpty ? null : Text(subtitle),
-          trailing: sync.phase == SyncPhase.disabled
+          trailing: (sync.phase == SyncPhase.disabled || sync.phase == SyncPhase.premiumRequired)
               ? null
               : (sync.phase == SyncPhase.syncing
                     ? const SizedBox(
@@ -856,10 +843,10 @@ class _ThemeTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final mode = ref.watch(themeModeControllerProvider);
     (IconData, String) faceFor(String code) => switch (code) {
-          'light' => (Icons.light_mode_outlined, l.themeModeLight),
-          'dark' => (Icons.dark_mode_outlined, l.themeModeDark),
-          _ => (Icons.brightness_auto_outlined, l.themeModeSystem),
-        };
+      'light' => (Icons.light_mode_outlined, l.themeModeLight),
+      'dark' => (Icons.dark_mode_outlined, l.themeModeDark),
+      _ => (Icons.brightness_auto_outlined, l.themeModeSystem),
+    };
     final (icon, label) = faceFor(mode);
     return ListTile(
       leading: const IconAvatar(icon: Icons.contrast),
@@ -886,10 +873,7 @@ class _ThemeTile extends ConsumerWidget {
         ],
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20),
-            const Icon(Icons.arrow_drop_down),
-          ],
+          children: [Icon(icon, size: 20), const Icon(Icons.arrow_drop_down)],
         ),
       ),
     );

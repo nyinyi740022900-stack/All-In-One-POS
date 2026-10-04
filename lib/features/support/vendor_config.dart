@@ -21,27 +21,10 @@ class VendorConfig {
   final int deviceFreeLimit;
   final int deviceExtraFee;
 
-  /// Lemon Squeezy store subdomain + variant ids for the international
-  /// (non-Myanmar) in-app subscribe path — see `_PurchasePaths` in
-  /// `license_widgets.dart`. Empty until the owner sets them from the
-  /// admin console's Config tab. `lemonSqueezyVariantMonthly`/`Yearly` are
-  /// used server-side only (the webhook resolves months by matching a
-  /// purchased variant's numeric id against these) — the client no longer
-  /// builds a checkout URL from them, since Lemon Squeezy's hosted checkout
-  /// has no working `/checkout/buy/[numeric_variant_id]` route for a
-  /// multi-variant subscription product (confirmed live: 404). The one
-  /// working link Lemon Squeezy gives a multi-variant product is its shared
-  /// `buy_now_url`, which already lets the customer pick Monthly/Yearly on
-  /// Lemon Squeezy's own page — see `lemonSqueezyBuyNowUrl`.
-  final String lemonSqueezyStoreSlug;
+  /// Public gateway configuration. Checkout itself is created server-side
+  /// for the authenticated shop, with variants resolved by the server.
   final String lemonSqueezyVariantMonthly;
   final String lemonSqueezyVariantYearly;
-
-  /// The product's shared hosted-checkout URL (Lemon Squeezy dashboard:
-  /// product's "Share" button, or the `buy_now_url` embedded in a variant's
-  /// page) — shows Monthly/Yearly as a picker on Lemon Squeezy's own page,
-  /// so the app doesn't need to ask separately before redirecting.
-  final String lemonSqueezyBuyNowUrl;
 
   const VendorConfig({
     this.kbzName = '',
@@ -49,38 +32,31 @@ class VendorConfig {
     this.waveName = '',
     this.waveNumber = '',
     this.supportViber = '',
-    this.priceMonthly = 0,
-    this.priceYearly = 0,
+    this.priceMonthly = 20000,
+    this.priceYearly = 200000,
     this.priceMonthlyOnline = 0,
     this.priceYearlyOnline = 0,
     this.deviceFreeLimit = 3,
     this.deviceExtraFee = 0,
-    this.lemonSqueezyStoreSlug = '',
     this.lemonSqueezyVariantMonthly = '',
     this.lemonSqueezyVariantYearly = '',
-    this.lemonSqueezyBuyNowUrl = '',
   });
 
   bool get hasKbz => kbzNumber.isNotEmpty;
   bool get hasWave => waveNumber.isNotEmpty;
   bool get hasSupport => supportViber.isNotEmpty;
-  bool get hasLemonSqueezy => lemonSqueezyBuyNowUrl.isNotEmpty;
+  bool get hasLemonSqueezy =>
+      lemonSqueezyVariantMonthly.isNotEmpty &&
+      lemonSqueezyVariantYearly.isNotEmpty;
 
-  /// [tier] is the shop's own `CachedLicense.tier` ('offline'/'online'),
-  /// fixed at shop-creation time — see `CachedLicense.tier`. Online prices
-  /// default to the offline ones until an admin explicitly sets a distinct
-  /// `price.monthly.online`/`price.yearly.online`, so behavior is unchanged
-  /// until that's configured.
+  /// One Myanmar shop price. [tier] is ignored for old internal callers.
   int priceFor(String plan, {String tier = 'offline'}) {
-    if (tier == 'online') {
-      return plan == 'yearly' ? priceYearlyOnline : priceMonthlyOnline;
-    }
-    return plan == 'yearly' ? priceYearly : priceMonthly;
+    return plan == 'yearly' ? 200000 : 20000;
   }
 
   factory VendorConfig.fromMap(Map<String, String> m) {
-    final priceMonthly = int.tryParse(m['price.monthly'] ?? '') ?? 0;
-    final priceYearly = int.tryParse(m['price.yearly'] ?? '') ?? 0;
+    const priceMonthly = 20000;
+    const priceYearly = 200000;
     return VendorConfig(
       kbzName: m['pay.kbzpay.name'] ?? '',
       kbzNumber: m['pay.kbzpay.number'] ?? '',
@@ -89,36 +65,30 @@ class VendorConfig {
       supportViber: m['support.viber'] ?? '',
       priceMonthly: priceMonthly,
       priceYearly: priceYearly,
-      priceMonthlyOnline:
-          int.tryParse(m['price.monthly.online'] ?? '') ?? priceMonthly,
-      priceYearlyOnline:
-          int.tryParse(m['price.yearly.online'] ?? '') ?? priceYearly,
-      deviceFreeLimit: int.tryParse(m['device.free_limit'] ?? '') ?? 3,
-      deviceExtraFee: int.tryParse(m['device.extra_fee'] ?? '') ?? 0,
-      lemonSqueezyStoreSlug: m['pay.lemonsqueezy.store_slug'] ?? '',
+      priceMonthlyOnline: priceMonthly,
+      priceYearlyOnline: priceYearly,
+      deviceFreeLimit: 3,
+      deviceExtraFee: 0,
       lemonSqueezyVariantMonthly: m['pay.lemonsqueezy.variant_monthly'] ?? '',
       lemonSqueezyVariantYearly: m['pay.lemonsqueezy.variant_yearly'] ?? '',
-      lemonSqueezyBuyNowUrl: m['pay.lemonsqueezy.buy_now_url'] ?? '',
     );
   }
 
   Map<String, String> toMap() => {
-        'pay.kbzpay.name': kbzName,
-        'pay.kbzpay.number': kbzNumber,
-        'pay.wavepay.name': waveName,
-        'pay.wavepay.number': waveNumber,
-        'support.viber': supportViber,
-        'price.monthly': '$priceMonthly',
-        'price.yearly': '$priceYearly',
-        'price.monthly.online': '$priceMonthlyOnline',
-        'price.yearly.online': '$priceYearlyOnline',
-        'device.free_limit': '$deviceFreeLimit',
-        'device.extra_fee': '$deviceExtraFee',
-        'pay.lemonsqueezy.store_slug': lemonSqueezyStoreSlug,
-        'pay.lemonsqueezy.variant_monthly': lemonSqueezyVariantMonthly,
-        'pay.lemonsqueezy.variant_yearly': lemonSqueezyVariantYearly,
-        'pay.lemonsqueezy.buy_now_url': lemonSqueezyBuyNowUrl,
-      };
+    'pay.kbzpay.name': kbzName,
+    'pay.kbzpay.number': kbzNumber,
+    'pay.wavepay.name': waveName,
+    'pay.wavepay.number': waveNumber,
+    'support.viber': supportViber,
+    'price.monthly': '$priceMonthly',
+    'price.yearly': '$priceYearly',
+    'price.monthly.online': '$priceMonthlyOnline',
+    'price.yearly.online': '$priceYearlyOnline',
+    'device.free_limit': '$deviceFreeLimit',
+    'device.extra_fee': '$deviceExtraFee',
+    'pay.lemonsqueezy.variant_monthly': lemonSqueezyVariantMonthly,
+    'pay.lemonsqueezy.variant_yearly': lemonSqueezyVariantYearly,
+  };
 
   static const empty = VendorConfig();
 }
@@ -151,8 +121,7 @@ class VendorConfigRepository {
     if (raw != null) {
       try {
         final m = (jsonDecode(raw) as Map).cast<String, dynamic>();
-        return VendorConfig.fromMap(
-            m.map((k, v) => MapEntry(k, '${v ?? ''}')));
+        return VendorConfig.fromMap(m.map((k, v) => MapEntry(k, '${v ?? ''}')));
       } catch (_) {}
     }
     return VendorConfig.empty;

@@ -9,10 +9,12 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/local/database.dart';
 import '../../l10n/app_localizations.dart';
+import '../accounts/payment_account_providers.dart';
 import '../credit/credit_providers.dart';
 import '../printing/printing_providers.dart';
 import '../sell/barcode_scanner_screen.dart';
 import '../sell/hardware_scanner_listener.dart';
+import '../sell/payment_labels.dart';
 import '../sell/sales_providers.dart';
 import 'invoice_detail_screen.dart';
 import 'sales_report_screen.dart';
@@ -29,8 +31,9 @@ final invoiceSearchProvider = StateProvider<String>((ref) => '');
 /// (and rebuilds the day groups) once instead of once per character
 /// (audit H1). The text field and scan-to-search keep writing to
 /// [invoiceSearchProvider]; only this expensive read is debounced.
-final debouncedInvoiceSearchProvider =
-    debouncedSearchProvider(invoiceSearchProvider);
+final debouncedInvoiceSearchProvider = debouncedSearchProvider(
+  invoiceSearchProvider,
+);
 
 class InvoicesScreen extends ConsumerStatefulWidget {
   const InvoicesScreen({super.key, this.embedded = false});
@@ -62,9 +65,12 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
     final l = AppLocalizations.of(context);
     final sales = ref.watch(salesStreamProvider);
     final filter = ref.watch(invoiceFilterProvider);
-    final query =
-        ref.watch(debouncedInvoiceSearchProvider).trim().toLowerCase();
+    final query = ref
+        .watch(debouncedInvoiceSearchProvider)
+        .trim()
+        .toLowerCase();
     final owedBySale = ref.watch(creditOwedBySaleProvider);
+    final accounts = ref.watch(paymentAccountsProvider).valueOrNull;
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
     final split = isMediumPlus(context);
@@ -177,16 +183,17 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                         .textTheme
                                         .titleSmall
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          fontFeatures:
-                                              AppTheme.tabularFigures,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                          fontFeatures: AppTheme.tabularFigures,
                                         ),
                                   ),
                                 ),
                                 MoneyText(
-                                  Money(row.total).withCurrency(currency, locale),
+                                  Money(
+                                    row.total,
+                                  ).withCurrency(currency, locale),
                                   style: Theme.of(context).textTheme.titleSmall,
                                   emphasis: true,
                                 ),
@@ -198,12 +205,15 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                         final owed = owedOf(s);
                         final isCredit = owed > 0;
                         final isRefund = s.refundOfSaleId != null;
-                        final customerBits = [
-                          if (s.customerName?.trim().isNotEmpty ?? false)
-                            s.customerName!.trim(),
-                          if (s.customerPhone?.trim().isNotEmpty ?? false)
-                            s.customerPhone!.trim(),
-                        ].join(' · ');
+                        final customerName = s.customerName?.trim() ?? '';
+                        final methodLabel = paymentLabel(
+                          l,
+                          s.paymentMethod,
+                          accounts: accounts,
+                        );
+                        final timeLabel = DateFormat(
+                          'HH:mm',
+                        ).format(s.finalizedAt);
                         final selected = split && s.id == _selectedSaleId;
                         return ListTile(
                           // Stable per-sale key (audit Low): day groups shift
@@ -213,54 +223,59 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                           selected: selected,
                           selectedTileColor: Theme.of(
                             context,
-                          ).colorScheme.secondaryContainer,
-                          title: Row(
+                          ).colorScheme.primaryContainer,
+                          // The invoice number keeps the whole title line (the
+                          // Paid / Credit chip moved under the total) so it is
+                          // never truncated in the narrow tablet list pane.
+                          title: Text(
+                            s.invoiceNo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Expanded, not loose-Flexible: on a narrow
-                              // device at large text scale the trailing
-                              // totals squeeze this row hard, and an
-                              // unconstrained pill + unflexed number
-                              // overflowed it in testing. The invoice no
-                              // ellipsizes; the pill's own label wraps to
-                              // two lines when it has to.
-                              Expanded(
-                                child: Text(
-                                  s.invoiceNo,
+                              if (customerName.isNotEmpty)
+                                Text(
+                                  customerName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
                                 ),
+                              Wrap(
+                                spacing: AppTheme.space2,
+                                runSpacing: AppTheme.space1,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text('$methodLabel · $timeLabel'),
+                                  // Every row says Paid or Credit (or
+                                  // Refunded) so the ledger can be scanned
+                                  // without opening each invoice. Credit is
+                                  // routine follow-up (attention), not an
+                                  // error.
+                                  if (isRefund)
+                                    StatusPill(
+                                      label: l.invoiceRefunded,
+                                      tone: StatusTone.critical,
+                                    )
+                                  else if (isCredit)
+                                    StatusPill(
+                                      label: l.paymentCredit,
+                                      tone: StatusTone.attention,
+                                    )
+                                  else
+                                    StatusPill(
+                                      label: l.invoiceStatusPaid,
+                                      tone: StatusTone.positive,
+                                    ),
+                                ],
                               ),
-                              if (isRefund) ...[
-                                const SizedBox(width: AppTheme.space2),
-                                Flexible(
-                                  child: StatusPill(
-                                    label: l.invoiceRefunded,
-                                    tone: StatusTone.critical,
-                                  ),
-                                ),
-                              ] else if (isCredit) ...[
-                                const SizedBox(width: AppTheme.space2),
-                                // `isCredit` is `owed > 0`, so this pill
-                                // only ever marks an *outstanding* credit
-                                // sale — money still to collect, which is
-                                // routine follow-up (attention), not an
-                                // error (the old badge painted it
-                                // `colorScheme.error` red).
-                                Flexible(
-                                  child: StatusPill(
-                                    label: l.paymentCredit,
-                                    tone: StatusTone.attention,
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
-                          subtitle: Text(
-                            customerBits.isNotEmpty
-                                ? '${DateFormat('yyyy-MM-dd HH:mm').format(s.finalizedAt)} · $customerBits'
-                                : DateFormat(
-                                    'yyyy-MM-dd HH:mm',
-                                  ).format(s.finalizedAt),
                           ),
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -283,8 +298,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                         // still to collect, routine
                                         // follow-up, not an error. The two
                                         // marks must agree.
-                                        color:
-                                            AppColors.of(context).warning,
+                                        color: AppColors.of(context).warning,
                                       ),
                                 ),
                             ],

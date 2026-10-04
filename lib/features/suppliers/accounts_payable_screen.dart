@@ -17,7 +17,6 @@ import '../accounts/payment_account_providers.dart';
 import '../accounting/accounting_csv.dart';
 import '../accounting/accounting_pdf.dart';
 import '../license/license_providers.dart';
-import '../license/premium_gate.dart';
 import '../printing/printing_providers.dart';
 import '../sell/payment_labels.dart';
 import 'accounts_payable.dart';
@@ -32,17 +31,9 @@ class AccountsPayableScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    if (ref.watch(licenseControllerProvider).loading ||
-        !ref.watch(isPremiumProvider)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.accountsPayableTitle)),
-        body: PremiumGate(
-          featureName: l.accountsPayableTitle,
-          benefits: [l.accountsPayableBenefit1, l.accountsPayableBenefit2],
-          child: const SizedBox.shrink(),
-        ),
-      );
-    }
+    // Existing obligations remain actionable after Premium lapses. Creation
+    // of new purchases stays gated in PurchaseOrdersScreen.
+    final premium = ref.watch(isPremiumProvider);
     final currency = ref.watch(shopCurrencyProvider);
     final locale = Localizations.localeOf(context).languageCode;
     final filter = ref.watch(accountsPayableFilterProvider);
@@ -129,7 +120,7 @@ class AccountsPayableScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l.accountsPayableTitle),
         actions: [
-          IconButton(
+          if (premium) IconButton(
             tooltip: l.salesReportExportPdf,
             icon: const Icon(Icons.picture_as_pdf_outlined),
             onPressed: exportPdf,

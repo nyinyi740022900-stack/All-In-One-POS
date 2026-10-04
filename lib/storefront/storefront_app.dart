@@ -45,7 +45,8 @@ class _StorefrontAppState extends State<StorefrontApp> {
   }
 
   bool get _isRenewPath =>
-      Uri.base.pathSegments.isNotEmpty && Uri.base.pathSegments.first == 'renew';
+      Uri.base.pathSegments.isNotEmpty &&
+      Uri.base.pathSegments.first == 'renew';
 
   String get _slug {
     final uri = Uri.base;
@@ -56,9 +57,10 @@ class _StorefrontAppState extends State<StorefrontApp> {
   }
 
   void _toggleLocale() => setState(() {
-        _locale =
-            _locale.languageCode == 'my' ? const Locale('en') : const Locale('my');
-      });
+    _locale = _locale.languageCode == 'my'
+        ? const Locale('en')
+        : const Locale('my');
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,9 +99,12 @@ class _StorefrontAppState extends State<StorefrontApp> {
       home: _isRenewPath
           ? RenewRequestPage(locale: _locale, onToggleLocale: _toggleLocale)
           : slug.isEmpty
-              ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
-              : StorefrontPage(
-                  slug: slug, locale: _locale, onToggleLocale: _toggleLocale),
+          ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
+          : StorefrontPage(
+              slug: slug,
+              locale: _locale,
+              onToggleLocale: _toggleLocale,
+            ),
     );
   }
 }

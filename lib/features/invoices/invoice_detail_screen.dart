@@ -1,9 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,7 +16,7 @@ import '../printing/print_action.dart';
 import '../printing/printing_providers.dart';
 import '../staff/staff_providers.dart';
 import 'cashier_label.dart';
-import 'invoice_capture.dart';
+import 'invoice_actions.dart';
 import 'invoice_payment_status.dart';
 import 'invoice_pdf.dart';
 import 'invoice_view.dart';
@@ -87,39 +83,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
-    }
-  }
-
-  /// Captures the already-built [invoice] document as a PNG and opens the
-  /// share sheet — the counter's most common post-sale action (send the
-  /// invoice to the customer on Viber/Messenger). Orders could always do
-  /// this; the finalized-sale record itself couldn't.
-  Future<void> _shareInvoiceImage(
-    BuildContext context,
-    AppLocalizations l,
-    InvoiceData invoice,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final bytes = await captureWidgetAsPng(
-        context,
-        InvoiceView(data: invoice),
-      );
-      if (!context.mounted) return;
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/invoice-${invoice.invoiceNo}.png');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'image/png')],
-          subject: 'Invoice ${invoice.invoiceNo}',
-        ),
-      );
-    } catch (_) {
-      if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.commonUnexpectedError)),
-      );
     }
   }
 
@@ -351,7 +314,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => _shareInvoiceImage(context, l, invoice),
+                  onPressed: () => shareInvoiceImage(context, l, invoice),
                   icon: const Icon(Icons.share_outlined),
                   label: Text(l.invoiceShare),
                 ),

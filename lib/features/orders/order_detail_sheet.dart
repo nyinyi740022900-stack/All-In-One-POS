@@ -1038,28 +1038,32 @@ class _CarrierHandoffSectionState extends ConsumerState<_CarrierHandoffSection> 
           // actually picked the parcel up — asking for it before hand-off
           // (as an always-visible field) just means an empty box nobody can
           // fill in yet.
-          Row(
+          // Stack the action below its field so a long Myanmar Save label
+          // at large text sizes cannot consume the field's entire width.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _tracking,
-                  decoration: InputDecoration(
-                    labelText: l.deliveryTrackingNumber,
-                    hintText: l.deliveryTrackingHint,
-                    isDense: true,
-                  ),
+              TextField(
+                controller: _tracking,
+                decoration: InputDecoration(
+                  labelText: l.deliveryTrackingNumber,
+                  hintText: l.deliveryTrackingHint,
+                  isDense: true,
                 ),
               ),
-              const SizedBox(width: AppTheme.space2),
-              TextButton.icon(
-                onPressed: _savingTracking ? null : _saveTracking,
-                icon: _savingTracking
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.check, size: 18),
-                label: Text(l.deliverySave),
+              const SizedBox(height: AppTheme.space1),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  onPressed: _savingTracking ? null : _saveTracking,
+                  icon: _savingTracking
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.check, size: 18),
+                  label: Text(l.deliverySave),
+                ),
               ),
             ],
           ),

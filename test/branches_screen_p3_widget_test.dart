@@ -26,11 +26,12 @@ void main() {
     WidgetTester tester, {
     required bool online,
     required int pendingOutbox,
+    bool premium = true,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          isPremiumProvider.overrideWith((ref) => true),
+          isPremiumProvider.overrideWith((ref) => premium),
           isEffectiveOwnerProvider.overrideWith((ref) => true),
           licenseControllerProvider.overrideWith(
             (ref) => _FakeLicenseController(ref),
@@ -44,9 +45,7 @@ void main() {
           branchSwitchRecoveryProvider.overrideWith(
             (ref) => Stream.value(null),
           ),
-          stuckOutboxProvider.overrideWith(
-            (ref) => Stream.value(const []),
-          ),
+          stuckOutboxProvider.overrideWith((ref) => Stream.value(const [])),
           pendingOutboxCountProvider.overrideWith(
             (ref) => Stream.value(pendingOutbox),
           ),
@@ -64,6 +63,14 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('Free owner can select account shops for renewal', (
+    tester,
+  ) async {
+    await pumpBranches(tester, online: true, pendingOutbox: 0, premium: false);
+    expect(find.text('Pinned current branch'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Switch'), findsOneWidget);
+  });
 
   testWidgets('renders pinned current branch and explicit action sections', (
     tester,
@@ -122,9 +129,7 @@ void main() {
           branchSwitchRecoveryProvider.overrideWith(
             (ref) => Stream.value(null),
           ),
-          stuckOutboxProvider.overrideWith(
-            (ref) => Stream.value(const []),
-          ),
+          stuckOutboxProvider.overrideWith((ref) => Stream.value(const [])),
           pendingOutboxCountProvider.overrideWith((ref) => Stream.value(0)),
           branchConnectivityProvider.overrideWith((ref) => Stream.value(true)),
         ],
