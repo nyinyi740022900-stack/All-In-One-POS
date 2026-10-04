@@ -49,6 +49,35 @@ project, and the risk accepted by going straight to production.
    own rule is that production must refuse test charges. Payment setup is the
    one piece that genuinely wants a separate project; keep it off until then.
 
+## Verifying in closed testing instead of on staging
+
+Closed testing (TestFlight / Play closed track) is where three of those four
+actually get verified — but it is not a substitute for staging, because closed
+testers hit **production**. The migration has to be live before they can test
+it, so closed testing is the venue for *verifying*, never a safe place to
+*fail*: that part is covered by the pre-cutover dump and the tested rollback.
+
+- **Real JWT and RLS (1)** — the right venue, and the only honest one. Verify on
+  your own phone first: if the claim shape is wrong it is not the testers who
+  lose sync, it is all eight live shops.
+- **Deployed functions signing a real receipt (2)** — same; this path only
+  exists once deployed.
+- **Google/Apple login (3)** — closed testing is the *only* way to test Sign in
+  with Apple properly: it needs a real App ID and provisioning profile, which a
+  dev build and the simulator cannot fully stand in for. It needs the OAuth
+  setup done and the providers enabled first (`SocialAuth.local.xcconfig` does
+  not exist yet, so today's builds ship with the buttons hidden).
+- **Lemon Squeezy (4)** — *cannot* be done in closed testing. Store binaries
+  build with `COMMERCE_UI=false`, so the app shows no pricing or checkout at
+  all; and exercising test mode would mean putting production into test mode,
+  which this project's own rule forbids. That leaves either one real live charge
+  on the web renew page (20,000 MMK, then refund), or a separate project when
+  test mode is wanted.
+
+Closed testers write to production: have them use their own or disposable shops,
+and remember the three-device limit per shop means a handful of testers need
+more than one shop between them. Start with very few.
+
 ## Order of operations
 
 Stop if any step fails; the rollback below is only simple while the client is
