@@ -4607,4 +4607,15 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get adminGatewayYearlyVariant =>
       'Lemon Squeezy နှစ်စဉ်အစီအစဉ် variant ID';
+
+  @override
+  String get storefrontRenewCardExists =>
+      'ဤဆိုင်တွင် ကတ်ဖြင့် ဝယ်ထားသော subscription ရှိပြီးသားပါ။ ထပ်မဝယ်ဘဲ လက်ရှိ subscription ကို စီမံပါ။';
+
+  @override
+  String get storefrontRenewCardManage => 'Subscription စီမံမည်';
+
+  @override
+  String get storefrontRenewCardPending =>
+      'ဤဆိုင်အတွက် ကတ်ပေးချေမှု လုပ်ဆောင်ဆဲ ရှိပါသည်။ လက်ရှိပေးချေမှုကို အပြီးသတ်ပါ။ သက်တမ်းကုန်သွားလျှင် သို့မဟုတ် အခြေအနေ မရှင်းလင်းလျှင် ထပ်မပေးချေမီ support ကို ဆက်သွယ်ပါ။';
 }

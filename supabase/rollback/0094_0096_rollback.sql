@@ -1,4 +1,4 @@
--- Undo the account-Premium cutover (migrations 0094, 0095, 0096).
+-- Undo the account-Premium cutover and checkout guard (0094 through 0097).
 --
 -- Safe to run because those three migrations add rather than destroy: no table,
 -- column or row is dropped, and the policies they drop are recreated in the same
@@ -17,7 +17,7 @@
 --
 -- Afterwards, clear the CLI's ledger so a later `db push` reapplies them:
 --   delete from supabase_migrations.schema_migrations
---    where version in ('0094', '0095', '0096');
+--    where version in ('0094', '0095', '0096', '0097');
 
 begin;
 
@@ -47,7 +47,8 @@ begin
       'can_read_account_shop', 'consume_social_reauth_proof', 'create_account_shop',
       'create_social_account_shop', 'fulfill_account_payment', 'fulfill_gateway_payment',
       'register_shop_device', 'reject_account_payment', 'release_shop_device',
-      'renew_shop_subscription', 'resolve_social_account', 'start_account_trial')
+      'renew_shop_subscription', 'resolve_social_account', 'start_account_trial',
+      'reserve_gateway_checkout', 'close_gateway_checkout')
   loop
     execute format('drop function %s cascade', fn.sig);
   end loop;

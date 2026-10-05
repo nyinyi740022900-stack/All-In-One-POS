@@ -8281,6 +8281,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lemon Squeezy yearly variant ID'**
   String get adminGatewayYearlyVariant;
+
+  /// No description provided for @storefrontRenewCardExists.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop already has a card subscription. Manage the existing subscription instead of buying another.'**
+  String get storefrontRenewCardExists;
+
+  /// No description provided for @storefrontRenewCardManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage subscription'**
+  String get storefrontRenewCardManage;
+
+  /// No description provided for @storefrontRenewCardPending.
+  ///
+  /// In en, this message translates to:
+  /// **'A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again.'**
+  String get storefrontRenewCardPending;
 }
 
 class _AppLocalizationsDelegate

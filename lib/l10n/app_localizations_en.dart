@@ -4600,4 +4600,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminGatewayYearlyVariant => 'Lemon Squeezy yearly variant ID';
+
+  @override
+  String get storefrontRenewCardExists =>
+      'This shop already has a card subscription. Manage the existing subscription instead of buying another.';
+
+  @override
+  String get storefrontRenewCardManage => 'Manage subscription';
+
+  @override
+  String get storefrontRenewCardPending =>
+      'A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again.';
 }

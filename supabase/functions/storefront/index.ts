@@ -583,54 +583,137 @@ async function handleCheckout(
       verified.error === "processor_unavailable" ? 502 : 503,
     );
   }
-  const id = crypto.randomUUID();
-  const { error } = await admin.from("billing_checkouts").insert({
-    id,
-    shop_id: shopId,
-    owner_user_id: owner.id,
-    variant_id: verified.variantId,
-    months: verified.months,
-  });
-  if (error) return json({ error: "server_error" }, 500);
-  const result = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      Accept: "application/vnd.api+json",
-      "Content-Type": "application/vnd.api+json",
-    },
-    signal: AbortSignal.timeout(15000),
-    body: JSON.stringify({
-      data: {
-        type: "checkouts",
-        attributes: {
-          checkout_data: { email: owner.email, custom: { billing_id: id } },
-          checkout_options: { skip_trial: true },
-          // Stated outright, so a key belonging to the other mode fails here
-          // rather than after the customer has paid.
-          test_mode: testMode,
-          product_options: {
-            enabled_variants: [Number(verified.variantId)],
-            // Back to the page they started from. Cosmetic only: returning
-            // here grants nothing, the signed webhook does, and the app picks
-            // the new term up on its next receipt refresh.
-            redirect_url: "https://shop.allinonepos.app/renew",
+  // A database lock makes two tabs/devices share one reservation. A client
+  // spinner or an in-memory check cannot stop simultaneous function instances.
+  let reservation;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await admin.rpc("reserve_gateway_checkout", {
+      p_shop_id: shopId,
+      p_owner_user_id: owner.id,
+      p_variant_id: verified.variantId,
+      p_months: verified.months,
+    });
+    if (error || !data) return json({ error: "checkout_unavailable" }, 503);
+    if (data.error || !data.checkout) {
+      return json({ error: "checkout_in_progress" }, 409);
+    }
+    reservation = data.checkout;
+    if (data.reserved) break;
+    if (reservation.subscription_id) {
+      let subscription;
+      try {
+        const response = await fetch(
+          `https://api.lemonsqueezy.com/v1/subscriptions/${
+            encodeURIComponent(reservation.subscription_id)
+          }`,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              Accept: "application/vnd.api+json",
+            },
+            signal: AbortSignal.timeout(15000),
           },
-          expires_at: new Date(Date.now() + 3600000).toISOString(),
-        },
-        relationships: {
-          store: { data: { type: "stores", id: storeId } },
-          variant: { data: { type: "variants", id: verified.variantId } },
-        },
+        );
+        if (!response.ok) return json({ error: "checkout_unavailable" }, 503);
+        subscription = (await response.json())?.data?.attributes;
+      } catch {
+        return json({ error: "checkout_unavailable" }, 503);
+      }
+      if (
+        `${subscription?.store_id}` !== storeId ||
+        subscription?.test_mode !== testMode
+      ) {
+        return json({ error: "checkout_unavailable" }, 503);
+      }
+      // Cancelled/past_due/unpaid/paused can still be resumed or billed. Only
+      // the processor's terminal expired state permits a fresh subscription.
+      if (subscription.status === "expired" && attempt === 0) {
+        const { error } = await admin.rpc("close_gateway_checkout", {
+          p_checkout_id: reservation.id,
+          p_subscription_id: reservation.subscription_id,
+        });
+        if (error) return json({ error: "checkout_unavailable" }, 503);
+        continue;
+      }
+      const portal = subscription.urls?.customer_portal;
+      const managementUrl = typeof portal === "string" &&
+          /^https:\/\/[^/]+\.lemonsqueezy\.com\//.test(portal)
+        ? portal
+        : null;
+      return json({
+        error: "subscription_already_exists",
+        management_url: managementUrl,
+      }, 409);
+    }
+    // Never hand an issued URL to another tab: hosted checkout links can
+    // produce a fresh payable cart even when it is the same URL. The first
+    // tab finishes payment; a lost/expired checkout needs reconciliation,
+    // since an invoice may have been paid but its webhook still be delayed.
+    return json({ error: "checkout_in_progress" }, 409);
+  }
+  const id = reservation.id;
+  let result: Response;
+  try {
+    result = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
       },
-    }),
-  });
-  if (!result.ok) return json({ error: "checkout_unavailable" }, 502);
-  const resultBody = await result.json();
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        data: {
+          type: "checkouts",
+          attributes: {
+            checkout_data: { email: owner.email, custom: { billing_id: id } },
+            checkout_options: { skip_trial: true },
+            // Stated outright, so a key belonging to the other mode fails here
+            // rather than after the customer has paid.
+            test_mode: testMode,
+            product_options: {
+              enabled_variants: [Number(verified.variantId)],
+              // Back to the page they started from. Cosmetic only: returning
+              // here grants nothing, the signed webhook does, and the app picks
+              // the new term up on its next receipt refresh.
+              redirect_url: "https://shop.allinonepos.app/renew",
+            },
+            expires_at: reservation.checkout_expires_at,
+          },
+          relationships: {
+            store: { data: { type: "stores", id: storeId } },
+            variant: { data: { type: "variants", id: verified.variantId } },
+          },
+        },
+      }),
+    });
+  } catch {
+    // An unknown processor outcome keeps the reservation: retrying a POST
+    // could leave two payable URLs with the same shop binding.
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  if (!result.ok) {
+    if (result.status >= 400 && result.status < 500) {
+      await admin.rpc("close_gateway_checkout", {
+        p_checkout_id: id,
+        p_subscription_id: null,
+      });
+    }
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  let resultBody;
+  try {
+    resultBody = await result.json();
+  } catch {
+    return json({ error: "checkout_unavailable" }, 502);
+  }
   const url = resultBody?.data?.attributes?.url;
   if (typeof url !== "string" || !url.startsWith("https://")) {
     return json({ error: "checkout_unavailable" }, 502);
   }
+  const { error: saveError } = await admin.from("billing_checkouts")
+    .update({ checkout_url: url }).eq("id", id);
+  if (saveError) return json({ error: "checkout_unavailable" }, 503);
   return json({ url });
 }
 

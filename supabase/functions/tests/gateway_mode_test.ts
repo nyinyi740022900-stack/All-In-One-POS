@@ -44,22 +44,47 @@ function withEnv(url: string, testMode: string | null, body: () => void) {
 
 Deno.test("gateway mode defaults to live when nothing opts in", () => {
   withEnv(PRODUCTION_URL, null, () => assertEquals(gatewayTestMode(), false));
-  withEnv("https://staging.supabase.co", null, () => assertEquals(gatewayTestMode(), false));
+  withEnv(
+    "https://staging.supabase.co",
+    null,
+    () => assertEquals(gatewayTestMode(), false),
+  );
   // Anything other than the exact string stays live.
-  withEnv("https://staging.supabase.co", "TRUE", () => assertEquals(gatewayTestMode(), false));
-  withEnv("https://staging.supabase.co", "1", () => assertEquals(gatewayTestMode(), false));
+  withEnv(
+    "https://staging.supabase.co",
+    "TRUE",
+    () => assertEquals(gatewayTestMode(), false),
+  );
+  withEnv(
+    "https://staging.supabase.co",
+    "1",
+    () => assertEquals(gatewayTestMode(), false),
+  );
 });
 
 Deno.test("only a non-production project may opt into test charges", () => {
-  withEnv("https://staging.supabase.co", "true", () => assertEquals(gatewayTestMode(), true));
+  withEnv(
+    "https://staging.supabase.co",
+    "true",
+    () => assertEquals(gatewayTestMode(), true),
+  );
   // Production with the flag set is a configuration error, never test mode.
-  withEnv(PRODUCTION_URL, "true", () =>
-    assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"));
+  withEnv(
+    PRODUCTION_URL,
+    "true",
+    () => assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"),
+  );
   // An unidentifiable project is treated as production.
-  withEnv("", "true", () =>
-    assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"));
-  withEnv("not-a-url", "true", () =>
-    assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"));
+  withEnv(
+    "",
+    "true",
+    () => assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"),
+  );
+  withEnv(
+    "not-a-url",
+    "true",
+    () => assertThrows(() => gatewayTestMode(), Error, "test_mode_not_allowed"),
+  );
 });
 
 /// A processor whose variants/products answer as configured.
@@ -122,12 +147,42 @@ Deno.test("a verified variant reports the months its own interval is worth", asy
 Deno.test("a misconfigured variant is refused rather than mis-termed", async () => {
   const cases: Array<[string, Record<string, unknown>, string, string]> = [
     // The config row that would sell a year for one month's price.
-    ["yearly plan pointing at the monthly variant", PUBLISHED_MONTHLY, "yearly", "variant_interval_mismatch"],
-    ["monthly plan pointing at the yearly variant", PUBLISHED_YEARLY, "monthly", "variant_interval_mismatch"],
-    ["a one-off product, not a subscription", { ...PUBLISHED_MONTHLY, is_subscription: false }, "monthly", "variant_not_recurring"],
-    ["a draft variant", { ...PUBLISHED_MONTHLY, status: "draft" }, "monthly", "variant_not_published"],
-    ["a three-month interval the renewal cannot express", { ...PUBLISHED_MONTHLY, interval_count: 3 }, "monthly", "variant_interval_count_unsupported"],
-    ["a variant with no product", { ...PUBLISHED_MONTHLY, product_id: null }, "monthly", "variant_product_unknown"],
+    [
+      "yearly plan pointing at the monthly variant",
+      PUBLISHED_MONTHLY,
+      "yearly",
+      "variant_interval_mismatch",
+    ],
+    [
+      "monthly plan pointing at the yearly variant",
+      PUBLISHED_YEARLY,
+      "monthly",
+      "variant_interval_mismatch",
+    ],
+    [
+      "a one-off product, not a subscription",
+      { ...PUBLISHED_MONTHLY, is_subscription: false },
+      "monthly",
+      "variant_not_recurring",
+    ],
+    [
+      "a draft variant",
+      { ...PUBLISHED_MONTHLY, status: "draft" },
+      "monthly",
+      "variant_not_published",
+    ],
+    [
+      "a three-month interval the renewal cannot express",
+      { ...PUBLISHED_MONTHLY, interval_count: 3 },
+      "monthly",
+      "variant_interval_count_unsupported",
+    ],
+    [
+      "a variant with no product",
+      { ...PUBLISHED_MONTHLY, product_id: null },
+      "monthly",
+      "variant_product_unknown",
+    ],
   ];
   for (const [name, attrs, plan, expected] of cases) {
     const restore = stubProcessor({ [MONTHLY]: attrs });
@@ -186,7 +241,8 @@ Deno.test("an unknown variant or an unreachable processor never verifies", async
     restore();
   }
   const original = globalThis.fetch;
-  globalThis.fetch = (() => Promise.reject(new Error("offline"))) as typeof fetch;
+  globalThis.fetch =
+    (() => Promise.reject(new Error("offline"))) as typeof fetch;
   try {
     assertEquals(
       await verifyVariantForPlan("k", "461190", MONTHLY, "monthly", false),
@@ -204,19 +260,31 @@ async function checkout(
   plan: string,
   variantConfig: Record<string, string>,
   variants: Record<string, Record<string, unknown>>,
+  existing: Record<string, unknown> | null = null,
+  subscriptionStatus = "active",
 ) {
   const original = globalThis.fetch;
   let binding: Record<string, unknown> | null = null;
+  let processorCheckouts = 0;
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     const url = `${input}`;
     if (url.includes("/auth/v1/user")) {
       return Promise.resolve(
-        Response.json({ id: "owner-1", email: "o@example.com", app_metadata: { role: "owner" } }),
+        Response.json({
+          id: "owner-1",
+          email: "o@example.com",
+          app_metadata: { role: "owner" },
+        }),
       );
     }
     if (url.includes("/shop_subscriptions?")) {
       return Promise.resolve(Response.json([
-        { shop_id: "shop-a", shop_name: "Shop A", plan: "free", expires_at: "1970-01-01T00:00:00Z" },
+        {
+          shop_id: "shop-a",
+          shop_name: "Shop A",
+          plan: "free",
+          expires_at: "1970-01-01T00:00:00Z",
+        },
       ]));
     }
     if (url.includes("/app_config?")) {
@@ -225,8 +293,44 @@ async function checkout(
       return Promise.resolve(Response.json(value ? { value } : null));
     }
     if (url.includes("/billing_checkouts")) {
-      binding = JSON.parse(`${init?.body}`);
+      binding = { ...binding, ...JSON.parse(`${init?.body}`) };
       return Promise.resolve(Response.json({}, { status: 201 }));
+    }
+    if (url.includes("/rpc/reserve_gateway_checkout")) {
+      const args = JSON.parse(`${init?.body}`);
+      if (existing) {
+        return Promise.resolve(
+          Response.json({ reserved: false, checkout: existing }),
+        );
+      }
+      binding = {
+        id: "00000000-0000-4000-8000-000000000001",
+        shop_id: "shop-a",
+        variant_id: args.p_variant_id,
+        months: args.p_months,
+        checkout_expires_at: "2099-01-01T00:00:00Z",
+      };
+      return Promise.resolve(
+        Response.json({ reserved: true, checkout: binding }),
+      );
+    }
+    if (url.includes("/rpc/close_gateway_checkout")) {
+      existing = null;
+      return Promise.resolve(Response.json({ ok: true }));
+    }
+    if (url.includes("/v1/subscriptions/")) {
+      return Promise.resolve(Response.json({
+        data: {
+          attributes: {
+            store_id: 461190,
+            test_mode: false,
+            status: subscriptionStatus,
+            urls: {
+              customer_portal: "https://shop.lemonsqueezy.com/billing/manage",
+            },
+          },
+        },
+      }));
     }
     const variant = url.match(/\/v1\/variants\/(\d+)/)?.[1];
     if (variant) {
@@ -236,12 +340,17 @@ async function checkout(
     }
     if (url.match(/\/v1\/products\/(\d+)/)) {
       return Promise.resolve(
-        Response.json({ data: { attributes: { store_id: 461190, test_mode: false } } }),
+        Response.json({
+          data: { attributes: { store_id: 461190, test_mode: false } },
+        }),
       );
     }
     if (url.includes("/v1/checkouts")) {
+      processorCheckouts++;
       return Promise.resolve(
-        Response.json({ data: { attributes: { url: "https://pay.example.com/c/1" } } }),
+        Response.json({
+          data: { attributes: { url: "https://pay.example.com/c/1" } },
+        }),
       );
     }
     return Promise.resolve(Response.json(null));
@@ -255,10 +364,18 @@ async function checkout(
           authorization: "Bearer owner-token",
           "x-forwarded-for": "8.8.8.8",
         },
-        body: JSON.stringify({ action: "create_checkout", shop_id: "shop-a", plan }),
+        body: JSON.stringify({
+          action: "create_checkout",
+          shop_id: "shop-a",
+          plan,
+        }),
       }),
     );
-    return { response, binding: binding as Record<string, unknown> | null };
+    return {
+      response,
+      binding: binding as Record<string, unknown> | null,
+      processorCheckouts,
+    };
   } finally {
     globalThis.fetch = original;
   }
@@ -278,6 +395,89 @@ Deno.test("checkout stores the term the processor will charge, not the one asked
   assertEquals(yearly.response.status, 200);
   assertEquals(yearly.binding?.months, 12);
   assertEquals(yearly.binding?.variant_id, YEARLY);
+});
+
+Deno.test("existing recurring subscription returns management, never a new checkout", async () => {
+  for (
+    const status of [
+      "active",
+      "on_trial",
+      "paused",
+      "past_due",
+      "unpaid",
+      "cancelled",
+    ]
+  ) {
+    const result = await checkout(
+      "monthly",
+      { "pay.lemonsqueezy.variant_monthly": MONTHLY },
+      { [MONTHLY]: PUBLISHED_MONTHLY },
+      { id: "existing", subscription_id: "99" },
+      status,
+    );
+    assertEquals(result.response.status, 409);
+    const body = await result.response.json();
+    assertEquals(body.error, "subscription_already_exists");
+    assertEquals(
+      body.management_url,
+      "https://shop.lemonsqueezy.com/billing/manage",
+    );
+    assertEquals(result.binding, null);
+    assertEquals(result.processorCheckouts, 0);
+  }
+});
+
+Deno.test("pending checkout without a URL never opens a second checkout", async () => {
+  const result = await checkout(
+    "monthly",
+    { "pay.lemonsqueezy.variant_monthly": MONTHLY },
+    { [MONTHLY]: PUBLISHED_MONTHLY },
+    { id: "pending", subscription_id: null },
+  );
+  assertEquals(result.response.status, 409);
+  assertEquals((await result.response.json()).error, "checkout_in_progress");
+  assertEquals(result.binding, null);
+  assertEquals(result.processorCheckouts, 0);
+});
+
+Deno.test("a second tab is never handed an already issued checkout URL", async () => {
+  const pending = {
+    id: "pending",
+    subscription_id: null,
+    variant_id: MONTHLY,
+    checkout_url: "https://pay.example.com/existing",
+    checkout_expires_at: "2099-01-01T00:00:00Z",
+  };
+  const result = await checkout(
+    "monthly",
+    { "pay.lemonsqueezy.variant_monthly": MONTHLY },
+    { [MONTHLY]: PUBLISHED_MONTHLY },
+    pending,
+  );
+  assertEquals(result.response.status, 409);
+  assertEquals((await result.response.json()).error, "checkout_in_progress");
+  assertEquals(result.binding, null);
+  const changedPlan = await checkout(
+    "yearly",
+    { "pay.lemonsqueezy.variant_yearly": YEARLY },
+    { [YEARLY]: PUBLISHED_YEARLY },
+    pending,
+  );
+  assertEquals(changedPlan.response.status, 409);
+  assertEquals(changedPlan.binding, null);
+});
+
+Deno.test("only a processor-verified expired subscription can reserve a fresh checkout", async () => {
+  const result = await checkout(
+    "monthly",
+    { "pay.lemonsqueezy.variant_monthly": MONTHLY },
+    { [MONTHLY]: PUBLISHED_MONTHLY },
+    { id: "old", subscription_id: "99" },
+    "expired",
+  );
+  assertEquals(result.response.status, 200);
+  assertEquals(result.processorCheckouts, 1);
+  assertEquals(result.binding?.months, 1);
 });
 
 Deno.test("a yearly config row pointing at the monthly variant sells nothing", async () => {
@@ -332,12 +532,21 @@ async function listBillingShops() {
     const url = `${input}`;
     if (url.includes("/auth/v1/user")) {
       return Promise.resolve(
-        Response.json({ id: "owner-1", email: "o@example.com", app_metadata: { role: "owner" } }),
+        Response.json({
+          id: "owner-1",
+          email: "o@example.com",
+          app_metadata: { role: "owner" },
+        }),
       );
     }
     if (url.includes("/shop_subscriptions?")) {
       return Promise.resolve(Response.json([
-        { shop_id: "shop-a", shop_name: "Shop A", plan: "free", expires_at: "1970-01-01T00:00:00Z" },
+        {
+          shop_id: "shop-a",
+          shop_name: "Shop A",
+          plan: "free",
+          expires_at: "1970-01-01T00:00:00Z",
+        },
       ]));
     }
     return Promise.resolve(Response.json(null));

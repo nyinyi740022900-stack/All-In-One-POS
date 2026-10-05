@@ -2077,5 +2077,8 @@
   "adminWaveNumber": "WavePay number",
   "adminSupportViber": "Support Viber number",
   "adminGatewayMonthlyVariant": "Lemon Squeezy monthly variant ID",
-  "adminGatewayYearlyVariant": "Lemon Squeezy yearly variant ID"
+  "adminGatewayYearlyVariant": "Lemon Squeezy yearly variant ID",
+  "storefrontRenewCardExists": "This shop already has a card subscription. Manage the existing subscription instead of buying another.",
+  "storefrontRenewCardManage": "Manage subscription",
+  "storefrontRenewCardPending": "A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again."
 }

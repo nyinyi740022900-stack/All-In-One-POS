@@ -378,19 +378,48 @@ class StorefrontApi {
     required String shopId,
     required String plan,
   }) async {
-    final response = await _c.functions.invokeBounded(
-      'storefront',
-      body: {'action': 'create_checkout', 'shop_id': shopId, 'plan': plan},
-    );
+    final FunctionResponse response;
+    try {
+      response = await _c.functions.invokeBounded(
+        'storefront',
+        body: {'action': 'create_checkout', 'shop_id': shopId, 'plan': plan},
+        // Catalog verification plus an expired subscription lookup and checkout
+        // creation can take four bounded 15-second processor round trips.
+        timeout: const Duration(seconds: 75),
+      );
+    } on FunctionException catch (error) {
+      // Supabase throws for 409/502/503; those responses never reach response.data.
+      if (error.details is Map) _throwCheckoutError(error.details as Map);
+      rethrow;
+    }
     final data = response.data is Map
         ? (response.data as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
     final url = data['url'] as String?;
-    if (data['error'] == 'checkout_unavailable') throw CheckoutUnavailable();
+    _throwCheckoutError(data);
     if (url == null || !url.startsWith('https://')) {
       throw const FormatException('Missing checkout url');
     }
     return url;
+  }
+
+  static void _throwCheckoutError(Map data) {
+    switch (data['error']) {
+      case 'checkout_unavailable':
+        throw CheckoutUnavailable();
+      case 'checkout_in_progress':
+        throw CheckoutInProgress();
+      case 'subscription_already_exists':
+        final raw = data['management_url'];
+        final uri = raw is String ? Uri.tryParse(raw) : null;
+        throw CheckoutAlreadySubscribed(
+          uri != null &&
+                  uri.scheme == 'https' &&
+                  uri.host.endsWith('.lemonsqueezy.com')
+              ? uri
+              : null,
+        );
+    }
   }
 
   Future<List<RenewalRequestSummary>> fetchMyRequests(String shopId) async {
@@ -447,6 +476,13 @@ class BillingShops {
 
 /// The gateway cannot sell right now: not configured, or configured wrongly.
 class CheckoutUnavailable implements Exception {}
+
+class CheckoutInProgress implements Exception {}
+
+class CheckoutAlreadySubscribed implements Exception {
+  const CheckoutAlreadySubscribed(this.managementUrl);
+  final Uri? managementUrl;
+}
 
 /// One renewal request as the public receipt page sees it.
 ///

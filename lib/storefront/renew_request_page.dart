@@ -39,6 +39,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   List<Map<String, dynamic>>? _shops;
   String? _shopId;
+
   /// Whether the server can take an international card payment. Stays false
   /// until it says otherwise, so the card option is never offered on a
   /// project without a configured processor.
@@ -231,6 +232,27 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       )) {
         throw Exception('launch_failed');
       }
+    } on CheckoutAlreadySubscribed catch (error) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(l.storefrontRenewCardExists),
+            duration: const Duration(seconds: 10),
+            action: error.managementUrl == null
+                ? null
+                : SnackBarAction(
+                    label: l.storefrontRenewCardManage,
+                    onPressed: () => _openCardManagement(error.managementUrl!),
+                  ),
+          ),
+        );
+      }
+    } on CheckoutInProgress {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewCardPending)),
+        );
+      }
     } on CheckoutUnavailable {
       if (mounted) {
         messenger.showSnackBar(
@@ -239,10 +261,28 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       }
     } catch (_) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text(l.storefrontRenewFailed)));
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewFailed)),
+        );
       }
     } finally {
       if (mounted) setState(() => _openingCheckout = false);
+    }
+  }
+
+  Future<void> _openCardManagement(Uri url) async {
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw const FormatException('launch_failed');
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).storefrontRenewFailed),
+          ),
+        );
+      }
     }
   }
 
