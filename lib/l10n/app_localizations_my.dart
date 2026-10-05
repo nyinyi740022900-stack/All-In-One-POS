@@ -3636,7 +3636,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardLicenseBody =>
-      'ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Agent ဆီက license key ရှိရင် နောက်မှ Settings မှာ ထည့်နိုင်ပါတယ်။ ဆိုင် email ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။';
+      'ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ အကောင့်မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Premium က cloud sync၊ အသေးစိတ်အစီရင်ခံစာနှင့် ဝန်ထမ်းစီမံမှုတို့ကို ထပ်ပေးပြီး ဆိုင်အကောင့်ကနေ စီမံပါတယ်။ အကောင့်ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။';
 
   @override
   String get onboardActivateNow => 'License key ချက်ချင်း activate';

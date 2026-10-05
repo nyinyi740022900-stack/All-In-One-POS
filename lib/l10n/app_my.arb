@@ -1593,7 +1593,7 @@
   "onboardShopTitle": "သင့်ဆိုင်",
   "onboardShopBody": "ဒါက ပြေစာပေါ်မှာ ပါဝင်ပါမယ်။",
   "onboardLicenseTitle": "Free Plan နဲ့ စသုံးပါမယ်",
-  "onboardLicenseBody": "ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ Key မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Agent ဆီက license key ရှိရင် နောက်မှ Settings မှာ ထည့်နိုင်ပါတယ်။ ဆိုင် email ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။",
+  "onboardLicenseBody": "ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ အကောင့်မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Premium က cloud sync၊ အသေးစိတ်အစီရင်ခံစာနှင့် ဝန်ထမ်းစီမံမှုတို့ကို ထပ်ပေးပြီး ဆိုင်အကောင့်ကနေ စီမံပါတယ်။ အကောင့်ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။",
   "onboardActivateNow": "License key ချက်ချင်း activate",
   "onboardAccountTitle": "Email အကောင့် (မလုပ်လည်းရ)",
   "onboardAccountBody": "ဆိုင်အကောင့် ဖန်တီးပါ သို့မဟုတ် ဝင်ပါ။ သင့်ဆိုင်သည် Free ဖြင့် စတင်ပြီး Premium သို့မဟုတ် အစမ်းကာလကို နောက်မှ ရွေးချယ်နိုင်ပါသည်။",

@@ -1648,7 +1648,7 @@
   "onboardShopTitle": "Your shop",
   "onboardShopBody": "This appears on your printed receipts.",
   "onboardLicenseTitle": "You start on the Free plan",
-  "onboardLicenseBody": "Sell and Inventory work forever — no card, no signup, no key. A license key from an agent can be added later in Settings. If you already have a shop email, sign in on the next page.",
+  "onboardLicenseBody": "Sell and Inventory work forever — no card, no signup, no account. Premium adds cloud sync, detailed reports and staff, and is managed from your shop account. If you already have one, sign in on the next page.",
   "onboardActivateNow": "Activate a license key",
   "onboardAccountTitle": "Email account (optional)",
   "onboardAccountBody": "Create or sign in to your shop account. Your shop starts on Free; Premium and its trial are optional.",

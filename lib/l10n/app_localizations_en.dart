@@ -3631,7 +3631,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardLicenseBody =>
-      'Sell and Inventory work forever — no card, no signup, no key. A license key from an agent can be added later in Settings. If you already have a shop email, sign in on the next page.';
+      'Sell and Inventory work forever — no card, no signup, no account. Premium adds cloud sync, detailed reports and staff, and is managed from your shop account. If you already have one, sign in on the next page.';
 
   @override
   String get onboardActivateNow => 'Activate a license key';

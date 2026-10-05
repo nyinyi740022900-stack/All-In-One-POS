@@ -6599,7 +6599,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardLicenseBody.
   ///
   /// In en, this message translates to:
-  /// **'Sell and Inventory work forever — no card, no signup, no key. A license key from an agent can be added later in Settings. If you already have a shop email, sign in on the next page.'**
+  /// **'Sell and Inventory work forever — no card, no signup, no account. Premium adds cloud sync, detailed reports and staff, and is managed from your shop account. If you already have one, sign in on the next page.'**
   String get onboardLicenseBody;
 
   /// No description provided for @onboardActivateNow.
