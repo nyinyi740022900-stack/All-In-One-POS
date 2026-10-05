@@ -8299,6 +8299,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again.'**
   String get storefrontRenewCardPending;
+
+  /// No description provided for @accountChangeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Change email'**
+  String get accountChangeEmail;
+
+  /// No description provided for @accountNewEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'New email'**
+  String get accountNewEmail;
+
+  /// No description provided for @accountChangeEmailHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the change from your current and new email inboxes. Your shops and Premium stay with this account. This does not change your linked Google login.'**
+  String get accountChangeEmailHelp;
+
+  /// No description provided for @accountEmailChangeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your current and new email inboxes to confirm the change.'**
+  String get accountEmailChangeSent;
+
+  /// No description provided for @accountEmailPending.
+  ///
+  /// In en, this message translates to:
+  /// **'An email change is awaiting confirmation.'**
+  String get accountEmailPending;
+
+  /// No description provided for @accountCheckEmailChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Check email change'**
+  String get accountCheckEmailChange;
+
+  /// No description provided for @accountEmailUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a different email address.'**
+  String get accountEmailUnchanged;
+
+  /// No description provided for @accountEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get accountEmailInvalid;
+
+  /// No description provided for @accountEmailRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait before requesting another email.'**
+  String get accountEmailRateLimit;
+
+  /// No description provided for @accountGoogleAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Google accounts'**
+  String get accountGoogleAccounts;
+
+  /// No description provided for @accountGoogleChangeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Link your new Google account first, then remove the old one. Your shops and Premium stay here.'**
+  String get accountGoogleChangeHelp;
+
+  /// No description provided for @accountGoogleAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Link another Google account'**
+  String get accountGoogleAdd;
+
+  /// No description provided for @accountGoogleRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Google login'**
+  String get accountGoogleRemove;
+
+  /// No description provided for @accountGoogleRemoveHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This Google account will no longer open your shops. Make sure you can sign in with another linked account before continuing.'**
+  String get accountGoogleRemoveHelp;
+
+  /// No description provided for @accountGoogleRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Google login removed. Your shops and Premium are unchanged.'**
+  String get accountGoogleRemoved;
+
+  /// No description provided for @accountLastSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Link and verify another sign-in method before removing this one.'**
+  String get accountLastSignIn;
+
+  /// No description provided for @accountGoogleInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This Google account is already linked. Choose another account.'**
+  String get accountGoogleInUse;
 }
 
 class _AppLocalizationsDelegate

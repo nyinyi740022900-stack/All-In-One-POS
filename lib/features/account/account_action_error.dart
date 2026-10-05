@@ -7,6 +7,11 @@ import '../../l10n/app_localizations.dart';
 String accountActionErrorMessage(AppLocalizations l, String? code) =>
     switch (code) {
       'email_taken' => l.accountEmailTaken,
+      'invalid_email' => l.accountEmailInvalid,
+      'email_unchanged' => l.accountEmailUnchanged,
+      'email_rate_limit' => l.accountEmailRateLimit,
+      'last_sign_in' => l.accountLastSignIn,
+      'identity_already_exists' => l.accountGoogleInUse,
       'social_auth_unavailable' => l.accountSocialAuthUnavailable,
       'social_auth_failed' => l.accountSocialAuthFailed,
       'social_reauth_failed' => l.accountSocialReauthFailed,

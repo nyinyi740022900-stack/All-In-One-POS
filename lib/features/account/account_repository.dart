@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'social_auth.dart';
+import 'account_identity_policy.dart';
+import 'owner_email_transport.dart';
 
 import '../../core/env.dart';
 import '../../data/local/database.dart';
@@ -329,6 +331,100 @@ class AccountRepository {
     } catch (e) {
       return _socialFailure(e);
     }
+  }
+
+  /// Requests Supabase's secure email confirmation flow. Never rewrites
+  /// owner_user_id, shop membership, trial usage or Premium/device receipts.
+  Future<AccountActionResult> requestOwnerEmailChange(String newEmail) async {
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    if (currentAccountRole != 'owner') {
+      return const AccountActionResult.failure('forbidden');
+    }
+    final email = newEmail.trim();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      return const AccountActionResult.failure('invalid_email');
+    }
+    if (email.toLowerCase() == currentAccountEmail?.trim().toLowerCase()) {
+      return const AccountActionResult.failure('email_unchanged');
+    }
+    final id = currentAuthUser!.id;
+    try {
+      final updated = await updateOwnerEmail(email);
+      if (updated?.id != id || currentAuthUser?.id != id) {
+        return const AccountActionResult.failure('not_authenticated');
+      }
+      return AccountActionResult.success(id);
+    } catch (e) {
+      return _identityFailure(e);
+    }
+  }
+
+  Future<User?> updateOwnerEmail(String email) =>
+      requestOwnerEmail(Supabase.instance.client, email);
+
+  Future<List<UserIdentity>> fetchOwnerIdentities() async {
+    final user = (await Supabase.instance.client.auth.getUser().timeout(
+      const Duration(seconds: 30),
+    )).user;
+    if (user?.id != currentAuthUser?.id) {
+      throw const SocialAuthFailure('not_authenticated');
+    }
+    return user?.identities ?? [];
+  }
+
+  Future<void> unlinkOwnerIdentity(UserIdentity identity) => Supabase
+      .instance
+      .client
+      .auth
+      .unlinkIdentity(identity)
+      .timeout(const Duration(seconds: 30));
+
+  Future<AccountActionResult> removeOwnerGoogleIdentity(
+    String identityId,
+  ) async {
+    if (!isSignedInWithRealAccount) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    if (currentAccountRole != 'owner') {
+      return const AccountActionResult.failure('forbidden');
+    }
+    final id = currentAuthUser!.id;
+    try {
+      final identities = await fetchOwnerIdentities();
+      if (currentAuthUser?.id != id || identities.any((i) => i.userId != id)) {
+        return const AccountActionResult.failure('not_authenticated');
+      }
+      if (!canRemoveGoogleIdentity(identities, identityId)) {
+        return const AccountActionResult.failure('last_sign_in');
+      }
+      final identity = identities.firstWhere((i) => i.identityId == identityId);
+      await unlinkOwnerIdentity(identity);
+      if (currentAuthUser?.id != id) {
+        return const AccountActionResult.failure('not_authenticated');
+      }
+      await refreshAuthenticatedSession();
+      return AccountActionResult.success(id);
+    } catch (e) {
+      return _identityFailure(e);
+    }
+  }
+
+  AccountActionResult _identityFailure(Object e) {
+    if (e is StateError) {
+      return const AccountActionResult.failure('not_authenticated');
+    }
+    final code = e is AuthException ? e.code : null;
+    return AccountActionResult.failure(switch (code) {
+      'email_exists' || 'user_already_exists' => 'email_taken',
+      'identity_already_exists' => 'identity_already_exists',
+      'email_address_invalid' || 'validation_failed' => 'invalid_email',
+      'manual_linking_disabled' => 'social_auth_unavailable',
+      'over_email_send_rate_limit' ||
+      'over_request_rate_limit' => 'email_rate_limit',
+      _ => _socialFailure(e).error,
+    });
   }
 
   Future<AccountActionResult> deleteAccountWithSocial(

@@ -4618,4 +4618,63 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontRenewCardPending =>
       'ဤဆိုင်အတွက် ကတ်ပေးချေမှု လုပ်ဆောင်ဆဲ ရှိပါသည်။ လက်ရှိပေးချေမှုကို အပြီးသတ်ပါ။ သက်တမ်းကုန်သွားလျှင် သို့မဟုတ် အခြေအနေ မရှင်းလင်းလျှင် ထပ်မပေးချေမီ support ကို ဆက်သွယ်ပါ။';
+
+  @override
+  String get accountChangeEmail => 'အီးမေးလ် ပြောင်းရန်';
+
+  @override
+  String get accountNewEmail => 'အီးမေးလ်အသစ်';
+
+  @override
+  String get accountChangeEmailHelp =>
+      'လက်ရှိနှင့် အီးမေးလ်အသစ် နှစ်ခုလုံးတွင် ပြောင်းလဲမှုကို အတည်ပြုပါ။ ဆိုင်နှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိပါမည်။ ချိတ်ထားသော Google login ကို သီးခြားပြောင်းရပါမည်။';
+
+  @override
+  String get accountEmailChangeSent =>
+      'ပြောင်းလဲမှု အတည်ပြုရန် လက်ရှိနှင့် အီးမေးလ်အသစ် နှစ်ခုလုံးကို စစ်ပါ။';
+
+  @override
+  String get accountEmailPending =>
+      'အီးမေးလ်ပြောင်းလဲမှု အတည်ပြုရန် စောင့်နေသည်။';
+
+  @override
+  String get accountCheckEmailChange => 'အီးမေးလ်ပြောင်းလဲမှု စစ်ရန်';
+
+  @override
+  String get accountEmailUnchanged => 'အခြားအီးမေးလ်လိပ်စာ ထည့်ပါ။';
+
+  @override
+  String get accountEmailInvalid => 'မှန်ကန်သော အီးမေးလ်လိပ်စာ ထည့်ပါ။';
+
+  @override
+  String get accountEmailRateLimit => 'အီးမေးလ် ထပ်မတောင်းမီ ခဏစောင့်ပါ။';
+
+  @override
+  String get accountGoogleAccounts => 'Google အကောင့်များ';
+
+  @override
+  String get accountGoogleChangeHelp =>
+      'Google အကောင့်အသစ်ကို အရင်ချိတ်ပြီးမှ အဟောင်းကို ဖြုတ်ပါ။ ဆိုင်နှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိပါမည်။';
+
+  @override
+  String get accountGoogleAdd => 'အခြား Google အကောင့် ချိတ်ရန်';
+
+  @override
+  String get accountGoogleRemove => 'Google login ဖြုတ်ရန်';
+
+  @override
+  String get accountGoogleRemoveHelp =>
+      'ဤ Google အကောင့်ဖြင့် ဆိုင်များသို့ ဝင်၍မရတော့ပါ။ အခြားချိတ်ထားသော အကောင့်ဖြင့် ဝင်နိုင်ကြောင်း သေချာမှ ဆက်လုပ်ပါ။';
+
+  @override
+  String get accountGoogleRemoved =>
+      'Google login ကို ဖြုတ်ပြီးပါပြီ။ ဆိုင်နှင့် Premium သည် မူလအတိုင်းရှိပါသည်။';
+
+  @override
+  String get accountLastSignIn =>
+      'ဤ login ကို မဖြုတ်မီ အခြားဝင်ရောက်နည်းကို ချိတ်၍ အတည်ပြုပါ။';
+
+  @override
+  String get accountGoogleInUse =>
+      'ဤ Google အကောင့်ကို ချိတ်ထားပြီးဖြစ်သည်။ အခြားအကောင့် ရွေးပါ။';
 }

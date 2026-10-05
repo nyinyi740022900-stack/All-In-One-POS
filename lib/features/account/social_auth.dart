@@ -134,7 +134,18 @@ class SocialAuthService {
   }
 
   Future<AuthResponse> link(SocialAuthProvider provider) async {
+    final main = client ?? Supabase.instance.client;
+    final original = main.auth.currentSession;
+    if (original == null || original.isExpired) {
+      throw const SocialAuthFailure('not_authenticated');
+    }
     final proof = await reauthenticate(provider);
+    // The chooser can stay open while another tab/device flow changes the
+    // app session. Do not send any linking mutation for a different account.
+    if (main.auth.currentUser?.id != original.user.id ||
+        main.auth.currentSession?.accessToken != original.accessToken) {
+      throw const SocialAuthFailure('not_authenticated');
+    }
     return _exchange(proof, link: true);
   }
 

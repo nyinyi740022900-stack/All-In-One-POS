@@ -4611,4 +4611,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontRenewCardPending =>
       'A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again.';
+
+  @override
+  String get accountChangeEmail => 'Change email';
+
+  @override
+  String get accountNewEmail => 'New email';
+
+  @override
+  String get accountChangeEmailHelp =>
+      'Confirm the change from your current and new email inboxes. Your shops and Premium stay with this account. This does not change your linked Google login.';
+
+  @override
+  String get accountEmailChangeSent =>
+      'Check your current and new email inboxes to confirm the change.';
+
+  @override
+  String get accountEmailPending => 'An email change is awaiting confirmation.';
+
+  @override
+  String get accountCheckEmailChange => 'Check email change';
+
+  @override
+  String get accountEmailUnchanged => 'Enter a different email address.';
+
+  @override
+  String get accountEmailInvalid => 'Enter a valid email address.';
+
+  @override
+  String get accountEmailRateLimit =>
+      'Please wait before requesting another email.';
+
+  @override
+  String get accountGoogleAccounts => 'Google accounts';
+
+  @override
+  String get accountGoogleChangeHelp =>
+      'Link your new Google account first, then remove the old one. Your shops and Premium stay here.';
+
+  @override
+  String get accountGoogleAdd => 'Link another Google account';
+
+  @override
+  String get accountGoogleRemove => 'Remove Google login';
+
+  @override
+  String get accountGoogleRemoveHelp =>
+      'This Google account will no longer open your shops. Make sure you can sign in with another linked account before continuing.';
+
+  @override
+  String get accountGoogleRemoved =>
+      'Google login removed. Your shops and Premium are unchanged.';
+
+  @override
+  String get accountLastSignIn =>
+      'Link and verify another sign-in method before removing this one.';
+
+  @override
+  String get accountGoogleInUse =>
+      'This Google account is already linked. Choose another account.';
 }

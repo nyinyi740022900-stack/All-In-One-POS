@@ -84,6 +84,22 @@ class _Account extends AccountRepository {
   int attaches = 0;
   String? attachFailure;
   CachedLicense target = _license('cloud-shop');
+  String? changedEmail;
+  final removed = <String>[];
+  List<UserIdentity> identities = [];
+  @override
+  Future<User?> updateOwnerEmail(String email) async {
+    changedEmail = email;
+    return user;
+  }
+
+  @override
+  Future<List<UserIdentity>> fetchOwnerIdentities() async => identities;
+  @override
+  Future<void> unlinkOwnerIdentity(UserIdentity identity) async {
+    removed.add(identity.identityId);
+  }
+
   @override
   User? get currentAuthUser => user;
   @override
@@ -292,6 +308,76 @@ void main() {
       expect(account.requests.single['action'], 'delete_account');
       expect(account.requests.single['id_token'], 'test-id-token');
       expect(account.requests.single.containsKey('password'), isFalse);
+    },
+  );
+  test('owner email change retains account, shop and license', () async {
+    licenses.cached = _license('cloud-shop');
+    final before = licenses.cached;
+    final result = await account.requestOwnerEmailChange(' NEW@example.com ');
+    expect(result.ok, true);
+    expect(account.changedEmail, 'NEW@example.com');
+    expect(result.userId, 'user-1');
+    expect(licenses.cached, same(before));
+    expect(account.attaches, 0);
+    expect(account.requests, isEmpty);
+  });
+  test('staff cannot change owner email', () async {
+    account.user = _user(role: 'staff');
+    expect(
+      (await account.requestOwnerEmailChange('new@example.com')).error,
+      'forbidden',
+    );
+    expect(account.changedEmail, isNull);
+  });
+  test('same/invalid email does not trigger an auth mutation', () async {
+    expect(
+      (await account.requestOwnerEmailChange('OWNER@example.com')).error,
+      'email_unchanged',
+    );
+    expect(
+      (await account.requestOwnerEmailChange('invalid')).error,
+      'invalid_email',
+    );
+    expect(account.changedEmail, isNull);
+  });
+  test('last Google identity is never removed', () async {
+    account.identities = [
+      UserIdentity(
+        id: 'old',
+        identityId: 'old',
+        userId: 'user-1',
+        identityData: {'email_verified': true},
+        provider: 'google',
+        createdAt: '',
+        lastSignInAt: '',
+      ),
+    ];
+    expect(
+      (await account.removeOwnerGoogleIdentity('old')).error,
+      'last_sign_in',
+    );
+    expect(account.removed, isEmpty);
+  });
+  test(
+    'verified new Google keeps owner identity while old Google is removed',
+    () async {
+      account.identities = [
+        for (final id in ['old', 'new'])
+          UserIdentity(
+            id: id,
+            identityId: id,
+            userId: 'user-1',
+            identityData: {'email_verified': true},
+            provider: 'google',
+            createdAt: '',
+            lastSignInAt: '',
+          ),
+      ];
+      final result = await account.removeOwnerGoogleIdentity('old');
+      expect(result.ok, true);
+      expect(account.removed, ['old']);
+      expect(account.attaches, 0);
+      expect(account.requests, isEmpty);
     },
   );
 }

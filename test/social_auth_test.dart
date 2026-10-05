@@ -223,9 +223,56 @@ void main() {
       );
     },
   );
+  test(
+    'owner switching during Google chooser cannot link to the new account',
+    () async {
+      final main = SupabaseClient(
+        'https://auth.example.test',
+        'anon',
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      await main.auth.setInitialSession(jsonEncode(_sessionJson('owner')));
+      var exchanges = 0;
+      final service = SocialAuthService(
+        client: main,
+        config: configured,
+        platform: TargetPlatform.android,
+        acquireTokens: (provider, _) async {
+          await main.auth.setInitialSession(
+            jsonEncode(_sessionJson('other-owner')),
+          );
+          return SocialAuthProof(provider, 'selected-google');
+        },
+        linkExchange: (_) async {
+          exchanges++;
+          return AuthResponse();
+        },
+      );
+      await expectLater(
+        service.link(SocialAuthProvider.google),
+        throwsA(
+          isA<SocialAuthFailure>().having(
+            (e) => e.code,
+            'code',
+            'not_authenticated',
+          ),
+        ),
+      );
+      expect(exchanges, 0);
+      expect(main.auth.currentUser!.id, 'other-owner');
+      await main.dispose();
+    },
+  );
   test('sign-in and link use separate exchanges', () async {
+    final main = SupabaseClient(
+      'https://auth.example.test',
+      'anon',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    await main.auth.setInitialSession(jsonEncode(_sessionJson('owner')));
     final exchanged = <String>[];
     final service = SocialAuthService(
+      client: main,
       config: configured,
       platform: TargetPlatform.android,
       acquireTokens: (p, _) async => SocialAuthProof(p, 'id'),
@@ -241,6 +288,7 @@ void main() {
     await service.signIn(SocialAuthProvider.google);
     await service.link(SocialAuthProvider.google);
     expect(exchanged, ['sign:id', 'link:id']);
+    await main.dispose();
   });
   test(
     'native Google and Apple cancellation codes map to auth_cancelled',

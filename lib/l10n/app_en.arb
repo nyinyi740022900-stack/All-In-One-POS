@@ -2080,5 +2080,22 @@
   "adminGatewayYearlyVariant": "Lemon Squeezy yearly variant ID",
   "storefrontRenewCardExists": "This shop already has a card subscription. Manage the existing subscription instead of buying another.",
   "storefrontRenewCardManage": "Manage subscription",
-  "storefrontRenewCardPending": "A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again."
+  "storefrontRenewCardPending": "A card payment is already in progress for this shop. Finish the existing checkout. If it has expired or its status is unclear, contact support before paying again.",
+  "accountChangeEmail": "Change email",
+  "accountNewEmail": "New email",
+  "accountChangeEmailHelp": "Confirm the change from your current and new email inboxes. Your shops and Premium stay with this account. This does not change your linked Google login.",
+  "accountEmailChangeSent": "Check your current and new email inboxes to confirm the change.",
+  "accountEmailPending": "An email change is awaiting confirmation.",
+  "accountCheckEmailChange": "Check email change",
+  "accountEmailUnchanged": "Enter a different email address.",
+  "accountEmailInvalid": "Enter a valid email address.",
+  "accountEmailRateLimit": "Please wait before requesting another email.",
+  "accountGoogleAccounts": "Google accounts",
+  "accountGoogleChangeHelp": "Link your new Google account first, then remove the old one. Your shops and Premium stay here.",
+  "accountGoogleAdd": "Link another Google account",
+  "accountGoogleRemove": "Remove Google login",
+  "accountGoogleRemoveHelp": "This Google account will no longer open your shops. Make sure you can sign in with another linked account before continuing.",
+  "accountGoogleRemoved": "Google login removed. Your shops and Premium are unchanged.",
+  "accountLastSignIn": "Link and verify another sign-in method before removing this one.",
+  "accountGoogleInUse": "This Google account is already linked. Choose another account."
 }

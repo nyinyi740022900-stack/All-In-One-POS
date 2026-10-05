@@ -17,6 +17,8 @@ import '../settings/shop_profile_screen.dart';
 import '../staff/staff_providers.dart';
 import '../staff/staff_ui.dart';
 import 'account_action_error.dart';
+import 'account_identity_policy.dart';
+import 'change_email_dialog.dart';
 import 'account_providers.dart';
 import 'account_repository.dart';
 import 'auth_password_field.dart';
@@ -304,6 +306,85 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       SnackBar(
         content: Text(
           result.ok ? l.accountSocialLinked : _errorMessage(l, result.error),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeEmail() async {
+    if (_busy) return;
+    final account = ref.read(accountRepositoryProvider);
+    final ownerId = account.currentAuthUser?.id;
+    final result = await showChangeEmailDialog(
+      context,
+      submit: (email) => account.currentAuthUser?.id != ownerId
+          ? Future.value(const AccountActionResult.failure('not_authenticated'))
+          : account.requestOwnerEmailChange(email),
+    );
+    if (!mounted || result != true) return;
+    // Do not retain an autofill credential for an address being retired.
+    _signInSaved.forget();
+    await ref.read(savedLoginStoreProvider).clear();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).accountEmailChangeSent),
+      ),
+    );
+    setState(() {});
+  }
+
+  Future<void> _checkEmailChange() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(accountRepositoryProvider).refreshAuthenticatedSession();
+      ref.invalidate(currentAccountEmailProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).commonNetworkError),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _removeGoogle(UserIdentity identity) async {
+    if (_busy) return;
+    final l = AppLocalizations.of(context);
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.accountGoogleRemove),
+        content: Text(l.accountGoogleRemoveHelp),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.accountGoogleRemove),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || accepted != true) return;
+    setState(() => _busy = true);
+    final result = await ref
+        .read(accountRepositoryProvider)
+        .removeOwnerGoogleIdentity(identity.identityId);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ref.invalidate(currentAccountEmailProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.ok ? l.accountGoogleRemoved : _errorMessage(l, result.error),
         ),
       ),
     );
@@ -659,11 +740,67 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                     MaterialPageRoute(builder: (_) => const LicenseScreen()),
                   ),
                 ),
+                if (isOwner && canDeleteAccount) ...[
+                  const Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.alternate_email),
+                    title: Text(l.accountChangeEmail),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _busy ? null : _changeEmail,
+                  ),
+                  if (account.currentAuthUser?.newEmail?.isNotEmpty == true)
+                    Text(l.accountEmailPending),
+                  TextButton(
+                    onPressed: _busy ? null : _checkEmailChange,
+                    child: Text(l.accountCheckEmailChange),
+                  ),
+                  if (account.availableSocialProviders.contains(
+                    SocialAuthProvider.google,
+                  )) ...[
+                    SectionHeader(title: l.accountGoogleAccounts),
+                    Text(l.accountGoogleChangeHelp),
+                    for (final identity
+                        in account.currentAuthUser?.identities ??
+                            <UserIdentity>[])
+                      if (identity.provider == 'google')
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            identity.identityData?['email'] as String? ??
+                                l.accountContinueGoogle,
+                          ),
+                          trailing: IconButton(
+                            tooltip: l.accountGoogleRemove,
+                            icon: const Icon(Icons.link_off),
+                            onPressed:
+                                _busy ||
+                                    !canRemoveGoogleIdentity(
+                                      account.currentAuthUser?.identities ?? [],
+                                      identity.identityId,
+                                    )
+                                ? null
+                                : () => _removeGoogle(identity),
+                          ),
+                        ),
+                    OutlinedButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => _linkSocial(SocialAuthProvider.google),
+                      icon: const Icon(Icons.add_link),
+                      label: Text(l.accountGoogleAdd),
+                    ),
+                  ],
+                ],
                 const SizedBox(height: AppTheme.space2),
                 SocialAuthButtons(
-                  providers: account.availableSocialProviders.difference(
-                    account.linkedSocialProviders,
-                  ),
+                  providers: account.availableSocialProviders
+                      .difference(account.linkedSocialProviders)
+                      .difference(
+                        isOwner && canDeleteAccount
+                            ? {SocialAuthProvider.google}
+                            : {},
+                      ),
                   busy: _busy,
                   onSelected: _linkSocial,
                   linking: true,
