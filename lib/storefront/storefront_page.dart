@@ -15,7 +15,8 @@ import '../features/storefront/storefront_repository.dart';
 import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
 import 'storefront_api.dart';
-import 'storefront_download.dart';
+import 'browser_actions_stub.dart'
+    if (dart.library.js_interop) 'storefront_download.dart';
 import 'storefront_seo.dart';
 
 String _ks(CurrencyDef currency, String locale, int v) =>

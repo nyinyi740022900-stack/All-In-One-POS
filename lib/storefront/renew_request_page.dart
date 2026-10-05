@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -6,11 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/env.dart';
 import '../core/image_util.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
+import 'renewal_auth.dart';
 import 'renewal_receipt_view.dart';
 import 'storefront_api.dart';
 import 'storefront_page.dart' show StorefrontLocaleBar;
@@ -35,6 +39,11 @@ class RenewRequestPage extends StatefulWidget {
 
 class _RenewRequestPageState extends State<RenewRequestPage> {
   final _api = StorefrontApi();
+  final _auth = RenewalAuth();
+  StreamSubscription<AuthState>? _authSubscription;
+  String? _authAccountId;
+  String? _preparedAccountId;
+  int _accountGeneration = 0;
   late final Future<Map<String, String>> _paymentConfig;
 
   List<Map<String, dynamic>>? _shops;
@@ -123,9 +132,26 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     _months.addListener(_recalcAmount);
     // A previous visit's session persists across page loads (Supabase Web
     // SDK default) — pick it back up without asking to sign in again.
-    if (Supabase.instance.client.auth.currentSession != null) {
-      _loadAccountData();
-    }
+    _authAccountId = Supabase.instance.client.auth.currentUser?.id;
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (state) {
+        final id = state.session?.user.id;
+        if (id == _authAccountId) return;
+        _authAccountId = id;
+        _clearAccountData();
+        if (id != null) unawaited(_loadAccountData());
+      },
+      onError: (_) {
+        if (mounted) {
+          setState(
+            () => _signInError = AppLocalizations.of(
+              context,
+            ).storefrontRenewSignInFailed,
+          );
+        }
+      },
+    );
+    if (_authAccountId != null) unawaited(_loadAccountData());
   }
 
   /// The price per month/year is admin-fixed, not negotiable — so unlike a
@@ -150,7 +176,6 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       );
       if (!mounted) return;
       _signInPassword.clear();
-      await _loadAccountData();
     } catch (e) {
       if (mounted) setState(() => _signInError = l.storefrontRenewSignInFailed);
     } finally {
@@ -158,15 +183,55 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    final l = AppLocalizations.of(context);
+    setState(() {
+      _signingIn = true;
+      _signInError = null;
+    });
+    try {
+      if (!await _auth.signInWithGoogle()) {
+        throw StateError('oauth_not_opened');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _signInError = l.storefrontRenewSignInFailed);
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  void _clearAccountData() {
+    _accountGeneration++;
+    _preparedAccountId = null;
+    if (!mounted) return;
+    setState(() {
+      _myRequests = null;
+      _shops = null;
+      _shopId = null;
+      _cardPayment = false;
+      _clientRequestId = null;
+      _proofBytes = null;
+      _proofName = null;
+      _proofExt = null;
+      _refNo.clear();
+      _signInError = null;
+      _loadingHistory = false;
+    });
+  }
+
   Future<void> _signOut() async {
-    await Supabase.instance.client.auth.signOut();
-    if (mounted) {
-      setState(() {
-        _myRequests = null;
-        _shops = null;
-        _shopId = null;
-        _clientRequestId = null;
-      });
+    // Clear private shop/history data even if the network sign-out fails.
+    _clearAccountData();
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _signInError = AppLocalizations.of(
+            context,
+          ).storefrontRenewSignInFailed,
+        );
+      }
     }
   }
 
@@ -178,14 +243,32 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   Future<void> _loadAccountData() async {
     final accountId = Supabase.instance.client.auth.currentUser?.id;
     if (!mounted || accountId == null) return;
-    setState(() => _loadingHistory = true);
+    final generation = ++_accountGeneration;
+    bool isCurrent() =>
+        mounted &&
+        generation == _accountGeneration &&
+        Supabase.instance.client.auth.currentUser?.id == accountId;
+    setState(() {
+      _loadingHistory = true;
+      _signInError = null;
+    });
     try {
+      if (_preparedAccountId != accountId) {
+        final owner = await _auth.prepareAccount();
+        if (!isCurrent()) return;
+        if (!owner) {
+          setState(() {
+            _shops = [];
+            _shopId = null;
+            _myRequests = [];
+          });
+          return;
+        }
+        _preparedAccountId = accountId;
+      }
       final billing = await _api.fetchBillingShops();
       final shops = billing.shops;
-      if (!mounted ||
-          Supabase.instance.client.auth.currentUser?.id != accountId) {
-        return;
-      }
+      if (!isCurrent()) return;
       setState(() {
         _shops = shops;
         _cardPayment = billing.cardPayment;
@@ -197,20 +280,18 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       final rows = selected == null
           ? <RenewalRequestSummary>[]
           : await _api.fetchMyRequests(selected);
-      if (mounted &&
-          Supabase.instance.client.auth.currentUser?.id == accountId &&
-          _shopId == selected) {
+      if (isCurrent() && _shopId == selected) {
         setState(() => _myRequests = rows);
       }
     } catch (_) {
-      if (mounted) {
+      if (isCurrent()) {
         setState(
           () =>
               _signInError = AppLocalizations.of(context).storefrontRenewFailed,
         );
       }
     } finally {
-      if (mounted) setState(() => _loadingHistory = false);
+      if (isCurrent()) setState(() => _loadingHistory = false);
     }
   }
 
@@ -296,6 +377,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
+    _accountGeneration++;
     _phone.dispose();
     _amount.dispose();
     _refNo.dispose();
@@ -509,6 +592,14 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                     l.storefrontRenewSignInPrompt,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  if (Env.googleAuthEnabled) ...[
+                    const SizedBox(height: AppTheme.space3),
+                    OutlinedButton.icon(
+                      onPressed: _signingIn ? null : _signInWithGoogle,
+                      icon: const Icon(Icons.login),
+                      label: Text(l.accountContinueGoogle),
+                    ),
+                  ],
                   const SizedBox(height: AppTheme.space2),
                   TextField(
                     controller: _signInEmail,

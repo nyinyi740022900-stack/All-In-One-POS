@@ -1,9 +1,10 @@
-# Native Google and Apple login setup
+# Google and Apple login setup
 
-Provider buttons are disabled by default. Google OAuth has not yet been set up
-for this project. Live provider login is therefore **unverified**. The native
-packages are pinned to Google Sign-In 7.2.0 and Sign in with Apple 8.2.0.
-No credentials, Apple capability or signing identity have been invented.
+Provider buttons are disabled by default. As of 2026-10-05 the production
+Google provider and Android clients are configured. A real account sign-in
+still needs owner verification; the emulator check covered cancellation only.
+Google iOS and Apple configuration remain pending. The native packages are
+pinned to Google Sign-In 7.2.0 and Sign in with Apple 8.2.0.
 
 ## Build configuration
 
@@ -19,8 +20,9 @@ Supply these public settings through the existing ignored `env.local.json` or
 
 The app also requires the existing Supabase URL and anon key. Native Google is
 shown only on Android/iOS; iOS additionally requires its iOS client ID. Native
-Apple is shown only on iOS. Browser/admin/desktop builds keep these choices
-hidden. An enable flag is a deployment assertion that native/server setup is
+Apple is shown only on iOS. Admin/desktop builds keep these choices
+hidden. Renewal web uses a separate Supabase browser OAuth flow when
+`GOOGLE_AUTH_ENABLED` is true; it does not use the native Google plugin. An enable flag is a deployment assertion that native/server setup is
 ready; it cannot automatically verify the cloud console or signing profile.
 
 ## Google
@@ -56,7 +58,7 @@ ready; it cannot automatically verify the cloud console or signing profile.
    token verification in staging first. No extra Google data scopes or access
    authorization are requested by this app.
 
-No Google callback scheme is shipped while the client ID is unknown. Android
+No iOS Google callback scheme is shipped while its client ID is unknown. Android
 SDK configuration errors can surface as cancellation; persistent cancellation
 after account selection requires checking package/fingerprint/web-client setup.
 
@@ -127,3 +129,36 @@ sufficiently unexpired response is adopted into the main session using the
 public local-session API. Same-user linking and the original session snapshot
 are checked before adoption; a late response cannot replace the app session.
 Provider credentials/error descriptions are never logged.
+
+
+## Renewal website Google login
+
+The owner can use **Continue with Google** at
+https://shop.allinonepos.app/renew with the same Google account used in the POS
+app. The browser has its own persisted session; mobile login is not automatically
+shared. Existing verified-email identity linking is handled by Supabase Auth,
+not by matching emails in our billing code.
+
+The exact production callback `https://shop.allinonepos.app/renew` was added to
+Supabase Authentication → URL Configuration on 2026-10-05. Keep the native
+`allinonepos://login-callback` URL. Do not allow arbitrary preview domains or
+wildcards. The Google Cloud client's authorized redirect remains Supabase's
+`/auth/v1/callback`; the app return URL belongs in Supabase's allowlist.
+
+After session restoration/sign-in, `prepare_social_account` resolves the
+existing membership server-side, then the browser refreshes its JWT before
+loading owner shops. It does not call signup, trial, or device attachment and
+does not consume one of the three device slots. Accounts without owner shops
+see existing app setup guidance; revoked/archived membership stays blocked.
+Late results cannot refill a signed-out/replaced account's shop or history.
+
+Release smoke: open `/renew`, choose Google, sign in as an existing owner,
+verify the original shop and request history, sign out, and verify private shop
+data disappears. Repeat with a Google account without a shop and a staff
+account; neither should see a purchase form. No real payment is needed to
+verify login. Processor checkout testing is a separate owner-authorized step.
+
+Verification (2026-10-05): analyzer clean, 1034 Flutter tests pass, production
+web script matches the verified build. The live button reaches Google account
+selection with PKCE and the exact `/renew` return URL. Owner selection and
+post-login shop/history verification remain a human smoke step.

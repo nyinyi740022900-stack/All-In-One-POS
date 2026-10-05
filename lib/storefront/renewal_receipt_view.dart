@@ -8,7 +8,8 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
-import 'renew_print_web.dart';
+import 'browser_actions_stub.dart'
+    if (dart.library.js_interop) 'renew_print_web.dart';
 import 'storefront_api.dart';
 
 /// The receipt for one renewal request — what a shop gets after paying, and
