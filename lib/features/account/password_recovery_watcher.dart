@@ -23,11 +23,17 @@ final passwordRecoveryPendingProvider = StateProvider<bool>((ref) => false);
 class PasswordRecoveryWatcher {
   PasswordRecoveryWatcher(this._ref) {
     if (!Env.hasBackend) return;
-    _sub = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
-      if (state.event == AuthChangeEvent.passwordRecovery) {
-        _ref.read(passwordRecoveryPendingProvider.notifier).state = true;
-      }
-    });
+    _sub = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (state) {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          _ref.read(passwordRecoveryPendingProvider.notifier).state = true;
+        }
+      },
+      onError: (Object _) {
+        // Invalid email/recovery links are rendered by AuthCallbackScreen.
+        // They must not become an unhandled stream error or a recovery session.
+      },
+    );
   }
 
   final Ref _ref;
@@ -38,7 +44,9 @@ class PasswordRecoveryWatcher {
 
 /// Kept alive for the app's lifetime (watched in `app.dart`, same pattern as
 /// `storefrontOrderWatcherProvider`).
-final passwordRecoveryWatcherProvider = Provider<PasswordRecoveryWatcher>((ref) {
+final passwordRecoveryWatcherProvider = Provider<PasswordRecoveryWatcher>((
+  ref,
+) {
   final watcher = PasswordRecoveryWatcher(ref);
   ref.onDispose(watcher.dispose);
   return watcher;

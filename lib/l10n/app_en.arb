@@ -2097,5 +2097,10 @@
   "accountGoogleRemoveHelp": "This Google account will no longer open your shops. Make sure you can sign in with another linked account before continuing.",
   "accountGoogleRemoved": "Google login removed. Your shops and Premium are unchanged.",
   "accountLastSignIn": "Link and verify another sign-in method before removing this one.",
-  "accountGoogleInUse": "This Google account is already linked. Choose another account."
+  "accountGoogleInUse": "This Google account is already linked. Choose another account.",
+  "accountConfirmationTitle": "Email confirmation",
+  "accountConfirmationInvalid": "This confirmation link is no longer valid.",
+  "accountConfirmationInvalidHelp": "The link may have expired or already been used. In Shop → Account, check your email first. If the change is still pending, confirm the latest messages in both inboxes or request the change again.",
+  "accountConfirmationReturn": "Check your account to finish.",
+  "accountConfirmationReturnHelp": "For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account."
 }

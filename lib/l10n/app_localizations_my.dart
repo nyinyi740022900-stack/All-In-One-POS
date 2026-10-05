@@ -4677,4 +4677,22 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get accountGoogleInUse =>
       'ဤ Google အကောင့်ကို ချိတ်ထားပြီးဖြစ်သည်။ အခြားအကောင့် ရွေးပါ။';
+
+  @override
+  String get accountConfirmationTitle => 'အီးမေးလ် အတည်ပြုခြင်း';
+
+  @override
+  String get accountConfirmationInvalid =>
+      'ဤအတည်ပြုလင့်ခ်ကို အသုံးပြု၍ မရတော့ပါ။';
+
+  @override
+  String get accountConfirmationInvalidHelp =>
+      'လင့်ခ် သက်တမ်းကုန်သွားခြင်း သို့မဟုတ် အသုံးပြုပြီးသား ဖြစ်နိုင်ပါသည်။ ဆိုင် → အကောင့်တွင် အီးမေးလ်ကို အရင်စစ်ပါ။ ပြောင်းလဲမှု မပြီးသေးပါက အီးမေးလ်နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ သို့မဟုတ် ပြောင်းလဲရန် ထပ်မံတောင်းဆိုပါ။';
+
+  @override
+  String get accountConfirmationReturn => 'အကောင့်တွင် ပြန်စစ်ပါ။';
+
+  @override
+  String get accountConfirmationReturnHelp =>
+      'အီးမေးလ်ပြောင်းခြင်းအတွက် အီးမေးလ်ဟောင်းနှင့် အသစ် နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ။ ထို့နောက် ဆိုင် → အကောင့်တွင် အီးမေးလ်ပြောင်းလဲမှုကို စစ်ပါ။ ဆိုင်များနှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိနေပါမည်။';
 }

@@ -85,9 +85,15 @@ class LicenseController extends StateNotifier<LicenseState>
     );
     if (Env.hasBackend) {
       _authSubscription = Supabase.instance.client.auth.onAuthStateChange
-          .listen((_) {
-            if (mounted) recomputeExpiry();
-          });
+          .listen(
+            (_) {
+              if (mounted) recomputeExpiry();
+            },
+            onError: (Object _) {
+              // A rejected auth link does not grant, clear or extend Premium.
+              if (mounted) recomputeExpiry();
+            },
+          );
     }
   }
 

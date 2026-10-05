@@ -749,12 +749,14 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _busy ? null : _changeEmail,
                   ),
-                  if (account.currentAuthUser?.newEmail?.isNotEmpty == true)
+                  if (account.currentAuthUser?.newEmail?.isNotEmpty ==
+                      true) ...[
                     Text(l.accountEmailPending),
-                  TextButton(
-                    onPressed: _busy ? null : _checkEmailChange,
-                    child: Text(l.accountCheckEmailChange),
-                  ),
+                    TextButton(
+                      onPressed: _busy ? null : _checkEmailChange,
+                      child: Text(l.accountCheckEmailChange),
+                    ),
+                  ],
                   if (account.availableSocialProviders.contains(
                     SocialAuthProvider.google,
                   )) ...[

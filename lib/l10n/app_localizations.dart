@@ -8401,6 +8401,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This Google account is already linked. Choose another account.'**
   String get accountGoogleInUse;
+
+  /// No description provided for @accountConfirmationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email confirmation'**
+  String get accountConfirmationTitle;
+
+  /// No description provided for @accountConfirmationInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This confirmation link is no longer valid.'**
+  String get accountConfirmationInvalid;
+
+  /// No description provided for @accountConfirmationInvalidHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may have expired or already been used. In Shop → Account, check your email first. If the change is still pending, confirm the latest messages in both inboxes or request the change again.'**
+  String get accountConfirmationInvalidHelp;
+
+  /// No description provided for @accountConfirmationReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your account to finish.'**
+  String get accountConfirmationReturn;
+
+  /// No description provided for @accountConfirmationReturnHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account.'**
+  String get accountConfirmationReturnHelp;
 }
 
 class _AppLocalizationsDelegate

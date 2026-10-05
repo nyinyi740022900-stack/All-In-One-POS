@@ -4670,4 +4670,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountGoogleInUse =>
       'This Google account is already linked. Choose another account.';
+
+  @override
+  String get accountConfirmationTitle => 'Email confirmation';
+
+  @override
+  String get accountConfirmationInvalid =>
+      'This confirmation link is no longer valid.';
+
+  @override
+  String get accountConfirmationInvalidHelp =>
+      'The link may have expired or already been used. In Shop → Account, check your email first. If the change is still pending, confirm the latest messages in both inboxes or request the change again.';
+
+  @override
+  String get accountConfirmationReturn => 'Check your account to finish.';
+
+  @override
+  String get accountConfirmationReturnHelp =>
+      'For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account.';
 }

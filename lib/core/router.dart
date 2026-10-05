@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/account/auth_callback.dart';
+import '../features/account/auth_callback_screen.dart';
+
 import '../features/analytics/analytics_accounting_hub_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/onboarding/onboarding_flow.dart';
@@ -20,6 +23,20 @@ import 'layout.dart';
 /// widget tests that need the real shell/chrome without the onboarding
 /// redirect.
 List<RouteBase> buildAppRoutes() => [
+  GoRoute(
+    path: '/',
+    redirect: (_, state) => authCallbackLocation(state.uri) ?? '/sell',
+  ),
+  GoRoute(
+    path: '/login-callback',
+    redirect: (_, state) => authCallbackLocation(state.uri) ?? '/auth-callback',
+  ),
+  GoRoute(
+    path: '/auth-callback',
+    builder: (_, state) => AuthCallbackScreen(
+      invalid: state.uri.queryParameters['status'] == 'invalid',
+    ),
+  ),
   // Outside the shell — no bottom nav while onboarding.
   GoRoute(
     path: '/onboarding',
@@ -121,6 +138,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/sell',
     redirect: (context, state) {
+      final callback = authCallbackLocation(state.uri);
+      if (callback != null) return callback;
+      // A callback status page contains no shop data and must be reachable
+      // before onboarding/PIN. Navigating back to Shop still uses every gate.
+      if (state.uri.path == '/auth-callback') return null;
       // First-run onboarding owns the whole screen until done. Read (not
       // watch) here: the flow itself drives leaving via context.go, and
       // GoRouter re-runs this guard on every navigation anyway.
