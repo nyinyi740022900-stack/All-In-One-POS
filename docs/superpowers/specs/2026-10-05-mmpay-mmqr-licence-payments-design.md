@@ -1,0 +1,584 @@
+# Myan Myan Pay (MMQR) licence payments — design
+
+Date: 2026-10-05 (Asia/Singapore)
+Status: design for written review. Nothing implemented, no migration written, no
+function deployed, no KYC submitted. **Updated 2026-10-05 after reading the
+published API reference and the `mmpay-node-sdk@1.1.4` source: Q1 and Q3 are
+answered, Q2 is designed around, Q4 and a newly found blocker (Q7) still need
+the merchant console.** See §11.
+
+## 1. Why now, and what changed
+
+The 2026-08-25 evaluation rejected MMPay on one operational ground: the merchant
+console had no Developers/API/Webhooks section at all, so API access was not
+self-serve and had to be negotiated with support. That blocker is gone. A
+self-serve developer console now exists at `developers.myanmyanpay.com`
+(version 1.2.9) with Applications, Sandbox, Transactions, Disbursements and API
+Documentation. `docs.myanmyanpay.com` documents `pay()` / `sandbox_pay()` MMQR
+creation, webhook events (created, success, failure, refund, cancel, expire,
+with explicit duplicate-delivery heartbeats) and SDKs for Node/TS, Python, PHP,
+Java and the browser.
+
+What has *not* changed, and is not re-litigated here:
+
+- **Storefront payments stay out of scope.** No sub-merchant, split-payment or
+  third-party payout is documented. Collecting on a shop's behalf makes the app
+  owner a money transmitter; MMPay's own CBM/AML terms prohibit remittance,
+  penalty "account banned, funds frozen". Per-shop KPay/Wave number plus
+  transfer proof remains the storefront model.
+- **In-app purchase stays out of scope.** `kCommerceUiEnabled` is false in every
+  App Store / Play build. MMQR is a web `/renew` surface only.
+
+So the scope of this document is exactly one thing: **an owner renewing their
+own shop's Premium subscription on `shop.allinonepos.app/renew`, in MMK, from a
+Myanmar mobile banking app, without an admin approving a screenshot by hand.**
+
+## 2. What this replaces
+
+`/renew` currently offers three ways to pay, and only one of them is automatic:
+
+| Path | Today | Cost per 20,000 MMK renewal |
+| --- | --- | --- |
+| International card (Lemon Squeezy) | Automatic, signed webhook grants the term | ~2,000–2,500 MMK, and most Myanmar shops have no usable card |
+| KBZPay / WavePay manual transfer | Owner uploads proof, admin clicks Confirm in the console | 0, but a human and an unbounded wait |
+| — | — | — |
+
+MMQR is the missing row: automatic *and* local. 120,000 MMK one-time activation
+plus 100 MMK per transaction, 0% MDR, settlement to the merchant's own KBZ or
+AYA account in about two business days. Against the card path it saves roughly
+2,400 MMK per renewal, so the activation fee is recovered after about fifty
+transactions — but the actual justification is not the fee. It is deleting the
+screenshot-and-approve loop, which is the only part of the renewal flow that
+cannot be made to finish at 2am.
+
+The manual path is **kept**, not removed. It is the fallback when MMPay is down,
+when the owner's bank is not in MMPay's coverage, and during the period before
+KYC is approved.
+
+## 3. The decision that shapes everything else
+
+MMQR is a **one-off payment**. Lemon Squeezy is a **recurring subscription**.
+The existing `billing_checkouts` machinery is subscription-shaped:
+`subscription_id` is unique and non-null at fulfilment, `fulfill_gateway_payment`
+refuses a payment without one, and `reserve_gateway_checkout` requires a numeric
+processor variant id.
+
+Two options were considered.
+
+**Option A — a separate `mmpay_orders` table.** Clean, no change to any existing
+RPC. Rejected: it loses the one-open-checkout-per-shop guard that 0097 was
+written to provide. A shop could hold an open Lemon Squeezy subscription
+checkout and an open MMQR at the same time and pay both — which for a recurring
+processor is not merely "two months bought", it is a live subscription the owner
+did not know they still had, plus a manual payment, plus a refund conversation.
+
+**Option B (chosen) — one checkout table, two providers.** `billing_checkouts`
+gains a `provider` column; the open-checkout lock, the ownership check and the
+`shop_subscriptions` row lock stay shared across both providers, so the guard
+holds *between* providers and not merely within each one. Fulfilment splits:
+Lemon Squeezy keeps `fulfill_gateway_payment` untouched, MMQR gets its own
+`fulfill_mmpay_payment` that never writes `subscription_id`.
+
+A shop that already has a live Lemon Squeezy subscription is refused an MMQR and
+sent to the customer portal, reusing the existing `subscription_already_exists`
+409 and its `management_url`. Selling a one-off month to someone who is already
+being billed monthly is a support ticket, not a sale.
+
+## 4. Trust model
+
+Two rules, both inherited from how the Lemon Squeezy integration already
+behaves, and both non-negotiable:
+
+1. **The server owns the amount and the term.** The client sends `shop_id` and
+   `plan` and nothing else. The price is 20,000 MMK for one month and 200,000
+   MMK for twelve, hard-coded in the RPC — the same two literals
+   `fulfill_account_payment` already checks, so there is exactly one place in
+   the system where a Premium price lives in SQL and it stays that way.
+2. **The webhook is a hint, never an authority.** On every callback the function
+   re-queries MMPay's own transaction-status endpoint for that order id and
+   grants time only on what the API says, exactly as `lemonsqueezy-webhook`
+   re-fetches the subscription rather than trusting the invoice payload. This is
+   the design whether or not MMPay signs its callbacks (see §11 Q1) — if a
+   signature exists it is verified *in addition*, with the same timing-safe hex
+   comparison `verifySignature` already uses, and a missing or bad signature is
+   a 401 before any API call is made.
+
+Beyond re-query, the fulfilment path asserts: the returned status is the
+terminal paid state; `amount` equals the expected amount for the stored
+`months`; `currency` is MMK; the order id is the one bound to this checkout row;
+and the merchant id is ours. An amount mismatch is a hard failure and a logged
+event, never a partial grant.
+
+**Test mode.** A new `_shared/mmpay_mode.ts` mirrors `gateway_mode.ts` exactly:
+`mmpayTestMode()` returns true only on a non-production Supabase project that
+explicitly set `MMPAY_TEST_MODE=true`, and **throws** if the production host
+(`gnikispsurwrmkspuisj.supabase.co`) has the flag set, so sandbox money can
+never buy a real month. `mmpayAvailable()` reports whether the secrets are
+present and the mode is legal, feeding the same `card_payment`-style capability
+flag the page already understands.
+
+## 5. Schema — migration `0098_mmpay_checkouts.sql`
+
+```
+alter table billing_checkouts
+  add column provider text not null default 'lemonsqueezy'
+    check (provider in ('lemonsqueezy','mmpay')),
+  add column provider_order_id text,
+  add column amount int,
+  add column currency text;
+create unique index billing_checkouts_provider_order
+  on billing_checkouts(provider, provider_order_id)
+  where provider_order_id is not null;
+```
+
+`subscription_id` stays nullable and is simply never written for `mmpay` rows.
+`variant_id` is `not null` today and has no meaning for MMQR, so MMQR rows store
+`'mmpay:1'` / `'mmpay:12'` — a readable sentinel rather than a schema change
+that would ripple into the Lemon Squeezy validation.
+
+Two new RPCs, both `security definer`, both revoked from `public,anon,
+authenticated` and granted to `service_role` only, matching 0097's footer:
+
+- **`reserve_mmpay_checkout(p_shop_id, p_owner_user_id, p_months)`** — takes the
+  same `shop_subscriptions` row lock and the same open-checkout count as
+  `reserve_gateway_checkout`, verifies `account_shop_role(...) = 'owner'`,
+  rejects `months not in (1,12)`, derives the amount from the months, and
+  inserts with `provider='mmpay'` and `checkout_expires_at = now() + <the MMQR
+  TTL from §11 Q2>`. Returns the same `{reserved, checkout}` shape so the Edge
+  Function's existing two-attempt loop needs no new shape.
+- **`fulfill_mmpay_payment(p_checkout_id, p_order_id, p_amount)`** — locks in the
+  same order (`shop_subscriptions` then `billing_checkouts`), refuses a row whose
+  `provider` is not `mmpay`, refuses an order id that conflicts with one already
+  stored, re-checks `amount` against `months`, re-checks owner role, stamps
+  `provider_order_id` and `closed_at`, then calls
+  `renew_shop_subscription(shop_id, months, 'mmpay:order:'||p_order_id)`.
+
+Idempotency comes for free and in two layers: `shop_subscription_payments` keys
+on the payment id, so a replayed webhook returns `duplicate: true` and grants
+nothing, and the partial unique index makes a second row with the same order id
+impossible. MMPay's documented duplicate deliveries are therefore a no-op rather
+than a second month.
+
+**Decision required (§11 Q5): the three `mmpay_*`-named columns on
+`license_requests`.** Migration 0069 added `mmpay_order_id` and
+`mmpay_expires_at` in anticipation of exactly this feature, under the *old*
+key-minting licence model. Under this design MMQR never touches
+`license_requests`, so those two columns will be permanently empty columns
+wearing the name of a feature that writes elsewhere — the kind of thing that
+costs an hour the next time someone debugs a payment. Recommendation: drop them
+in 0098 and remove `mmpay_expires_at` from `handleReceipt`'s select, the
+`RenewalReceipt` model and its tests. `payment_status` stays; it is live.
+
+## 6. Edge Functions
+
+### `storefront` — two new actions
+
+Both sit beside `create_checkout` and reuse `billingOwner` / `billingShops`
+verbatim, so authentication, shop-ownership scoping and the 401/403 shapes are
+not reimplemented.
+
+**`create_mmqr`** — body `{shop_id, plan}`.
+
+1. `billingOwner` → 401, shop not in `billingShops` → 403, bad plan → 400.
+2. `mmpayTestMode()` throws or secrets missing → 503 `checkout_unavailable`.
+3. The same two-attempt reservation loop as `handleCheckout`. On a pre-existing
+   open row the loop does something `handleCheckout` cannot: **because an MMQR
+   order has a queryable terminal state, re-query it.** Terminal failed, expired
+   or cancelled → `close_gateway_checkout` and retry the reservation. Already
+   paid → fulfil it right there and return success, which self-heals the
+   "customer paid, webhook never arrived" case that is otherwise a Viber message.
+   Still pending → 409 `checkout_in_progress`. An open row belonging to the
+   *other* provider returns the existing `subscription_already_exists` / 409.
+4. Create the order against MMPay with our own checkout id as the merchant
+   reference and `AbortSignal.timeout(15000)`, as every outbound call in this
+   codebase does.
+5. Persist `provider_order_id` and the QR payload; return `{qr, order_id,
+   expires_at, amount}` to the page.
+
+A 4xx from MMPay closes the reservation (no payable artifact was issued); a
+timeout or 5xx **keeps** it, because an unknown outcome plus a retried POST is
+how you end up with two payable QRs bound to one shop. That asymmetry is
+`handleCheckout`'s and is deliberately copied.
+
+**`mmqr_status`** — body `{shop_id, order_id}`, owner-authenticated. Re-queries
+MMPay, fulfils on a verified paid status, and returns `{status, expires_at,
+expires_in}`. This is what the page polls, and it is what makes the feature
+correct when the webhook is late rather than merely when it is on time.
+
+### `mmpay_webhook` — new function
+
+Deployed with `--no-verify-jwt` (MMPay cannot present a Supabase JWT), which is
+the one deployment detail easiest to forget and the one that makes every
+callback 401 if missed.
+
+Shape follows `lemonsqueezy-webhook` closely: POST only, read the raw body
+first, verify the signature (§11 Q1) before parsing, ignore non-payment events
+with `{ok: true, ignored: <event>}`, resolve the `billing_checkouts` row by our
+own reference and fall back to `provider_order_id`, re-query the MMPay API,
+assert mode / merchant / amount / currency, then call `fulfill_mmpay_payment`.
+Refund and chargeback events are **recorded and alerted, not auto-reversed** —
+clawing back a term automatically would log a working shop out mid-sale, and
+the existing 14-day grace already absorbs a disputed payment safely.
+
+### Secrets
+
+`MMPAY_BASE_URL`, `MMPAY_MERCHANT_ID`, `MMPAY_API_KEY`, `MMPAY_WEBHOOK_SECRET`,
+`MMPAY_TEST_MODE`. Service-role side only; the browser never sees any of them.
+Never committed — the anon key remains the only key the client holds.
+
+## 7. The `/renew` page
+
+`renew_request_page.dart` already has the exact structure this needs: a
+plan `SegmentedButton`, a server-reported `_cardPayment` capability flag that
+hides the card option when the server cannot honour it, and a manual
+KBZPay/WavePay block below. MMQR becomes a third block between them, shown only
+when `list_billing_shops` reports a new `mmqr_payment: true` alongside the
+existing `card_payment` — the server decides what is offered, as it already does.
+
+Flow: owner signs in, picks the shop and plan, presses **Pay with KBZPay /
+WavePay / AYA Pay** (MMQR covers KBZPay, WavePay, AYA, CB, A+, MAB, UAB, Yoma,
+CTZ — the copy names the common three and says "and other MMQR banks" rather
+than listing nine). A QR appears with the amount, a countdown to
+`expires_at`, and a scan-with-your-banking-app instruction in both languages.
+The page polls `mmqr_status` every four seconds, with the interval backing off
+after the first minute. On paid: the existing `RenewalReceiptView` success
+state, the new expiry date, done. On expiry: the QR greys out and a "Start
+again" button returns to step one. On any failure the manual transfer block is
+still right there on the same page, which is the whole reason for keeping it.
+
+Mobile app: **no change**. `license_screen.dart` gates its purchase UI behind
+`kCommerceUiEnabled` and that stays the boundary.
+
+New i18n keys go into `app_en.arb` *and* `app_my.arb` in the same change-set —
+`i18n_parity_test.dart` fails otherwise. The Myanmar strings are the primary
+ones here; this is a Myanmar-only payment rail and most users of it will never
+read the English.
+
+## 8. Admin console
+
+MMQR payments land in `billing_checkouts`, not `license_requests`, so the
+console's Requests tab will not show them and the owner-facing story would be
+"the money arrived but the console shows nothing". Two things close that:
+
+- `renew_shop_subscription` already writes `shop_subscription_payments` with
+  `payment_id = 'mmpay:order:<id>'`, so the payment is auditable by prefix.
+- The console's per-shop view gains a Payments section listing those rows with
+  provider, amount and date — one read, no new write path.
+
+A paid-but-unfulfilled MMQR (payment verified, `renew_shop_subscription` threw)
+must be **findable**, not silent: the same reasoning that gave 0069 its "Paid ·
+needs key" pill. A `closed_at is null and provider_order_id is not null` filter
+is that query.
+
+## 9. Tests
+
+- `supabase/functions/tests/mmpay_test.ts`, beside `account_billing_test.ts`,
+  covered by CI's `deno check`: signature rejection; replayed webhook grants one
+  month not two; amount mismatch refuses; wrong merchant refuses; sandbox
+  payload against production mode refuses; non-payment event ignored; late
+  webhook after a successful `mmqr_status` fulfilment is a no-op.
+- SQL: two open checkouts for one shop impossible across *both* providers; an
+  MMQR while a live Lemon Squeezy subscription exists is refused; `months=12`
+  with a one-month amount refuses; expired-then-reserved-again works.
+- Dart: the page shows no MMQR block when the server says `mmqr_payment: false`;
+  countdown-expired state; poll-to-paid transition; manual block still reachable
+  after an MMQR failure.
+- `i18n_parity_test.dart` and `conventions_test.dart` pass unchanged — note the
+  latter bans bare `functions.invoke`, so every new call uses `invokeBounded`.
+
+## 10. Ripple-effect check (per CLAUDE.md)
+
+- `grep -rn 'billing_checkouts' lib supabase` before writing: `handleCheckout`,
+  `lemonsqueezy-webhook`, `reserve_gateway_checkout`, `close_gateway_checkout`,
+  `fulfill_gateway_payment`. Each must be re-read against a non-null `provider`;
+  `reserve_gateway_checkout`'s open-count query must start counting MMQR rows
+  (that is the point) and `fulfill_gateway_payment` must refuse a non-Lemon-
+  Squeezy row rather than quietly fulfil one.
+- No Drift table, no `schemaVersion` bump, no sync mapper: this is all
+  server-side, as 0069 was.
+- No `SettingsRepository` key, so the device-vs-shop scope trap does not apply.
+- `provider_invalidation_test.dart` unaffected — no local provider folds these
+  tables. The app learns about a new expiry through its existing entitlement
+  receipt refresh, which already handles a term changing underneath it.
+- `shop_subscriptions.revision` increments on renewal, so previously issued
+  `AIOE1.` receipts are superseded exactly as they are for a card renewal.
+
+## 11. Open questions — answer from the sandbox before writing code
+
+1. ~~**Does MMPay sign its webhooks, and how?**~~ **Answered — §13.1.**
+   HMAC-SHA256 hex over `` `${nonce}.${rawBody}` `` keyed with the secret key,
+   in `X-Mmpay-Signature` with `X-Mmpay-Nonce`. Their own verifier is neither
+   timing-safe nor replay-checked; ours is both.
+2. ~~**MMQR order TTL**~~ **Not disclosed, and the design no longer depends on
+   it — §13.5.** Our own 15-minute window drives the page; MMPay's `status`
+   stays the authority. Still worth asking support for the real number.
+3. ~~**Transaction-status endpoint**~~ **Answered — §13.4.** `POST
+   /payments/get` returns a distinguishable terminal `status` plus `appId` and
+   `amount`, but **no `currency`**, and `SUCCESS` + `TOUCHED` is a re-scan, not
+   a second payment. §4's assertion list is corrected accordingly.
+4. **Sandbox without KYC — still open.** Can an Application be created and
+   `sandbox-create` exercised while KYC is PENDING? `KA0002` ("API Key Not
+   'LIVE'") suggests keys carry an activation state, so a sandbox key may well
+   be issued immediately and only live keys gated. The console confirms KYC is
+   PENDING with **zero applications**, and the answer is behind the Create
+   Application form — see §14.4.
+5. **Drop the stale `license_requests.mmpay_*` columns in 0098?** Recommended
+   yes (§5).
+6. **Who absorbs the 100 MMK?** Recommended: we do. Advertising 20,100 MMK to
+   save 100 is not a saving.
+7. **NEW, and now the top risk: is egress IP whitelisting mandatory?** §13.6,
+   §14.4.
+   Supabase Edge Functions have no static egress IP. An unauthenticated probe
+   showed the IP gate does not fire before the bearer-token gate, which is
+   encouraging but not proof. If whitelisting is required per application, this
+   design does not run on Edge Functions without a fixed-address proxy. Check
+   this **before** paying the activation fee.
+8. **Is `PaymentResponse.url` a hosted payment page?** §13.4. If so it is a
+   better mobile path than rendering the EMVCo string ourselves.
+9. **Settled by §14.3, no longer open: the payment page's compliance
+   requirements** — MMQR logo, MMK-only pricing, the exact string "Payment
+   powered by myanmyanpay", a visual timer, a Download QR button, refresh-safe
+   cached order state, and an explicit Cancel. §7 is revised accordingly and a
+   `cancel_mmqr` action is added to §6.
+
+## 12. Sequencing
+
+Nothing here needs the 120,000 MMK activation until the final step, and the
+first step is not code.
+
+1. **Decide Individual vs Company on the KYC form before submitting.** The
+   console states that after KYC is requested or approved, profile and banking
+   details cannot be edited without contacting support. The form currently shows
+   Merchant Type **Individual** with business name "AIO business", while the
+   2026-08-25 account was NNK Company. If invoices or tax receipts should carry
+   the company, that choice is made now or it is made through support later.
+   Settlement is bank-account only, KBZ or AYA; a KPay wallet cannot receive it.
+2. Answer the remaining §11 questions — **Q7 (IP whitelisting) first**, since a
+   yes invalidates the Edge Function architecture, then Q4 and Q8.
+3. Migration 0098 and the two RPCs, with the SQL tests.
+4. `create_mmqr` / `mmqr_status` / `mmpay_webhook`, with `mmpay_test.ts`.
+5. The `/renew` block and its i18n, against sandbox.
+6. Submit KYC, pay activation, flip to production secrets, test one real 20,000
+   MMK renewal end to end, reconcile it against the MMPay dashboard and the
+   settlement two business days later.
+7. `PROJECT_SPEC.md` §12 changelog entry in the same change-set as the code.
+
+## 13. Protocol findings (2026-10-05)
+
+Sources: `docs.myanmyanpay.com/api/`, `docs.myanmyanpay.com/system/`, and the
+published source of `mmpay-node-sdk@1.1.4` (`src/index.ts`, `src/types.ts`).
+One unauthenticated reachability probe was sent to the sandbox handshake
+endpoint; no credentials, no account state touched.
+
+### 13.1 Signature scheme — Q1 answered
+
+```
+stringToSign = `${nonce}.${bodyString}`
+signature    = HMAC_SHA256(secretKey, stringToSign) as lowercase hex
+```
+
+Sent both ways in `X-Mmpay-Signature`, with the nonce in `X-Mmpay-Nonce`.
+Outbound requests also carry `Authorization: Bearer <publishableKey>`. The
+secret key signs; the publishable key identifies. Keys are environment-tagged
+in their own value (`pk_test_` / `sk_test_` versus `pk_live_` / `sk_live_`).
+
+For the inbound webhook this is the same construction over the **raw** request
+body, which `lemonsqueezy-webhook` already reads correctly (`await req.text()`
+before any parse). Deno's Web Crypto HMAC plus the existing
+`timingSafeEqualHex` is a direct port.
+
+Two gaps in MMPay's own verification that we must not inherit:
+
+- `verifyCb` compares with `!==` on strings — not timing-safe. Ours stays
+  timing-safe.
+- **Nothing checks the nonce.** It is `Date.now()` and is never recorded or
+  bounded, so a captured callback stays replayable forever. We reject a nonce
+  outside a ±10 minute window, and the DB idempotency in §5 means a replay
+  inside that window still grants nothing.
+
+### 13.2 Every call is two round trips — handshake first
+
+`/payments/handshake` (or `/payments/sandbox-handshake`) takes `{orderId,
+nonce}` and returns a one-time `{token}`, which the real call then sends as
+`X-Mmpay-Btoken`. So `create_mmqr` is two outbound calls and `mmqr_status` is
+two as well. Each gets `AbortSignal.timeout(15000)` like every other outbound
+call here, and the client-side bound on `create_mmqr` is sized accordingly —
+`createCheckout` already carries a 75-second bound for exactly this reason.
+
+The four endpoints, production and sandbox: `/payments/{,sandbox-}handshake`,
+`/payments/{,sandbox-}create`, `/payments/{,sandbox-}get`,
+`/payments/{,sandbox-}cancel`. Base host `https://ezapi.myanmyanpay.com`.
+Rate limit 1000 req/min — our four-second polling is nowhere near it.
+
+### 13.3 Do not use the npm SDK — write `_shared/mmpay.ts`
+
+The protocol is four signed POSTs; the published SDK is about sixty lines of
+value wrapped in defects we would be importing into the money path:
+
+- **Every method swallows its errors** — `catch (error) { return error as any }`.
+  A failed `pay()` returns an error object that is typed as a success. Our code
+  would have to sniff the shape of a value the types say cannot happen.
+- Because `handShake()` also swallows, a failed handshake leaves `#btoken`
+  undefined and `pay()` proceeds anyway, sending `X-Mmpay-Btoken: undefined`.
+- `verifyCb` is not timing-safe (13.1) and performs no nonce check.
+- The shipped `test/payment.js` calls `MMPay.sandboxPay()`, a method that does
+  not exist in `src/index.ts` — the package's own example cannot run, which is
+  a fair measure of how much of it is exercised.
+- `pay()` never forwards `currency`, though the REST API accepts it.
+- Sandbox-versus-production is decided client-side by substring-matching
+  `_test_` in the key. Our `mmpayTestMode()` server guard (§4) is unaffected by
+  that and remains the authority.
+
+So: a small `_shared/mmpay.ts` with `handshake`, `createPayment`, `getPayment`,
+`cancelPayment` and `verifyCallback`, built on `fetch` and Web Crypto, errors
+thrown rather than returned. Deno cannot use the Node-crypto SDK unmodified in
+any case.
+
+### 13.4 Status model — Q3 answered, with two corrections to §4
+
+`POST /payments/get` returns `{appId, orderId, amount, vendor, method,
+customMessage, callbackUrl, callbackUrlStatus, callbackAt, status,
+disbursementId, disStatus, condition, createdAt, transactionRefId,
+vendorQrRefId, qr}`.
+
+`status` is `PENDING | SUCCESS | FAILED | REFUNDED | CANCELLED | EXPIRED` —
+terminal states are distinguishable, which is what §4's re-query and §6's
+self-healing reservation loop both depend on. `condition` is `PRISTINE |
+TOUCHED | EXPIRED | DIRTY`.
+
+Two corrections:
+
+1. **The `get` response carries no `currency`.** §4's assertion list splits:
+   on `get` we assert `appId` is ours, `orderId` is the one bound to this
+   checkout, and `amount` equals the expected amount; `currency == "MMK"` is
+   asserted on the callback body (which does carry it) and is fixed at
+   creation anyway.
+2. **`SUCCESS` + `condition: TOUCHED` means the QR was scanned again, not that
+   a second payment happened.** The SDK routes that combination to
+   `onHeartbeat` rather than `onTxSuccess`, so an integration that listens only
+   for success would never grant the month on a re-scanned QR. We ignore
+   `condition` for the grant decision, treat any `SUCCESS` as paid, and let the
+   §5 idempotency make repeats free. This is precisely the trap the docs mean
+   by "duplicate delivery".
+
+`PaymentResponse` also carries a `url` alongside the EMVCo `qr` string. If that
+is a hosted payment page it is a simpler mobile path than rendering the QR
+ourselves — confirm in sandbox (Q8).
+
+### 13.5 QR lifetime — Q2 is not answerable, so the design stops depending on it
+
+There is an `EXPIRED` status, an `EXPIRED` condition and an `onTxExpire` event,
+but **no expiry timestamp in any response or callback, and no documented TTL.**
+Asking support is worth doing, but the design should not rest on the answer.
+
+Revised: `checkout_expires_at` is **ours**, set to a deliberately conservative
+15 minutes, and the page counts down against it. MMPay's `status` remains the
+only authority on whether an order is actually dead — the reservation loop in
+§6 re-queries before closing a row, so a QR that outlives our countdown is
+reconciled correctly rather than abandoned, and one that dies early is caught
+on the next poll. Our window only decides when the page offers "start again".
+
+`orderId` is ours and must be unique per attempt forever: use the
+`billing_checkouts` row id, and let a retry create a new row rather than
+reusing an expired order id.
+
+### 13.6 New blocker found — egress IP whitelisting (Q7)
+
+Error `KA0005` is "IP Not whitelisted". **Supabase Edge Functions have no
+static egress IP**, so if whitelisting is mandatory per application, this
+design cannot run on Edge Functions at all and would need a proxy with a fixed
+address — a materially different piece of work that should be known now and not
+after the activation fee is paid.
+
+One unauthenticated POST to `/payments/sandbox-handshake` from an ordinary
+internet host returned `401 {"mmpayErrorCode":"KA0001"}` — bearer token
+missing. The IP gate did **not** fire first, so whitelisting is at least not
+enforced pre-authentication. That is encouraging but not conclusive: it may
+simply be a per-application setting that is off by default. Confirm in the
+console before anything else (Q7).
+
+`KA0002` is "API Key Not 'LIVE'", which implies keys carry an activation state
+of their own — probably the thing KYC gates, and the likely shape of the answer
+to Q4.
+
+## 14. Merchant-console findings (2026-10-05)
+
+Read-only pass over `developers.myanmyanpay.com` with the owner's own signed-in
+session. Nothing was created, submitted or changed. The Create Application form
+was **not** opened (see §14.4), so Q4 and Q7 remain open.
+
+### 14.1 Account state
+
+Dashboard: **KYC STATUS PENDING**, available balance 0 MMK, zero transactions,
+**zero applications**. Applications list is empty, so no API keys exist yet and
+the Sandbox page renders blank — it appears to need an application first.
+
+The dashboard carries a second balance bucket, **"SECURITY CHECK IN
+PROGRESS"**, alongside "AVAILABLE BALANCE". Settlement is therefore not simply
+"T+2 to your bank"; some portion can be held pending review. It does not change
+this design, but it is the kind of thing worth knowing before telling a
+customer their renewal has settled.
+
+MyanMyanPay is a division of **Myantel Co., Ltd** — useful when the KYC form
+asks who the counterparty is.
+
+### 14.2 The storefront verdict is now prohibited in writing, by name
+
+Rules & Guidelines, "Platform Fund Holding Restriction":
+
+> Platforms acting as intermediaries (e.g., marketplaces, aggregators, SaaS
+> platforms) are strictly prohibited from holding funds on behalf of their
+> sub-merchants using our infrastructure.
+
+— unless the platform holds a CBM regulatory allowance or a money-transmitter
+permit verified by MMPay compliance. "Mandatory KYC Onboarding" adds that
+shadow onboarding is banned, every business processing through the APIs needs
+its own verified profile, and third-party routing of unverified merchant
+payments means immediate suspension.
+
+This names our exact category — a SaaS platform — and closes the storefront
+question permanently. It does **not** touch this design: collecting our own
+subscription revenue from our own customers is an ordinary merchant activity,
+not fund-holding for sub-merchants.
+
+### 14.3 Mandatory UI/UX rules — these change §7
+
+The guidelines impose compliance requirements on the payment page itself.
+Four of them are things the design did not have:
+
+| Rule | Effect on `/renew` |
+| --- | --- |
+| MMQR logo shown; neither logo nor QR tampered with | Render the EMVCo string unmodified, with the MMQR mark |
+| **MMK only** — foreign currencies may not be displayed | The MMQR block shows 20,000 / 200,000 MMK and nothing else. The Lemon Squeezy card option prices in USD, so the two must not be visible in the same payment surface — the card block collapses while an MMQR order is live |
+| Exact text **"Payment powered by myanmyanpay"** | Verbatim, untranslated, under the QR |
+| **A visual timer is required** | The §13.5 countdown is now mandatory UI, not a nicety — which also settles the question of what to show when no TTL is published |
+| **A working "Download QR" button is required** | New. `storefront_download.dart` already has the web-only download pattern to follow |
+| Returning from the banking app must not refresh the page; a refresh must restore the cached order and QR | The page keeps the order id and QR locally and restores them on load, with `mmqr_status` as the server-side source of truth |
+| **No new transaction unless the user explicitly cancels the active one** | Matches the one-open-checkout guard in §3 exactly — but it also requires a user-facing **Cancel** button, which the design did not have |
+
+**New requirement: a cancel path.** `POST /payments/{,sandbox-}cancel` takes
+`{orderId}` and returns `CANCELLED`. Add a `cancel_mmqr` action that calls it
+and then `close_gateway_checkout`, so the owner can abandon a QR and start
+again — switching plan from monthly to yearly, say. Without it the guidelines'
+"explicitly cancels" clause has nothing to hang on and the owner is stuck
+behind their own 15-minute window.
+
+### 14.4 Q4 and Q7 could not be answered read-only
+
+Both answers live behind **Create Application** — the form is where a webhook
+URL and any IP allow-list would be configured, and where it becomes visible
+whether a `pk_test_` / `sk_test_` pair is issued while KYC is PENDING. Creating
+an application changes the account, so it was not done. It needs either the
+owner's own click or their explicit go-ahead.
+
+What to look for on that form, in one pass:
+
+1. Is there an **IP allow-list / whitelist field, and is it required?** (Q7 —
+   the one that can invalidate the Edge Function architecture.)
+2. Are **sandbox keys issued immediately** while KYC is PENDING, or does the
+   form refuse? (Q4.)
+3. Is the **webhook/callback URL** configured per application, or only passed
+   per payment as `callbackUrl`? (Both appear in the API; which one is
+   authoritative decides whether the webhook URL is config or code.)
+4. Any **QR TTL** setting (Q2) and whether `PaymentResponse.url` is a hosted
+   page (Q8).
