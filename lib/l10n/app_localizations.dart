@@ -8431,6 +8431,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account.'**
   String get accountConfirmationReturnHelp;
+
+  /// No description provided for @storefrontRenewMmqrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with MMQR (Myanmar)'**
+  String get storefrontRenewMmqrTitle;
+
+  /// No description provided for @storefrontRenewMmqrBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with KBZPay, WavePay, AYA Pay or any MMQR banking app. Premium opens as soon as the payment is confirmed — no screenshot, no waiting for approval.'**
+  String get storefrontRenewMmqrBody;
+
+  /// No description provided for @storefrontRenewMmqrCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Show MMQR'**
+  String get storefrontRenewMmqrCta;
+
+  /// No description provided for @storefrontRenewMmqrScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your banking app, scan this code, and check the amount before you confirm.'**
+  String get storefrontRenewMmqrScanHint;
+
+  /// No description provided for @storefrontRenewMmqrPoweredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT POWERED BY MYANMYANPAY'**
+  String get storefrontRenewMmqrPoweredBy;
+
+  /// No description provided for @storefrontRenewMmqrDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download QR'**
+  String get storefrontRenewMmqrDownload;
+
+  /// No description provided for @storefrontRenewMmqrDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'QR saved. Open it in your banking app to pay.'**
+  String get storefrontRenewMmqrDownloaded;
+
+  /// No description provided for @storefrontRenewMmqrCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this payment'**
+  String get storefrontRenewMmqrCancel;
+
+  /// No description provided for @storefrontRenewMmqrCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this payment?'**
+  String get storefrontRenewMmqrCancelTitle;
+
+  /// No description provided for @storefrontRenewMmqrCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The code stops working straight away. Cancel only if you have not paid — if you already did, wait here instead.'**
+  String get storefrontRenewMmqrCancelBody;
+
+  /// No description provided for @storefrontRenewMmqrCancelKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep waiting'**
+  String get storefrontRenewMmqrCancelKeep;
+
+  /// No description provided for @storefrontRenewMmqrCancelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel payment'**
+  String get storefrontRenewMmqrCancelConfirm;
+
+  /// No description provided for @storefrontRenewMmqrExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {time}'**
+  String storefrontRenewMmqrExpiresIn(String time);
+
+  /// No description provided for @storefrontRenewMmqrExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired. Nothing was charged.'**
+  String get storefrontRenewMmqrExpired;
+
+  /// No description provided for @storefrontRenewMmqrStartAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Start again'**
+  String get storefrontRenewMmqrStartAgain;
+
+  /// No description provided for @storefrontRenewMmqrWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your payment…'**
+  String get storefrontRenewMmqrWaiting;
+
+  /// No description provided for @storefrontRenewMmqrPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received. Premium is on.'**
+  String get storefrontRenewMmqrPaid;
+
+  /// No description provided for @storefrontRenewMmqrPaidBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen the app and tap Check renewal to see the new expiry.'**
+  String get storefrontRenewMmqrPaidBody;
+
+  /// No description provided for @storefrontRenewMmqrFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That payment did not go through. Nothing was charged.'**
+  String get storefrontRenewMmqrFailed;
+
+  /// No description provided for @storefrontRenewMmqrCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment cancelled. Nothing was charged.'**
+  String get storefrontRenewMmqrCancelled;
+
+  /// No description provided for @storefrontRenewMmqrUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'MMQR is not available right now. Please use a local transfer below.'**
+  String get storefrontRenewMmqrUnavailable;
+
+  /// No description provided for @storefrontRenewMmqrAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} MMK'**
+  String storefrontRenewMmqrAmount(String amount);
+
+  /// No description provided for @storefrontRenewMmqrRefreshSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe to leave this page — come back and it will still be here.'**
+  String get storefrontRenewMmqrRefreshSafe;
 }
 
 class _AppLocalizationsDelegate

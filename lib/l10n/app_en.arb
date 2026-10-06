@@ -2102,5 +2102,42 @@
   "accountConfirmationInvalid": "This confirmation link is no longer valid.",
   "accountConfirmationInvalidHelp": "The link may have expired or already been used. In Shop → Account, check your email first. If the change is still pending, confirm the latest messages in both inboxes or request the change again.",
   "accountConfirmationReturn": "Check your account to finish.",
-  "accountConfirmationReturnHelp": "For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account."
+  "accountConfirmationReturnHelp": "For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account.",
+  "storefrontRenewMmqrTitle": "Pay with MMQR (Myanmar)",
+  "storefrontRenewMmqrBody": "Scan with KBZPay, WavePay, AYA Pay or any MMQR banking app. Premium opens as soon as the payment is confirmed — no screenshot, no waiting for approval.",
+  "storefrontRenewMmqrCta": "Show MMQR",
+  "storefrontRenewMmqrScanHint": "Open your banking app, scan this code, and check the amount before you confirm.",
+  "storefrontRenewMmqrPoweredBy": "PAYMENT POWERED BY MYANMYANPAY",
+  "storefrontRenewMmqrDownload": "Download QR",
+  "storefrontRenewMmqrDownloaded": "QR saved. Open it in your banking app to pay.",
+  "storefrontRenewMmqrCancel": "Cancel this payment",
+  "storefrontRenewMmqrCancelTitle": "Cancel this payment?",
+  "storefrontRenewMmqrCancelBody": "The code stops working straight away. Cancel only if you have not paid — if you already did, wait here instead.",
+  "storefrontRenewMmqrCancelKeep": "Keep waiting",
+  "storefrontRenewMmqrCancelConfirm": "Cancel payment",
+  "storefrontRenewMmqrExpiresIn": "Expires in {time}",
+  "@storefrontRenewMmqrExpiresIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "storefrontRenewMmqrExpired": "This code has expired. Nothing was charged.",
+  "storefrontRenewMmqrStartAgain": "Start again",
+  "storefrontRenewMmqrWaiting": "Waiting for your payment…",
+  "storefrontRenewMmqrPaid": "Payment received. Premium is on.",
+  "storefrontRenewMmqrPaidBody": "Reopen the app and tap Check renewal to see the new expiry.",
+  "storefrontRenewMmqrFailed": "That payment did not go through. Nothing was charged.",
+  "storefrontRenewMmqrCancelled": "Payment cancelled. Nothing was charged.",
+  "storefrontRenewMmqrUnavailable": "MMQR is not available right now. Please use a local transfer below.",
+  "storefrontRenewMmqrAmount": "{amount} MMK",
+  "@storefrontRenewMmqrAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storefrontRenewMmqrRefreshSafe": "Safe to leave this page — come back and it will still be here."
 }

@@ -2030,5 +2030,42 @@
   "accountConfirmationInvalid": "ဤအတည်ပြုလင့်ခ်ကို အသုံးပြု၍ မရတော့ပါ။",
   "accountConfirmationInvalidHelp": "လင့်ခ် သက်တမ်းကုန်သွားခြင်း သို့မဟုတ် အသုံးပြုပြီးသား ဖြစ်နိုင်ပါသည်။ ဆိုင် → အကောင့်တွင် အီးမေးလ်ကို အရင်စစ်ပါ။ ပြောင်းလဲမှု မပြီးသေးပါက အီးမေးလ်နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ သို့မဟုတ် ပြောင်းလဲရန် ထပ်မံတောင်းဆိုပါ။",
   "accountConfirmationReturn": "အကောင့်တွင် ပြန်စစ်ပါ။",
-  "accountConfirmationReturnHelp": "အီးမေးလ်ပြောင်းခြင်းအတွက် အီးမေးလ်ဟောင်းနှင့် အသစ် နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ။ ထို့နောက် ဆိုင် → အကောင့်တွင် အီးမေးလ်ပြောင်းလဲမှုကို စစ်ပါ။ ဆိုင်များနှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိနေပါမည်။"
+  "accountConfirmationReturnHelp": "အီးမေးလ်ပြောင်းခြင်းအတွက် အီးမေးလ်ဟောင်းနှင့် အသစ် နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ။ ထို့နောက် ဆိုင် → အကောင့်တွင် အီးမေးလ်ပြောင်းလဲမှုကို စစ်ပါ။ ဆိုင်များနှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိနေပါမည်။",
+  "storefrontRenewMmqrTitle": "MMQR ဖြင့် ပေးချေမည် (မြန်မာ)",
+  "storefrontRenewMmqrBody": "KBZPay, WavePay, AYA Pay စတဲ့ MMQR banking app နဲ့ scan ဖတ်ပါ။ ပေးချေမှု အတည်ပြုတာနဲ့ Premium ချက်ချင်း ပွင့်ပါမယ် — ဓာတ်ပုံပို့စရာ မလို၊ အတည်ပြုချက် စောင့်စရာ မလိုပါ။",
+  "storefrontRenewMmqrCta": "MMQR ပြပါ",
+  "storefrontRenewMmqrScanHint": "Banking app ဖွင့်ပြီး ဤကုဒ်ကို scan ဖတ်ပါ။ အတည်မပြုခင် ငွေပမာဏကို စစ်ပါ။",
+  "storefrontRenewMmqrPoweredBy": "PAYMENT POWERED BY MYANMYANPAY",
+  "storefrontRenewMmqrDownload": "QR ဒေါင်းလုဒ်လုပ်ရန်",
+  "storefrontRenewMmqrDownloaded": "QR သိမ်းပြီးပါပြီ။ Banking app ထဲမှာ ဖွင့်ပြီး ပေးချေပါ။",
+  "storefrontRenewMmqrCancel": "ဤပေးချေမှုကို ပယ်ဖျက်မည်",
+  "storefrontRenewMmqrCancelTitle": "ဤပေးချေမှုကို ပယ်ဖျက်မလား?",
+  "storefrontRenewMmqrCancelBody": "ကုဒ်သည် ချက်ချင်း အလုပ်မလုပ်တော့ပါ။ မပေးချေရသေးမှသာ ပယ်ဖျက်ပါ — ပေးပြီးသားဆိုလျှင် ဤနေရာတွင် ဆက်စောင့်ပါ။",
+  "storefrontRenewMmqrCancelKeep": "ဆက်စောင့်မည်",
+  "storefrontRenewMmqrCancelConfirm": "ပေးချေမှု ပယ်ဖျက်မည်",
+  "storefrontRenewMmqrExpiresIn": "{time} အတွင်း သက်တမ်းကုန်မည်",
+  "@storefrontRenewMmqrExpiresIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "storefrontRenewMmqrExpired": "ဤကုဒ် သက်တမ်းကုန်သွားပါပြီ။ ငွေ မဖြတ်ထားပါ။",
+  "storefrontRenewMmqrStartAgain": "ပြန်စမည်",
+  "storefrontRenewMmqrWaiting": "သင့်ပေးချေမှုကို စောင့်နေပါသည်…",
+  "storefrontRenewMmqrPaid": "ပေးချေမှု ရရှိပါပြီ။ Premium ပွင့်ပါပြီ။",
+  "storefrontRenewMmqrPaidBody": "App ကို ပြန်ဖွင့်ပြီး သက်တမ်းစစ်ပါ — သက်တမ်းအသစ် မြင်ရပါမည်။",
+  "storefrontRenewMmqrFailed": "ပေးချေမှု မအောင်မြင်ပါ။ ငွေ မဖြတ်ထားပါ။",
+  "storefrontRenewMmqrCancelled": "ပေးချေမှု ပယ်ဖျက်ပြီးပါပြီ။ ငွေ မဖြတ်ထားပါ။",
+  "storefrontRenewMmqrUnavailable": "MMQR ကို ယခု မရနိုင်ပါ။ အောက်ပါ ပြည်တွင်းလွှဲပြောင်းမှုကို သုံးပါ။",
+  "storefrontRenewMmqrAmount": "{amount} MMK",
+  "@storefrontRenewMmqrAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storefrontRenewMmqrRefreshSafe": "ဤစာမျက်နှာမှ ထွက်လို့ရပါတယ် — ပြန်လာရင် ဒီအတိုင်း ရှိနေပါမယ်။"
 }

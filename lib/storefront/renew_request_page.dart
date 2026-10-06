@@ -14,6 +14,9 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
 import '../l10n/app_localizations.dart';
+import 'mmqr_checkout.dart';
+import 'mmqr_store_stub.dart'
+    if (dart.library.js_interop) 'mmqr_store_web.dart';
 import 'renewal_auth.dart';
 import 'renewal_receipt_view.dart';
 import 'storefront_api.dart';
@@ -54,6 +57,17 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// project without a configured processor.
   bool _cardPayment = false;
   bool _openingCheckout = false;
+
+  /// Whether the server can issue an MMQR. Same rule as [_cardPayment]:
+  /// false until it says otherwise.
+  bool _mmqrPayment = false;
+
+  /// The live order, if any. While this is non-null the card option is hidden:
+  /// MMPay forbids any other currency sharing the surface with a live MMQR.
+  MmqrOrder? _mmqrOrder;
+  MmqrStatus _mmqrStatus = MmqrStatus.pending;
+  bool _mmqrBusy = false;
+  Timer? _mmqrPoll;
   final _phone = TextEditingController();
   final _amount = TextEditingController();
   final _refNo = TextEditingController();
@@ -209,6 +223,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       _shops = null;
       _shopId = null;
       _cardPayment = false;
+      _mmqrPayment = false;
       _clientRequestId = null;
       _proofBytes = null;
       _proofName = null;
@@ -272,10 +287,13 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       setState(() {
         _shops = shops;
         _cardPayment = billing.cardPayment;
+        _mmqrPayment = billing.mmqrPayment;
         if (!shops.any((s) => s['shop_id'] == _shopId)) {
           _shopId = shops.isEmpty ? null : shops.first['shop_id'] as String;
         }
       });
+      // Only now is the shop known, and a cached order belongs to one shop.
+      if (_mmqrOrder == null) _restoreMmqrOrder();
       final selected = _shopId;
       final rows = selected == null
           ? <RenewalRequestSummary>[]
@@ -293,6 +311,155 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
     } finally {
       if (isCurrent()) setState(() => _loadingHistory = false);
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // MMQR. Local rail, MMK, settled by MyanMyanPay.
+  // ---------------------------------------------------------------------
+
+  /// Reads back an order cached by a previous load of this page.
+  ///
+  /// Required by MMPay: coming back from the banking app must not lose the
+  /// order, and a refresh must restore the same order and QR rather than
+  /// issuing a new one. The cache is only a hint about *which* order to ask
+  /// about — the server's `mmqr_status` decides what state it is in.
+  void _restoreMmqrOrder() {
+    final cached = loadMmqrOrder();
+    if (cached == null) return;
+    if (cached.shopId != _shopId) return;
+    setState(() {
+      _plan = cached.plan == 'yearly' ? 'yearly' : 'monthly';
+      _mmqrOrder = cached.order;
+      _mmqrStatus = MmqrStatus.pending;
+    });
+    _startMmqrPolling();
+    unawaited(_refreshMmqrStatus());
+  }
+
+  /// Issues an MMQR for the selected shop. The server owns the amount and the
+  /// term; this sends only the shop and the plan.
+  Future<void> _payByMmqr() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final shopId = _shopId;
+    if (shopId == null || _mmqrBusy) return;
+    setState(() => _mmqrBusy = true);
+    try {
+      final order = await _api.createMmqr(shopId: shopId, plan: _plan);
+      if (!mounted) return;
+      if (order == null) {
+        // Already paid, and the server settled it on the spot — the
+        // webhook-never-arrived case healing itself.
+        clearMmqrOrder();
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewMmqrPaid)),
+        );
+        return;
+      }
+      saveMmqrOrder(shopId, _plan, order);
+      setState(() {
+        _mmqrOrder = order;
+        _mmqrStatus = MmqrStatus.pending;
+      });
+      _startMmqrPolling();
+    } on CheckoutAlreadySubscribed {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewCardExists)),
+        );
+      }
+    } on CheckoutInProgress {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewCardPending)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewMmqrUnavailable)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _mmqrBusy = false);
+    }
+  }
+
+  /// Four seconds, well inside MMPay's 1000/minute limit. This is what makes
+  /// the renewal land when the callback is late rather than only when it is
+  /// on time.
+  void _startMmqrPolling() {
+    _mmqrPoll?.cancel();
+    _mmqrPoll = Timer.periodic(
+      const Duration(seconds: 4),
+      (_) => unawaited(_refreshMmqrStatus()),
+    );
+  }
+
+  Future<void> _refreshMmqrStatus() async {
+    final shopId = _shopId;
+    final order = _mmqrOrder;
+    if (shopId == null || order == null) return;
+    final MmqrStatus status;
+    try {
+      status = await _api.mmqrStatus(shopId: shopId, orderId: order.orderId);
+    } catch (_) {
+      // A failed poll is not an outcome. Keep the code on screen and ask
+      // again — the owner may be mid-payment on their phone.
+      return;
+    }
+    if (!mounted || _mmqrOrder?.orderId != order.orderId) return;
+    setState(() => _mmqrStatus = status);
+    if (status.isPaid || status.isDead) {
+      _mmqrPoll?.cancel();
+      clearMmqrOrder();
+      if (status.isPaid) unawaited(_loadAccountData());
+    }
+  }
+
+  /// MMPay forbids a second order while one is live unless the owner
+  /// explicitly cancels, so this really cancels at MMPay — and re-queries
+  /// first, because cancelling an order that was in fact paid must grant the
+  /// term rather than throw it away.
+  Future<void> _cancelMmqr() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final shopId = _shopId;
+    final order = _mmqrOrder;
+    if (shopId == null || order == null || _mmqrBusy) return;
+    setState(() => _mmqrBusy = true);
+    try {
+      final paid = await _api.cancelMmqr(
+        shopId: shopId,
+        orderId: order.orderId,
+      );
+      if (!mounted) return;
+      _mmqrPoll?.cancel();
+      clearMmqrOrder();
+      setState(
+        () => _mmqrStatus = paid ? MmqrStatus.success : MmqrStatus.cancelled,
+      );
+      if (paid) unawaited(_loadAccountData());
+    } catch (_) {
+      // Unknown outcome: leave the order on screen and let the poll settle it
+      // rather than telling the owner it is gone when it may not be.
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.storefrontRenewMmqrUnavailable)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _mmqrBusy = false);
+    }
+  }
+
+  void _startMmqrAgain() {
+    _mmqrPoll?.cancel();
+    clearMmqrOrder();
+    setState(() {
+      _mmqrOrder = null;
+      _mmqrStatus = MmqrStatus.pending;
+    });
   }
 
   /// International card purchase: the server creates the checkout (it picks
@@ -378,6 +545,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _mmqrPoll?.cancel();
     _accountGeneration++;
     _phone.dispose();
     _amount.dispose();
@@ -757,10 +925,15 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             onChanged: _submitting
                 ? null
                 : (value) {
+                    // A live order belongs to the shop it was issued for;
+                    // it must never be shown against another one.
+                    _mmqrPoll?.cancel();
                     setState(() {
                       _shopId = value;
                       _clientRequestId = null;
                       _myRequests = null;
+                      _mmqrOrder = null;
+                      _mmqrStatus = MmqrStatus.pending;
                     });
                     _loadAccountData();
                   },
@@ -807,7 +980,52 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             ],
             decoration: InputDecoration(labelText: l.storefrontRenewMonths),
           ),
-          if (_cardPayment) ...[
+          if (_mmqrOrder != null) ...[
+            const SizedBox(height: AppTheme.space4),
+            MmqrCheckout(
+              order: _mmqrOrder!,
+              status: _mmqrStatus,
+              busy: _mmqrBusy,
+              onCancel: _cancelMmqr,
+              onStartAgain: _startMmqrAgain,
+            ),
+          ] else if (_mmqrPayment) ...[
+            const SizedBox(height: AppTheme.space4),
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l.storefrontRenewMmqrTitle,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: AppTheme.space1),
+                    Text(
+                      l.storefrontRenewMmqrBody,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: AppTheme.space3),
+                    FilledButton.icon(
+                      onPressed: _mmqrBusy || _submitting || _shopId == null
+                          ? null
+                          : _payByMmqr,
+                      icon: _mmqrBusy
+                          ? const ButtonSpinner()
+                          : const Icon(Icons.qr_code_2),
+                      label: Text(l.storefrontRenewMmqrCta),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          // Hidden while an MMQR is live: MMPay's rules forbid any other
+          // currency sharing the surface with a live code, and the card path
+          // is priced in SGD.
+          if (_cardPayment && _mmqrOrder == null) ...[
             const SizedBox(height: AppTheme.space4),
             Card(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -842,7 +1060,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           ],
           const SizedBox(height: AppTheme.space4),
           SectionHeader(title: l.storefrontPayment),
-          if (_cardPayment)
+          if (_cardPayment && _mmqrOrder == null)
             Padding(
               padding: const EdgeInsets.only(bottom: AppTheme.space2),
               child: Text(

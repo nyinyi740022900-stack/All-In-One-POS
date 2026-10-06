@@ -4695,4 +4695,88 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get accountConfirmationReturnHelp =>
       'အီးမေးလ်ပြောင်းခြင်းအတွက် အီးမေးလ်ဟောင်းနှင့် အသစ် နှစ်ဖက်ရှိ နောက်ဆုံးအတည်ပြုစာများကို ဖွင့်ပါ။ ထို့နောက် ဆိုင် → အကောင့်တွင် အီးမေးလ်ပြောင်းလဲမှုကို စစ်ပါ။ ဆိုင်များနှင့် Premium သည် မူလအကောင့်တွင် ဆက်ရှိနေပါမည်။';
+
+  @override
+  String get storefrontRenewMmqrTitle => 'MMQR ဖြင့် ပေးချေမည် (မြန်မာ)';
+
+  @override
+  String get storefrontRenewMmqrBody =>
+      'KBZPay, WavePay, AYA Pay စတဲ့ MMQR banking app နဲ့ scan ဖတ်ပါ။ ပေးချေမှု အတည်ပြုတာနဲ့ Premium ချက်ချင်း ပွင့်ပါမယ် — ဓာတ်ပုံပို့စရာ မလို၊ အတည်ပြုချက် စောင့်စရာ မလိုပါ။';
+
+  @override
+  String get storefrontRenewMmqrCta => 'MMQR ပြပါ';
+
+  @override
+  String get storefrontRenewMmqrScanHint =>
+      'Banking app ဖွင့်ပြီး ဤကုဒ်ကို scan ဖတ်ပါ။ အတည်မပြုခင် ငွေပမာဏကို စစ်ပါ။';
+
+  @override
+  String get storefrontRenewMmqrPoweredBy => 'PAYMENT POWERED BY MYANMYANPAY';
+
+  @override
+  String get storefrontRenewMmqrDownload => 'QR ဒေါင်းလုဒ်လုပ်ရန်';
+
+  @override
+  String get storefrontRenewMmqrDownloaded =>
+      'QR သိမ်းပြီးပါပြီ။ Banking app ထဲမှာ ဖွင့်ပြီး ပေးချေပါ။';
+
+  @override
+  String get storefrontRenewMmqrCancel => 'ဤပေးချေမှုကို ပယ်ဖျက်မည်';
+
+  @override
+  String get storefrontRenewMmqrCancelTitle => 'ဤပေးချေမှုကို ပယ်ဖျက်မလား?';
+
+  @override
+  String get storefrontRenewMmqrCancelBody =>
+      'ကုဒ်သည် ချက်ချင်း အလုပ်မလုပ်တော့ပါ။ မပေးချေရသေးမှသာ ပယ်ဖျက်ပါ — ပေးပြီးသားဆိုလျှင် ဤနေရာတွင် ဆက်စောင့်ပါ။';
+
+  @override
+  String get storefrontRenewMmqrCancelKeep => 'ဆက်စောင့်မည်';
+
+  @override
+  String get storefrontRenewMmqrCancelConfirm => 'ပေးချေမှု ပယ်ဖျက်မည်';
+
+  @override
+  String storefrontRenewMmqrExpiresIn(String time) {
+    return '$time အတွင်း သက်တမ်းကုန်မည်';
+  }
+
+  @override
+  String get storefrontRenewMmqrExpired =>
+      'ဤကုဒ် သက်တမ်းကုန်သွားပါပြီ။ ငွေ မဖြတ်ထားပါ။';
+
+  @override
+  String get storefrontRenewMmqrStartAgain => 'ပြန်စမည်';
+
+  @override
+  String get storefrontRenewMmqrWaiting => 'သင့်ပေးချေမှုကို စောင့်နေပါသည်…';
+
+  @override
+  String get storefrontRenewMmqrPaid =>
+      'ပေးချေမှု ရရှိပါပြီ။ Premium ပွင့်ပါပြီ။';
+
+  @override
+  String get storefrontRenewMmqrPaidBody =>
+      'App ကို ပြန်ဖွင့်ပြီး သက်တမ်းစစ်ပါ — သက်တမ်းအသစ် မြင်ရပါမည်။';
+
+  @override
+  String get storefrontRenewMmqrFailed =>
+      'ပေးချေမှု မအောင်မြင်ပါ။ ငွေ မဖြတ်ထားပါ။';
+
+  @override
+  String get storefrontRenewMmqrCancelled =>
+      'ပေးချေမှု ပယ်ဖျက်ပြီးပါပြီ။ ငွေ မဖြတ်ထားပါ။';
+
+  @override
+  String get storefrontRenewMmqrUnavailable =>
+      'MMQR ကို ယခု မရနိုင်ပါ။ အောက်ပါ ပြည်တွင်းလွှဲပြောင်းမှုကို သုံးပါ။';
+
+  @override
+  String storefrontRenewMmqrAmount(String amount) {
+    return '$amount MMK';
+  }
+
+  @override
+  String get storefrontRenewMmqrRefreshSafe =>
+      'ဤစာမျက်နှာမှ ထွက်လို့ရပါတယ် — ပြန်လာရင် ဒီအတိုင်း ရှိနေပါမယ်။';
 }

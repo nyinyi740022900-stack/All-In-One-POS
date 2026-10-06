@@ -4688,4 +4688,87 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountConfirmationReturnHelp =>
       'For an email change, confirm the latest messages in both your current and new inboxes. Then open Shop → Account and check the email change. Your shops and Premium stay with your account.';
+
+  @override
+  String get storefrontRenewMmqrTitle => 'Pay with MMQR (Myanmar)';
+
+  @override
+  String get storefrontRenewMmqrBody =>
+      'Scan with KBZPay, WavePay, AYA Pay or any MMQR banking app. Premium opens as soon as the payment is confirmed — no screenshot, no waiting for approval.';
+
+  @override
+  String get storefrontRenewMmqrCta => 'Show MMQR';
+
+  @override
+  String get storefrontRenewMmqrScanHint =>
+      'Open your banking app, scan this code, and check the amount before you confirm.';
+
+  @override
+  String get storefrontRenewMmqrPoweredBy => 'PAYMENT POWERED BY MYANMYANPAY';
+
+  @override
+  String get storefrontRenewMmqrDownload => 'Download QR';
+
+  @override
+  String get storefrontRenewMmqrDownloaded =>
+      'QR saved. Open it in your banking app to pay.';
+
+  @override
+  String get storefrontRenewMmqrCancel => 'Cancel this payment';
+
+  @override
+  String get storefrontRenewMmqrCancelTitle => 'Cancel this payment?';
+
+  @override
+  String get storefrontRenewMmqrCancelBody =>
+      'The code stops working straight away. Cancel only if you have not paid — if you already did, wait here instead.';
+
+  @override
+  String get storefrontRenewMmqrCancelKeep => 'Keep waiting';
+
+  @override
+  String get storefrontRenewMmqrCancelConfirm => 'Cancel payment';
+
+  @override
+  String storefrontRenewMmqrExpiresIn(String time) {
+    return 'Expires in $time';
+  }
+
+  @override
+  String get storefrontRenewMmqrExpired =>
+      'This code has expired. Nothing was charged.';
+
+  @override
+  String get storefrontRenewMmqrStartAgain => 'Start again';
+
+  @override
+  String get storefrontRenewMmqrWaiting => 'Waiting for your payment…';
+
+  @override
+  String get storefrontRenewMmqrPaid => 'Payment received. Premium is on.';
+
+  @override
+  String get storefrontRenewMmqrPaidBody =>
+      'Reopen the app and tap Check renewal to see the new expiry.';
+
+  @override
+  String get storefrontRenewMmqrFailed =>
+      'That payment did not go through. Nothing was charged.';
+
+  @override
+  String get storefrontRenewMmqrCancelled =>
+      'Payment cancelled. Nothing was charged.';
+
+  @override
+  String get storefrontRenewMmqrUnavailable =>
+      'MMQR is not available right now. Please use a local transfer below.';
+
+  @override
+  String storefrontRenewMmqrAmount(String amount) {
+    return '$amount MMK';
+  }
+
+  @override
+  String get storefrontRenewMmqrRefreshSafe =>
+      'Safe to leave this page — come back and it will still be here.';
 }

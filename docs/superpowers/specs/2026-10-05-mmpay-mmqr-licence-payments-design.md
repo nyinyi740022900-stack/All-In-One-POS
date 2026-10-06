@@ -798,3 +798,59 @@ refuses, the webhook answers `503 mmpay_not_configured`, and
 code and dark in behaviour. The sandbox keys live only in the gitignored
 `mmpay.local.json` on the owner's machine, because `mmpayTestMode()` throws on
 the production host by design: sandbox money must never buy a real month.
+
+## 18. The `/renew` MMQR surface (2026-10-06)
+
+§7's page exists. All six compliance requirements are implemented in
+`lib/storefront/mmqr_checkout.dart`, and each is asserted by a test in
+`test/mmqr_checkout_test.dart` rather than left to whoever edits the widget
+next — breaking one is not a cosmetic regression, it is losing the ability to
+take money at all.
+
+| Rule | Where | Test |
+| --- | --- | --- |
+| MMQR logo, untampered | `assets/branding/mmqr_logo.png`, downloaded from the console and shown with no recolour or crop | asserts the asset name is the one on screen |
+| MMK only, no other currency beside it | the amount renders `20,000 MMK`; the page hides the SGD card option entirely while a QR is live | asserts no `SGD`/`USD`/`THB`/`JPY`/`$` appears |
+| "PAYMENT POWERED BY MYANMYANPAY" verbatim | beneath the code, **not translated** — it is a brand string, not copy | asserted in English *and* Myanmar |
+| QR never modified | the EMVCo payload goes to `BarcodeWidget` exactly as issued | decodes the widget's bytes and compares to the issued string |
+| Visible 15-minute timer | a one-second ticker, turning into a warning colour under two minutes | asserts it is shown and that it counts down |
+| Working Download QR | rasterises the on-screen `RepaintBoundary` to PNG and hands it to the existing web share/save path | asserts the button exists and is enabled while live |
+
+Plus the two UX rules:
+
+- **Refresh-safe.** `mmqr_store_web.dart` caches the live order in
+  `localStorage` and the page restores it once the shop is known, so returning
+  from a banking app — or a refresh — finds the same order and QR rather than
+  issuing a second one. The cache is only a hint about *which* order to ask
+  about; `mmqr_status` remains the authority. Every read and write is wrapped,
+  so private browsing degrades to "works until you leave" rather than failing.
+- **No second order unless the owner cancels.** The Cancel button really
+  cancels at MMPay, and asks first — cancelling after paying is the expensive
+  mistake, so the server re-queries and fulfils instead of discarding the term.
+
+### 18.1 Behaviour worth knowing
+
+- The page polls `mmqr_status` every four seconds (MMPay's limit is 1000/min).
+  This is what makes a renewal land when the callback is late rather than only
+  when it is on time.
+- Switching shops clears a live order from the surface: an order belongs to the
+  shop it was issued for and must never be shown against another.
+- A status MMPay has not told us about is read as **pending**, never as
+  finished — the page keeps waiting rather than telling an owner it is over.
+- `REFUNDED` is terminal but is **not** treated as dead: the money did arrive,
+  and offering a second QR for a granted term is worse than offering none.
+- The widget runs a one-second timer, so `pumpAndSettle` never settles on it —
+  its tests pump explicit frames.
+
+### 18.2 Verified
+
+Analyzer clean, **1,071** Flutter tests pass (17 new). The storefront web target
+builds and `/renew` loads with no console errors, which is the only check that
+exercises `dart:js_interop` and `web.window.localStorage` — the native test run
+cannot compile that file at all. Layout checked at 390 px with no overflow.
+
+**Not verified, and cannot be here:** a real scan-and-pay. The deployed project
+holds no `MMPAY_*` secret, so the server reports `mmqr_payment: false` and the
+card never appears; and `mmpayTestMode()` throws on the production host by
+design. Seeing the surface against the live sandbox needs a tunnel to a local
+function or a staging Supabase project.

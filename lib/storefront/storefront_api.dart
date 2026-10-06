@@ -364,6 +364,7 @@ class StorefrontApi {
       // Absent means no: an older function that does not report this must not
       // make the page offer a card checkout it cannot complete.
       cardPayment: data['card_payment'] == true,
+      mmqrPayment: data['mmqr_payment'] == true,
     );
   }
 
@@ -422,6 +423,88 @@ class StorefrontApi {
     }
   }
 
+  /// Issues an MMQR for [shopId]. The server picks the amount and the term;
+  /// this call sends only which shop and which plan.
+  ///
+  /// Returns null when the order was already paid and has just been settled
+  /// server-side — the paid-but-webhook-lost case, which the server heals by
+  /// re-querying rather than leaving to a support message.
+  Future<MmqrOrder?> createMmqr({
+    required String shopId,
+    required String plan,
+  }) async {
+    final FunctionResponse response;
+    try {
+      response = await _c.functions.invokeBounded(
+        'storefront',
+        body: {'action': 'create_mmqr', 'shop_id': shopId, 'plan': plan},
+        // Reservation, an optional status re-query and the order itself are up
+        // to three bounded pairs of MMPay round trips.
+        timeout: const Duration(seconds: 75),
+      );
+    } on FunctionException catch (error) {
+      if (error.details is Map) _throwCheckoutError(error.details as Map);
+      rethrow;
+    }
+    final data = response.data is Map
+        ? (response.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    _throwCheckoutError(data);
+    if (data['already_paid'] == true) return null;
+    return MmqrOrder.fromMap(data);
+  }
+
+  /// Asks the server what MMPay says about [orderId]. The page polls this, and
+  /// it is what makes a renewal land when the callback is late rather than
+  /// only when it is on time.
+  Future<MmqrStatus> mmqrStatus({
+    required String shopId,
+    required String orderId,
+  }) async {
+    final FunctionResponse response;
+    try {
+      response = await _c.functions.invokeBounded(
+        'storefront',
+        body: {
+          'action': 'mmqr_status',
+          'shop_id': shopId,
+          'order_id': orderId,
+        },
+        timeout: const Duration(seconds: 45),
+      );
+    } on FunctionException catch (error) {
+      final details = error.details;
+      // A row the server no longer has is a finished or abandoned order, not
+      // an error the owner can act on.
+      if (details is Map && details['error'] == 'not_found') {
+        return MmqrStatus.expired;
+      }
+      rethrow;
+    }
+    final data = response.data is Map
+        ? (response.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    return MmqrStatus.parse(data['status'] as String?);
+  }
+
+  /// Cancels a live order. MMPay's own rules forbid issuing a second QR until
+  /// the owner explicitly cancels the first, so this is a real cancel, not a
+  /// page reset. Returns true when the order turned out to be paid after all.
+  Future<bool> cancelMmqr({
+    required String shopId,
+    required String orderId,
+  }) async {
+    final response = await _c.functions.invokeBounded(
+      'storefront',
+      body: {'action': 'cancel_mmqr', 'shop_id': shopId, 'order_id': orderId},
+      timeout: const Duration(seconds: 45),
+    );
+    final data = response.data is Map
+        ? (response.data as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    return data['already_paid'] == true;
+  }
+
   Future<List<RenewalRequestSummary>> fetchMyRequests(String shopId) async {
     final res = await _c.functions.invokeBounded(
       'storefront',
@@ -463,7 +546,11 @@ class StorefrontApi {
 
 /// The shops an owner may pay for, and whether card payment is on offer.
 class BillingShops {
-  const BillingShops({required this.shops, required this.cardPayment});
+  const BillingShops({
+    required this.shops,
+    required this.cardPayment,
+    required this.mmqrPayment,
+  });
 
   final List<Map<String, dynamic>> shops;
 
@@ -472,6 +559,97 @@ class BillingShops {
   /// configuration is not allowed, so a misconfiguration hides the option
   /// instead of offering a checkout that refuses itself.
   final bool cardPayment;
+
+  /// Whether the server can issue an MMQR right now. Same rule as
+  /// [cardPayment]: absent means no, so an older function cannot make the page
+  /// offer a QR it has no keys to produce.
+  final bool mmqrPayment;
+}
+
+/// A live MMQR order: the EMVCo string to render, and when our own window
+/// closes. MMPay publishes no expiry of its own — `status` is its authority —
+/// so [expiresAt] is the 15-minute window the compliance rules require a
+/// visible timer for.
+class MmqrOrder {
+  const MmqrOrder({
+    required this.orderId,
+    required this.qr,
+    required this.amount,
+    required this.expiresAt,
+  });
+
+  factory MmqrOrder.fromMap(Map<String, dynamic> data) {
+    final qr = data['qr'];
+    final orderId = data['order_id'];
+    final rawExpiry = data['expires_at'];
+    final expiresAt = rawExpiry is String ? DateTime.tryParse(rawExpiry) : null;
+    if (qr is! String || qr.isEmpty || orderId is! String || expiresAt == null) {
+      throw const FormatException('Missing MMQR order');
+    }
+    return MmqrOrder(
+      orderId: orderId,
+      qr: qr,
+      amount: (data['amount'] as num?)?.toInt() ?? 0,
+      expiresAt: expiresAt.toUtc(),
+    );
+  }
+
+  final String orderId;
+
+  /// The EMVCo MMQR payload. Rendered as a QR code and never altered —
+  /// MMPay's compliance rules forbid modifying it.
+  final String qr;
+
+  /// Always MMK. The surface may not show any other currency beside it.
+  final int amount;
+  final DateTime expiresAt;
+
+  Map<String, dynamic> toJson() => {
+    'order_id': orderId,
+    'qr': qr,
+    'amount': amount,
+    'expires_at': expiresAt.toIso8601String(),
+  };
+
+  Duration remaining(DateTime now) {
+    final left = expiresAt.difference(now.toUtc());
+    return left.isNegative ? Duration.zero : left;
+  }
+}
+
+/// A cached order restored after a refresh, with the shop and plan it belongs
+/// to so it can never be shown against a different shop.
+class MmqrCachedOrder {
+  const MmqrCachedOrder({
+    required this.shopId,
+    required this.plan,
+    required this.order,
+  });
+
+  final String shopId;
+  final String plan;
+  final MmqrOrder order;
+}
+
+/// Where an order stands, as MMPay itself reports it.
+enum MmqrStatus { pending, success, failed, cancelled, expired, refunded;
+
+  static MmqrStatus parse(String? raw) => switch (raw?.toUpperCase()) {
+    'SUCCESS' => MmqrStatus.success,
+    'FAILED' => MmqrStatus.failed,
+    'CANCELLED' => MmqrStatus.cancelled,
+    'EXPIRED' => MmqrStatus.expired,
+    'REFUNDED' => MmqrStatus.refunded,
+    _ => MmqrStatus.pending,
+  };
+
+  bool get isPaid => this == MmqrStatus.success;
+
+  /// Terminal and unpaid: the owner may start a fresh order.
+  bool get isDead =>
+      this == MmqrStatus.failed ||
+      this == MmqrStatus.cancelled ||
+      this == MmqrStatus.expired;
 }
 
 /// The gateway cannot sell right now: not configured, or configured wrongly.
