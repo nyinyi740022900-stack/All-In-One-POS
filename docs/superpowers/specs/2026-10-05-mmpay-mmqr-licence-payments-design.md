@@ -582,3 +582,87 @@ What to look for on that form, in one pass:
    authoritative decides whether the webhook URL is config or code.)
 4. Any **QR TTL** setting (Q2) and whether `PaymentResponse.url` is a hosted
    page (Q8).
+
+## 15. Create Application answers Q7, Q4, Q3 and Q2 (2026-10-06)
+
+The owner gave the go-ahead to open the Create Application form and test. An
+application now exists on the merchant account:
+
+| | |
+| --- | --- |
+| App Name | `All In One POS` |
+| App ID | `MM57179826` (auto-generated, read-only) |
+| Console id | `6ac479c7c2113c7d8c380636` |
+| Integration Type | `SDK_SERVER` — "Server to Server (SDK)" (the other option is `SDK_BROWSER`) |
+| Application Website | `https://shop.allinonepos.app/renew` — labelled "For Compliance Review" |
+| Sandbox + Production Webhook URL | `https://gnikispsurwrmkspuisj.supabase.co/functions/v1/mmpay-webhook` (not deployed yet) |
+| Status | `DEVELOPMENT` |
+
+The row has a delete action, so this is reversible.
+
+### 15.1 Q7 — IP whitelisting is **optional**. The architecture holds.
+
+This was the top risk: Supabase Edge Functions have no static egress IP, and a
+mandatory allow-list would have forced a fixed-address proxy. The form's section
+is headed **"Security Whitelisting — OPTIONAL PROTECTION"** and contains *Domain
+Whitelist (For Browser SDK)* and *IP Whitelist*, **neither marked required**,
+both free-text and left empty. The application saved with both blank. Edge
+Functions are a valid host for this integration; `KA0005` ("IP Not whitelisted")
+only fires for merchants who opt in. **Q7 closed, and the activation fee is no
+longer gated on it.**
+
+### 15.2 Q4 — sandbox is available while KYC is PENDING
+
+The application was created with KYC still `PENDING`, and the Sandbox
+Environment block is fully editable while Production carries a **LOCKED** badge
+and the text that production keys require passing KYC *and* a compliance review.
+The app page offers **Generate Sandbox Keys** — not yet clicked, because the
+secret belongs in the owner's hands and then straight into Supabase Edge
+Function Secrets, never into a transcript. **Q4 closed: sandbox does not wait on
+KYC.**
+
+### 15.3 Q3 — the webhook URL is per-application configuration, not per-payment
+
+Separate **Sandbox Webhook URL** and **Production Webhook URL** fields, both
+required at creation. So the callback endpoint is configuration, not something
+the payment call has to carry; a per-payment `callbackUrl` may still override,
+but the design can rely on the configured one.
+
+### 15.4 Q2 — the 15-minute window is MMPay's own rule, not our guess
+
+§13.5 picked 15 minutes conservatively because no TTL was documented. The
+console's compliance rules **mandate exactly that**: "15 mins အချိန်ကိုက်
+(timer) ကို ထင်ရှားစွာ ထည့်သွင်းရမည်" — a visible 15-minute timer is required to
+pass compliance. The design's own window is now also the published requirement.
+
+### 15.5 New findings
+
+- **Production go-live runs through Discord**, not a form: "complete your
+  integration in Sandbox and request a review via Discord"
+  (`discord.com/invite/pGQ5gQbPpd`). So the sequence is sandbox integration →
+  KYC → Discord review → production keys.
+- **Event Subscriptions** list exactly `PENDING, SUCCESS, FAILED, REFUNDED,
+  CANCELLED, EXPIRED` — confirming §13.4's status enum from the console side.
+- **Alert Notifications** can push transaction updates to Discord, Slack or a
+  Telegram bot. A Telegram or Discord alert on `SUCCESS` and `FAILED` is a cheap
+  second channel for the paid-but-webhook-lost case, independent of our own
+  re-query.
+- The **Sandbox Transactions** page (`/sandboxs`) lists test payments with a
+  **CALLBACK** column and per-row actions, so webhook delivery can be inspected
+  and (apparently) replayed from the console during integration.
+- The MMQR logo required by the compliance rules is downloadable from the
+  console at `/MMQR_Logo.png`.
+
+### 15.6 Still open
+
+- **Q8** — whether `PaymentResponse.url` is a hosted payment page. Nothing on
+  the application form settles it; it needs a sandbox call.
+- **Q5** (drop the stale `license_requests.mmpay_*` columns) and **Q6** (who
+  absorbs the 100 MMK) are decisions, not discoveries — recommendations in §11
+  stand.
+- Fees, settlement timing and the "SECURITY CHECK IN PROGRESS" balance bucket
+  (§14) are unchanged and still need the merchant's own enquiry.
+- **Next action is the owner's**: click *Generate Sandbox Keys*, and put the
+  secret into Supabase Edge Function Secrets as `MMPAY_SANDBOX_SECRET_KEY`
+  (publishable key as `MMPAY_SANDBOX_PUBLIC_KEY`). Code can be written before
+  that; only the live sandbox call needs it.
