@@ -37,3 +37,57 @@ Owner screenshots confirm mail arrived for the tested addresses. They also show 
 Bilingual template: `supabase/templates/change_email.html` with subject/deployment notes in its README. Both languages appear in one mail. It keeps the per-inbox `ConfirmationURL`, current/new addresses, both-inbox instructions and a single action. Production UI explicitly blocks template customization on the current Free/default SMTP setup: configure custom SMTP or upgrade to Pro. No subscription, SMTP credential, template deployment or real confirmation link was submitted. Existing emails retain their previous template.
 
 Callback regression tests cover invalid/used links, valid callback payload stripping, malformed fragments, foreign schemes, root Home navigation, and production callback-versus-daily-PIN gates. Analyzer clean; all 1,054 Flutter tests pass. Mobile email preview inspected at 390 px width. Release build installed and launched successfully on the paired iPhone with commerce disabled. The custom SMTP/template live-mail test is still pending; no sent mail was modified.
+
+## Mail delivery: Resend domain, SMTP and the reset-password template (2026-10-06)
+
+**Sending domain is verified.** `auth.allinonepos.app` was added to Resend on
+2026-10-05 20:57 and verified at 21:11 — DNS at Namecheap, sending region Tokyo
+(`ap-northeast-1`), opportunistic TLS. `dig` confirms SPF
+(`send.auth.allinonepos.app`) and DKIM (`resend._domainkey.auth.allinonepos.app`)
+resolve. The "Pending" state the previous session stopped on has cleared; no DNS
+record was added or changed in this pass.
+
+**DMARC is missing** on both `auth.allinonepos.app` and the root
+`allinonepos.app`. SPF and DKIM alone deliver, but Gmail and Yahoo treat an
+absent DMARC policy as a negative signal. Recommended Namecheap TXT record on
+the root domain, host `_dmarc`:
+`v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`. Start at `p=none`, read the
+reports, tighten later. Not added here — it is a DNS change on the owner's
+registrar account.
+
+**Supabase SMTP is staged, not saved.** Authentication → Emails → SMTP Settings
+now has the toggle on and every non-secret field filled: sender
+`noreply@auth.allinonepos.app`, sender name `All In One POS`, host
+`smtp.resend.com`, port 587, username `resend`. The Password field is a Resend
+API key and was deliberately left empty — a production API key is not something
+this session types into a remote dashboard. Nothing was saved, so the live
+project is still on default Supabase SMTP until the owner pastes the key and
+presses Save changes. The dashboard notes that enabling custom SMTP raises the
+auth mail rate limit to 30/hour.
+
+The key to create in Resend: **Sending access**, restricted to
+`auth.allinonepos.app`. The two keys already in that account (`Theorylane`,
+`Onboarding`) belong to other projects and predate this domain — do not reuse
+them.
+
+**Redirect URLs verified.** The project's allow list holds
+`allinonepos://login-callback` and `https://shop.allinonepos.app/renew`, so both
+the reset-password and change-email links resolve into the app once mail is
+flowing.
+
+**New: `supabase/templates/reset_password.html`.** Auditing which Auth mails this
+product actually sends turned up a gap — only *change email* had a bilingual
+template, but `forgot_password_dialog.dart` calls `resetPasswordForEmail` and is
+live today, so once custom SMTP is on that mail would still go out as the default
+English Supabase body. The new template matches `change_email.html`: Myanmar and
+English in one message, `{{ .ConfirmationURL }}` / `{{ .Email }}` preserved,
+inline tables, no JavaScript, tracking, image or font dependency, and an explicit
+"your shops, sales records and Premium are unchanged" line. Preview inspected at
+390 px. Signup sends no mail (`email_confirm: true` server-side); magic link,
+invite and reauthentication are unused and stay at their defaults.
+
+Still pending, in order: create the scoped Resend key → paste it into the staged
+SMTP form and save → deploy both templates under Authentication → Emails →
+Templates (editing unlocks once custom SMTP is on) → send a real reset and a real
+email change to an owner inbox and confirm both-inbox completion. Add DMARC
+alongside. No Dart changed in this pass; analyzer clean and all 1,054 tests pass.
