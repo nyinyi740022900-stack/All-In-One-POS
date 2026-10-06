@@ -1,13 +1,16 @@
--- Undo the account-Premium cutover and checkout guard (0094 through 0097).
+-- Undo the account-Premium cutover, checkout guard and MMQR schema (0094
+-- through 0098).
 --
--- Safe to run because those three migrations add rather than destroy: no table,
--- column or row is dropped, and the policies they drop are recreated in the same
--- file. `licenses` and every other 0093 table keep their rows, so rolling back
--- means removing what was added and putting the changed policies back to their
--- pre-cutover definitions.
+-- These migrations add rather than destroy, with one exception: 0098 drops the
+-- two unused `license_requests.mmpay_*` columns 0069 had added, and this script
+-- restores them by re-running 0069. No row is dropped anywhere, and the
+-- policies these migrations drop are recreated in the same file. `licenses`
+-- and every other 0093 table keep their rows, so rolling back means removing
+-- what was added and putting the changed policies back to their pre-cutover
+-- definitions.
 --
 -- The object lists below were derived by diffing a database stopped at 0093
--- against one carrying 0096, and `migration_rollback_test.py` fails if this
+-- against one carrying 0098, and `migration_rollback_test.py` fails if this
 -- script does not reproduce the 0093 schema exactly (tables, columns, function
 -- signatures and policy definitions). Re-derive both if you add a migration.
 --
@@ -17,7 +20,7 @@
 --
 -- Afterwards, clear the CLI's ledger so a later `db push` reapplies them:
 --   delete from supabase_migrations.schema_migrations
---    where version in ('0094', '0095', '0096', '0097');
+--    where version in ('0094', '0095', '0096', '0097', '0098');
 
 begin;
 
@@ -48,7 +51,8 @@ begin
       'create_social_account_shop', 'fulfill_account_payment', 'fulfill_gateway_payment',
       'register_shop_device', 'reject_account_payment', 'release_shop_device',
       'renew_shop_subscription', 'resolve_social_account', 'start_account_trial',
-      'reserve_gateway_checkout', 'close_gateway_checkout')
+      'reserve_gateway_checkout', 'close_gateway_checkout',
+      'reserve_mmpay_checkout', 'close_mmpay_checkout', 'fulfill_mmpay_payment')
   loop
     execute format('drop function %s cascade', fn.sig);
   end loop;
@@ -69,9 +73,13 @@ drop policy if exists proof_account_upload on storage.objects;
 --   0042 — org_branches_owner, which 0094 narrowed from `for all` to `for
 --          select` once branch writes moved behind the authority RPCs
 --   0066/0068 — the payment-proof read/upload policies 0095 reshaped
+--   0069 — the two license_requests.mmpay_* columns 0098 dropped; every
+--          statement in that file is `if not exists`, so it restores the
+--          columns without disturbing the invoice numbers already backfilled
 \ir ../migrations/0010_license_requests.sql
 \ir ../migrations/0042_org_branches.sql
 \ir ../migrations/0066_scoped_payment_proofs.sql
 \ir ../migrations/0068_proof_folder_shop_id_shape.sql
+\ir ../migrations/0069_license_request_receipt.sql
 
 commit;

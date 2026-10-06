@@ -121,6 +121,7 @@ jobs:
           supabase/functions/tests/account_billing_test.ts
           supabase/functions/tests/gateway_billing_test.ts
           supabase/functions/tests/gateway_mode_test.ts
+          supabase/functions/tests/mmpay_test.ts
           supabase/functions/sync_force_apply/account_gate_test.ts
 
   account_sql:
@@ -143,3 +144,4 @@ jobs:
           supabase.tests.migration_chain_test
           supabase.tests.migration_rollback_test
           supabase.tests.gateway_checkout_test
+          supabase.tests.mmpay_checkout_test

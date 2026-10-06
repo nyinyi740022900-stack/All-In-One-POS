@@ -1,8 +1,11 @@
 # Myan Myan Pay (MMQR) licence payments — design
 
 Date: 2026-10-05 (Asia/Singapore)
-Status: design for written review. Nothing implemented, no migration written, no
-function deployed, no KYC submitted. **Updated 2026-10-05 after reading the
+Status: **server side implemented and tested, nothing deployed.** Migration
+0098, `_shared/mmpay.ts`, `_shared/mmpay_mode.ts`, the `mmpay-webhook` function
+and three `storefront` actions exist and pass CI; the `/renew` page (§7) is not
+built, nothing is deployed, no sandbox key has been issued and no KYC submitted.
+See §16. **Updated 2026-10-05 after reading the
 published API reference and the `mmpay-node-sdk@1.1.4` source: Q1 and Q3 are
 answered, Q2 is designed around, Q4 and a newly found blocker (Q7) still need
 the merchant console.** See §11.
@@ -666,3 +669,57 @@ pass compliance. The design's own window is now also the published requirement.
   secret into Supabase Edge Function Secrets as `MMPAY_SANDBOX_SECRET_KEY`
   (publishable key as `MMPAY_SANDBOX_PUBLIC_KEY`). Code can be written before
   that; only the live sandbox call needs it.
+
+## 16. What was built (2026-10-06)
+
+Written ahead of the sandbox key, so only the live call is still waiting on it.
+
+| File | What it is |
+| --- | --- |
+| `supabase/migrations/0098_mmpay_checkouts.sql` | `provider` / `provider_order_id` / `amount` / `currency` on `billing_checkouts`, the partial unique index, `reserve_mmpay_checkout`, `close_mmpay_checkout`, `fulfill_mmpay_payment`, and the Q5 drop of `license_requests.mmpay_*` |
+| `supabase/functions/_shared/mmpay_mode.ts` | the server-decides-the-mode guard, plus `mmpayConfig()` |
+| `supabase/functions/_shared/mmpay.ts` | handshake / create / get / cancel / `verifyCallback`, on fetch + Web Crypto |
+| `supabase/functions/mmpay-webhook/index.ts` | the callback endpoint |
+| `supabase/functions/storefront/index.ts` | `create_mmqr`, `mmqr_status`, `cancel_mmqr`, and `mmqr_payment` on `list_billing_shops` |
+| `supabase/functions/tests/mmpay_test.ts` | 11 Deno tests |
+| `supabase/tests/mmpay_checkout_test.py` | 42 SQL tests |
+
+### 16.1 Decisions taken while writing it
+
+- **Secret names changed from §6.** `MMPAY_MERCHANT_ID` / `MMPAY_API_KEY` /
+  `MMPAY_WEBHOOK_SECRET` were written before the key model was understood.
+  MMPay issues a **pair** whose environment is baked into the value, and the
+  same secret key signs outbound requests and inbound callbacks — so there is
+  no separate webhook secret to hold. The set is now `MMPAY_APP_ID`,
+  `MMPAY_PUBLISHABLE_KEY`, `MMPAY_SECRET_KEY`, `MMPAY_TEST_MODE`, and an
+  optional `MMPAY_BASE_URL` override that must be https.
+- **The key's own prefix never decides the mode.** `mmpayConfig()` checks the
+  `_test_` / `_live_` tag *against* the mode the server decided and refuses a
+  mismatch in both directions. The published SDK does the opposite — it decides
+  sandbox-vs-live by substring-matching the key — which means a live key pasted
+  into staging quietly starts taking real money. Covered by a test.
+- **`REFUNDED` does not release a reservation.** It is terminal, but the money
+  did arrive; releasing would offer a second QR for a term already granted.
+  `isDead()` is `FAILED | CANCELLED | EXPIRED` only.
+- **`fulfill_mmpay_payment` re-derives the price from the stored term** rather
+  than comparing against the stored `amount`, so editing the reservation row
+  cannot buy a year at a month's price. Tested directly.
+- **The order id is the `billing_checkouts` row id**, so `create_mmqr` needs no
+  second identifier and a retry takes a fresh row rather than reusing a dead
+  order id.
+- **The `/renew` page's Cancel is wired server-side** as `cancel_mmqr`, which
+  re-queries before closing: cancelling an order that was in fact paid fulfils
+  it instead of throwing the term away.
+
+### 16.2 Not built yet
+
+- **The `/renew` page (§7).** All six compliance requirements — untampered MMQR
+  logo, MMK-only pricing, the verbatim "PAYMENT POWERED BY MYANMYANPAY", the
+  15-minute visible timer, a working Download QR, and refresh-safe cached
+  order/QR state — are page work and none of it exists.
+- **Deployment.** `0098` is not pushed, no function is deployed, and
+  `mmpay-webhook` must be deployed with `--no-verify-jwt` or every callback
+  401s before the handler runs.
+- **Q8** — whether `PaymentResponse.url` is a hosted page. The client already
+  returns `url` alongside `qr` so the page can prefer it if it turns out to be
+  one; a sandbox call settles it.

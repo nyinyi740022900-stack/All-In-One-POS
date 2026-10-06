@@ -21,6 +21,9 @@
 //                    Server selects price/duration; owner membership is required.
 //   my_requests { shop_id } -> { requests[] } (authenticated owner)
 //   create_checkout { shop_id, plan } -> { url } (authenticated owner)
+//   create_mmqr { shop_id, plan } -> { order_id, qr, url, amount, expires_at }
+//   mmqr_status { shop_id, order_id } -> { status, paid, expires_at }
+//   cancel_mmqr { shop_id, order_id } -> { ok } (all authenticated owner)
 //   GET ?action=og&slug=… -> HTML Open Graph card (Facebook/Viber crawlers)
 //
 // Anti-abuse on submit_order: a hidden honeypot field (`hp`) catches
@@ -44,6 +47,14 @@ import {
   gatewayTestMode,
   verifyVariantForPlan,
 } from "../_shared/gateway_mode.ts";
+import { mmpayAvailable, mmpayConfig } from "../_shared/mmpay_mode.ts";
+import {
+  cancelPayment,
+  createPayment,
+  getPayment,
+  isDead,
+  MmpayError,
+} from "../_shared/mmpay.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -717,6 +728,248 @@ async function handleCheckout(
   return json({ url });
 }
 
+// ---------------------------------------------------------------------------
+// MMQR (Myan Myan Pay) — the local rail for a renewal paid from a Myanmar
+// banking app. Rides the same billing_checkouts lock as the card path, so a
+// shop cannot hold an open card checkout and an open QR at the same time.
+// ---------------------------------------------------------------------------
+
+/// Resolves the signed-in owner and the shop they asked about, or the response
+/// that refuses them. Shared by all three MMQR actions so the 401/403 shapes
+/// are stated once.
+async function mmqrOwner(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+): Promise<{ owner: { id: string; email?: string }; shopId: string } | Response> {
+  const owner = await billingOwner(admin, req);
+  if (!owner) return json({ error: "not_authenticated" }, 401);
+  const shopId = `${body.shop_id ?? ""}`;
+  const shops = await billingShops(admin, owner);
+  if (!shops.some((s) => s.shop_id === shopId)) {
+    return json({ error: "forbidden" }, 403);
+  }
+  return { owner, shopId };
+}
+
+async function handleCreateMmqr(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+): Promise<Response> {
+  const who = await mmqrOwner(admin, body, req);
+  if (who instanceof Response) return who;
+  if (body.plan !== "monthly" && body.plan !== "yearly") {
+    return json({ error: "bad_plan" }, 400);
+  }
+  const months = body.plan === "yearly" ? 12 : 1;
+  const cfg = mmpayConfig();
+  if ("error" in cfg) return json({ error: "checkout_unavailable" }, 503);
+
+  // Two attempts, like handleCheckout: one to find an existing reservation and
+  // deal with it, one to take a fresh one.
+  let reservation;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await admin.rpc("reserve_mmpay_checkout", {
+      p_shop_id: who.shopId,
+      p_owner_user_id: who.owner.id,
+      p_months: months,
+    });
+    if (error || !data) return json({ error: "checkout_unavailable" }, 503);
+    if (data.error || !data.checkout) {
+      return json({ error: "checkout_in_progress" }, 409);
+    }
+    reservation = data.checkout;
+    if (data.reserved) break;
+    // Someone else's open row. A card checkout is a recurring agreement; we do
+    // not sell a one-off month on top of one.
+    if (reservation.provider !== "mmpay") {
+      return json({ error: "subscription_already_exists" }, 409);
+    }
+    if (attempt > 0) return json({ error: "checkout_in_progress" }, 409);
+    // Unlike a hosted card checkout, an MMQR order has a queryable terminal
+    // state — so ask, instead of guessing from the row's age.
+    let existing;
+    try {
+      existing = await getPayment(cfg, reservation.id);
+    } catch (error) {
+      // Never close a reservation on an unknown outcome: the owner may have
+      // paid and only the answer be missing.
+      if (error instanceof MmpayError && error.code === "mmpay_rejected") {
+        return json({ error: "checkout_in_progress" }, 409);
+      }
+      return json({ error: "checkout_unavailable" }, 502);
+    }
+    if (existing.status === "SUCCESS") {
+      // Paid, webhook never arrived. Finish it here rather than leaving the
+      // owner to send a Viber message about money they already sent.
+      const { error } = await admin.rpc("fulfill_mmpay_payment", {
+        p_checkout_id: reservation.id,
+        p_order_id: existing.orderId,
+        p_amount: existing.amount,
+      });
+      if (error) return json({ error: "payment_not_fulfilled" }, 500);
+      return json({ ok: true, already_paid: true, order_id: existing.orderId });
+    }
+    if (!isDead(existing.status)) {
+      return json({ error: "checkout_in_progress" }, 409);
+    }
+    const { error: closeError } = await admin.rpc("close_mmpay_checkout", {
+      p_checkout_id: reservation.id,
+      p_order_id: reservation.provider_order_id,
+    });
+    if (closeError) return json({ error: "checkout_unavailable" }, 503);
+  }
+  if (!reservation) return json({ error: "checkout_unavailable" }, 503);
+
+  // Our own row id is the order id: unique per attempt forever, and a retry
+  // takes a new row rather than reusing a dead order id.
+  const orderId = reservation.id as string;
+  let payment;
+  try {
+    payment = await createPayment(cfg, {
+      orderId,
+      amount: reservation.amount as number,
+      customMessage: `All In One POS Premium - ${months === 12 ? "1 year" : "1 month"}`,
+      callbackUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mmpay-webhook`,
+    });
+  } catch (error) {
+    // A definitive 4xx means no payable QR was issued, so the reservation is
+    // released. A timeout or 5xx keeps it: an unknown outcome plus a retried
+    // POST is how one shop ends up holding two payable QRs.
+    if (error instanceof MmpayError && !error.retryable) {
+      await admin.rpc("close_mmpay_checkout", {
+        p_checkout_id: orderId,
+        p_order_id: null,
+      });
+    }
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  if (!payment.qr && !payment.url) {
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  const { error: saveError } = await admin.from("billing_checkouts")
+    .update({ provider_order_id: orderId }).eq("id", orderId);
+  if (saveError) return json({ error: "checkout_unavailable" }, 503);
+  return json({
+    order_id: orderId,
+    qr: payment.qr ?? null,
+    url: payment.url ?? null,
+    amount: reservation.amount,
+    currency: "MMK",
+    // Ours, not MMPay's: no TTL is published anywhere, and MMPay's compliance
+    // rules require a visible 15-minute timer. `status` stays the authority on
+    // whether the order is actually dead.
+    expires_at: reservation.checkout_expires_at,
+  });
+}
+
+/// What the page polls. This is what makes the feature correct when the
+/// webhook is late, rather than only when it is on time.
+async function handleMmqrStatus(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+): Promise<Response> {
+  const who = await mmqrOwner(admin, body, req);
+  if (who instanceof Response) return who;
+  const orderId = `${body.order_id ?? ""}`;
+  const checkout = await mmqrCheckout(admin, who.shopId, orderId);
+  if (!checkout) return json({ error: "not_found" }, 404);
+  const cfg = mmpayConfig();
+  if ("error" in cfg) return json({ error: "checkout_unavailable" }, 503);
+  let payment;
+  try {
+    payment = await getPayment(cfg, orderId);
+  } catch {
+    return json({ error: "mmpay_unavailable" }, 502);
+  }
+  if (payment.appId !== cfg.appId) return json({ error: "forbidden" }, 403);
+  if (payment.status === "SUCCESS") {
+    const { error } = await admin.rpc("fulfill_mmpay_payment", {
+      p_checkout_id: checkout.id,
+      p_order_id: orderId,
+      p_amount: payment.amount,
+    });
+    // Already fulfilled by the webhook a moment earlier is the expected race,
+    // and the RPC is idempotent, so only report a failure the owner can act on.
+    if (error) return json({ error: "payment_not_fulfilled" }, 500);
+    return json({ status: "SUCCESS", paid: true });
+  }
+  return json({
+    status: payment.status,
+    paid: false,
+    expires_at: checkout.checkout_expires_at,
+  });
+}
+
+/// MMPay's own rules forbid issuing a second order while one is live unless
+/// the owner explicitly cancels — so the page needs a Cancel that really
+/// cancels, not just a reload.
+async function handleCancelMmqr(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+): Promise<Response> {
+  const who = await mmqrOwner(admin, body, req);
+  if (who instanceof Response) return who;
+  const orderId = `${body.order_id ?? ""}`;
+  const checkout = await mmqrCheckout(admin, who.shopId, orderId);
+  if (!checkout) return json({ error: "not_found" }, 404);
+  const cfg = mmpayConfig();
+  if ("error" in cfg) return json({ error: "checkout_unavailable" }, 503);
+  let payment;
+  try {
+    payment = await cancelPayment(cfg, orderId);
+  } catch {
+    return json({ error: "mmpay_unavailable" }, 502);
+  }
+  // Cancelling a paid order must not close the row unpaid: re-query decides.
+  if (payment.status === "SUCCESS") {
+    const { error } = await admin.rpc("fulfill_mmpay_payment", {
+      p_checkout_id: checkout.id,
+      p_order_id: orderId,
+      p_amount: payment.amount,
+    });
+    if (error) return json({ error: "payment_not_fulfilled" }, 500);
+    return json({ ok: true, already_paid: true });
+  }
+  if (!isDead(payment.status)) {
+    return json({ error: "cancel_failed", status: payment.status }, 409);
+  }
+  const { error } = await admin.rpc("close_mmpay_checkout", {
+    p_checkout_id: checkout.id,
+    p_order_id: checkout.provider_order_id,
+  });
+  if (error) return json({ error: "checkout_unavailable" }, 503);
+  return json({ ok: true, status: payment.status });
+}
+
+/// The row must belong to the shop the caller proved they own; an order id
+/// alone is never enough to read or settle someone else's checkout.
+async function mmqrCheckout(
+  admin: Admin,
+  shopId: string,
+  orderId: string,
+): Promise<
+  {
+    id: string;
+    provider_order_id: string | null;
+    checkout_expires_at: string | null;
+  } | null
+> {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      orderId,
+    )
+  ) return null;
+  const { data } = await admin.from("billing_checkouts")
+    .select("id, provider_order_id, checkout_expires_at")
+    .eq("id", orderId).eq("shop_id", shopId).eq("provider", "mmpay")
+    .maybeSingle();
+  return data ?? null;
+}
+
 /// Opaque request-id receipt. Never returns keys, payment proof paths or
 /// account contact details. Billing history remains owner authenticated.
 async function handleReceipt(
@@ -752,7 +1005,7 @@ async function handleReceipt(
     .select(
       "id, invoice_no, shop_name, plan, months, amount, method, " +
         "ref_no, status, payment_status, fulfilled_expires_at, reject_reason, " +
-        "mmpay_expires_at, paid_at, created_at, updated_at",
+        "paid_at, created_at, updated_at",
     )
     .eq("id", requestId)
     .maybeSingle();
@@ -776,7 +1029,6 @@ async function handleReceipt(
       payment_status: row.payment_status,
       expires_at: row.fulfilled_expires_at,
       reject_reason: row.status === "rejected" ? row.reject_reason : null,
-      mmpay_expires_at: row.mmpay_expires_at,
       paid_at: row.paid_at,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -896,9 +1148,15 @@ Deno.serve(async (req) => {
     return json({
       shops: await billingShops(admin, owner),
       card_payment: gatewayAvailable(),
+      // Same reasoning as card_payment: the page must never offer a QR this
+      // project has no secrets to produce.
+      mmqr_payment: mmpayAvailable(),
     });
   }
   if (action === "create_checkout") return handleCheckout(admin, body, req);
+  if (action === "create_mmqr") return handleCreateMmqr(admin, body, req);
+  if (action === "mmqr_status") return handleMmqrStatus(admin, body, req);
+  if (action === "cancel_mmqr") return handleCancelMmqr(admin, body, req);
 
   const slug = (body.slug ?? "").trim();
   if (!slug) return json({ error: "bad_request" }, 400);

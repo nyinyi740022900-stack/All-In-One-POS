@@ -1,7 +1,7 @@
 """Holds supabase/rollback/0094_0096_rollback.sql to actually reaching 0093.
 
 A rollback script nobody has run is a wish, not a plan. This builds two
-disposable databases — one stopped at 0093, one carried to 0096 and then rolled
+disposable databases — one stopped at 0093, one carried to 0098 and then rolled
 back — and fails unless their schemas match down to column types, function
 signatures and policy definitions. That last one matters: 0094 narrowed
 org_branches_owner from `for all` to `for select`, which a name-only comparison
@@ -14,7 +14,8 @@ import pathlib, shutil, subprocess, tempfile, unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MIGRATIONS = sorted((ROOT / 'supabase/migrations').glob('[0-9]*.sql'))
-ACCOUNT = ('0094_account_premium', '0095_account_billing', '0096_social_accounts', '0097_gateway_checkout_guard')
+ACCOUNT = ('0094_account_premium', '0095_account_billing', '0096_social_accounts',
+           '0097_gateway_checkout_guard', '0098_mmpay_checkouts')
 ROLLBACK = ROOT / 'supabase/rollback/0094_0096_rollback.sql'
 
 from supabase.tests.migration_chain_test import PLATFORM, LEGACY, LEGACY_SHOPS
@@ -88,7 +89,7 @@ class Rollback(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.reference = Cluster(55495)   # stops at 0093
-        cls.rolled_back = Cluster(55496)  # 0096, then rolled back
+        cls.rolled_back = Cluster(55496)  # 0098, then rolled back
         for db in (cls.reference, cls.rolled_back):
             assert not db.sql(PLATFORM).returncode, 'platform bootstrap failed'
         for path in MIGRATIONS:
