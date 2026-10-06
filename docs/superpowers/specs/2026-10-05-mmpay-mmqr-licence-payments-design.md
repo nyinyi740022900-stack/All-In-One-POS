@@ -921,3 +921,71 @@ database meant no `fulfill_mmpay_payment`, so granting a term from a real
 callback has still never happened. That needs Docker and `supabase start`, or a
 staging project. The deployed `mmpay-webhook` carries the fix (v3) and remains
 dark — no `MMPAY_*` secret is set on production.
+
+## 20. End to end: a real callback granting a real month (2026-10-07)
+
+The last gap closed. `fulfill_mmpay_payment` has now run from a genuine
+MyanMyanPay callback, against a real Postgres, and the shop's term moved.
+
+### 20.1 Setup
+
+Docker via **colima** (no admin password, unlike Docker Desktop), then
+`supabase start`. Two things had to be worked around and both are recorded in
+`supabase/config.toml`:
+
+- **`vector` cannot start under colima.** It bind-mounts the Docker socket, and
+  a Lima VM cannot mount that path. `[analytics] enabled = false` removes it;
+  nothing in this project uses local analytics.
+- **`postgres-meta` fails with `exec format error`** on this machine even
+  though its image is arm64. It only serves Studio, so it is excluded along
+  with everything else this test does not need:
+  `supabase start -x studio,postgres-meta,imgproxy,storage-api,realtime,mailpit,edge-runtime,logflare,vector,supavisor`.
+  Note the name is `postgres-meta`; `pg_meta` is silently *not* a valid
+  exclusion and the CLI only warns.
+
+Only `mmpay-webhook` was served, on its own port with `deno run`, rather than
+`supabase functions serve` — that exposes the whole local API through Kong on
+54321, and the tunnel in front of it is public. A localtunnel URL was the
+order's `callbackUrl`.
+
+### 20.2 The run
+
+Shop `a` seeded through `create_account_shop`, **plan `free`, expires 1970**.
+`reserve_mmpay_checkout` took a row; an MMQR order was created against the
+sandbox with that row's id, compacted. Then **FIRE SUCCESS** in the console:
+
+| | before | after |
+| --- | --- | --- |
+| `shop_subscriptions` | `free`, expires 1970-01-01 | **`monthly`, expires 2026-11-06** |
+| `shop_subscription_payments` | 0 rows | **1** — `mmpay:order:995e377d…`, months 1 |
+| `billing_checkouts` | open, no order id | order id stamped, **closed** |
+
+The webhook verified the signature, re-queried `/payments/get`, asserted the
+merchant and the order, and called the RPC. One month, from `now()`, because
+the shop had no live term to extend.
+
+### 20.3 Idempotency, demonstrated rather than asserted
+
+Fired a second time. MMPay's own inspector shows what came back:
+
+```json
+{ "ok": true, "duplicate": true, "expires_at": "2026-11-06T16:32:12.411144+00:00" }
+```
+
+`expires_at` identical to the first grant, `shop_subscription_payments` still
+one row. MMPay's documented duplicate deliveries buy nothing — which until now
+was only a claim about a unique index.
+
+### 20.4 What this does and does not prove
+
+Proven: signature verification on a real callback, the re-query, the merchant
+and amount assertions, `fulfill_mmpay_payment`, the term arithmetic, and
+idempotency across redelivery. Also that **every migration 0001–0098 applies
+cleanly to a fresh database** — the local stack builds one from scratch.
+
+Not proven: an actual scan-and-pay from a banking app (sandbox has no payer),
+and `create_mmqr` / `mmqr_status` end to end, which need an owner JWT through
+Kong rather than a direct RPC. Neither is on the path this test was for.
+
+Production is untouched throughout and remains dark: no `MMPAY_*` secret is set
+there, so `mmqr_payment` is false and the webhook answers 503.
