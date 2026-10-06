@@ -211,3 +211,91 @@ Deno.test("an unreadable MMPay response throws instead of being read as success"
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("the order id survives the 32-character limit in both directions", async () => {
+  const { compactOrderId, expandOrderId } = await import("../_shared/mmpay.ts");
+  const checkoutId = "8898fc6b-d902-41d5-87bc-76756b5bd030";
+  const orderId = compactOrderId(checkoutId);
+  // A hyphenated UUID is 36 and MMPay rejects it outright:
+  // "body/orderId must NOT have more than 32 characters".
+  assertEquals(orderId.length, 32);
+  assertEquals(orderId, "8898fc6bd90241d587bc76756b5bd030");
+  assertEquals(expandOrderId(orderId), checkoutId);
+  assertEquals(expandOrderId(orderId.toUpperCase()), checkoutId);
+  // Anything that is not exactly 32 hex digits resolves to no row at all,
+  // rather than to some other shop's checkout.
+  for (const bad of ["", checkoutId, orderId.slice(0, 31), `${orderId}0`, "z".repeat(32)]) {
+    assertEquals(expandOrderId(bad), null, bad);
+  }
+});
+
+Deno.test("an over-long order id fails before the handshake, not at MMPay", async () => {
+  const { createPayment } = await import("../_shared/mmpay.ts");
+  const calls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = ((input: string | URL | Request) => {
+    calls.push(`${input}`);
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  }) as typeof fetch;
+  try {
+    await assertRejects(
+      () =>
+        createPayment({
+          appId: "MM57179826",
+          publishableKey: "pk_test_abc",
+          secretKey: "sk_test_abc",
+          baseUrl: "https://ezapi.myanmyanpay.com",
+          testMode: true,
+        }, {
+          orderId: "8898fc6b-d902-41d5-87bc-76756b5bd030",
+          amount: 20000,
+        }),
+      Error,
+      "mmpay_order_id_too_long",
+    );
+    assertEquals(calls.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("every request carries the nonce in its signed body, not only its header", async () => {
+  // Omitting it answers KA0003, which no published document mentions — only
+  // the SDK source does.
+  const { getPayment } = await import("../_shared/mmpay.ts");
+  const bodies: Array<Record<string, unknown>> = [];
+  const nonces: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = ((_input: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(`${init?.body}`);
+    bodies.push(body);
+    nonces.push(`${(init?.headers as Record<string, string>)["X-Mmpay-Nonce"]}`);
+    return Promise.resolve(
+      new Response(
+        JSON.stringify(
+          bodies.length === 1
+            ? { token: "btoken" }
+            : { orderId: body.orderId, amount: 20000, status: "PENDING" },
+        ),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+  }) as typeof fetch;
+  try {
+    await getPayment({
+      appId: "MM57179826",
+      publishableKey: "pk_test_abc",
+      secretKey: "sk_test_abc",
+      baseUrl: "https://ezapi.myanmyanpay.com",
+      testMode: true,
+    }, "8898fc6bd90241d587bc76756b5bd030");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assertEquals(bodies.length, 2);
+  for (let i = 0; i < bodies.length; i++) {
+    assertEquals(bodies[i].nonce, nonces[i]);
+  }
+  // Handshake and the call it authorises share one nonce.
+  assertEquals(nonces[0], nonces[1]);
+});

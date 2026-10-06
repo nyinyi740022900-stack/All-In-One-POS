@@ -723,3 +723,78 @@ Written ahead of the sandbox key, so only the live call is still waiting on it.
 - **Q8** — whether `PaymentResponse.url` is a hosted page. The client already
   returns `url` alongside `qr` so the page can prefer it if it turns out to be
   one; a sandbox call settles it.
+
+## 17. Sandbox proven, and three things the documents got wrong (2026-10-06)
+
+Sandbox keys were generated from the console with **KYC still PENDING** — which
+settles **Q4** for good — and `tool/mmpay_sandbox_probe.ts` drove our own client
+through the full cycle against `ezapi.myanmyanpay.com`:
+
+```
+create  201  status PENDING, qr 150 chars
+get     200  status PENDING, condition PRISTINE, appId MM57179826
+cancel  200  status CANCELLED
+get     200  status CANCELLED
+```
+
+Three mismatches between what was designed and what the API does. Each would
+have been a deployed function that never worked:
+
+### 17.1 `orderId` is capped at 32 characters
+
+§13.5 said "use the `billing_checkouts` row id". A hyphenated UUID is 36
+characters and the API answers
+`body/orderId must NOT have more than 32 characters`. The row id now travels as
+its **32 hex digits with the hyphens stripped** (`compactOrderId`) and is
+expanded back on the way in (`expandOrderId`) — lossless, still unique per
+attempt forever, and still ours rather than MMPay's.
+
+### 17.2 The nonce must be in the signed **body**, not only the header
+
+Sending it only as `X-Mmpay-Nonce` answers **`KA0003`**, an error code that
+appears in no published document. The SDK source shows what the docs do not:
+`handShake()`, `pay()`, `get()` and `cancel()` all put `nonce` **inside** the
+body, with the same value as the header and as the signature — and the
+handshake shares the nonce of the call it authorises. Fixed, and pinned by a
+test that asserts body nonce equals header nonce for both legs.
+
+### 17.3 The request bodies are validated strictly, and `currency` is not one of them
+
+§13.3 noted the SDK never forwards `currency` though "the REST API accepts it".
+It does not: the endpoints validate their bodies and the fields are exactly
+`create {appId, nonce, amount, orderId, callbackUrl, customMessage}` and
+`get`/`cancel` `{orderId, nonce}` — **no `appId` on get or cancel**. The
+response carries `currency: "MMK"` by itself, so nothing is lost.
+
+### 17.4 Q8 answered — there is **no** hosted payment page
+
+`create` returns `{orderId, amount, currency, status, transactionRefId,
+vendorQrRefId, qr}`. No `url`, in any response. The §7 page must render the
+EMVCo MMQR string itself, which is also what the compliance rules assume
+(untampered MMQR logo, working Download QR). `PaymentResponse.url` in the
+type definitions is aspirational; the field is removed from our client.
+
+### 17.5 Smaller observations
+
+- `create` answers **201**, the others 200.
+- The handshake token is a JWT bound to `{orderId, nonce}` with a **ten-minute
+  expiry** — it is per-call, so there is nothing worth caching.
+- `get` carries `callbackUrlStatus` (`PENDING` before delivery) and `disStatus`
+  (`NONE` before disbursement) — both useful for reconciliation, neither
+  documented in the console's own page.
+- `cancel` answers without `appId` or `condition`; only `get` carries `appId`,
+  which is where the merchant assertion lives, so that still holds.
+- `condition` stayed `PRISTINE` through cancellation, confirming it tracks
+  scanning rather than settlement.
+
+### 17.6 Deployed
+
+Migration 0098 is applied to production (`license_requests` was empty — both
+dropped columns verified at 0 rows before pushing), `storefront` is at v46 and
+`mmpay-webhook` at v2, deployed `--no-verify-jwt` and verified reachable
+without a JWT. **No `MMPAY_*` secret is set on production**, so `mmpayConfig()`
+refuses, the webhook answers `503 mmpay_not_configured`, and
+`list_billing_shops` reports `mmqr_payment: false` — the feature is live in
+code and dark in behaviour. The sandbox keys live only in the gitignored
+`mmpay.local.json` on the owner's machine, because `mmpayTestMode()` throws on
+the production host by design: sandbox money must never buy a real month.

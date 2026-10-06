@@ -47,6 +47,8 @@ app.*.map.json
 
 # Local Supabase credentials (keep the anon key out of source control)
 env.local.json
+# MMPay sandbox keys, read only by tool/mmpay_sandbox_probe.ts
+mmpay.local.json
 
 # Android Play upload signing (never commit)
 android/key.properties

@@ -8,7 +8,12 @@
 // subscription rather than trusting the invoice payload.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { mmpayConfig } from "../_shared/mmpay_mode.ts";
-import { getPayment, MmpayError, verifyCallback } from "../_shared/mmpay.ts";
+import {
+  expandOrderId,
+  getPayment,
+  MmpayError,
+  verifyCallback,
+} from "../_shared/mmpay.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
@@ -93,22 +98,21 @@ Deno.serve(async (req) => {
   return json(result);
 });
 
-/// The order id IS our `billing_checkouts` row id — we mint it, so it is
-/// unique per attempt forever. The fallback covers a row whose order id was
-/// stored under a different key by a future MMPay change.
+/// The order id IS our `billing_checkouts` row id, minus the UUID hyphens
+/// MMPay's 32-character limit leaves no room for — so it is ours, and unique
+/// per attempt forever. The fallback covers a row whose order id was stored
+/// under a different key by a future MMPay change.
 async function findCheckout(
   // deno-lint-ignore no-explicit-any
   admin: any,
   orderId: string,
 ): Promise<{ id: string } | null | "error"> {
   const columns = "id, shop_id, months, provider, provider_order_id, closed_at";
-  if (
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      orderId,
-    )
-  ) {
+  const checkoutId = expandOrderId(orderId);
+  if (checkoutId) {
     const { data, error } = await admin.from("billing_checkouts")
-      .select(columns).eq("id", orderId).eq("provider", "mmpay").maybeSingle();
+      .select(columns).eq("id", checkoutId).eq("provider", "mmpay")
+      .maybeSingle();
     if (error) return "error";
     if (data) return data;
   }

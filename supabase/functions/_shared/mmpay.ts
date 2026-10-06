@@ -29,15 +29,36 @@ export type MmpayStatus =
 /// payment happened — the SDK routes that to onHeartbeat, which is how an
 /// integration listening only for success misses a re-scanned QR entirely.
 export interface MmpayPayment {
+  /// Present on `get` only; `create` and `cancel` answer without it.
   appId: string;
   orderId: string;
   amount: number;
   status: MmpayStatus;
   condition?: string;
+  /// The EMVCo MMQR string. There is no hosted payment page — confirmed
+  /// against the sandbox 2026-10-06 — so the surface renders this itself.
   qr?: string;
-  url?: string;
   transactionRefId?: string;
   raw: Record<string, unknown>;
+}
+
+/// MMPay caps `orderId` at 32 characters and a UUID with hyphens is 36, so the
+/// `billing_checkouts` row id travels as its 32 hex digits and is expanded back
+/// on the way in. Lossless both ways, and still unique per attempt forever.
+export function compactOrderId(checkoutId: string): string {
+  return checkoutId.replace(/-/g, "").toLowerCase();
+}
+
+export function expandOrderId(orderId: string): string | null {
+  const hex = orderId.trim().toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return null;
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
 }
 
 export class MmpayError extends Error {
@@ -56,12 +77,25 @@ const TIMEOUT_MS = 15000;
 /// Every call is two round trips: a one-time handshake token, then the real
 /// POST carrying it as `X-Mmpay-Btoken`. Each leg is bounded separately, so a
 /// hung MMPay costs at most 30 seconds rather than a spinner that never ends.
-async function handshake(cfg: MmpayConfig, orderId: string): Promise<string> {
-  const body = { orderId, nonce: Date.now() };
-  const result = await post(cfg, "handshake", body, null);
+async function handshake(
+  cfg: MmpayConfig,
+  orderId: string,
+  nonce: string,
+): Promise<string> {
+  const result = await post(cfg, "handshake", { orderId, nonce }, nonce, null);
   const token = `${result.token ?? ""}`;
   if (!token) throw new MmpayError("mmpay_handshake_failed", 502, true);
   return token;
+}
+
+/// The nonce is NOT just a header: it has to appear in the signed body too,
+/// with the same value, or the handshake answers `KA0003`. The published docs
+/// do not say so; only the SDK source does.
+function begin(orderId: string): string {
+  if (orderId.length > 32) {
+    throw new MmpayError("mmpay_order_id_too_long", 400, false);
+  }
+  return `${Date.now()}`;
 }
 
 export async function createPayment(
@@ -73,18 +107,19 @@ export async function createPayment(
     callbackUrl?: string;
   },
 ): Promise<MmpayPayment> {
-  const token = await handshake(cfg, input.orderId);
+  const nonce = begin(input.orderId);
+  const token = await handshake(cfg, input.orderId, nonce);
+  // Exactly the fields the API validates. It rejects a body it does not
+  // recognise, so `currency` is NOT sent — the account is MMK and the response
+  // says so itself.
   const raw = await post(cfg, "create", {
     appId: cfg.appId,
-    orderId: input.orderId,
+    nonce,
     amount: input.amount,
-    // The REST API accepts a currency the SDK never forwards. MMPay's own
-    // compliance rules require MMK-only pricing on the payment surface, so
-    // saying it outright costs nothing and documents the intent.
-    currency: "MMK",
-    customMessage: input.customMessage,
+    orderId: input.orderId,
     callbackUrl: input.callbackUrl,
-  }, token);
+    customMessage: input.customMessage,
+  }, nonce, token);
   return toPayment(raw);
 }
 
@@ -92,17 +127,19 @@ export async function getPayment(
   cfg: MmpayConfig,
   orderId: string,
 ): Promise<MmpayPayment> {
-  const token = await handshake(cfg, orderId);
-  return toPayment(await post(cfg, "get", { appId: cfg.appId, orderId }, token));
+  const nonce = begin(orderId);
+  const token = await handshake(cfg, orderId, nonce);
+  return toPayment(await post(cfg, "get", { orderId, nonce }, nonce, token));
 }
 
 export async function cancelPayment(
   cfg: MmpayConfig,
   orderId: string,
 ): Promise<MmpayPayment> {
-  const token = await handshake(cfg, orderId);
+  const nonce = begin(orderId);
+  const token = await handshake(cfg, orderId, nonce);
   return toPayment(
-    await post(cfg, "cancel", { appId: cfg.appId, orderId }, token),
+    await post(cfg, "cancel", { orderId, nonce }, nonce, token),
   );
 }
 
@@ -119,7 +156,6 @@ function toPayment(raw: Record<string, unknown>): MmpayPayment {
     status: status as MmpayStatus,
     condition: raw.condition == null ? undefined : `${raw.condition}`,
     qr: typeof raw.qr === "string" ? raw.qr : undefined,
-    url: typeof raw.url === "string" ? raw.url : undefined,
     transactionRefId: raw.transactionRefId == null
       ? undefined
       : `${raw.transactionRefId}`,
@@ -146,11 +182,11 @@ async function post(
   cfg: MmpayConfig,
   endpoint: "handshake" | "create" | "get" | "cancel",
   body: Record<string, unknown>,
+  nonce: string,
   btoken: string | null,
 ): Promise<Record<string, unknown>> {
   const path = `/payments/${cfg.testMode ? "sandbox-" : ""}${endpoint}`;
   const payload = JSON.stringify(body);
-  const nonce = `${Date.now()}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     // The publishable key identifies; the secret key signs.

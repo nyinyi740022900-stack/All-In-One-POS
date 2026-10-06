@@ -50,7 +50,9 @@ import {
 import { mmpayAvailable, mmpayConfig } from "../_shared/mmpay_mode.ts";
 import {
   cancelPayment,
+  compactOrderId,
   createPayment,
+  expandOrderId,
   getPayment,
   isDead,
   MmpayError,
@@ -791,7 +793,7 @@ async function handleCreateMmqr(
     // state — so ask, instead of guessing from the row's age.
     let existing;
     try {
-      existing = await getPayment(cfg, reservation.id);
+      existing = await getPayment(cfg, compactOrderId(reservation.id));
     } catch (error) {
       // Never close a reservation on an unknown outcome: the owner may have
       // paid and only the answer be missing.
@@ -822,9 +824,11 @@ async function handleCreateMmqr(
   }
   if (!reservation) return json({ error: "checkout_unavailable" }, 503);
 
-  // Our own row id is the order id: unique per attempt forever, and a retry
-  // takes a new row rather than reusing a dead order id.
-  const orderId = reservation.id as string;
+  // Our own row id is the order id — unique per attempt forever, and a retry
+  // takes a new row rather than reusing a dead one — compacted to the 32
+  // characters MMPay allows (a hyphenated UUID is 36 and is rejected).
+  const checkoutId = reservation.id as string;
+  const orderId = compactOrderId(checkoutId);
   let payment;
   try {
     payment = await createPayment(cfg, {
@@ -839,22 +843,21 @@ async function handleCreateMmqr(
     // POST is how one shop ends up holding two payable QRs.
     if (error instanceof MmpayError && !error.retryable) {
       await admin.rpc("close_mmpay_checkout", {
-        p_checkout_id: orderId,
+        p_checkout_id: checkoutId,
         p_order_id: null,
       });
     }
     return json({ error: "checkout_unavailable" }, 502);
   }
-  if (!payment.qr && !payment.url) {
-    return json({ error: "checkout_unavailable" }, 502);
-  }
+  // There is no hosted payment page: `create` answers with the EMVCo MMQR
+  // string and nothing else to redirect to, so a missing QR is a dead end.
+  if (!payment.qr) return json({ error: "checkout_unavailable" }, 502);
   const { error: saveError } = await admin.from("billing_checkouts")
-    .update({ provider_order_id: orderId }).eq("id", orderId);
+    .update({ provider_order_id: orderId }).eq("id", checkoutId);
   if (saveError) return json({ error: "checkout_unavailable" }, 503);
   return json({
     order_id: orderId,
-    qr: payment.qr ?? null,
-    url: payment.url ?? null,
+    qr: payment.qr,
     amount: reservation.amount,
     currency: "MMK",
     // Ours, not MMPay's: no TTL is published anywhere, and MMPay's compliance
@@ -958,14 +961,13 @@ async function mmqrCheckout(
     checkout_expires_at: string | null;
   } | null
 > {
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      orderId,
-    )
-  ) return null;
+  // The page holds the 32-character order id; the row is keyed by the UUID it
+  // was made from.
+  const checkoutId = expandOrderId(orderId);
+  if (!checkoutId) return null;
   const { data } = await admin.from("billing_checkouts")
     .select("id, provider_order_id, checkout_expires_at")
-    .eq("id", orderId).eq("shop_id", shopId).eq("provider", "mmpay")
+    .eq("id", checkoutId).eq("shop_id", shopId).eq("provider", "mmpay")
     .maybeSingle();
   return data ?? null;
 }
