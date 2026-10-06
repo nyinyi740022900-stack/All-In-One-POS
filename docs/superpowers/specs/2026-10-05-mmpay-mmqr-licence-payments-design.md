@@ -854,3 +854,70 @@ holds no `MMPAY_*` secret, so the server reports `mmqr_payment: false` and the
 card never appears; and `mmpayTestMode()` throws on the production host by
 design. Seeing the surface against the live sandbox needs a tunnel to a local
 function or a staging Supabase project.
+
+## 19. A real callback, and the bug only a real callback could find (2026-10-06)
+
+The console has a webhook simulator that §14 missed: **Sandbox → a transaction →
+FIRE SUCCESS / FIRE FAIL**, which dispatches a genuine signed callback to the
+order's `callbackUrl` and shows the outbound request and the inbound response.
+A sandbox order was created with its `callbackUrl` pointing at a localtunnel
+URL in front of a small Deno receiver running our own `verifyCallback`. No
+Docker here, so the real function could not be served against a database; what
+this proves is the signature path, which is the part that was never observed.
+
+### 19.1 The signature construction is exactly right
+
+Two real callbacks, and on both `expected == received`, byte for byte:
+
+```
+expected d83ff9665c5330ad86715ac3d292894d1059bef8d6e3185e72e49fb42dc460cc
+received d83ff9665c5330ad86715ac3d292894d1059bef8d6e3185e72e49fb42dc460cc
+```
+
+§13.1's `HMAC_SHA256(secretKey, nonce + "." + rawBody)` as lowercase hex, read
+out of the SDK source and never seen on the wire, is confirmed.
+
+### 19.2 …and `verifyCallback` rejected both of them
+
+`SIGNATURE VERIFIES: false`, with `nonce age NaNs`. **The inbound nonce is not
+a timestamp.** Outbound, MMPay uses `Date.now()`; inbound, a real callback
+carries `X-Mmpay-Nonce: e7c6d2d9c095aa69` — sixteen opaque hex characters. §13.1
+assumed the two were the same thing, so the ±10-minute window did `Number(nonce)`
+→ `NaN` → reject, and **the deployed webhook would have answered 401 to every
+genuine callback MMPay ever sent**. Nothing in the documents, the SDK source or
+the type definitions says this; only firing one does.
+
+Fixed: the time window now applies **only** when the nonce actually looks like
+epoch milliseconds, which keeps the protection if MMPay ever switches to one
+without inventing a rule they do not follow. An opaque nonce must still be
+8–64 hex characters, and anything else is refused. Replay is bounded by the
+database instead, which is where it was always really bounded: the signature
+covers `nonce.body`, the body carries the order id, that order id is uniquely
+indexed and keyed by payment id — so a captured callback can only re-deliver
+its own order, which grants nothing twice, and it can never be retargeted at
+another order because changing a byte invalidates the signature.
+
+Re-fired after the fix: **`SIGNATURE VERIFIES: true`**.
+
+### 19.3 Other things the wire showed
+
+- **A callback fires on creation too**, not only on settlement: the first
+  delivery was `status: PENDING`, unprompted. Our webhook already answers
+  `{ok: true, ignored: "PENDING"}` to those, which is what stops MMPay retrying.
+- The callback body is **flatter than `get`**: `{orderId, amount, currency,
+  vendor, method, status, condition, customMessage, vendorQrRefId,
+  transactionRefId, callbackUrl}` — **no `appId`**, which is why the merchant
+  assertion belongs on the re-query and not on the callback. It *does* carry
+  `currency: "MMK"`, as §13.4 said.
+- A simulated success arrives with `vendor` and `transactionRefId` both set to
+  `MMPAY_MANUAL`, so a sandbox-only sentinel exists and must not be special-cased.
+- MMPay's dispatcher is Bun (`user-agent: Bun/1.4.2`) and it reads the response
+  body, so answering 200 with JSON is enough to mark the delivery complete.
+
+### 19.4 What is still unproven
+
+The webhook was exercised as a signature verifier, not end to end: no local
+database meant no `fulfill_mmpay_payment`, so granting a term from a real
+callback has still never happened. That needs Docker and `supabase start`, or a
+staging project. The deployed `mmpay-webhook` carries the fix (v3) and remains
+dark — no `MMPAY_*` secret is set on production.

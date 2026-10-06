@@ -156,9 +156,43 @@ Deno.test("a tampered body, nonce, key or signature does not verify", async () =
   }
 });
 
-Deno.test("a captured callback stops replaying once its nonce ages out", async () => {
-  // MMPay's own verifier never looks at the nonce, so without this window a
-  // captured callback is replayable forever.
+Deno.test("the opaque nonce a real callback carries is accepted", async () => {
+  // Observed on the wire 2026-10-06, from the sandbox's own webhook fire:
+  // `X-Mmpay-Nonce: e7c6d2d9c095aa69`. Outbound MMPay uses Date.now(); inbound
+  // it does not, and an earlier version of this function required a timestamp
+  // and so rejected every genuine callback with a 401.
+  const raw =
+    '{"orderId":"70b33aa240cd4662b1605a8a8491fbe4","amount":20000,"status":"SUCCESS"}';
+  const nonce = "e7c6d2d9c095aa69";
+  const signature = await sign("sk_test_abc", nonce, raw);
+  assertEquals(await verifyCallback("sk_test_abc", raw, signature, nonce), true);
+  // Still signed over nonce.body, so the body cannot be edited in flight.
+  assertEquals(
+    await verifyCallback(
+      "sk_test_abc",
+      raw.replace("20000", "1"),
+      signature,
+      nonce,
+    ),
+    false,
+  );
+});
+
+Deno.test("a nonce that is neither a timestamp nor opaque hex is refused", async () => {
+  const raw = '{"orderId":"abc","status":"SUCCESS"}';
+  for (const nonce of ["../../etc", "short", "", "zzzzzzzzzzzzzzzz", "a".repeat(80)]) {
+    const signature = await sign("sk_test_abc", nonce, raw);
+    assertEquals(
+      await verifyCallback("sk_test_abc", raw, signature, nonce),
+      false,
+      nonce,
+    );
+  }
+});
+
+Deno.test("a timestamp nonce is still bounded, if MMPay ever sends one", async () => {
+  // The window is kept for the shape it was written for, rather than dropped
+  // outright — it costs nothing and survives a change at their end.
   const raw = '{"orderId":"abc","status":"SUCCESS"}';
   const now = Date.now();
   const nonce = `${now}`;

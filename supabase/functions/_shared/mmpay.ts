@@ -250,13 +250,27 @@ export async function sign(
     .join("");
 }
 
-/// How far out of date a callback nonce may be. MMPay never records or bounds
-/// its own nonce (it is a bare `Date.now()`), so without this a captured
-/// callback is replayable forever. Inside the window a replay still grants
-/// nothing — the order id is uniquely indexed and the payment id is keyed —
-/// but there is no reason to leave the door open.
+/// How far out of date a *timestamp* nonce may be.
+///
+/// Outbound, MMPay's nonce is `Date.now()`. **Inbound it is not**: a real
+/// sandbox callback arrives with `X-Mmpay-Nonce: e7c6d2d9c095aa69` — sixteen
+/// opaque hex characters, observed 2026-10-06. An earlier version of this
+/// function required a timestamp inside this window and so rejected every
+/// genuine callback with 401. The window is therefore applied only when the
+/// nonce actually looks like epoch milliseconds, which keeps the protection if
+/// MMPay ever switches to one and does not invent a rule they do not follow.
 const NONCE_WINDOW_MS = 10 * 60 * 1000;
 
+/// Shape of an opaque nonce: hex, long enough not to be guessable, short
+/// enough not to be a smuggled payload.
+const OPAQUE_NONCE = /^[0-9a-f]{8,64}$/i;
+
+/// Replay, with an opaque nonce, is bounded by the database rather than by
+/// this function: the signature covers `nonce.body`, the body carries the
+/// order id, and that order id is uniquely indexed and keyed by payment id —
+/// so a captured callback can only ever re-deliver its own order, which grants
+/// nothing a second time. It can never be retargeted at another order, because
+/// changing a byte of the body invalidates the signature.
 export async function verifyCallback(
   secretKey: string,
   raw: string,
@@ -265,8 +279,12 @@ export async function verifyCallback(
   now = Date.now(),
 ): Promise<boolean> {
   if (!signatureHex || !nonce) return false;
-  const sent = Number(nonce);
-  if (!Number.isFinite(sent) || Math.abs(now - sent) > NONCE_WINDOW_MS) {
+  if (/^\d{10,}$/.test(nonce)) {
+    const sent = Number(nonce);
+    if (!Number.isFinite(sent) || Math.abs(now - sent) > NONCE_WINDOW_MS) {
+      return false;
+    }
+  } else if (!OPAQUE_NONCE.test(nonce)) {
     return false;
   }
   const expected = await sign(secretKey, nonce, raw);
