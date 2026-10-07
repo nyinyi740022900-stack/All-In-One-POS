@@ -4343,7 +4343,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseManagedElsewhereTitle.
   ///
   /// In en, this message translates to:
-  /// **'Premium licensing'**
+  /// **'Premium'**
   String get licenseManagedElsewhereTitle;
 
   /// No description provided for @licenseManagedElsewhereBody.
@@ -4361,13 +4361,13 @@ abstract class AppLocalizations {
   /// No description provided for @licenseExpiringSoon.
   ///
   /// In en, this message translates to:
-  /// **'License expires in {days} days — tap to renew.'**
+  /// **'Premium expires in {days} days — tap to renew.'**
   String licenseExpiringSoon(int days);
 
   /// No description provided for @licenseExpiringSoonNeutral.
   ///
   /// In en, this message translates to:
-  /// **'License expires in {days} days.'**
+  /// **'Premium expires in {days} days.'**
   String licenseExpiringSoonNeutral(int days);
 
   /// No description provided for @licenseThankYouTitle.
@@ -4481,7 +4481,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseRefreshed.
   ///
   /// In en, this message translates to:
-  /// **'License status updated'**
+  /// **'Premium status updated'**
   String get licenseRefreshed;
 
   /// No description provided for @licenseRenewHint.
@@ -4565,7 +4565,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceReleaseConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'The device will lose access to this shop next time it checks its license. You can add a new device in its place afterward.'**
+  /// **'The device will lose access to this shop next time it checks Premium. You can add a new device in its place afterward.'**
   String get deviceReleaseConfirmBody;
 
   /// No description provided for @deviceReleased.
@@ -5993,7 +5993,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationsClearConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This only clears the list on this phone. Your orders and licence are not affected.'**
+  /// **'This only clears the list on this phone. Your orders and Premium are not affected.'**
   String get notificationsClearConfirmBody;
 
   /// No description provided for @storefrontOrderNotifTitle.
@@ -7853,7 +7853,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiptStatusPaidBody.
   ///
   /// In en, this message translates to:
-  /// **'Payment received. Your licence is being issued — this page will show it shortly.'**
+  /// **'Payment received. Premium is being applied to your account — this page will show it shortly.'**
   String get receiptStatusPaidBody;
 
   /// No description provided for @receiptStatusFulfilled.

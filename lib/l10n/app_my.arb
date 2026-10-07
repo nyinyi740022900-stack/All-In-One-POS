@@ -960,10 +960,10 @@
   "licenseContactViberHintOnline": "Viber ပွင့်ပါမယ်။ sign-in သုံးတဲ့ email နဲ့ Premium ဝယ်ရန် သို့မဟုတ် သက်တမ်းတိုးရန် တောင်းပါ။",
   "supportViberOpenFailed": "Viber မဖွင့်နိုင်ပါ။ နံပါတ်ကို ကူးပြီးပါပြီ — Viber ထဲမှာ paste လုပ်ပါ။",
   "licenseAfterPaymentTitle": "ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?",
-  "licenseManagedElsewhereTitle": "Premium လိုင်စင်",
+  "licenseManagedElsewhereTitle": "Premium",
   "licenseManagedElsewhereBody": "သင့်ဆိုင် account တွင် အသုံးပြုခွင့်ရှိသော Premium လုပ်ဆောင်ချက်များကို သုံးရန် ဝင်ရောက်ပါ။ Account အခြေအနေကို အပ်ဒိတ်လုပ်ရန် ပြန်စစ်နိုင်ပါသည်။ Free လုပ်ဆောင်ချက်များကို ဆက်သုံးနိုင်ပါသည်။",
   "licenseAlreadyLicensedTitle": "Premium ရှိပြီးသားလား?",
-  "licenseExpiringSoon": "License သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",
+  "licenseExpiringSoon": "Premium သက်တမ်း {days} ရက် ကျန် — တိုးရန် နှိပ်ပါ။",
   "@licenseExpiringSoon": {
     "placeholders": {
       "days": {
@@ -971,7 +971,7 @@
       }
     }
   },
-  "licenseExpiringSoonNeutral": "License သက်တမ်း {days} ရက် ကျန်ပါတယ်။",
+  "licenseExpiringSoonNeutral": "Premium သက်တမ်း {days} ရက် ကျန်ပါတယ်။",
   "@licenseExpiringSoonNeutral": {
     "placeholders": {
       "days": {
@@ -1004,7 +1004,7 @@
     }
   },
   "licenseCheckRenewal": "သက်တမ်းတိုး စစ်ဆေး",
-  "licenseRefreshed": "လိုင်စင်အခြေအနေ update ဖြစ်ပြီး",
+  "licenseRefreshed": "Premium အခြေအနေ update ဖြစ်ပြီး",
   "licenseRenewHint": "ဆိုင်၏ Premium သက်တမ်းတိုးပြီးနောက် သက်တမ်းတိုးမှု စစ်ဆေးရန်ကို နှိပ်ပါ။",
   "licenseRenewHintOnline": "ဆိုင်၏ Premium သက်တမ်းတိုးပြီးနောက် သက်တမ်းတိုးမှု စစ်ဆေးရန်ကို နှိပ်ပါ။ Premium သည် ရွေးထားသော ဆိုင်အကောင့်တွင် အသက်ဝင်ပါမည်။",
   "licenseRenewNotFound": "ဒီ account အတွက် subscription မတွေ့သေးပါ။ Support က သက်တမ်းတိုးပြီးရင် 'သက်တမ်းတိုး စစ်ဆေး' ကို ထပ်နှိပ်ပါ။",
@@ -1042,7 +1042,7 @@
   "deviceAdd": "Device အသစ်ထည့်ရန်",
   "deviceRelease": "ဖြုတ်ရန်",
   "deviceReleaseConfirmTitle": "ဒီ device ကို ဖြုတ်မှာလား?",
-  "deviceReleaseConfirmBody": "ဒီ device က နောက်တစ်ကြိမ် license စစ်ဆေးချိန်မှာ ဒီဆိုင်ကို ဝင်ရောက်ခွင့် ဆုံးရှုံးသွားပါမည်။ နောက်ပိုင်း အဲဒီနေရာမှာ device အသစ် ထပ်ထည့်နိုင်ပါသည်။",
+  "deviceReleaseConfirmBody": "ဒီ device က နောက်တစ်ကြိမ် Premium စစ်ဆေးချိန်မှာ ဒီဆိုင်ကို ဝင်ရောက်ခွင့် ဆုံးရှုံးသွားပါမည်။ နောက်ပိုင်း အဲဒီနေရာမှာ device အသစ် ထပ်ထည့်နိုင်ပါသည်။",
   "deviceReleased": "Device ကို ဖြုတ်ပြီးပါပြီ",
   "deviceKeyReadyTitle": "Device အသစ် အသင့်ဖြစ်ပါပြီ",
   "deviceKeyReadyHint": "Device အသစ်ရဲ့ activate screen မှာ ဒီ QR code ကို scan ဖတ်ပါ၊ ဒါမှမဟုတ် အောက်က key ကို ရိုက်ထည့်ပါ။",
@@ -1412,7 +1412,7 @@
   "notificationsMarkAllRead": "အားလုံး ဖတ်ပြီးအဖြစ် မှတ်မည်",
   "notificationsClear": "အားလုံး ရှင်းမည်",
   "notificationsClearConfirmTitle": "အသိပေးချက် အားလုံး ရှင်းမလား?",
-  "notificationsClearConfirmBody": "ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ license ကို ထိခိုက်မှု မရှိပါ။",
+  "notificationsClearConfirmBody": "ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ Premium ကို ထိခိုက်မှု မရှိပါ။",
   "storefrontOrderNotifTitle": "Web မှာယူမှု အသစ်",
   "storefrontOrderNotifBody": "Storefront မှာယူမှု အသစ် {count} ခု — Orders ကို ဖွင့်ကြည့်ပါ။",
   "@storefrontOrderNotifBody": {
@@ -1906,7 +1906,7 @@
   "receiptTitle": "သက်တမ်းတိုး ပြေစာ",
   "receiptStatusPending": "အတည်ပြုရန် စောင့်ဆိုင်းဆဲ",
   "receiptStatusPendingBody": "ငွေပေးချေမှုကို ၂၄ နာရီအတွင်း စစ်ဆေးပါမယ်။ ဒီစာမျက်နှာကို သိမ်းထားပါ — အခြေအနေကို ဒီမှာပဲ ပြပါမယ်။",
-  "receiptStatusPaidBody": "ငွေ လက်ခံရရှိပါပြီ။ လိုင်စင် ထုတ်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။",
+  "receiptStatusPaidBody": "ငွေ လက်ခံရရှိပါပြီ။ သင့်အကောင့်ကို Premium ထည့်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။",
   "receiptStatusFulfilled": "အတည်ပြုပြီး",
   "receiptStatusFulfilledBody": "Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → Premium မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။",
   "receiptUrgentViber": "အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ",

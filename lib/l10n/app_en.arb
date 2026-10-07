@@ -1001,10 +1001,10 @@
   "licenseContactViberHintOnline": "Opens Viber. Send the email you use to sign in and ask to buy or renew Premium.",
   "supportViberOpenFailed": "Couldn't open Viber. The number was copied — paste it in Viber.",
   "licenseAfterPaymentTitle": "Already paid or asked Support?",
-  "licenseManagedElsewhereTitle": "Premium licensing",
+  "licenseManagedElsewhereTitle": "Premium",
   "licenseManagedElsewhereBody": "Sign in to your shop account to access its available Premium features. Check again to update your account status. Free features remain available.",
   "licenseAlreadyLicensedTitle": "Already have Premium?",
-  "licenseExpiringSoon": "License expires in {days} days — tap to renew.",
+  "licenseExpiringSoon": "Premium expires in {days} days — tap to renew.",
   "@licenseExpiringSoon": {
     "placeholders": {
       "days": {
@@ -1012,7 +1012,7 @@
       }
     }
   },
-  "licenseExpiringSoonNeutral": "License expires in {days} days.",
+  "licenseExpiringSoonNeutral": "Premium expires in {days} days.",
   "@licenseExpiringSoonNeutral": {
     "placeholders": {
       "days": {
@@ -1045,7 +1045,7 @@
     }
   },
   "licenseCheckRenewal": "Check for renewal",
-  "licenseRefreshed": "License status updated",
+  "licenseRefreshed": "Premium status updated",
   "licenseRenewHint": "After your shop subscription is renewed, tap Check for renewal.",
   "licenseRenewHintOnline": "After your shop subscription is renewed, tap Check for renewal. Premium applies to the selected shop account.",
   "licenseRenewNotFound": "No subscription found for this account yet. After Support extends it, try Check for renewal again.",
@@ -1083,7 +1083,7 @@
   "deviceAdd": "Add a device",
   "deviceRelease": "Release",
   "deviceReleaseConfirmTitle": "Release this device?",
-  "deviceReleaseConfirmBody": "The device will lose access to this shop next time it checks its license. You can add a new device in its place afterward.",
+  "deviceReleaseConfirmBody": "The device will lose access to this shop next time it checks Premium. You can add a new device in its place afterward.",
   "deviceReleased": "Device released",
   "deviceKeyReadyTitle": "New device is ready",
   "deviceKeyReadyHint": "Scan this QR code on the new device's activation screen, or type the key below.",
@@ -1460,7 +1460,7 @@
   "notificationsMarkAllRead": "Mark all as read",
   "notificationsClear": "Clear all",
   "notificationsClearConfirmTitle": "Clear all notifications?",
-  "notificationsClearConfirmBody": "This only clears the list on this phone. Your orders and licence are not affected.",
+  "notificationsClearConfirmBody": "This only clears the list on this phone. Your orders and Premium are not affected.",
   "storefrontOrderNotifTitle": "New web order",
   "storefrontOrderNotifBody": "{count} new storefront order(s) — open Orders to review.",
   "@storefrontOrderNotifBody": {
@@ -1961,7 +1961,7 @@
   "receiptTitle": "Renewal receipt",
   "receiptStatusPending": "Waiting for confirmation",
   "receiptStatusPendingBody": "We check payments within 24 hours. Save this page — the status updates here.",
-  "receiptStatusPaidBody": "Payment received. Your licence is being issued — this page will show it shortly.",
+  "receiptStatusPaidBody": "Payment received. Premium is being applied to your account — this page will show it shortly.",
   "receiptStatusFulfilled": "Confirmed",
   "receiptStatusFulfilledBody": "Your Premium is active. Open the app, go to Settings → Premium and tap Check for renewal.",
   "receiptUrgentViber": "Need this urgently? Message us on Viber",

@@ -2323,7 +2323,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseAfterPaymentTitle => 'Already paid or asked Support?';
 
   @override
-  String get licenseManagedElsewhereTitle => 'Premium licensing';
+  String get licenseManagedElsewhereTitle => 'Premium';
 
   @override
   String get licenseManagedElsewhereBody =>
@@ -2334,12 +2334,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String licenseExpiringSoon(int days) {
-    return 'License expires in $days days — tap to renew.';
+    return 'Premium expires in $days days — tap to renew.';
   }
 
   @override
   String licenseExpiringSoonNeutral(int days) {
-    return 'License expires in $days days.';
+    return 'Premium expires in $days days.';
   }
 
   @override
@@ -2409,7 +2409,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseCheckRenewal => 'Check for renewal';
 
   @override
-  String get licenseRefreshed => 'License status updated';
+  String get licenseRefreshed => 'Premium status updated';
 
   @override
   String get licenseRenewHint =>
@@ -2462,7 +2462,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceReleaseConfirmBody =>
-      'The device will lose access to this shop next time it checks its license. You can add a new device in its place afterward.';
+      'The device will lose access to this shop next time it checks Premium. You can add a new device in its place afterward.';
 
   @override
   String get deviceReleased => 'Device released';
@@ -3274,7 +3274,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsClearConfirmBody =>
-      'This only clears the list on this phone. Your orders and licence are not affected.';
+      'This only clears the list on this phone. Your orders and Premium are not affected.';
 
   @override
   String get storefrontOrderNotifTitle => 'New web order';
@@ -4355,7 +4355,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptStatusPaidBody =>
-      'Payment received. Your licence is being issued — this page will show it shortly.';
+      'Payment received. Premium is being applied to your account — this page will show it shortly.';
 
   @override
   String get receiptStatusFulfilled => 'Confirmed';

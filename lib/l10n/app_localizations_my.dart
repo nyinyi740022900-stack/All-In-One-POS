@@ -2334,7 +2334,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'ပေးပြီးပြီလား၊ Support ကို ပြောပြီးပြီလား?';
 
   @override
-  String get licenseManagedElsewhereTitle => 'Premium လိုင်စင်';
+  String get licenseManagedElsewhereTitle => 'Premium';
 
   @override
   String get licenseManagedElsewhereBody =>
@@ -2345,12 +2345,12 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String licenseExpiringSoon(int days) {
-    return 'License သက်တမ်း $days ရက် ကျန် — တိုးရန် နှိပ်ပါ။';
+    return 'Premium သက်တမ်း $days ရက် ကျန် — တိုးရန် နှိပ်ပါ။';
   }
 
   @override
   String licenseExpiringSoonNeutral(int days) {
-    return 'License သက်တမ်း $days ရက် ကျန်ပါတယ်။';
+    return 'Premium သက်တမ်း $days ရက် ကျန်ပါတယ်။';
   }
 
   @override
@@ -2420,7 +2420,7 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseCheckRenewal => 'သက်တမ်းတိုး စစ်ဆေး';
 
   @override
-  String get licenseRefreshed => 'လိုင်စင်အခြေအနေ update ဖြစ်ပြီး';
+  String get licenseRefreshed => 'Premium အခြေအနေ update ဖြစ်ပြီး';
 
   @override
   String get licenseRenewHint =>
@@ -2473,7 +2473,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deviceReleaseConfirmBody =>
-      'ဒီ device က နောက်တစ်ကြိမ် license စစ်ဆေးချိန်မှာ ဒီဆိုင်ကို ဝင်ရောက်ခွင့် ဆုံးရှုံးသွားပါမည်။ နောက်ပိုင်း အဲဒီနေရာမှာ device အသစ် ထပ်ထည့်နိုင်ပါသည်။';
+      'ဒီ device က နောက်တစ်ကြိမ် Premium စစ်ဆေးချိန်မှာ ဒီဆိုင်ကို ဝင်ရောက်ခွင့် ဆုံးရှုံးသွားပါမည်။ နောက်ပိုင်း အဲဒီနေရာမှာ device အသစ် ထပ်ထည့်နိုင်ပါသည်။';
 
   @override
   String get deviceReleased => 'Device ကို ဖြုတ်ပြီးပါပြီ';
@@ -3279,7 +3279,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get notificationsClearConfirmBody =>
-      'ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ license ကို ထိခိုက်မှု မရှိပါ။';
+      'ဒီဖုန်းပေါ်က စာရင်းကိုပဲ ရှင်းတာပါ။ သင့် order တွေနဲ့ Premium ကို ထိခိုက်မှု မရှိပါ။';
 
   @override
   String get storefrontOrderNotifTitle => 'Web မှာယူမှု အသစ်';
@@ -4357,7 +4357,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get receiptStatusPaidBody =>
-      'ငွေ လက်ခံရရှိပါပြီ။ လိုင်စင် ထုတ်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။';
+      'ငွေ လက်ခံရရှိပါပြီ။ သင့်အကောင့်ကို Premium ထည့်ပေးနေပါတယ် — မကြာမီ ဒီစာမျက်နှာမှာ ပေါ်ပါမယ်။';
 
   @override
   String get receiptStatusFulfilled => 'အတည်ပြုပြီး';
