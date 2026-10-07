@@ -316,12 +316,20 @@ class LicenseController extends StateNotifier<LicenseState>
     if (!_repo.hasEmailSession) {
       return const ActivationResult.failure('account_required');
     }
-    final seq = _applySeq;
     final shopId = state.license?.shopId;
     final userId = _repo.currentUserId;
     final pulled = await _repo.refreshAccountLicense(persist: false);
+    // Staleness is an *identity* question — did this answer arrive for a user
+    // or shop we have since left? It is deliberately NOT `_applySeq`, which
+    // this very call bumps: refreshing the account license refreshes the
+    // Supabase session, that emits onAuthStateChange, the listener above calls
+    // recomputeExpiry(), and `_apply` increments the counter. Comparing it here
+    // made Check for renewal fail its own guard every single time, on an
+    // account session, with the unmapped `stale_response` surfacing as a bare
+    // "Something went wrong" — so an owner whose local receipt had lapsed saw
+    // Free, pressed the one button meant to fix it, and could only recover by
+    // signing out and in (which takes a different path and never hits this).
     if (!mounted ||
-        seq != _applySeq ||
         userId != _repo.currentUserId ||
         shopId != state.license?.shopId) {
       return const ActivationResult.failure('stale_response');

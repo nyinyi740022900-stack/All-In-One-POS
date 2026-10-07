@@ -36,7 +36,15 @@ class _RemoteRepository extends LicenseRepository {
   Future<ActivationResult> refreshAccountLicense({
     bool persist = true,
     bool reclaimDevice = false,
-  }) async => pending?.future ?? response;
+  }) async {
+    // Stands in for what the real call does on its way to an answer: it
+    // refreshes the Supabase session, which emits onAuthStateChange, which
+    // makes the controller re-apply its own license.
+    await duringRequest?.call();
+    return pending?.future ?? response;
+  }
+
+  Future<void> Function()? duringRequest;
 }
 
 class _ShopSession extends ChangeNotifier implements DatabaseSession {
@@ -266,6 +274,35 @@ void main() {
     expect(loadingContainer.read(licenseControllerProvider).license?.shopId, 'shop-2');
   });
 
+  test(
+    'Check for renewal survives the session refresh it performs itself',
+    () async {
+      // The refresh re-authenticates, which re-applies the license underneath
+      // the caller. That is this request's own side effect, not a competing
+      // change, and it must not be read as a stale answer: when it was, Check
+      // for renewal failed every time on an account session and the only
+      // recovery anyone found was signing out and back in.
+      final controller = container.read(licenseControllerProvider.notifier);
+      repo.duringRequest = () => controller.recomputeExpiry();
+      final renewed = paid.copyWith(
+        plan: LicensePlan.yearly,
+        expiresAt: DateTime(2027, 10, 16),
+      );
+      repo.response = ActivationResult.success(renewed);
+
+      final result = await controller.refreshOnline();
+
+      expect(result.ok, isTrue, reason: result.errorCode);
+      expect(result.errorCode, isNot('stale_response'));
+      expect(
+        container.read(licenseControllerProvider).license?.plan,
+        LicensePlan.yearly,
+      );
+      // persist: false is passed to the repository, so the controller is the
+      // one that has to write the renewed term through.
+      expect((await repo.current())?.plan, LicensePlan.yearly);
+    },
+  );
   test(
     'late refresh cannot restore a previous shop after transition',
     () async {
