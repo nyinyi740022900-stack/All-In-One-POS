@@ -128,6 +128,15 @@ shipping the linking UI. Supabase verifies credentials; matching
 emails are not a client-side account-linking policy. See
 [Supabase linking API](https://supabase.com/docs/reference/dart/auth-linkidentitywithidtoken).
 
+**Live status (2026-10-08): still OFF on the production project.** The toggle is
+Supabase dashboard → Authentication → Sign In / Providers → User Signups →
+*Allow manual linking*. Until it is on, Account → "Link another Google account"
+fails at `linkIdentityWithIdToken`, and the only error the owner sees is the
+generic "Something went wrong" (`manual_linking_disabled` is not mapped in
+`account_action_error.dart`). Signing in with Google on a matching, already
+verified email is a different path — that one goes through `signInWithIdToken`
+and does not depend on this setting.
+
 After staging backend migration/functions and provider configuration, verify:
 
 - New account → shop name → one Free shop, without an automatic trial.
