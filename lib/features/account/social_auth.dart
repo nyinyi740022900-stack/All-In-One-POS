@@ -135,15 +135,34 @@ class SocialAuthService {
 
   Future<AuthResponse> link(SocialAuthProvider provider) async {
     final main = client ?? Supabase.instance.client;
-    final original = main.auth.currentSession;
-    if (original == null || original.isExpired) {
+    var original = main.auth.currentSession;
+    if (original == null) {
       throw const SocialAuthFailure('not_authenticated');
     }
+    if (original.isExpired) {
+      // An expired access token is not a different owner, and Supabase
+      // refreshes this session routinely on its own. Refusing here made the
+      // button fail *before* the Google sheet ever opened, which read on
+      // screen as the app signing itself out: the account card only looks at
+      // the user, so it went on showing the owner, the shop and the plan
+      // while this call reported 'not_authenticated'.
+      try {
+        original = (await main.auth.refreshSession()).session;
+      } on Exception {
+        original = null;
+      }
+      if (original == null || original.isExpired) {
+        throw const SocialAuthFailure('not_authenticated');
+      }
+    }
+    final ownerId = original.user.id;
     final proof = await reauthenticate(provider);
     // The chooser can stay open while another tab/device flow changes the
     // app session. Do not send any linking mutation for a different account.
-    if (main.auth.currentUser?.id != original.user.id ||
-        main.auth.currentSession?.accessToken != original.accessToken) {
+    // Compare the owner, not the token: a background refresh during the
+    // chooser changes the access token without changing who is signed in.
+    if (main.auth.currentSession == null ||
+        main.auth.currentUser?.id != ownerId) {
       throw const SocialAuthFailure('not_authenticated');
     }
     return _exchange(proof, link: true);
@@ -302,8 +321,15 @@ class SocialAuthService {
           session.expiresAt! <= minimumExpiry) {
         throw const SocialAuthFailure('social_auth_failed');
       }
-      if (main.auth.currentSession?.accessToken != original?.accessToken ||
-          (link && session.user.id != original!.user.id)) {
+      // Linking compares owners for the same reason [link] does: a refresh
+      // in flight is not a session swap. Signing in still compares tokens —
+      // there is no session of our own to refresh in that case, so any change
+      // at all means something else signed in concurrently.
+      final swapped = link
+          ? main.auth.currentUser?.id != original!.user.id ||
+                session.user.id != original.user.id
+          : main.auth.currentSession?.accessToken != original?.accessToken;
+      if (swapped) {
         throw const SocialAuthFailure('not_authenticated');
       }
       // No timeout around a shared-session mutation: the bounded exchange has

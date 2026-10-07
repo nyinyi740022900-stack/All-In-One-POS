@@ -299,7 +299,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
         .linkSocialIdentity(provider);
     if (!mounted) return;
     setState(() => _busy = false);
-    ref.invalidate(hasRealAccountSessionProvider);
+    // Only on success. Invalidating after a failed or cancelled link rebuilt
+    // the whole account card for no reason, which looked exactly like Sign
+    // out had been pressed by mistake.
+    if (result.ok) ref.invalidate(hasRealAccountSessionProvider);
     if (result.error == 'auth_cancelled') return;
     final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(

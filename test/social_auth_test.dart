@@ -223,6 +223,71 @@ void main() {
       );
     },
   );
+  test('an expired access token is refreshed, not treated as a sign-out', () async {
+    // The symptom this covers: tapping "Link another Google account" failed
+    // instantly, with no Google sheet, while the account card still showed
+    // the owner signed in with their shop and plan.
+    var refreshed = 0;
+    final main = SupabaseClient(
+      'https://auth.example.test',
+      'anon',
+      httpClient: MockClient((request) async {
+        refreshed++;
+        return http.Response(jsonEncode(_sessionJson('owner')), 200);
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    await main.auth.setInitialSession(
+      jsonEncode(_sessionJson('owner', lifetime: -30)),
+    );
+    expect(main.auth.currentSession!.isExpired, isTrue);
+    var chooserOpened = 0;
+    final service = SocialAuthService(
+      client: main,
+      config: configured,
+      platform: TargetPlatform.android,
+      acquireTokens: (p, _) async {
+        chooserOpened++;
+        return SocialAuthProof(p, 'id');
+      },
+      linkExchange: (_) async => AuthResponse(),
+    );
+    await service.link(SocialAuthProvider.google);
+    expect(refreshed, 1);
+    expect(chooserOpened, 1, reason: 'the Google sheet must actually open');
+    await main.dispose();
+  });
+  test('a token refresh during the chooser does not cancel the link', () async {
+    // Supabase refreshes the session on its own while the native sheet is
+    // open. Comparing access tokens made that routine refresh look like a
+    // different owner had taken over the app session.
+    final main = SupabaseClient(
+      'https://auth.example.test',
+      'anon',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    await main.auth.setInitialSession(jsonEncode(_sessionJson('owner')));
+    var exchanges = 0;
+    final service = SocialAuthService(
+      client: main,
+      config: configured,
+      platform: TargetPlatform.android,
+      acquireTokens: (p, _) async {
+        // Same owner, brand new token — exactly what a refresh produces.
+        await main.auth.setInitialSession(
+          jsonEncode(_sessionJson('owner', lifetime: 7200)),
+        );
+        return SocialAuthProof(p, 'id');
+      },
+      linkExchange: (_) async {
+        exchanges++;
+        return AuthResponse();
+      },
+    );
+    await service.link(SocialAuthProvider.google);
+    expect(exchanges, 1);
+    await main.dispose();
+  });
   test(
     'owner switching during Google chooser cannot link to the new account',
     () async {
