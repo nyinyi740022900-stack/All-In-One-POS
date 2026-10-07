@@ -73,6 +73,19 @@ root domain, TXT, host `_dmarc`:
 `v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app` — start at `p=none`,
 watch the reports, tighten to `quarantine` later.
 
+**Both templates are deployed and mail delivery works** (2026-10-07): a real
+reset-password mail was accepted by Supabase and reported Delivered by Resend,
+with the Myanmar subject intact.
+
+If sending ever breaks, read the error before changing anything: Supabase →
+Logs → Auth → the `ERROR /recover` row → **Raw**, where the SMTP string sits in
+`event_message.error`. The Details tab shows only status 500. A `535
+"Authentication credentials invalid"` with **no** corresponding entry in
+Resend's own logs means the failure is SMTP AUTH, before Resend saw anything —
+in practice, a wrong key. Note that Resend's API keys table shows each token
+**truncated** (`re_HNRufF8b…`); copying from there gives a value that is not the
+key, and the full one appears only once, at creation.
+
 Do not turn off Secure email change to make delivery work. After SMTP and the
 templates are live, confirm real delivery and both-inbox completion with a
 designated owner. Already-sent emails keep their original layout.

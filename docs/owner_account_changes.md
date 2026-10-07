@@ -125,3 +125,45 @@ a Myanmar shop owner.
 Remaining, unchanged: create the scoped Resend key and paste it into the staged
 form, deploy both templates, send a real reset and a real email change to an
 owner inbox, and add the DMARC record at the registrar.
+
+## Mail delivery is live (2026-10-07)
+
+**Custom SMTP is on and a real email has been delivered.** Resend SMTP
+(`smtp.resend.com:587`, username `resend`, sender
+`noreply@auth.allinonepos.app`), both bilingual templates deployed, and a
+genuine password-reset mail accepted by Supabase (`HTTP 200`) and reported
+**Delivered** by Resend to a real inbox, with the Myanmar subject intact:
+`All In One POS — စကားဝှက်အသစ် သတ်မှတ်ရန် / Reset your password`.
+
+### The first attempt failed, and the test is what caught it
+
+Saving the SMTP form is not proof it works. The first send returned
+`HTTP 500 "Error sending recovery email"`, and the auth log gave the reason:
+
+```
+535 "Authentication credentials invalid"
+```
+
+Resend's own logs showed **nothing at all**, which places the failure before
+Resend ever saw a message — an SMTP AUTH rejection, not a send rejection. The
+host was independently confirmed fine (`smtp.resend.com:587` reachable,
+STARTTLS, `AUTH PLAIN LOGIN`), so the only remaining variable was the password.
+
+Most likely cause, worth knowing for next time: the API keys table shows each
+token **truncated** (`re_HNRufF8b…`), and copying from there yields a key that
+is not the key. The full value appears only once, at creation. Creating a fresh
+key and pasting that worked immediately.
+
+**Diagnosing this again:** Supabase → Logs → Auth, find the `ERROR /recover`
+row, open **Raw** — the SMTP error string is in `event_message.error`. The
+Details tab alone only shows status 500, which tells you nothing.
+
+### Still open
+
+- **DMARC.** Still absent on `auth.allinonepos.app` and the root. SPF and DKIM
+  carry delivery today — this mail reached an iCloud inbox — but Gmail and
+  Yahoo read a missing policy as a negative signal. At the registrar, TXT on the
+  root, host `_dmarc`: `v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`.
+- **A real email change**, end to end, through both inboxes. Only the reset
+  mail has actually been sent.
+- The superseded `All In One POS auth` key in Resend can be deleted.
