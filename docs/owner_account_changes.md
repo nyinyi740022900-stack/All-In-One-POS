@@ -213,3 +213,20 @@ Worth keeping in mind that this is a deliverability *signal*, not a verdict: the
 domain was verified a day ago with a handful of sends, and reputation is built
 by volume and engagement. Marking the junked messages as Not Junk, which the
 owner did, teaches iCloud more about this sender than any record can.
+
+### Outcome: inbox, not junk (2026-10-07 18:50)
+
+After DMARC on both names, the sender moved off `no-reply`, and the owner
+marking the junked messages as Not Junk, **every test mail is in the iCloud
+inbox** — the two sent after the fixes (18:44, 18:48) and the three that had
+been filed as junk. Auth mail delivery is working end to end:
+
+- SMTP: Resend, `smtp.resend.com:587`, sender `account@auth.allinonepos.app`
+- Templates: reset-password and change-email, both bilingual, both live
+- DNS: SPF, DKIM, and DMARC on the root **and** the sending domain
+- One Resend flag remains, the link-domain mismatch, which needs a paid
+  Supabase custom auth domain and is deliberately left as a cost decision
+
+Of the three things that fixed this, the cheapest was the one a person did:
+teaching iCloud with Not Junk. A new sending domain with a handful of messages
+has no reputation, and no DNS record substitutes for that.
