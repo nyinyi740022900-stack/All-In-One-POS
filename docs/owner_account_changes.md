@@ -179,7 +179,7 @@ Resend's own per-message deliverability report named three causes, all real:
 
 | Flagged | Status |
 | --- | --- |
-| Include valid DMARC record | **Fixed** — TXT `_dmarc` on the root: `v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`, added at Namecheap and confirmed resolving |
+| Include valid DMARC record | **Fixed**, but it took two records — see below |
 | Don't use "no-reply" | **Fixed** — sender changed from `noreply@` to `account@auth.allinonepos.app` |
 | Ensure link URLs match sending domain | **Open** — the mail comes from `auth.allinonepos.app` but its button points at `…supabase.co/auth/v1/verify`, which reads as phishing. Fixing it needs a Supabase custom auth domain, a paid add-on, so it is a cost decision |
 
@@ -190,3 +190,26 @@ immediately after the change was Delivered, which confirms it.
 `p=none` only observes. Tighten to `quarantine` once the aggregate reports look
 clean — and the `rua` address needs a mailbox before those reports land
 anywhere, so that is worth setting up before relying on them.
+
+### DMARC needed the record on the sending domain, not just the root
+
+The root record `_dmarc.allinonepos.app` went in first and the flag stayed up
+through two further sends. DMARC's own rules say a receiver that finds nothing
+on `_dmarc.auth.allinonepos.app` falls back to the organizational domain, so the
+root record alone should have been enough — but Resend's check kept reporting it
+missing until `_dmarc.auth` existed as well. Its lookup is exact; it does not
+walk up. Both are now published with the same value, and the next send came back
+with the DMARC flag **gone**.
+
+That leaves exactly one flagged item, the link-domain mismatch, which is the
+paid one. Resend's report after the final send:
+
+```
+NEEDS ATTENTION
+  Ensure link URLs match sending domain
+```
+
+Worth keeping in mind that this is a deliverability *signal*, not a verdict: the
+domain was verified a day ago with a handful of sends, and reputation is built
+by volume and engagement. Marking the junked messages as Not Junk, which the
+owner did, teaches iCloud more about this sender than any record can.

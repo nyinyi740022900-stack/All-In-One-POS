@@ -66,9 +66,21 @@ Supabase → Authentication → Emails → SMTP Settings:
 Enabling custom SMTP raises the auth mail rate limit to 30/hour; raise it under
 Authentication → Rate Limits if real signups ever need more.
 
-**DMARC is published** (2026-10-07). TXT on the root, host `_dmarc`:
-`v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`. It was added after
-Resend's own deliverability report on a sent message flagged its absence.
+**DMARC is published on BOTH names** (2026-10-07), same value
+`v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`:
+
+| Host | Resolves as |
+| --- | --- |
+| `_dmarc` | `_dmarc.allinonepos.app` — the organizational domain |
+| `_dmarc.auth` | `_dmarc.auth.allinonepos.app` — **the sending domain itself** |
+
+The second one is the one that mattered. DMARC's own rules say a receiver that
+finds nothing on the sending subdomain falls back to the organizational domain,
+so the root record alone *should* have been enough — but Resend's deliverability
+check kept reporting "Include valid DMARC record" until the subdomain record
+existed, which means it looks up the sending domain exactly and does not walk up.
+Publishing both costs nothing and removes the question.
+
 `p=none` only reports; tighten to `quarantine` once the aggregate reports look
 clean — and note the `rua` address needs a mailbox for those reports to land
 anywhere.
