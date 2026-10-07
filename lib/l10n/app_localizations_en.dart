@@ -1377,7 +1377,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Analytics is a Premium feature — a Free-plan shop sees an upgrade prompt here instead of this screen.\n1. Pick a date range at the top — today, this week, this month, or a custom range.\n2. View total sales, profit, and transaction count for that period.\n3. Scroll down to see your best-selling products, ranked by revenue or quantity.\n4. Profit figures use each sale\'s actual recorded cost, not just today\'s cost price — so past sales stay accurate even after you change a product\'s cost.\n5. Compare two periods side by side to spot trends before deciding what to restock or re-price.';
 
   @override
-  String get helpGuideSettingsTitle => 'Settings';
+  String get helpGuideSettingsTitle => 'Shop';
 
   @override
   String get helpGuideSettingsBody =>
@@ -1837,8 +1837,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelPrintTargetDedicated => 'Prints on the label printer';
 
   @override
-  String get labelPrintNoTarget =>
-      'No printer connected. Set one up in Settings.';
+  String get labelPrintNoTarget => 'No printer connected. Set one up in Shop.';
 
   @override
   String get categoriesTitle => 'Categories';
@@ -2373,7 +2372,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenseTrialViberMissing =>
-      'Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.';
+      'Support Viber is not configured yet. Use Shop → Support once it is available, or contact us another way with your App Reference ID.';
 
   @override
   String get licenseTrialStarted => 'Free 2-month trial started';
@@ -2855,18 +2854,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderBlockIpHint =>
-      'Tap Block to stop new web orders from this network. Unblock anytime in Settings → My web storefront → Blocked IPs.';
+      'Tap Block to stop new web orders from this network. Unblock anytime in Shop → My web storefront → Blocked IPs.';
 
   @override
   String get orderNoCustomerIp => 'No IP on this order';
 
   @override
   String get orderNoCustomerIpHint =>
-      'This web order was placed before IP tracking. To block: Settings → My web storefront → Blocked IPs, then add the address.';
+      'This web order was placed before IP tracking. To block: Shop → My web storefront → Blocked IPs, then add the address.';
 
   @override
   String get orderBlockCustomerHow =>
-      'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Settings → Blocked IPs.';
+      'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Shop → Blocked IPs.';
 
   @override
   String get orderLowStockAtOrder =>
@@ -3054,7 +3053,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get staffOwnerPinRequired =>
-      'The owner must set a PIN in Settings before staff can switch to Owner.';
+      'The owner must set a PIN in Shop before staff can switch to Owner.';
 
   @override
   String get staffPinSaved => 'PIN saved';
@@ -3063,8 +3062,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get staffOwnerOnly => 'Owner only';
 
   @override
-  String get staffOwnerOnlyDesc =>
-      'Switch to Owner mode (Settings) to view this.';
+  String get staffOwnerOnlyDesc => 'Switch to Owner mode (Shop) to view this.';
 
   @override
   String get staffBadge => 'Staff mode';
@@ -3194,7 +3192,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontFromShopProfileHint =>
-      'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Settings → Shop profile.';
+      'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Shop → Shop profile.';
 
   @override
   String get storefrontProfileSaved => 'Saved';
@@ -3492,7 +3490,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storefrontRenewDeviceIdHint =>
-      'Find this on your phone: Settings → Premium → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.';
+      'Find this on your phone: Shop → Premium → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.';
 
   @override
   String get storefrontRenewEmail => 'Email (if you have an account)';
@@ -3661,7 +3659,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardStaffBody =>
-      'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.';
+      'You\'re in Owner mode — full access.\nHanding the phone to an employee? Shop → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.';
 
   @override
   String get accountShopLoginTitle => 'Account';
@@ -4262,7 +4260,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardOnlineSignedIn =>
-      'Your shop account is connected on Free. Start your Premium trial in Settings → Premium when you are ready.';
+      'Your shop account is connected on Free. Start your Premium trial in Shop → Premium when you are ready.';
 
   @override
   String get modeMigrateTitle => 'Confirm how this shop works';
@@ -4362,7 +4360,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptStatusFulfilledBody =>
-      'Your Premium is active. Open the app, go to Settings → Premium and tap Check for renewal.';
+      'Your Premium is active. Open the app, go to Shop → Premium and tap Check for renewal.';
 
   @override
   String get receiptUrgentViber => 'Need this urgently? Message us on Viber';

@@ -1372,7 +1372,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'Analytics က Premium feature ဖြစ်ပါတယ် — Free plan ဆိုင်တစ်ခုက ဒီ screen အစား upgrade prompt ကိုသာ တွေ့ရမှာပါ။\n၁။ အပေါ်ဆုံးမှာ ရက်စွဲကာလ ရွေးချယ်ပါ — ယနေ့၊ ဒီအပတ်၊ ဒီလ၊ (သို့) ကိုယ်ပိုင်ရွေးချယ်ခြင်း။\n၂။ အဲ့ကာလအတွက် အရောင်းစုစုပေါင်း၊ အမြတ်၊ ရောင်းချမှု အရေအတွက်ကို ကြည့်နိုင်ပါတယ်။\n၃။ အောက်ကို scroll ဆွဲပြီး အရောင်းရဆုံးပစ္စည်းများကို ဝင်ငွေ (သို့) အရေအတွက်အလိုက် အဆင့်သတ်မှတ်ပြထားတာ ကြည့်နိုင်ပါတယ်။\n၄။ အမြတ်ကိန်းဂဏန်းတွေက အဲ့အရောင်းအတွက် တကယ်မှတ်တမ်းတင်ထားတဲ့ အရင်းဈေးကို သုံးထားတာမို့ (ယနေ့ရဲ့ အရင်းဈေးသက်သက်မဟုတ်ဘဲ) — ပစ္စည်းရဲ့ အရင်းဈေး ပြောင်းလဲသွားပြီးနောက်မှာလည်း ယခင်အရောင်းတွေရဲ့ အမြတ် မှန်ကန်နေဆဲပါ။\n၅။ ကာလနှစ်ခုကို ယှဉ်ကြည့်ပြီး ပြန်မှာရမယ့်ပစ္စည်း (သို့) ဈေးနှုန်းပြင်ရမယ့်အရာကို ဆုံးဖြတ်ဖို့ trend ကို ကြိုတင်သိနိုင်ပါတယ်။';
 
   @override
-  String get helpGuideSettingsTitle => 'ဆက်တင်';
+  String get helpGuideSettingsTitle => 'လုပ်ငန်း';
 
   @override
   String get helpGuideSettingsBody =>
@@ -1836,7 +1836,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get labelPrintNoTarget =>
-      'ပရင်တာ ချိတ်ဆက်မထားပါ။ Settings ထဲမှာ ပရင်တာတစ်ခု ဦးစွာ ချိတ်ဆက်ပါ။';
+      'ပရင်တာ ချိတ်ဆက်မထားပါ။ လုပ်ငန်း ထဲမှာ ပရင်တာတစ်ခု ဦးစွာ ချိတ်ဆက်ပါ။';
 
   @override
   String get categoriesTitle => 'အမျိုးအစားများ';
@@ -2384,7 +2384,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseTrialViberMissing =>
-      'Support Viber မသတ်မှတ်ရသေးပါ။ Settings → Support ရနိုင်မှ သုံးပါ၊ သို့မဟုတ် App Reference ID နဲ့ တခြားလမ်းက ဆက်သွယ်ပါ။';
+      'Support Viber မသတ်မှတ်ရသေးပါ။ လုပ်ငန်း → Support ရနိုင်မှ သုံးပါ၊ သို့မဟုတ် App Reference ID နဲ့ တခြားလမ်းက ဆက်သွယ်ပါ။';
 
   @override
   String get licenseTrialStarted => 'အခမဲ့ ၂ လ စမ်းသုံးမှု စတင်ပြီး';
@@ -2405,7 +2405,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get licenseAccountEmailMissing =>
-      'Support က ရှာနိုင်အောင် Settings → အကောင့် မှာ sign in ဝင်ထားပါ။';
+      'Support က ရှာနိုင်အောင် လုပ်ငန်း → အကောင့် မှာ sign in ဝင်ထားပါ။';
 
   @override
   String get licenseRequestSent =>
@@ -2861,18 +2861,18 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get orderBlockIpHint =>
-      'Block ကို နှိပ်ရင် ဒီ network ကနေ web order အသစ် တင်လို့ မရတော့ပါ။ ပြန်ဖြေချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ ဖြေနိုင်ပါတယ်။';
+      'Block ကို နှိပ်ရင် ဒီ network ကနေ web order အသစ် တင်လို့ မရတော့ပါ။ ပြန်ဖြေချင်ရင် လုပ်ငန်း → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ ဖြေနိုင်ပါတယ်။';
 
   @override
   String get orderNoCustomerIp => 'ဒီ order မှာ IP မပါပါ';
 
   @override
   String get orderNoCustomerIpHint =>
-      'ဒီ web order ကို IP မသိမ်းခင် တင်ထားတာပါ။ ပိတ်ချင်ရင် Settings → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ IP ထည့်ပါ။';
+      'ဒီ web order ကို IP မသိမ်းခင် တင်ထားတာပါ။ ပိတ်ချင်ရင် လုပ်ငန်း → ကျွန်ုပ်၏ Web ဆိုင် → ပိတ်ပင်ထားသော IP များ မှာ IP ထည့်ပါ။';
 
   @override
   String get orderBlockCustomerHow =>
-      'ပိတ်ပြီးရင် ဒီ network က web order အသစ် တင်လို့ မရတော့ပါ။ ရှိပြီးသား order တွေ မပျက်ပါ။ Settings → ပိတ်ပင်ထားသော IP များ မှာ ပြန်ဖြေနိုင်ပါတယ်။';
+      'ပိတ်ပြီးရင် ဒီ network က web order အသစ် တင်လို့ မရတော့ပါ။ ရှိပြီးသား order တွေ မပျက်ပါ။ လုပ်ငန်း → ပိတ်ပင်ထားသော IP များ မှာ ပြန်ဖြေနိုင်ပါတယ်။';
 
   @override
   String get orderLowStockAtOrder =>
@@ -3060,7 +3060,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get staffOwnerPinRequired =>
-      'ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က Settings မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။';
+      'ဝန်ထမ်းက ပိုင်ရှင်သို့ မပြောင်းခင် ပိုင်ရှင်က လုပ်ငန်း မှာ PIN ဦးစွာ သတ်မှတ်ရပါမည်။';
 
   @override
   String get staffPinSaved => 'PIN သိမ်းပြီး';
@@ -3070,7 +3070,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get staffOwnerOnlyDesc =>
-      'ဒါကို ကြည့်ရန် Owner mode (Settings) သို့ ပြောင်းပါ။';
+      'ဒါကို ကြည့်ရန် Owner mode (လုပ်ငန်း) သို့ ပြောင်းပါ။';
 
   @override
   String get staffBadge => 'ဝန်ထမ်း mode';
@@ -3200,7 +3200,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontFromShopProfileHint =>
-      'အမည်၊ ဖုန်း၊ လိပ်စာ၊ Logo နဲ့ Payment accounts တွေက ပြေစာနဲ့ တူတူသုံးထားတာပါ — Settings → ဆိုင်အချက်အလက် ထဲမှာ တစ်နေရာတည်း ပြင်ပါ။';
+      'အမည်၊ ဖုန်း၊ လိပ်စာ၊ Logo နဲ့ Payment accounts တွေက ပြေစာနဲ့ တူတူသုံးထားတာပါ — လုပ်ငန်း → ဆိုင်အချက်အလက် ထဲမှာ တစ်နေရာတည်း ပြင်ပါ။';
 
   @override
   String get storefrontProfileSaved => 'သိမ်းပြီးပါပြီ';
@@ -3498,7 +3498,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get storefrontRenewDeviceIdHint =>
-      'ဖုန်းထဲမှာ ရှာပါ - Settings → Premium → App Reference ID။ Account နဲ့ sign in ဝင်ထားရင် ဒါကို ကျော်ပြီး အောက်က email ကို ဖြည့်ပါ။';
+      'ဖုန်းထဲမှာ ရှာပါ - လုပ်ငန်း → Premium → App Reference ID။ Account နဲ့ sign in ဝင်ထားရင် ဒါကို ကျော်ပြီး အောက်က email ကို ဖြည့်ပါ။';
 
   @override
   String get storefrontRenewEmail => 'အီးမေးလ် (account ရှိရင်)';
@@ -3666,7 +3666,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardStaffBody =>
-      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။\nဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? Settings → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။\nStaff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။\nဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
+      'အခု Owner mode မှာ ရှိပါတယ် — အားလုံး ရနိုင်ပါတယ်။\nဖုန်းကို ဝန်ထမ်းကို လက်ဆင့်ကမ်းမလား? လုပ်ငန်း → ပိုင်ရှင် Tools → Staff သို့ ပြောင်းပါ။\nStaff mode မှာ Sell + Orders ပဲ မြင်ရမယ်၊ Owner ပြန်ဖို့ PIN လိုပါမယ်။\nဒီ PIN အတူတူပဲ ဒီနေ့ဆိုင် ဘယ်သူဖွင့်လဲ ဆိုတာကို အတည်ပြုဖို့လည်း သုံးပါတယ်။';
 
   @override
   String get accountShopLoginTitle => 'အကောင့်';
@@ -4264,7 +4264,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get onboardOnlineSignedIn =>
-      'သင့်ဆိုင်အကောင့်ကို Free ဖြင့် ချိတ်ဆက်ပြီးပါပြီ။ အဆင်သင့်ဖြစ်ချိန်တွင် Settings → Premium မှ အစမ်းကာလ စတင်နိုင်ပါသည်။';
+      'သင့်ဆိုင်အကောင့်ကို Free ဖြင့် ချိတ်ဆက်ပြီးပါပြီ။ အဆင်သင့်ဖြစ်ချိန်တွင် လုပ်ငန်း → Premium မှ အစမ်းကာလ စတင်နိုင်ပါသည်။';
 
   @override
   String get modeMigrateTitle => 'ဆိုင်အလုပ်လုပ်ပုံကို အတည်ပြုပါ';
@@ -4364,7 +4364,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get receiptStatusFulfilledBody =>
-      'Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး Settings → Premium မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။';
+      'Premium သက်ဝင်ပါပြီ။ App ဖွင့်ပြီး လုပ်ငန်း → Premium မှာ \"သက်တမ်း ပြန်စစ်မည်\" ကို နှိပ်ပါ။';
 
   @override
   String get receiptUrgentViber => 'အရေးပေါ်လား? Viber ဖြင့် ဆက်သွယ်ပါ';

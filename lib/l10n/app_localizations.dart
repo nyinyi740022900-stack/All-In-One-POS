@@ -2597,7 +2597,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Settings'**
+  /// **'Shop'**
   String get helpGuideSettingsTitle;
 
   /// No description provided for @helpGuideSettingsBody.
@@ -3455,7 +3455,7 @@ abstract class AppLocalizations {
   /// No description provided for @labelPrintNoTarget.
   ///
   /// In en, this message translates to:
-  /// **'No printer connected. Set one up in Settings.'**
+  /// **'No printer connected. Set one up in Shop.'**
   String get labelPrintNoTarget;
 
   /// No description provided for @categoriesTitle.
@@ -4421,7 +4421,7 @@ abstract class AppLocalizations {
   /// No description provided for @licenseTrialViberMissing.
   ///
   /// In en, this message translates to:
-  /// **'Support Viber is not configured yet. Use Settings → Support once it is available, or contact us another way with your App Reference ID.'**
+  /// **'Support Viber is not configured yet. Use Shop → Support once it is available, or contact us another way with your App Reference ID.'**
   String get licenseTrialViberMissing;
 
   /// No description provided for @licenseTrialStarted.
@@ -5255,7 +5255,7 @@ abstract class AppLocalizations {
   /// No description provided for @orderBlockIpHint.
   ///
   /// In en, this message translates to:
-  /// **'Tap Block to stop new web orders from this network. Unblock anytime in Settings → My web storefront → Blocked IPs.'**
+  /// **'Tap Block to stop new web orders from this network. Unblock anytime in Shop → My web storefront → Blocked IPs.'**
   String get orderBlockIpHint;
 
   /// No description provided for @orderNoCustomerIp.
@@ -5267,13 +5267,13 @@ abstract class AppLocalizations {
   /// No description provided for @orderNoCustomerIpHint.
   ///
   /// In en, this message translates to:
-  /// **'This web order was placed before IP tracking. To block: Settings → My web storefront → Blocked IPs, then add the address.'**
+  /// **'This web order was placed before IP tracking. To block: Shop → My web storefront → Blocked IPs, then add the address.'**
   String get orderNoCustomerIpHint;
 
   /// No description provided for @orderBlockCustomerHow.
   ///
   /// In en, this message translates to:
-  /// **'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Settings → Blocked IPs.'**
+  /// **'After you block, that network cannot place new web orders. Existing orders stay. Unblock anytime in Shop → Blocked IPs.'**
   String get orderBlockCustomerHow;
 
   /// No description provided for @orderLowStockAtOrder.
@@ -5603,7 +5603,7 @@ abstract class AppLocalizations {
   /// No description provided for @staffOwnerPinRequired.
   ///
   /// In en, this message translates to:
-  /// **'The owner must set a PIN in Settings before staff can switch to Owner.'**
+  /// **'The owner must set a PIN in Shop before staff can switch to Owner.'**
   String get staffOwnerPinRequired;
 
   /// No description provided for @staffPinSaved.
@@ -5621,7 +5621,7 @@ abstract class AppLocalizations {
   /// No description provided for @staffOwnerOnlyDesc.
   ///
   /// In en, this message translates to:
-  /// **'Switch to Owner mode (Settings) to view this.'**
+  /// **'Switch to Owner mode (Shop) to view this.'**
   String get staffOwnerOnlyDesc;
 
   /// No description provided for @staffBadge.
@@ -5855,7 +5855,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontFromShopProfileHint.
   ///
   /// In en, this message translates to:
-  /// **'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Settings → Shop profile.'**
+  /// **'Name, phone, address, logo, and payment accounts are shared with the printed receipt — edit them once in Shop → Shop profile.'**
   String get storefrontFromShopProfileHint;
 
   /// No description provided for @storefrontProfileSaved.
@@ -6371,7 +6371,7 @@ abstract class AppLocalizations {
   /// No description provided for @storefrontRenewDeviceIdHint.
   ///
   /// In en, this message translates to:
-  /// **'Find this on your phone: Settings → Premium → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.'**
+  /// **'Find this on your phone: Shop → Premium → App Reference ID. Signed in with an account instead? Skip this and fill in your email below.'**
   String get storefrontRenewDeviceIdHint;
 
   /// No description provided for @storefrontRenewEmail.
@@ -6653,7 +6653,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardStaffBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re in Owner mode — full access.\nHanding the phone to an employee? Settings → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.'**
+  /// **'You\'re in Owner mode — full access.\nHanding the phone to an employee? Shop → Owner Tools → Switch to Staff.\nStaff mode shows Sell and Orders only; a PIN switches back to Owner.\nThe same PIN confirms who opens the shop each day.'**
   String get onboardStaffBody;
 
   /// No description provided for @accountShopLoginTitle.
@@ -7679,7 +7679,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardOnlineSignedIn.
   ///
   /// In en, this message translates to:
-  /// **'Your shop account is connected on Free. Start your Premium trial in Settings → Premium when you are ready.'**
+  /// **'Your shop account is connected on Free. Start your Premium trial in Shop → Premium when you are ready.'**
   String get onboardOnlineSignedIn;
 
   /// No description provided for @modeMigrateTitle.
@@ -7865,7 +7865,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiptStatusFulfilledBody.
   ///
   /// In en, this message translates to:
-  /// **'Your Premium is active. Open the app, go to Settings → Premium and tap Check for renewal.'**
+  /// **'Your Premium is active. Open the app, go to Shop → Premium and tap Check for renewal.'**
   String get receiptStatusFulfilledBody;
 
   /// No description provided for @receiptUrgentViber.
