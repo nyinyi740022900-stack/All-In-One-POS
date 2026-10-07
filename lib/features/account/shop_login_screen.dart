@@ -56,6 +56,11 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
   final _signInPassword = TextEditingController();
   late final SavedLoginBinder _signInSaved;
   bool _busy = false;
+  // Which action is running, not just that one is. With a single flag
+  // every button on the card dimmed together, and a disabled tonal
+  // Sign out is the same shade as a pressed one — so linking a Google
+  // account looked like Sign out had been tapped by mistake.
+  bool _linking = false;
   bool _justCreated = false;
 
   /// Which phase of the sign-in is running, so the wait can say so.
@@ -293,12 +298,18 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
 
   Future<void> _linkSocial(SocialAuthProvider provider) async {
     if (_busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _linking = true;
+    });
     final result = await ref
         .read(accountRepositoryProvider)
         .linkSocialIdentity(provider);
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() {
+      _busy = false;
+      _linking = false;
+    });
     // Only on success. Invalidating after a failed or cancelled link rebuilt
     // the whole account card for no reason, which looked exactly like Sign
     // out had been pressed by mistake.
@@ -792,7 +803,12 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                       onPressed: _busy
                           ? null
                           : () => _linkSocial(SocialAuthProvider.google),
-                      icon: const Icon(Icons.add_link),
+                      // The wait belongs on the button doing the work, so the
+                      // eye has somewhere to land other than the buttons that
+                      // merely went inert.
+                      icon: _linking
+                          ? const ButtonSpinner()
+                          : const Icon(Icons.add_link),
                       label: Text(l.accountGoogleAdd),
                     ),
                   ],
@@ -813,6 +829,16 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
                 ),
                 FilledButton.tonal(
                   onPressed: _busy ? null : _signOut,
+                  // A disabled tonal button keeps its fill, only darker, which
+                  // is exactly what this button looks like while it is being
+                  // pressed. Unavailable has to read as unavailable, so the
+                  // fill drops away instead of deepening.
+                  style: FilledButton.styleFrom(
+                    disabledBackgroundColor: Colors.transparent,
+                    disabledForegroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
                   child: Text(l.accountSignOut),
                 ),
               ],

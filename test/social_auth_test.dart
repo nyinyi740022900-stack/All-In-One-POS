@@ -515,6 +515,33 @@ void main() {
       await mainClient.dispose();
     },
   );
+  test('a Google nonce is forwarded to Supabase with the token', () async {
+    // Supabase answers 400 "Passed nonce and nonce in id_token should either
+    // both exist or not" when the token carries a nonce it was not given.
+    // Google echoes the OIDC nonce into the token, so dropping it here is
+    // what turned every Google sign-in into "Could not sign in".
+    final mainClient = SupabaseClient(
+      'https://auth.example.test',
+      'anon-key',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    String? sentNonce;
+    final transport = MockClient((request) async {
+      sentNonce = jsonDecode(request.body)['nonce'] as String?;
+      return http.Response(jsonEncode(_sessionJson('google-user')), 200);
+    });
+    final service = SocialAuthService(
+      client: mainClient,
+      httpClient: transport,
+      config: configured,
+      platform: TargetPlatform.android,
+      acquireTokens: (p, _) async =>
+          SocialAuthProof(p, 'provider-token', nonce: 'raw-nonce'),
+    );
+    await service.signIn(SocialAuthProvider.google);
+    expect(sentNonce, 'raw-nonce');
+    await mainClient.dispose();
+  });
   test(
     'link uses existing bearer identity and adopts only the same user',
     () async {

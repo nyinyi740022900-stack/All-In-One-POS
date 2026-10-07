@@ -110,6 +110,7 @@ class SocialAuthService {
   final SocialAuthExchange? signInExchange;
   final SocialAuthExchange? linkExchange;
   static Future<void>? _googleInitialization;
+  static String? _googleNonce;
   static const _networkTimeout = Duration(seconds: 30);
 
   Set<SocialAuthProvider> get availableProviders {
@@ -213,6 +214,16 @@ class SocialAuthService {
     switch (provider) {
       case SocialAuthProvider.google:
         final google = GoogleSignIn.instance;
+        // Supabase rejects a Google ID token whose nonce it was not also
+        // given, and accepts neither side alone: "Passed nonce and nonce in
+        // id_token should either both exist or not" — a 400 that reached the
+        // owner as the unhelpful "Could not sign in with this account".
+        // Google echoes the OIDC nonce verbatim into the token, so the same
+        // raw value goes to both (unlike Apple, which is given the hash).
+        // google_sign_in only accepts a nonce at initialize(), which runs
+        // once per process, so it is fixed for this app run and has to be
+        // remembered here for every later exchange.
+        _googleNonce ??= SocialNonce.generate().raw;
         // Google 7.x requires exactly one initialization per singleton, even
         // when multiple repositories are created as the active shop changes.
         _googleInitialization ??= google.initialize(
@@ -220,13 +231,18 @@ class SocialAuthService {
               ? _config.googleIosClientId
               : null,
           serverClientId: _config.googleWebClientId,
+          nonce: _googleNonce,
         );
         await _googleInitialization!.timeout(_networkTimeout);
         if (!google.supportsAuthenticate()) {
           throw const SocialAuthFailure('social_auth_unavailable');
         }
         final account = await google.authenticate();
-        return SocialAuthProof(provider, account.authentication.idToken ?? '');
+        return SocialAuthProof(
+          provider,
+          account.authentication.idToken ?? '',
+          nonce: _googleNonce,
+        );
       case SocialAuthProvider.apple:
         if (!await SignInWithApple.isAvailable().timeout(_networkTimeout)) {
           throw const SocialAuthFailure('social_auth_unavailable');
