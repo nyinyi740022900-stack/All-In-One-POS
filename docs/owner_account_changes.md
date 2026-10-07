@@ -91,3 +91,37 @@ SMTP form and save → deploy both templates under Authentication → Emails →
 Templates (editing unlocks once custom SMTP is on) → send a real reset and a real
 email change to an owner inbox and confirm both-inbox completion. Add DMARC
 alongside. No Dart changed in this pass; analyzer clean and all 1,054 tests pass.
+
+## Mail delivery, second pass (2026-10-07)
+
+Nothing was saved last time, so the live project is unchanged: **custom SMTP is
+still off** and the staged form had evaporated, as an unsaved form does. It has
+been staged again — sender `noreply@auth.allinonepos.app`, name `All In One
+POS`, host `smtp.resend.com`, port 587, username `resend` — with the Password
+field empty and **not saved**, because a Resend API key is not something this
+session types into a remote dashboard. The Resend API keys page is open in the
+next tab; the two keys listed there (`Theorylane`, `Onboarding`) belong to other
+projects and predate this domain.
+
+DNS re-checked: SPF and DKIM still resolve, **DMARC is still absent** on both
+`auth.allinonepos.app` and the root.
+
+Two things this pass established that the first one had not:
+
+**Templates really are gated on SMTP.** The Templates tab says outright "Set up
+custom SMTP to edit templates" and offers no editor at all until then — so the
+order is SMTP first, templates second, with no way around it on this plan.
+
+**Supabase has security-notification emails of its own**, which the first audit
+missed because it only looked at what the app's own code triggers: *Password
+changed*, *Email address changed*, *Phone number changed*, *Sign-in method
+linked*, *Sign-in method removed*, *MFA method added*, *MFA method removed*.
+**All seven are off**, so switching SMTP on does not start sending them. That
+matters because two of them map onto flows this product genuinely has — the
+owner email change, and Google identity linking — so enabling either later
+without writing a bilingual body first would send Supabase's English default to
+a Myanmar shop owner.
+
+Remaining, unchanged: create the scoped Resend key and paste it into the staged
+form, deploy both templates, send a real reset and a real email change to an
+owner inbox, and add the DMARC record at the registrar.

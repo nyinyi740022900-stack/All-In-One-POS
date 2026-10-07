@@ -13,6 +13,15 @@ server, deliberately, so a shop is never stranded on opening day waiting for
 SMTP. Magic link, invite and reauthentication are unused — leave those
 templates at their defaults.
 
+**Supabase also has its own security notifications**, which are separate from
+the mails this product triggers: *Password changed*, *Email address changed*,
+*Phone number changed*, *Sign-in method linked/removed*, *MFA method
+added/removed*. Checked 2026-10-07: **every one of them is off**, so enabling
+custom SMTP does not start sending them. Two of them would fire on flows this
+app really has — the owner email change, and Google identity linking — so if
+any is ever switched on it needs a Myanmar/English body here first, or Myanmar
+shop owners get Supabase's English default.
+
 ## Subjects
 
 - Change email — `All In One POS — အီးမေးလ်ပြောင်းလဲမှု အတည်ပြုရန် / Confirm email change`
@@ -35,8 +44,9 @@ current account email in Shop → Account before requesting another change.
 
 ## Delivery — Resend SMTP
 
-Template editing on this project's plan is unlocked only once custom SMTP is on,
-so SMTP comes first.
+Template editing is unlocked only once custom SMTP is on, so SMTP comes first.
+Confirmed on the live project 2026-10-07 — the Templates tab says outright
+"Set up custom SMTP to edit templates" and offers no editor until then.
 
 Sending domain `auth.allinonepos.app` is **verified** in Resend (added and
 verified 2026-10-05, DNS at Namecheap, sending region Tokyo `ap-northeast-1`,
