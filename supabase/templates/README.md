@@ -86,6 +86,12 @@ in practice, a wrong key. Note that Resend's API keys table shows each token
 **truncated** (`re_HNRufF8b…`); copying from there gives a value that is not the
 key, and the full one appears only once, at creation.
 
+**iOS data detectors.** Both templates carry a `format-detection` meta and an
+`a[x-apple-data-detectors]` style override. Without them iOS Mail turns the bare
+address in the account box into a blue underlined mailto link — a second
+tappable thing in a security mail, beside the one button that matters. Keep
+them if you edit the `<head>`.
+
 Do not turn off Secure email change to make delivery work. After SMTP and the
 templates are live, confirm real delivery and both-inbox completion with a
 designated owner. Already-sent emails keep their original layout.
