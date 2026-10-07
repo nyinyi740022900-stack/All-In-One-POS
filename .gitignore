@@ -50,6 +50,14 @@ env.local.json
 # MMPay sandbox keys, read only by tool/mmpay_sandbox_probe.ts
 mmpay.local.json
 
+# Any dotenv file, anywhere. The named rules above cover what exists today;
+# this one covers what someone adds at 2am. A local Supabase stack writes
+# supabase/functions/.env for `functions serve`, and that file holds the same
+# payment secrets as production.
+.env
+.env.*
+!.env.example
+
 # Android Play upload signing (never commit)
 android/key.properties
 *.jks
