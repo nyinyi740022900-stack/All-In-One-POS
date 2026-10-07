@@ -95,6 +95,18 @@
 				<string>mmpos</string>
 			</array>
 		</dict>
+		<!-- Google Sign-In returns to the app through the reversed iOS client
+		     id. It is a public OAuth client identifier, not a secret, and it
+		     must match GOOGLE_IOS_CLIENT_ID in env.local.json — the sign-in
+		     button is hidden on iOS when that define is absent. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.489533828390-n5rm9sg4paq87hod7dgjo3meh8doi5g2</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

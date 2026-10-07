@@ -1,10 +1,22 @@
 # Google and Apple login setup
 
-Provider buttons are disabled by default. As of 2026-10-05 the production
-Google provider and Android clients are configured. A real account sign-in
-still needs owner verification; the emulator check covered cancellation only.
-Google iOS and Apple configuration remain pending. The native packages are
-pinned to Google Sign-In 7.2.0 and Sign in with Apple 8.2.0.
+Provider buttons are disabled by default. **As of 2026-10-07 Google is
+configured on web, Android and iOS, and the consent screen is published.**
+Apple configuration remains pending. The native packages are pinned to
+Google Sign-In 7.2.0 and Sign in with Apple 8.2.0.
+
+**The thing that silently breaks everything:** the OAuth consent screen's
+publishing status. It sat at **Testing with zero test users**, which means
+*nobody* could sign in with Google — on any platform. The button rendered, the
+flow started, and Google refused the account. It is now **In production**, so
+any Google account works. If Google sign-in ever stops working for everyone at
+once, check Google Auth Platform → Audience first; nothing in this repo will
+show you that.
+
+Google Cloud project **`solid-groove-510702-p8`** ("All In One POS"), owned by a
+different Google account from the one that may be signed into a browser by
+default — the credentials page 404s with a permissions error under the wrong
+account, which looks like a missing project rather than a wrong login.
 
 ## Build configuration
 
@@ -58,9 +70,22 @@ ready; it cannot automatically verify the cloud console or signing profile.
    token verification in staging first. No extra Google data scopes or access
    authorization are requested by this app.
 
-No iOS Google callback scheme is shipped while its client ID is unknown. Android
-SDK configuration errors can surface as cancellation; persistent cancellation
-after account selection requires checking package/fingerprint/web-client setup.
+The iOS callback scheme **is** now shipped: `Info.plist` carries the reversed
+client ID beside the app's own `allinonepos`/`mmpos` schemes. Note the gate in
+`SocialAuthService.availableProviders` — on iOS the Google button is hidden
+unless `GOOGLE_IOS_CLIENT_ID` is non-empty, so a build made without
+`--dart-define-from-file=env.local.json` simply shows no button rather than
+failing at tap time. That is deliberate, and it is also the first thing to
+check when the button is missing.
+
+Android SDK configuration errors can surface as cancellation; persistent
+cancellation after account selection requires checking
+package/fingerprint/web-client setup.
+
+**Supabase needs nothing per-platform.** The Dart code passes
+`serverClientId: GOOGLE_WEB_CLIENT_ID`, so every ID token is minted for the web
+client regardless of platform, and that one client ID is already in the
+provider's Client IDs list. Do not add the iOS or Android client IDs there.
 
 ## Apple (native iOS only)
 
