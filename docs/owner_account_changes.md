@@ -167,3 +167,26 @@ Details tab alone only shows status 500, which tells you nothing.
 - **A real email change**, end to end, through both inboxes. Only the reset
   mail has actually been sent.
 - The superseded `All In One POS auth` key in Resend can be deleted.
+
+## Deliverability, after the second mail did not arrive (2026-10-07)
+
+The first test mail reached the inbox; a second, sent twenty minutes later, was
+reported **Delivered** by Resend and never appeared. That is the distinction
+worth holding onto: **Delivered means the receiving server accepted the
+message, not that it reached an inbox.**
+
+Resend's own per-message deliverability report named three causes, all real:
+
+| Flagged | Status |
+| --- | --- |
+| Include valid DMARC record | **Fixed** — TXT `_dmarc` on the root: `v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`, added at Namecheap and confirmed resolving |
+| Don't use "no-reply" | **Fixed** — sender changed from `noreply@` to `account@auth.allinonepos.app` |
+| Ensure link URLs match sending domain | **Open** — the mail comes from `auth.allinonepos.app` but its button points at `…supabase.co/auth/v1/verify`, which reads as phishing. Fixing it needs a Supabase custom auth domain, a paid add-on, so it is a cost decision |
+
+Changing the sender did not disturb the credential: the Password field states
+"Stored password is hidden. Enter a new password to replace it", and a send
+immediately after the change was Delivered, which confirms it.
+
+`p=none` only observes. Tighten to `quarantine` once the aggregate reports look
+clean — and the `rua` address needs a mailbox before those reports land
+anywhere, so that is worth setting up before relying on them.

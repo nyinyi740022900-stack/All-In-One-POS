@@ -56,7 +56,7 @@ Supabase → Authentication → Emails → SMTP Settings:
 
 | Field | Value |
 | --- | --- |
-| Sender email address | `noreply@auth.allinonepos.app` |
+| Sender email address | `account@auth.allinonepos.app` |
 | Sender name | `All In One POS` |
 | Host | `smtp.resend.com` |
 | Port | `587` |
@@ -66,31 +66,28 @@ Supabase → Authentication → Emails → SMTP Settings:
 Enabling custom SMTP raises the auth mail rate limit to 30/hour; raise it under
 Authentication → Rate Limits if real signups ever need more.
 
-**Known gap: no DMARC record.** Neither `_dmarc.auth.allinonepos.app` nor
-`_dmarc.allinonepos.app` resolves. SPF and DKIM alone deliver, but Gmail and
-Yahoo treat a missing DMARC policy as a negative signal. Add at Namecheap on the
-root domain, TXT, host `_dmarc`:
-`v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app` — start at `p=none`,
-watch the reports, tighten to `quarantine` later.
+**DMARC is published** (2026-10-07). TXT on the root, host `_dmarc`:
+`v=DMARC1; p=none; rua=mailto:dmarc@allinonepos.app`. It was added after
+Resend's own deliverability report on a sent message flagged its absence.
+`p=none` only reports; tighten to `quarantine` once the aggregate reports look
+clean — and note the `rua` address needs a mailbox for those reports to land
+anywhere.
 
-**Both templates are deployed and mail delivery works** (2026-10-07): a real
-reset-password mail was accepted by Supabase and reported Delivered by Resend,
-with the Myanmar subject intact.
+**Two deliverability items Resend still flags**, both real:
 
-If sending ever breaks, read the error before changing anything: Supabase →
-Logs → Auth → the `ERROR /recover` row → **Raw**, where the SMTP string sits in
-`event_message.error`. The Details tab shows only status 500. A `535
-"Authentication credentials invalid"` with **no** corresponding entry in
-Resend's own logs means the failure is SMTP AUTH, before Resend saw anything —
-in practice, a wrong key. Note that Resend's API keys table shows each token
-**truncated** (`re_HNRufF8b…`); copying from there gives a value that is not the
-key, and the full one appears only once, at creation.
+- ~~**"Don't use no-reply"**~~ **Fixed** — the sender is now
+  `account@auth.allinonepos.app`. Note that the Password field on that form
+  says "Stored password is hidden. Enter a new password to replace it", so the
+  key survives an edit to any other field; a send after the change confirmed it.
+- **"Ensure link URLs match sending domain"** — the mail is sent from
+  `auth.allinonepos.app` but its button points at
+  `…supabase.co/auth/v1/verify`, which reads as a phishing signal. Fixing this
+  properly needs a Supabase custom auth domain, which is a paid add-on, so it
+  is a cost decision rather than a configuration one.
 
-**iOS data detectors.** Both templates carry a `format-detection` meta and an
-`a[x-apple-data-detectors]` style override. Without them iOS Mail turns the bare
-address in the account box into a blue underlined mailto link — a second
-tappable thing in a security mail, beside the one button that matters. Keep
-them if you edit the `<head>`.
+These matter because **"Delivered" in Resend means the receiving server
+accepted the message, not that it reached an inbox** — the second test mail was
+reported Delivered and did not appear in the inbox.
 
 Do not turn off Secure email change to make delivery work. After SMTP and the
 templates are live, confirm real delivery and both-inbox completion with a
