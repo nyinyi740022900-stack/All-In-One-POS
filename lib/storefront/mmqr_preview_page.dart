@@ -286,8 +286,9 @@ class _Screens extends StatelessWidget {
   static const _shots = <(String, String)>[
     ('review/01_sell.jpg', 'Sell'),
     ('review/02_inventory.jpg', 'Inventory'),
-    ('review/03_orders.jpg', 'Orders'),
+    ('review/03_orders.jpg', 'Orders & invoices'),
     ('review/04_analytics.jpg', 'Reports'),
+    ('review/05_shop.jpg', 'Shop'),
   ];
 
   @override
@@ -302,7 +303,9 @@ class _Screens extends StatelessWidget {
           Text(
             'An offline-first point of sale for Myanmar small businesses — '
             'grocery shops, minimarts, pharmacies, phone shops. The screens '
-            'below are the real app, stocked with everyday goods.\n\n'
+            'below are the running app on a real shop: everyday goods, a '
+            'stock list, invoices and refunds, daily takings, and the '
+            'bookkeeping a shop owner needs.\n\n'
             'MyanMyanPay is never involved in what these shops sell. A shop\'s '
             'own customer pays the shop directly, to the shop\'s own KBZPay or '
             'Wave account, outside this system entirely. The only money that '
