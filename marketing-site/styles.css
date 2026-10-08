@@ -1,25 +1,24 @@
 /* ---------------------------------------------------------------
-   All In One POS — marketing site
-   Brand: deep forest green (#0F5C3E) on white / light-neutral,
-   matching the app's own token palette (lib/core/theme/app_theme.dart).
+   Brand: charcoal ink + ONE royal blue (#1F65D6) on pure white,
+   matching the app's token palette (lib/core/theme/app_theme.dart).
    --------------------------------------------------------------- */
 
 :root {
-  --brand: #0F5C3E;
-  --brand-dark: #0B3D29;
-  --brand-light: #1C7A54;
-  --brand-tint: #E3F3E9;
-  --ink: #12201A;
-  --muted: #5E6A65;
-  --bg: #FBFDFC;
+  --brand: #1F65D6;
+  --brand-dark: #174FAD;
+  --brand-light: #3B7FE8;
+  --brand-tint: #E8F0FD;
+  --ink: #111827;
+  --muted: #5B6785;
+  --bg: #FFFFFF;
   --surface: #FFFFFF;
-  /* Was #F2F7F4 — only a few RGB points off --bg (#FBFDFC), so
+  /* Was #F2F7F4 — only a few RGB points off --bg (#FFFFFF), so
      .section-tint bands read as plain white next to it. Deepened so the
      Hub-grid/How-it-works bands actually alternate against the page's
      other white sections instead of blending into one long white stretch. */
-  --surface-tint: #E7F1EC;
-  --border: #E1E8E4;
-  --shadow: 0 20px 50px -20px rgba(15, 92, 62, 0.25);
+  --surface-tint: #F4F6F8;
+  --border: #E3E7EE;
+  --shadow: 0 20px 50px -20px rgba(31, 101, 214, 0.25);
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -78,9 +77,9 @@ img { max-width: 100%; display: block; }
 .btn-primary {
   background: var(--brand);
   color: #fff;
-  box-shadow: 0 10px 30px -8px rgba(15, 92, 62, 0.55);
+  box-shadow: 0 10px 30px -8px rgba(31, 101, 214, 0.55);
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -8px rgba(15, 92, 62, 0.6); background: var(--brand-dark); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -8px rgba(31, 101, 214, 0.6); background: var(--brand-dark); }
 .btn-ghost {
   background: transparent;
   color: var(--brand-dark);
@@ -96,7 +95,7 @@ img { max-width: 100%; display: block; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(251, 253, 252, 0.75);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -152,7 +151,7 @@ img { max-width: 100%; display: block; }
 .lang-option.is-active {
   color: var(--brand-dark);
   background: var(--surface);
-  box-shadow: 0 1px 3px rgba(15, 92, 62, 0.12);
+  box-shadow: 0 1px 3px rgba(31, 101, 214, 0.12);
 }
 .lang-option:focus-visible {
   outline: 2px solid var(--brand);
@@ -233,7 +232,7 @@ html[lang="en"] .viber-fab { font-family: var(--font-en); }
   line-height: 1.4;
   text-align: center;
   border-radius: 14px;
-  box-shadow: 0 12px 32px -12px rgba(11, 61, 41, 0.55);
+  box-shadow: 0 12px 32px -12px rgba(23, 79, 173, 0.55);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -272,7 +271,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 .hero-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(6,20,14,0.55) 0%, rgba(6,20,14,0.72) 55%, rgba(6,20,14,0.88) 100%);
+  background: linear-gradient(180deg, rgba(11, 18, 38,0.55) 0%, rgba(11, 18, 38,0.72) 55%, rgba(11, 18, 38,0.88) 100%);
 }
 /* Bottom fade-mask — softens the cut into the next (white) section, the
    "smooth mask/transition between sections" step of the technique. */
@@ -310,7 +309,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .hero h1.on-photo, h2.on-photo { color: #fff; }
 .text-accent { color: var(--brand); position: relative; }
-.on-photo .text-accent { color: #8FE0B4; }
+.on-photo .text-accent { color: #8DB6FF; }
 .hero-sub {
   margin: 26px auto 0;
   max-width: 560px;
@@ -357,7 +356,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
   transform: translateX(-50%);
   width: 26px;
   height: 42px;
-  border: 2px solid rgba(15,92,62,0.35);
+  border: 2px solid rgba(31, 101, 214,0.35);
   border-radius: 999px;
   z-index: 2;
 }
@@ -541,7 +540,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
   letter-spacing: 0.04em;
   padding: 6px 16px;
   border-radius: 999px;
-  box-shadow: 0 8px 16px -6px rgba(15,92,62,0.5);
+  box-shadow: 0 8px 16px -6px rgba(31, 101, 214,0.5);
 }
 .plan-head { margin-bottom: 24px; }
 .plan-head h3 { font-size: 24px; font-weight: 800; color: var(--ink); }
@@ -569,7 +568,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
   background-position: center;
   background-size: 11px 11px;
 }
-.plan-card-premium .plan-list li { border-top-color: rgba(15,92,62,0.14); }
+.plan-card-premium .plan-list li { border-top-color: rgba(31, 101, 214,0.14); }
 .plan-link {
   display: inline-flex;
   align-items: center;
@@ -652,7 +651,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
   justify-content: center;
   font-weight: 800;
   font-size: 20px;
-  box-shadow: 0 12px 24px -8px rgba(15,92,62,0.5);
+  box-shadow: 0 12px 24px -8px rgba(31, 101, 214,0.5);
 }
 .step-body h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 .step-body p { color: var(--muted); font-size: 15px; max-width: 480px; }
@@ -673,7 +672,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 .photo-band-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(20,16,8,0.72) 0%, rgba(20,16,8,0.5) 32%, rgba(20,16,8,0.12) 62%, rgba(20,16,8,0) 78%);
+  background: linear-gradient(90deg, rgba(11, 18, 38,0.72) 0%, rgba(11, 18, 38,0.5) 32%, rgba(11, 18, 38,0.12) 62%, rgba(11, 18, 38,0) 78%);
 }
 .photo-band-content {
   position: relative;
@@ -688,7 +687,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 @media (max-width: 720px) {
   .photo-band { min-height: 52vh; }
   .photo-band-bg img { object-position: 60% center; }
-  .photo-band-scrim { background: linear-gradient(180deg, rgba(20,16,8,0.4) 0%, rgba(20,16,8,0.78) 55%, rgba(20,16,8,0.85) 100%); }
+  .photo-band-scrim { background: linear-gradient(180deg, rgba(11, 18, 38,0.4) 0%, rgba(11, 18, 38,0.78) 55%, rgba(11, 18, 38,0.85) 100%); }
 }
 
 /* ---------- download (cinematic full-bleed photo) ---------- */
@@ -701,7 +700,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
 .download-section > * { position: relative; max-width: 1180px; margin-left: auto; margin-right: auto; }
 .download-bg-layer { position: absolute; inset: -5%; width: 110%; height: 110%; z-index: 0; }
 .download-bg-layer picture, .download-bg-layer img { width: 100%; height: 100%; object-fit: cover; }
-.download-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,20,14,0.75), rgba(6,20,14,0.6) 45%, rgba(6,20,14,0.85)); }
+.download-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 18, 38,0.75), rgba(11, 18, 38,0.6) 45%, rgba(11, 18, 38,0.85)); }
 .download-section::before {
   content: '';
   position: absolute;
@@ -737,7 +736,7 @@ html[lang="en"] .viber-toast { font-family: var(--font-en); }
   border-color: rgba(255,255,255,0.18);
   backdrop-filter: blur(16px);
 }
-.download-card-glass.download-card-ready { background: rgba(143,224,180,0.14); border-color: rgba(143,224,180,0.4); }
+.download-card-glass.download-card-ready { background: rgba(110,162,255,0.14); border-color: rgba(110,162,255,0.4); }
 .download-card-glass h3 { color: #fff; }
 .download-card.download-card-glass p { color: rgba(255,255,255,0.75); }
 .dl-icon {

@@ -63,9 +63,9 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
     });
   }
 
-  let current = 'my';
+  let current = 'en';
   try {
-    current = localStorage.getItem(STORAGE_KEY) || 'my';
+    current = localStorage.getItem(STORAGE_KEY) || 'en';
   } catch (_) {}
   apply(current);
 
