@@ -3527,6 +3527,16 @@ class AppLocalizationsMy extends AppLocalizations {
   String get storefrontRenewHistoryEmpty => 'တောင်းဆိုမှု မရှိသေးပါ။';
 
   @override
+  String get storefrontRenewRegion => 'ဘယ်နိုင်ငံကနေ ပေးချေမှာလဲ?';
+
+  @override
+  String get storefrontRenewRegionOther => 'အခြားနိုင်ငံများ';
+
+  @override
+  String get storefrontRenewRegionHint =>
+      'ပေးချေနည်းများ ပြသရန် သင့်တည်နေရာကို ရွေးပါ။';
+
+  @override
   String get storefrontRenewCardTitle => 'ကတ်ဖြင့် ပေးချေမည် (နိုင်ငံတကာ)';
 
   @override

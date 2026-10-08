@@ -3519,6 +3519,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storefrontRenewHistoryEmpty => 'No requests yet.';
 
   @override
+  String get storefrontRenewRegion => 'Where are you paying from?';
+
+  @override
+  String get storefrontRenewRegionOther => 'Other countries';
+
+  @override
+  String get storefrontRenewRegionHint =>
+      'Select your location to see the available payment methods.';
+
+  @override
   String get storefrontRenewCardTitle => 'Pay by card (international)';
 
   @override

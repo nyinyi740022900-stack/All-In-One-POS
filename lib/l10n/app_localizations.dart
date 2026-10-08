@@ -6416,6 +6416,24 @@ abstract class AppLocalizations {
   /// **'No requests yet.'**
   String get storefrontRenewHistoryEmpty;
 
+  /// No description provided for @storefrontRenewRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you paying from?'**
+  String get storefrontRenewRegion;
+
+  /// No description provided for @storefrontRenewRegionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other countries'**
+  String get storefrontRenewRegionOther;
+
+  /// No description provided for @storefrontRenewRegionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your location to see the available payment methods.'**
+  String get storefrontRenewRegionHint;
+
   /// No description provided for @storefrontRenewCardTitle.
   ///
   /// In en, this message translates to:

@@ -85,6 +85,11 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   List<RenewalRequestSummary>? _myRequests;
   bool _loadingHistory = false;
 
+  /// `null` = not chosen yet, `'mm'` = Myanmar, `'intl'` = international.
+  /// Determines which payment options are visible: Myanmar shows MMQR +
+  /// manual local transfer; international shows the Lemon Squeezy card path.
+  String? _region;
+
   String _plan = 'monthly';
   String _method = 'kbzpay';
   bool _submitting = false;
@@ -224,6 +229,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       _shopId = null;
       _cardPayment = false;
       _mmqrPayment = false;
+      _region = null;
       _clientRequestId = null;
       _proofBytes = null;
       _proofName = null;
@@ -938,6 +944,45 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                     _loadAccountData();
                   },
           ),
+          const SizedBox(height: AppTheme.space4),
+          SectionHeader(title: l.storefrontRenewRegion),
+          const SizedBox(height: AppTheme.space2),
+          Row(
+            children: [
+              Expanded(
+                child: _RegionCard(
+                  flag: '🇲🇲',
+                  label: 'Myanmar',
+                  selected: _region == 'mm',
+                  onTap: _submitting
+                      ? null
+                      : () => setState(() => _region = 'mm'),
+                ),
+              ),
+              const SizedBox(width: AppTheme.space3),
+              Expanded(
+                child: _RegionCard(
+                  flag: '🌏',
+                  label: l.storefrontRenewRegionOther,
+                  selected: _region == 'intl',
+                  onTap: _submitting
+                      ? null
+                      : () => setState(() => _region = 'intl'),
+                ),
+              ),
+            ],
+          ),
+          if (_region == null) ...[
+            const SizedBox(height: AppTheme.space4),
+            Text(
+              l.storefrontRenewRegionHint,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          if (_region != null) ...[
           const SizedBox(height: AppTheme.space3),
           TextField(
             controller: _phone,
@@ -980,193 +1025,213 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             ],
             decoration: InputDecoration(labelText: l.storefrontRenewMonths),
           ),
-          if (_mmqrOrder != null) ...[
-            const SizedBox(height: AppTheme.space4),
-            MmqrCheckout(
-              order: _mmqrOrder!,
-              status: _mmqrStatus,
-              busy: _mmqrBusy,
-              onCancel: _cancelMmqr,
-              onStartAgain: _startMmqrAgain,
-            ),
-          ] else if (_mmqrPayment) ...[
-            const SizedBox(height: AppTheme.space4),
-            Card(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l.storefrontRenewMmqrTitle,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: AppTheme.space1),
-                    Text(
-                      l.storefrontRenewMmqrBody,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: AppTheme.space3),
-                    FilledButton.icon(
-                      onPressed: _mmqrBusy || _submitting || _shopId == null
-                          ? null
-                          : _payByMmqr,
-                      icon: _mmqrBusy
-                          ? const ButtonSpinner()
-                          : const Icon(Icons.qr_code_2),
-                      label: Text(l.storefrontRenewMmqrCta),
-                    ),
-                  ],
-                ),
+          // --- Myanmar: MMQR + manual local transfer ---
+          if (_region == 'mm') ...[
+            if (_mmqrOrder != null) ...[
+              const SizedBox(height: AppTheme.space4),
+              MmqrCheckout(
+                order: _mmqrOrder!,
+                status: _mmqrStatus,
+                busy: _mmqrBusy,
+                onCancel: _cancelMmqr,
+                onStartAgain: _startMmqrAgain,
               ),
-            ),
-          ],
-          // Hidden while an MMQR is live: MMPay's rules forbid any other
-          // currency sharing the surface with a live code, and the card path
-          // is priced in SGD.
-          if (_cardPayment && _mmqrOrder == null) ...[
-            const SizedBox(height: AppTheme.space4),
-            Card(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.space3),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l.storefrontRenewCardTitle,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: AppTheme.space1),
-                    Text(
-                      l.storefrontRenewCardBody,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: AppTheme.space3),
-                    FilledButton.icon(
-                      onPressed: _openingCheckout || _submitting
-                          ? null
-                          : _payByCard,
-                      icon: _openingCheckout
-                          ? const ButtonSpinner()
-                          : const Icon(Icons.credit_card),
-                      label: Text(l.storefrontRenewCardCta),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppTheme.space4),
-          SectionHeader(title: l.storefrontPayment),
-          if (_cardPayment && _mmqrOrder == null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppTheme.space2),
-              child: Text(
-                l.storefrontRenewLocalTransferHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'kbzpay', label: Text('KBZPay')),
-              ButtonSegment(value: 'wavepay', label: Text('WavePay')),
-            ],
-            selected: {_method},
-            onSelectionChanged: (s) => setState(() => _method = s.first),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          FutureBuilder<Map<String, String>>(
-            future: _paymentConfig,
-            builder: (context, snap) {
-              final cfg = snap.data;
-              if (cfg == null) return const SizedBox.shrink();
-              final name = _method == 'kbzpay'
-                  ? cfg['pay.kbzpay.name']
-                  : cfg['pay.wavepay.name'];
-              final number = _method == 'kbzpay'
-                  ? cfg['pay.kbzpay.number']
-                  : cfg['pay.wavepay.number'];
-              if ((number ?? '').isEmpty) return const SizedBox.shrink();
-              return Card(
+            ] else if (_mmqrPayment) ...[
+              const SizedBox(height: AppTheme.space4),
+              Card(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Padding(
                   padding: const EdgeInsets.all(AppTheme.space3),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(l.storefrontPayTo),
-                      const SizedBox(width: AppTheme.space2),
-                      Expanded(
-                        child: Text(
-                          (name ?? '').isEmpty ? number! : '$name · $number',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
+                      Text(
+                        l.storefrontRenewMmqrTitle,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.copy, size: 16),
-                        tooltip: l.storefrontCopyNumber,
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: number!));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l.storefrontNumberCopied)),
-                          );
-                        },
+                      const SizedBox(height: AppTheme.space1),
+                      Text(
+                        l.storefrontRenewMmqrBody,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: AppTheme.space3),
+                      FilledButton.icon(
+                        onPressed: _mmqrBusy || _submitting || _shopId == null
+                            ? null
+                            : _payByMmqr,
+                        icon: _mmqrBusy
+                            ? const ButtonSpinner()
+                            : const Icon(Icons.qr_code_2),
+                        label: Text(l.storefrontRenewMmqrCta),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _amount,
-            readOnly: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: l.storefrontRenewAmountPaid,
-              helperText: l.storefrontRenewAmountLockedHint,
-              helperMaxLines: 2,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _refNo,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
+              ),
             ],
-            decoration: InputDecoration(
-              labelText: l.storefrontRenewRefNo,
-              helperText: l.storefrontRenewRefNoHint,
-              helperMaxLines: 2,
+            const SizedBox(height: AppTheme.space4),
+            SectionHeader(title: l.storefrontPayment),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'kbzpay', label: Text('KBZPay')),
+                ButtonSegment(value: 'wavepay', label: Text('WavePay')),
+              ],
+              selected: {_method},
+              onSelectionChanged: (s) => setState(() => _method = s.first),
             ),
-          ),
-          const SizedBox(height: AppTheme.space3),
-          OutlinedButton.icon(
-            onPressed: _pickProof,
-            icon: const Icon(Icons.upload_file),
-            label: Text(
-              _proofName == null
-                  ? l.storefrontAttachProof
-                  : l.storefrontProofAttached(_proofName!),
+            const SizedBox(height: AppTheme.space3),
+            FutureBuilder<Map<String, String>>(
+              future: _paymentConfig,
+              builder: (context, snap) {
+                final cfg = snap.data;
+                if (cfg == null) return const SizedBox.shrink();
+                final name = _method == 'kbzpay'
+                    ? cfg['pay.kbzpay.name']
+                    : cfg['pay.wavepay.name'];
+                final number = _method == 'kbzpay'
+                    ? cfg['pay.kbzpay.number']
+                    : cfg['pay.wavepay.number'];
+                if ((number ?? '').isEmpty) return const SizedBox.shrink();
+                return Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.space3),
+                    child: Row(
+                      children: [
+                        Text(l.storefrontPayTo),
+                        const SizedBox(width: AppTheme.space2),
+                        Expanded(
+                          child: Text(
+                            (name ?? '').isEmpty ? number! : '$name · $number',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy, size: 16),
+                          tooltip: l.storefrontCopyNumber,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: number!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l.storefrontNumberCopied)),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
-          const SizedBox(height: AppTheme.space5),
-          FilledButton(
-            onPressed: _submitting ? null : _submit,
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.space2),
-              child: _submitting
-                  ? const ButtonSpinner()
-                  : Text(l.storefrontRenewSubmit),
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _amount,
+              readOnly: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: l.storefrontRenewAmountPaid,
+                helperText: l.storefrontRenewAmountLockedHint,
+                helperMaxLines: 2,
+              ),
             ),
-          ),
-          if ((_supportViber ?? '').isNotEmpty) ...[
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _refNo,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              decoration: InputDecoration(
+                labelText: l.storefrontRenewRefNo,
+                helperText: l.storefrontRenewRefNoHint,
+                helperMaxLines: 2,
+              ),
+            ),
+            const SizedBox(height: AppTheme.space3),
+            OutlinedButton.icon(
+              onPressed: _pickProof,
+              icon: const Icon(Icons.upload_file),
+              label: Text(
+                _proofName == null
+                    ? l.storefrontAttachProof
+                    : l.storefrontProofAttached(_proofName!),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space5),
+            FilledButton(
+              onPressed: _submitting ? null : _submit,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space2),
+                child: _submitting
+                    ? const ButtonSpinner()
+                    : Text(l.storefrontRenewSubmit),
+              ),
+            ),
+          ],
+          // --- International: Lemon Squeezy card ---
+          if (_region == 'intl') ...[
+            if (_cardPayment) ...[
+              const SizedBox(height: AppTheme.space4),
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l.storefrontRenewCardTitle,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: AppTheme.space1),
+                      Text(
+                        l.storefrontRenewCardBody,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: AppTheme.space3),
+                      FilledButton.icon(
+                        onPressed: _openingCheckout || _submitting
+                            ? null
+                            : _payByCard,
+                        icon: _openingCheckout
+                            ? const ButtonSpinner()
+                            : const Icon(Icons.credit_card),
+                        label: Text(l.storefrontRenewCardCta),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: AppTheme.space4),
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space4),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.credit_card_off,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: AppTheme.space2),
+                      Text(
+                        l.storefrontRenewCardUnavailable,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+          // Close the `if (_region != null)` block opened above.
+          ],
+          if (_region != null && (_supportViber ?? '').isNotEmpty) ...[
             const SizedBox(height: AppTheme.space3),
             Center(
               child: TextButton.icon(
@@ -1178,6 +1243,59 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Tappable region selection card with flag emoji and label.
+class _RegionCard extends StatelessWidget {
+  const _RegionCard({
+    required this.flag,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String flag;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        side: BorderSide(
+          color: selected ? scheme.primary : scheme.outlineVariant,
+          width: selected ? 2 : 1,
+        ),
+      ),
+      color: selected ? scheme.primaryContainer : scheme.surface,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: AppTheme.space4,
+            horizontal: AppTheme.space3,
+          ),
+          child: Column(
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 32)),
+              const SizedBox(height: AppTheme.space2),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
