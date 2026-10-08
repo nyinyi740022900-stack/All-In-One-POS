@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import 'mmqr_preview_page.dart';
 import 'renew_request_page.dart';
 import 'storefront_page.dart';
 
@@ -44,9 +45,18 @@ class _StorefrontAppState extends State<StorefrontApp> {
         : const Locale('my');
   }
 
-  bool get _isRenewPath =>
-      Uri.base.pathSegments.isNotEmpty &&
-      Uri.base.pathSegments.first == 'renew';
+  bool get _isRenewPath => _firstSegment == 'renew';
+
+  /// MyanMyanPay's compliance review has to see the MMQR surface, and the
+  /// real one is behind an owner sign-in *and* behind MMQR being configured,
+  /// which does not happen until the application is approved. Reserved like
+  /// `renew`, and safe for the same reason: `gen_storefront_slug()` always
+  /// appends a random suffix, so no shop can own this path.
+  bool get _isMmqrPreviewPath => _firstSegment == 'mmqr-preview';
+
+  String get _firstSegment => Uri.base.pathSegments.isEmpty
+      ? ''
+      : Uri.base.pathSegments.first;
 
   String get _slug {
     final uri = Uri.base;
@@ -98,6 +108,8 @@ class _StorefrontAppState extends State<StorefrontApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       home: _isRenewPath
           ? RenewRequestPage(locale: _locale, onToggleLocale: _toggleLocale)
+          : _isMmqrPreviewPath
+          ? MmqrPreviewPage(locale: _locale, onToggleLocale: _toggleLocale)
           : slug.isEmpty
           ? _NoSlug(locale: _locale, onToggleLocale: _toggleLocale)
           : StorefrontPage(

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/core/theme/app_theme.dart';
 import 'package:mm_pos/l10n/app_localizations.dart';
 import 'package:mm_pos/storefront/mmqr_checkout.dart';
+import 'package:mm_pos/storefront/mmqr_preview_page.dart';
 import 'package:mm_pos/storefront/storefront_api.dart';
 
 /// MyanMyanPay's compliance rules are a gate on taking money at all: an
@@ -198,6 +199,42 @@ void main() {
     expect(find.byType(BarcodeWidget), findsNothing);
     expect(find.text('Start again'), findsOneWidget);
   });
+
+  testWidgets(
+    'the compliance preview shows the real surface, not a lookalike',
+    (tester) async {
+      // The preview exists so MyanMyanPay can review a surface they cannot
+      // otherwise reach. A preview that drifted from the real one would be
+      // worse than none, so it must embed the actual widget — and carry the
+      // attribution verbatim, in Myanmar too.
+      for (final locale in [const Locale('en'), const Locale('my')]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(localeCode: locale.languageCode),
+            locale: locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MmqrPreviewPage(locale: locale, onToggleLocale: () {}),
+          ),
+        );
+        await tester.pump();
+        expect(find.byType(MmqrCheckout), findsOneWidget, reason: '$locale');
+        // On the surface itself, not merely named in the rules list below it.
+        expect(
+          find.descendant(
+            of: find.byType(MmqrCheckout),
+            matching: find.text('PAYMENT POWERED BY MYANMYANPAY'),
+          ),
+          findsOneWidget,
+          reason: '$locale',
+        );
+        expect(find.text('20,000 MMK'), findsOneWidget);
+        // A live-looking order on a page nobody should pay would be worse
+        // than no page: say so plainly.
+        expect(find.textContaining('not a live order'), findsOneWidget);
+      }
+    },
+  );
 
   group('MmqrStatus', () {
     test('maps MMPay\'s vocabulary, and anything unknown stays pending', () {
