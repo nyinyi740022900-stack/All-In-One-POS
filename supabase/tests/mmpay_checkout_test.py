@@ -15,12 +15,13 @@ OWNER = billing.OWNER
 MIGRATIONS = pathlib.Path(__file__).resolve().parents[1] / 'migrations'
 GUARD = MIGRATIONS / '0097_gateway_checkout_guard.sql'
 MMPAY = MIGRATIONS / '0098_mmpay_checkouts.sql'
+REUSE = MIGRATIONS / '0099_reclaim_expired_checkouts.sql'
 
 
 class MmqrCheckout(billing.Billing):
     def setUp(self):
         super().setUp()
-        for migration in (GUARD, MMPAY):
+        for migration in (GUARD, MMPAY, REUSE):
             if migration.exists():
                 self.sql(migration.read_text())
 
