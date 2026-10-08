@@ -104,9 +104,13 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   String? _proofExt;
   String? _proofName;
 
-  // Myanmar prices are fixed and independently enforced by the server.
-  final int _priceMonthly = 20000;
-  final int _priceYearly = 200000;
+  // Myanmar prices (Kyat) — fixed, independently enforced by the server.
+  final int _priceMonthlyMmk = 20000;
+  final int _priceYearlyMmk = 200000;
+
+  // International prices (SGD cents) — Lemon Squeezy handles the charge.
+  final int _priceMonthlyIntl = 499; // SGD 4.99
+  final int _priceYearlyIntl = 4990; // SGD 49.90
 
   // Shown both on the form and on the receipt right after submitting — the
   // moment a shop is most anxious to hear back is exactly while its request
@@ -179,7 +183,7 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// count up to the nearest whole year so a mid-year top-up (e.g. 18
   /// months) still charges a sane amount rather than under-charging.
   void _recalcAmount() {
-    _amount.text = '${_plan == 'yearly' ? _priceYearly : _priceMonthly}';
+    _amount.text = '${_plan == 'yearly' ? _priceYearlyMmk : _priceMonthlyMmk}';
   }
 
   Future<void> _signIn() async {
@@ -1004,27 +1008,40 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           ),
           Builder(
             builder: (context) {
-              final price = _plan == 'yearly' ? _priceYearly : _priceMonthly;
-              final text = _plan == 'yearly'
-                  ? l.storefrontRenewPricePerYear(_ks(l, price))
-                  : l.storefrontRenewPricePerMonth(_ks(l, price));
+              final String priceLabel;
+              if (_region == 'intl') {
+                final sgd = _plan == 'yearly' ? _priceYearlyIntl : _priceMonthlyIntl;
+                final formatted = 'SGD ${(sgd / 100).toStringAsFixed(2)}';
+                priceLabel = _plan == 'yearly'
+                    ? l.storefrontRenewPricePerYear(formatted)
+                    : l.storefrontRenewPricePerMonth(formatted);
+              } else {
+                final price = _plan == 'yearly' ? _priceYearlyMmk : _priceMonthlyMmk;
+                priceLabel = _plan == 'yearly'
+                    ? l.storefrontRenewPricePerYear(_ks(l, price))
+                    : l.storefrontRenewPricePerMonth(_ks(l, price));
+              }
               return Padding(
                 padding: const EdgeInsets.only(top: AppTheme.space1),
-                child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+                child: Text(priceLabel, style: Theme.of(context).textTheme.bodySmall),
               );
             },
           ),
-          const SizedBox(height: AppTheme.space3),
-          TextField(
-            controller: _months,
-            readOnly: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(2),
-            ],
-            decoration: InputDecoration(labelText: l.storefrontRenewMonths),
-          ),
+          // Months is only relevant for the Myanmar manual-transfer path;
+          // Lemon Squeezy handles its own billing cycle.
+          if (_region == 'mm') ...[
+            const SizedBox(height: AppTheme.space3),
+            TextField(
+              controller: _months,
+              readOnly: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              decoration: InputDecoration(labelText: l.storefrontRenewMonths),
+            ),
+          ],
           // --- Myanmar: MMQR + manual local transfer ---
           if (_region == 'mm') ...[
             if (_mmqrOrder != null) ...[

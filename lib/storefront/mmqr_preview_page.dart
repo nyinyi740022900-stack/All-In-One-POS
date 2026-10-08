@@ -100,6 +100,8 @@ class MmqrPreviewPage extends StatelessWidget {
                 const SizedBox(height: AppTheme.space4),
                 _Rules(theme: theme),
                 const SizedBox(height: AppTheme.space4),
+                _Screens(theme: theme),
+                const SizedBox(height: AppTheme.space4),
                 _Flow(theme: theme),
                 const SizedBox(height: AppTheme.space4),
                 Text(
@@ -268,6 +270,78 @@ class _Flow extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// What the app itself is, for the anti-money-laundering side of the review:
+/// an ordinary point of sale for ordinary shops. Served as static files from
+/// `web/review/`, so a reviewer needs nothing but a browser.
+class _Screens extends StatelessWidget {
+  const _Screens({required this.theme});
+  final ThemeData theme;
+
+  static const _shots = <(String, String)>[
+    ('review/01_sell.jpg', 'Sell'),
+    ('review/02_inventory.jpg', 'Inventory'),
+    ('review/03_orders.jpg', 'Orders'),
+    ('review/04_analytics.jpg', 'Reports'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(AppTheme.space3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('What the app is', style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppTheme.space2),
+          Text(
+            'An offline-first point of sale for Myanmar small businesses — '
+            'grocery shops, minimarts, pharmacies, phone shops. The screens '
+            'below are the real app, stocked with everyday goods.\n\n'
+            'MyanMyanPay is never involved in what these shops sell. A shop\'s '
+            'own customer pays the shop directly, to the shop\'s own KBZPay or '
+            'Wave account, outside this system entirely. The only money that '
+            'moves through MyanMyanPay is a shop owner buying our software '
+            'subscription — which is why create_mmqr accepts a plan and '
+            'nothing else, and only from a signed-in owner.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppTheme.space3),
+          SizedBox(
+            height: 320,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _shots.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(width: AppTheme.space3),
+              itemBuilder: (context, i) {
+                final (path, label) = _shots[i];
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        child: Image.network(
+                          path,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) =>
+                              const SizedBox(width: 140),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space1),
+                    Text(label, style: theme.textTheme.labelSmall),
+                  ],
+                );
+              },
+            ),
+          ),
         ],
       ),
     ),
