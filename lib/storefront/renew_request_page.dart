@@ -62,6 +62,12 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
   /// false until it says otherwise.
   bool _mmqrPayment = false;
 
+  /// The selected shop's live card subscription, when it has one. Null means
+  /// nothing to manage — which is also what a processor we cannot reach looks
+  /// like, so a status panel never blocks the page's real job of selling a
+  /// term.
+  CardSubscription? _cardSubscription;
+
   /// The live order, if any. While this is non-null the card option is hidden:
   /// MMPay forbids any other currency sharing the surface with a live MMQR.
   MmqrOrder? _mmqrOrder;
@@ -310,6 +316,14 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           : await _api.fetchMyRequests(selected);
       if (isCurrent() && _shopId == selected) {
         setState(() => _myRequests = rows);
+      }
+      // After the list, not with it: this one reaches the processor, and a
+      // slow answer must not hold up the page the owner came to use.
+      final card = selected == null
+          ? null
+          : await _api.cardSubscription(shopId: selected);
+      if (isCurrent() && _shopId == selected) {
+        setState(() => _cardSubscription = card);
       }
     } catch (_) {
       if (isCurrent()) {
@@ -945,10 +959,18 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
                       _myRequests = null;
                       _mmqrOrder = null;
                       _mmqrStatus = MmqrStatus.pending;
+                      _cardSubscription = null;
                     });
                     _loadAccountData();
                   },
           ),
+          if (_cardSubscription != null) ...[
+            const SizedBox(height: AppTheme.space4),
+            _CardSubscriptionPanel(
+              subscription: _cardSubscription!,
+              onManage: _openCardManagement,
+            ),
+          ],
           const SizedBox(height: AppTheme.space4),
           SectionHeader(title: l.storefrontRenewRegion),
           const SizedBox(height: AppTheme.space2),
@@ -1313,6 +1335,91 @@ class _RegionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The shop's card subscription, and the way out of it.
+///
+/// Shown whenever one exists, not only when a second purchase is refused.
+/// A recurring charge whose only visible exit is to try buying again and read
+/// a snackbar is the kind of thing people reasonably resent, and several app
+/// stores require a plain route to cancelling.
+class _CardSubscriptionPanel extends StatelessWidget {
+  const _CardSubscriptionPanel({
+    required this.subscription,
+    required this.onManage,
+  });
+
+  final CardSubscription subscription;
+  final void Function(Uri) onManage;
+
+  static String _date(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final cancelled = subscription.isCancelled;
+    final ends = subscription.endsAt;
+    final renews = subscription.renewsAt;
+    final String body;
+    if (subscription.status == 'past_due' || subscription.status == 'unpaid') {
+      body = l.storefrontRenewCardPastDue;
+    } else if (cancelled && ends != null) {
+      body = l.storefrontRenewCardCancelled(_date(ends));
+    } else if (!cancelled && renews != null) {
+      body = l.storefrontRenewCardRenews(_date(renews));
+    } else {
+      // A status with no date to show still gets the way out, which is the
+      // part that matters.
+      body = l.storefrontRenewCardCancelHint;
+    }
+    return Card(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.credit_card,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppTheme.space2),
+                Text(
+                  l.storefrontRenewCardActiveTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(body, style: theme.textTheme.bodySmall),
+            if (subscription.managementUrl != null) ...[
+              const SizedBox(height: AppTheme.space1),
+              Text(
+                l.storefrontRenewCardCancelHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppTheme.space3),
+              OutlinedButton.icon(
+                onPressed: () => onManage(subscription.managementUrl!),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: Text(l.storefrontRenewCardManageOrCancel),
+              ),
+            ],
+          ],
         ),
       ),
     );

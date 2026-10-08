@@ -16,6 +16,7 @@
 //                    payment_method ('transfer'|'cod'), payment_proof_path,
 //                    lines[], hp } -> { ok, order_no, items_total, lines[] }
 //   list_billing_shops {} -> { shops[], card_payment } (authenticated owner)
+//   card_subscription { shop_id } -> { active, status, renews_at, management_url }
 //   submit_license_request { shop_id, client_request_id, plan, method,
 //                    ref_no, phone?, payment_proof_path? } -> request receipt
 //                    Server selects price/duration; owner membership is required.
@@ -548,6 +549,83 @@ async function handleSubmitLicenseRequest(
 
 // The checkout binding is created only after ownership verification. A webhook
 // cannot grant time using customer-editable shop/device custom fields.
+/// What this shop's card subscription is doing, and where the owner cancels it.
+///
+/// A recurring charge the payer cannot see or stop is the thing people
+/// rightly resent, and until now the only route to Lemon Squeezy's customer
+/// portal was to attempt a second purchase and catch the refusal. This lets
+/// the page show the state and the exit without anyone guessing.
+///
+/// The portal URL is read live rather than stored: it is a signed, expiring
+/// link, so a copy kept in our table would be a dead link most of the time.
+async function handleCardSubscription(
+  admin: Admin,
+  body: Record<string, unknown>,
+  req: Request,
+): Promise<Response> {
+  const owner = await billingOwner(admin, req);
+  if (!owner) return json({ error: "not_authenticated" }, 401);
+  const shopId = `${body.shop_id ?? ""}`;
+  const shops = await billingShops(admin, owner);
+  if (!shops.some((s) => s.shop_id === shopId)) {
+    return json({ error: "forbidden" }, 403);
+  }
+  const apiKey = Deno.env.get("LEMONSQUEEZY_API_KEY");
+  const storeId = Deno.env.get("LEMONSQUEEZY_STORE_ID");
+  if (!apiKey || !storeId) return json({ active: false });
+  const { data: rows } = await admin.from("billing_checkouts")
+    .select("subscription_id").eq("shop_id", shopId)
+    .not("subscription_id", "is", null)
+    .order("created_at", { ascending: false }).limit(1);
+  const subscriptionId = `${rows?.[0]?.subscription_id ?? ""}`;
+  if (!subscriptionId) return json({ active: false });
+  let subscription;
+  try {
+    const response = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${
+        encodeURIComponent(subscriptionId)
+      }`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/vnd.api+json",
+        },
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    if (!response.ok) return json({ error: "checkout_unavailable" }, 502);
+    subscription = (await response.json())?.data?.attributes;
+  } catch {
+    return json({ error: "checkout_unavailable" }, 502);
+  }
+  let testMode: boolean;
+  try {
+    testMode = gatewayTestMode();
+  } catch {
+    return json({ error: "checkout_unavailable" }, 503);
+  }
+  // Someone else's subscription id in our row would otherwise hand this
+  // owner a portal link into another store's billing.
+  if (
+    `${subscription?.store_id}` !== storeId ||
+    subscription?.test_mode !== testMode
+  ) return json({ active: false });
+  const portal = subscription?.urls?.customer_portal;
+  const status = `${subscription?.status ?? ""}`;
+  return json({
+    // `cancelled` stays active until the paid period runs out, and the owner
+    // can resume from the same portal, so it is still worth showing.
+    active: status !== "expired",
+    status,
+    renews_at: subscription?.renews_at ?? null,
+    ends_at: subscription?.ends_at ?? null,
+    management_url: typeof portal === "string" &&
+        /^https:\/\/[^/]+\.lemonsqueezy\.com\//.test(portal)
+      ? portal
+      : null,
+  });
+}
+
 async function handleCheckout(
   admin: Admin,
   body: Record<string, unknown>,
@@ -1154,6 +1232,9 @@ Deno.serve(async (req) => {
       // project has no secrets to produce.
       mmqr_payment: mmpayAvailable(),
     });
+  }
+  if (action === "card_subscription") {
+    return handleCardSubscription(admin, body, req);
   }
   if (action === "create_checkout") return handleCheckout(admin, body, req);
   if (action === "create_mmqr") return handleCreateMmqr(admin, body, req);

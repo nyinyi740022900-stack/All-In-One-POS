@@ -4789,4 +4789,28 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontRenewMmqrRefreshSafe =>
       'ဤစာမျက်နှာမှ ထွက်လို့ရပါတယ် — ပြန်လာရင် ဒီအတိုင်း ရှိနေပါမယ်။';
+
+  @override
+  String get storefrontRenewCardActiveTitle => 'ကတ် subscription';
+
+  @override
+  String storefrontRenewCardRenews(String date) {
+    return '$date တွင် အလိုအလျောက် သက်တမ်းတိုးပါမည်။';
+  }
+
+  @override
+  String storefrontRenewCardCancelled(String date) {
+    return 'ရပ်ဆိုင်းပြီးပါပြီ။ $date အထိ Premium ဆက်ရှိနေပါမည်။';
+  }
+
+  @override
+  String get storefrontRenewCardPastDue =>
+      'နောက်ဆုံး ငွေဖြတ်မှု မအောင်မြင်ပါ။ Premium ဆက်သုံးရန် ကတ်ကို ပြင်ပါ။';
+
+  @override
+  String get storefrontRenewCardManageOrCancel => 'စီမံရန် / ရပ်ဆိုင်းရန်';
+
+  @override
+  String get storefrontRenewCardCancelHint =>
+      'ရပ်ဆိုင်းလိုက်ရင် နောက်တစ်ကြိမ် ငွေမဖြတ်တော့ပါ။ ပေးချေပြီးသား သက်တမ်းကတော့ ကျန်ရှိနေပါမည်။';
 }

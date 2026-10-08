@@ -4779,4 +4779,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontRenewMmqrRefreshSafe =>
       'Safe to leave this page — come back and it will still be here.';
+
+  @override
+  String get storefrontRenewCardActiveTitle => 'Card subscription';
+
+  @override
+  String storefrontRenewCardRenews(String date) {
+    return 'Renews automatically on $date.';
+  }
+
+  @override
+  String storefrontRenewCardCancelled(String date) {
+    return 'Cancelled. Premium stays on until $date.';
+  }
+
+  @override
+  String get storefrontRenewCardPastDue =>
+      'The last charge did not go through. Update your card to keep Premium.';
+
+  @override
+  String get storefrontRenewCardManageOrCancel => 'Manage or cancel';
+
+  @override
+  String get storefrontRenewCardCancelHint =>
+      'Cancelling stops the next charge. The time you have already paid for is kept.';
 }

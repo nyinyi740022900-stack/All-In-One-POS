@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   );
   const billingId = `${payload?.meta?.custom_data?.billing_id ?? ""}`;
   let query = admin.from("billing_checkouts").select(
-    "id, shop_id, variant_id, months, subscription_id",
+    "id, shop_id, variant_id, months, subscription_id, offered_terms",
   );
   query = billingId
     ? query.eq("id", billingId)
@@ -85,10 +85,18 @@ Deno.serve(async (req) => {
   );
   if (!response.ok) return json({ error: "processor_unavailable" }, 502);
   const subscription = (await response.json())?.data?.attributes;
+  // A reservation that was reused for a different plan keeps the terms it
+  // used to offer (0100). Accepting only the current variant here would 409
+  // an invoice for the superseded one before SQL ever saw it — the owner
+  // pays and gets nothing — so the subscription's own variant is what is
+  // checked, and what is passed on to be priced.
+  const paidVariant = `${subscription?.variant_id ?? ""}`;
+  const offered = (checkout.offered_terms ?? {}) as Record<string, unknown>;
   if (
     `${subscription?.store_id}` !== storeId ||
     subscription?.test_mode !== expectedTestMode ||
-    `${subscription?.variant_id}` !== checkout.variant_id
+    (paidVariant !== checkout.variant_id &&
+      !Object.hasOwn(offered, paidVariant))
   ) return json({ error: "checkout_variant_mismatch" }, 409);
   const { data: result, error: fulfillError } = await admin.rpc(
     "fulfill_gateway_payment",
@@ -96,7 +104,7 @@ Deno.serve(async (req) => {
       p_checkout_id: checkout.id,
       p_subscription_id: subscriptionId,
       p_invoice_id: invoiceId,
-      p_variant_id: checkout.variant_id,
+      p_variant_id: paidVariant,
     },
   );
   if (fulfillError) return json({ error: "payment_not_fulfilled" }, 500);

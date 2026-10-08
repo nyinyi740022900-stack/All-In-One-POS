@@ -2142,5 +2142,17 @@
       }
     }
   },
-  "storefrontRenewMmqrRefreshSafe": "Safe to leave this page — come back and it will still be here."
+  "storefrontRenewMmqrRefreshSafe": "Safe to leave this page — come back and it will still be here.",
+  "storefrontRenewCardActiveTitle": "Card subscription",
+  "@storefrontRenewCardRenews": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "storefrontRenewCardRenews": "Renews automatically on {date}.",
+  "@storefrontRenewCardCancelled": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "storefrontRenewCardCancelled": "Cancelled. Premium stays on until {date}.",
+  "storefrontRenewCardPastDue": "The last charge did not go through. Update your card to keep Premium.",
+  "storefrontRenewCardManageOrCancel": "Manage or cancel",
+  "storefrontRenewCardCancelHint": "Cancelling stops the next charge. The time you have already paid for is kept."
 }

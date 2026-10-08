@@ -368,6 +368,40 @@ class StorefrontApi {
     );
   }
 
+  /// What this shop's card subscription is doing, and where to cancel it.
+  ///
+  /// Returns null when there is nothing to manage — no subscription, or a
+  /// processor this project has no keys for. A failure to reach the processor
+  /// also returns null rather than throwing: the renewal page's primary job is
+  /// selling a term, and it must not be blocked by a status panel.
+  Future<CardSubscription?> cardSubscription({required String shopId}) async {
+    try {
+      final response = await _c.functions.invokeBounded(
+        'storefront',
+        body: {'action': 'card_subscription', 'shop_id': shopId},
+      );
+      final data = response.data;
+      if (data is! Map || data['active'] != true) return null;
+      // Absent, malformed or pointing anywhere but the processor all collapse
+      // to no link, rather than a button that leads somewhere unexpected.
+      final uri = Uri.tryParse('${data['management_url'] ?? ''}');
+      final portal =
+          uri != null &&
+              uri.scheme == 'https' &&
+              uri.host.endsWith('.lemonsqueezy.com')
+          ? uri
+          : null;
+      return CardSubscription(
+        status: '${data['status'] ?? ''}',
+        renewsAt: DateTime.tryParse('${data['renews_at'] ?? ''}'),
+        endsAt: DateTime.tryParse('${data['ends_at'] ?? ''}'),
+        managementUrl: portal,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Starts an international card purchase for [shopId] and returns the
   /// processor's hosted checkout URL.
   ///
@@ -545,6 +579,32 @@ class StorefrontApi {
 }
 
 /// The shops an owner may pay for, and whether card payment is on offer.
+/// An active card subscription, as the processor reports it right now.
+class CardSubscription {
+  const CardSubscription({
+    required this.status,
+    this.renewsAt,
+    this.endsAt,
+    this.managementUrl,
+  });
+
+  /// The processor's own word: active, on_trial, past_due, cancelled, paused.
+  final String status;
+
+  /// When it charges again. Null once cancelled — [endsAt] applies instead.
+  final DateTime? renewsAt;
+
+  /// When a cancelled subscription stops. The term already paid for is not
+  /// cut short, so this is a date in the future, not an ending today.
+  final DateTime? endsAt;
+
+  /// The processor's signed customer portal, where the owner cancels, resumes
+  /// or changes the card. Expires, so it is fetched per visit, never stored.
+  final Uri? managementUrl;
+
+  bool get isCancelled => status == 'cancelled';
+}
+
 class BillingShops {
   const BillingShops({
     required this.shops,

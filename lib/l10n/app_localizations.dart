@@ -8587,6 +8587,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Safe to leave this page — come back and it will still be here.'**
   String get storefrontRenewMmqrRefreshSafe;
+
+  /// No description provided for @storefrontRenewCardActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Card subscription'**
+  String get storefrontRenewCardActiveTitle;
+
+  /// No description provided for @storefrontRenewCardRenews.
+  ///
+  /// In en, this message translates to:
+  /// **'Renews automatically on {date}.'**
+  String storefrontRenewCardRenews(String date);
+
+  /// No description provided for @storefrontRenewCardCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled. Premium stays on until {date}.'**
+  String storefrontRenewCardCancelled(String date);
+
+  /// No description provided for @storefrontRenewCardPastDue.
+  ///
+  /// In en, this message translates to:
+  /// **'The last charge did not go through. Update your card to keep Premium.'**
+  String get storefrontRenewCardPastDue;
+
+  /// No description provided for @storefrontRenewCardManageOrCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage or cancel'**
+  String get storefrontRenewCardManageOrCancel;
+
+  /// No description provided for @storefrontRenewCardCancelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling stops the next charge. The time you have already paid for is kept.'**
+  String get storefrontRenewCardCancelHint;
 }
 
 class _AppLocalizationsDelegate
