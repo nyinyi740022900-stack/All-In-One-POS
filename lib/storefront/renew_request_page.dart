@@ -486,7 +486,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
       final url = await _api.createCheckout(shopId: shopId, plan: _plan);
       if (!await launchUrl(
         Uri.parse(url),
-        mode: LaunchMode.externalApplication,
+        mode: LaunchMode.platformDefault,
+        webOnlyWindowName: '_self',
       )) {
         throw Exception('launch_failed');
       }
@@ -530,7 +531,8 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
 
   Future<void> _openCardManagement(Uri url) async {
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (!await launchUrl(url,
+          mode: LaunchMode.platformDefault, webOnlyWindowName: '_self')) {
         throw const FormatException('launch_failed');
       }
     } catch (_) {
