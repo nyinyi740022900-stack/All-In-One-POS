@@ -10,7 +10,7 @@ MIGRATIONS = pathlib.Path(__file__).resolve().parents[1] / 'migrations'
 # 0098 comes along because 0099's reuse rule reads `provider`: the guard only
 # relaxes for a card reservation, never an MMQR one.
 LAYERED = ('0097_gateway_checkout_guard', '0098_mmpay_checkouts',
-           '0099_reclaim_expired_checkouts')
+           '0099_reclaim_expired_checkouts', '0100_reuse_across_plan_change')
 
 
 class CheckoutGuard(billing.Billing):
@@ -89,18 +89,38 @@ class CheckoutGuard(billing.Billing):
         self.assertFalse(again['reserved'])
         self.assertEqual(again['checkout']['subscription_id'], '99')
 
-    def test_reuse_keeps_the_term_it_was_reserved_for(self):
-        """A late invoice names its variant, and fulfilment rejects a mismatch.
-
-        Repurposing a dead monthly reservation as a yearly one would therefore
-        lose that payment, so a changed plan keeps the old refusal instead.
-        """
+    def test_a_dead_monthly_reservation_can_be_switched_to_yearly(self):
         import json
-        self.reserve()
+        first = self.reserve()['checkout']['id']
         self.sql("update billing_checkouts set checkout_expires_at=now()-interval '2 hours'")
         yearly = json.loads(self.sql(f"select reserve_gateway_checkout('a','{OWNER}','11',12)").stdout)
-        self.assertFalse(yearly['reserved'])
-        self.assertEqual(yearly['checkout']['variant_id'], '10')
+        self.assertTrue(yearly['reserved'])
+        self.assertEqual(yearly['checkout']['id'], first)
+        self.assertEqual(yearly['checkout']['variant_id'], '11')
+        self.assertEqual(yearly['checkout']['months'], 12)
+        self.assertEqual(self.sql('select count(*) from billing_checkouts').stdout.strip(), '1')
+
+    def test_a_late_invoice_for_the_superseded_plan_pays_out_at_its_own_term(self):
+        """The reason 0099 refused a plan change, now handled instead of avoided.
+
+        A monthly invoice arriving after the row became yearly must buy a
+        month. Granting a year for it would be worse than refusing it.
+        """
+        first = self.reserve()['checkout']['id']
+        self.sql("update billing_checkouts set checkout_expires_at=now()-interval '2 hours'")
+        self.sql(f"select reserve_gateway_checkout('a','{OWNER}','11',12)")
+        # The row really is yearly now — otherwise this proves nothing.
+        self.assertEqual(self.sql("select variant_id||':'||months from billing_checkouts").stdout.strip(), '11:12')
+        before = self.sql("select expires_at from shop_subscriptions where shop_id='a'").stdout.strip()
+        self.sql(f"select fulfill_gateway_payment('{first}','99','late-monthly','10')")
+        granted = self.sql("select months from shop_subscription_payments where payment_id='lemonsqueezy:invoice:late-monthly'").stdout.strip()
+        self.assertEqual(granted, '1')
+        self.assertNotEqual(before, self.sql("select expires_at from shop_subscriptions where shop_id='a'").stdout.strip())
+
+    def test_a_variant_this_row_never_offered_is_still_refused(self):
+        first = self.reserve()['checkout']['id']
+        self.assertIn('checkout_variant_mismatch',
+                      self.sql(f"select fulfill_gateway_payment('{first}','99','invoice1','77')", False).stderr)
 
     def test_an_mmqr_reservation_is_never_reused_on_age_alone(self):
         """MyanMyanPay publishes no TTL: a QR from an hour ago may still pay."""
