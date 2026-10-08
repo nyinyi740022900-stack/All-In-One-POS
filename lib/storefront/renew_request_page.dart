@@ -893,7 +893,6 @@ class _RenewRequestPageState extends State<RenewRequestPage> {
           ),
           const SizedBox(height: AppTheme.space3),
           _accountSection(l),
-          if (_loadingHistory) const Center(child: ButtonSpinner()),
           if (_shops?.isEmpty == true) Text(l.billingNoShops),
           if (_signInError != null) Text(_signInError!),
           if (Supabase.instance.client.auth.currentSession != null)
