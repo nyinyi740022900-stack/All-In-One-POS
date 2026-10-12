@@ -33,17 +33,47 @@ Deno.serve(async (req) => {
   // ships inside the app. Nothing here is for a customer: only the schedule,
   // holding the service-role key, has any business starting a mail run.
   if (!isServiceRole(req)) return json({ error: "forbidden" }, 403);
+
+  // Supabase's scheduler caps its HTTP timeout at 5s, and a batch of mails
+  // will outgrow that. The request would still be delivered and the mail
+  // still sent — but every run would be recorded as a timeout, and a job
+  // history that always reads "failed" hides the day something really does.
+  // So the work is handed to the runtime and the schedule gets its answer
+  // immediately. `?wait=1` keeps the old blocking behaviour for a human
+  // checking it by hand, which is the only time the counts are worth waiting for.
+  const run = sendDueReminders();
+  if (new URL(req.url).searchParams.get("wait") === "1") {
+    const summary = await run;
+    return json(summary, summary.error ? 503 : 200);
+  }
+  EdgeRuntime.waitUntil(
+    run.then((s) => console.log("expiry reminders:", JSON.stringify(s))),
+  );
+  return json({ ok: true, accepted: true }, 202);
+});
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+
+interface Summary {
+  ok?: boolean;
+  error?: string;
+  claimed?: number;
+  sent?: number;
+  failed?: number;
+}
+
+async function sendDueReminders(): Promise<Summary> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   // Fail loudly rather than claiming notices it cannot then send: a claim
   // without a mail is a reminder silently swallowed for good.
-  if (!apiKey) return json({ error: "mail_not_configured" }, 503);
+  if (!apiKey) return { error: "mail_not_configured" };
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
   const { data, error } = await admin.rpc("claim_expiry_notices", { p_limit: 200 });
-  if (error) return json({ error: "server_error" }, 500);
+  if (error) return { error: "server_error" };
   const due = (data ?? []) as Due[];
 
   let sent = 0;
@@ -83,8 +113,8 @@ Deno.serve(async (req) => {
       failed.push(row.shop_id);
     }
   }
-  return json({ ok: true, claimed: due.length, sent, failed: failed.length });
-});
+  return { ok: true, claimed: due.length, sent, failed: failed.length };
+}
 
 /// Bilingual, like every other mail this project sends: Myanmar first,
 /// English under it. Says what lapses and what does not — a shop that keeps
