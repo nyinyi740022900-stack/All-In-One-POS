@@ -1381,11 +1381,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more). Pay on our website or ask Support on Viber — Premium applies to your shop account on its own, with no key to type in.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get helpGuideSettingsBodyNoCommerce =>
-      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once a Premium license is active on this device or on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
+      '1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once Premium is active on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.';
 
   @override
   String get settingsTrackStock => 'Track stock';
@@ -2012,12 +2012,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expenseDeleted => 'Expense deleted';
 
   @override
-  String get licenseActivateTitle => 'Activate license';
-
-  @override
-  String get licenseKeyLabel => 'License key';
-
-  @override
   String get licenseActivateBtn => 'Activate';
 
   @override
@@ -2047,18 +2041,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'This shop isn\'t set up yet, so you can\'t complete a sale.';
 
   @override
-  String get licenseInvalidKey => 'Invalid or unknown license key.';
-
-  @override
   String get licenseActivateFailed =>
       'Activation failed. Check your connection.';
 
   @override
   String get licenseRateLimited =>
       'Too many attempts — please wait a few minutes and try again.';
-
-  @override
-  String get licenseActivated => 'License activated';
 
   @override
   String get licenseRenewTitle => 'Record renewal payment';
@@ -2076,9 +2064,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseRefNo => 'Reference no.';
 
   @override
-  String get licensePayTo => 'Transfer license fee to:';
-
-  @override
   String get licenseTxnId => 'Transaction ID (last 6 digits)';
 
   @override
@@ -2091,13 +2076,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get licenseFixConnectionSuccess =>
       'Connection fixed — please try again.';
-
-  @override
-  String get licenseDeactivate => 'Remove license';
-
-  @override
-  String get licenseDeactivateConfirm =>
-      'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.';
 
   @override
   String get licensePlanLabel => 'Plan';
@@ -2235,12 +2213,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unitYears => 'years';
 
   @override
-  String get licenseGetKey => 'Enter the key you received when you subscribed.';
-
-  @override
-  String get licenseHaveKeyTitle => 'Already have a license key?';
-
-  @override
   String get licensePaymentProofLabel => 'Payment screenshot (optional)';
 
   @override
@@ -2253,25 +2225,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenseNoKeyTitle => 'Don\'t have a key?';
 
   @override
-  String get licenseNoKeyHint =>
-      'Contact Support on Viber with your App Reference ID — they will send a license key. Then activate it below.';
-
-  @override
   String get licenseContactSupportTitle => 'Contact Support';
 
   @override
-  String get licensePremiumContactHint =>
-      'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.';
-
-  @override
-  String get licensePremiumContactHintOnline =>
-      'Premium for Online shops is unlocked on your shop account by Support (no license key to type). Copy the Viber number, send the email you use to sign in, and ask to upgrade or renew. No payment is collected inside this app.';
-
-  @override
   String get licenseSubscribe => 'Subscribe';
-
-  @override
-  String get licenseGetKeyTitle => 'Get license key';
 
   @override
   String get licenseOnlineApplyHint =>
@@ -2426,11 +2383,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceSectionTitle => 'Devices';
 
   @override
-  String deviceAddOnlineHint(int free) {
-    return 'This phone is included and does not count. Extra phones or computers: sign in with an owner or staff email, then tap Check for renewal. No license key. You can use $free extras (a phone and a computer each count as one). Support can allow more after the free 2.';
-  }
-
-  @override
   String get premiumFeatureBodyOnline =>
       'Core sales, inventory, cash register, expenses, suppliers and customer credit remain available on Free. This feature requires Premium on your shop account.';
 
@@ -2515,9 +2467,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invWebFreeHint =>
       'Cloud invoice access requires Premium. Your local invoices in the mobile app remain available on Free.';
-
-  @override
-  String get invWebKeySection => 'Have an Offline device key?';
 
   @override
   String get invWebKeyLabel => 'Device key';
@@ -3642,9 +3591,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sell and Inventory work forever — no card, no signup, no account. Premium adds cloud sync, detailed reports and staff, and is managed from your shop account. If you already have one, sign in on the next page.';
 
   @override
-  String get onboardActivateNow => 'Activate a license key';
-
-  @override
   String get onboardAccountTitle => 'Email account (optional)';
 
   @override
@@ -4212,10 +4158,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardModeOfflineTitle => 'Offline';
 
   @override
-  String get onboardModeOfflineBody =>
-      'Start free with Sell + Inventory, no account needed. Add a license key anytime to unlock Premium.';
-
-  @override
   String get onboardModeOnlineTitle => 'Online';
 
   @override
@@ -4236,10 +4178,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardModeOnlineBullets =>
       '• Sign in with email on any device\n• Staff accounts, branches, and cloud sync\n• Free plan available; Premium unlocks more online features';
-
-  @override
-  String get onboardModeOfflineBullets =>
-      '• Sell without an account or internet\n• License key lives on this device\n• Free plan available; Premium via a key — no multi-device account features';
 
   @override
   String get onboardOnlineTitle => 'Create your shop account';
@@ -4282,10 +4220,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get modeMigrateSuggestOnline =>
       'Suggested: Online (account / cloud features)';
-
-  @override
-  String get modeMigrateSuggestOffline =>
-      'Suggested: Offline (this device + license key)';
 
   @override
   String get modeMigrateConfirm => 'Confirm and continue';
@@ -4403,9 +4337,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptSubmittedAt => 'Submitted';
-
-  @override
-  String get receiptYourKey => 'Your licence key';
 
   @override
   String get receiptSaveLink => 'Save this link to check the status later.';

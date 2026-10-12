@@ -1376,11 +1376,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get helpGuideSettingsBody =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"Premium\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — App Reference ID နဲ့ Support ဆက်သွယ်ပြီး license key ရယူပါ (app ထဲတွင် ငွေမကောက်ပါ)။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"Premium\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ဖွင့်ချင်ရင် \"Upgrade\" ကို နှိပ်ပါ — ကျွန်ုပ်တို့ website မှာ ပေးချေပါ သို့မဟုတ် Viber မှ Support ကို ပြောပါ။ Premium က ဆိုင် account ပေါ်မှာ အလိုအလျောက် ရောက်ပါမယ် — key ရိုက်ထည့်စရာ မလိုပါ။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get helpGuideSettingsBodyNoCommerce =>
-      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"Premium\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ကတော့ ဒီ device (သို့) ဆိုင် account ပေါ်မှာ Premium လိုင်စင် active ဖြစ်တာနဲ့ အလိုအလျောက် ပွင့်ပါမယ်။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
+      '၁။ \"ဆိုင်အချက်အလက်\" — ပြေစာနှင့် storefront ပေါ်မှာ ပြသမည့် ဆိုင်နာမည်၊ လိုဂို၊ လိပ်စာ၊ ဆက်သွယ်ရန် အချက်အလက်။\n၂။ \"ပရင်တာ\"/Label printer — Bluetooth (သို့) Wi-Fi ဖြင့် ပြေစာပရင်တာ (သို့) label printer ချိတ်ဆက်ရန် (ကွန်ပျူတာမှာ USB ကြိုးလည်း သုံးနိုင်)။\n၃။ \"Premium\" — Free plan က Key/Account လုံးဝမလိုဘဲ အမြဲအသုံးပြုနိုင်ပါတယ် (ရောင်းချမှု၊ ကုန်ပစ္စည်း၊ ငွေဒရာဝါ၊ ကုန်ကျစရိတ်၊ ရောင်းဝယ်ဖက်များ၊ အကြွေးစာရင်း စသဖြင့်)။ Premium features (Analytics၊ Staff accounts စသည်) ကတော့ ဆိုင် account ပေါ်မှာ Premium active ဖြစ်တာနဲ့ အလိုအလျောက် ပွင့်ပါမယ်။\n၄။ \"အကောင့်\" — email/password နဲ့ ဝင်မည်၊ သို့မဟုတ် ဆိုင် login ဖန်တီးမည်။ ပိုင်ရှင်ရော ဝန်ထမ်းပါ ဒီမှာ ထွက်နိုင်ပါတယ်။ Owner အဖြစ် ဝင်ထားရင် အကောင့် ဖျက်နိုင်ပါတယ်။ Password မေ့သွားရင် Sign-in screen ပေါ်က \"Forgot password?\" ကို နှိပ်ပါ။\n၅။ \"My web storefront\" — Online ဆိုင် ဖွင့်ရန်နှင့် KBZPay/WavePay ငွေလွှဲအချက်အလက် သတ်မှတ်ရန်။\n၆။ \"Owner Tools\" — ဒီ device ကို staff တစ်ဦးဆီ လွှဲပေးရန်၊ (သို့) PIN နဲ့ Owner ပြန်ပြောင်းရန်။ Email login ဝင်ထားသည်ဖြစ်စေ၊ မဝင်ထားသည်ဖြစ်စေ အသုံးပြုနိုင်ပါတယ်။\n၇။ \"Sync\" — cloud နှင့် ချိတ်ဆက်မှု စစ်ဆေးရန်၊ (သို့) ချက်ချင်း sync ပြန်လုပ်ရန်။\n၈။ ဒီ screen ရဲ့ အပေါ်ဆုံးက dropdown ကနေ မြန်မာ/English ဘာသာစကားကို အချိန်မရွေး ပြောင်းနိုင်ပါတယ်။';
 
   @override
   String get settingsTrackStock => 'Stock စီမံ';
@@ -2012,12 +2012,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get expenseDeleted => 'ကုန်ကျစရိတ် ဖျက်ပြီးပါပြီ';
 
   @override
-  String get licenseActivateTitle => 'လိုင်စင် အသက်သွင်း';
-
-  @override
-  String get licenseKeyLabel => 'လိုင်စင် key';
-
-  @override
   String get licenseActivateBtn => 'အသက်သွင်း';
 
   @override
@@ -2047,17 +2041,11 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဆိုင်အချက်အလက် မပြည့်သေးလို့ ရောင်းချမှု မပြီးနိုင်ပါ။';
 
   @override
-  String get licenseInvalidKey => 'လိုင်စင် key မမှန်ကန်ပါ။';
-
-  @override
   String get licenseActivateFailed => 'အသက်သွင်း၍ မရပါ။ အင်တာနက် စစ်ဆေးပါ။';
 
   @override
   String get licenseRateLimited =>
       'ကြိုးစားမှု အကြိမ်ကြိမ် များနေပါတယ် — မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်ကြိုးစားပါ။';
-
-  @override
-  String get licenseActivated => 'လိုင်စင် အသက်သွင်းပြီးပါပြီ';
 
   @override
   String get licenseRenewTitle => 'သက်တမ်းတိုး ငွေပေးချေမှု မှတ်တမ်း';
@@ -2075,9 +2063,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseRefNo => 'ကိုးကားနံပါတ်';
 
   @override
-  String get licensePayTo => 'လိုင်စင်ကြေး ဤသို့ လွှဲပါ:';
-
-  @override
   String get licenseTxnId => 'Transaction ID (နောက်ဆုံး ၆ လုံး)';
 
   @override
@@ -2090,13 +2075,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get licenseFixConnectionSuccess =>
       'Connection ပြင်ပြီးပါပြီ — ထပ်စမ်းကြည့်ပါ။';
-
-  @override
-  String get licenseDeactivate => 'လိုင်စင် ဖယ်ရှား';
-
-  @override
-  String get licenseDeactivateConfirm =>
-      'ဒီ device ကနေ လိုင်စင် ဖယ်မှာလား? ကုန်ဆုံးရက် အတူတူ ဆက်ရှိနေမယ် — key အတူတူ ပြန် activate ရင် ရက်မပျောက်၊ အစက ပြန်မစပါဘူး။ ဒီအကြားမှာ ဒီ device က Free plan ကို ပြောင်းသွားမှာမို့ ရောင်းချမှု + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှု ဆက်အလုပ်လုပ်ပါလိမ့်မယ်။';
 
   @override
   String get licensePlanLabel => 'အစီအစဉ်';
@@ -2245,12 +2223,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get unitYears => 'နှစ်';
 
   @override
-  String get licenseGetKey => 'စာရင်းသွင်းစဉ်က ရရှိသော key ကို ထည့်ပါ။';
-
-  @override
-  String get licenseHaveKeyTitle => 'License key ရပြီးသားလား?';
-
-  @override
   String get licensePaymentProofLabel => 'ငွေလွှဲ Screenshot (မထည့်လည်းရ)';
 
   @override
@@ -2263,25 +2235,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get licenseNoKeyTitle => 'Key မရှိသေးဘူးလား?';
 
   @override
-  String get licenseNoKeyHint =>
-      'App Reference ID နဲ့ Support Viber ကို ဆက်သွယ်ပါ — license key ပို့ပေးပါမယ်။ ပြီးရင် အောက်မှာ activate လုပ်ပါ။';
-
-  @override
   String get licenseContactSupportTitle => 'Support ဆက်သွယ်ရန်';
 
   @override
-  String get licensePremiumContactHint =>
-      'Premium ကို app အပြင် Support က ဖွင့်ပေးသည် (license key သို့မဟုတ် Online account)။ Viber နံပါတ် ကူးပြီး App Reference ID ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
-
-  @override
-  String get licensePremiumContactHintOnline =>
-      'Online ဆိုင်အတွက် Premium ကို Support က သင့် shop account ပေါ်မှာ ဖွင့်ပေးသည် (license key ရိုက်စရာမလို)။ Viber နံပါတ် ကူးပြီး sign-in သုံးတဲ့ email ပို့ကာ upgrade/renew တောင်းပါ။ ငွေပေးချေမှုကို ဤ app ထဲတွင် မကောက်ပါ။';
-
-  @override
   String get licenseSubscribe => 'အသင်းဝင်မည်';
-
-  @override
-  String get licenseGetKeyTitle => 'License Key ယူရန်';
 
   @override
   String get licenseOnlineApplyHint =>
@@ -2438,11 +2395,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get deviceSectionTitle => 'Device များ';
 
   @override
-  String deviceAddOnlineHint(int free) {
-    return 'ဒီဖုန်းကို မရေပါ။ ဖုန်း/ကွန်ပျူတာ အပို: owner သို့မဟုတ် staff email နဲ့ sign in ဝင်ပြီး Check for renewal နှိပ်ပါ။ Key မလိုပါ။ အပို $free လုံး သုံးနိုင်ပါတယ် (ဖုန်းနဲ့ ကွန်ပျူတာ တူတူပဲ)။ အခမဲ့ ၂ လုံးကျော်ရင် Support က ခွင့်ပြုပေးပါတယ်။';
-  }
-
-  @override
   String get premiumFeatureBodyOnline =>
       'Free တွင် အခြေခံအရောင်း၊ ကုန်ပစ္စည်း၊ ငွေစာရင်း၊ အသုံးစရိတ်၊ ပေးသွင်းသူနှင့် ဖောက်သည်အကြွေးကို ဆက်အသုံးပြုနိုင်ပါသည်။ ဤလုပ်ဆောင်ချက်အတွက် ဆိုင်အကောင့်တွင် Premium လိုအပ်ပါသည်။';
 
@@ -2527,9 +2479,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get invWebFreeHint =>
       'Cloud ပြေစာများ အသုံးပြုရန် Premium လိုအပ်ပါသည်။ ဖုန်းအက်ပ်ထဲရှိ ပြေစာများကို Free ဖြင့် ဆက်ကြည့်နိုင်ပါသည်။';
-
-  @override
-  String get invWebKeySection => 'Offline device key ရှိပါသလား?';
 
   @override
   String get invWebKeyLabel => 'စက်ပစ္စည်း သော့';
@@ -3649,9 +3598,6 @@ class AppLocalizationsMy extends AppLocalizations {
       'ရောင်းချ + ကုန်ပစ္စည်းကို Card မလို၊ sign up မလို၊ အကောင့်မလိုဘဲ အမြဲသုံးနိုင်ပါတယ်။ Premium က cloud sync၊ အသေးစိတ်အစီရင်ခံစာနှင့် ဝန်ထမ်းစီမံမှုတို့ကို ထပ်ပေးပြီး ဆိုင်အကောင့်ကနေ စီမံပါတယ်။ အကောင့်ရှိပြီးသားဆိုရင် နောက်စာမျက်နှာမှာ Sign in နှိပ်ပါ။';
 
   @override
-  String get onboardActivateNow => 'License key ချက်ချင်း activate';
-
-  @override
   String get onboardAccountTitle => 'Email အကောင့် (မလုပ်လည်းရ)';
 
   @override
@@ -4217,10 +4163,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get onboardModeOfflineTitle => 'အော့ဖ်လိုင်း';
 
   @override
-  String get onboardModeOfflineBody =>
-      'ရောင်းချ + ကုန်ပစ္စည်းစီမံခန့်ခွဲမှုနဲ့ Account မလိုဘဲ အခမဲ့ စတင်နိုင်ပါတယ်။ Premium ဖွင့်ချင်ရင် License key ကို အချိန်မရွေး ထည့်နိုင်ပါတယ်။';
-
-  @override
   String get onboardModeOnlineTitle => 'အွန်လိုင်း';
 
   @override
@@ -4240,10 +4182,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get onboardModeOnlineBullets =>
       '• Device မရွေး email နဲ့ ဝင်နိုင်\n• ဝန်ထမ်းအကောင့်၊ ဆိုင်ခွဲ၊ cloud sync\n• Free ရပါတယ်။ Premium က online feature ပိုဖွင့်ပေး';
-
-  @override
-  String get onboardModeOfflineBullets =>
-      '• Account / အင်တာနက် မလိုဘဲ ရောင်းနိုင်\n• License key က ဒီစက်ပေါ်မှာ\n• Free ရပါတယ်။ Premium က key နဲ့ — multi-device account feature မပါ';
 
   @override
   String get onboardOnlineTitle => 'ဆိုင် Account ဖန်တီးပါ';
@@ -4286,10 +4224,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get modeMigrateSuggestOnline =>
       'အကြံပြုချက်: Online (account / cloud)';
-
-  @override
-  String get modeMigrateSuggestOffline =>
-      'အကြံပြုချက်: Offline (ဒီစက် + license key)';
 
   @override
   String get modeMigrateConfirm => 'အတည်ပြုပြီး ဆက်မည်';
@@ -4407,9 +4341,6 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get receiptSubmittedAt => 'တင်သွင်းသည့်ရက်';
-
-  @override
-  String get receiptYourKey => 'သင့် License Key';
 
   @override
   String get receiptSaveLink =>

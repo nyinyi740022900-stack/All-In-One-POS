@@ -2603,13 +2603,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpGuideSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more) — contact Support with your App Reference ID for a license key (no payment inside the app).\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Tap \"Upgrade\" to unlock Premium features (Analytics, Staff accounts, and more). Pay on our website or ask Support on Viber — Premium applies to your shop account on its own, with no key to type in.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBody;
 
   /// No description provided for @helpGuideSettingsBodyNoCommerce.
   ///
   /// In en, this message translates to:
-  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once a Premium license is active on this device or on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
+  /// **'1. \"Shop profile\" — your shop name, logo, address, and contact info, shown on receipts and your storefront.\n2. \"Printer\"/\"Label printer\" — connect a receipt or label printer over Bluetooth or Wi-Fi (and USB cable on a computer).\n3. \"Premium\" — the Free plan works forever, no key or account needed (Sell, Inventory, Cash Register, Expenses, Suppliers, Credit book, and more). Premium features (Analytics, Staff accounts, and more) unlock automatically once Premium is active on your shop account.\n4. \"Account\" — sign in with email + password, or create a shop login. Staff and owners both sign out here. Delete account is available when signed in as owner. Forgot your password? Tap \"Forgot password?\" on the sign-in screen.\n5. \"My web storefront\" — turn on your online shop and set your KBZPay/WavePay payment details.\n6. \"Owner Tools\" — hand this device to a staff member, or switch back to Owner with your PIN. Works with or without an email login.\n7. \"Sync\" — check your connection to the cloud, or force an immediate sync.\n8. Switch the app\'s language between English and Myanmar any time, from the dropdown at the top of this screen.'**
   String get helpGuideSettingsBodyNoCommerce;
 
   /// No description provided for @settingsTrackStock.
@@ -3788,18 +3788,6 @@ abstract class AppLocalizations {
   /// **'Expense deleted'**
   String get expenseDeleted;
 
-  /// No description provided for @licenseActivateTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Activate license'**
-  String get licenseActivateTitle;
-
-  /// No description provided for @licenseKeyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'License key'**
-  String get licenseKeyLabel;
-
   /// No description provided for @licenseActivateBtn.
   ///
   /// In en, this message translates to:
@@ -3848,12 +3836,6 @@ abstract class AppLocalizations {
   /// **'This shop isn\'t set up yet, so you can\'t complete a sale.'**
   String get licenseReadOnly;
 
-  /// No description provided for @licenseInvalidKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid or unknown license key.'**
-  String get licenseInvalidKey;
-
   /// No description provided for @licenseActivateFailed.
   ///
   /// In en, this message translates to:
@@ -3865,12 +3847,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Too many attempts — please wait a few minutes and try again.'**
   String get licenseRateLimited;
-
-  /// No description provided for @licenseActivated.
-  ///
-  /// In en, this message translates to:
-  /// **'License activated'**
-  String get licenseActivated;
 
   /// No description provided for @licenseRenewTitle.
   ///
@@ -3902,12 +3878,6 @@ abstract class AppLocalizations {
   /// **'Reference no.'**
   String get licenseRefNo;
 
-  /// No description provided for @licensePayTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer license fee to:'**
-  String get licensePayTo;
-
   /// No description provided for @licenseTxnId.
   ///
   /// In en, this message translates to:
@@ -3931,18 +3901,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connection fixed — please try again.'**
   String get licenseFixConnectionSuccess;
-
-  /// No description provided for @licenseDeactivate.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove license'**
-  String get licenseDeactivate;
-
-  /// No description provided for @licenseDeactivateConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove the license from this device? Your expiry date is kept — re-activating the same key later won\'t lose any days or restart it. This device switches to the Free plan meanwhile, so Sell and Inventory keep working.'**
-  String get licenseDeactivateConfirm;
 
   /// No description provided for @licensePlanLabel.
   ///
@@ -4184,18 +4142,6 @@ abstract class AppLocalizations {
   /// **'years'**
   String get unitYears;
 
-  /// No description provided for @licenseGetKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the key you received when you subscribed.'**
-  String get licenseGetKey;
-
-  /// No description provided for @licenseHaveKeyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Already have a license key?'**
-  String get licenseHaveKeyTitle;
-
   /// No description provided for @licensePaymentProofLabel.
   ///
   /// In en, this message translates to:
@@ -4220,41 +4166,17 @@ abstract class AppLocalizations {
   /// **'Don\'t have a key?'**
   String get licenseNoKeyTitle;
 
-  /// No description provided for @licenseNoKeyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact Support on Viber with your App Reference ID — they will send a license key. Then activate it below.'**
-  String get licenseNoKeyHint;
-
   /// No description provided for @licenseContactSupportTitle.
   ///
   /// In en, this message translates to:
   /// **'Contact Support'**
   String get licenseContactSupportTitle;
 
-  /// No description provided for @licensePremiumContactHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Premium is unlocked by Support outside the app (license key or Online account). Copy the Viber number, send your App Reference ID, and ask to upgrade or renew. No payment is collected inside this app.'**
-  String get licensePremiumContactHint;
-
-  /// No description provided for @licensePremiumContactHintOnline.
-  ///
-  /// In en, this message translates to:
-  /// **'Premium for Online shops is unlocked on your shop account by Support (no license key to type). Copy the Viber number, send the email you use to sign in, and ask to upgrade or renew. No payment is collected inside this app.'**
-  String get licensePremiumContactHintOnline;
-
   /// No description provided for @licenseSubscribe.
   ///
   /// In en, this message translates to:
   /// **'Subscribe'**
   String get licenseSubscribe;
-
-  /// No description provided for @licenseGetKeyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Get license key'**
-  String get licenseGetKeyTitle;
 
   /// No description provided for @licenseOnlineApplyHint.
   ///
@@ -4508,12 +4430,6 @@ abstract class AppLocalizations {
   /// **'Devices'**
   String get deviceSectionTitle;
 
-  /// No description provided for @deviceAddOnlineHint.
-  ///
-  /// In en, this message translates to:
-  /// **'This phone is included and does not count. Extra phones or computers: sign in with an owner or staff email, then tap Check for renewal. No license key. You can use {free} extras (a phone and a computer each count as one). Support can allow more after the free 2.'**
-  String deviceAddOnlineHint(int free);
-
   /// No description provided for @premiumFeatureBodyOnline.
   ///
   /// In en, this message translates to:
@@ -4657,12 +4573,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cloud invoice access requires Premium. Your local invoices in the mobile app remain available on Free.'**
   String get invWebFreeHint;
-
-  /// No description provided for @invWebKeySection.
-  ///
-  /// In en, this message translates to:
-  /// **'Have an Offline device key?'**
-  String get invWebKeySection;
 
   /// No description provided for @invWebKeyLabel.
   ///
@@ -6620,12 +6530,6 @@ abstract class AppLocalizations {
   /// **'Sell and Inventory work forever — no card, no signup, no account. Premium adds cloud sync, detailed reports and staff, and is managed from your shop account. If you already have one, sign in on the next page.'**
   String get onboardLicenseBody;
 
-  /// No description provided for @onboardActivateNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Activate a license key'**
-  String get onboardActivateNow;
-
   /// No description provided for @onboardAccountTitle.
   ///
   /// In en, this message translates to:
@@ -7598,12 +7502,6 @@ abstract class AppLocalizations {
   /// **'Offline'**
   String get onboardModeOfflineTitle;
 
-  /// No description provided for @onboardModeOfflineBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Start free with Sell + Inventory, no account needed. Add a license key anytime to unlock Premium.'**
-  String get onboardModeOfflineBody;
-
   /// No description provided for @onboardModeOnlineTitle.
   ///
   /// In en, this message translates to:
@@ -7639,12 +7537,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'• Sign in with email on any device\n• Staff accounts, branches, and cloud sync\n• Free plan available; Premium unlocks more online features'**
   String get onboardModeOnlineBullets;
-
-  /// No description provided for @onboardModeOfflineBullets.
-  ///
-  /// In en, this message translates to:
-  /// **'• Sell without an account or internet\n• License key lives on this device\n• Free plan available; Premium via a key — no multi-device account features'**
-  String get onboardModeOfflineBullets;
 
   /// No description provided for @onboardOnlineTitle.
   ///
@@ -7717,12 +7609,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggested: Online (account / cloud features)'**
   String get modeMigrateSuggestOnline;
-
-  /// No description provided for @modeMigrateSuggestOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Suggested: Offline (this device + license key)'**
-  String get modeMigrateSuggestOffline;
 
   /// No description provided for @modeMigrateConfirm.
   ///
@@ -7945,12 +7831,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Submitted'**
   String get receiptSubmittedAt;
-
-  /// No description provided for @receiptYourKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Your licence key'**
-  String get receiptYourKey;
 
   /// No description provided for @receiptSaveLink.
   ///
