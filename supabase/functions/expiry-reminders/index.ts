@@ -29,6 +29,10 @@ interface Due {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  // JWT verification alone would let the *anon* key run this, and that key
+  // ships inside the app. Nothing here is for a customer: only the schedule,
+  // holding the service-role key, has any business starting a mail run.
+  if (!isServiceRole(req)) return json({ error: "forbidden" }, 403);
   const apiKey = Deno.env.get("RESEND_API_KEY");
   // Fail loudly rather than claiming notices it cannot then send: a claim
   // without a mail is a reminder silently swallowed for good.
@@ -134,6 +138,24 @@ function compose(row: Due): { subject: string; html: string } {
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
+
+/// True only for a service-role JWT. The claim is read from the token the
+/// platform has already verified, so this is a role check, not a second
+/// signature check.
+function isServiceRole(req: Request): boolean {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const body = token.split(".")[1];
+  if (!body) return false;
+  try {
+    const pad = body.length % 4 ? "=".repeat(4 - (body.length % 4)) : "";
+    const claims = JSON.parse(
+      atob(body.replace(/-/g, "+").replace(/_/g, "/") + pad),
+    );
+    return claims?.role === "service_role";
+  } catch {
+    return false;
+  }
 }
 
 function json(body: unknown, status = 200): Response {
