@@ -17,7 +17,8 @@ MIGRATIONS = sorted((ROOT / 'supabase/migrations').glob('[0-9]*.sql'))
 ACCOUNT_MIGRATIONS = ('0094_account_premium', '0095_account_billing', '0096_social_accounts',
                       '0097_gateway_checkout_guard', '0098_mmpay_checkouts',
                       '0099_reclaim_expired_checkouts',
-                      '0100_reuse_across_plan_change')
+                      '0100_reuse_across_plan_change',
+                      '0101_expiry_notices')
 
 # What a hosted Supabase project already has before the first project migration
 # runs. This is a stand-in for the platform, not a project migration: only the

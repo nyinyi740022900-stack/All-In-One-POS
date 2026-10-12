@@ -145,3 +145,4 @@ jobs:
           supabase.tests.migration_rollback_test
           supabase.tests.gateway_checkout_test
           supabase.tests.mmpay_checkout_test
+          supabase.tests.expiry_notice_test

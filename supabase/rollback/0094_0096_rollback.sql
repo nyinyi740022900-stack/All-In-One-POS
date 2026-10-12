@@ -28,6 +28,9 @@ begin;
 -- those functions, so dropping the functions first is refused.  Nothing from
 -- 0093 references these tables, so the cascade only reaches the new objects'
 -- own dependants.
+-- 0101's bookkeeping. It references shop_subscriptions, so it has to go
+-- before that table does.
+drop table if exists shop_expiry_notices cascade;
 drop table if exists social_reauth_proofs cascade;
 drop table if exists billing_checkouts cascade;
 drop table if exists shop_subscription_payments cascade;
@@ -52,7 +55,8 @@ begin
       'register_shop_device', 'reject_account_payment', 'release_shop_device',
       'renew_shop_subscription', 'resolve_social_account', 'start_account_trial',
       'reserve_gateway_checkout', 'close_gateway_checkout',
-      'reserve_mmpay_checkout', 'close_mmpay_checkout', 'fulfill_mmpay_payment')
+      'reserve_mmpay_checkout', 'close_mmpay_checkout', 'fulfill_mmpay_payment',
+      'claim_expiry_notices', 'release_expiry_notice', 'expiry_days_left')
   loop
     execute format('drop function %s cascade', fn.sig);
   end loop;
