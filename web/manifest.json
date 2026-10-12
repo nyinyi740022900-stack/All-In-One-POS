@@ -3,9 +3,9 @@
     "short_name": "All In One POS",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "All In One POS — offline-first point of sale for Myanmar shops.",
+    "background_color": "#1E63DB",
+    "theme_color": "#1E63DB",
+    "description": "All In One POS \u2014 offline-first point of sale for Myanmar shops.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
