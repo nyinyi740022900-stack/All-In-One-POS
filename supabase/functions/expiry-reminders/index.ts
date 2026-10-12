@@ -10,7 +10,12 @@
 // for an anonymous caller.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FROM = Deno.env.get("REMINDER_FROM") ?? "All In One POS <noreply@allinonepos.app>";
+// The sender that actually passes: `auth.allinonepos.app` is the subdomain
+// carrying SPF, DKIM and DMARC, and the local part moved off "no-reply"
+// when the deliverability work was done. The apex domain is not set up
+// to send, so defaulting there is what made the first live run fail.
+const FROM = Deno.env.get("REMINDER_FROM") ??
+  "All In One POS <account@auth.allinonepos.app>";
 
 interface Due {
   shop_id: string;
@@ -56,9 +61,15 @@ Deno.serve(async (req) => {
           html: mail.html,
         }),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) {
+        // The processor's own words, not a bare status: a rejected sender or
+        // an unverified domain is otherwise indistinguishable from a timeout,
+        // and the first live run cost exactly that diagnosis.
+        throw new Error(`${res.status} ${(await res.text()).slice(0, 300)}`);
+      }
       sent++;
-    } catch {
+    } catch (error) {
+      console.error(`expiry reminder for ${row.shop_id} failed:`, error);
       // Hand the claim back so tomorrow retries it, rather than leaving a
       // reminder that was recorded as sent and never was.
       await admin.rpc("release_expiry_notice", {
