@@ -73,3 +73,6 @@ supabase/.branches/
 
 # FVM Version Cache
 .fvm/
+# Signed store artifacts, kept out of build/ so a disk cleanup cannot take
+# an AAB that has not been uploaded yet. Never commit these.
+/release/
