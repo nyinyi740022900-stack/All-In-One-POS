@@ -62,9 +62,18 @@ A `.tstep`'s screenshot sits in a `.phone-shot` frame; if the referenced
 image 404s, `script.js` adds `.img-missing` and CSS shows a dashed
 placeholder ("Screenshot ထည့်ရန် စောင့်နေသည်") instead of a broken-image
 icon — so a page stays presentable even before every screenshot exists.
-Three slots are still placeholders pending a screenshot: `sell/01-grid.jpg`
-(product grid), `expenses/01-add.jpg` (add-expense dialog),
-`customers/02-add.jpg` (add-customer dialog).
+
+**The whole set was re-shot on 2026-10-15** (the previous one dated from
+2026-08-26, before the green → blue rebrand and the Premium/account rework,
+so every image showed a UI that no longer exists). All 46 slots are filled.
+They were captured on an iPhone 17 Pro simulator running a store build
+(`flutter build ios --simulator`, no `COMMERCE_UI`), signed in to a real
+Premium shop, so the Premium screen shows the store-build variant — no
+prices, no trial button. The two customer-facing storefront shots came from
+`shop.allinonepos.app` in a 375×812 browser viewport instead.
+
+Account emails are **blurred** in `license/02`, `license/03`, `staff/01` and
+`staff/02`; keep them blurred when re-shooting, since this site is public.
 
 ### Adding a tutorial screenshot
 
