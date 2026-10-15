@@ -159,14 +159,17 @@ class _AdminRevenueChart extends StatelessWidget {
                       ),
                     ),
             ),
-            SizedBox(
-              height: 180,
-              child: maxY == 0
-                  ? const EmptyStateView(
-                      icon: Icons.bar_chart_outlined,
-                      title: 'No confirmed payments yet.',
-                    )
-                  : BarChart(
+            // Sizes itself; a fixed box clips it once the font grows (the
+            // same trim that bit the app's own revenue chart).
+            if (maxY == 0)
+              const EmptyStateView(
+                icon: Icons.bar_chart_outlined,
+                title: 'No confirmed payments yet.',
+              )
+            else
+              SizedBox(
+                height: 180,
+                child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY.toDouble() * 1.15,
@@ -238,7 +241,7 @@ class _AdminRevenueChart extends StatelessWidget {
                         ],
                       ),
                     ),
-            ),
+              ),
           ],
         ),
       ),

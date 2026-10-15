@@ -470,13 +470,23 @@ class _GlanceCell extends StatelessWidget {
                     size: 12,
                     color: change >= 0 ? colors.success : colors.warning,
                   ),
-                  Text(
-                    l.analyticsTrendVsPrevious(
-                      change >= 0 ? '+' : '-',
-                      change.round().abs(),
-                    ),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: change >= 0 ? colors.success : colors.warning,
+                  // The Flexible is load-bearing. The strip sizes its three
+                  // cells with an IntrinsicHeight, which asks each cell how
+                  // tall it is at the WHOLE strip's width — where this
+                  // sentence fits on one line — and then lays it out in a
+                  // third of that, where it wraps. An inflexible Text is
+                  // measured at its unbounded width, so the row overflowed by
+                  // however much it wrapped (44px on the 7- and 30-day
+                  // ranges); a flexible one is measured at the width it gets.
+                  Flexible(
+                    child: Text(
+                      l.analyticsTrendVsPrevious(
+                        change >= 0 ? '+' : '-',
+                        change.round().abs(),
+                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: change >= 0 ? colors.success : colors.warning,
+                      ),
                     ),
                   ),
                 ],
@@ -647,14 +657,19 @@ class _RevenueChartCard extends ConsumerWidget {
                       ),
                     ),
             ),
-            SizedBox(
-              height: labelMode == _ChartLabelMode.none ? 160 : 180,
-              child: maxY == 0
-                  ? EmptyStateView(
-                      icon: Icons.bar_chart_outlined,
-                      title: l.analyticsNoData,
-                    )
-                  : labelMode == _ChartLabelMode.sparseDay
+            // The empty state sizes itself. Boxing it to the chart's height
+            // clipped it — its plate, gap and title come to a few pixels more
+            // than 160, and more again at a large system font — while the
+            // chart itself does need a fixed height to draw into.
+            if (maxY == 0)
+              EmptyStateView(
+                icon: Icons.bar_chart_outlined,
+                title: l.analyticsNoData,
+              )
+            else
+              SizedBox(
+                height: labelMode == _ChartLabelMode.none ? 160 : 180,
+                child: labelMode == _ChartLabelMode.sparseDay
                   ? SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: SizedBox(
@@ -663,7 +678,7 @@ class _RevenueChartCard extends ConsumerWidget {
                       ),
                     )
                   : _chart(context, theme, scheme, currency, locale),
-            ),
+              ),
             if (labelMode == _ChartLabelMode.sparseDay) ...[
               const SizedBox(height: AppTheme.space1),
               Text(

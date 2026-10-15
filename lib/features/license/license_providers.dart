@@ -255,6 +255,22 @@ class LicenseController extends StateNotifier<LicenseState>
   Future<bool> continueFree() async {
     final current = await _repo.current();
     if (current != null) {
+      // Already Free on this device: adopt that shop instead of minting a
+      // second one. Nothing is being left behind, so none of the switching
+      // below applies. Re-running onboarding (quit the app before finishing
+      // it, and it starts again) went wrong both ways through it: with the
+      // payment accounts seeded on first launch still in the outbox (they
+      // drain only once a cloud account exists) it dead-ended on "Something
+      // went wrong" forever; with an empty outbox it minted a new Free shop
+      // and reopened the per-shop database for it, silently stranding the
+      // owner's sales and stock in the old file. It also repairs a
+      // controller that came up without the cached licence, since `load()`
+      // only ever runs once.
+      if (current.plan == LicensePlan.free) {
+        await _reopenShopDbIfNeeded(current.shopId);
+        await _apply(current);
+        return true;
+      }
       final db = _ref.read(databaseProvider);
       final pending = await db.select(db.outbox).get();
       if (pending.isNotEmpty) return false;

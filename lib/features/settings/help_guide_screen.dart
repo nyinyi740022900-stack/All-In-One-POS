@@ -4,9 +4,9 @@ import '../../core/build_flags.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Static, offline, bilingual walkthrough of what each of the app's six main
-/// tabs does — reached from Settings > Help. No state, no backend; content
-/// lives entirely in the ARB files like the rest of the app's UI text.
+/// Static, offline, bilingual walkthrough of the app, in the order the tabs
+/// and sub-tabs appear — reached from Shop > Help. No state, no backend;
+/// content lives entirely in the ARB files like the rest of the app's UI text.
 class HelpGuideScreen extends StatelessWidget {
   const HelpGuideScreen({super.key});
 
@@ -16,19 +16,23 @@ class HelpGuideScreen extends StatelessWidget {
     final sections = [
       (l.helpGuideSellTitle, l.helpGuideSellBody, Icons.point_of_sale),
       (l.helpGuideInventoryTitle, l.helpGuideInventoryBody, Icons.inventory_2),
-      (l.helpGuideOrdersTitle, l.helpGuideOrdersBody, Icons.receipt_long),
+      // The Orders tab's two sub-tabs, in its order: Invoices, then Social
+      // Orders.
       (l.helpGuideInvoicesTitle, l.helpGuideInvoicesBody, Icons.description),
+      (l.helpGuideOrdersTitle, l.helpGuideOrdersBody, Icons.receipt_long),
       (l.helpGuideAnalyticsTitle, l.helpGuideAnalyticsBody, Icons.bar_chart),
-      // The Settings walkthrough is the one section that describes how
-      // to obtain Premium; a store build gets the variant that omits
-      // the "tap Upgrade, contact Support for a key" instructions
-      // (see kCommerceUiEnabled).
+      // The Shop tab, split the way the screen is: its Daily rows first,
+      // then setup and device settings.
+      (l.helpGuideDailyTitle, l.helpGuideDailyBody, Icons.today),
+      // The Shop walkthrough is the one section that says where to pay for
+      // Premium; a store build gets the variant that doesn't (see
+      // kCommerceUiEnabled).
       (
         l.helpGuideSettingsTitle,
         kCommerceUiEnabled
             ? l.helpGuideSettingsBody
             : l.helpGuideSettingsBodyNoCommerce,
-        Icons.settings,
+        Icons.storefront,
       ),
     ];
 
