@@ -346,6 +346,22 @@ void main() {
     expect(lost.creates, 1);
   });
 
+  test(
+    'encryption is opt-in: a plain build encrypts nothing and makes no key',
+    () async {
+      // `main` publishes the Windows / Android downloads from a build with no
+      // DB_ENCRYPTION define — they must not encrypt every shop at once.
+      expect(DbEncryption.enabledByBuild, isFalse);
+      await seedPlain(shopFile('shop-a'));
+      final store = _MemKeyStore();
+      final result = await DbEncryption.prepare(tmp.path, store: store);
+      expect(result.migrated, 0);
+      expect(store.creates, 0);
+      expect(stateOf(shopFile('shop-a')), DbFileState.plaintext);
+      expect(await salesIn(shopFile('shop-a')), 3);
+    },
+  );
+
   test('only this app\'s database files are touched', () {
     expect(DbEncryption.isDatabaseFileName('mm_pos.sqlite'), isTrue);
     expect(DbEncryption.isDatabaseFileName('mm_pos_device.sqlite'), isTrue);

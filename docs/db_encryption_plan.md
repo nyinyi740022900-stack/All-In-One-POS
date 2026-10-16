@@ -121,7 +121,7 @@ step 2 so the copy is complete.
    JSON) — it is the bigger leak today, since it leaves the device.
    **Still open.**
 2. ~~Key store + keyed open behind a build flag~~ — done; flag is
-   `DB_ENCRYPTION` (default on).
+   `DB_ENCRYPTION` (default **off**; beta builds pass `=true`).
 3. ~~Migration of existing files + recovery screen~~ — done.
 4. Beta to the closed track; watch Sentry migrate breadcrumbs for a week.
 5. Changelog + Play Data safety ("data is encrypted" can then be claimed for
@@ -140,8 +140,12 @@ step 2 so the copy is complete.
   integrity-checked, copied to `.pre-encrypt`, rekeyed, re-verified (same
   tables, same row counts) and only then is the copy deleted; any failure
   restores the copy and the file stays plaintext until the next launch.
-- **Kill switch** `--dart-define=DB_ENCRYPTION=false` stops *new* encryption
-  only; already-encrypted files still open (state is read from the header).
+- **Opt-in, not on by default** (owner call, 2026-10-17, before merging to
+  `main`): `main` publishes the Windows and Android downloads, so encryption
+  only runs in a build made with `--dart-define=DB_ENCRYPTION=true`. Without
+  it, *new* encryption is off; already-encrypted files still open (state is
+  read from the header), so turning it off never locks a shop.
+  `db_encryption_test.dart` fails if the default is flipped.
 - **Key loss** → `DbKeyUnavailableException` before `runApp` → `DbLockedApp`
   (Try again / Viber support when the number can be fetched / Start with an
   empty shop). "Start empty" moves every `mm_pos*` file into

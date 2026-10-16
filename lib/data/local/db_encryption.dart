@@ -27,22 +27,32 @@ import 'package:sqlite3/sqlite3.dart';
 class DbEncryption {
   DbEncryption._();
 
-  /// Kill switch for *new* encryption (`--dart-define=DB_ENCRYPTION=false`).
-  /// Off: plaintext files are left alone and new files are created plaintext;
-  /// files that are already encrypted still open with the device key.
+  /// Opt-in for *new* encryption: `--dart-define=DB_ENCRYPTION=true`. Off
+  /// by default (owner call, 2026-10-17) so the public Windows / Android
+  /// builds that `main` publishes don't encrypt every shop at once — beta
+  /// builds turn it on first. Off: plaintext files are left alone and new
+  /// files are created plaintext; files that are already encrypted still
+  /// open with the device key, so turning it back off never locks a shop.
   static const bool enabledByBuild = bool.fromEnvironment(
     'DB_ENCRYPTION',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static String? _hexKey;
+
+  /// What [prepare] decided for this launch; [setupFor] creates new files
+  /// to match.
+  static bool _enabled = enabledByBuild;
 
   /// The key loaded by [prepare]; null before it runs or when no key exists.
   @visibleForTesting
   static String? get loadedKey => _hexKey;
 
   @visibleForTesting
-  static void resetForTest() => _hexKey = null;
+  static void resetForTest() {
+    _hexKey = null;
+    _enabled = enabledByBuild;
+  }
 
   /// Drift `setup` callback for [file]: keys the connection when the file is
   /// already encrypted, or when it is about to be created and a key exists.
@@ -63,7 +73,7 @@ class DbEncryption {
         }
         return (db) => applyKey(db, key);
       case DbFileState.missing:
-        if (key == null || !(enabled ?? enabledByBuild)) return null;
+        if (key == null || !(enabled ?? _enabled)) return null;
         return (db) => applyKey(db, key);
       case DbFileState.plaintext:
         return null;
@@ -91,6 +101,7 @@ class DbEncryption {
     bool? enabled,
   }) async {
     final on = enabled ?? enabledByBuild;
+    _enabled = on;
     final keyStore = store ?? DbKeyStore();
     final dir = Directory(documentsDir);
     if (!await dir.exists()) return const DbPrepareResult();
