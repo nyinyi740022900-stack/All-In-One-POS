@@ -6,7 +6,8 @@ few KB; a wrong delete is a customer's missing product photo.
 """
 import json, pathlib, shutil, subprocess, tempfile, unittest
 
-MIGRATION = pathlib.Path(__file__).resolve().parents[1] / 'migrations/0104_storage_usage_and_photo_sweep.sql'
+MIGRATIONS = [pathlib.Path(__file__).resolve().parents[1] / f'migrations/{m}.sql'
+              for m in ('0104_storage_usage_and_photo_sweep', '0105_sweep_only_shop_folders')]
 URL = 'https://ref.supabase.co/storage/v1/object/public/product-images/'
 
 
@@ -36,7 +37,8 @@ class StorageSweep(unittest.TestCase):
         return p
 
     def setUp(self):
-        self.assertTrue(MIGRATION.exists(), '0104 must exist')
+        for m in MIGRATIONS:
+            self.assertTrue(m.exists(), f'{m.name} must exist')
         self.sql("""
           drop schema if exists public cascade; create schema public;
           drop schema if exists storage cascade; create schema storage;
@@ -51,7 +53,8 @@ class StorageSweep(unittest.TestCase):
           create table storefronts(shop_id text primary key, logo_url text);
           create table sales(id text primary key, shop_id text not null, total int);
         """)
-        self.sql(MIGRATION.read_text())
+        for m in MIGRATIONS:
+            self.sql(m.read_text())
 
     def photo(self, name, days_old=60, size=1000, bucket='product-images'):
         self.sql(f"""insert into storage.objects(bucket_id,name,metadata,created_at)
@@ -99,6 +102,14 @@ class StorageSweep(unittest.TestCase):
         self.photo('a/p-1.jpg')
         self.sql(f"insert into products(id,shop_id,image_url) values('p1','a','{URL}a/xp-1.jpg')")
         self.assertEqual(self.orphans(), ['a/p-1.jpg'])
+
+    def test_old_root_uploads_are_never_swept(self):
+        # Pre-0088 uploads could come from Free shops, whose products never
+        # reach the cloud — an unreferenced root file may still be on a phone.
+        self.photo('p-1784562073263.jpeg', days_old=400)
+        self.photo('logo-shop-ab4aabdf9762-1786030433537.jpg', days_old=400)
+        self.photo('a/p-old.jpg', days_old=400)
+        self.assertEqual(self.orphans(), ['a/p-old.jpg'])
 
     def test_other_buckets_are_untouched(self):
         self.photo('a/proof.png', bucket='payment-proofs')

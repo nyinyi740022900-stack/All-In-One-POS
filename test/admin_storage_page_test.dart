@@ -42,6 +42,7 @@ class _FakeApi extends AdminApi {
           'photo_bytes': 600 * 1024,
         },
         {'shop_id': 'shop-gone', 'rows': 5, 'bytes': 2048},
+        {'shop_id': '', 'rows': 4, 'bytes': 532},
       ],
       'unfoldered_photos': 28,
       'unfoldered_photo_bytes': 4 * 1024 * 1024,
@@ -93,6 +94,8 @@ void main() {
     expect(find.text('Zay Shae'), findsOneWidget);
     // A shop no longer in the live list still shows, by its id.
     expect(find.text('shop-gone'), findsOneWidget);
+    // Rows with an empty shop_id get a label, not a blank title.
+    expect(find.text('Not tied to a shop'), findsOneWidget);
     expect(find.text('Older uploads (no shop folder)'), findsOneWidget);
     expect(find.textContaining('Revisit that once'), findsOneWidget);
 

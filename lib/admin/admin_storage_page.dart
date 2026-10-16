@@ -156,7 +156,13 @@ class _StorageBody extends StatelessWidget {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: Text(names[s.shopId] ?? s.shopId),
+                      // Some rows carry an empty shop_id (written before a
+                      // shop existed); a blank title read as a broken row.
+                      title: Text(
+                        s.shopId.isEmpty
+                            ? 'Not tied to a shop'
+                            : names[s.shopId] ?? s.shopId,
+                      ),
                       subtitle: Text(
                         '${s.rows} rows · ${formatBytes(s.bytes)} data · '
                         '${s.photos} photos · ${formatBytes(s.photoBytes)}',
@@ -193,9 +199,10 @@ class _StorageBody extends StatelessWidget {
               children: [
                 const SectionHeader(title: 'Unused photos'),
                 Text(
-                  'Replaced product photos and the like, 30+ days old, that '
-                  'no product or storefront uses. The nightly clean-up '
-                  'deletes exactly this list. Receipt logos are never on it.',
+                  'Replaced product photos and the like, 30+ days old, in a '
+                  'shop folder, that no product or storefront uses. The '
+                  'nightly clean-up deletes exactly this list. Receipt logos '
+                  'and older uploads with no shop folder are never on it.',
                   style: muted,
                 ),
                 const SizedBox(height: AppTheme.space2),
