@@ -15,14 +15,16 @@ import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
 import 'admin_api.dart';
 import 'admin_stats.dart';
+import 'admin_storage_model.dart';
 
 part 'admin_dashboard_widgets.dart';
 part 'admin_shell.dart';
 part 'admin_overview.dart';
 part 'admin_shop_hub.dart';
 part 'admin_licensing.dart';
+part 'admin_storage_page.dart';
 
-enum _AdminSection { dashboard, inbox, shops, payments, settings }
+enum _AdminSection { dashboard, inbox, shops, payments, storage, settings }
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({
@@ -50,6 +52,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _error;
   bool _loading = false;
   bool _didPickLanding = false;
+
+  /// Bumped by every [_reload], so pages that fetch their own data (Storage)
+  /// refetch on the app bar's Reload too, not only the dashboard lists.
+  int _reloads = 0;
 
   /// Set while a money-moving action is in flight. Every such action here
   /// runs an `await` that `invokeBounded` may let stand for a full 15s with
@@ -113,6 +119,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _reloads++;
     });
     try {
       final results = await Future.wait<dynamic>([
@@ -208,6 +215,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _AdminSection.inbox => pending == 0 ? 'Inbox' : 'Inbox ($pending)',
     _AdminSection.shops => 'Shops',
     _AdminSection.payments => 'Payments',
+    _AdminSection.storage => 'Storage',
     _AdminSection.settings => 'Settings',
   };
 
@@ -265,6 +273,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           events: _events ?? const [],
           onConfirm: _confirmPayment,
           onDecline: _declineRequest,
+        );
+      case _AdminSection.storage:
+        return _StoragePage(
+          api: widget.api,
+          shops: shops,
+          reloadToken: _reloads,
         );
       case _AdminSection.settings:
         return _ConfigTab(initial: _config ?? const {}, onSave: _saveConfig);

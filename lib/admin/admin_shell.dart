@@ -139,6 +139,12 @@ class _AdminRail extends StatelessWidget {
               'Payments',
             ),
             _navLabel(context, 'System'),
+            _item(
+              context,
+              _AdminSection.storage,
+              Icons.cloud_outlined,
+              'Storage',
+            ),
             _item(context, _AdminSection.settings, Icons.tune, 'Settings'),
           ],
         ),

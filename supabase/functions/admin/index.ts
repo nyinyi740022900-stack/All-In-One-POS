@@ -14,6 +14,7 @@ import {
   type User,
 } from "https://esm.sh/@supabase/supabase-js@2";
 import { subscriptionStatus } from "../_shared/account_premium.ts";
+import { type SweepClient, sweepOrphanPhotos } from "../_shared/photo_sweep.ts";
 
 /// Longest licence term any single admin action may grant, in months.
 ///
@@ -286,6 +287,22 @@ Deno.serve(async (req) => {
       return error
         ? json({ error: "server_error" }, 500)
         : json({ ok: true, rows: 1 });
+    }
+    case "storage_report": {
+      // What each shop costs to keep in the cloud (rows + photos). Read-only.
+      const { data, error } = await admin.rpc("admin_storage_report");
+      if (error) return json({ error: "server_error" }, 500);
+      return json({ report: data });
+    }
+    case "photo_orphans": {
+      // The storage-sweep schedule's dry run: exactly the photos tonight's
+      // run would delete, computed by the same code. Never deletes.
+      const summary = await sweepOrphanPhotos(
+        admin as unknown as SweepClient,
+        { dryRun: true },
+      );
+      if (!summary.ok) return json({ error: "server_error" }, 500);
+      return json(summary);
     }
     case "list_requests": {
       const { data, error } = await admin.from("license_requests")
