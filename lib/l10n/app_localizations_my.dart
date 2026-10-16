@@ -4770,4 +4770,42 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get cashReconciliationNotice =>
       'နောက်ကျမှ sync ရောက်လာသဖြင့် ငွေခွဲဝေမှုကို ပြန်ညှိတွက်ထားသည်။ မူရင်းပိတ်စာရင်း မပြောင်းပါ။';
+
+  @override
+  String get dbLockedTitle => 'ဆိုင်ဒေတာကို ဖွင့်မရပါ';
+
+  @override
+  String get dbLockedBody =>
+      'ဒီဖုန်းပေါ်က ဆိုင်ဒေတာကို encrypt လုပ်ထားပြီး ဖွင့်ရမယ့် key ကို ဖတ်မရပါ။ ဘာဒေတာမှ မဖျက်ရသေးပါ။';
+
+  @override
+  String get dbLockedUnreadableHint =>
+      'ခဏတာ ဖြစ်တတ်ပါတယ်။ ဖုန်းကို restart လုပ်၊ lock ဖွင့်ပြီး \"ထပ်ကြိုးစားမယ်\" ကို နှိပ်ပါ။';
+
+  @override
+  String get dbLockedMissingHint =>
+      'App ဖိုင်တွေ key မပါဘဲ ဖုန်းတစ်လုံးဆီ ရောက်သွားရင် ဖြစ်တတ်ပါတယ် — ဥပမာ encrypt မလုပ်ထားတဲ့ backup နဲ့ ဖုန်းအသစ်ကို setup လုပ်တာမျိုး။';
+
+  @override
+  String get dbLockedRetry => 'ထပ်ကြိုးစားမယ်';
+
+  @override
+  String get dbLockedStillLocked =>
+      'ဖွင့်လို့ မရသေးပါ။ ဖုန်း lock ဖွင့်ပြီး ထပ်ကြိုးစားပါ၊ ဒါမှမဟုတ် Support ကို မေးပါ။';
+
+  @override
+  String get dbLockedSupport => 'Viber မှာ Support ကို မေးမယ်';
+
+  @override
+  String get dbLockedStartEmpty => 'ဆိုင်အလွတ်နဲ့ စမယ်';
+
+  @override
+  String get dbLockedStartEmptyTitle => 'ဆိုင်အလွတ်နဲ့ စမလား?';
+
+  @override
+  String get dbLockedStartEmptyBody =>
+      'ဖွင့်မရတဲ့ ဖိုင်တွေကို ဖုန်းထဲက folder သီးသန့်ကို ရွှေ့ထားမှာပါ၊ မဖျက်ပါ။ ပြီးရင် backup ဖိုင်ကနေ ဆိုင်ကို ပြန်ယူပါ (လုပ်ငန်း → Backup & ပြန်ယူ)၊ ဒါမှမဟုတ် Premium ဆိုင်ဆိုရင် ပြန် sign in လုပ်ပြီး cloud ကနေ sync ပြန်ယူပါ။';
+
+  @override
+  String get dbLockedStartEmptyConfirm => 'ရွှေ့ပြီး စမယ်';
 }

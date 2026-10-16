@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../repositories/settings_repository.dart';
 import 'database.dart';
+import 'db_encryption.dart';
 
 /// Copy device-global AppSettings rows from [from] into [to].
 Future<void> copyDeviceGlobalSettings({
@@ -32,13 +33,18 @@ Future<void> materializeShopFileFromLegacy({
   final shopFile = File(AppDatabase.pathForShop(documentsDir, shopId));
   if (await shopFile.exists()) return;
   if (!await File(legacyPath).exists()) {
-    final db = AppDatabase.forTesting(NativeDatabase(shopFile));
+    final db = AppDatabase.forTesting(
+      NativeDatabase(shopFile, setup: DbEncryption.setupFor(shopFile)),
+    );
     await db.customSelect('SELECT 1').get();
     await db.close();
     return;
   }
   await File(legacyPath).copy(shopFile.path);
-  final shopDb = AppDatabase.forTesting(NativeDatabase(shopFile));
+  // The copy keeps the legacy file's encryption (same device key).
+  final shopDb = AppDatabase.forTesting(
+    NativeDatabase(shopFile, setup: DbEncryption.setupFor(shopFile)),
+  );
   try {
     final rows = await shopDb.select(shopDb.appSettings).get();
     for (final row in rows) {

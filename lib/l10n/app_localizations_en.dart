@@ -4760,4 +4760,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cashReconciliationNotice =>
       'Late sync changed the cash allocation. The original closing record is unchanged.';
+
+  @override
+  String get dbLockedTitle => 'This shop\'s data is locked';
+
+  @override
+  String get dbLockedBody =>
+      'The shop data on this phone is encrypted, and the key that opens it couldn\'t be read. Nothing has been deleted.';
+
+  @override
+  String get dbLockedUnreadableHint =>
+      'This can be temporary. Restart the phone, unlock it, then tap Try again.';
+
+  @override
+  String get dbLockedMissingHint =>
+      'This happens when the app\'s files reach a phone without their key — for example a new phone set up from an unencrypted backup.';
+
+  @override
+  String get dbLockedRetry => 'Try again';
+
+  @override
+  String get dbLockedStillLocked =>
+      'Still locked. Unlock the phone and try again, or message Support.';
+
+  @override
+  String get dbLockedSupport => 'Message Support on Viber';
+
+  @override
+  String get dbLockedStartEmpty => 'Start with an empty shop';
+
+  @override
+  String get dbLockedStartEmptyTitle => 'Start with an empty shop?';
+
+  @override
+  String get dbLockedStartEmptyBody =>
+      'The locked files are moved to a separate folder on this phone, not deleted. Then bring your shop back from a backup file (Shop → Backup & restore), or sign in again so a Premium shop syncs back from the cloud.';
+
+  @override
+  String get dbLockedStartEmptyConfirm => 'Move them aside and start';
 }

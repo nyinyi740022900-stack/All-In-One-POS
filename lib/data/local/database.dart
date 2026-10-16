@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'db_encryption.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -581,6 +582,11 @@ class AppDatabase extends _$AppDatabase {
   static Future<QueryExecutor> _nativeExecutor(File file) async {
     final cachebase = (await getTemporaryDirectory()).path;
     sqlite3.tempDirectory = cachebase;
-    return NativeDatabase.createInBackground(file);
+    // Keyed when the file is encrypted (or is about to be created and the
+    // device has a key) — see DbEncryption. Plaintext files open as before.
+    return NativeDatabase.createInBackground(
+      file,
+      setup: DbEncryption.setupFor(file),
+    );
   }
 }

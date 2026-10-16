@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as sqflite_ffi;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +13,8 @@ import 'app.dart';
 import 'core/env.dart';
 import 'core/providers.dart';
 import 'data/local/database_session.dart';
+import 'data/local/db_encryption.dart';
+import 'features/backup/db_locked_app.dart';
 import 'features/desktop/windows_shortcut.dart';
 
 Future<void> main() async {
@@ -91,24 +94,33 @@ Future<void> _bootstrap() async {
             }()
           : Future<void>.value();
 
-      final session = await dbSessionFuture;
+      final DatabaseSession session;
+      try {
+        session = await dbSessionFuture;
+      } on DbKeyUnavailableException catch (e) {
+        // Encrypted shop files whose key can't be read: never open (or
+        // recreate) them empty — show the recovery screen instead.
+        await supabaseInit;
+        if (Env.hasCrashReporting) {
+          unawaited(Sentry.captureMessage('db locked: ${e.reason.name}'));
+        }
+        final docs = await getApplicationDocumentsDirectory();
+        runApp(
+          DbLockedApp(
+            error: e,
+            documentsDir: docs.path,
+            onUnlocked: () async => _runPosApp(await DatabaseSession.open()),
+          ),
+        );
+        return;
+      }
       await supabaseInit;
       if (kDebugMode) {
         debugPrint(
             'boot: db + backend ready in ${bootStopwatch.elapsedMilliseconds}ms');
       }
 
-      runApp(
-        ProviderScope(
-          overrides: [
-            databaseSessionProvider.overrideWith((ref) {
-              ref.onDispose(session.disposeSessions);
-              return session;
-            }),
-          ],
-          child: const MmPosApp(),
-        ),
-      );
+      _runPosApp(session);
       unawaited(ensureWindowsAppShortcuts());
     },
     (error, stack) {
@@ -117,5 +129,19 @@ Future<void> _bootstrap() async {
         Sentry.captureException(error, stackTrace: stack);
       }
     },
+  );
+}
+
+void _runPosApp(DatabaseSession session) {
+  runApp(
+    ProviderScope(
+      overrides: [
+        databaseSessionProvider.overrideWith((ref) {
+          ref.onDispose(session.disposeSessions);
+          return session;
+        }),
+      ],
+      child: const MmPosApp(),
+    ),
   );
 }

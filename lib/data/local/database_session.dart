@@ -9,6 +9,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../repositories/settings_repository.dart';
 import 'database.dart';
+import 'db_encryption.dart';
 import 'shop_db_migrator.dart';
 import 'shop_data_transition_service.dart';
 
@@ -29,6 +30,10 @@ class DatabaseSession extends ChangeNotifier {
   static Future<DatabaseSession> open() async {
     final dir = await getApplicationDocumentsDirectory();
     await _prepareSqliteEnv();
+    // Before any file opens: load the device key and encrypt plaintext
+    // files in place. Throws DbKeyUnavailableException (→ recovery screen in
+    // main) only when encrypted files exist and their key can't be read.
+    await DbEncryption.prepare(dir.path);
     if (!AppDatabase.usePerShopDbFiles) {
       final legacy = AppDatabase.forFile(
         File(AppDatabase.legacyDbPath(dir.path)),

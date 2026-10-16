@@ -91,6 +91,15 @@ dev_dependencies:
   drift_dev: ^2.20.3
   build_runner: ^2.4.13
 
+# At-rest encryption: package:sqlite3's build hook ships SQLite3MultipleCiphers
+# (a superset of SQLite — unencrypted files and in-memory test DBs behave
+# exactly as before) instead of plain SQLite. No OpenSSL dependency, unlike
+# the SQLCipher source. See docs/db_encryption_plan.md.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
+
 flutter:
   uses-material-design: true
   generate: true # enables gen_l10n

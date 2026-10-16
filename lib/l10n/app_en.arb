@@ -2147,5 +2147,16 @@
   "storefrontRenewCardCancelHint": "Cancelling stops the next charge. The time you have already paid for is kept.",
   "cashRecordedAtClose": "Recorded at close",
   "cashReconciliationChange": "Reconciliation change",
-  "cashReconciliationNotice": "Late sync changed the cash allocation. The original closing record is unchanged."
+  "cashReconciliationNotice": "Late sync changed the cash allocation. The original closing record is unchanged.",
+  "dbLockedTitle": "This shop's data is locked",
+  "dbLockedBody": "The shop data on this phone is encrypted, and the key that opens it couldn't be read. Nothing has been deleted.",
+  "dbLockedUnreadableHint": "This can be temporary. Restart the phone, unlock it, then tap Try again.",
+  "dbLockedMissingHint": "This happens when the app's files reach a phone without their key — for example a new phone set up from an unencrypted backup.",
+  "dbLockedRetry": "Try again",
+  "dbLockedStillLocked": "Still locked. Unlock the phone and try again, or message Support.",
+  "dbLockedSupport": "Message Support on Viber",
+  "dbLockedStartEmpty": "Start with an empty shop",
+  "dbLockedStartEmptyTitle": "Start with an empty shop?",
+  "dbLockedStartEmptyBody": "The locked files are moved to a separate folder on this phone, not deleted. Then bring your shop back from a backup file (Shop → Backup & restore), or sign in again so a Premium shop syncs back from the cloud.",
+  "dbLockedStartEmptyConfirm": "Move them aside and start"
 }

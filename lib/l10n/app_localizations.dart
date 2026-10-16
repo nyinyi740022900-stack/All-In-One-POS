@@ -8545,6 +8545,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Late sync changed the cash allocation. The original closing record is unchanged.'**
   String get cashReconciliationNotice;
+
+  /// No description provided for @dbLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop\'s data is locked'**
+  String get dbLockedTitle;
+
+  /// No description provided for @dbLockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The shop data on this phone is encrypted, and the key that opens it couldn\'t be read. Nothing has been deleted.'**
+  String get dbLockedBody;
+
+  /// No description provided for @dbLockedUnreadableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This can be temporary. Restart the phone, unlock it, then tap Try again.'**
+  String get dbLockedUnreadableHint;
+
+  /// No description provided for @dbLockedMissingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This happens when the app\'s files reach a phone without their key — for example a new phone set up from an unencrypted backup.'**
+  String get dbLockedMissingHint;
+
+  /// No description provided for @dbLockedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get dbLockedRetry;
+
+  /// No description provided for @dbLockedStillLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Still locked. Unlock the phone and try again, or message Support.'**
+  String get dbLockedStillLocked;
+
+  /// No description provided for @dbLockedSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Support on Viber'**
+  String get dbLockedSupport;
+
+  /// No description provided for @dbLockedStartEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with an empty shop'**
+  String get dbLockedStartEmpty;
+
+  /// No description provided for @dbLockedStartEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with an empty shop?'**
+  String get dbLockedStartEmptyTitle;
+
+  /// No description provided for @dbLockedStartEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The locked files are moved to a separate folder on this phone, not deleted. Then bring your shop back from a backup file (Shop → Backup & restore), or sign in again so a Premium shop syncs back from the cloud.'**
+  String get dbLockedStartEmptyBody;
+
+  /// No description provided for @dbLockedStartEmptyConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move them aside and start'**
+  String get dbLockedStartEmptyConfirm;
 }
 
 class _AppLocalizationsDelegate
