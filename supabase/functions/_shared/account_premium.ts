@@ -93,7 +93,7 @@ export async function subscriptionReply(
   userId: string,
   deviceId: string,
 ): Promise<Record<string, unknown>> {
-  return await withEntitlement({
+  const reply = await withEntitlement({
     ok: true,
     shop_id: subscription.shop_id,
     plan: subscription.plan,
@@ -106,4 +106,15 @@ export async function subscriptionReply(
     tier: "online",
     realtime_enabled: hasPremium(subscription),
   });
+  // A paid plan the server could not sign proof for (signing key missing or
+  // malformed) must not read as success: the app would cache "Yearly", then
+  // refuse it as unverified and show the Upgrade paywall. Report a retryable
+  // server error instead, so the failure is visible as one.
+  if (
+    ["monthly", "yearly", "trial"].includes(String(subscription.plan)) &&
+    !reply.entitlement
+  ) {
+    return { ok: false, error: "server_error" };
+  }
+  return reply;
 }

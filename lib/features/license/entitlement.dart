@@ -219,3 +219,20 @@ TrustedTime resolveTrustedTime({
     lastReceiptIssuedAt: lastReceiptIssuedAt,
   );
 }
+
+/// Whether [cached] may stand in for an account refresh that could not reach
+/// the server, for the account [userId]. A device that changes hands (owner
+/// → staff on one phone) still holds the previous account's receipt; treating
+/// that as a successful attach made sign-in look done while [resolveEntitlement]
+/// then refused it. Free grants nothing and needs no proof; without [enforce]
+/// (no backend) there is nothing to bind to.
+bool cachedLicenseProvesAccount({
+  required CachedLicense cached,
+  required Entitlement? receipt,
+  required String? userId,
+  required bool enforce,
+}) {
+  if (cached.plan == LicensePlan.free || !enforce) return true;
+  if (userId == null || userId.isEmpty || receipt == null) return false;
+  return receipt.userId == userId && receipt.shopId == cached.shopId;
+}

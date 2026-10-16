@@ -35,3 +35,14 @@ extension BoundedEdgeInvoke on FunctionsClient {
         .timeout(timeout);
   }
 }
+
+/// `refreshSession`, but it always ends — the same reasoning as
+/// [invokeBounded]: GoTrue's refresh has no request timeout of its own, and
+/// branch switching awaited it right after the server had already moved the
+/// account's shop claim, so a stalled connection left the switch pending
+/// with no way to resolve or retry.
+extension BoundedSessionRefresh on GoTrueClient {
+  Future<AuthResponse> refreshSessionBounded({
+    Duration timeout = kEdgeInvokeTimeout,
+  }) => refreshSession().timeout(timeout);
+}

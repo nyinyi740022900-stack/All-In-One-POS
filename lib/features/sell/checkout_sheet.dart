@@ -497,7 +497,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
         customerName: name.isEmpty ? null : name,
         customerPhone: phone.isEmpty ? null : phone,
         customerId: customerId,
-        staffId: ref.read(activeStaffIdProvider).valueOrNull,
+        staffId: ref.read(saleCashierIdProvider),
         deviceId: ref.read(deviceIdProvider).valueOrNull,
         trackStock: ref.read(trackStockProvider).valueOrNull ?? true,
       );

@@ -154,6 +154,7 @@ class _InvoiceDetailWebScreenState extends State<InvoiceDetailWebScreen> {
           (id: staffId, name: staffName),
       ],
       ownerLabel: l.staffRoleOwner,
+      staffLabel: l.staffRoleStaff,
       deviceLabel: deviceLabel,
     );
 

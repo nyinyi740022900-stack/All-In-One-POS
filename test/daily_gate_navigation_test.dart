@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +13,7 @@ import 'package:mm_pos/features/account/account_repository.dart';
 import 'package:mm_pos/features/account/account_providers.dart';
 import 'package:mm_pos/features/account/branch_providers.dart';
 import 'package:mm_pos/features/cash/cash_providers.dart';
+import 'package:mm_pos/features/cash/cash_session_repository.dart';
 import 'package:mm_pos/features/license/license_providers.dart';
 import 'package:mm_pos/features/license/license_repository.dart';
 import 'package:mm_pos/features/staff/staff_providers.dart';
@@ -203,5 +206,122 @@ void main() {
         expect(safe.uri.path, '/sell');
       }
     });
+  }
+
+  for (final failure in ['session_already_open', 'disk_full']) {
+    testWidgets(
+      'Open register waits for the till to resolve and recovers from '
+      '"$failure"',
+      (tester) async {
+        tester.view.physicalSize = const Size(430, 932);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const channel = MethodChannel(
+          'plugins.it_nomads.com/flutter_secure_storage',
+        );
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          (_) async => null,
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            channel,
+            null,
+          ),
+        );
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        addTearDown(db.close);
+        final settings = SettingsRepository(db);
+        final session = StreamController<CashSession?>();
+        addTearDown(session.close);
+        final repo = _FailingCash(db, failure);
+        var done = 0;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              databaseProvider.overrideWithValue(db),
+              settingsRepositoryProvider.overrideWithValue(settings),
+              shopIdProvider.overrideWith((ref) => 'shop-1'),
+              accountRepositoryProvider.overrideWithValue(
+                _Account(settings, db),
+              ),
+              staffMembersProvider.overrideWith((ref) => Stream.value([])),
+              staffRoleProvider.overrideWith((ref) => Stream.value('staff')),
+              effectiveRoleProvider.overrideWithValue('staff'),
+              activeStaffNameProvider.overrideWithValue(null),
+              branchesProvider.overrideWith((ref) async => []),
+              isPremiumProvider.overrideWithValue(true),
+              cashSessionRepositoryProvider.overrideWithValue(repo),
+              currentCashSessionProvider.overrideWith((ref) => session.stream),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: DailyGate(onDone: () => done++),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        // Still resolving: Open register must not be offered yet.
+        expect(find.text('Open register'), findsNothing);
+
+        session.add(null);
+        await tester.pumpAndSettle();
+        final open = find.widgetWithText(FilledButton, 'Open register');
+        expect(tester.widget<FilledButton>(open).onPressed, isNotNull);
+
+        // The open path reads the device id and the daily marker from the
+        // real (in-memory) database, which only progresses in real async.
+        await tester.runAsync(() async {
+          await tester.tap(open);
+          for (var i = 0; i < 40; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 25));
+            await tester.pump();
+            if (failure == 'session_already_open' ? done == 1 : repo.attempts == 1) {
+              await Future<void>.delayed(const Duration(milliseconds: 50));
+              break;
+            }
+          }
+        });
+        await tester.pumpAndSettle();
+        expect(repo.attempts, 1);
+        if (failure == 'session_already_open') {
+          // Another device / a double tap opened it: continue that till.
+          expect(done, 1);
+        } else {
+          expect(done, 0);
+          expect(
+            find.text('Something went wrong. Please try again.'),
+            findsOneWidget,
+          );
+          expect(
+            tester.widget<FilledButton>(open).onPressed,
+            isNotNull,
+            reason: 'a failed open must leave a retryable button, not a '
+                'permanently busy one',
+          );
+        }
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
+  }
+}
+
+class _FailingCash extends CashSessionRepository {
+  _FailingCash(AppDatabase db, this.failure) : super(db, 'shop-1');
+  final String failure;
+  int attempts = 0;
+  @override
+  Future<String> openSession({
+    required int openingAmount,
+    String? note,
+    String? deviceId,
+  }) async {
+    attempts++;
+    throw StateError(failure);
   }
 }

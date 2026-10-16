@@ -31,6 +31,8 @@ Future<Uint8List> buildCashSessionReportPdf({
   required String expensesLabel,
   required String supplierPaymentsLabel,
   required String expectedCashLabel,
+  String? recordedExpectedCashLabel,
+  String? reconciliationAdjustmentLabel,
   required String countedCashLabel,
   required DateTime openedAt,
   DateTime? closedAt,
@@ -71,8 +73,9 @@ Future<Uint8List> buildCashSessionReportPdf({
   );
   doc.addPage(
     pw.MultiPage(
-      pageFormat:
-          pageFormat == PdfPaperSize.a5 ? PdfPageFormat.a5 : PdfPageFormat.a4,
+      pageFormat: pageFormat == PdfPaperSize.a5
+          ? PdfPageFormat.a5
+          : PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(36),
       header: (context) {
         if (context.pageNumber > 1) return pw.SizedBox();
@@ -83,22 +86,32 @@ Future<Uint8List> buildCashSessionReportPdf({
               children: [
                 if (logo != null)
                   pw.ClipOval(
-                      child: pw.Image(logo,
-                          width: 40, height: 40, fit: pw.BoxFit.cover)),
+                    child: pw.Image(
+                      logo,
+                      width: 40,
+                      height: 40,
+                      fit: pw.BoxFit.cover,
+                    ),
+                  ),
                 if (logo != null) pw.SizedBox(width: 10),
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(shopName,
-                          style: pw.TextStyle(
-                              fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                        shopName,
+                        style: pw.TextStyle(
+                          fontSize: 18,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
                       if ((shopPhone ?? '').isNotEmpty ||
                           (shopAddress ?? '').isNotEmpty)
                         pw.Text(
-                          [shopPhone, shopAddress]
-                              .where((s) => (s ?? '').isNotEmpty)
-                              .join('  ·  '),
+                          [
+                            shopPhone,
+                            shopAddress,
+                          ].where((s) => (s ?? '').isNotEmpty).join('  ·  '),
                           style: pw.TextStyle(fontSize: 9, color: muted),
                         ),
                     ],
@@ -109,11 +122,14 @@ Future<Uint8List> buildCashSessionReportPdf({
             pw.SizedBox(height: 12),
             pw.Divider(color: line, thickness: 1),
             pw.SizedBox(height: 10),
-            pw.Text(title,
-                style: pw.TextStyle(
-                    fontSize: 13,
-                    fontWeight: pw.FontWeight.bold,
-                    color: accent)),
+            pw.Text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 13,
+                fontWeight: pw.FontWeight.bold,
+                color: accent,
+              ),
+            ),
             pw.Text(
               closedAt == null
                   ? '$openedLabel: ${dateTimeStr(openedAt)}'
@@ -127,8 +143,10 @@ Future<Uint8List> buildCashSessionReportPdf({
       footer: (context) => pw.Container(
         alignment: pw.Alignment.centerRight,
         margin: const pw.EdgeInsets.only(top: 8),
-        child: pw.Text('${context.pageNumber} / ${context.pagesCount}',
-            style: pw.TextStyle(fontSize: 8, color: muted)),
+        child: pw.Text(
+          '${context.pageNumber} / ${context.pagesCount}',
+          style: pw.TextStyle(fontSize: 8, color: muted),
+        ),
       ),
       build: (context) {
         final rows = <(String, String, bool)>[
@@ -137,7 +155,25 @@ Future<Uint8List> buildCashSessionReportPdf({
           (cashRepaymentsLabel, amt(report.cashRepaymentsTotal), false),
           (topUpsLabel, amt(report.topUpsTotal), false),
           (expensesLabel, '-${amt(report.expensesTotal)}', false),
-          (supplierPaymentsLabel, '-${amt(report.supplierPaymentsTotal)}', false),
+          (
+            supplierPaymentsLabel,
+            '-${amt(report.supplierPaymentsTotal)}',
+            false,
+          ),
+          if (report.recordedExpectedCash != null &&
+              recordedExpectedCashLabel != null &&
+              reconciliationAdjustmentLabel != null) ...[
+            (
+              recordedExpectedCashLabel,
+              amt(report.recordedExpectedCash!),
+              false,
+            ),
+            (
+              reconciliationAdjustmentLabel,
+              amt(report.reconciliationAdjustment!),
+              false,
+            ),
+          ],
           (expectedCashLabel, amt(report.expectedCash), true),
           if (report.closingAmount != null)
             (countedCashLabel, amt(report.closingAmount!), false),
@@ -155,10 +191,12 @@ Future<Uint8List> buildCashSessionReportPdf({
             },
             children: [
               for (final r in rows)
-                pw.TableRow(children: [
-                  _cell(r.$1, bold: r.$3),
-                  _cell(r.$2, bold: r.$3, align: pw.TextAlign.right),
-                ]),
+                pw.TableRow(
+                  children: [
+                    _cell(r.$1, bold: r.$3),
+                    _cell(r.$2, bold: r.$3, align: pw.TextAlign.right),
+                  ],
+                ),
             ],
           ),
         ];
@@ -168,15 +206,22 @@ Future<Uint8List> buildCashSessionReportPdf({
   return doc.save();
 }
 
-pw.Widget _cell(String text,
-    {bool bold = false, PdfColor? color, pw.TextAlign align = pw.TextAlign.left}) {
+pw.Widget _cell(
+  String text, {
+  bool bold = false,
+  PdfColor? color,
+  pw.TextAlign align = pw.TextAlign.left,
+}) {
   return pw.Padding(
     padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-    child: pw.Text(text,
-        textAlign: align,
-        style: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            color: color)),
+    child: pw.Text(
+      text,
+      textAlign: align,
+      style: pw.TextStyle(
+        fontSize: 9,
+        fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        color: color,
+      ),
+    ),
   );
 }

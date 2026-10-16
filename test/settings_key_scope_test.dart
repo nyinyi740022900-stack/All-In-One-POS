@@ -90,6 +90,7 @@ void main() {
     // Staff identity and PIN state are the shop's, not the handset's.
     'staff.role': _Scope.perShop,
     'staff.active_id': _Scope.perShop,
+    'staff.role_account': _Scope.perShop,
     'staff.pin': _Scope.perShop,
     'staff.pin_hash': _Scope.perShop,
     'staff.pin_failed_attempts': _Scope.perShop,

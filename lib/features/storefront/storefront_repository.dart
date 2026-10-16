@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/env.dart';
 import '../../core/image_util.dart';
+import '../../core/net/edge_invoke.dart';
 import '../../core/payment_method.dart';
 import '../../data/sync/outbox_error.dart';
 
@@ -372,7 +373,7 @@ class StorefrontRepository {
         rethrow;
       }
       try {
-        await _c.auth.refreshSession();
+        await _c.auth.refreshSessionBounded();
       } catch (_) {
         throw e;
       }

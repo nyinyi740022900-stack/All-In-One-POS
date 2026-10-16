@@ -849,6 +849,7 @@ class _SalesByEmployeeCard extends ConsumerWidget {
         staffId: r.staffId,
         members: memberPairs,
         ownerLabel: l.staffRoleOwner,
+        staffLabel: l.staffRoleStaff,
       );
       revenueByLabel[label] = (revenueByLabel[label] ?? 0) + r.revenue;
       countByLabel[label] = (countByLabel[label] ?? 0) + r.salesCount;

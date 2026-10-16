@@ -306,7 +306,10 @@ class _LicenseScreenState extends ConsumerState<LicenseScreen>
                 if (hasAccount) ...[
                   const _AccountEmailTile(),
                   const SizedBox(height: AppTheme.space4),
-                  if (kCommerceUiEnabled && !state.isPremium) ...[
+                  if (kCommerceUiEnabled &&
+                      !state.isPremium &&
+                      state.status.kind !=
+                          LicenseStatusKind.verificationRequired) ...[
                     FilledButton.icon(
                       onPressed: _busy ? null : _startSelfServeTrial,
                       icon: const Icon(Icons.workspace_premium_outlined),

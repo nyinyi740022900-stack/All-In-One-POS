@@ -609,8 +609,10 @@ class CashSessions extends Table with SyncColumns {
   IntColumn get closingAmount => integer().nullable()();
 
   /// Frozen "expected in drawer" at the moment this session closed.
-  /// Closed reports read this snapshot so a later expense edit cannot
-  /// rewrite yesterday's variance. Null on open sessions and on rows
+  /// Ordinary closed reports read this snapshot so a later expense edit
+  /// cannot rewrite yesterday's variance. A late overlapping session has
+  /// a separately disclosed, derived reconciliation; this stored original
+  /// is never overwritten by that read. Null on open sessions and on rows
   /// closed before schema v37.
   IntColumn get expectedCashAtClose => integer().nullable()();
   TextColumn get note => text().nullable()();

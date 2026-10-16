@@ -289,4 +289,61 @@ void main() {
       expect(t.now, DateTime.utc(2026, 10, 2));
     });
   });
+
+  group('cachedLicenseProvesAccount', () {
+    final ownerReceipt = Entitlement(
+      shopId: 'shop-1',
+      userId: 'owner',
+      deviceId: 'd',
+      revision: 3,
+      plan: LicensePlan.yearly,
+      expiresAt: DateTime.utc(2027),
+      issuedAt: DateTime.utc(2026, 10),
+    );
+
+    test("a staff sign-in cannot stand on the owner's cached receipt", () {
+      expect(
+        cachedLicenseProvesAccount(
+          cached: _cached(),
+          receipt: ownerReceipt,
+          userId: 'staff',
+          enforce: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test("the same account's cached receipt may cover an outage", () {
+      expect(
+        cachedLicenseProvesAccount(
+          cached: _cached(),
+          receipt: ownerReceipt,
+          userId: 'owner',
+          enforce: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('no receipt, or one for another shop, proves nothing', () {
+      expect(
+        cachedLicenseProvesAccount(
+          cached: _cached(),
+          receipt: null,
+          userId: 'owner',
+          enforce: true,
+        ),
+        isFalse,
+      );
+      expect(
+        cachedLicenseProvesAccount(
+          cached: _cached(shopId: 'shop-2'),
+          receipt: ownerReceipt,
+          userId: 'owner',
+          enforce: true,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

@@ -7664,6 +7664,18 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get dailyGateContinue;
 
+  /// No description provided for @dailyGatePriorSessionOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'The register opened on {date} is still open. Today\'s sales are added to it — count and close it in Cash register.'**
+  String dailyGatePriorSessionOpen(String date);
+
+  /// No description provided for @staffCapabilityNotForAccountLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this phone in Staff mode — not when they sign in with their own account'**
+  String get staffCapabilityNotForAccountLogin;
+
   /// No description provided for @dailyGateSkipOpening.
   ///
   /// In en, this message translates to:
@@ -8515,6 +8527,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancelling stops the next charge. The time you have already paid for is kept.'**
   String get storefrontRenewCardCancelHint;
+
+  /// No description provided for @cashRecordedAtClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded at close'**
+  String get cashRecordedAtClose;
+
+  /// No description provided for @cashReconciliationChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconciliation change'**
+  String get cashReconciliationChange;
+
+  /// No description provided for @cashReconciliationNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Late sync changed the cash allocation. The original closing record is unchanged.'**
+  String get cashReconciliationNotice;
 }
 
 class _AppLocalizationsDelegate

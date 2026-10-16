@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../account/account_providers.dart';
 import 'license_providers.dart';
 import 'license_screen.dart';
+import 'license_status.dart';
 
 /// Wraps a whole screen's body: shown as-is on the Premium plan, otherwise
 /// replaced with a locked paywall (feature name + short explanation + a CTA
@@ -44,10 +45,81 @@ class PremiumGate extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (licState.isPremium) return child;
+    // A paid plan whose proof has not verified (yet) is not Free: telling
+    // the staff of a Premium shop to "Upgrade" sent them to buy what the
+    // shop already has. Offer the check that actually fixes it.
+    if (licState.status.kind == LicenseStatusKind.verificationRequired) {
+      return const _VerificationPending();
+    }
     return _PremiumPaywall(
       featureName: featureName,
       hasAccount: ref.watch(hasRealAccountSessionProvider),
       benefits: benefits,
+    );
+  }
+}
+
+class _VerificationPending extends ConsumerStatefulWidget {
+  const _VerificationPending();
+
+  @override
+  ConsumerState<_VerificationPending> createState() =>
+      _VerificationPendingState();
+}
+
+class _VerificationPendingState extends ConsumerState<_VerificationPending> {
+  bool _busy = false;
+
+  Future<void> _check() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(licenseControllerProvider.notifier).refreshOnline();
+    } catch (_) {
+      // The status card below stays on "verify" — that is the message.
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 56,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+            const SizedBox(height: AppTheme.space3),
+            Text(
+              l.licenseVerificationRequired,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              l.licenseVerificationRequiredBody,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            FilledButton.icon(
+              onPressed: _busy ? null : _check,
+              icon: _busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              label: Text(l.commonRetry),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

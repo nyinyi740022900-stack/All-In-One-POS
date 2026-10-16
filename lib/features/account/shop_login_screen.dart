@@ -518,14 +518,10 @@ class _ShopLoginScreenState extends ConsumerState<ShopLoginScreen> {
       return;
     }
 
-    // Cloud account gone — local Free plan + wipe so this device is clean.
-    final entered = await ref
+    // Cloud account gone; keep this shop's local records and pending writes.
+    await ref
         .read(licenseControllerProvider.notifier)
-        .continueFree();
-    if (!entered) {
-      // Pending outbox blocked Free entry — still clear license cache best-effort.
-      await ref.read(licenseControllerProvider.notifier).deactivate();
-    }
+        .keepLocalDataAfterAccountDeletion();
     ref.invalidate(backendAccountRoleProvider);
     ref.invalidate(hasRealAccountSessionProvider);
     ref.invalidate(dailyGateNeededProvider);

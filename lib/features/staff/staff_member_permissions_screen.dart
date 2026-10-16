@@ -104,6 +104,13 @@ class StaffMemberPermissionsScreen extends ConsumerWidget {
           for (final capability in _grantableCapabilities)
             SwitchListTile(
               title: Text(_capabilityLabel(l, capability)),
+              // Say so up front rather than let a grant look effective when
+              // the server will refuse it for this person's own login.
+              subtitle:
+                  (member.email ?? '').isNotEmpty &&
+                      invitedStaffUnsupportedCapabilities.contains(capability)
+                  ? Text(l.staffCapabilityNotForAccountLogin)
+                  : null,
               value: granted.contains(capability),
               onChanged: (value) => ref
                   .read(staffRepositoryProvider)

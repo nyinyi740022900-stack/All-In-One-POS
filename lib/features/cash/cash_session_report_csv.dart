@@ -14,6 +14,8 @@ String buildCashSessionReportCsv(
   required String expensesLabel,
   required String supplierPaymentsLabel,
   required String expectedCashLabel,
+  String? recordedExpectedCashLabel,
+  String? reconciliationAdjustmentLabel,
   required String countedCashLabel,
   String? varianceLabel,
   String? varianceText,
@@ -31,6 +33,12 @@ String buildCashSessionReportCsv(
       [topUpsLabel, fmt(report.topUpsTotal)],
       [expensesLabel, fmt(-report.expensesTotal)],
       [supplierPaymentsLabel, fmt(-report.supplierPaymentsTotal)],
+      if (report.recordedExpectedCash != null &&
+          recordedExpectedCashLabel != null &&
+          reconciliationAdjustmentLabel != null) ...[
+        [recordedExpectedCashLabel, fmt(report.recordedExpectedCash!)],
+        [reconciliationAdjustmentLabel, fmt(report.reconciliationAdjustment!)],
+      ],
       [expectedCashLabel, fmt(report.expectedCash)],
       if (report.closingAmount != null)
         [countedCashLabel, fmt(report.closingAmount!)],

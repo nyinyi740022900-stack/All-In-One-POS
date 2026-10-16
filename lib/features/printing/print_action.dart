@@ -52,6 +52,7 @@ Future<void> printSaleReceipt(
         staffId: sale.staffId,
         members: [for (final m in members) (id: m.id, name: m.name)],
         ownerLabel: l.staffRoleOwner,
+        staffLabel: l.staffRoleStaff,
         deviceLabel: deviceLabel,
       ),
     );

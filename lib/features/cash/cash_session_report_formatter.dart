@@ -9,8 +9,11 @@ import 'cash_session_repository.dart';
 /// `SalesReportFormatter`, reused as-is by `renderReportImage` (shop name is
 /// drawn separately by that renderer, so it isn't part of this body).
 class CashSessionReportFormatter {
-  CashSessionReportFormatter(
-      {required this.paper, this.currencySymbol = 'Ks', this.exponent = 0});
+  CashSessionReportFormatter({
+    required this.paper,
+    this.currencySymbol = 'Ks',
+    this.exponent = 0,
+  });
 
   final PaperSize paper;
   final String currencySymbol;
@@ -35,6 +38,8 @@ class CashSessionReportFormatter {
     required String expensesLabel,
     required String supplierPaymentsLabel,
     required String expectedCashLabel,
+    String? recordedExpectedCashLabel,
+    String? reconciliationAdjustmentLabel,
     required String countedCashLabel,
     required DateTime openedAt,
     DateTime? closedAt,
@@ -54,9 +59,23 @@ class CashSessionReportFormatter {
     out.add(_two(cashRepaymentsLabel, _amt(report.cashRepaymentsTotal)));
     out.add(_two(topUpsLabel, _amt(report.topUpsTotal)));
     out.add(_two(expensesLabel, '-${_amt(report.expensesTotal)}'));
-    out.add(_two(supplierPaymentsLabel,
-        '-${_amt(report.supplierPaymentsTotal)}'));
+    out.add(
+      _two(supplierPaymentsLabel, '-${_amt(report.supplierPaymentsTotal)}'),
+    );
     out.add(_divider());
+    if (report.recordedExpectedCash != null &&
+        recordedExpectedCashLabel != null &&
+        reconciliationAdjustmentLabel != null) {
+      out.add(
+        _two(recordedExpectedCashLabel, _amt(report.recordedExpectedCash!)),
+      );
+      out.add(
+        _two(
+          reconciliationAdjustmentLabel,
+          _amt(report.reconciliationAdjustment!),
+        ),
+      );
+    }
     out.add(_two(expectedCashLabel, _amt(report.expectedCash)));
 
     if (report.closingAmount != null) {
@@ -101,8 +120,9 @@ class CashSessionReportFormatter {
           current = '';
         }
         for (var i = 0; i < word.length; i += _w) {
-          lines.add(word.substring(
-              i, i + _w > word.length ? word.length : i + _w));
+          lines.add(
+            word.substring(i, i + _w > word.length ? word.length : i + _w),
+          );
         }
         continue;
       }

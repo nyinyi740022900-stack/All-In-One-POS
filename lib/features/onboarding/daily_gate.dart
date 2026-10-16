@@ -184,10 +184,11 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   void _afterAccountAuth({bool justRegistered = false}) {
     final rosterEmpty =
         (ref.read(staffMembersProvider).valueOrNull ?? const []).isEmpty;
+    final invitedStaff = ref.read(backendAccountRoleProvider) == 'staff';
     setState(() {
       _busy = false;
       _justRegistered = justRegistered;
-      if (justRegistered || rosterEmpty) _step = 1;
+      if (justRegistered || rosterEmpty || invitedStaff) _step = 1;
     });
   }
 
@@ -367,23 +368,36 @@ class _DailyGateState extends ConsumerState<DailyGate> {
   }
 
   Future<void> _openRegister() async {
+    if (_busy) return;
     final raw = _opening.text.trim();
     final amount = raw.isEmpty ? 0 : int.tryParse(raw.replaceAll(',', ''));
     if (amount == null || amount < 0) return;
-    // Don't open a second till session if one is already open today.
-    final existing = ref.read(currentCashSessionProvider).valueOrNull;
-    if (existing != null) {
-      await _finish(skippedOpen: false);
-      return;
+    final l = AppLocalizations.of(context);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    var opened = false;
+    try {
+      // Resolve the session first (never act on a still-loading stream):
+      // continue an already-open till rather than opening a second one.
+      final existing = await ref.read(currentCashSessionProvider.future);
+      if (existing == null) {
+        final deviceId = await ref.read(deviceIdProvider.future);
+        await ref
+            .read(cashSessionRepositoryProvider)
+            .openSession(openingAmount: amount, deviceId: deviceId);
+      }
+      opened = true;
+    } catch (e) {
+      // Another device / a double tap opened it in between — that is the
+      // till we continue, not a failure.
+      opened = e.toString().contains('session_already_open');
+      if (!opened && mounted) _error = l.commonUnexpectedError;
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-    setState(() => _busy = true);
-    final deviceId = await ref.read(deviceIdProvider.future);
-    await ref
-        .read(cashSessionRepositoryProvider)
-        .openSession(openingAmount: amount, deviceId: deviceId);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    await _finish(skippedOpen: false);
+    if (opened && mounted) await _finish(skippedOpen: false);
   }
 
   @override
@@ -403,6 +417,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
       signedIn: _signedIn,
       localRoleLoaded: localRoleAsync.hasValue,
       localRole: localRole,
+      invitedStaffAccount: ref.watch(backendAccountRoleProvider) == 'staff',
     );
     if (_step == 0 && canSkipIdentity) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -692,8 +707,20 @@ class _DailyGateState extends ConsumerState<DailyGate> {
     final isStaff = role == 'staff';
     final branchesAsync = ref.watch(branchesProvider);
     final premium = ref.watch(isPremiumProvider);
-    final existingSession = ref.watch(currentCashSessionProvider).valueOrNull;
-    final needsOpening = premium && existingSession == null;
+    final sessionAsync = ref.watch(currentCashSessionProvider);
+    // Loading is not "no session": offering Open while the stream resolves
+    // let a second till be opened over an existing one.
+    final sessionError = premium && sessionAsync.hasError;
+    final sessionLoading = premium && !sessionAsync.hasValue && !sessionError;
+    final existingSession = sessionAsync.valueOrNull;
+    final needsOpening =
+        premium && sessionAsync.hasValue && existingSession == null;
+    // A till left open from an earlier day is continued, not silently
+    // replaced — but say so, so it gets counted and closed.
+    final staleSession =
+        existingSession != null &&
+        localCalendarYmd(existingSession.openedAt.toLocal()) !=
+            localCalendarYmd();
 
     return SingleChildScrollView(
       child: Column(
@@ -753,7 +780,8 @@ class _DailyGateState extends ConsumerState<DailyGate> {
               ),
               title: Text(
                 isStaff
-                    ? (ref.watch(activeStaffNameProvider) ??
+                    ? (ref.watch(emailLinkedStaffMemberProvider)?.name ??
+                          ref.watch(activeStaffNameProvider) ??
                           l.dailyGateRoleStaff)
                     : l.dailyGateRoleOwner,
               ),
@@ -796,6 +824,28 @@ class _DailyGateState extends ConsumerState<DailyGate> {
               );
             },
           ),
+          if (sessionLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
+              child: AppLoadingView(message: l.dailyGateCheckingShop),
+            ),
+          if (sessionError) ...[
+            InlineErrorBanner(message: l.commonUnexpectedError),
+            TextButton(
+              onPressed: () => ref.invalidate(currentCashSessionProvider),
+              child: Text(l.commonRetry),
+            ),
+          ],
+          if (staleSession) ...[
+            const SizedBox(height: 8),
+            InlineErrorBanner(
+              message: l.dailyGatePriorSessionOpen(
+                MaterialLocalizations.of(
+                  context,
+                ).formatMediumDate(existingSession.openedAt.toLocal()),
+              ),
+            ),
+          ],
           if (needsOpening) ...[
             const SizedBox(height: 8),
             Text(
@@ -818,7 +868,7 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           const SizedBox(height: 16),
           FilledButton(
             style: AppTheme.authFilledButtonStyle(),
-            onPressed: _busy
+            onPressed: _busy || sessionLoading || sessionError
                 ? null
                 : needsOpening
                 ? _openRegister
@@ -830,7 +880,9 @@ class _DailyGateState extends ConsumerState<DailyGate> {
           if (needsOpening) ...[
             const SizedBox(height: 8),
             TextButton(
-              onPressed: _busy ? null : () => _finish(skippedOpen: true),
+              onPressed: _busy || sessionLoading
+                  ? null
+                  : () => _finish(skippedOpen: true),
               child: Text(l.dailyGateSkipOpening),
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/data/local/database.dart';
 import 'package:mm_pos/data/local/shop_data_transition_service.dart';
+import 'package:mm_pos/data/repositories/inventory_repository.dart';
 import 'package:mm_pos/data/repositories/settings_repository.dart';
 import 'package:mm_pos/features/backup/backup_service.dart';
 
@@ -86,6 +87,42 @@ void main() {
       'tables': <String, dynamic>{},
     });
     await expectLater(serviceFor(shopId).importReplaceAll(legacy), completes);
+  });
+
+  // A legacy envelope carries no shopId, but its rows still do. Restoring
+  // shop-2's old file used to delete shop-1's rows and insert shop-2's.
+  Future<String> legacyExportOf(String rowShopId, String productName) async {
+    final other = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(other.close);
+    await InventoryRepository(other, rowShopId)
+        .upsertProduct(name: productName, salePrice: 100, quantity: 1);
+    final decoded = jsonDecode(
+      await BackupService(other, SettingsRepository(other), shopId: rowShopId)
+          .exportJson(),
+    ) as Map<String, dynamic>;
+    decoded.remove('shopId');
+    return jsonEncode(decoded);
+  }
+
+  test('a legacy backup whose rows belong to another shop is refused before '
+      'anything is deleted', () async {
+    await InventoryRepository(db, shopId)
+        .upsertProduct(name: 'Mine', salePrice: 100, quantity: 1);
+    final foreign = await legacyExportOf('shop-2', 'Theirs');
+
+    await expectLater(
+      serviceFor(shopId).importReplaceAll(foreign),
+      throwsA(isA<ShopMismatchException>()),
+    );
+    final names = (await db.select(db.products).get()).map((p) => p.name);
+    expect(names, ['Mine'], reason: 'the refusal must come before the wipe');
+  });
+
+  test('a legacy backup of this shop\'s own rows still restores', () async {
+    final own = await legacyExportOf(shopId, 'Restored');
+    await serviceFor(shopId).importReplaceAll(own);
+    final names = (await db.select(db.products).get()).map((p) => p.name);
+    expect(names, ['Restored']);
   });
 
   test('a file that is not a backup at all is still rejected', () async {

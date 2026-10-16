@@ -48,6 +48,9 @@ final staffRepositoryProvider = Provider<StaffRepository>((ref) {
   return StaffRepository(
     ref.watch(databaseProvider),
     ref.watch(shopIdProvider),
+    // Read at write time, not watched: the roster repository must not be
+    // rebuilt on every auth event. The server enforces the same rule.
+    canAdminister: () => ref.read(backendAccountRoleProvider) != 'staff',
   );
 });
 
@@ -159,43 +162,95 @@ final isOwnerProvider = Provider<bool>((ref) {
 /// resolving, or for a backend role that's neither `'owner'` nor `'staff'`
 /// (unexpected value) — but true once resolved for the owner, or for either
 /// kind of staff session holding [capability].
-final hasResolvedOwnerCapabilityProvider = Provider.family<bool, OwnerCapability>(
-  (ref, capability) {
-    final backendRole = ref.watch(backendAccountRoleProvider);
-    if (backendRole == 'staff') {
-      return ref.watch(activeStaffGrantedCapabilitiesProvider).contains(capability);
-    }
-    if (backendRole != null && backendRole != 'owner') return false;
-    final role = ref.watch(staffRoleProvider);
-    if (!role.hasValue) return false;
-    if (role.value == 'owner') return true;
-    return ref.watch(activeStaffGrantedCapabilitiesProvider).contains(capability);
-  },
-);
+final hasResolvedOwnerCapabilityProvider =
+    Provider.family<bool, OwnerCapability>((ref, capability) {
+      final backendRole = ref.watch(backendAccountRoleProvider);
+      if (backendRole == 'staff') {
+        if (invitedStaffUnsupportedCapabilities.contains(capability)) {
+          return false;
+        }
+        return ref
+            .watch(activeStaffGrantedCapabilitiesProvider)
+            .contains(capability);
+      }
+      if (backendRole != null && backendRole != 'owner') return false;
+      final role = ref.watch(staffRoleProvider);
+      if (!role.hasValue) return false;
+      if (role.value == 'owner') return true;
+      return ref
+          .watch(activeStaffGrantedCapabilitiesProvider)
+          .contains(capability);
+    });
 
 /// Which [OwnerCapability]s a given roster member has been explicitly
 /// granted by the owner — live, per staff member.
 final staffGrantedCapabilitiesProvider =
     StreamProvider.family<Set<OwnerCapability>, String>((ref, staffMemberId) {
-  return ref
-      .watch(staffRepositoryProvider)
-      .watchGrantedCapabilities(staffMemberId);
-});
+      return ref
+          .watch(staffRepositoryProvider)
+          .watchGrantedCapabilities(staffMemberId);
+    });
 
 /// The local roster member whose `email` (case-insensitive) matches the
 /// currently signed-in invited-email `StaffAccount`, if any — the bridge
 /// that lets an email-login staff session inherit the same owner-granted
 /// [OwnerCapability]s a local PIN-roster member can hold. Null unless the
 /// backend session is `'staff'` AND a roster row's email matches.
+///
+/// Two active profiles carrying the same email are ambiguous: neither is
+/// chosen, so one person's grants and sales cannot silently land on the
+/// other's profile. The owner resolves it in the roster.
 final emailLinkedStaffMemberProvider = Provider<StaffMember?>((ref) {
-  if (ref.watch(sessionScopeProvider).backendRole != 'staff') return null;
+  if (ref.watch(backendAccountRoleProvider) != 'staff') return null;
   final email = ref.watch(currentAccountEmailProvider)?.trim().toLowerCase();
   if (email == null || email.isEmpty) return null;
   final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
+  StaffMember? match;
   for (final m in members) {
-    if ((m.email ?? '').trim().toLowerCase() == email) return m;
+    if ((m.email ?? '').trim().toLowerCase() != email) continue;
+    if (match != null) return null;
+    match = m;
   }
-  return null;
+  return match;
+});
+
+/// Signed-in account's auth user id, or null when signed out / no backend.
+final currentAccountUserIdProvider = Provider<String?>((ref) {
+  ref.watch(accountAuthEventsProvider);
+  try {
+    final user = ref.watch(accountRepositoryProvider).currentAuthUser;
+    return user == null || user.isAnonymous ? null : user.id;
+  } catch (_) {
+    return null;
+  }
+});
+
+/// The `Sales.staffId` a sale rung up RIGHT NOW is attributed to.
+///
+/// * Invited staff account: its own linked roster profile — never whichever
+///   cashier this device last had selected. With no single linked profile it
+///   is stamped `account:<user id>`, so the sale is still recorded as a staff
+///   sale (`cashierNameForSale` labels it Staff) instead of reading as Owner.
+/// * Local Staff mode: the PIN-selected roster member, while that member is
+///   still on the active roster (removing someone stops new attribution).
+/// * Owner mode: null — an owner sale.
+final saleCashierIdProvider = Provider<String?>((ref) {
+  final scope = ref.watch(sessionScopeProvider);
+  if (scope.backendRole == 'staff') {
+    final linked = ref.watch(emailLinkedStaffMemberProvider);
+    if (linked != null) return linked.id;
+    final userId = ref.watch(currentAccountUserIdProvider);
+    return userId == null ? null : 'account:$userId';
+  }
+  if (scope.effectiveRole != 'staff') return null;
+  final id = scope.activeStaffId;
+  if (id == null || id.isEmpty) return 'staff:unassigned';
+  // Authenticated staff attachment saves this actor separately from the
+  // live email/profile lookup, so loss of auth cannot relabel a sale Owner.
+  if (id.startsWith('account:')) return id;
+  final members = ref.watch(staffMembersProvider).valueOrNull;
+  if (members == null) return id; // roster still loading — keep the PIN choice
+  return members.any((m) => m.id == id) ? id : 'staff:unassigned';
 });
 
 /// Grants for the CURRENTLY active session, if any. Empty when: the session
@@ -216,6 +271,10 @@ final activeStaffGrantedCapabilitiesProvider = Provider<Set<OwnerCapability>>((
   }
   final staffId = ref.watch(activeStaffIdProvider).valueOrNull;
   if (staffId == null || staffId.isEmpty) return const {};
+  // A member removed from the roster keeps no grants on a device where they
+  // were still selected — fail closed while the roster is loading.
+  final members = ref.watch(staffMembersProvider).valueOrNull ?? const [];
+  if (!members.any((m) => m.id == staffId)) return const {};
   return ref.watch(staffGrantedCapabilitiesProvider(staffId)).valueOrNull ??
       const {};
 });
@@ -227,6 +286,10 @@ final hasOwnerCapabilityProvider = Provider.family<bool, OwnerCapability>((
   ref,
   capability,
 ) {
+  if (ref.watch(backendAccountRoleProvider) == 'staff' &&
+      invitedStaffUnsupportedCapabilities.contains(capability)) {
+    return false;
+  }
   return ownerPermissionPolicy.allows(
     capability,
     isEffectiveOwner: ref.watch(isEffectiveOwnerProvider),
@@ -336,10 +399,24 @@ class StaffController {
   /// switching to 'owner'. Returns false on a wrong PIN (role unchanged).
   /// Switching to 'owner' always clears the active staff identity — no named
   /// staff is "using" the device while it's in owner mode.
+  ///
+  /// An invited staff account can never switch this device to Owner, even
+  /// with the owner PIN: the persisted local role is what applies if the
+  /// session is later lost without a sign-out, so it must stay Staff.
+  /// Switching to plain (unnamed) Staff clears the named cashier, so the
+  /// previous person's sales attribution and grants do not carry over.
   Future<bool> switchRole(String targetRole, {String? pin}) async {
     await _ensurePinStateLoaded();
     final repo = _ref.read(settingsRepositoryProvider);
     final shopId = _ref.read(shopIdProvider);
+    if (await _isInvitedStaffSession()) {
+      if (targetRole != 'staff') return false;
+      // Do not clear the authenticated actor by selecting unnamed Staff;
+      // that marker also keeps the staff floor when auth is unavailable.
+      await repo.setStaffRole(shopId, 'staff');
+      return true;
+    }
+    if (targetRole == 'staff') await repo.setActiveStaffId(shopId, '');
     if (targetRole == 'owner') {
       final lockExpired = _clearExpiredOwnerPinLock();
       if (lockExpired) {
@@ -374,7 +451,11 @@ class StaffController {
   /// Switches to Staff mode AS a specific named roster member — verifies
   /// that member's own PIN (not the shared owner PIN). Returns false on a
   /// wrong PIN.
+  ///
+  /// Refused for an invited staff account: its cashier identity is its own
+  /// linked profile (`saleCashierIdProvider`), not a roster pick.
   Future<bool> switchToStaffMember(String memberId, String pin) async {
+    if (await _isInvitedStaffSession()) return false;
     final staff = _ref.read(staffRepositoryProvider);
     final member = await staff.verifyPin(memberId, pin);
     if (member == null) return false;
@@ -383,6 +464,17 @@ class StaffController {
     await repo.setActiveStaffId(shopId, member.id);
     await repo.setStaffRole(shopId, 'staff');
     return true;
+  }
+
+  Future<bool> _isInvitedStaffSession() async {
+    final role = _ref.read(backendAccountRoleProvider);
+    if (role != null) return role == 'staff';
+    // Read persisted provenance, rather than a possibly not-yet-loaded
+    // stream, so a cold offline launch cannot bypass the staff floor.
+    final actor = await _ref
+        .read(settingsRepositoryProvider)
+        .activeStaffId(_ref.read(shopIdProvider));
+    return actor?.startsWith('account:') ?? false;
   }
 
   /// Applies a role the OWNER already chose when generating this device's

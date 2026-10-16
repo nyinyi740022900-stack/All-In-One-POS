@@ -55,8 +55,9 @@ class _CashInputSignal extends StateNotifier<int> {
 }
 
 /// Invalidation-only counter — see [_CashInputSignal].
-final cashInputSignalProvider =
-    StateNotifierProvider<_CashInputSignal, int>((ref) => _CashInputSignal(ref));
+final cashInputSignalProvider = StateNotifierProvider<_CashInputSignal, int>(
+  (ref) => _CashInputSignal(ref),
+);
 
 /// Live "what the drawer should hold" for the current open session.
 /// `cash_sessions` itself doesn't change when a sale/repayment/expense
@@ -67,8 +68,20 @@ final expectedCashProvider = FutureProvider<int?>((ref) async {
   final session = ref.watch(currentCashSessionProvider).valueOrNull;
   if (session == null) return null;
   ref.watch(cashInputSignalProvider);
+  // Another (overlapping) session arriving by sync changes which payments
+  // this session owns — see `CashSessionRepository._ownedBy`.
+  ref.watch(cashSessionHistoryProvider);
   return ref.read(cashSessionRepositoryProvider).expectedCash(session);
 });
+
+/// Historical snapshots may require a derived reconciliation after a late
+/// overlapping session arrives. Watch both sessions and cash movements.
+final cashSessionExpectedProvider = FutureProvider.autoDispose
+    .family<int, CashSession>((ref, session) {
+      ref.watch(cashSessionHistoryProvider);
+      ref.watch(cashInputSignalProvider);
+      return ref.watch(cashSessionRepositoryProvider).expectedCash(session);
+    });
 
 /// Invalidation-only signal — see [expectedCashProvider].
 final _cashExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
@@ -81,8 +94,10 @@ final _cashExpensesWatchProvider = StreamProvider<List<Expense>>((ref) {
 /// Payment Accounts balance; here it backs the Cash Register's [expectedCashProvider].
 final _cashSupplierPaymentsWatchProvider =
     StreamProvider<List<SupplierPayment>>((ref) {
-  return ref.watch(cashSessionRepositoryProvider).watchAllSupplierPayments();
-});
+      return ref
+          .watch(cashSessionRepositoryProvider)
+          .watchAllSupplierPayments();
+    });
 
 /// Invalidation-only signal — see [expectedCashProvider]. A mid-session
 /// top-up fills the till, so the drawer must recompute when one is recorded.

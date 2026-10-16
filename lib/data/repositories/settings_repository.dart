@@ -433,6 +433,24 @@ class SettingsRepository {
 
   Future<void> setActiveStaffId(String shopId, String id) =>
       _set(_shopKey(_kActiveStaffId, shopId), id);
+
+  /// The signed-in account (auth user id) whose role was last applied to
+  /// this shop's local role. Lets a periodic licence recheck tell "the same
+  /// owner is still signed in" — where a deliberate PIN handoff to a cashier
+  /// must be left alone — from "a different account just attached", which
+  /// must establish its own role. Per shop, like `_kStaffRole`.
+  static const _kRoleAccount = 'staff.role_account';
+  Future<String?> roleAccountUserId(String shopId) async {
+    final v = await _getShopScoped(
+      _kRoleAccount,
+      shopId,
+      fallbackToLegacy: false,
+    );
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  Future<void> setRoleAccountUserId(String shopId, String userId) =>
+      _set(_shopKey(_kRoleAccount, shopId), userId);
   Stream<String?> watchActiveStaffId(String shopId) {
     return _db.select(_db.appSettings).watch().map((rows) {
       final scopedKey = _shopKey(_kActiveStaffId, shopId);

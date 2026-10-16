@@ -24,10 +24,18 @@ String _hashPin(String memberId, String pin) {
 /// in tables.dart for why this is deliberately lightweight (no real login
 /// account). Synced like any other shop entity via the outbox.
 class StaffRepository {
-  StaffRepository(this._db, this._shopId);
+  StaffRepository(this._db, this._shopId, {bool Function()? canAdminister})
+      : _canAdminister = canAdminister ?? _always;
 
   final AppDatabase _db;
   final String _shopId;
+
+  /// Whether this device may push roster changes. The server accepts
+  /// staff_members writes from the shop owner only (migration 0102), so a
+  /// staff device upgrading a legacy plaintext PIN keeps the hash locally
+  /// instead of queueing a write the server will refuse on every sync.
+  final bool Function() _canAdminister;
+  static bool _always() => true;
   static const _uuid = Uuid();
   bool _legacyHashStarted = false;
 
@@ -54,16 +62,21 @@ class StaffRepository {
         .get();
     for (final m in rows) {
       if (m.pin.startsWith('v1:')) continue;
-      await _db.transaction(() async {
-        await (_db.update(_db.staffMembers)..where((t) => t.id.equals(m.id)))
-            .write(StaffMembersCompanion(
-          pin: Value(_hashPin(m.id, m.pin)),
-          updatedAt: Value(DateTime.now()),
-          dirty: const Value(true),
-        ));
-        await _enqueue(m.id);
-      });
+      await _hashInPlace(m.id, m.pin);
     }
+  }
+
+  Future<void> _hashInPlace(String memberId, String plainPin) async {
+    final push = _canAdminister();
+    await _db.transaction(() async {
+      await (_db.update(_db.staffMembers)..where((t) => t.id.equals(memberId)))
+          .write(StaffMembersCompanion(
+        pin: Value(_hashPin(memberId, plainPin)),
+        updatedAt: push ? Value(DateTime.now()) : const Value.absent(),
+        dirty: push ? const Value(true) : const Value.absent(),
+      ));
+      if (push) await _enqueue(memberId);
+    });
   }
 
   /// Verifies [pin] against the stored hash. Rows written before hashing was
@@ -71,24 +84,24 @@ class StaffRepository {
   /// plaintext match is upgraded to a hash in place, so the roster migrates
   /// itself the first time each member's PIN is used, with no separate
   /// migration step.
+  ///
+  /// Only an active, non-removed member of THIS shop can sign in: removing
+  /// someone from the roster must revoke their PIN at once, not merely hide
+  /// them from the picker.
   Future<StaffMember?> verifyPin(String memberId, String pin) async {
     final m = await (_db.select(_db.staffMembers)
-          ..where((t) => t.id.equals(memberId)))
+          ..where((t) =>
+              t.id.equals(memberId) &
+              t.shopId.equals(_shopId) &
+              t.isDeleted.equals(false) &
+              t.active.equals(true)))
         .getSingleOrNull();
     if (m == null) return null;
     if (m.pin.startsWith('v1:')) {
       return m.pin == _hashPin(memberId, pin) ? m : null;
     }
     if (m.pin != pin) return null;
-    await _db.transaction(() async {
-      await (_db.update(_db.staffMembers)..where((t) => t.id.equals(memberId)))
-          .write(StaffMembersCompanion(
-        pin: Value(_hashPin(memberId, pin)),
-        updatedAt: Value(DateTime.now()),
-        dirty: const Value(true),
-      ));
-      await _enqueue(memberId);
-    });
+    await _hashInPlace(memberId, pin);
     return m;
   }
 

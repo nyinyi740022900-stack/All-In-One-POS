@@ -1,4 +1,3 @@
-
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -31,16 +30,18 @@ int computeExpectedCash({
   required List<SupplierPayment> supplierPayments,
   required List<CashTopUp> topUps,
 }) {
-  final cashIn = payments
+  final cashIn =
+      payments
           .where((p) => p.method == 'cash')
           .fold<int>(0, (sum, p) => sum + p.amount) +
       repayments
           .where((r) => r.method == 'cash')
           .fold<int>(0, (sum, r) => sum + r.amount) +
       topUps.fold<int>(0, (sum, t) => sum + t.amount);
-  final cashOut = expenses
-      .where((e) => e.accountId == null)
-      .fold<int>(0, (sum, e) => sum + e.amount) +
+  final cashOut =
+      expenses
+          .where((e) => e.accountId == null)
+          .fold<int>(0, (sum, e) => sum + e.amount) +
       supplierPayments
           .where((p) => p.method == 'cash')
           .fold<int>(0, (sum, p) => sum + p.amount);
@@ -62,6 +63,13 @@ class CashSessionReport {
   final int? closingAmount;
   final int? variance;
 
+  /// The immutable amount recorded at close, when late overlap requires a
+  /// separate derived reconciliation. Never written back into the session.
+  final int? recordedExpectedCash;
+  int? get reconciliationAdjustment => recordedExpectedCash == null
+      ? null
+      : expectedCash - recordedExpectedCash!;
+
   const CashSessionReport({
     required this.openingAmount,
     required this.cashSalesTotal,
@@ -72,6 +80,7 @@ class CashSessionReport {
     required this.expectedCash,
     required this.closingAmount,
     required this.variance,
+    this.recordedExpectedCash,
   });
 }
 
@@ -88,11 +97,16 @@ class CashSessionRepository {
   /// DB constraint) is at most one open session per shop at a time.
   Stream<CashSession?> watchCurrentSession() {
     return (_db.select(_db.cashSessions)
-          ..where((t) =>
-              t.shopId.equals(_shopId) &
-              t.isDeleted.equals(false) &
-              t.closedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.desc(t.openedAt)])
+          ..where(
+            (t) =>
+                t.shopId.equals(_shopId) &
+                t.isDeleted.equals(false) &
+                t.closedAt.isNull(),
+          )
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.openedAt),
+            (t) => OrderingTerm.desc(t.id),
+          ])
           ..limit(1))
         .watchSingleOrNull();
   }
@@ -102,7 +116,7 @@ class CashSessionRepository {
   /// `cash_providers.dart`), not for display.
   Stream<List<Expense>> watchAllExpenses() {
     return (_db.select(_db.expenses)
-            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
   }
 
@@ -112,7 +126,7 @@ class CashSessionRepository {
   /// the till). The caller filters by session window itself.
   Stream<List<SupplierPayment>> watchAllSupplierPayments() {
     return (_db.select(_db.supplierPayments)
-            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
   }
 
@@ -125,7 +139,7 @@ class CashSessionRepository {
   /// transaction, leaving the drawer's expected-cash figure stale.
   Stream<List<Payment>> watchAllPayments() {
     return (_db.select(_db.payments)
-            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
   }
 
@@ -134,7 +148,7 @@ class CashSessionRepository {
   /// trigger [expectedCash] recomputation when one is recorded.
   Stream<List<CashTopUp>> watchAllTopUps() {
     return (_db.select(_db.cashTopUps)
-            ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
         .watch();
   }
 
@@ -146,14 +160,18 @@ class CashSessionRepository {
     final id = _uuid.v4();
     final now = DateTime.now();
     await _db.transaction(() async {
-      await _db.into(_db.cashTopUps).insert(CashTopUpsCompanion.insert(
-            id: id,
-            shopId: _shopId,
-            amount: amount,
-            note: Value(note),
-            updatedAt: Value(now),
-            dirty: const Value(true),
-          ));
+      await _db
+          .into(_db.cashTopUps)
+          .insert(
+            CashTopUpsCompanion.insert(
+              id: id,
+              shopId: _shopId,
+              amount: amount,
+              note: Value(note),
+              updatedAt: Value(now),
+              dirty: const Value(true),
+            ),
+          );
       await _enqueueTopUp(id);
     });
     return id;
@@ -162,8 +180,7 @@ class CashSessionRepository {
   /// Every session, newest first — the register's history.
   Stream<List<CashSession>> watchSessions() {
     return (_db.select(_db.cashSessions)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false))
+          ..where((t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false))
           ..orderBy([(t) => OrderingTerm.desc(t.openedAt)]))
         .watch();
   }
@@ -181,25 +198,32 @@ class CashSessionRepository {
       // double-tap or a stale "closed" screen can't race a second session
       // into existence — overlapping windows would double-count cash-in on
       // both. Cross-device offline opens remain a documented residual.
-      final open = await (_db.select(_db.cashSessions)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.closedAt.isNull())
-            ..limit(1))
-          .get();
+      final open =
+          await (_db.select(_db.cashSessions)
+                ..where(
+                  (t) =>
+                      t.shopId.equals(_shopId) &
+                      t.isDeleted.equals(false) &
+                      t.closedAt.isNull(),
+                )
+                ..limit(1))
+              .get();
       if (open.isNotEmpty) {
         throw StateError('session_already_open');
       }
-      await _db.into(_db.cashSessions).insert(CashSessionsCompanion.insert(
-            id: id,
-            shopId: _shopId,
-            openedAt: now,
-            openingAmount: openingAmount,
-            note: Value(note),
-            deviceId: Value(deviceId),
-            updatedAt: Value(now),
-          ));
+      await _db
+          .into(_db.cashSessions)
+          .insert(
+            CashSessionsCompanion.insert(
+              id: id,
+              shopId: _shopId,
+              openedAt: now,
+              openingAmount: openingAmount,
+              note: Value(note),
+              deviceId: Value(deviceId),
+              updatedAt: Value(now),
+            ),
+          );
       await _enqueue(id);
     });
     return id;
@@ -212,9 +236,9 @@ class CashSessionRepository {
   }) async {
     final now = DateTime.now();
     await _db.transaction(() async {
-      final existing = await (_db.select(_db.cashSessions)
-            ..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      final existing = await (_db.select(
+        _db.cashSessions,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
       if (existing == null) {
         throw StateError('session_not_found');
       }
@@ -224,15 +248,16 @@ class CashSessionRepository {
       // Snapshot while still open so later till-expense edits cannot
       // rewrite this session's expected/variance (P6).
       final expected = await expectedCash(existing);
-      await (_db.update(_db.cashSessions)..where((t) => t.id.equals(id)))
-          .write(CashSessionsCompanion(
-        closedAt: Value(now),
-        closingAmount: Value(closingAmount),
-        expectedCashAtClose: Value(expected),
-        note: note == null ? const Value.absent() : Value(note),
-        updatedAt: Value(now),
-        dirty: const Value(true),
-      ));
+      await (_db.update(_db.cashSessions)..where((t) => t.id.equals(id))).write(
+        CashSessionsCompanion(
+          closedAt: Value(now),
+          closingAmount: Value(closingAmount),
+          expectedCashAtClose: Value(expected),
+          note: note == null ? const Value.absent() : Value(note),
+          updatedAt: Value(now),
+          dirty: const Value(true),
+        ),
+      );
       await _enqueue(id);
     });
   }
@@ -247,71 +272,141 @@ class CashSessionRepository {
   /// assumption — so this refuses in that case rather than corrupting it.
   Future<void> reopenLastClosedSession() async {
     await _db.transaction(() async {
-      final open = await (_db.select(_db.cashSessions)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.closedAt.isNull()))
-          .getSingleOrNull();
+      final open =
+          await (_db.select(_db.cashSessions)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.closedAt.isNull(),
+              ))
+              .getSingleOrNull();
       if (open != null) {
         throw StateError('session_already_open');
       }
-      final lastClosed = await (_db.select(_db.cashSessions)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.closedAt.isNotNull())
-            ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
-            ..limit(1))
-          .getSingleOrNull();
+      final lastClosed =
+          await (_db.select(_db.cashSessions)
+                ..where(
+                  (t) =>
+                      t.shopId.equals(_shopId) &
+                      t.isDeleted.equals(false) &
+                      t.closedAt.isNotNull(),
+                )
+                ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
+                ..limit(1))
+              .getSingleOrNull();
       if (lastClosed == null) {
         throw StateError('no_closed_session');
       }
       final now = DateTime.now();
-      await (_db.update(_db.cashSessions)
-            ..where((t) => t.id.equals(lastClosed.id)))
-          .write(CashSessionsCompanion(
-        closedAt: const Value(null),
-        closingAmount: const Value(null),
-        expectedCashAtClose: const Value(null),
-        updatedAt: Value(now),
-        dirty: const Value(true),
-      ));
+      await (_db.update(
+        _db.cashSessions,
+      )..where((t) => t.id.equals(lastClosed.id))).write(
+        CashSessionsCompanion(
+          closedAt: const Value(null),
+          closingAmount: const Value(null),
+          expectedCashAtClose: const Value(null),
+          updatedAt: Value(now),
+          dirty: const Value(true),
+        ),
+      );
       await _enqueue(lastClosed.id);
     });
+  }
+
+  /// Which instants inside [session]'s own window still belong to it.
+  ///
+  /// [openSession] refuses a second open session on one device, but two
+  /// devices that were offline can each open one, and once both sync this
+  /// shop has two windows over the same span. Every cash payment in the
+  /// overlap was then counted into BOTH sessions' expected cash. A moment
+  /// covered by a LATER-opened session belongs to that later session only,
+  /// so each payment lands in exactly one session — the latest one opened —
+  /// without deleting or rewriting any session, sale or outbox row. Ordinary
+  /// back-to-back sessions never overlap, so this changes nothing for them.
+  Future<bool Function(DateTime)> _ownedBy(CashSession session) async {
+    final closedAt = session.closedAt;
+    final later =
+        await (_db.select(_db.cashSessions)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.id.equals(session.id).not() &
+                  (t.openedAt.isBiggerThanValue(session.openedAt) |
+                      (t.openedAt.equals(session.openedAt) &
+                          t.id.isBiggerThanValue(session.id)));
+              if (closedAt != null) {
+                pred = pred & t.openedAt.isSmallerThanValue(closedAt);
+              }
+              return pred;
+            }))
+            .get();
+    if (later.isEmpty) return (_) => true;
+    return (at) => !later.any(
+      (l) =>
+          !at.isBefore(l.openedAt) &&
+          (l.closedAt == null || at.isBefore(l.closedAt!)),
+    );
   }
 
   /// What the drawer should hold right now (or at close, if [session] is
   /// already closed) — fetches this shop's payments/repayments/expenses/
   /// supplier payments within the session's window and hands them to
   /// [computeExpectedCash].
+  Future<bool> _hasOverlap(CashSession session) async {
+    final rows =
+        await (_db.select(_db.cashSessions)..where(
+              (t) =>
+                  t.shopId.equals(_shopId) &
+                  t.isDeleted.equals(false) &
+                  t.id.equals(session.id).not(),
+            ))
+            .get();
+    return rows.any(
+      (other) =>
+          (session.closedAt == null ||
+              other.openedAt.isBefore(session.closedAt!)) &&
+          (other.closedAt == null ||
+              session.openedAt.isBefore(other.closedAt!)),
+    );
+  }
+
   Future<int> expectedCash(CashSession session) async {
-    if (session.closedAt != null && session.expectedCashAtClose != null) {
+    if (session.closedAt != null &&
+        session.expectedCashAtClose != null &&
+        !await _hasOverlap(session)) {
       return session.expectedCashAtClose!;
     }
     final end = session.closedAt;
+    final owned = await _ownedBy(session);
 
-    final payments = await (_db.select(_db.payments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+    final payments =
+        await (_db.select(_db.payments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
-    final repayments = await (_db.select(_db.creditPayments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final repayments =
+        await (_db.select(_db.creditPayments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
-    final expenses = await (_db.select(_db.expenses)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final expenses =
+        await (_db.select(_db.expenses)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   // Fold by createdAt, NOT the business `date` (audit QA-M6):
                   // the cash physically left the till when the expense was
@@ -325,33 +420,41 @@ class CashSessionRepository {
               }
               return pred;
             }))
-        .get();
-    final supplierPayments = await (_db.select(_db.supplierPayments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final supplierPayments =
+        await (_db.select(_db.supplierPayments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
-    final topUps = await (_db.select(_db.cashTopUps)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final topUps =
+        await (_db.select(_db.cashTopUps)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
+            .get();
 
     return computeExpectedCash(
       openingAmount: session.openingAmount,
-      payments: payments,
-      repayments: repayments,
-      expenses: expenses,
-      supplierPayments: supplierPayments,
-      topUps: topUps,
+      payments: payments.where((r) => owned(r.createdAt)).toList(),
+      repayments: repayments.where((r) => owned(r.createdAt)).toList(),
+      expenses: expenses.where((r) => owned(r.createdAt)).toList(),
+      supplierPayments: supplierPayments
+          .where((r) => owned(r.createdAt))
+          .toList(),
+      topUps: topUps.where((r) => owned(r.createdAt)).toList(),
     );
   }
 
@@ -362,28 +465,36 @@ class CashSessionRepository {
   /// the single source of truth.
   Future<CashSessionReport> reportFor(CashSession session) async {
     final end = session.closedAt;
+    final owned = await _ownedBy(session);
 
-    final payments = await (_db.select(_db.payments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+    final payments =
+        await (_db.select(_db.payments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
-    final repayments = await (_db.select(_db.creditPayments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final repayments =
+        await (_db.select(_db.creditPayments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
-              if (end != null) pred = pred & t.createdAt.isSmallerThanValue(end);
+              if (end != null) {
+                pred = pred & t.createdAt.isSmallerThanValue(end);
+              }
               return pred;
             }))
-        .get();
-    final expenses = await (_db.select(_db.expenses)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final expenses =
+        await (_db.select(_db.expenses)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   // Same createdAt window as [expectedCash] — the itemized
                   // report must reconcile against the same physical drawer
@@ -394,10 +505,11 @@ class CashSessionRepository {
               }
               return pred;
             }))
-        .get();
-    final supplierPayments = await (_db.select(_db.supplierPayments)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final supplierPayments =
+        await (_db.select(_db.supplierPayments)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
               if (end != null) {
@@ -405,10 +517,11 @@ class CashSessionRepository {
               }
               return pred;
             }))
-        .get();
-    final topUps = await (_db.select(_db.cashTopUps)
-            ..where((t) {
-              var pred = t.shopId.equals(_shopId) &
+            .get();
+    final topUps =
+        await (_db.select(_db.cashTopUps)..where((t) {
+              var pred =
+                  t.shopId.equals(_shopId) &
                   t.isDeleted.equals(false) &
                   t.createdAt.isBiggerOrEqualValue(session.openedAt);
               if (end != null) {
@@ -416,31 +529,36 @@ class CashSessionRepository {
               }
               return pred;
             }))
-        .get();
+            .get();
 
     final cashSalesTotal = payments
-        .where((p) => p.method == 'cash')
+        .where((p) => p.method == 'cash' && owned(p.createdAt))
         .fold<int>(0, (sum, p) => sum + p.amount);
     final cashRepaymentsTotal = repayments
-        .where((r) => r.method == 'cash')
+        .where((r) => r.method == 'cash' && owned(r.createdAt))
         .fold<int>(0, (sum, r) => sum + r.amount);
-    final topUpsTotal = topUps.fold<int>(0, (sum, t) => sum + t.amount);
+    final topUpsTotal = topUps
+        .where((t) => owned(t.createdAt))
+        .fold<int>(0, (sum, t) => sum + t.amount);
     final expensesTotal = expenses
-        .where((e) => e.accountId == null)
+        .where((e) => e.accountId == null && owned(e.createdAt))
         .fold<int>(0, (sum, e) => sum + e.amount);
     final supplierPaymentsTotal = supplierPayments
-        .where((p) => p.method == 'cash')
+        .where((p) => p.method == 'cash' && owned(p.createdAt))
         .fold<int>(0, (sum, p) => sum + p.amount);
-    final liveExpected = session.openingAmount +
+    final liveExpected =
+        session.openingAmount +
         cashSalesTotal +
         cashRepaymentsTotal +
         topUpsTotal -
         expensesTotal -
         supplierPaymentsTotal;
     final expectedCash =
-        (session.closedAt != null && session.expectedCashAtClose != null)
-            ? session.expectedCashAtClose!
-            : liveExpected;
+        (session.closedAt != null &&
+            session.expectedCashAtClose != null &&
+            !await _hasOverlap(session))
+        ? session.expectedCashAtClose!
+        : liveExpected;
 
     return CashSessionReport(
       openingAmount: session.openingAmount,
@@ -450,6 +568,10 @@ class CashSessionRepository {
       expensesTotal: expensesTotal,
       supplierPaymentsTotal: supplierPaymentsTotal,
       expectedCash: expectedCash,
+      recordedExpectedCash:
+          session.closedAt != null && await _hasOverlap(session)
+          ? session.expectedCashAtClose
+          : null,
       closingAmount: session.closingAmount,
       variance: session.closingAmount == null
           ? null
@@ -461,24 +583,33 @@ class CashSessionRepository {
   /// expected, else the last counted close, else all-time till movements
   /// (shops that never opened Cash Register).
   Future<int> physicalCashNow() async {
-    final open = await (_db.select(_db.cashSessions)
-          ..where((t) =>
-              t.shopId.equals(_shopId) &
-              t.isDeleted.equals(false) &
-              t.closedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.desc(t.openedAt)])
-          ..limit(1))
-        .getSingleOrNull();
+    final open =
+        await (_db.select(_db.cashSessions)
+              ..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.closedAt.isNull(),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.openedAt),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
     if (open != null) return expectedCash(open);
 
-    final lastClosed = await (_db.select(_db.cashSessions)
-          ..where((t) =>
-              t.shopId.equals(_shopId) &
-              t.isDeleted.equals(false) &
-              t.closedAt.isNotNull())
-          ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
-          ..limit(1))
-        .getSingleOrNull();
+    final lastClosed =
+        await (_db.select(_db.cashSessions)
+              ..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.closedAt.isNotNull(),
+              )
+              ..orderBy([(t) => OrderingTerm.desc(t.closedAt)])
+              ..limit(1))
+            .getSingleOrNull();
     if (lastClosed != null) {
       // The counted/expected figure at close is only the base — cash
       // activity can still be recorded with no session open (an expense,
@@ -497,36 +628,46 @@ class CashSessionRepository {
       // bug being fixed here. This narrows the tradeoff to the reverse (a
       // same-second entry double-counted against `base`), a much smaller
       // and more acceptable window than "invisible until the next close."
-      final paymentsAfter = await (_db.select(_db.payments)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(closedAt)))
-          .get();
-      final repaymentsAfter = await (_db.select(_db.creditPayments)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(closedAt)))
-          .get();
-      final expensesAfter = await (_db.select(_db.expenses)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(closedAt)))
-          .get();
-      final supplierPaymentsAfter = await (_db.select(_db.supplierPayments)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(closedAt)))
-          .get();
-      final topUpsAfter = await (_db.select(_db.cashTopUps)
-            ..where((t) =>
-                t.shopId.equals(_shopId) &
-                t.isDeleted.equals(false) &
-                t.createdAt.isBiggerOrEqualValue(closedAt)))
-          .get();
+      final paymentsAfter =
+          await (_db.select(_db.payments)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.createdAt.isBiggerOrEqualValue(closedAt),
+              ))
+              .get();
+      final repaymentsAfter =
+          await (_db.select(_db.creditPayments)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.createdAt.isBiggerOrEqualValue(closedAt),
+              ))
+              .get();
+      final expensesAfter =
+          await (_db.select(_db.expenses)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.createdAt.isBiggerOrEqualValue(closedAt),
+              ))
+              .get();
+      final supplierPaymentsAfter =
+          await (_db.select(_db.supplierPayments)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.createdAt.isBiggerOrEqualValue(closedAt),
+              ))
+              .get();
+      final topUpsAfter =
+          await (_db.select(_db.cashTopUps)..where(
+                (t) =>
+                    t.shopId.equals(_shopId) &
+                    t.isDeleted.equals(false) &
+                    t.createdAt.isBiggerOrEqualValue(closedAt),
+              ))
+              .get();
       final deltaSinceClose = computeExpectedCash(
         openingAmount: 0,
         payments: paymentsAfter,
@@ -538,26 +679,31 @@ class CashSessionRepository {
       return base + deltaSinceClose;
     }
 
-    final payments = await (_db.select(_db.payments)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
-        .get();
-    final repayments = await (_db.select(_db.creditPayments)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
-        .get();
-    final expenses = await (_db.select(_db.expenses)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
-        .get();
-    final supplierPayments = await (_db.select(_db.supplierPayments)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
-        .get();
-    final topUps = await (_db.select(_db.cashTopUps)
-          ..where((t) =>
-              t.shopId.equals(_shopId) & t.isDeleted.equals(false)))
-        .get();
+    final payments =
+        await (_db.select(_db.payments)..where(
+              (t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false),
+            ))
+            .get();
+    final repayments =
+        await (_db.select(_db.creditPayments)..where(
+              (t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false),
+            ))
+            .get();
+    final expenses =
+        await (_db.select(_db.expenses)..where(
+              (t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false),
+            ))
+            .get();
+    final supplierPayments =
+        await (_db.select(_db.supplierPayments)..where(
+              (t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false),
+            ))
+            .get();
+    final topUps =
+        await (_db.select(_db.cashTopUps)..where(
+              (t) => t.shopId.equals(_shopId) & t.isDeleted.equals(false),
+            ))
+            .get();
     return computeExpectedCash(
       openingAmount: 0,
       payments: payments,
@@ -569,18 +715,26 @@ class CashSessionRepository {
   }
 
   Future<void> _enqueue(String id) async {
-    await _db.into(_db.outbox).insert(OutboxCompanion.insert(
-          entityTable: 'cash_sessions',
-          rowId: id,
-          op: 'upsert',
-        ));
+    await _db
+        .into(_db.outbox)
+        .insert(
+          OutboxCompanion.insert(
+            entityTable: 'cash_sessions',
+            rowId: id,
+            op: 'upsert',
+          ),
+        );
   }
 
   Future<void> _enqueueTopUp(String id) async {
-    await _db.into(_db.outbox).insert(OutboxCompanion.insert(
-          entityTable: 'cash_top_ups',
-          rowId: id,
-          op: 'upsert',
-        ));
+    await _db
+        .into(_db.outbox)
+        .insert(
+          OutboxCompanion.insert(
+            entityTable: 'cash_top_ups',
+            rowId: id,
+            op: 'upsert',
+          ),
+        );
   }
 }

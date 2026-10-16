@@ -1923,6 +1923,13 @@
   "dailyGateBranchStep": "Branch",
   "dailyGateOpeningStep": "Opening amount",
   "dailyGateContinue": "Continue",
+  "dailyGatePriorSessionOpen": "The register opened on {date} is still open. Today's sales are added to it — count and close it in Cash register.",
+  "@dailyGatePriorSessionOpen": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "staffCapabilityNotForAccountLogin": "Only on this phone in Staff mode — not when they sign in with their own account",
   "dailyGateSkipOpening": "Skip opening amount",
   "dailyGateRoleOwner": "Owner",
   "dailyGateRoleStaff": "Staff",
@@ -2137,5 +2144,8 @@
   "storefrontRenewCardCancelled": "Cancelled. Premium stays on until {date}.",
   "storefrontRenewCardPastDue": "The last charge did not go through. Update your card to keep Premium.",
   "storefrontRenewCardManageOrCancel": "Manage or cancel",
-  "storefrontRenewCardCancelHint": "Cancelling stops the next charge. The time you have already paid for is kept."
+  "storefrontRenewCardCancelHint": "Cancelling stops the next charge. The time you have already paid for is kept.",
+  "cashRecordedAtClose": "Recorded at close",
+  "cashReconciliationChange": "Reconciliation change",
+  "cashReconciliationNotice": "Late sync changed the cash allocation. The original closing record is unchanged."
 }

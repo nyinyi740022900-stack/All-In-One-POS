@@ -48,3 +48,14 @@ class OwnerPermissionPolicy {
 }
 
 const ownerPermissionPolicy = OwnerPermissionPolicy();
+
+/// Capabilities the server keeps for the owner's own login: inviting staff
+/// accounts and switching/creating branches are refused for any staff
+/// account however it is granted (`activate` Edge Function), and roster
+/// writes are owner-only too (migration 0102). A grant can therefore only
+/// take effect in local PIN Staff mode on a device the owner is signed in
+/// to — never for someone signed in with their own invited staff account.
+const invitedStaffUnsupportedCapabilities = <OwnerCapability>{
+  OwnerCapability.branches,
+  OwnerCapability.staffAccounts,
+};

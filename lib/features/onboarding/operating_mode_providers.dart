@@ -7,6 +7,30 @@ import '../printing/printing_providers.dart';
 String localCalendarYmd([DateTime? now]) =>
     DateFormat('yyyy-MM-dd').format(now ?? DateTime.now());
 
+/// Today's local calendar date. The daily gate used to read the date only
+/// when first evaluated, so an app left open across midnight (or resumed the
+/// next morning) kept yesterday's answer until something else happened to
+/// invalidate it. Watching this makes it recompute when the day changes.
+///
+/// The value is synchronous (no loading state for dependents). It is moved
+/// forward by [CalendarDayTicker] in the app shell — a periodic check plus
+/// app resume — rather than by a timer owned here, so the timer's lifetime
+/// is the app's widget tree and not every container that reads the gate.
+final localCalendarDayProvider =
+    StateNotifierProvider<LocalCalendarDay, String>(
+      (ref) => LocalCalendarDay(),
+    );
+
+class LocalCalendarDay extends StateNotifier<String> {
+  LocalCalendarDay() : super(localCalendarYmd());
+
+  /// Re-reads the clock; notifies only when the date actually changed.
+  void refresh() {
+    final today = localCalendarYmd();
+    if (today != state) state = today;
+  }
+}
+
 /// Whether the daily entry gate still needs to run for the active shop.
 /// Universal — every shop, regardless of plan or connectivity, confirms
 /// identity/branch/cash-open once per local calendar day (identity is
@@ -19,6 +43,8 @@ String localCalendarYmd([DateTime? now]) =>
 /// spinner (`app.dart`), so we still never surface the error state.
 final dailyGateNeededProvider = FutureProvider<bool>((ref) async {
   final shopId = ref.watch(shopIdProvider);
+  // Recompute when the local date rolls over, not only on invalidation.
+  ref.watch(localCalendarDayProvider);
   if (shopId.isEmpty) return true;
   Object? lastError;
   for (var attempt = 0; attempt < 3; attempt++) {

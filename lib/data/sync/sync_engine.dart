@@ -553,7 +553,7 @@ class SyncEngine {
             !_didSessionRefreshThisSync) {
           _didSessionRefreshThisSync = true;
           try {
-            await Supabase.instance.client.auth.refreshSession();
+            await Supabase.instance.client.auth.refreshSessionBounded();
             await _pushOne(item, def);
             await _clearDirty(item.entityTable, item.rowId);
             await _removeOutbox(item.seq);

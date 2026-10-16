@@ -49,4 +49,27 @@ void main() {
       'Owner',
     );
   });
+
+  test('a stamped staff id that does not resolve is Staff, never Owner', () {
+    for (final id in ['gone', 'account:user-1']) {
+      expect(
+        cashierNameForSale(
+          staffId: id,
+          members: members,
+          ownerLabel: 'Owner',
+          staffLabel: 'Staff',
+        ),
+        'Staff',
+      );
+    }
+    expect(
+      cashierNameForSale(
+        staffId: null,
+        members: members,
+        ownerLabel: 'Owner',
+        staffLabel: 'Staff',
+      ),
+      'Owner',
+    );
+  });
 }

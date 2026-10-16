@@ -8,6 +8,7 @@ import '../../core/env.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../license/entitlement.dart';
 import '../license/invoke_error.dart';
 import '../license/license_model.dart';
 import '../license/license_repository.dart';
@@ -555,19 +556,54 @@ class AccountRepository {
     }
     if (fallback != null &&
         (pulled.errorCode == 'network_error' ||
-            pulled.errorCode == 'server_error')) {
+            pulled.errorCode == 'server_error') &&
+        await _fallbackBelongsToCurrentAccount(fallback)) {
       await _rememberLocalRole(fallback.shopId);
       return AccountActionResult.success(null, license: fallback);
     }
     return AccountActionResult.failure(pulled.errorCode ?? 'server_error');
   }
 
+  /// A cached licence may stand in for a refresh that could not reach the
+  /// server only when it actually proves something for THIS account. The
+  /// cache on a device that changes hands (owner → staff on one phone) holds
+  /// the previous account's receipt; reporting that as a successful attach
+  /// made the sign-in look done while the receipt check then refused it and
+  /// the paywall said "Upgrade". Free grants nothing and needs no proof.
+  Future<bool> _fallbackBelongsToCurrentAccount(CachedLicense fallback) async =>
+      cachedLicenseProvesAccount(
+        cached: fallback,
+        receipt: await Entitlement.verify(fallback.entitlement),
+        userId: _licenseRepository.currentUserId,
+        enforce: Env.hasBackend,
+      );
+
+  /// Establishes the role (and clears the cashier) for an account that has
+  /// just attached on purpose — sign-in, signup, wipe-and-claim. Only the
+  /// authenticated app_metadata role is used, never user_metadata. Keeping
+  /// staff's floor per shop prevents auth loss becoming local Owner.
+  ///
+  /// The cashier selection is cleared because it belonged to whoever used
+  /// the device before: an invited staff account's sales are attributed to
+  /// its own linked roster profile at checkout (see
+  /// `saleCashierIdProvider`), and an owner starts un-handed-off. The
+  /// account is recorded as this shop's role owner so the periodic licence
+  /// recheck does not re-impose the role over a later deliberate PIN handoff.
   Future<void> _rememberLocalRole(String shopId) async {
-    // Only the authenticated app_metadata role is used, never user_metadata.
-    // Keeping staff's floor per shop prevents auth loss becoming local Owner.
     final role = currentAccountRole;
     if (role == 'staff' || role == 'owner') {
       await _settings.setStaffRole(shopId, role!);
+      final userId = _licenseRepository.currentUserId;
+      // Retain a shop-scoped account actor through auth loss. This is not a
+      // PIN-roster selection; live staff attribution still resolves its own
+      // linked profile in saleCashierIdProvider.
+      await _settings.setActiveStaffId(
+        shopId,
+        role == 'staff' && userId != null ? 'account:$userId' : '',
+      );
+      if (userId != null && userId.isNotEmpty) {
+        await _settings.setRoleAccountUserId(shopId, userId);
+      }
     }
   }
 
@@ -825,7 +861,7 @@ class AccountRepository {
 
   /// Permanently deletes the signed-in owner's online account (and owned
   /// shops' cloud data). Caller must pass the account password. On success
-  /// the local device should wipe shop data and enter Free plan.
+  /// the local device retains its shop data and enters the Free plan.
   Future<AccountActionResult> deleteAccount(String password) async {
     if (!Env.hasBackend) {
       return const AccountActionResult.failure('no_backend');

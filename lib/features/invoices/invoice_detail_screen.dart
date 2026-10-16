@@ -148,6 +148,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
             staffId: s.staffId,
             members: [for (final m in members) (id: m.id, name: m.name)],
             ownerLabel: l.staffRoleOwner,
+            staffLabel: l.staffRoleStaff,
             deviceLabel: s.deviceId == null
                 ? null
                 : ref.watch(deviceLabelMapProvider)[s.deviceId],

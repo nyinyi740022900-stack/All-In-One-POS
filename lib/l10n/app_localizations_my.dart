@@ -4254,6 +4254,15 @@ class AppLocalizationsMy extends AppLocalizations {
   String get dailyGateContinue => 'ဆက်မည်';
 
   @override
+  String dailyGatePriorSessionOpen(String date) {
+    return '$date က ဖွင့်ထားတဲ့ ငွေစာရင်းကို မပိတ်ရသေးပါ။ ဒီနေ့ အရောင်းတွေ အဲဒီထဲ ပေါင်းဝင်ပါမယ်။ ငွေတိုက် မှာ ငွေရေပြီး ပိတ်ပေးပါ။';
+  }
+
+  @override
+  String get staffCapabilityNotForAccountLogin =>
+      'ဒီဖုန်းရဲ့ ဝန်ထမ်းမုဒ်မှာသာ ရပါတယ် — သူ့ကိုယ်ပိုင် အကောင့်နဲ့ ဝင်ရင် မရပါ';
+
+  @override
   String get dailyGateSkipOpening => 'ဖွင့်ငွေ ကျော်မည်';
 
   @override
@@ -4751,4 +4760,14 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get storefrontRenewCardCancelHint =>
       'ရပ်ဆိုင်းလိုက်ရင် နောက်တစ်ကြိမ် ငွေမဖြတ်တော့ပါ။ ပေးချေပြီးသား သက်တမ်းကတော့ ကျန်ရှိနေပါမည်။';
+
+  @override
+  String get cashRecordedAtClose => 'ပိတ်ချိန် မှတ်တမ်းတင်ထားငွေ';
+
+  @override
+  String get cashReconciliationChange => 'ပြန်ညှိတွက်ချက် ကွာခြားငွေ';
+
+  @override
+  String get cashReconciliationNotice =>
+      'နောက်ကျမှ sync ရောက်လာသဖြင့် ငွေခွဲဝေမှုကို ပြန်ညှိတွက်ထားသည်။ မူရင်းပိတ်စာရင်း မပြောင်းပါ။';
 }

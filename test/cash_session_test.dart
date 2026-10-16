@@ -287,6 +287,53 @@ void main() {
       expect(id, isNotEmpty);
     });
 
+    test('two offline devices\' overlapping sessions never count one cash '
+        'payment twice', () async {
+      // Device A opened at 09:00, device B (offline, its own guard saw no
+      // open session) at 10:00; both rows meet here after sync.
+      final t9 = DateTime(2026, 10, 14, 9);
+      final t10 = DateTime(2026, 10, 14, 10);
+      await db.into(db.cashSessions).insert(CashSessionsCompanion.insert(
+            id: 'a', shopId: 'shop-1', openedAt: t9, openingAmount: 10000));
+      await db.into(db.cashSessions).insert(CashSessionsCompanion.insert(
+            id: 'b', shopId: 'shop-1', openedAt: t10, openingAmount: 0));
+      Future<void> pay(String id, DateTime at) =>
+          db.into(db.payments).insert(PaymentsCompanion.insert(
+                id: id,
+                shopId: 'shop-1',
+                saleId: 's-$id',
+                method: 'cash',
+                amount: 1000,
+                createdAt: Value(at),
+              ));
+      await pay('before-b', t9.add(const Duration(minutes: 30)));
+      await pay('during-both', t10.add(const Duration(minutes: 30)));
+
+      final sessions = {
+        for (final s in await db.select(db.cashSessions).get()) s.id: s,
+      };
+      final a = await repo.expectedCash(sessions['a']!);
+      final b = await repo.expectedCash(sessions['b']!);
+      expect(a, 11000, reason: 'A keeps only what came before B opened');
+      expect(b, 1000, reason: 'the overlap belongs to the later session');
+      expect(a + b, 12000, reason: 'opening 10000 + two 1000 sales, once each');
+      expect(
+        (await repo.reportFor(sessions['a']!)).cashSalesTotal,
+        1000,
+        reason: 'the itemized report must match the same allocation',
+      );
+
+      // Once B closes, A (still open) owns what comes after again.
+      await repo.closeSession('b', closingAmount: 1000);
+      await pay('after-b', DateTime.now().add(const Duration(seconds: 1)));
+      final reread = await (db.select(db.cashSessions)
+            ..where((t) => t.id.equals('a')))
+          .getSingle();
+      expect(await repo.expectedCash(reread), 12000);
+      expect((await db.select(db.cashSessions).get()), hasLength(2),
+          reason: 'no session is deleted or rewritten to reconcile');
+    });
+
     test('addTopUp enqueues outbox and is folded into expectedCash', () async {
       await repo.openSession(openingAmount: 10000);
       final session = await repo.watchCurrentSession().first;

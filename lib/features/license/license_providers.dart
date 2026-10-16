@@ -293,6 +293,19 @@ class LicenseController extends StateNotifier<LicenseState>
     return true;
   }
 
+  /// Cloud deletion must not choose a new shop file or discard unsynced work.
+  /// Keep the current local identity and remove Premium on the same records.
+  Future<void> keepLocalDataAfterAccountDeletion() async {
+    final current = await _repo.current();
+    if (current == null) {
+      await continueFree();
+      return;
+    }
+    final local = await _repo.downgradeToFree(current);
+    await _reopenShopDbIfNeeded(local.shopId);
+    await _apply(local);
+  }
+
   /// Self-serve, no-account Premium trial — mirrors [activate]'s exact
   /// promote/reopen/apply shape, since both mint a real server shop_id that
   /// may need to inherit this device's local Free-plan data.
@@ -485,12 +498,30 @@ class LicenseController extends StateNotifier<LicenseState>
     }
     // Use the repository for the reopened shop, so staff's local floor lives
     // in the target database even on first provisioning of a new device.
+    //
+    // This runs on every recheck (one-minute expiry timer, resume, auth
+    // events), so it must only ESTABLISH a role, never undo a deliberate
+    // one. Staff's floor is safe to reassert every time. Owner is applied
+    // only when this account has not yet been recorded as the shop's role
+    // account — otherwise an owner who PIN-handed the phone to a cashier
+    // got Owner back within a minute, with the cashier still selected.
     final role = repo.currentAccountRole;
     if (effective != null &&
         userId != null &&
         repo.currentSessionShopId == effective.shopId &&
         (role == 'staff' || role == 'owner')) {
-      await settings.setStaffRole(effective.shopId, role!);
+      final shopId = effective.shopId;
+      final newAccount = await settings.roleAccountUserId(shopId) != userId;
+      if (role == 'staff') {
+        await settings.setStaffRole(shopId, 'staff');
+        await settings.setActiveStaffId(shopId, 'account:$userId');
+      }
+      if (newAccount) {
+        if (role == 'owner') await settings.setStaffRole(shopId, 'owner');
+        // The previous account's cashier selection is not this person's.
+        if (role == 'owner') await settings.setActiveStaffId(shopId, '');
+        await settings.setRoleAccountUserId(shopId, userId);
+      }
       if (!mounted || seq != _applySeq || userId != repo.currentUserId) return;
     }
     // Bind the active shop so all data scopes to it.

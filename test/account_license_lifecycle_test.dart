@@ -24,8 +24,9 @@ class _RemoteRepository extends LicenseRepository {
   Future<CachedLicense?> current() => pendingCurrent?.future ?? super.current();
   @override
   bool get hasEmailSession => true;
+  String? userId = 'user';
   @override
-  String? get currentUserId => 'user';
+  String? get currentUserId => userId;
   String? accountRole;
   String? accountShop;
   @override
@@ -54,17 +55,23 @@ class _ShopSession extends ChangeNotifier implements DatabaseSession {
   final AppDatabase target;
   @override
   final AppDatabase deviceDb;
+  final reopened = <String>[];
   @override
   String? shopId;
   @override
   Future<void> reopenForShop(String toShopId) async {
+    reopened.add(toShopId);
     shopDb = target;
     shopId = toShopId;
     notifyListeners();
     await Future<void>.delayed(Duration.zero);
   }
+
   @override
-  Future<void> reopenForShopPromotedFrom({required String fromShopId, required String toShopId}) => reopenForShop(toShopId);
+  Future<void> reopenForShopPromotedFrom({
+    required String fromShopId,
+    required String toShopId,
+  }) => reopenForShop(toShopId);
   @override
   Future<void> disposeSessions() async {}
 }
@@ -119,6 +126,67 @@ void main() {
     container.dispose();
     await db.close();
   });
+
+  for (final plan in [LicensePlan.monthly, LicensePlan.free]) {
+    for (final pending in [false, true]) {
+      test(
+        'account deletion keeps the same local shop and outbox ($plan, $pending)',
+        () async {
+          await repo.saveExternal(paid.copyWith(plan: plan));
+          // The successful server deletion has already signed the account out.
+          repo.userId = null;
+          if (pending) {
+            await db
+                .into(db.outbox)
+                .insert(
+                  OutboxCompanion.insert(
+                    entityTable: 'products',
+                    rowId: 'unsynced-product',
+                    op: 'upsert',
+                  ),
+                );
+          }
+          final controller = container.read(licenseControllerProvider.notifier);
+          await controller.keepLocalDataAfterAccountDeletion();
+          final cached = (await repo.current())!;
+          expect(cached.shopId, paid.shopId);
+          expect(cached.deviceId, paid.deviceId);
+          expect(cached.plan, LicensePlan.free);
+          expect(container.read(shopIdProvider), paid.shopId);
+          expect(container.read(licenseControllerProvider).isPremium, isFalse);
+          expect(await db.select(db.outbox).get(), hasLength(pending ? 1 : 0));
+        },
+      );
+    }
+  }
+
+  test(
+    'deleted account reopens its existing local database after session loss',
+    () async {
+      repo.userId = null;
+      final session = _ShopSession(db, db, db);
+      final localContainer = ProviderContainer(
+        overrides: [
+          databaseSessionProvider.overrideWith((ref) => session),
+          licenseRepositoryProvider.overrideWithValue(repo),
+          licenseControllerProvider.overrideWith(
+            (ref) => _ClockController(ref),
+          ),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+      await localContainer
+          .read(licenseControllerProvider.notifier)
+          .keepLocalDataAfterAccountDeletion();
+      expect(session.reopened, [paid.shopId]);
+      expect(session.shopId, paid.shopId);
+      expect(identical(localContainer.read(databaseProvider), db), isTrue);
+      expect(
+        localContainer.read(licenseControllerProvider).license?.plan,
+        LicensePlan.free,
+      );
+    },
+  );
 
   test(
     'local lapse retains account identity and paid evidence for renewal',
@@ -194,32 +262,95 @@ void main() {
     },
   );
 
-  test('newly provisioned staff floor survives auth loss in the freshly reopened target database', () async {
-    final targetDb = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(targetDb.close);
-    final targetLicense = CachedLicense(key: 'ACCOUNT', shopId: 'shop-2', plan: LicensePlan.free,
-      expiresAt: DateTime(2026), activatedAt: DateTime(2026), lastVerifiedAt: DateTime(2026), deviceId: paid.deviceId);
-    repo.response = ActivationResult.success(targetLicense);
-    repo.accountRole = 'staff'; repo.accountShop = 'shop-2';
-    final account = _Account(repo, settings, db);
-    final attached = await account.attachAccountLicense();
-    expect(attached.ok, isTrue);
-    expect(await SettingsRepository(targetDb).staffRole('shop-2'), 'owner');
-    final session = _ShopSession(db, targetDb, db);
-    final targetContainer = ProviderContainer(overrides: [
-      databaseSessionProvider.overrideWith((ref) => session),
-      licenseRepositoryProvider.overrideWithValue(repo),
-      licenseControllerProvider.overrideWith((ref) => _ClockController(ref)),
-    ]);
-    addTearDown(targetContainer.dispose);
-    final controller = targetContainer.read(licenseControllerProvider.notifier);
-    await controller.applyExternal(attached.license!);
-    expect(identical(targetContainer.read(databaseProvider), targetDb), isTrue);
-    repo.accountRole = null; account.role = null;
+  test("an owner's deliberate PIN handoff survives every licence recheck, and "
+      'only a different account re-establishes its own role', () async {
+    repo.accountRole = 'owner';
+    repo.accountShop = paid.shopId;
+    final controller =
+        container.read(licenseControllerProvider.notifier) as _ClockController;
+    final active = paid.copyWith(
+      expiresAt: controller.currentTime.add(const Duration(days: 30)),
+    );
+    await repo.saveExternal(active);
+    await controller.applyExternal(active);
+    expect(await settings.staffRole(paid.shopId), 'owner');
+
+    // Owner hands the phone to a cashier (StaffController's PIN switch).
+    await settings.setStaffRole(paid.shopId, 'staff');
+    await settings.setActiveStaffId(paid.shopId, 'cashier-1');
+    // The one-minute expiry timer / resume / auth event used to put Owner
+    // straight back, with the cashier still selected.
     await controller.recomputeExpiry();
-    final targetSettings = targetContainer.read(settingsRepositoryProvider);
-    expect(await targetSettings.staffRole('shop-2'), 'staff');
+    await controller.recomputeExpiry();
+    expect(await settings.staffRole(paid.shopId), 'staff');
+    expect(await settings.activeStaffId(paid.shopId), 'cashier-1');
+
+    // A different owner account on this device is a new identity.
+    repo.userId = 'other-owner';
+    await controller.recomputeExpiry();
+    expect(await settings.staffRole(paid.shopId), 'owner');
+    expect(await settings.activeStaffId(paid.shopId), isNull);
   });
+
+  test(
+    "signing in as staff replaces the previous cashier with its account actor",
+    () async {
+      await settings.setActiveStaffId(paid.shopId, 'someone-else');
+      final account = _Account(repo, settings, db);
+      repo.response = ActivationResult.success(paid);
+      expect((await account.attachAccountLicense()).ok, isTrue);
+      expect(await settings.staffRole(paid.shopId), 'staff');
+      expect(await settings.activeStaffId(paid.shopId), 'account:user');
+    },
+  );
+
+  test(
+    'newly provisioned staff floor survives auth loss in the freshly reopened target database',
+    () async {
+      final targetDb = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(targetDb.close);
+      final targetLicense = CachedLicense(
+        key: 'ACCOUNT',
+        shopId: 'shop-2',
+        plan: LicensePlan.free,
+        expiresAt: DateTime(2026),
+        activatedAt: DateTime(2026),
+        lastVerifiedAt: DateTime(2026),
+        deviceId: paid.deviceId,
+      );
+      repo.response = ActivationResult.success(targetLicense);
+      repo.accountRole = 'staff';
+      repo.accountShop = 'shop-2';
+      final account = _Account(repo, settings, db);
+      final attached = await account.attachAccountLicense();
+      expect(attached.ok, isTrue);
+      expect(await SettingsRepository(targetDb).staffRole('shop-2'), 'owner');
+      final session = _ShopSession(db, targetDb, db);
+      final targetContainer = ProviderContainer(
+        overrides: [
+          databaseSessionProvider.overrideWith((ref) => session),
+          licenseRepositoryProvider.overrideWithValue(repo),
+          licenseControllerProvider.overrideWith(
+            (ref) => _ClockController(ref),
+          ),
+        ],
+      );
+      addTearDown(targetContainer.dispose);
+      final controller = targetContainer.read(
+        licenseControllerProvider.notifier,
+      );
+      await controller.applyExternal(attached.license!);
+      expect(
+        identical(targetContainer.read(databaseProvider), targetDb),
+        isTrue,
+      );
+      repo.accountRole = null;
+      account.role = null;
+      await controller.recomputeExpiry();
+      final targetSettings = targetContainer.read(settingsRepositoryProvider);
+      expect(await targetSettings.staffRole('shop-2'), 'staff');
+    },
+  );
 
   test(
     'background refresh cannot switch to another account shop with local writes',
@@ -259,19 +390,34 @@ void main() {
 
   test('late startup load cannot replace a newer selected shop', () async {
     repo.pendingCurrent = Completer<CachedLicense?>();
-    final loadingContainer = ProviderContainer(overrides: [
-      databaseProvider.overrideWithValue(db), settingsRepositoryProvider.overrideWithValue(settings),
-      licenseRepositoryProvider.overrideWithValue(repo),
-    ]);
+    final loadingContainer = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        settingsRepositoryProvider.overrideWithValue(settings),
+        licenseRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
     addTearDown(loadingContainer.dispose);
-    final controller = loadingContainer.read(licenseControllerProvider.notifier);
+    final controller = loadingContainer.read(
+      licenseControllerProvider.notifier,
+    );
     final loading = controller.load();
-    final other = CachedLicense(key: 'ACCOUNT', shopId: 'shop-2', plan: LicensePlan.free,
-      expiresAt: DateTime(2026), activatedAt: DateTime(2026), lastVerifiedAt: DateTime(2026), deviceId: paid.deviceId);
+    final other = CachedLicense(
+      key: 'ACCOUNT',
+      shopId: 'shop-2',
+      plan: LicensePlan.free,
+      expiresAt: DateTime(2026),
+      activatedAt: DateTime(2026),
+      lastVerifiedAt: DateTime(2026),
+      deviceId: paid.deviceId,
+    );
     await controller.applyExternal(other);
     repo.pendingCurrent!.complete(paid);
     await loading;
-    expect(loadingContainer.read(licenseControllerProvider).license?.shopId, 'shop-2');
+    expect(
+      loadingContainer.read(licenseControllerProvider).license?.shopId,
+      'shop-2',
+    );
   });
 
   test(

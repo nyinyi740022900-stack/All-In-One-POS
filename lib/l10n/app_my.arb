@@ -1868,6 +1868,13 @@
   "dailyGateBranchStep": "ဆိုင်ခွဲ",
   "dailyGateOpeningStep": "ဖွင့်ငွေ",
   "dailyGateContinue": "ဆက်မည်",
+  "dailyGatePriorSessionOpen": "{date} က ဖွင့်ထားတဲ့ ငွေစာရင်းကို မပိတ်ရသေးပါ။ ဒီနေ့ အရောင်းတွေ အဲဒီထဲ ပေါင်းဝင်ပါမယ်။ ငွေတိုက် မှာ ငွေရေပြီး ပိတ်ပေးပါ။",
+  "@dailyGatePriorSessionOpen": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "staffCapabilityNotForAccountLogin": "ဒီဖုန်းရဲ့ ဝန်ထမ်းမုဒ်မှာသာ ရပါတယ် — သူ့ကိုယ်ပိုင် အကောင့်နဲ့ ဝင်ရင် မရပါ",
   "dailyGateSkipOpening": "ဖွင့်ငွေ ကျော်မည်",
   "dailyGateRoleOwner": "ပိုင်ရှင်",
   "dailyGateRoleStaff": "ဝန်ထမ်း",
@@ -2051,5 +2058,8 @@
   "storefrontRenewCardCancelled": "ရပ်ဆိုင်းပြီးပါပြီ။ {date} အထိ Premium ဆက်ရှိနေပါမည်။",
   "storefrontRenewCardPastDue": "နောက်ဆုံး ငွေဖြတ်မှု မအောင်မြင်ပါ။ Premium ဆက်သုံးရန် ကတ်ကို ပြင်ပါ။",
   "storefrontRenewCardManageOrCancel": "စီမံရန် / ရပ်ဆိုင်းရန်",
-  "storefrontRenewCardCancelHint": "ရပ်ဆိုင်းလိုက်ရင် နောက်တစ်ကြိမ် ငွေမဖြတ်တော့ပါ။ ပေးချေပြီးသား သက်တမ်းကတော့ ကျန်ရှိနေပါမည်။"
+  "storefrontRenewCardCancelHint": "ရပ်ဆိုင်းလိုက်ရင် နောက်တစ်ကြိမ် ငွေမဖြတ်တော့ပါ။ ပေးချေပြီးသား သက်တမ်းကတော့ ကျန်ရှိနေပါမည်။",
+  "cashRecordedAtClose": "ပိတ်ချိန် မှတ်တမ်းတင်ထားငွေ",
+  "cashReconciliationChange": "ပြန်ညှိတွက်ချက် ကွာခြားငွေ",
+  "cashReconciliationNotice": "နောက်ကျမှ sync ရောက်လာသဖြင့် ငွေခွဲဝေမှုကို ပြန်ညှိတွက်ထားသည်။ မူရင်းပိတ်စာရင်း မပြောင်းပါ။"
 }

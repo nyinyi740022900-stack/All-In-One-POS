@@ -115,9 +115,12 @@ class CashSessionScreen extends ConsumerWidget {
       // path.
       if (e.message.contains('session_already_open')) {
         messenger.showSnackBar(
-            SnackBar(content: Text(l.cashSessionAlreadyOpen)));
+          SnackBar(content: Text(l.cashSessionAlreadyOpen)),
+        );
       } else {
-        messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.commonUnexpectedError)),
+        );
       }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
@@ -186,8 +189,9 @@ class CashSessionScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(cashSessionRepositoryProvider).reopenLastClosedSession();
-      messenger
-          .showSnackBar(SnackBar(content: Text(l.cashReopenLastSessionDone)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.cashReopenLastSessionDone)),
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l.commonUnexpectedError)));
     }
@@ -269,7 +273,9 @@ class _OpenCard extends ConsumerWidget {
             _kv(
               context,
               l.cashOpeningAmount,
-              MoneyText(Money(session.openingAmount).withCurrency(currency, locale)),
+              MoneyText(
+                Money(session.openingAmount).withCurrency(currency, locale),
+              ),
             ),
             const Divider(height: AppTheme.space5),
             Row(
@@ -409,13 +415,8 @@ class _HistoryTile extends ConsumerStatefulWidget {
 }
 
 class _HistoryTileState extends ConsumerState<_HistoryTile> {
-  /// A closed session's window is frozen (`closedAt` is set), so its
-  /// expected figure never changes — compute ONCE instead of re-querying on
-  /// every parent rebuild (the old per-build `ref.read` inside
-  /// FutureBuilder re-ran the whole sales/expenses window query each time).
-  late final Future<int> _expected = ref
-      .read(cashSessionRepositoryProvider)
-      .expectedCash(widget.session);
+  // The original close snapshot is frozen. The provider also watches late
+  // session/movement sync so a derived reconciliation never stays stale.
 
   @override
   Widget build(BuildContext context) {
@@ -425,6 +426,13 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
     final df = DateFormat('yyyy-MM-dd HH:mm');
     final session = widget.session;
     final closing = session.closingAmount;
+    final effectiveExpected = ref
+        .watch(cashSessionExpectedProvider(session))
+        .valueOrNull;
+    final recorded = session.expectedCashAtClose;
+    final adjustment = recorded == null || effectiveExpected == null
+        ? 0
+        : effectiveExpected - recorded;
 
     return ListTile(
       dense: true,
@@ -438,7 +446,8 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
         closing == null
             ? l.cashRegisterOpen
             : '${l.cashOpeningAmount}: ${Money(session.openingAmount).withCurrency(currency, locale)}'
-                  ' → ${l.cashClosingAmount}: ${Money(closing).withCurrency(currency, locale)}',
+                  ' → ${l.cashClosingAmount}: ${Money(closing).withCurrency(currency, locale)}'
+                  '${adjustment == 0 ? '' : '\n${l.cashRecordedAtClose}: ${Money(recorded!).withCurrency(currency, locale)}\n${l.cashReconciliationChange}: ${Money(adjustment).withCurrency(currency, locale)}'}',
       ),
       trailing: closing == null
           ? null
@@ -451,7 +460,9 @@ class _HistoryTileState extends ConsumerState<_HistoryTile> {
                   // the session's window) — not vs. the opening amount
                   // alone, which would flag every normal day of sales as
                   // "over."
-                  future: _expected,
+                  future: ref.watch(
+                    cashSessionExpectedProvider(session).future,
+                  ),
                   builder: (context, snap) {
                     if (snap.connectionState != ConnectionState.done) {
                       return const SizedBox(
@@ -514,12 +525,45 @@ Future<void> showCashReportSheet(
   final l = AppLocalizations.of(context);
   final printerConfig = await ref.read(printerConfigProvider.future);
   if (!context.mounted) return;
+  final report = await ref
+      .read(cashSessionRepositoryProvider)
+      .reportFor(session);
+  if (!context.mounted) return;
+  final currency = ref.read(shopCurrencyProvider);
+  final locale = Localizations.localeOf(context).languageCode;
   await showAppModal<void>(
     context: context,
     builder: (ctx) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (report.recordedExpectedCash != null)
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.cashReconciliationNotice),
+                  SummaryRow(
+                    l.cashRecordedAtClose,
+                    Money(
+                      report.recordedExpectedCash!,
+                    ).withCurrency(currency, locale),
+                  ),
+                  SummaryRow(
+                    l.cashReconciliationChange,
+                    Money(
+                      report.reconciliationAdjustment!,
+                    ).withCurrency(currency, locale),
+                  ),
+                  SummaryRow(
+                    l.cashExpectedNow,
+                    Money(report.expectedCash).withCurrency(currency, locale),
+                    emphasis: true,
+                  ),
+                ],
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.print_outlined),
             title: Text(l.documentPrint),
@@ -567,12 +611,16 @@ Future<void> showCashReportSheet(
 }
 
 Future<Uint8List> _pdfBytes(
-    BuildContext context, WidgetRef ref, CashSession session) async {
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+) async {
   final l = AppLocalizations.of(context);
   final currency = ref.read(shopCurrencyProvider);
   final locale = Localizations.localeOf(context).languageCode;
-  final report =
-      await ref.read(cashSessionRepositoryProvider).reportFor(session);
+  final report = await ref
+      .read(cashSessionRepositoryProvider)
+      .reportFor(session);
   final varianceText = report.variance == null
       ? null
       : _varianceTextFor(l, report.variance!, currency, locale);
@@ -596,6 +644,8 @@ Future<Uint8List> _pdfBytes(
     expensesLabel: l.expensesTitle,
     supplierPaymentsLabel: l.cashReportSupplierPayments,
     expectedCashLabel: l.cashExpectedNow,
+    recordedExpectedCashLabel: l.cashRecordedAtClose,
+    reconciliationAdjustmentLabel: l.cashReconciliationChange,
     countedCashLabel: l.cashClosingAmount,
     openedAt: session.openedAt,
     closedAt: session.closedAt,
@@ -606,7 +656,10 @@ Future<Uint8List> _pdfBytes(
 }
 
 Future<void> _printPdf(
-    BuildContext context, WidgetRef ref, CashSession session) async {
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   try {
@@ -632,8 +685,9 @@ Future<void> _printReport(
   final locale = Localizations.localeOf(context).languageCode;
   final messenger = ScaffoldMessenger.of(context);
   try {
-    final report =
-        await ref.read(cashSessionRepositoryProvider).reportFor(session);
+    final report = await ref
+        .read(cashSessionRepositoryProvider)
+        .reportFor(session);
     final varianceText = report.variance == null
         ? null
         : _varianceTextFor(l, report.variance!, currency, locale);
@@ -654,6 +708,8 @@ Future<void> _printReport(
           expensesLabel: l.expensesTitle,
           supplierPaymentsLabel: l.cashReportSupplierPayments,
           expectedCashLabel: l.cashExpectedNow,
+          recordedExpectedCashLabel: l.cashRecordedAtClose,
+          reconciliationAdjustmentLabel: l.cashReconciliationChange,
           countedCashLabel: l.cashClosingAmount,
           openedAt: session.openedAt,
           closedAt: session.closedAt,
@@ -681,7 +737,10 @@ Future<void> _printReport(
 }
 
 Future<void> _sharePdf(
-    BuildContext context, WidgetRef ref, CashSession session) async {
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   try {
@@ -706,14 +765,18 @@ Future<void> _sharePdf(
 }
 
 Future<void> _shareCsv(
-    BuildContext context, WidgetRef ref, CashSession session) async {
+  BuildContext context,
+  WidgetRef ref,
+  CashSession session,
+) async {
   final l = AppLocalizations.of(context);
   final currency = ref.read(shopCurrencyProvider);
   final locale = Localizations.localeOf(context).languageCode;
   final messenger = ScaffoldMessenger.of(context);
   try {
-    final report =
-        await ref.read(cashSessionRepositoryProvider).reportFor(session);
+    final report = await ref
+        .read(cashSessionRepositoryProvider)
+        .reportFor(session);
     final varianceText = report.variance == null
         ? null
         : _varianceTextFor(l, report.variance!, currency, locale);
@@ -726,6 +789,8 @@ Future<void> _shareCsv(
       expensesLabel: l.expensesTitle,
       supplierPaymentsLabel: l.cashReportSupplierPayments,
       expectedCashLabel: l.cashExpectedNow,
+      recordedExpectedCashLabel: l.cashRecordedAtClose,
+      reconciliationAdjustmentLabel: l.cashReconciliationChange,
       countedCashLabel: l.cashClosingAmount,
       varianceLabel: l.cashVariance,
       varianceText: varianceText,
@@ -792,9 +857,7 @@ class _AmountDialogState extends State<_AmountDialog> {
   /// float/drawer is legitimate).
   void _submit() {
     if (_amount.text.trim().isEmpty) {
-      setState(
-        () => _error = AppLocalizations.of(context).cashAmountRequired,
-      );
+      setState(() => _error = AppLocalizations.of(context).cashAmountRequired);
       return;
     }
     Navigator.of(context).pop(int.tryParse(_amount.text.trim()) ?? 0);
@@ -849,7 +912,9 @@ class _AmountDialogState extends State<_AmountDialog> {
               padding: const EdgeInsets.only(bottom: AppTheme.space2),
               child: SummaryRow(
                 l.cashExpectedNow,
-                Money(widget.expectedCash!).withCurrency(widget.currency, widget.locale),
+                Money(
+                  widget.expectedCash!,
+                ).withCurrency(widget.currency, widget.locale),
                 emphasis: true,
               ),
             ),

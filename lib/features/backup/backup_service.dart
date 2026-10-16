@@ -252,9 +252,33 @@ class BackupService {
           'This backup was made by a newer version of the app.');
     }
 
+    final tables = (decoded['tables'] as Map).cast<String, dynamic>();
+    // The envelope check above cannot help a file written before `shopId`
+    // was recorded, and such a file was restored unchecked: shop A's rows
+    // replaced shop B's data wholesale. The rows themselves still say which
+    // shop they belong to, so check THEM — before anything is deleted — for
+    // every file, not only legacy ones. One foreign or mixed scope refuses
+    // the whole file; a valid old backup of this shop restores as before.
+    final rowShops = <String>{};
+    for (final list in tables.values) {
+      if (list is! List) continue;
+      for (final row in list) {
+        if (row is! Map) continue;
+        final id = row['shopId'];
+        if (id is String && id.isNotEmpty) rowShops.add(id);
+      }
+    }
+    if (shopId.isNotEmpty) {
+      final foreign = rowShops.where((id) => id != shopId);
+      if (foreign.isNotEmpty) {
+        throw ShopMismatchException(fileShopId: foreign.first);
+      }
+    } else if (rowShops.length > 1) {
+      throw ShopMismatchException(fileShopId: rowShops.first);
+    }
+
     final blocked = await guard?.assertSafeToClear();
     if (blocked != null) throw UnsyncedDataException(blocked);
-    final tables = (decoded['tables'] as Map).cast<String, dynamic>();
     List<Map<String, dynamic>> rows(String name) =>
         ((tables[name] as List?) ?? const [])
             .map((e) => (e as Map).cast<String, dynamic>())

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -475,7 +476,15 @@ class BranchRepository {
     try {
       await saveStep(BranchSwitchStep.refreshingSession);
       onStep?.call(BranchSwitchStep.refreshingSession);
-      await Supabase.instance.client.auth.refreshSession();
+      await Supabase.instance.client.auth.refreshSessionBounded();
+    } on TimeoutException {
+      // The claim already moved server-side; the recovery state keeps the
+      // same token so a retry resumes this switch instead of starting over.
+      await saveStep(
+        BranchSwitchStep.refreshingSession,
+        error: 'network_error',
+      );
+      return const BranchSwitchResult.failure('network_error');
     } catch (_) {
       await saveStep(BranchSwitchStep.refreshingSession, error: 'auth_expired');
       return const BranchSwitchResult.failure('auth_expired');
@@ -483,7 +492,7 @@ class BranchRepository {
     var refreshedShopId = auth.currentUser?.appMetadata['shop_id'] as String?;
     if (refreshedShopId != shopId) {
       try {
-        await Supabase.instance.client.auth.refreshSession();
+        await Supabase.instance.client.auth.refreshSessionBounded();
         refreshedShopId = auth.currentUser?.appMetadata['shop_id'] as String?;
       } catch (_) {}
     }

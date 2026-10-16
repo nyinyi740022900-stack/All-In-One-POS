@@ -4250,6 +4250,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailyGateContinue => 'Continue';
 
   @override
+  String dailyGatePriorSessionOpen(String date) {
+    return 'The register opened on $date is still open. Today\'s sales are added to it — count and close it in Cash register.';
+  }
+
+  @override
+  String get staffCapabilityNotForAccountLogin =>
+      'Only on this phone in Staff mode — not when they sign in with their own account';
+
+  @override
   String get dailyGateSkipOpening => 'Skip opening amount';
 
   @override
@@ -4741,4 +4750,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storefrontRenewCardCancelHint =>
       'Cancelling stops the next charge. The time you have already paid for is kept.';
+
+  @override
+  String get cashRecordedAtClose => 'Recorded at close';
+
+  @override
+  String get cashReconciliationChange => 'Reconciliation change';
+
+  @override
+  String get cashReconciliationNotice =>
+      'Late sync changed the cash allocation. The original closing record is unchanged.';
 }

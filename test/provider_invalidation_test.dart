@@ -48,13 +48,17 @@ void main() {
       ],
     );
 
-    await db.into(db.paymentAccounts).insert(PaymentAccountsCompanion.insert(
-          id: accountId,
-          shopId: shopId,
-          name: 'KBZPay',
-          openingBalance: const Value(0),
-          updatedAt: Value(at),
-        ));
+    await db
+        .into(db.paymentAccounts)
+        .insert(
+          PaymentAccountsCompanion.insert(
+            id: accountId,
+            shopId: shopId,
+            name: 'KBZPay',
+            openingBalance: const Value(0),
+            updatedAt: Value(at),
+          ),
+        );
   });
 
   tearDown(() async {
@@ -62,9 +66,9 @@ void main() {
     await db.close();
   });
 
-  Future<PaymentAccount> account() async =>
-      (db.select(db.paymentAccounts)..where((a) => a.id.equals(accountId)))
-          .getSingle();
+  Future<PaymentAccount> account() async => (db.select(
+    db.paymentAccounts,
+  )..where((a) => a.id.equals(accountId))).getSingle();
 
   /// Writes [mutate] straight to the DB and returns the balance before and
   /// after, with the provider kept subscribed throughout so Riverpod
@@ -92,67 +96,94 @@ void main() {
   group('accountBalanceProvider recomputes for every table it folds', () {
     test('a payment arriving on its own (the #295-8 regression)', () async {
       final r = await balanceAround(() async {
-        await db.into(db.payments).insert(PaymentsCompanion.insert(
-              id: 'pay-1',
-              shopId: shopId,
-              saleId: 'sale-1',
-              method: accountId,
-              amount: 5000,
-              updatedAt: Value(at),
-            ));
+        await db
+            .into(db.payments)
+            .insert(
+              PaymentsCompanion.insert(
+                id: 'pay-1',
+                shopId: shopId,
+                saleId: 'sale-1',
+                method: accountId,
+                amount: 5000,
+                updatedAt: Value(at),
+              ),
+            );
       });
-      expect(r.after, r.before + 5000,
-          reason: 'a payment landed in its own transaction (a sync pull) and '
-              'the balance did not move — accountBalanceProvider is not '
-              'watching the payments table.');
+      expect(
+        r.after,
+        r.before + 5000,
+        reason:
+            'a payment landed in its own transaction (a sync pull) and '
+            'the balance did not move — accountBalanceProvider is not '
+            'watching the payments table.',
+      );
     });
 
     test('a credit repayment', () async {
       final r = await balanceAround(() async {
-        await db.into(db.creditPayments).insert(CreditPaymentsCompanion.insert(
-              id: 'repay-1',
-              shopId: shopId,
-              customerName: 'Aung',
-              method: const Value(accountId),
-              amount: 3000,
-              updatedAt: Value(at),
-            ));
+        await db
+            .into(db.creditPayments)
+            .insert(
+              CreditPaymentsCompanion.insert(
+                id: 'repay-1',
+                shopId: shopId,
+                customerName: 'Aung',
+                method: const Value(accountId),
+                amount: 3000,
+                updatedAt: Value(at),
+              ),
+            );
       });
-      expect(r.after, r.before + 3000,
-          reason: 'accountBalanceProvider is not watching credit_payments.');
+      expect(
+        r.after,
+        r.before + 3000,
+        reason: 'accountBalanceProvider is not watching credit_payments.',
+      );
     });
 
     test('an expense paid from this account', () async {
       final r = await balanceAround(() async {
-        await db.into(db.expenses).insert(ExpensesCompanion.insert(
-              id: 'exp-1',
-              shopId: shopId,
-              category: 'other',
-              amount: 1200,
-              date: at,
-              accountId: const Value(accountId),
-              updatedAt: Value(at),
-            ));
+        await db
+            .into(db.expenses)
+            .insert(
+              ExpensesCompanion.insert(
+                id: 'exp-1',
+                shopId: shopId,
+                category: 'other',
+                amount: 1200,
+                date: at,
+                accountId: const Value(accountId),
+                updatedAt: Value(at),
+              ),
+            );
       });
-      expect(r.after, r.before - 1200,
-          reason: 'accountBalanceProvider is not watching expenses.');
+      expect(
+        r.after,
+        r.before - 1200,
+        reason: 'accountBalanceProvider is not watching expenses.',
+      );
     });
 
     test('a supplier payment from this account', () async {
       final r = await balanceAround(() async {
         await db
             .into(db.supplierPayments)
-            .insert(SupplierPaymentsCompanion.insert(
-              id: 'suppay-1',
-              shopId: shopId,
-              supplierName: 'Golden Trading',
-              method: const Value(accountId),
-              amount: 800,
-              updatedAt: Value(at),
-            ));
+            .insert(
+              SupplierPaymentsCompanion.insert(
+                id: 'suppay-1',
+                shopId: shopId,
+                supplierName: 'Golden Trading',
+                method: const Value(accountId),
+                amount: 800,
+                updatedAt: Value(at),
+              ),
+            );
       });
-      expect(r.after, r.before - 800,
-          reason: 'accountBalanceProvider is not watching supplier_payments.');
+      expect(
+        r.after,
+        r.before - 800,
+        reason: 'accountBalanceProvider is not watching supplier_payments.',
+      );
     });
   });
 
@@ -186,9 +217,13 @@ void main() {
         await pumpEventQueue();
         before = await container.read(expectedCashProvider.future);
       }
-      expect(before, isNotNull,
-          reason: 'the open cash session never reached expectedCashProvider — '
-              'test setup problem, not a watch-graph failure.');
+      expect(
+        before,
+        isNotNull,
+        reason:
+            'the open cash session never reached expectedCashProvider — '
+            'test setup problem, not a watch-graph failure.',
+      );
 
       // Let the signal SETTLE before taking the baseline. Every one of the
       // six streams `_CashInputSignal` listens to fires an initial emission
@@ -216,69 +251,165 @@ void main() {
 
     test('a cash sale payment', () async {
       final r = await tillAround(() async {
-        await db.into(db.payments).insert(PaymentsCompanion.insert(
-              id: 'till-pay',
-              shopId: shopId,
-              saleId: 'sale-till',
-              method: 'cash',
-              amount: 7000,
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+        await db
+            .into(db.payments)
+            .insert(
+              PaymentsCompanion.insert(
+                id: 'till-pay',
+                shopId: shopId,
+                saleId: 'sale-till',
+                method: 'cash',
+                amount: 7000,
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before + 7000,
-          reason: 'expectedCashProvider is not watching payments — the till '
-              'figure would sit stale while cash physically came in.');
+      expect(
+        r.after,
+        r.before + 7000,
+        reason:
+            'expectedCashProvider is not watching payments — the till '
+            'figure would sit stale while cash physically came in.',
+      );
     });
 
     test('a cash credit repayment', () async {
       final r = await tillAround(() async {
-        await db.into(db.creditPayments).insert(CreditPaymentsCompanion.insert(
-              id: 'till-repay',
-              shopId: shopId,
-              customerName: 'Aung',
-              method: const Value('cash'),
-              amount: 2500,
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+        await db
+            .into(db.creditPayments)
+            .insert(
+              CreditPaymentsCompanion.insert(
+                id: 'till-repay',
+                shopId: shopId,
+                customerName: 'Aung',
+                method: const Value('cash'),
+                amount: 2500,
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before + 2500,
-          reason: 'expectedCashProvider is not watching credit_payments.');
+      expect(
+        r.after,
+        r.before + 2500,
+        reason: 'expectedCashProvider is not watching credit_payments.',
+      );
     });
 
     test('a cash expense', () async {
       final r = await tillAround(() async {
-        await db.into(db.expenses).insert(ExpensesCompanion.insert(
-              id: 'till-exp',
-              shopId: shopId,
-              category: 'other',
-              amount: 1500,
-              date: DateTime.now(),
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+        await db
+            .into(db.expenses)
+            .insert(
+              ExpensesCompanion.insert(
+                id: 'till-exp',
+                shopId: shopId,
+                category: 'other',
+                amount: 1500,
+                date: DateTime.now(),
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before - 1500,
-          reason: 'expectedCashProvider is not watching expenses.');
+      expect(
+        r.after,
+        r.before - 1500,
+        reason: 'expectedCashProvider is not watching expenses.',
+      );
     });
 
     test('a cash supplier payment', () async {
       final r = await tillAround(() async {
         await db
             .into(db.supplierPayments)
-            .insert(SupplierPaymentsCompanion.insert(
-              id: 'till-suppay',
-              shopId: shopId,
-              supplierName: 'Golden Trading',
-              method: const Value('cash'),
-              amount: 900,
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+            .insert(
+              SupplierPaymentsCompanion.insert(
+                id: 'till-suppay',
+                shopId: shopId,
+                supplierName: 'Golden Trading',
+                method: const Value('cash'),
+                amount: 900,
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before - 900,
-          reason: 'expectedCashProvider is not watching supplier_payments.');
+      expect(
+        r.after,
+        r.before - 900,
+        reason: 'expectedCashProvider is not watching supplier_payments.',
+      );
+    });
+
+    test('another device\'s overlapping session arriving by sync', () async {
+      // A payment already in the current session's window...
+      final opened = DateTime.now().subtract(const Duration(minutes: 5));
+      await db
+          .into(db.cashSessions)
+          .insert(
+            CashSessionsCompanion.insert(
+              id: 'mine',
+              shopId: shopId,
+              openedAt: opened,
+              openingAmount: 0,
+            ),
+          );
+      await db
+          .into(db.payments)
+          .insert(
+            PaymentsCompanion.insert(
+              id: 'overlap-pay',
+              shopId: shopId,
+              saleId: 'sale-overlap',
+              method: 'cash',
+              amount: 4000,
+              createdAt: Value(
+                DateTime.now().subtract(const Duration(minutes: 1)),
+              ),
+            ),
+          );
+      final sub = container.listen(
+        expectedCashProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      int? before;
+      for (var i = 0; i < 20 && before == null; i++) {
+        await pumpEventQueue();
+        before = await container.read(expectedCashProvider.future);
+      }
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      before = await container.read(expectedCashProvider.future);
+      expect(before, 4000);
+      // ...then a session another device opened (and closed) over that
+      // moment is pulled in directly, as a sync pull writes it. The payment
+      // now belongs to that later session, so this till no longer owns it.
+      await db
+          .into(db.cashSessions)
+          .insert(
+            CashSessionsCompanion.insert(
+              id: 'theirs',
+              shopId: shopId,
+              openedAt: opened.add(const Duration(minutes: 2)),
+              openingAmount: 0,
+              closedAt: Value(DateTime.now()),
+            ),
+          );
+      await Future<void>.delayed(kCashSignalDebounce * 3);
+      await pumpEventQueue();
+      final after = await container.read(expectedCashProvider.future);
+      sub.close();
+      expect(
+        after,
+        0,
+        reason:
+            'expectedCashProvider is not watching cash_sessions — an '
+            'overlapping session from sync left the drawer counting a '
+            'payment another session owns.',
+      );
     });
   });
 
@@ -311,37 +442,52 @@ void main() {
 
     test('a payment into an account raises assets', () async {
       final r = await assetsAround(() async {
-        await db.into(db.payments).insert(PaymentsCompanion.insert(
-              id: 'bs-pay',
-              shopId: shopId,
-              saleId: 'bs-sale',
-              method: accountId,
-              amount: 4000,
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+        await db
+            .into(db.payments)
+            .insert(
+              PaymentsCompanion.insert(
+                id: 'bs-pay',
+                shopId: shopId,
+                saleId: 'bs-sale',
+                method: accountId,
+                amount: 4000,
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before + 4000,
-          reason: 'the Balance Sheet did not follow the account balance — '
-              'something in the chain from payments -> accountBalance -> '
-              'balanceSheet stopped propagating.');
+      expect(
+        r.after,
+        r.before + 4000,
+        reason:
+            'the Balance Sheet did not follow the account balance — '
+            'something in the chain from payments -> accountBalance -> '
+            'balanceSheet stopped propagating.',
+      );
     });
 
     test('an expense paid from an account lowers assets', () async {
       final r = await assetsAround(() async {
-        await db.into(db.expenses).insert(ExpensesCompanion.insert(
-              id: 'bs-exp',
-              shopId: shopId,
-              category: 'other',
-              amount: 1100,
-              date: DateTime.now(),
-              accountId: const Value(accountId),
-              createdAt: Value(DateTime.now()),
-              updatedAt: Value(DateTime.now()),
-            ));
+        await db
+            .into(db.expenses)
+            .insert(
+              ExpensesCompanion.insert(
+                id: 'bs-exp',
+                shopId: shopId,
+                category: 'other',
+                amount: 1100,
+                date: DateTime.now(),
+                accountId: const Value(accountId),
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       });
-      expect(r.after, r.before - 1100,
-          reason: 'the Balance Sheet did not follow an account expense.');
+      expect(
+        r.after,
+        r.before - 1100,
+        reason: 'the Balance Sheet did not follow an account expense.',
+      );
     });
   });
 
@@ -371,35 +517,46 @@ void main() {
   /// test passes whether or not the `sale_items` watch exists — which is
   /// exactly how a version of this test initially fooled itself.
   Future<void> insertSale({required String id, required int total}) async {
-    await db.into(db.sales).insert(SalesCompanion.insert(
-          id: id,
-          shopId: shopId,
-          invoiceNo: 'INV-$id',
-          subtotal: Value(total),
-          total: Value(total),
-          paid: Value(total),
-          paymentMethod: const Value('cash'),
-          finalizedAt: Value(at),
-          updatedAt: Value(at),
-        ));
+    await db
+        .into(db.sales)
+        .insert(
+          SalesCompanion.insert(
+            id: id,
+            shopId: shopId,
+            invoiceNo: 'INV-$id',
+            subtotal: Value(total),
+            total: Value(total),
+            paid: Value(total),
+            paymentMethod: const Value('cash'),
+            finalizedAt: Value(at),
+            updatedAt: Value(at),
+          ),
+        );
   }
 
   /// The line item for [saleId], arriving on its own — the second half of the
   /// sync pull, and the write every assertion below actually turns on.
-  Future<void> insertItemFor(String saleId,
-      {required int total, required int cost}) async {
-    await db.into(db.saleItems).insert(SaleItemsCompanion.insert(
-          id: 'item-$saleId',
-          shopId: shopId,
-          saleId: saleId,
-          productId: 'prod-1',
-          nameSnapshot: 'Rice',
-          priceSnapshot: total,
-          qty: 1,
-          lineTotal: total,
-          costSnapshot: Value(cost),
-          updatedAt: Value(at),
-        ));
+  Future<void> insertItemFor(
+    String saleId, {
+    required int total,
+    required int cost,
+  }) async {
+    await db
+        .into(db.saleItems)
+        .insert(
+          SaleItemsCompanion.insert(
+            id: 'item-$saleId',
+            shopId: shopId,
+            saleId: saleId,
+            productId: 'prod-1',
+            nameSnapshot: 'Rice',
+            priceSnapshot: total,
+            qty: 1,
+            lineTotal: total,
+            costSnapshot: Value(cost),
+            updatedAt: Value(at),
+          ),
+        );
   }
 
   /// Same shape as [balanceAround]: keep the provider listened to across the
@@ -423,10 +580,16 @@ void main() {
     /// [at] — so point its range at them explicitly rather than depending on
     /// what month the suite happens to run in.
     void pnlRangeCoversFixtures() {
-      container.read(pnlStartDateProvider.notifier).state =
-          DateTime(at.year, at.month, 1);
-      container.read(pnlEndDateProvider.notifier).state =
-          DateTime(at.year, at.month + 1, 1);
+      container.read(pnlStartDateProvider.notifier).state = DateTime(
+        at.year,
+        at.month,
+        1,
+      );
+      container.read(pnlEndDateProvider.notifier).state = DateTime(
+        at.year,
+        at.month + 1,
+        1,
+      );
     }
 
     test('cumulativeNetProfitProvider — retained earnings picks up COGS from '
@@ -439,11 +602,15 @@ void main() {
         () => cumulativeNetProfitProvider.future,
         () => insertItemFor('sale-np', total: 10000, cost: 6000),
       );
-      expect(r.after, r.before - 6000,
-          reason: 'a sale_item landed in its own transaction (a sync pull) '
-              'and retained earnings did not drop by its COGS — '
-              'cumulativeNetProfitProvider has stopped watching sale_items, '
-              'so profit stays inflated until some unrelated table fires.');
+      expect(
+        r.after,
+        r.before - 6000,
+        reason:
+            'a sale_item landed in its own transaction (a sync pull) '
+            'and retained earnings did not drop by its COGS — '
+            'cumulativeNetProfitProvider has stopped watching sale_items, '
+            'so profit stays inflated until some unrelated table fires.',
+      );
     });
 
     test('equitySummaryProvider — total equity follows it', () async {
@@ -454,9 +621,13 @@ void main() {
         () => insertItemFor('sale-eq', total: 8000, cost: 3000),
       );
       expect(r.after.retainedEarnings, r.before.retainedEarnings - 3000);
-      expect(r.after.totalEquity, r.before.totalEquity - 3000,
-          reason: 'equitySummaryProvider folds cumulativeNetProfitProvider; '
-              'if it stops awaiting it, the balance sheet silently freezes.');
+      expect(
+        r.after.totalEquity,
+        r.before.totalEquity - 3000,
+        reason:
+            'equitySummaryProvider folds cumulativeNetProfitProvider; '
+            'if it stops awaiting it, the balance sheet silently freezes.',
+      );
     });
 
     test('pnlStatementProvider — COGS is not left at zero when sale_items '
@@ -469,62 +640,141 @@ void main() {
         () => insertItemFor('sale-pnl', total: 20000, cost: 12000),
       );
       expect(r.before.cogs, 0, reason: 'precondition: no item yet');
-      expect(r.after.cogs, 12000,
-          reason: 'the sale_item landed and COGS stayed at zero — '
-              'pnlStatementProvider is watching sales but not sale_items, so '
-              'gross profit is overstated by the whole cost of the sale.');
+      expect(
+        r.after.cogs,
+        12000,
+        reason:
+            'the sale_item landed and COGS stayed at zero — '
+            'pnlStatementProvider is watching sales but not sale_items, so '
+            'gross profit is overstated by the whole cost of the sale.',
+      );
     });
 
     test('an expense recorded on its own still reaches the P&L', () async {
       pnlRangeCoversFixtures();
-      final r = await around(
-        () => pnlStatementProvider.future,
-        () async {
-          await db.into(db.expenses).insert(ExpensesCompanion.insert(
+      final r = await around(() => pnlStatementProvider.future, () async {
+        await db
+            .into(db.expenses)
+            .insert(
+              ExpensesCompanion.insert(
                 id: 'exp-pnl',
                 shopId: shopId,
                 category: 'rent',
                 amount: 3000,
                 date: at,
                 updatedAt: Value(at),
-              ));
-        },
-      );
+              ),
+            );
+      });
       expect(r.after.totalExpenses, r.before.totalExpenses + 3000);
     });
   });
 
   group('todaySalesTotalProvider (Sell money strip)', () {
-    test('a sale landing on its own moves today\'s total; yesterday does not',
-        () async {
-      final sub = container.listen(
-        todaySalesTotalProvider,
-        (_, _) {},
-        fireImmediately: true,
-      );
-      await container.read(salesStreamProvider.future);
-      final before = container.read(todaySalesTotalProvider);
-      final now = DateTime.now();
-      await db.into(db.sales).insert(SalesCompanion.insert(
-            id: 'sale-today',
-            shopId: shopId,
-            invoiceNo: 'INV-T',
-            total: const Value(7000),
-            finalizedAt: Value(now),
-          ));
-      await db.into(db.sales).insert(SalesCompanion.insert(
-            id: 'sale-yday',
-            shopId: shopId,
-            invoiceNo: 'INV-Y',
-            total: const Value(9000),
-            finalizedAt: Value(now.subtract(const Duration(days: 1))),
-          ));
-      await pumpEventQueue();
-      expect(container.read(todaySalesTotalProvider), before + 7000,
-          reason: 'a sale arrived by direct write (a sync pull) and the Sell '
+    test(
+      'a sale landing on its own moves today\'s total; yesterday does not',
+      () async {
+        final sub = container.listen(
+          todaySalesTotalProvider,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        await container.read(salesStreamProvider.future);
+        final before = container.read(todaySalesTotalProvider);
+        final now = DateTime.now();
+        await db
+            .into(db.sales)
+            .insert(
+              SalesCompanion.insert(
+                id: 'sale-today',
+                shopId: shopId,
+                invoiceNo: 'INV-T',
+                total: const Value(7000),
+                finalizedAt: Value(now),
+              ),
+            );
+        await db
+            .into(db.sales)
+            .insert(
+              SalesCompanion.insert(
+                id: 'sale-yday',
+                shopId: shopId,
+                invoiceNo: 'INV-Y',
+                total: const Value(9000),
+                finalizedAt: Value(now.subtract(const Duration(days: 1))),
+              ),
+            );
+        await pumpEventQueue();
+        expect(
+          container.read(todaySalesTotalProvider),
+          before + 7000,
+          reason:
+              'a sale arrived by direct write (a sync pull) and the Sell '
               'strip did not move — todaySalesTotalProvider is not watching '
-              'the sales feed, or counted a prior day.');
-      sub.close();
-    });
+              'the sales feed, or counted a prior day.',
+        );
+        sub.close();
+      },
+    );
   });
+  test(
+    'historical reconciliation watches late sessions and cash movements',
+    () async {
+      final start = DateTime(2026, 10, 15, 9);
+      await db
+          .into(db.cashSessions)
+          .insert(
+            CashSessionsCompanion.insert(
+              id: 'history-a',
+              shopId: shopId,
+              openedAt: start,
+              openingAmount: 0,
+              closedAt: Value(start.add(const Duration(hours: 3))),
+              expectedCashAtClose: const Value(1000),
+              closingAmount: const Value(1000),
+            ),
+          );
+      await db
+          .into(db.payments)
+          .insert(
+            PaymentsCompanion.insert(
+              id: 'history-pay',
+              shopId: shopId,
+              saleId: 'history-sale',
+              method: 'cash',
+              amount: 1000,
+              createdAt: Value(start.add(const Duration(hours: 2))),
+            ),
+          );
+      final a = (await db.select(db.cashSessions).get()).single;
+      final provider = cashSessionExpectedProvider(a);
+      final sub = container.listen(provider, (_, _) {});
+      addTearDown(sub.close);
+      expect(await container.read(provider.future), 1000);
+      await db
+          .into(db.cashSessions)
+          .insert(
+            CashSessionsCompanion.insert(
+              id: 'history-b',
+              shopId: shopId,
+              openedAt: start.add(const Duration(hours: 1)),
+              openingAmount: 0,
+            ),
+          );
+      await pumpEventQueue();
+      expect(await container.read(provider.future), 0);
+      final b = await (db.select(
+        db.cashSessions,
+      )..where((t) => t.id.equals('history-b'))).getSingle();
+      final winner = cashSessionExpectedProvider(b);
+      final winnerSub = container.listen(winner, (_, _) {});
+      addTearDown(winnerSub.close);
+      expect(await container.read(winner.future), 1000);
+      await (db.update(db.payments)..where((t) => t.id.equals('history-pay')))
+          .write(const PaymentsCompanion(amount: Value(2000)));
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      await pumpEventQueue();
+      expect(await container.read(winner.future), 2000);
+    },
+  );
 }

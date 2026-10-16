@@ -14,6 +14,7 @@ import 'features/license/license_expiry_watcher.dart';
 import 'features/license/license_providers.dart';
 import 'features/account/password_recovery_watcher.dart';
 import 'features/account/reset_password_screen.dart';
+import 'features/onboarding/calendar_day_ticker.dart';
 import 'features/onboarding/full_screen_gate.dart';
 import 'features/onboarding/onboarding_state.dart';
 import 'features/onboarding/operating_mode_providers.dart';
@@ -63,61 +64,63 @@ class MmPosApp extends ConsumerWidget {
     // today's entry gate is still needed.
     final holdForDailyCheck = !onboardingNeeded && !dailyGateAsync.hasValue;
 
-    return MaterialApp.router(
-      onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(localeCode: localeCode),
-      darkTheme: AppTheme.dark(localeCode: localeCode),
-      // Both palettes have always been supplied here, but no `themeMode:`
-      // was — so Flutter fell back to ThemeMode.system and the phone's
-      // setting was the only way to pick one. Now the owner can override it
-      // in Settings; 'system' stays the default, so an existing install
-      // behaves exactly as before until someone changes it.
-      themeMode: themeModeFromCode(ref.watch(themeModeControllerProvider)),
-      locale: Locale(localeCode),
-      // Force the chosen locale — never fall back to the device/system locale.
-      localeResolutionCallback: (_, _) => Locale(localeCode),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: ref.watch(appRouterProvider),
-      builder: (context, child) {
-        // PIN / confirm dialogs need a Navigator ancestor — without one,
-        // Continue as Owner throws in release and looks like a dead tap.
-        Widget gated(Widget page) =>
-            FullScreenGate(page: page, underneath: child);
+    return CalendarDayTicker(
+      child: MaterialApp.router(
+        onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(localeCode: localeCode),
+        darkTheme: AppTheme.dark(localeCode: localeCode),
+        // Both palettes have always been supplied here, but no `themeMode:`
+        // was — so Flutter fell back to ThemeMode.system and the phone's
+        // setting was the only way to pick one. Now the owner can override it
+        // in Settings; 'system' stays the default, so an existing install
+        // behaves exactly as before until someone changes it.
+        themeMode: themeModeFromCode(ref.watch(themeModeControllerProvider)),
+        locale: Locale(localeCode),
+        // Force the chosen locale — never fall back to the device/system locale.
+        localeResolutionCallback: (_, _) => Locale(localeCode),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: ref.watch(appRouterProvider),
+        builder: (context, child) {
+          // PIN / confirm dialogs need a Navigator ancestor — without one,
+          // Continue as Owner throws in release and looks like a dead tap.
+          Widget gated(Widget page) =>
+              FullScreenGate(page: page, underneath: child);
 
-        if (showPasswordRecovery) {
-          return gated(const ResetPasswordScreen());
-        }
-        // Onboarding moved OUT of this builder into a real router route
-        // (`/onboarding`, see appRouterProvider): the overlay's close path
-        // — provider write → this builder swapping the subtree — silently
-        // never painted on one owner device even though every step ran,
-        // leaving Get started looking dead. A route leaves via ordinary
-        // navigation. The loading-hold stays here so launch never flashes
-        // the shell before the (instant) first DB read resolves.
-        if (!forcedDone &&
-            ref.watch(onboardingCompleteProvider).isLoading &&
-            !ref.watch(onboardingCompleteProvider).hasValue &&
-            !ref.watch(onboardingCompleteProvider).hasError) {
-          final l = AppLocalizations.of(context);
-          return Scaffold(
-            body: AppLoadingView(message: l.dailyGateCheckingShop),
-          );
-        }
-        if (holdForDailyCheck) {
-          final l = AppLocalizations.of(context);
-          return Scaffold(
-            body: AppLoadingView(message: l.dailyGateCheckingShop),
-          );
-        }
-        return child!;
-      },
+          if (showPasswordRecovery) {
+            return gated(const ResetPasswordScreen());
+          }
+          // Onboarding moved OUT of this builder into a real router route
+          // (`/onboarding`, see appRouterProvider): the overlay's close path
+          // — provider write → this builder swapping the subtree — silently
+          // never painted on one owner device even though every step ran,
+          // leaving Get started looking dead. A route leaves via ordinary
+          // navigation. The loading-hold stays here so launch never flashes
+          // the shell before the (instant) first DB read resolves.
+          if (!forcedDone &&
+              ref.watch(onboardingCompleteProvider).isLoading &&
+              !ref.watch(onboardingCompleteProvider).hasValue &&
+              !ref.watch(onboardingCompleteProvider).hasError) {
+            final l = AppLocalizations.of(context);
+            return Scaffold(
+              body: AppLoadingView(message: l.dailyGateCheckingShop),
+            );
+          }
+          if (holdForDailyCheck) {
+            final l = AppLocalizations.of(context);
+            return Scaffold(
+              body: AppLoadingView(message: l.dailyGateCheckingShop),
+            );
+          }
+          return child!;
+        },
+      ),
     );
   }
 }

@@ -259,3 +259,27 @@ Deno.test("signup preserves spaces in the owner's password", async () => {
     "Auth must receive the exact password",
   );
 });
+
+import { subscriptionReply } from "../_shared/account_premium.ts";
+Deno.test("a paid plan without signable proof is a retryable error, not success", async () => {
+  const saved = Deno.env.get("ENTITLEMENT_SIGNING_KEY_HEX");
+  Deno.env.delete("ENTITLEMENT_SIGNING_KEY_HEX");
+  try {
+    const paid = await subscriptionReply({
+      shop_id: "shop-a",
+      plan: "yearly",
+      expires_at: "2030-01-01T00:00:00Z",
+      revision: 4,
+    }, "user-a", "device-a");
+    assert(paid.ok === false && paid.error === "server_error", "must not claim a paid plan without proof");
+    const free = await subscriptionReply({
+      shop_id: "shop-a",
+      plan: "free",
+      expires_at: "1970-01-01T00:00:00Z",
+      revision: 1,
+    }, "user-a", "device-a");
+    assert(free.ok === true && free.plan === "free", "Free needs no proof");
+  } finally {
+    if (saved) Deno.env.set("ENTITLEMENT_SIGNING_KEY_HEX", saved);
+  }
+});

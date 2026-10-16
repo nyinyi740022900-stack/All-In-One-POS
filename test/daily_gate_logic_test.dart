@@ -49,4 +49,20 @@ void main() {
       isFalse,
     );
   });
+
+  test('a signed-in invited staff account is its own identity — never asked '
+      'to pick Owner or another cashier, roster or not', () {
+    for (final rosterEmpty in [true, false]) {
+      expect(
+        shouldSkipDailyGateIdentity(
+          rosterEmpty: rosterEmpty,
+          signedIn: true,
+          localRoleLoaded: true,
+          localRole: 'staff',
+          invitedStaffAccount: true,
+        ),
+        isTrue,
+      );
+    }
+  });
 }
