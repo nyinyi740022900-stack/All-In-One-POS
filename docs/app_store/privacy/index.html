@@ -13,87 +13,153 @@
     h2 { font-size: 1.15rem; margin-top: 1.75rem; }
     .my { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
     .nav { margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .box { background: #f4f7fb; border: 1px solid #d8e2ee; border-radius: 8px; padding: 0.75rem 1rem; }
   </style>
 </head>
 <body>
-  <p class="nav">Privacy Policy · <a href="/terms">Terms of Service</a></p>
+  <p class="nav">Privacy Policy · <a href="/terms">Terms of Service</a> · <a href="#delete-account">Delete your account</a> · <a href="#my">မြန်မာ</a></p>
   <h1>All In One POS Privacy Policy</h1>
-  <p><strong>Last updated:</strong> 8 October 2026</p>
+  <p><strong>Last updated:</strong> 16 October 2026</p>
   <p>
-    All In One POS (“the App”) is an offline-first point-of-sale application for Myanmar retailers.
-    This policy describes what data the App and related cloud services process.
+    All In One POS (“the App”) is an offline-first point-of-sale application for Myanmar retailers,
+    with an optional online account, cloud sync, a web storefront and a renewal website
+    (shop.allinonepos.app). This policy describes what data they process and why.
   </p>
 
   <h2>Data we process</h2>
   <ul>
-    <li><strong>Shop business data</strong> you enter: products, sales, orders, customers, expenses, and related records. Stored on-device and, when you use cloud sync, on our hosted backend (Supabase) scoped to your shop.</li>
-    <li><strong>Account data</strong> if you create an online login: email address and authentication identifiers.</li>
-    <li><strong>Device identifiers</strong> used for license activation and multi-device limits.</li>
-    <li><strong>Support contact</strong> you choose to send (e.g. Viber messages, App Reference ID).</li>
-    <li><strong>Photos you attach</strong> (payment proofs, expense receipts, product or logo images) when you use those features.</li>
-    <li><strong>Diagnostics</strong> if crash reporting is enabled for your build (e.g. Sentry): device/OS, app version, and crash stacks — not your full sales ledger.</li>
+    <li><strong>Shop business data</strong> you enter: products, stock, sales, orders, customers, suppliers, expenses, cash register sessions and related records. Stored on your device and, when cloud sync is on (Premium), on our hosted backend (Supabase), separated by shop.</li>
+    <li><strong>Account data</strong> if you create an online account: your email address and sign-in credentials. If you sign in with Google, we receive your Google account's email address and an account identifier from Google. Staff accounts you invite are identified by the email address you enter.</li>
+    <li><strong>Device data</strong>: a device identifier and when each device was last active, used to keep a shop to its device limit (up to 3 on Premium) and to verify Premium.</li>
+    <li><strong>Billing data</strong> if you buy or renew Premium: your plan, expiry, and payment records (amount, date, payment method and reference). Card payments are handled by Lemon Squeezy and MMQR payments by MyanMyanPay; we never receive your full card number. If you pay by bank transfer, the screenshot you upload is kept as a billing record.</li>
+    <li><strong>Web storefront orders</strong>: when a customer orders from a shop's web storefront, we store the name, phone number and delivery address they enter, an optional payment screenshot, and the IP address the order came from, so the shop can fulfil the order and block abusive orders. The shop owns these records; we process them on the shop's behalf.</li>
+    <li><strong>Photos</strong>: product photos and shop logos you upload to the cloud. Expense receipt photos stay on your device and are not uploaded.</li>
+    <li><strong>Email</strong>: account messages (confirmation, password reset) and reminders before and after Premium expires, sent to your account email.</li>
+    <li><strong>Diagnostics</strong>: crash reports (via Sentry) with device model, OS, app version and the error — not your sales ledger.</li>
+    <li><strong>Support</strong>: anything you choose to send us, such as Viber messages or your App Reference ID.</li>
   </ul>
 
   <h2>How we use data</h2>
   <ul>
-    <li>To provide POS, inventory, orders, invoices, sync, and licensing features.</li>
-    <li>To bind licenses to devices and prevent unauthorized use.</li>
-    <li>To improve reliability via aggregated crash diagnostics.</li>
+    <li>To run the POS, inventory, orders, invoices, sync, storefront and Premium features.</li>
+    <li>To verify Premium, apply device limits and prevent misuse, including repeat free trials (one per owner account).</li>
+    <li>To send account emails and Premium expiry reminders.</li>
+    <li>To fix crashes and improve reliability.</li>
   </ul>
+  <p>We do not use your data for advertising and we do not sell it.</p>
 
-  <h2>Sharing</h2>
-  <p>
-    We do not sell your data. Processors acting on our behalf (hosting, auth, crash reporting)
-    only receive what is needed to run the service. Public storefront pages show only the
-    catalog and shop details you choose to publish.
-  </p>
+  <h2>Who we share it with</h2>
+  <p>Only service providers that run parts of the service for us, each receiving only what that job needs:</p>
+  <ul>
+    <li><strong>Supabase</strong> — database, sign-in and file storage.</li>
+    <li><strong>Vercel</strong> — hosting for our websites (storefront, renewal page, admin).</li>
+    <li><strong>Google</strong> — only if you choose Sign in with Google.</li>
+    <li><strong>Lemon Squeezy</strong> and <strong>MyanMyanPay</strong> — payment processing for Premium.</li>
+    <li><strong>Resend</strong> — sending email.</li>
+    <li><strong>Sentry</strong> — crash reporting.</li>
+  </ul>
+  <p>A shop's public storefront shows only the catalogue and shop details the shop chooses to publish.</p>
 
   <h2>Retention</h2>
   <p>
-    On-device data remains until you delete the App or clear shop data. Cloud data remains
-    while your shop account/license is active. If you created an online shop login, you can
-    delete that account in-app (Shop → Account → Delete account), which removes the
-    associated cloud shop data for shops you own. You may also contact support.
+    Data on your device stays until you clear it or uninstall the App. Cloud data stays while your
+    account exists. Crash reports are kept by Sentry for a limited period. When you delete your
+    account, see below for what is removed and what is kept.
   </p>
+
+  <h2 id="delete-account">Delete your account and data</h2>
+  <div class="box">
+    <p><strong>In the App</strong> (shop owner): open <strong>Shop → Account → Delete account</strong> and confirm with your password, or with Google if you signed in with Google.</p>
+    <p><strong>Without the App</strong>: message Support on Viber at <strong>09740022900</strong> from the account owner, with your account email address and shop name. We verify that you own the account and delete it within 30 days.</p>
+  </div>
+  <p><strong>What is deleted:</strong> your online account and the staff logins of shops you own; those shops' cloud data — products, stock, sales, orders, customers, suppliers, expenses, cash sessions, devices, storefront and storefront orders; and the shops' uploaded files, including product photos, logos and customers' payment screenshots.</p>
+  <p><strong>What is kept:</strong> Premium subscription and payment records, and payment screenshots you sent for Premium, for as long as needed for accounting, tax and fraud prevention. Payment providers keep their own records under their own policies.</p>
+  <p>Trial-claim records are deleted with the account; the once-per-owner-account trial limit applies while that account exists.</p>
+  <p>Deleting your account does not erase data stored on your device: the App returns to the Free plan and your local records stay until you clear them or uninstall the App.</p>
 
   <h2>Your choices</h2>
   <ul>
-    <li>Camera, Bluetooth, Photos, and Notifications are requested only when you use related features.</li>
-    <li>You can use Free/offline modes without creating an email login.</li>
-    <li>Online account owners can initiate account deletion in Shop → Account.</li>
+    <li>You can use the Free plan without creating an account; your data then stays on your device.</li>
+    <li>Camera, Bluetooth, photos and notifications are requested only when you use the related feature.</li>
   </ul>
 
   <h2>Children</h2>
-  <p>The App is intended for business use by adults, not for children under 13.</p>
+  <p>The App is for business use by adults and is not intended for children under 13.</p>
 
   <h2>Contact</h2>
-  <p>
-    Support: use the in-app Support / Viber contact, or email the address published on our
-    App Store listing Support URL.
-  </p>
+  <p>Use Support in the App, or Viber <strong>09740022900</strong>.</p>
 
-  <div class="my" lang="my">
+  <div class="my" lang="my" id="my">
     <h1>All In One POS ကိုယ်ရေးအချက်အလက် မူဝါဒ</h1>
-    <p><strong>နောက်ဆုံးပြင်ဆင်:</strong> ၈ အောက်တိုဘာ ၂၀၂၆</p>
+    <p><strong>နောက်ဆုံးပြင်ဆင်:</strong> ၁၆ အောက်တိုဘာ ၂၀၂၆</p>
     <p>
-      All In One POS သည် မြန်မာ ဆိုင်များအတွက် offline-first POS အက်ပ်ဖြစ်သည်။
-      ဤမူဝါဒသည် အက်ပ်နှင့် cloud ဝန်ဆောင်မှုများတွင် ကိုင်တွယ်သော အချက်အလက်ကို ဖော်ပြသည်။
+      All In One POS (“အက်ပ်”) သည် မြန်မာ ဆိုင်များအတွက် offline-first POS အက်ပ်ဖြစ်ပြီး
+      ရွေးချယ်သုံးနိုင်သော online အကောင့်၊ cloud sync၊ web ဆိုင်နှင့် သက်တမ်းတိုး website
+      (shop.allinonepos.app) ပါဝင်သည်။ ဤမူဝါဒသည် ၎င်းတို့ ကိုင်တွယ်သော အချက်အလက်နှင့် အကြောင်းရင်းကို ဖော်ပြသည်။
     </p>
+
     <h2>ကိုင်တွယ်သော အချက်အလက်</h2>
     <ul>
-      <li>သင်ထည့်သွင်းသော ဆိုင်ဒေတာ (ပစ္စည်း၊ အရောင်း၊ မှာယူမှု စသည်)</li>
-      <li>Online login သုံးပါက အီးမေးလ်</li>
-      <li>လိုင်စင်အတွက် device id</li>
-      <li>သင်တွဲသော ဓာတ်ပုံများ (ငွေလွှဲအထောက်အထား၊ အသုံးစရိတ် စသည်)</li>
-      <li>Crash reporting ဖွင့်ထားပါက ချို့ယွင်းချက် မှတ်တမ်း</li>
+      <li><strong>ဆိုင်လုပ်ငန်း ဒေတာ</strong> — ကုန်ပစ္စည်း၊ လက်ကျန်၊ အရောင်း၊ အော်ဒါ၊ ဖောက်သည်၊ ကုန်ပို့သူ၊ ကုန်ကျစရိတ်၊ ငွေတိုက် စသည်။ သင့် device ပေါ်တွင် သိမ်းပြီး cloud sync (Premium) ဖွင့်ထားပါက ဆိုင်အလိုက် ခွဲထားသော ကျွန်ုပ်တို့၏ backend (Supabase) တွင်လည်း သိမ်းသည်။</li>
+      <li><strong>အကောင့် ဒေတာ</strong> — online အကောင့် ဖန်တီးပါက အီးမေးလ်နှင့် sign-in အချက်အလက်။ Google ဖြင့် ဝင်ပါက Google ထံမှ သင့်အီးမေးလ်နှင့် account ID ကို ရရှိသည်။ သင်ဖိတ်သော ဝန်ထမ်း account များကို သင်ထည့်သော အီးမေးလ်ဖြင့် သိမ်းသည်။</li>
+      <li><strong>Device ဒေတာ</strong> — device ID နှင့် နောက်ဆုံး အသုံးပြုချိန်။ ဆိုင်တစ်ခု၏ device အရေအတွက် (Premium မှာ ၃ လုံးအထိ) ကို ထိန်းရန်နှင့် Premium စစ်ဆေးရန်။</li>
+      <li><strong>ငွေပေးချေမှု ဒေတာ</strong> — Premium ဝယ်/သက်တမ်းတိုးပါက plan၊ သက်တမ်းကုန်ရက်နှင့် ငွေပေးချေမှု မှတ်တမ်း (ပမာဏ၊ ရက်စွဲ၊ နည်းလမ်း၊ ref)။ Card ငွေပေးချေမှုကို Lemon Squeezy က၊ MMQR ကို MyanMyanPay က ကိုင်တွယ်ပြီး card နံပါတ်အပြည့်ကို ကျွန်ုပ်တို့ မရရှိပါ။ ငွေလွှဲ screenshot တင်ပါက ငွေပေးချေမှု မှတ်တမ်းအဖြစ် သိမ်းသည်။</li>
+      <li><strong>Web ဆိုင် အော်ဒါများ</strong> — ဖောက်သည်တစ်ဦး ဆိုင်၏ web ဆိုင်မှ မှာယူပါက ၎င်းထည့်သော အမည်၊ ဖုန်းနံပါတ်၊ ပို့ဆောင်ရမည့် လိပ်စာ၊ ငွေလွှဲ screenshot (ရွေးချယ်ခွင့်) နှင့် မှာယူသော IP address ကို သိမ်းသည် — ဆိုင်က အော်ဒါ ပို့ဆောင်ရန်နှင့် မသင့်လျော်သော အော်ဒါများ ပိတ်ပင်ရန်။ ဤမှတ်တမ်းများကို ဆိုင်က ပိုင်ဆိုင်ပြီး ကျွန်ုပ်တို့က ဆိုင်ကိုယ်စား ကိုင်တွယ်သည်။</li>
+      <li><strong>ဓာတ်ပုံများ</strong> — cloud သို့ တင်သော ကုန်ပစ္စည်းပုံနှင့် ဆိုင် logo။ ကုန်ကျစရိတ် ဘောက်ချာပုံများကို device ပေါ်တွင်သာ သိမ်းပြီး မတင်ပါ။</li>
+      <li><strong>အီးမေးလ်</strong> — အကောင့် အတည်ပြု/စကားဝှက် ပြန်သတ်မှတ်ခြင်းနှင့် Premium သက်တမ်း မကုန်မီ/ကုန်ပြီးနောက် သတိပေးချက်များကို သင့်အကောင့် အီးမေးလ်သို့ ပို့သည်။</li>
+      <li><strong>ချို့ယွင်းချက် မှတ်တမ်း</strong> — Sentry မှတဆင့် device model၊ OS၊ app version နှင့် error — အရောင်းစာရင်း မပါ။</li>
+      <li><strong>Support</strong> — Viber မက်ဆေ့ချ် (သို့) App Reference ID ကဲ့သို့ သင်ပို့သော အရာများ။</li>
     </ul>
-    <h2>အကောင့် ဖျက်ခြင်း</h2>
+
+    <h2>အသုံးပြုပုံ</h2>
+    <ul>
+      <li>POS၊ ကုန်ပစ္စည်း၊ အော်ဒါ၊ ပြေစာ၊ sync၊ web ဆိုင်နှင့် Premium ဝန်ဆောင်မှုများ လည်ပတ်ရန်။</li>
+      <li>Premium စစ်ဆေးရန်၊ device ကန့်သတ်ချက် ထိန်းရန်နှင့် အလွဲသုံးမှု (Free trial ထပ်ယူခြင်း အပါအဝင် — Owner account တစ်ခုလျှင် တစ်ကြိမ်) ကာကွယ်ရန်။</li>
+      <li>အကောင့် အီးမေးလ်နှင့် Premium သတိပေးချက် ပို့ရန်။</li>
+      <li>Crash များ ပြင်ဆင်ပြီး တည်ငြိမ်မှု မြှင့်ရန်။</li>
+    </ul>
+    <p>သင့်ဒေတာကို ကြော်ငြာအတွက် မသုံးပါ၊ မရောင်းပါ။</p>
+
+    <h2>မျှဝေသူများ</h2>
+    <p>ကျွန်ုပ်တို့ကိုယ်စား ဝန်ဆောင်မှု အစိတ်အပိုင်းများ လည်ပတ်ပေးသူများသာ — တစ်ဦးစီ လိုအပ်သလောက်သာ ရရှိသည်။</p>
+    <ul>
+      <li><strong>Supabase</strong> — database၊ sign-in နှင့် ဖိုင်သိမ်းဆည်းမှု။</li>
+      <li><strong>Vercel</strong> — website များ (web ဆိုင်၊ သက်တမ်းတိုး၊ admin) host လုပ်ရန်။</li>
+      <li><strong>Google</strong> — Google ဖြင့် ဝင်ရန် ရွေးချယ်မှသာ။</li>
+      <li><strong>Lemon Squeezy</strong> နှင့် <strong>MyanMyanPay</strong> — Premium ငွေပေးချေမှု။</li>
+      <li><strong>Resend</strong> — အီးမေးလ် ပို့ရန်။</li>
+      <li><strong>Sentry</strong> — crash report။</li>
+    </ul>
+    <p>ဆိုင်တစ်ခု၏ web ဆိုင်တွင် ဆိုင်က ထုတ်ပြရန် ရွေးထားသော ကုန်ပစ္စည်းစာရင်းနှင့် ဆိုင်အချက်အလက်သာ ပြသည်။</p>
+
+    <h2>သိမ်းဆည်းထားမည့် ကာလ</h2>
     <p>
-      Online shop login ရှိပါက လုပ်ငန်း → အကောင့် → အကောင့် ဖျက်မည် မှ ဖျက်နိုင်သည်
-      (ပိုင်ရှင် + စကားဝှက်)။ ပိုင်ဆိုင်သော shop cloud ဒေတာနှင့် login များ ဖျက်မည်။
+      Device ပေါ်ရှိ ဒေတာသည် သင်ဖျက်သည်အထိ (သို့) app ကို uninstall လုပ်သည်အထိ ရှိနေမည်။ Cloud ဒေတာသည်
+      အကောင့် ရှိနေသရွေ့ ရှိမည်။ Crash report များကို Sentry က ကာလအကန့်အသတ်ဖြင့်သာ သိမ်းသည်။
+      အကောင့်ဖျက်ပါက ဘာဖျက်ပြီး ဘာသိမ်းထားမလဲ အောက်တွင် ကြည့်ပါ။
     </p>
+
+    <h2>အကောင့်နှင့် ဒေတာ ဖျက်ခြင်း</h2>
+    <div class="box">
+      <p><strong>App ထဲမှ</strong> (ဆိုင်ပိုင်ရှင်): <strong>လုပ်ငန်း → အကောင့် → အကောင့် ဖျက်မည်</strong> ကို ဖွင့်ပြီး စကားဝှက်ဖြင့် (Google ဖြင့် ဝင်ထားပါက Google ဖြင့်) အတည်ပြုပါ။</p>
+      <p><strong>App မပါဘဲ</strong>: အကောင့်ပိုင်ရှင်ကိုယ်တိုင် Viber <strong>09740022900</strong> သို့ အကောင့် အီးမေးလ်နှင့် ဆိုင်အမည်ဖြင့် ဆက်သွယ်ပါ။ အကောင့်ပိုင်ရှင် ဖြစ်ကြောင်း စစ်ဆေးပြီး ရက် ၃၀ အတွင်း ဖျက်ပေးပါမည်။</p>
+    </div>
+    <p><strong>ဖျက်မည့်အရာ:</strong> သင့် online အကောင့်နှင့် သင်ပိုင်သော ဆိုင်များ၏ ဝန်ထမ်း login များ၊ ထိုဆိုင်များ၏ cloud ဒေတာ — ကုန်ပစ္စည်း၊ လက်ကျန်၊ အရောင်း၊ အော်ဒါ၊ ဖောက်သည်၊ ကုန်ပို့သူ၊ ကုန်ကျစရိတ်၊ ငွေတိုက်၊ device၊ web ဆိုင်နှင့် web အော်ဒါများ၊ နှင့် ကုန်ပစ္စည်းပုံ၊ logo၊ ဖောက်သည်များ၏ ငွေလွှဲ screenshot အပါအဝင် ဆိုင်က တင်ထားသော ဖိုင်များ။</p>
+    <p><strong>သိမ်းထားမည့်အရာ:</strong> Premium subscription နှင့် ငွေပေးချေမှု မှတ်တမ်း၊ Premium အတွက် ပို့ထားသော ငွေလွှဲ screenshot — စာရင်းကိုင်၊ အခွန်နှင့် လိမ်လည်မှု ကာကွယ်ရန် လိုအပ်သလောက် ကာလ။ ငွေပေးချေမှု ဝန်ဆောင်သူများက ၎င်းတို့ မူဝါဒအတိုင်း မှတ်တမ်း သိမ်းသည်။</p>
+    <p>Trial သုံးပြီးမှတ်တမ်းကို အကောင့်နှင့်အတူ ဖျက်သည်။ Owner account တစ်ခုလျှင် တစ်ကြိမ်သာ Trial ရသည့် ကန့်သတ်ချက်သည် ထိုအကောင့် ရှိနေစဉ်အတွင်း အကျုံးဝင်သည်။</p>
+    <p>အကောင့်ဖျက်ခြင်းက device ပေါ်ရှိ ဒေတာကို မဖျက်ပါ — app က Free plan သို့ ပြန်ရောက်ပြီး local မှတ်တမ်းများ သင်ဖျက်သည်အထိ (သို့) uninstall လုပ်သည်အထိ ရှိနေမည်။</p>
+
+    <h2>သင့်ရွေးချယ်ခွင့်</h2>
+    <ul>
+      <li>အကောင့် မဖန်တီးဘဲ Free plan သုံးနိုင်ပြီး ထိုအခါ ဒေတာ device ပေါ်တွင်သာ ရှိမည်။</li>
+      <li>Camera၊ Bluetooth၊ ဓာတ်ပုံနှင့် notification ခွင့်ပြုချက်ကို သက်ဆိုင်ရာ feature သုံးမှသာ တောင်းသည်။</li>
+    </ul>
+
+    <h2>ကလေးများ</h2>
+    <p>ဤအက်ပ်သည် လူကြီးများ စီးပွားရေးအတွက်ဖြစ်ပြီး အသက် ၁၃ နှစ်အောက် ကလေးများအတွက် မဟုတ်ပါ။</p>
+
     <h2>ဆက်သွယ်ရန်</h2>
-    <p>အက်ပ်အတွင်း Support / Viber သို့မဟုတ် App Store Support URL မှ ဆက်သွယ်ပါ။</p>
+    <p>App ထဲက Support (သို့) Viber <strong>09740022900</strong>။</p>
   </div>
 </body>
 </html>
