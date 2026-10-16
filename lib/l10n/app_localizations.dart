@@ -8611,6 +8611,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move them aside and start'**
   String get dbLockedStartEmptyConfirm;
+
+  /// No description provided for @tamperedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy of the app has been changed'**
+  String get tamperedTitle;
+
+  /// No description provided for @tamperedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It wasn\'t published by All In One POS, so it won\'t open. A changed copy can lose your records or send them to someone else.'**
+  String get tamperedBody;
+
+  /// No description provided for @tamperedNextStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall this copy, install the official app from Google Play or allinonepos.app, and sign in to bring a Premium shop back from the cloud.'**
+  String get tamperedNextStep;
+
+  /// No description provided for @tamperedGetApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the official app'**
+  String get tamperedGetApp;
 }
 
 class _AppLocalizationsDelegate

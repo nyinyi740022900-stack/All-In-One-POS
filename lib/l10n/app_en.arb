@@ -2158,5 +2158,9 @@
   "dbLockedStartEmpty": "Start with an empty shop",
   "dbLockedStartEmptyTitle": "Start with an empty shop?",
   "dbLockedStartEmptyBody": "The locked files are moved to a separate folder on this phone, not deleted. Then bring your shop back from a backup file (Shop → Backup & restore), or sign in again so a Premium shop syncs back from the cloud.",
-  "dbLockedStartEmptyConfirm": "Move them aside and start"
+  "dbLockedStartEmptyConfirm": "Move them aside and start",
+  "tamperedTitle": "This copy of the app has been changed",
+  "tamperedBody": "It wasn't published by All In One POS, so it won't open. A changed copy can lose your records or send them to someone else.",
+  "tamperedNextStep": "Uninstall this copy, install the official app from Google Play or allinonepos.app, and sign in to bring a Premium shop back from the cloud.",
+  "tamperedGetApp": "Get the official app"
 }

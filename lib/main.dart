@@ -11,6 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/env.dart';
+import 'core/integrity/app_integrity.dart';
+import 'core/integrity/tampered_app.dart';
 import 'core/providers.dart';
 import 'data/local/database_session.dart';
 import 'data/local/db_encryption.dart';
@@ -71,6 +73,16 @@ Future<void> _bootstrap() async {
       // round-trips ahead of the first frame. Both must still settle before
       // runApp: the first build reads the DB session AND (on paid plans)
       // drives Supabase auth through the sync/license controllers.
+      // A repackaged (re-signed) Android build stops here, before any shop
+      // data or backend session opens. See AppIntegrity.
+      if (await AppIntegrity.check() == IntegrityVerdict.tampered) {
+        if (Env.hasCrashReporting) {
+          unawaited(Sentry.captureMessage('app integrity: tampered build'));
+        }
+        runApp(const TamperedApp());
+        return;
+      }
+
       final bootStopwatch = Stopwatch()..start();
       final dbSessionFuture = DatabaseSession.open();
       final supabaseInit = Env.hasBackend

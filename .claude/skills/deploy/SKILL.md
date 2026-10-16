@@ -117,7 +117,8 @@ only after CI is green (`docs/windows/SMOKE.md`).
 
 ```bash
 # On a Windows machine only (not on macOS):
-flutter build windows --release --dart-define-from-file=env.local.json
+flutter build windows --release --obfuscate --split-debug-info=release/symbols/<version+build>-windows \
+  --dart-define-from-file=env.local.json
 ```
 
 Invoices-only on any computer: Phase 1 web companion
@@ -192,7 +193,8 @@ Bump `pubspec.yaml` build (`+N`) before every upload — see
 #    build/ios/archive/Runner.xcarchive for Xcode Organizer upload.
 # No COMMERCE_UI define here — the false default is what keeps this build
 # compliant. See the warning above §4.
-flutter build ipa --release --dart-define-from-file=env.local.json \
+flutter build ipa --release --obfuscate --split-debug-info=release/symbols/<version+build>-ios \
+  --dart-define-from-file=env.local.json \
   --export-options-plist=ios/ExportOptions.plist
 
 # 2) Upload to App Store Connect (requires App Store Connect API key — ACCOUNT.md)
@@ -219,7 +221,8 @@ do not change again once a real upload exists).
 # 2) Bump pubspec build (+N), then:
 #    No COMMERCE_UI define — Play Billing has the same rule as Apple's 3.1.1,
 #    so the store AAB ships commerce-free too. See the warning above §4.
-flutter build appbundle --release --dart-define-from-file=env.local.json
+flutter build appbundle --release --obfuscate --split-debug-info=release/symbols/<version+build>-android \
+  --dart-define-from-file=env.local.json
 # → build/app/outputs/bundle/release/app-release.aab
 
 # 3) Play Console → Internal testing → upload AAB → smoke
@@ -235,8 +238,23 @@ Without `android/key.properties`, release assemble/bundle **fails on purpose**
 distribution channel with no billing rule, so the only build that keeps the
 purchase UI):
 ```bash
-flutter build apk --release --dart-define-from-file=env.local.json --dart-define=COMMERCE_UI=true
+flutter build apk --release --obfuscate --split-debug-info=release/symbols/<version+build>-apk \
+  --dart-define-from-file=env.local.json --dart-define=COMMERCE_UI=true
 ```
+
+## Obfuscation and tamper check (2026-10-17)
+- **Every store / direct-install build passes `--obfuscate
+  --split-debug-info=release/symbols/<version+build>-<platform>`** (CI does the
+  same and uploads the symbols as an artifact). Obfuscation strips Dart names
+  so a cracked copy is far harder to patch. **Keep the symbols folder for
+  every build that ships** — without it an obfuscated crash trace can't be
+  read (`flutter symbolize -i <trace> -d release/symbols/<…>/app.android-arm64.symbols`).
+  `release/` is gitignored; never delete a shipped build's symbols.
+- Android release builds refuse to run when re-signed with a key not in
+  `AppIntegrity.allowedSigners` (`lib/core/integrity/app_integrity.dart`).
+  **If Play ever rotates the app signing key, add the new SHA-256 there
+  before the next release** — or every Play install shows the "changed copy"
+  screen. Emergency off-switch for one build: `--dart-define=APP_INTEGRITY=false`.
 
 ## Notes
 - The auto-mode safety classifier may still block prod writes even with the

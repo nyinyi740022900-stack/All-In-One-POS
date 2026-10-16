@@ -2072,5 +2072,9 @@
   "dbLockedStartEmpty": "ဆိုင်အလွတ်နဲ့ စမယ်",
   "dbLockedStartEmptyTitle": "ဆိုင်အလွတ်နဲ့ စမလား?",
   "dbLockedStartEmptyBody": "ဖွင့်မရတဲ့ ဖိုင်တွေကို ဖုန်းထဲက folder သီးသန့်ကို ရွှေ့ထားမှာပါ၊ မဖျက်ပါ။ ပြီးရင် backup ဖိုင်ကနေ ဆိုင်ကို ပြန်ယူပါ (လုပ်ငန်း → Backup & ပြန်ယူ)၊ ဒါမှမဟုတ် Premium ဆိုင်ဆိုရင် ပြန် sign in လုပ်ပြီး cloud ကနေ sync ပြန်ယူပါ။",
-  "dbLockedStartEmptyConfirm": "ရွှေ့ပြီး စမယ်"
+  "dbLockedStartEmptyConfirm": "ရွှေ့ပြီး စမယ်",
+  "tamperedTitle": "ဒီ app ကို တစ်စုံတစ်ယောက်က ပြင်ဆင်ထားပါတယ်",
+  "tamperedBody": "All In One POS က ထုတ်ထားတဲ့ app မဟုတ်လို့ ဖွင့်လို့ မရပါ။ ပြင်ထားတဲ့ app က သင့်စာရင်းတွေကို ပျောက်စေနိုင်သလို တခြားသူဆီ ပို့ပေးနိုင်ပါတယ်။",
+  "tamperedNextStep": "ဒီ app ကို ဖျက်ပြီး Google Play ဒါမှမဟုတ် allinonepos.app ကနေ မူရင်း app ကို ထည့်ပါ။ Premium ဆိုင်ဆိုရင် sign in လုပ်ပြီး cloud ကနေ ပြန်ယူနိုင်ပါတယ်။",
+  "tamperedGetApp": "မူရင်း app ကို ယူမယ်"
 }

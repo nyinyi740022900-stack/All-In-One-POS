@@ -4798,4 +4798,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dbLockedStartEmptyConfirm => 'Move them aside and start';
+
+  @override
+  String get tamperedTitle => 'This copy of the app has been changed';
+
+  @override
+  String get tamperedBody =>
+      'It wasn\'t published by All In One POS, so it won\'t open. A changed copy can lose your records or send them to someone else.';
+
+  @override
+  String get tamperedNextStep =>
+      'Uninstall this copy, install the official app from Google Play or allinonepos.app, and sign in to bring a Premium shop back from the cloud.';
+
+  @override
+  String get tamperedGetApp => 'Get the official app';
 }

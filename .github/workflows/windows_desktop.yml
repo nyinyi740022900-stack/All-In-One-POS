@@ -75,7 +75,7 @@ jobs:
           Write-Host "Wrote env.ci.json (secret values redacted)"
 
       - name: Build Windows release
-        run: flutter build windows --release --dart-define-from-file=env.ci.json
+        run: flutter build windows --release --obfuscate --split-debug-info=build/debug-info --dart-define-from-file=env.ci.json
 
       - name: Stage Release folder
         shell: pwsh
@@ -102,6 +102,17 @@ jobs:
           path: dist/AllInOnePOS-windows
           if-no-files-found: error
           retention-days: 14
+
+      # Symbols for the --obfuscate build above (see android_apk.yml).
+      - name: Upload Dart symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: AllInOnePOS-windows-symbols-${{ github.sha }}
+          path: build/debug-info
+          # warn, not error: a missing symbols folder must not stop the
+          # Windows release itself from publishing.
+          if-no-files-found: warn
+          retention-days: 90
 
       # Rolling "windows-latest" GitHub Release — gives the marketing site
       # a permanent, no-login download URL that always points at the newest

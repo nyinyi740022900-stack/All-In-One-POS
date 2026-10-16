@@ -36,7 +36,7 @@ Never commit `android/key.properties`, `*.jks`, or `*.keystore`.
 ## 3. Build AAB
 
 ```bash
-flutter build appbundle --release --dart-define-from-file=env.local.json
+flutter build appbundle --release --obfuscate --split-debug-info=release/symbols/<version+build>-android --dart-define-from-file=env.local.json
 # → build/app/outputs/bundle/release/app-release.aab
 ```
 

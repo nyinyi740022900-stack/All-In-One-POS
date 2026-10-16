@@ -4808,4 +4808,18 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get dbLockedStartEmptyConfirm => 'ရွှေ့ပြီး စမယ်';
+
+  @override
+  String get tamperedTitle => 'ဒီ app ကို တစ်စုံတစ်ယောက်က ပြင်ဆင်ထားပါတယ်';
+
+  @override
+  String get tamperedBody =>
+      'All In One POS က ထုတ်ထားတဲ့ app မဟုတ်လို့ ဖွင့်လို့ မရပါ။ ပြင်ထားတဲ့ app က သင့်စာရင်းတွေကို ပျောက်စေနိုင်သလို တခြားသူဆီ ပို့ပေးနိုင်ပါတယ်။';
+
+  @override
+  String get tamperedNextStep =>
+      'ဒီ app ကို ဖျက်ပြီး Google Play ဒါမှမဟုတ် allinonepos.app ကနေ မူရင်း app ကို ထည့်ပါ။ Premium ဆိုင်ဆိုရင် sign in လုပ်ပြီး cloud ကနေ ပြန်ယူနိုင်ပါတယ်။';
+
+  @override
+  String get tamperedGetApp => 'မူရင်း app ကို ယူမယ်';
 }

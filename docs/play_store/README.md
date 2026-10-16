@@ -12,4 +12,4 @@
 
 Privacy policy (shared with iOS): https://legal.allinonepos.app  
 
-Build: see deploy skill §6 and `flutter build appbundle --release --dart-define-from-file=env.local.json`.
+Build: see deploy skill §6 and `flutter build appbundle --release --obfuscate --split-debug-info=release/symbols/<version+build>-android --dart-define-from-file=env.local.json`.

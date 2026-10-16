@@ -27,7 +27,7 @@ That means **device Development signing works**, but **App Store distribution is
 5. Xcode → Settings → Accounts → your Apple ID → team `F8KLK8L5SY` → **Download Manual Profiles** / Manage Certificates → ensure Distribution appears.
 6. Re-run:
    ```bash
-   flutter build ipa --release --dart-define-from-file=env.local.json \
+   flutter build ipa --release --obfuscate --split-debug-info=release/symbols/<version+build>-ios --dart-define-from-file=env.local.json \
      --export-options-plist=ios/ExportOptions.plist
    ./tool/upload_ios_ipa.sh   # after APP_STORE_CONNECT_* env vars (ACCOUNT.md)
    ```
