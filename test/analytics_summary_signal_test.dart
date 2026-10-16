@@ -78,13 +78,50 @@ void main() {
         ),
       );
 
-  /// Keeps the provider subscribed (as the open screen does) and waits for
-  /// the debounce plus the recompute to land.
+  // The signal debounces on a real `Timer`, and a fixed `Future.delayed`
+  // past it is no guarantee under a loaded full-suite run — the same trap
+  // that flaked `provider_invalidation_test.dart`'s till case (2026-10-17).
+  // So these wait on what happened rather than on the clock.
+  const settleTimeout = Duration(seconds: 5);
+  const pollEvery = Duration(milliseconds: 25);
+
+  /// Waits until the signal has gone a full debounce window (plus the same
+  /// again as margin) without bumping, then returns the summary that
+  /// recompute produced. The caller keeps the provider subscribed (as the
+  /// open screen does).
   Future<AnalyticsSummary> settled() async {
-    await Future<void>.delayed(
-      kAnalyticsSignalDebounce + const Duration(milliseconds: 150),
+    var lastBump = DateTime.now();
+    final sub = container.listen<int>(
+      analyticsInputSignalProvider,
+      (_, _) => lastBump = DateTime.now(),
     );
+    try {
+      final deadline = DateTime.now().add(settleTimeout);
+      while (DateTime.now().difference(lastBump) <
+          kAnalyticsSignalDebounce * 2) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('analyticsInputSignalProvider never settled.');
+        }
+        await Future<void>.delayed(pollEvery);
+      }
+      await pumpEventQueue();
+    } finally {
+      sub.close();
+    }
     return container.read(analyticsSummaryProvider.future);
+  }
+
+  /// Re-reads the summary until [done] holds, giving up after
+  /// [settleTimeout] and returning the last (stale) value — so a missing
+  /// watch still fails the caller's `expect`, just not on a guessed delay.
+  Future<AnalyticsSummary> until(bool Function(AnalyticsSummary) done) async {
+    final deadline = DateTime.now().add(settleTimeout);
+    var value = await container.read(analyticsSummaryProvider.future);
+    while (!done(value) && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(pollEvery);
+      value = await container.read(analyticsSummaryProvider.future);
+    }
+    return value;
   }
 
   test('a direct write (as a sync pull makes) reaches the dashboard', () async {
@@ -93,7 +130,7 @@ void main() {
     expect((await settled()).revenue, 0);
 
     await insertSale('a');
-    expect((await settled()).revenue, 1000);
+    expect((await until((s) => s.revenue != 0)).revenue, 1000);
 
     await db
         .into(db.expenses)
@@ -106,7 +143,7 @@ void main() {
             date: now,
           ),
         );
-    expect((await settled()).expenses, 300);
+    expect((await until((s) => s.expenses != 0)).expenses, 300);
   });
 
   test(

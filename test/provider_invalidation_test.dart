@@ -70,6 +70,58 @@ void main() {
     db.paymentAccounts,
   )..where((a) => a.id.equals(accountId))).getSingle();
 
+  // The till signal (`cashInputSignalProvider`) is deliberately DEBOUNCED
+  // (`kCashSignalDebounce`, "audit M7") so a burst of sales coalesces into
+  // one recompute. It runs on a real `Timer`, which `pumpEventQueue()` does
+  // not advance — and a fixed `Future.delayed` is no guarantee either: under
+  // a loaded full-suite run the Drift re-emission, the debounce and the
+  // recompute can all land later than any margin picked here (this flaked
+  // once on 2026-10-17 at 3× the debounce). So the two helpers below wait
+  // on what actually happened rather than on the clock.
+  const settleTimeout = Duration(seconds: 5);
+  const pollEvery = Duration(milliseconds: 25);
+
+  /// Waits until the till signal has gone a full debounce window (plus the
+  /// same again as margin) without bumping, so no recompute is still
+  /// pending when a baseline is read. Every stream under the signal fires
+  /// an initial emission on subscription and each starts the timer; reading
+  /// the baseline while one is pending lets it pick up the mutation and
+  /// pass the test with the watch under test deleted (a false negative).
+  Future<void> untilCashSignalQuiet() async {
+    var lastBump = DateTime.now();
+    final sub = container.listen<int>(
+      cashInputSignalProvider,
+      (_, _) => lastBump = DateTime.now(),
+    );
+    try {
+      final deadline = DateTime.now().add(settleTimeout);
+      while (DateTime.now().difference(lastBump) < kCashSignalDebounce * 2) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('cashInputSignalProvider never settled — test setup problem.');
+        }
+        await Future<void>.delayed(pollEvery);
+      }
+      await pumpEventQueue();
+    } finally {
+      sub.close();
+    }
+  }
+
+  /// Re-reads [read] until it differs from [from], giving up after
+  /// [settleTimeout] and returning the (stale) value — so a missing watch
+  /// still fails the caller's `expect` with its reason, just after the
+  /// timeout instead of after a guessed delay. The provider must stay
+  /// listened to throughout, or a read would recompute and mask the bug.
+  Future<T> untilChanged<T>(Future<T> Function() read, T from) async {
+    final deadline = DateTime.now().add(settleTimeout);
+    var value = await read();
+    while (value == from && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(pollEvery);
+      value = await read();
+    }
+    return value;
+  }
+
   /// Writes [mutate] straight to the DB and returns the balance before and
   /// after, with the provider kept subscribed throughout so Riverpod
   /// actually propagates an invalidation (an unlistened provider is free to
@@ -233,18 +285,15 @@ void main() {
       // afterwards let that pending recompute pick up the mutation and made
       // this test pass even with the payments watch deleted (a false
       // negative that only showed up when the sabotage was checked).
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
+      await untilCashSignalQuiet();
       before = await container.read(expectedCashProvider.future);
       await mutate();
-      // The till signal is deliberately DEBOUNCED (`kCashSignalDebounce`,
-      // "audit M7") so a burst of sales coalesces into one recompute — it
-      // runs on a real `Timer`, which `pumpEventQueue()` does not advance.
-      // So this waits actual time; no number of event-loop pumps would ever
-      // fire it, and mistaking that for a missing watch is the trap here.
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
-      final after = await container.read(expectedCashProvider.future);
+      // Debounced on a real Timer — wait for the recompute itself, not a
+      // guessed delay (see [untilChanged]).
+      final after = await untilChanged(
+        () => container.read(expectedCashProvider.future),
+        before,
+      );
       sub.close();
       return (before: before!, after: after ?? 0);
     }
@@ -380,8 +429,7 @@ void main() {
         await pumpEventQueue();
         before = await container.read(expectedCashProvider.future);
       }
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
+      await untilCashSignalQuiet();
       before = await container.read(expectedCashProvider.future);
       expect(before, 4000);
       // ...then a session another device opened (and closed) over that
@@ -398,9 +446,10 @@ void main() {
               closedAt: Value(DateTime.now()),
             ),
           );
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
-      final after = await container.read(expectedCashProvider.future);
+      final after = await untilChanged(
+        () => container.read(expectedCashProvider.future),
+        before,
+      );
       sub.close();
       expect(
         after,
@@ -429,13 +478,13 @@ void main() {
       // Same settle-first discipline as the till: this composes
       // cashInputSignalProvider, whose debounce fires on the initial
       // subscription emissions of every stream under it.
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
+      await untilCashSignalQuiet();
       final before = (await container.read(balanceSheetProvider.future)).assets;
       await mutate();
-      await Future<void>.delayed(kCashSignalDebounce * 3);
-      await pumpEventQueue();
-      final after = (await container.read(balanceSheetProvider.future)).assets;
+      final after = await untilChanged(
+        () async => (await container.read(balanceSheetProvider.future)).assets,
+        before,
+      );
       sub.close();
       return (before: before, after: after);
     }
@@ -770,11 +819,20 @@ void main() {
       final winnerSub = container.listen(winner, (_, _) {});
       addTearDown(winnerSub.close);
       expect(await container.read(winner.future), 1000);
+      // Settle first: the subscriptions above fired the till signal's
+      // initial emissions, and that still-pending debounce would recompute
+      // [winner] after the edit below with or without a payments watch —
+      // this case passed with `_cashPaymentsWatchProvider` deleted.
+      await untilCashSignalQuiet();
+      expect(await container.read(winner.future), 1000);
       await (db.update(db.payments)..where((t) => t.id.equals('history-pay')))
           .write(const PaymentsCompanion(amount: Value(2000)));
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      await pumpEventQueue();
-      expect(await container.read(winner.future), 2000);
+      // A payment edit reaches this provider only through the DEBOUNCED till
+      // signal — wait for the recompute, not a guessed 400 ms.
+      expect(
+        await untilChanged(() => container.read(winner.future), 1000),
+        2000,
+      );
     },
   );
 }
