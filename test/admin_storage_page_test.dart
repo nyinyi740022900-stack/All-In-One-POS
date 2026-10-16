@@ -71,11 +71,9 @@ Future<void> _openStorage(WidgetTester tester, _FakeApi api) async {
     ),
   );
   await tester.pumpAndSettle();
-  // The Dashboard lands first, and its "Manual payments this month" tile
-  // overflows by 0.55 px under the test font (a pre-existing tile-height
-  // issue, not this page). Cleared here so the check after opening Storage
-  // is about Storage alone.
-  tester.takeException();
+  // The Dashboard lands first; it must render clean too (its KPI tiles once
+  // overflowed by 0.55 px — see StatCard.gridExtent).
+  expect(tester.takeException(), isNull);
   await tester.tap(find.text('Storage'));
   await tester.pumpAndSettle();
 }

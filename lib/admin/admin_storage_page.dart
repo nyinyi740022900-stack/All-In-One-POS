@@ -103,7 +103,7 @@ class _StorageBody extends StatelessWidget {
             crossAxisCount: width >= 1100 ? 3 : 2,
             mainAxisSpacing: AppTheme.space3,
             crossAxisSpacing: AppTheme.space3,
-            mainAxisExtent: _adminKpiExtent(context),
+            mainAxisExtent: StatCard.gridExtent(context),
           ),
           children: [
             StatCard(
