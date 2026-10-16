@@ -87,12 +87,24 @@ class AnalyticsScreen extends ConsumerWidget {
                 ref.read(analyticsRangeProvider.notifier).state = s.first,
           ),
         ),
+        // Refreshing over figures already on screen (a sync pull landing, a
+        // range switch): keep them and show a hairline instead of swapping
+        // the whole dashboard back to the skeleton. Same 2px either way so
+        // nothing below shifts.
+        SizedBox(
+          height: 2,
+          child: summary.isLoading && summary.hasValue
+              ? const LinearProgressIndicator(minHeight: 2)
+              : null,
+        ),
         Expanded(
           child: summary.when(
-            // A centred spinner here used to collapse the whole dashboard to
-            // a dot and then snap the grid back in — the range segmented
-            // button above it is tapped constantly, so that reflow happened
-            // on every switch. The skeleton keeps the page's shape.
+            // Only the very first load shows the skeleton. Every later
+            // recompute keeps the last figures up (skipLoadingOnReload) —
+            // during a cloud sync the summary used to drop back to the
+            // skeleton on every pulled batch, so the charts appeared only once
+            // the whole pull had finished.
+            skipLoadingOnReload: true,
             loading: () => _DashboardSkeleton(trackStock: trackStock),
             error: (e, _) => EmptyStateView(
               icon: Icons.error_outline,
@@ -410,7 +422,10 @@ class _GlanceCell extends StatelessWidget {
           vertical: AppTheme.space3,
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // Top-aligned, not centred: only Sales carries a trend pill, and a
+          // centred column pushed its figure up out of line with Collected
+          // and Owed.
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             // The figure shrinks to fit its cell instead of truncating (a money
             // figure must never show an ellipsis). Measured with a
@@ -462,37 +477,41 @@ class _GlanceCell extends StatelessWidget {
             ),
             if (change != null) ...[
               const SizedBox(height: AppTheme.space1),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    change >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                    size: 12,
-                    color: change >= 0 ? colors.success : colors.warning,
-                  ),
-                  // The Flexible is load-bearing. The strip sizes its three
-                  // cells with an IntrinsicHeight, which asks each cell how
-                  // tall it is at the WHOLE strip's width — where this
-                  // sentence fits on one line — and then lays it out in a
-                  // third of that, where it wraps. An inflexible Text is
-                  // measured at its unbounded width, so the row overflowed by
-                  // however much it wrapped (44px on the 7- and 30-day
-                  // ranges); a flexible one is measured at the width it gets.
-                  Flexible(
-                    child: Text(
-                      l.analyticsTrendVsPrevious(
-                        change >= 0 ? '+' : '-',
-                        change.round().abs(),
-                      ),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: change >= 0 ? colors.success : colors.warning,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _TrendPill(change: change, l: l),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "↓ 87%" on one line, in a soft pill — the sentence form ("-87% vs
+/// previous period") wrapped to three lines in a third-width cell and made
+/// the Sales cell taller than its neighbours. The full sentence stays as the
+/// tooltip (tap the pill) and the screen-reader label, so the meaning is
+/// never lost. Direction is carried by the arrow AND the colour.
+class _TrendPill extends StatelessWidget {
+  const _TrendPill({required this.change, required this.l});
+
+  final double change;
+  final AppLocalizations l;
+
+  @override
+  Widget build(BuildContext context) {
+    final up = change >= 0;
+    final percent = change.round().abs();
+    final sentence = l.analyticsTrendVsPrevious(up ? '+' : '-', percent);
+    return Tooltip(
+      message: sentence,
+      triggerMode: TooltipTriggerMode.tap,
+      child: Semantics(
+        label: sentence,
+        excludeSemantics: true,
+        child: StatusPill(
+          label: '$percent%',
+          tone: up ? StatusTone.positive : StatusTone.attention,
+          icon: up ? Icons.arrow_upward : Icons.arrow_downward,
         ),
       ),
     );
@@ -672,6 +691,11 @@ class _RevenueChartCard extends ConsumerWidget {
                 child: labelMode == _ChartLabelMode.sparseDay
                   ? SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
+                      // Opens on the RIGHT end — today and the days just
+                      // before it — and swipes back into the month. From the
+                      // left it opened on the oldest fortnight, which for a
+                      // shop that sold this week looked like an empty chart.
+                      reverse: true,
                       child: SizedBox(
                         width: math.max(daily.length * 24.0, 600.0),
                         child: _chart(context, theme, scheme, currency, locale),

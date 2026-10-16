@@ -174,4 +174,83 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('trend is one short line and the three figures line up', (
+    tester,
+  ) async {
+    // Regression: "-87% vs previous period" wrapped to three lines in a
+    // third-width cell, made Sales taller than Collected/Owed and, with the
+    // cells centred, pushed the Sales figure out of line with the others.
+    await _pumpDashboard(
+      tester,
+      summary: _withSales,
+      previous: _withSales.copyWithRevenue(8000),
+    );
+    final pill = find.text('88%');
+    expect(pill, findsOneWidget);
+    final line = tester.getSize(pill).height;
+    expect(line, lessThan(24), reason: 'one line, not a wrapped sentence');
+
+    final l = AppLocalizations.of(tester.element(find.byType(AnalyticsScreen)));
+    expect(find.byTooltip(l.analyticsTrendVsPrevious('-', 88)), findsOneWidget);
+
+    final sales = tester.getTopLeft(find.text('1,000 Ks').first).dy;
+    final owed = tester.getTopLeft(find.text('0 Ks').first).dy;
+    expect(sales, closeTo(owed, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the 30-day chart opens on today, not the oldest day', (
+    tester,
+  ) async {
+    // Regression: the month canvas scrolled from the left, so a shop that
+    // only sold this week opened on an empty fortnight.
+    final today = DateTime(2026, 10, 16);
+    final month = [
+      for (var i = 29; i >= 0; i--)
+        DailyRevenue(today.subtract(Duration(days: i)), i == 0 ? 73900 : 0),
+    ];
+    await _pumpDashboard(
+      tester,
+      summary: _withSales.copyWithDaily(month),
+    );
+    final screenWidth = tester.view.physicalSize.width /
+        tester.view.devicePixelRatio;
+    final todayLabel = tester.getRect(find.text('16'));
+    expect(todayLabel.right, lessThanOrEqualTo(screenWidth));
+    expect(todayLabel.left, greaterThan(0));
+    final oldestLabel = tester.getRect(find.text('17'));
+    expect(oldestLabel.right, lessThan(0), reason: 'off-screen to the left');
+    expect(tester.takeException(), isNull);
+  });
+}
+
+extension on AnalyticsSummary {
+  AnalyticsSummary copyWithRevenue(int revenue) => AnalyticsSummary(
+    revenue: revenue,
+    salesCount: salesCount,
+    discount: discount,
+    cost: cost,
+    stockValue: stockValue,
+    expenses: expenses,
+    creditSales: creditSales,
+    creditOutstanding: creditOutstanding,
+    daily: daily,
+    topProducts: topProducts,
+    salesByStaff: salesByStaff,
+  );
+
+  AnalyticsSummary copyWithDaily(List<DailyRevenue> days) => AnalyticsSummary(
+    revenue: revenue,
+    salesCount: salesCount,
+    discount: discount,
+    cost: cost,
+    stockValue: stockValue,
+    expenses: expenses,
+    creditSales: creditSales,
+    creditOutstanding: creditOutstanding,
+    daily: days,
+    topProducts: topProducts,
+    salesByStaff: salesByStaff,
+  );
 }

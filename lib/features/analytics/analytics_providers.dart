@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -154,52 +156,87 @@ final saleItemChangesProvider = StreamProvider<List<SaleItem>>((ref) {
       .watch();
 });
 
+/// Settles [kAnalyticsSignalDebounce] after the last write to any table the
+/// dashboard folds, then bumps — so a cloud-sync pull, which lands its rows
+/// in batches with a network round trip between them, recomputes the
+/// summary ONCE when it settles instead of once per batch (measured: ten
+/// batches meant ten recomputes). Each recompute is six queries on the same
+/// database isolate the sync is writing through, and each one used to put
+/// the dashboard back on its skeleton. Same shape as the Cash register's
+/// input signal.
+///
+/// Sources (keep in step with what `AnalyticsRepository.summary` reads):
+/// sales, sale items (COGS snapshots can arrive after their sale during a
+/// pull), the credit book's FIFO allocation (Owed / Collected), expenses,
+/// product cost, and stock value (stock levels + lots).
+const Duration kAnalyticsSignalDebounce = Duration(milliseconds: 250);
+
+class _AnalyticsInputSignal extends StateNotifier<int> {
+  _AnalyticsInputSignal(Ref ref) : super(0) {
+    ref.listen(salesStreamProvider, (_, _) => _bump());
+    ref.listen(creditOwedBySaleProvider, (_, _) => _bump());
+    ref.listen(saleItemChangesProvider, (_, _) => _bump());
+    ref.listen(expenseChangesProvider, (_, _) => _bump());
+    ref.listen(productCostMapProvider, (_, _) => _bump());
+    ref.listen(stockValueProvider, (_, _) => _bump());
+  }
+
+  Timer? _timer;
+
+  void _bump() {
+    _timer?.cancel();
+    _timer = Timer(kAnalyticsSignalDebounce, () {
+      if (mounted) state++;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+/// Invalidation-only counter — see [_AnalyticsInputSignal].
+final analyticsInputSignalProvider =
+    StateNotifierProvider<_AnalyticsInputSignal, int>(
+  (ref) => _AnalyticsInputSignal(ref),
+);
+
+/// The credit book's FIFO allocation, once its two feeds have loaded — so
+/// the very first Owed / Collected figure already accounts for repayments
+/// instead of briefly showing the raw unpaid difference. Read, not watched:
+/// later changes arrive through [analyticsInputSignalProvider].
+Future<Map<String, int>> _creditOwedBySaleLoaded(Ref ref) async {
+  await ref.read(creditSalesProvider.future);
+  await ref.read(repaymentsProvider.future);
+  return ref.read(creditOwedBySaleProvider);
+}
+
 final analyticsSummaryProvider = FutureProvider<AnalyticsSummary>((ref) async {
-  // Recompute whenever sales, sale items (COGS snapshots), expenses,
-  // product cost, or stock levels change so the dashboard (and everything
-  // downstream that reuses this — P&L, Owner's Equity) stays live.
-  ref.watch(salesStreamProvider);
-  // Repayment allocation (Credit book's FIFO map) feeds creditOutstanding /
-  // collected — watching it keeps those figures live when a repayment is
-  // recorded (this exact mismatch shipped before: Credit book showed 0
-  // while Analytics kept counting a fully-repaid sale as outstanding).
-  ref.watch(creditOwedBySaleProvider);
-  ref.watch(saleItemChangesProvider);
-  ref.watch(expenseChangesProvider);
-  // Narrowed signals (audit M4): the memoized cost map + stock value
-  // instead of raw products/stock_levels streams, so renames and photo
-  // changes no longer re-run the whole summary.
-  ref.watch(productCostMapProvider);
-  ref.watch(stockValueProvider);
+  // Live through one coalesced signal (see [_AnalyticsInputSignal]); P&L and
+  // Owner's Equity keep their own watches.
+  ref.watch(analyticsInputSignalProvider);
   final range = ref.watch(analyticsRangeProvider);
   final bounds = rangeBounds(range, DateTime.now());
-  return ref
-      .watch(analyticsRepositoryProvider)
-      .summary(bounds.start, bounds.end,
-          creditOwedBySaleId:
-              ref.watch(creditOwedBySaleProvider));
+  final repo = ref.watch(analyticsRepositoryProvider);
+  final owed = await _creditOwedBySaleLoaded(ref);
+  return repo.summary(bounds.start, bounds.end, creditOwedBySaleId: owed);
 });
 
 /// The immediately-preceding period, same length as the current range —
 /// yesterday for "today", the prior 7 days for "week", the prior 30 for
 /// "month" — so the dashboard can show a "vs last period" comparison
-/// instead of only ever an absolute figure. Same watches as
+/// instead of only ever an absolute figure. Same signal as
 /// [analyticsSummaryProvider] since it draws from the same tables.
 final analyticsPreviousSummaryProvider =
     FutureProvider<AnalyticsSummary>((ref) async {
-  ref.watch(salesStreamProvider);
-  ref.watch(creditOwedBySaleProvider);
-  ref.watch(saleItemChangesProvider);
-  ref.watch(expenseChangesProvider);
-  ref.watch(productCostMapProvider);
-  ref.watch(stockValueProvider);
+  ref.watch(analyticsInputSignalProvider);
   final range = ref.watch(analyticsRangeProvider);
   final bounds = rangeBounds(range, DateTime.now());
   final periodLength = bounds.end.difference(bounds.start);
   final previousStart = bounds.start.subtract(periodLength);
-  return ref
-      .watch(analyticsRepositoryProvider)
-      .summary(previousStart, bounds.start,
-          creditOwedBySaleId:
-              ref.watch(creditOwedBySaleProvider));
+  final repo = ref.watch(analyticsRepositoryProvider);
+  final owed = await _creditOwedBySaleLoaded(ref);
+  return repo.summary(previousStart, bounds.start, creditOwedBySaleId: owed);
 });
