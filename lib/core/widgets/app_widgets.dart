@@ -923,8 +923,8 @@ class SectionHeader extends StatelessWidget {
 /// Myanmar/text-scale safety: the label gets two lines, and the value is
 /// scaled down by a [FittedBox] rather than ellipsized, because a truncated
 /// money figure is worse than a small one. The tile therefore never needs a
-/// fixed aspect ratio to stay intact — give the grid a `mainAxisExtent`
-/// derived from the current text scale.
+/// fixed aspect ratio to stay intact — give the grid
+/// `mainAxisExtent: StatCard.gridExtent(context)`.
 class StatCard extends StatelessWidget {
   const StatCard({
     super.key,
@@ -945,6 +945,38 @@ class StatCard extends StatelessWidget {
   final StatusTone? tone;
   final VoidCallback? onTap;
 
+  static const double _iconSize = 20;
+
+  /// The `mainAxisExtent` a grid of these tiles needs, **measured** from the
+  /// live theme and text scale — the same `labelMedium` (two lines) and
+  /// `titleLarge` the tile renders, laid out by a [TextPainter] — rather
+  /// than font sizes copied into arithmetic. The copied version still said
+  /// 19 px after the theme moved `titleLarge` to 20, and tiles overflowed by
+  /// a fraction of a pixel.
+  static double gridExtent(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final scaler = MediaQuery.textScalerOf(context);
+    double blockHeight(String text, TextStyle? style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    final labelBlock = math.max(
+      _iconSize,
+      blockHeight('0\n0', textTheme.labelMedium),
+    );
+    final valueLine = blockHeight('0', textTheme.titleLarge);
+    // Rounded up: a sub-pixel shortfall still trips RenderFlex's overflow.
+    return (AppTheme.space3 * 2 + labelBlock + AppTheme.space2 + valueLine)
+        .ceilToDouble();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -952,7 +984,7 @@ class StatCard extends StatelessWidget {
     return Card(
       // Zero, not Card's own default 4dp: this tile lives in a GridView
       // whose delegate already supplies mainAxisSpacing/crossAxisSpacing AND
-      // a mainAxisExtent sized to the content computed by _kpiTileExtent().
+      // a mainAxisExtent sized to the content computed by gridExtent().
       // Card's default margin ate into that budget from the outside where
       // the extent math couldn't see it, overflowing every tile by ~8px.
       margin: EdgeInsets.zero,
@@ -969,7 +1001,7 @@ class StatCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20, color: plate.on),
+                    Icon(icon, size: _iconSize, color: plate.on),
                     const SizedBox(width: AppTheme.space2),
                   ],
                   Expanded(

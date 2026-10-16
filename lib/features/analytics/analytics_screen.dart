@@ -142,22 +142,6 @@ class AnalyticsScreen extends ConsumerWidget {
   }
 }
 
-/// Height one KPI tile needs, derived from the *scaled* type scale rather than
-/// a fixed `childAspectRatio`.
-///
-/// A ratio ties tile height to whatever width the column split happened to
-/// produce, so the same tile is a different height on a phone and a tablet
-/// while its contents are identical — and at 1.3x text scale, with a Myanmar
-/// label running two lines ("ကြွေးကျန်ငွေ"), the old `1.7` clipped the label
-/// and fell back to an ellipsis on a *primary* label.
-double _kpiTileExtent(BuildContext context) {
-  final scaler = MediaQuery.textScalerOf(context);
-  // labelMedium 12/1.45 (two lines), titleLarge 19/1.35 (one value line).
-  final labelBlock = math.max(32.0, scaler.scale(12) * 1.45 * 2);
-  final valueLine = scaler.scale(19) * 1.35;
-  return AppTheme.space3 * 2 + labelBlock + AppTheme.space2 + valueLine;
-}
-
 class _Dashboard extends ConsumerWidget {
   const _Dashboard({
     required this.summary,
@@ -288,7 +272,12 @@ class _Dashboard extends ConsumerWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: AppTheme.space3,
                   crossAxisSpacing: AppTheme.space3,
-                  mainAxisExtent: _kpiTileExtent(context),
+                  // Height from the scaled type scale, not a
+                  // `childAspectRatio`: a ratio ties tile height to the
+                  // column split, and at 1.3x text with a two-line Myanmar
+                  // label ("ကြွေးကျန်ငွေ") the old `1.7` clipped a primary
+                  // label to an ellipsis.
+                  mainAxisExtent: StatCard.gridExtent(context),
                 ),
                 children: profitTiles,
               ),

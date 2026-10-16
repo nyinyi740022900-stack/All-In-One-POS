@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/net/edge_invoke.dart';
+import 'admin_storage_model.dart';
 
 class ExtendLicenseResult {
   const ExtendLicenseResult({
@@ -206,6 +207,31 @@ class AdminApi {
       },
     );
     _throwIfError(res);
+  }
+
+  /// What each shop costs to keep in the cloud — rows and photos, largest
+  /// first. Read-only.
+  Future<StorageReport> storageReport() async {
+    final res = await _c.functions.invokeBounded(
+      'admin',
+      body: {'action': 'storage_report'},
+    );
+    _throwIfError(res);
+    final report = (res.data as Map)['report'];
+    return StorageReport.fromJson(
+      report is Map ? report.cast<String, dynamic>() : const {},
+    );
+  }
+
+  /// The nightly `storage-sweep` run's dry run: the unused product photos it
+  /// would delete now. Computed by the same server code. Never deletes.
+  Future<OrphanPhotos> photoOrphans() async {
+    final res = await _c.functions.invokeBounded(
+      'admin',
+      body: {'action': 'photo_orphans'},
+    );
+    _throwIfError(res);
+    return OrphanPhotos.fromJson((res.data as Map).cast<String, dynamic>());
   }
 
   void _throwIfError(FunctionResponse res) {

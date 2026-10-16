@@ -1,12 +1,5 @@
 part of 'admin_dashboard_screen.dart';
 
-double _adminKpiExtent(BuildContext context) {
-  final scaler = MediaQuery.textScalerOf(context);
-  final labelBlock = math.max(32.0, scaler.scale(12) * 1.45 * 2);
-  final valueLine = scaler.scale(19) * 1.35;
-  return AppTheme.space3 * 2 + labelBlock + AppTheme.space2 + valueLine;
-}
-
 class _OverviewPage extends StatelessWidget {
   const _OverviewPage({
     required this.stats,
@@ -36,7 +29,7 @@ class _OverviewPage extends StatelessWidget {
             crossAxisCount: cols,
             mainAxisSpacing: AppTheme.space3,
             crossAxisSpacing: AppTheme.space3,
-            mainAxisExtent: _adminKpiExtent(context),
+            mainAxisExtent: StatCard.gridExtent(context),
           ),
           children: [
             StatCard(
