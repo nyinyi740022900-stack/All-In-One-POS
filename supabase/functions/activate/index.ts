@@ -440,6 +440,73 @@ export async function deleteExistingShopRows(
   }
   return true;
 }
+/// Shop files live under `{shop_id}/` in both buckets: product photos and
+/// logos in `product-images`, storefront customers' transfer screenshots in
+/// `payment-proofs`. Deleting only the rows left those files behind, so a
+/// deleted shop's customers' payment screenshots outlived it. An owner's own
+/// Premium payment proofs sit under `_admin/` and are kept as billing records.
+const shopFileBuckets = ["product-images", "payment-proofs"];
+async function clearShopFileFolder(
+  admin: AccountAdmin,
+  bucket: string,
+  prefix: string,
+): Promise<boolean> {
+  const store = admin.storage.from(bucket);
+  for (;;) {
+    const { data, error } = await store.list(prefix, { limit: 1000 });
+    if (error || !Array.isArray(data)) return false;
+    if (data.length === 0) return true;
+    const files: string[] = [];
+    for (const object of data) {
+      const name = object.name;
+      if (
+        typeof name !== "string" || !name || name.includes("/") ||
+        name === "." || name === ".."
+      ) return false;
+      const path = `${prefix}/${name}`;
+      // Storage returns virtual folders with a null id; removing the folder
+      // name alone succeeds without deleting any of the objects below it.
+      if (object.id === null) {
+        if (!await clearShopFileFolder(admin, bucket, path)) return false;
+      } else {
+        files.push(path);
+      }
+    }
+    if (files.length && (await store.remove(files)).error) return false;
+    // Re-list at the start after deletions, including the last short page.
+  }
+}
+export async function deleteShopFiles(
+  admin: AccountAdmin,
+  ids: Set<string>,
+  ownerUserId?: string,
+): Promise<boolean> {
+  if (ownerUserId) {
+    // A URL entered by a shop is not proof that it owns an old flat object.
+    // The service-only RPC checks the actual Storage uploader instead.
+    for (;;) {
+      const { data, error } = await admin.rpc("account_legacy_product_files", {
+        p_owner_user_id: ownerUserId,
+      });
+      if (error || !Array.isArray(data)) return false;
+      if (data.length === 0) break;
+      const names = data.map((o: { name: string }) => o.name);
+      if (
+        names.some((n: unknown) =>
+          typeof n !== "string" || !n || n.includes("/")
+        )
+      ) return false;
+      const removed = await admin.storage.from("product-images").remove(names);
+      if (removed.error) return false;
+    }
+  }
+  for (const id of ids) {
+    for (const bucket of shopFileBuckets) {
+      if (!await clearShopFileFolder(admin, bucket, id)) return false;
+    }
+  }
+  return true;
+}
 async function deleteAccount(
   admin: AccountAdmin,
   user: AccountUser,
@@ -504,6 +571,13 @@ async function deleteAccount(
   }
   const users = await allUsers(admin);
   if (!await deleteExistingShopRows(admin, ids)) return failure("server_error");
+  if (!await deleteShopFiles(admin, ids, user.id)) {
+    return failure("server_error");
+  }
+  const released = await admin.rpc("release_deleted_account_storage", {
+    p_owner_user_id: user.id,
+  });
+  if (released.error || released.data !== true) return failure("server_error");
   for (const target of users) {
     if (
       target.id !== user.id && target.app_metadata?.role === "staff" &&

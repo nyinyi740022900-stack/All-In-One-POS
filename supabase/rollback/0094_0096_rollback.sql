@@ -24,6 +24,19 @@
 
 begin;
 
+-- 0102's owner-only write policies call auth_is_shop_owner(), which calls
+-- account_shop_role(); drop them before the functions go, and put back the
+-- pre-0102 shop-wide policies below by re-running 0026/0072.
+drop policy if exists owner_insert on staff_permissions;
+drop policy if exists owner_update on staff_permissions;
+drop policy if exists owner_delete on staff_permissions;
+drop policy if exists owner_insert on staff_members;
+drop policy if exists owner_update on staff_members;
+drop policy if exists owner_delete on staff_members;
+drop function if exists auth_is_shop_owner();
+drop function if exists account_legacy_product_files(uuid);
+drop function if exists release_deleted_account_storage(uuid);
+
 -- Tables they added, before the functions: the policies on these tables call
 -- those functions, so dropping the functions first is refused.  Nothing from
 -- 0093 references these tables, so the cascade only reaches the new objects'
@@ -85,5 +98,9 @@ drop policy if exists proof_account_upload on storage.objects;
 \ir ../migrations/0066_scoped_payment_proofs.sql
 \ir ../migrations/0068_proof_folder_shop_id_shape.sql
 \ir ../migrations/0069_license_request_receipt.sql
+--   0026/0072 — staff_members / staff_permissions `shop_isolation` for all
+--          operations, which 0102 narrowed to reads plus owner-only writes
+\ir ../migrations/0026_staff_members.sql
+\ir ../migrations/0072_staff_permissions.sql
 
 commit;

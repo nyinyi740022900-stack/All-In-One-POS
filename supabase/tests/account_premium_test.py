@@ -54,6 +54,12 @@ class Authority(unittest.TestCase):
             self.assertIn('trial_already_used',self.sql(f"select start_account_trial('{owner}','new-{index}')",False).stderr)
         self.assertEqual(self.sql("select count(*) from account_trial_claims where shop_id='shop-5bd659ab60b5'").stdout.strip(), '2')
 
+    def test_account_deletion_removes_trial_claim_as_disclosed(self):
+        self.sql(f"select start_account_trial('{OWNER}','a')")
+        self.assertEqual(self.sql(f"select count(*) from account_trial_claims where owner_user_id='{OWNER}'").stdout.strip(), '1')
+        self.sql(f"delete from auth.users where id='{OWNER}'")
+        self.assertEqual(self.sql(f"select count(*) from account_trial_claims where owner_user_id='{OWNER}'").stdout.strip(), '0')
+
     def test_orphan_subscription_cannot_receive_paid_renewal(self):
         self.sql("insert into shop_subscriptions(shop_id,shop_name) values('orphan','Legacy shop')")
         self.assertIn('ownership_verification_required',self.sql("select renew_shop_subscription('orphan',1,'orphan-payment')",False).stderr)
@@ -135,6 +141,45 @@ class Authority(unittest.TestCase):
         self.assertEqual(self.sql(claims+"select count(*) from business_rows").stdout.strip().splitlines()[-1],'2')
         self.sql(f"select release_shop_device('{OWNER}','a','d1')")
         self.assertEqual(self.sql(claims+"select count(*) from business_rows").stdout.strip().splitlines()[-1],'0')
+    def test_staff_admin_writes_are_owner_only(self):
+        staff = '00000000-0000-0000-0000-000000000004'
+        owner_session = '00000000-0000-0000-0000-000000000098'
+        staff_session = '00000000-0000-0000-0000-000000000097'
+        other_session = '00000000-0000-0000-0000-000000000096'
+        # Shapes and the original shop-wide policies of 0026/0072, then 0102.
+        self.sql("""
+          create table staff_members(id text primary key, shop_id text not null, name text not null, pin text not null, active boolean not null default true, email text, is_deleted boolean not null default false);
+          create table staff_permissions(id text primary key, shop_id text not null, staff_member_id text not null, capability text not null, is_deleted boolean not null default false);
+          alter table staff_members enable row level security; alter table staff_permissions enable row level security;
+          create policy shop_isolation on staff_members for all to authenticated using(shop_id=auth_shop_id()) with check(shop_id=auth_shop_id());
+          create policy shop_isolation on staff_permissions for all to authenticated using(shop_id=auth_shop_id()) with check(shop_id=auth_shop_id());
+          grant all on staff_members, staff_permissions to authenticated;
+          insert into staff_members(id,shop_id,name,pin,email) values('m1','a','Cashier','v1:x','staff@example.com'),('mb','b','Other','v1:y',null);
+          insert into staff_permissions values('p1','a','m1','analytics',false),('pb','b','mb','analytics',false);
+        """)
+        self.sql((ROOT/'supabase/migrations/0102_owner_only_staff_admin.sql').read_text())
+        self.sql(f"insert into auth.users(id,email,raw_app_meta_data) values('{staff}','staff@example.com','{{\"shop_id\":\"a\",\"role\":\"staff\"}}'); select start_account_trial('{OWNER}','a'); select start_account_trial('{OTHER}','b'); select register_shop_device('{OWNER}','a','d1',false,'{owner_session}'); select register_shop_device('{staff}','a','staff-device',false,'{staff_session}'); select register_shop_device('{OTHER}','b','b1',false,'{other_session}');")
+        def as_user(user, shop, session):
+            return f"set role authenticated; set request.jwt.claim.sub='{user}'; set request.jwt.claims='{{\"sub\":\"{user}\",\"session_id\":\"{session}\",\"app_metadata\":{{\"shop_id\":\"{shop}\"}}}}'; "
+        staff_sql, owner_sql = as_user(staff,'a',staff_session), as_user(OWNER,'a',owner_session)
+        last = lambda p: p.stdout.strip().splitlines()[-1]
+        # Staff still reads its own shop's roster and grants, and nothing else.
+        self.assertEqual(last(self.sql(staff_sql+"select count(*) from staff_members")),'1')
+        self.assertEqual(last(self.sql(staff_sql+"select count(*) from staff_permissions")),'1')
+        # Staff can neither grant itself a capability nor rewrite a PIN/email.
+        self.assertNotEqual(self.sql(staff_sql+"insert into staff_permissions values('p2','a','m1','branches',false)",False).returncode,0)
+        self.sql(staff_sql+"update staff_permissions set capability='license' where id='p1'")
+        self.sql(staff_sql+"update staff_members set pin='v1:mine', email='me@example.com' where id='m1'")
+        self.sql(staff_sql+"delete from staff_permissions where id='p1'")
+        self.assertEqual(self.sql("select capability from staff_permissions where id='p1'").stdout.strip(),'analytics')
+        self.assertEqual(self.sql("select pin||'|'||email from staff_members where id='m1'").stdout.strip(),'v1:x|staff@example.com')
+        # The owner keeps full administration of its own shop only.
+        self.sql(owner_sql+"insert into staff_permissions values('p2','a','m1','branches',false); update staff_members set pin='v1:new' where id='m1';")
+        self.assertEqual(self.sql("select count(*) from staff_permissions where shop_id='a'").stdout.strip(),'2')
+        self.assertEqual(self.sql("select pin from staff_members where id='m1'").stdout.strip(),'v1:new')
+        self.assertNotEqual(self.sql(owner_sql+"insert into staff_permissions values('p3','b','mb','branches',false)",False).returncode,0)
+        self.sql(owner_sql+"update staff_members set pin='v1:hijack' where id='mb'")
+        self.assertEqual(self.sql("select pin from staff_members where id='mb'").stdout.strip(),'v1:y')
     def test_migration_preserves_paid_expiry_devices_and_consumed_trials(self):
         self.reset_legacy_schema()
         self.sql(f"insert into auth.users(id,email,raw_app_meta_data) values('{OWNER}','owner@example.com','{{\"role\":\"owner\",\"shop_id\":\"legacy\"}}'); insert into org_branches(owner_user_id,shop_id) values('{OWNER}','legacy'); insert into licenses(shop_id,plan,expires_at,device_id,is_deleted) values('legacy','monthly','2030-01-31Z','old1',false),('legacy','yearly','2031-01-31Z','old2',false),('legacy','trial','2020-01-31Z',null,true),('archived','yearly','2040-01-31Z','removed',true); ")

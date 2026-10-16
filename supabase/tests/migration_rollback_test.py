@@ -18,7 +18,8 @@ ACCOUNT = ('0094_account_premium', '0095_account_billing', '0096_social_accounts
            '0097_gateway_checkout_guard', '0098_mmpay_checkouts',
            '0099_reclaim_expired_checkouts',
            '0100_reuse_across_plan_change',
-           '0101_expiry_notices')
+           '0101_expiry_notices', '0102_owner_only_staff_admin',
+           '0103_account_legacy_files')
 ROLLBACK = ROOT / 'supabase/rollback/0094_0096_rollback.sql'
 
 from supabase.tests.migration_chain_test import PLATFORM, LEGACY, LEGACY_SHOPS

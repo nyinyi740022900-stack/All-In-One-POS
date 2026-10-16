@@ -18,7 +18,8 @@ ACCOUNT_MIGRATIONS = ('0094_account_premium', '0095_account_billing', '0096_soci
                       '0097_gateway_checkout_guard', '0098_mmpay_checkouts',
                       '0099_reclaim_expired_checkouts',
                       '0100_reuse_across_plan_change',
-                      '0101_expiry_notices')
+                      '0101_expiry_notices', '0102_owner_only_staff_admin',
+                      '0103_account_legacy_files')
 
 # What a hosted Supabase project already has before the first project migration
 # runs. This is a stand-in for the platform, not a project migration: only the
@@ -140,6 +141,58 @@ class MigrationChain(unittest.TestCase):
 
     def setUp(self):
         self.fresh_platform()
+
+    def test_legacy_file_lookup_is_owned_paged_and_service_only(self):
+        self.apply(MIGRATIONS)
+        self.sql(f"""
+          insert into auth.users(id,email) values
+           ('{OWNER_A}','a@example.com'),('{OWNER_B}','b@example.com');
+          insert into auth.users(id,email,raw_app_meta_data) values
+           ('44444444-4444-4444-4444-444444444444','staff@example.com',
+            '{{"role":"staff","shop_id":"shop-a"}}');
+          insert into auth.users(id,is_anonymous,raw_app_meta_data) values
+           ('55555555-5555-5555-5555-555555555555',true,'{{"shop_id":"shop-a"}}');
+          insert into shop_subscriptions(shop_id,owner_user_id,shop_name) values
+           ('shop-a','{OWNER_A}','A'),('shop-b','{OWNER_B}','B'),
+           ('shop-a-branch','{OWNER_A}','Branch');
+          insert into storage.objects(bucket_id,name,owner) values
+           ('product-images','p-owner-a.jpg','{OWNER_A}'),
+           ('product-images','logo-staff-a.jpg','44444444-4444-4444-4444-444444444444'),
+           ('product-images','p-anon-a.jpg','55555555-5555-5555-5555-555555555555'),
+           ('product-images','p-owner-b.jpg','{OWNER_B}'),
+           ('product-images','unattributed.jpg',null),
+           ('product-images','shop-a/scoped.jpg','{OWNER_A}');
+          insert into storage.objects(bucket_id,name,owner) values
+           ('product-images','transferred.jpg','{OWNER_A}');
+          insert into products(id,shop_id,name,image_url) values
+           ('foreign-photo','shop-b','Transferred product',
+            'https://example.com/storage/v1/object/public/product-images/transferred.jpg');
+        """)
+        rows = self.sql(f"set role service_role; select name from account_legacy_product_files('{OWNER_A}') order by name").stdout.strip().splitlines()
+        self.assertEqual(rows[-3:], ['logo-staff-a.jpg', 'p-anon-a.jpg', 'p-owner-a.jpg'])
+        denied = self.sql(f"set role authenticated; select * from account_legacy_product_files('{OWNER_A}')", check=False)
+        self.assertNotEqual(denied.returncode, 0)
+        self.sql("alter table storage.objects add column owner_id text")
+        self.sql(f"insert into storage.objects(bucket_id,name,owner_id) values('product-images','p-modern-owner.jpg','{OWNER_A}')")
+        self.assertIn('p-modern-owner.jpg', self.sql(f"select name from account_legacy_product_files('{OWNER_A}')").stdout)
+        self.sql(f"insert into storage.objects(bucket_id,name,owner,owner_id) values('product-images','other-owner-wins.jpg','{OWNER_A}','{OWNER_B}')")
+        self.assertNotIn('other-owner-wins.jpg', self.sql(f"select name from account_legacy_product_files('{OWNER_A}')").stdout)
+        self.sql(f"insert into storage.objects(bucket_id,name,owner) select 'product-images','batch-'||n||'.jpg','{OWNER_A}'::uuid from generate_series(1,1500) n")
+        self.assertEqual(self.value(f"select count(*) from account_legacy_product_files('{OWNER_A}')"), '1000')
+        # Model the hosted Auth/Storage ownership restriction, missing from
+        # this minimal platform fixture unless explicitly enabled here.
+        self.sql("alter table storage.objects add constraint objects_owner_fkey foreign key(owner) references auth.users(id)")
+        self.sql(f"insert into storage.objects(bucket_id,name,owner,owner_id) values('payment-proofs','_admin/{OWNER_A}/billing.jpg','{OWNER_A}','{OWNER_A}')")
+        self.assertNotEqual(self.sql(f"delete from auth.users where id='{OWNER_A}'", check=False).returncode, 0)
+        self.assertNotEqual(self.sql(f"select release_deleted_account_storage('{OWNER_A}')", check=False).returncode, 0,
+                            'ownership may only be detached after all owned shops are archived')
+        self.sql(f"update shop_subscriptions set is_archived=true where owner_user_id='{OWNER_A}'")
+        self.sql(f"set role service_role; select release_deleted_account_storage('{OWNER_A}')")
+        self.assertEqual(self.value("select count(*) from storage.objects where name='transferred.jpg' and owner is null and owner_id is null"), '1')
+        self.assertEqual(self.value(f"select count(*) from storage.objects where name='_admin/{OWNER_A}/billing.jpg' and owner is null and owner_id is null"), '1')
+        self.assertEqual(self.value("select owner_id from storage.objects where name='other-owner-wins.jpg'"), OWNER_B)
+        self.sql(f"delete from auth.users where id='{OWNER_A}'")
+        self.assertEqual(self.value(f"select count(*) from auth.users where id='{OWNER_B}'"), '1')
 
     def test_whole_chain_applies_to_an_empty_project(self):
         self.apply(MIGRATIONS)
