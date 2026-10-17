@@ -27,6 +27,16 @@ nonce. The server decodes it with Google and records a verdict in
 
 Device integrity (root checks) is recorded, never required.
 
+## Status (2026-10-17)
+
+Steps 1 and 5 are done: project `All In One POS` (489533828390,
+`solid-groove-510702-p8`, owned by `allinonepos.mm@gmail.com`; the Play
+account `nyinyi740022900@gmail.com` was made Owner so Play Console could see
+it) is linked, the API is enabled, the project number is in `env.local.json`
+and the CI secret. Step 2's service account exists
+(`play-integrity-verifier@solid-groove-510702-p8.iam.gserviceaccount.com`).
+**Left: step 3–4 (JSON key → `PLAY_INTEGRITY_SA_JSON`), then build ≥ 9.**
+
 ## Owner setup (once)
 
 1. **Play Console → Test and release → App integrity → Play Integrity API →
