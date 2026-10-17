@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/integrity/play_integrity.dart';
 import '../../core/net/edge_invoke.dart';
 
 /// The invoke bound now lives with the transport it applies to — see
@@ -111,7 +112,8 @@ Future<FunctionResponse> invokeActivate(Map<String, dynamic> body) async {
   }
   return client.functions.invokeBounded(
     'activate',
-    body: body,
+    // Trial / Premium-receipt calls carry Play Integrity attestation.
+    body: await PlayIntegrity.attach(body),
     headers: {if (token != null) 'Authorization': 'Bearer $token'},
   );
 }

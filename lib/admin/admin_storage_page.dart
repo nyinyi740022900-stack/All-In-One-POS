@@ -64,6 +64,10 @@ class _StoragePageState extends State<_StoragePage> {
         return _StorageBody(
           report: report,
           orphans: orphans,
+          integrity: _IntegrityCard(
+            api: widget.api,
+            reloadToken: widget.reloadToken,
+          ),
           names: {
             for (final s in widget.shops)
               '${s['shop_id']}': '${s['shop_name'] ?? s['shop_id']}',
@@ -79,8 +83,10 @@ class _StorageBody extends StatelessWidget {
     required this.report,
     required this.orphans,
     required this.names,
+    this.integrity,
   });
 
+  final Widget? integrity;
   final StorageReport report;
   final OrphanPhotos orphans;
   final Map<String, String> names;
@@ -234,7 +240,126 @@ class _StorageBody extends StatelessWidget {
             ),
           ),
         ),
+        if (integrity != null) ...[
+          const SizedBox(height: AppTheme.space3),
+          integrity!,
+        ],
       ],
+    );
+  }
+}
+
+/// Play Integrity verdicts, last 7 days — what decides whether
+/// `integrity.android_mode` (Config) can move from monitor to enforce.
+/// Fetches on its own so a slow or failing read never holds up the storage
+/// figures above it.
+class _IntegrityCard extends StatefulWidget {
+  const _IntegrityCard({required this.api, required this.reloadToken});
+
+  final AdminApi api;
+  final int reloadToken;
+
+  @override
+  State<_IntegrityCard> createState() => _IntegrityCardState();
+}
+
+class _IntegrityCardState extends State<_IntegrityCard> {
+  late Future<IntegritySummary> _data = widget.api.integritySummary();
+
+  @override
+  void didUpdateWidget(_IntegrityCard old) {
+    super.didUpdateWidget(old);
+    if (old.reloadToken != widget.reloadToken) {
+      _data = widget.api.integritySummary();
+    }
+  }
+
+  static const _labels = {
+    'pass': 'From Play',
+    'pass_sideload': 'Our APK, not from Play',
+    'fail': 'Failed',
+    'unavailable': 'No Play services / no token',
+    'missing': 'Sent nothing',
+    'not_configured': 'Server not set up',
+    'error': 'Google check errored',
+    'not_android': 'iPhone / web / desktop',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: FutureBuilder<IntegritySummary>(
+          future: _data,
+          builder: (context, snap) {
+            final s = snap.data;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(title: 'App integrity (last 7 days)'),
+                if (snap.hasError)
+                  Text('Could not load: ${_adminErrorMessage(snap.error!)}')
+                else if (s == null)
+                  const LinearProgressIndicator()
+                else ...[
+                  Text(
+                    s.mode == 'enforce'
+                        ? 'Enforcing: Android trials and Premium receipts are '
+                              'refused to copies that fail Play Integrity.'
+                        : 'Monitoring only: every verdict is recorded, nothing '
+                              'is blocked. Switch integrity.android_mode to '
+                              'enforce in Config once real shops pass.',
+                    style: muted,
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  if (s.total == 0)
+                    const Text('No checks recorded yet.')
+                  else
+                    for (final e in s.counts.entries)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(_labels[e.key] ?? e.key),
+                        trailing: Text(
+                          '${e.value}',
+                          style: const TextStyle(
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                  if (s.recentFailures.isNotEmpty)
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      shape: const Border(),
+                      collapsedShape: const Border(),
+                      title: Text(
+                        'Latest failures (${s.recentFailures.length})',
+                      ),
+                      children: [
+                        for (final f in s.recentFailures)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SelectableText(
+                              '${f['created_at']} · ${f['action']} · '
+                              '${f['reason'] ?? f['app_verdict'] ?? ''} · '
+                              'shop ${f['shop_id']} · build ${f['app_build']}',
+                              style: muted,
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

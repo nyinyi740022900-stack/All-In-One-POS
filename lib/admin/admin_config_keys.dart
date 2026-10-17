@@ -36,6 +36,12 @@ const Map<String, String> kAdminConfigKeys = {
   // here, and must never be.
   'pay.lemonsqueezy.variant_monthly': 'Lemon Squeezy monthly variant id',
   'pay.lemonsqueezy.variant_yearly': 'Lemon Squeezy yearly variant id',
+
+  // --- App integrity -------------------------------------------------------
+  // "monitor" records every Play Integrity verdict and blocks nothing;
+  // "enforce" refuses trials and Premium receipts to Android copies that fail
+  // attestation. Public on purpose (the app reads nothing secret from it).
+  'integrity.android_mode': 'Play Integrity on Android: monitor or enforce',
 };
 
 /// Longest licence term the admin console will submit, in months — the mirror

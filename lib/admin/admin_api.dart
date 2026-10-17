@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/net/edge_invoke.dart';
 import 'admin_storage_model.dart';
+import 'admin_integrity_model.dart';
 
 class ExtendLicenseResult {
   const ExtendLicenseResult({
@@ -232,6 +233,17 @@ class AdminApi {
     );
     _throwIfError(res);
     return OrphanPhotos.fromJson((res.data as Map).cast<String, dynamic>());
+  }
+
+  /// Last 7 days of Play Integrity verdicts on Android trial / Premium
+  /// receipt calls, and the current mode. Read-only.
+  Future<IntegritySummary> integritySummary() async {
+    final res = await _c.functions.invokeBounded(
+      'admin',
+      body: {'action': 'integrity_summary'},
+    );
+    _throwIfError(res);
+    return IntegritySummary.fromJson((res.data as Map).cast<String, dynamic>());
   }
 
   void _throwIfError(FunctionResponse res) {

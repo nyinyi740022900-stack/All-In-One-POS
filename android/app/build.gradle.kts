@@ -89,6 +89,9 @@ kotlin {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Play Integrity (standard requests) — attests trial / Premium receipt
+    // calls to the activate Edge Function. See MainActivity.kt.
+    implementation("com.google.android.play:integrity:1.4.0")
 }
 
 flutter {

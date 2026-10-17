@@ -79,12 +79,15 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # Public Cloud project NUMBER for Play Integrity (docs/play_integrity_setup.md).
+          PLAY_INTEGRITY_CLOUD_PROJECT: ${{ secrets.PLAY_INTEGRITY_CLOUD_PROJECT }}
         run: |
           cat > env.ci.json <<JSON
           {
             "SUPABASE_URL": "${SUPABASE_URL}",
             "SUPABASE_ANON_KEY": "${SUPABASE_ANON_KEY}",
-            "SENTRY_DSN": "${SENTRY_DSN}"
+            "SENTRY_DSN": "${SENTRY_DSN}",
+            "PLAY_INTEGRITY_CLOUD_PROJECT": "${PLAY_INTEGRITY_CLOUD_PROJECT}"
           }
           JSON
           echo "Wrote env.ci.json (secret values redacted)"

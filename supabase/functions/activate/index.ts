@@ -14,6 +14,13 @@ import {
   trustedShopId,
 } from "../_shared/account_premium.ts";
 
+import {
+  allowCall,
+  checkIntegrity,
+  GATED_ACTIONS,
+  IntegrityResult,
+  parseMode,
+} from "../_shared/play_integrity.ts";
 import { verifySocialReauthentication } from "./social_reauth.ts";
 
 type Body = Record<string, unknown>;
@@ -179,6 +186,16 @@ export async function handleAccountAction(
     ].includes(action)
   ) {
     if (!deviceId) return failure("bad_request");
+    if (GATED_ACTIONS.has(action)) {
+      // Before the RPC: a trial can be claimed once, and a device slot is a
+      // limited thing — neither should go to a copy that fails attestation.
+      const allowed = await attestCall(admin, body, action, {
+        userId: user.id,
+        shopId,
+        deviceId,
+      });
+      if (!allowed) return failure("integrity_failed");
+    }
     if (action === "switch_branch" && role !== "owner") {
       return failure("forbidden");
     }
@@ -288,6 +305,56 @@ export async function handleAccountAction(
   }
   return failure("unknown_action");
 }
+/** Runs Play Integrity for a gated call, records the verdict, and says
+ * whether the call may go on (always, unless app_config
+ * `integrity.android_mode` is "enforce"). A reused nonce is a replay. */
+async function attestCall(
+  admin: AccountAdmin,
+  body: Body,
+  action: string,
+  who: { userId: string; shopId: string; deviceId: string },
+): Promise<boolean> {
+  let result: IntegrityResult = await checkIntegrity(
+    body,
+    action,
+    who.deviceId,
+  );
+  const { data: cfg } = await admin.from("app_config").select("value").eq(
+    "key",
+    "integrity.android_mode",
+  ).maybeSingle();
+  const mode = parseMode(cfg?.value);
+  const appBuild = Number(body.app_build ?? 0) || 0;
+  const nonce = value(body, "integrity_nonce");
+  const row = {
+    user_id: who.userId,
+    shop_id: who.shopId,
+    device_id: who.deviceId,
+    action,
+    platform: value(body, "platform").slice(0, 16) || null,
+    app_build: appBuild || null,
+    verdict: result.verdict,
+    reason: result.reason ?? null,
+    app_verdict: result.appVerdict ?? null,
+    device_verdict: result.deviceVerdict || null,
+    licensing_verdict: result.licensingVerdict ?? null,
+    version_code: result.versionCode ?? null,
+    nonce: result.verdict === "not_android" || !nonce ? null : nonce,
+    mode,
+  };
+  const { error } = await admin.from("integrity_checks").insert(row);
+  if (error?.code === "23505") {
+    result = { verdict: "fail", reason: "replay" };
+    await admin.from("integrity_checks").insert({
+      ...row,
+      verdict: "fail",
+      reason: "replay",
+      nonce: null,
+    });
+  }
+  return allowCall(mode, result, appBuild);
+}
+
 function authError(error: { message?: string }): string {
   return /already|registered/i.test(error.message ?? "")
     ? "email_taken"

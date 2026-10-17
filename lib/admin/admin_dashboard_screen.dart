@@ -13,6 +13,7 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/app_widgets.dart';
 import '../features/support/viber_launch.dart';
 import 'admin_api.dart';
+import 'admin_integrity_model.dart';
 import 'admin_stats.dart';
 import 'admin_storage_model.dart';
 

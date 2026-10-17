@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/net/edge_invoke.dart';
 
 import '../../core/env.dart';
+import '../../core/integrity/play_integrity.dart';
 import '../../data/local/database.dart';
 import '../../data/local/shop_data_transition_service.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -436,13 +437,13 @@ class BranchRepository {
       onStep?.call(BranchSwitchStep.switchingAccountClaim);
       final res = await Supabase.instance.client.functions.invokeBounded(
         'activate',
-        body: {
+        body: await PlayIntegrity.attach({
           'action': 'switch_branch',
           'shop_id': shopId,
           'device_id': await _settings.deviceId(),
           'reclaim_device': true,
           'switch_token': token,
-        },
+        }),
       );
       data = res.data as Map<String, dynamic>;
     } catch (e) {

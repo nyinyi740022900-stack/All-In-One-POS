@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_pos/admin/admin_api.dart';
 import 'package:mm_pos/admin/admin_dashboard_screen.dart';
+import 'package:mm_pos/admin/admin_integrity_model.dart';
 import 'package:mm_pos/admin/admin_storage_model.dart';
 import 'package:mm_pos/core/theme/app_theme.dart';
 import 'package:mm_pos/core/widgets/app_widgets.dart';
@@ -48,6 +49,22 @@ class _FakeApi extends AdminApi {
       'unfoldered_photo_bytes': 4 * 1024 * 1024,
     });
   }
+
+  @override
+  Future<IntegritySummary> integritySummary() async =>
+      IntegritySummary.fromJson({
+        'mode': 'monitor',
+        'counts': {'pass': 12, 'pass_sideload': 3, 'fail': 1, 'not_android': 4},
+        'recent_failures': [
+          {
+            'created_at': '2026-10-17T03:00:00Z',
+            'action': 'start_trial',
+            'reason': 'certificate',
+            'shop_id': 'shop-x',
+            'app_build': 9,
+          },
+        ],
+      });
 
   @override
   Future<OrphanPhotos> photoOrphans() async => OrphanPhotos.fromJson({
@@ -121,5 +138,25 @@ void main() {
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
     expect(find.text('Zay Shae'), findsOneWidget);
+  });
+
+  testWidgets('Storage shows the Play Integrity verdicts and the mode', (
+    tester,
+  ) async {
+    await _openStorage(tester, _FakeApi());
+    final card = find.text('App integrity (last 7 days)');
+    await tester.scrollUntilVisible(
+      card,
+      300,
+      scrollable: find
+          .ancestor(of: find.text('By shop'), matching: find.byType(Scrollable))
+          .first,
+    );
+    expect(find.textContaining('Monitoring only'), findsOneWidget);
+    expect(find.text('From Play'), findsOneWidget);
+    expect(find.text('Our APK, not from Play'), findsOneWidget);
+    expect(find.text('Failed'), findsOneWidget);
+    expect(find.text('Latest failures (1)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

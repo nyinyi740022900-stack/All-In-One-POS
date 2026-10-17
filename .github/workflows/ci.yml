@@ -124,6 +124,8 @@ jobs:
           supabase/functions/tests/gateway_mode_test.ts
           supabase/functions/tests/mmpay_test.ts
           supabase/functions/tests/photo_sweep_test.ts
+          supabase/functions/tests/play_integrity_test.ts
+          supabase/functions/activate/integrity_gate_test.ts
           supabase/functions/sync_force_apply/account_gate_test.ts
 
   account_sql:

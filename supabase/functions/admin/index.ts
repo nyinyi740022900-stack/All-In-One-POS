@@ -41,6 +41,9 @@ const PUBLIC_CONFIG_KEYS = new Set([
   "support.viber",
   "pay.lemonsqueezy.variant_monthly",
   "pay.lemonsqueezy.variant_yearly",
+  // Play Integrity on Android trial/receipt calls: monitor (log only) or
+  // enforce (refuse a failing attestation). See _shared/play_integrity.ts.
+  "integrity.android_mode",
 ]);
 
 /// Validates a caller-supplied month count, returning it or an error string.
@@ -294,6 +297,29 @@ Deno.serve(async (req) => {
       if (error) return json({ error: "server_error" }, 500);
       return json({ report: data });
     }
+    case "integrity_summary": {
+      // Last 7 days of Play Integrity verdicts, for deciding when "monitor"
+      // can become "enforce": counts by verdict, plus the latest failures.
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data, error } = await admin.from("integrity_checks").select(
+        "created_at, shop_id, action, platform, app_build, verdict, reason, app_verdict, device_verdict",
+      ).gte("created_at", since).order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) return json({ error: "server_error" }, 500);
+      const counts: Record<string, number> = {};
+      for (const r of data ?? []) counts[r.verdict] = (counts[r.verdict] ?? 0) + 1;
+      const { data: cfg } = await admin.from("app_config").select("value").eq(
+        "key",
+        "integrity.android_mode",
+      ).maybeSingle();
+      return json({
+        mode: cfg?.value || "monitor",
+        counts,
+        recent_failures: (data ?? []).filter((r) => r.verdict === "fail")
+          .slice(0, 20),
+      });
+    }
+
     case "photo_orphans": {
       // The storage-sweep schedule's dry run: exactly the photos tonight's
       // run would delete, computed by the same code. Never deletes.
@@ -384,7 +410,9 @@ Deno.serve(async (req) => {
           typeof value !== "string" ||
           (key.startsWith("pay.lemonsqueezy.variant_") && value.trim() !== "" &&
             (!/^[1-9]\d*$/.test(value.trim()) ||
-              !Number.isSafeInteger(Number(value))))
+              !Number.isSafeInteger(Number(value)))) ||
+          (key === "integrity.android_mode" &&
+            !["monitor", "enforce"].includes(value.trim()))
         )
       ) return json({ error: "invalid_config_value" }, 400);
       const rows = entries.map(([key, value]) => ({
